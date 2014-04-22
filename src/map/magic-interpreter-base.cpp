@@ -58,14 +58,14 @@ static
 void set_entity(val_t *v, dumb_ptr<block_list> e)
 {
     v->ty = TYPE::ENTITY;
-    v->v.v_int = e->bl_id;
+    v->v.v_int = static_cast<int32_t>(unwrap<BlockId>(e->bl_id));
 }
 
 static
 void set_invocation(val_t *v, dumb_ptr<invocation> i)
 {
     v->ty = TYPE::INVOCATION;
-    v->v.v_int = i->bl_id;
+    v->v.v_int = static_cast<int32_t>(unwrap<BlockId>(i->bl_id));
 }
 
 static
@@ -208,7 +208,7 @@ void free_components(dumb_ptr<component_t> *component_holder)
     *component_holder = NULL;
 }
 
-void magic_add_component(dumb_ptr<component_t> *component_holder, int id, int count)
+void magic_add_component(dumb_ptr<component_t> *component_holder, ItemNameId id, int count)
 {
     if (count <= 0)
         return;
@@ -449,7 +449,7 @@ dumb_ptr<invocation> spell_instantiate(effect_set_t *effect_set, dumb_ptr<env_t>
 
     retval->env = env;
 
-    retval->caster = env->VAR(VAR_CASTER).v.v_int;
+    retval->caster = wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_CASTER).v.v_int));
     retval->spell = env->VAR(VAR_SPELL).v.v_spell;
     retval->stack_size = 0;
     retval->current_effect = effect_set->effect;
@@ -483,7 +483,7 @@ dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> base)
     dumb_ptr<env_t> env = retval->env = clone_env(base->env);
     retval->spell = base->spell;
     retval->caster = base->caster;
-    retval->subject = 0;
+    retval->subject = BlockId();
     // retval->timer = 0;
     retval->stack_size = 0;
     // retval->stack = undef;
@@ -494,7 +494,7 @@ dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> base)
     retval->end_effect = NULL;
     // retval->status_change_refs = NULL;
 
-    retval->bl_id = 0;
+    retval->bl_id = BlockId();
     retval->bl_prev = NULL;
     retval->bl_next = NULL;
     retval->bl_m = base->bl_m;
@@ -546,7 +546,7 @@ int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invoca
 
             invocation_->flags &= ~INVOCATION_FLAG::BOUND;
             invocation_->next_invocation = NULL;
-            invocation_->subject = 0;
+            invocation_->subject = BlockId();
 
             return 0;
         }

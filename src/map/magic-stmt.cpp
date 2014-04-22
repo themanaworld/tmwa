@@ -108,7 +108,7 @@ void clear_activation_record(cont_activation_record_t *ar)
 }
 
 static
-void invocation_timer_callback(TimerData *, tick_t, int id)
+void invocation_timer_callback(TimerData *, tick_t, BlockId id)
 {
     dumb_ptr<invocation> invocation = map_id_is_spell(id);
 
@@ -202,7 +202,7 @@ void magic_stop_completely(dumb_ptr<map_session_data> c)
 {
     // Zap all status change references to spells
     for (StatusChange i : erange(StatusChange(), StatusChange::MAX_STATUSCHANGE))
-        c->sc_data[i].spell_invocation = 0;
+        c->sc_data[i].spell_invocation = BlockId();
 
     while (c->active_spells)
         spell_free_invocation(c->active_spells);
@@ -212,7 +212,7 @@ void magic_stop_completely(dumb_ptr<map_session_data> c)
         dumb_ptr<invocation> attack_spell = map_id_is_spell(c->attack_spell_override);
         if (attack_spell)
             spell_free_invocation(attack_spell);
-        c->attack_spell_override = 0;
+        c->attack_spell_override = BlockId();
         char_set_weapon_icon(c, 0, StatusChange::ZERO, 0);
         char_set_attack_info(c, interval_t::zero(), 0);
     }
@@ -237,19 +237,19 @@ void try_to_finish_invocation(dumb_ptr<invocation> invocation)
 }
 
 static
-int trigger_spell(int subject, int spell)
+BlockId trigger_spell(BlockId subject, BlockId spell)
 {
     dumb_ptr<invocation> invocation_ = map_id_is_spell(spell);
 
     if (!invocation_)
-        return 0;
+        return BlockId();
 
     invocation_ = spell_clone_effect(invocation_);
 
     spell_bind(map_id_is_player(subject), invocation_);
     magic_clear_var(&invocation_->env->varu[VAR_CASTER]);
     invocation_->env->varu[VAR_CASTER].ty = TYPE::ENTITY;
-    invocation_->env->varu[VAR_CASTER].v.v_int = subject;
+    invocation_->env->varu[VAR_CASTER].v.v_int = static_cast<int32_t>(unwrap<BlockId>(subject));
 
     return invocation_->bl_id;
 }
@@ -265,7 +265,7 @@ void char_update(dumb_ptr<map_session_data> character)
 }
 
 static
-void timer_callback_effect(TimerData *, tick_t, int id, int data)
+void timer_callback_effect(TimerData *, tick_t, BlockId id, int data)
 {
     dumb_ptr<block_list> target = map_id2bl(id);
     if (target)
@@ -291,7 +291,7 @@ void magic_unshroud(dumb_ptr<map_session_data> other_char)
 }
 
 static
-void timer_callback_effect_npc_delete(TimerData *, tick_t, int npc_id)
+void timer_callback_effect_npc_delete(TimerData *, tick_t, BlockId npc_id)
 {
     dumb_ptr<npc_data> effect_npc = map_id_is_npc(npc_id);
     npc_free(effect_npc);
@@ -305,7 +305,7 @@ dumb_ptr<npc_data> local_spell_effect(map_local *m, int x, int y, int effect,
     std::chrono::seconds delay = std::chrono::seconds(30);
     dumb_ptr<npc_data> effect_npc = npc_spawn_text(m, x, y,
             INVISIBLE_NPC, NpcName(), "?"_s);
-    int effect_npc_id = effect_npc->bl_id;
+    BlockId effect_npc_id = effect_npc->bl_id;
 
     entity_effect(effect_npc, effect, tdelay);
     Timer(gettick() + delay,
@@ -341,7 +341,7 @@ static
 int op_instaheal(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> caster = (env->VAR(VAR_CASTER).ty == TYPE::ENTITY)
-        ? map_id2bl(env->VAR(VAR_CASTER).v.v_int) : NULL;
+        ? map_id2bl(wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_CASTER).v.v_int))) : NULL;
     dumb_ptr<block_list> subject = ARGENTITY(0);
     if (!caster)
         caster = subject;
@@ -430,7 +430,7 @@ int op_message(dumb_ptr<env_t>, Slice<val_t> args)
 }
 
 static
-void timer_callback_kill_npc(TimerData *, tick_t, int npc_id)
+void timer_callback_kill_npc(TimerData *, tick_t, BlockId npc_id)
 {
     dumb_ptr<npc_data> npc = map_id_is_npc(npc_id);
     if (npc)
@@ -537,7 +537,7 @@ int op_banish(dumb_ptr<env_t>, Slice<val_t> args)
 }
 
 static
-void record_status_change(dumb_ptr<invocation> invocation_, int bl_id,
+void record_status_change(dumb_ptr<invocation> invocation_, BlockId bl_id,
         StatusChange sc_id)
 {
     status_change_ref_t cr {};
@@ -551,8 +551,8 @@ static
 int op_status_change(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
-    int invocation_id = env->VAR(VAR_INVOCATION).ty == TYPE::INVOCATION
-        ? env->VAR(VAR_INVOCATION).v.v_int : 0;
+    BlockId invocation_id = env->VAR(VAR_INVOCATION).ty == TYPE::INVOCATION
+        ? wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_INVOCATION).v.v_int)) : BlockId();
     dumb_ptr<invocation> invocation_ = map_id_is_spell(invocation_id);
 
     assert (!ARGINT(3));
@@ -563,7 +563,7 @@ int op_status_change(dumb_ptr<env_t> env, Slice<val_t> args)
             static_cast<interval_t>(ARGINT(6)), invocation_id);
 
     if (invocation_ && subject->bl_type == BL::PC)
-        record_status_change(invocation_, subject->bl_id, StatusChange(ARGINT(1)));
+        record_status_change(invocation_, subject->bl_id, static_cast<StatusChange>(ARGINT(1)));
 
     return 0;
 }
@@ -604,7 +604,7 @@ int op_override_attack(dumb_ptr<env_t> env, Slice<val_t> args)
     }
 
     subject->attack_spell_override =
-        trigger_spell(subject->bl_id, env->VAR(VAR_INVOCATION).v.v_int);
+        trigger_spell(subject->bl_id, wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_INVOCATION).v.v_int)));
     subject->attack_spell_charges = charges;
 
     if (subject->attack_spell_override)
@@ -698,7 +698,7 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<area_t> area = ARGAREA(0);
     dumb_ptr<block_list> owner_e = ARGENTITY(1);
-    int monster_id = ARGINT(2);
+    Species monster_id = wrap<Species>(ARGINT(2));
     MonsterAttitude monster_attitude = static_cast<MonsterAttitude>(ARGINT(3));
     int monster_count = ARGINT(4);
     interval_t monster_lifetime = static_cast<interval_t>(ARGINT(5));
@@ -714,7 +714,7 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
         location_t loc;
         magic_random_location(&loc, area);
 
-        int mob_id;
+        BlockId mob_id;
         dumb_ptr<mob_data> mob;
 
         mob_id = mob_once_spawn(owner, loc.m->name_, loc.x, loc.y, JAPANESE_NAME,    // Is that needed?
@@ -724,7 +724,7 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
 
         if (mob)
         {
-            mob->mode = mob_db[monster_id].mode;
+            mob->mode = get_mob_db(monster_id).mode;
 
             switch (monster_attitude)
             {
@@ -776,7 +776,7 @@ ZString get_invocation_name(dumb_ptr<env_t> env)
 
     if (env->VAR(VAR_INVOCATION).ty != TYPE::INVOCATION)
         return "?"_s;
-    invocation_ = map_id_is_spell(env->VAR(VAR_INVOCATION).v.v_int);
+    invocation_ = map_id_is_spell(wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_INVOCATION).v.v_int)));
 
     if (invocation_)
         return invocation_->spell->name;
@@ -979,7 +979,7 @@ op_t *magic_get_op(ZString name)
     return &it->second;
 }
 
-void spell_effect_report_termination(int invocation_id, int bl_id,
+void spell_effect_report_termination(BlockId invocation_id, BlockId bl_id,
         StatusChange sc_id, int)
 {
     dumb_ptr<invocation> invocation_ = map_id_is_spell(invocation_id);
@@ -1042,7 +1042,7 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
 
             case CONT_STACK::FOREACH:
             {
-                int entity_id;
+                BlockId entity_id;
                 val_t *var = &invocation_->env->varu[ar->c.c_foreach.id];
 
                 do
@@ -1065,7 +1065,7 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
 
                 magic_clear_var(var);
                 var->ty = ar->c.c_foreach.ty;
-                var->v.v_int = entity_id;
+                var->v.v_int = static_cast<int32_t>(unwrap<BlockId>(entity_id));
 
                 return ar->c.c_foreach.body;
             }
@@ -1118,7 +1118,7 @@ cont_activation_record_t *add_stack_entry(dumb_ptr<invocation> invocation_,
 
 static
 void find_entities_in_area_c(dumb_ptr<block_list> target,
-        std::vector<int> *entities_vp,
+        std::vector<BlockId> *entities_vp,
         FOREACH_FILTER filter)
 {
     switch (target->bl_type)
@@ -1180,7 +1180,7 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
 
 static
 void find_entities_in_area(area_t& area_,
-        std::vector<int> *entities_vp,
+        std::vector<BlockId> *entities_vp,
         FOREACH_FILTER filter)
 {
     area_t *area = &area_; // temporary hack to "keep diff small". Heh.
@@ -1233,7 +1233,7 @@ dumb_ptr<effect_t> run_foreach(dumb_ptr<invocation> invocation,
         if (!ar)
             return return_location;
 
-        std::vector<int> entities_v;
+        std::vector<BlockId> entities_v;
         find_entities_in_area(*area.v.v_area,
                 &entities_v, filter);
         entities_v.shrink_to_fit();
@@ -1391,7 +1391,7 @@ void print_cfg(int i, effect_t *e)
 static
 interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 {
-    const int invocation_id = invocation_->bl_id;
+    const BlockId invocation_id = invocation_->bl_id;
 #define REFRESH_INVOCATION invocation_ = map_id_is_spell(invocation_id); if (!invocation_) return interval_t::zero();
 
 #ifdef DEBUG
@@ -1465,13 +1465,13 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                     argrec_t arg[3] =
                     {
                         {"@target"_s, env->VAR(VAR_TARGET).ty == TYPE::ENTITY ? 0 : env->VAR(VAR_TARGET).v.v_int},
-                        {"@caster"_s, invocation_->caster},
+                        {"@caster"_s, static_cast<int32_t>(unwrap<BlockId>(invocation_->caster))},
                         {"@caster_name$"_s, caster_name},
                     };
-                    int message_recipient =
-                        env->VAR(VAR_SCRIPTTARGET).ty ==
-                        TYPE::ENTITY ? env->VAR(VAR_SCRIPTTARGET).
-                        v.v_int : invocation_->caster;
+                    BlockId message_recipient =
+                        env->VAR(VAR_SCRIPTTARGET).ty == TYPE::ENTITY
+                        ? wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_SCRIPTTARGET).v.v_int))
+                        : invocation_->caster;
                     dumb_ptr<map_session_data> recipient = map_id_is_player(message_recipient);
 
                     if (recipient->npc_id
@@ -1583,7 +1583,7 @@ void spell_execute_script(dumb_ptr<invocation> invocation)
      * running the same spell twice! */
 }
 
-int spell_attack(int caster_id, int target_id)
+int spell_attack(BlockId caster_id, BlockId target_id)
 {
     dumb_ptr<map_session_data> caster = map_id_is_player(caster_id);
     dumb_ptr<invocation> invocation_;
@@ -1601,7 +1601,7 @@ int spell_attack(int caster_id, int target_id)
     {
         magic_clear_var(&invocation_->env->varu[VAR_TARGET]);
         invocation_->env->varu[VAR_TARGET].ty = TYPE::ENTITY;
-        invocation_->env->varu[VAR_TARGET].v.v_int = target_id;
+        invocation_->env->varu[VAR_TARGET].v.v_int = static_cast<int32_t>(unwrap<BlockId>(target_id));
 
         invocation_->current_effect = invocation_->trigger_effect;
         invocation_->flags &= ~INVOCATION_FLAG::ABORTED;
@@ -1622,7 +1622,7 @@ int spell_attack(int caster_id, int target_id)
     }
     else if (!invocation_ || caster->attack_spell_charges <= 0)
     {
-        caster->attack_spell_override = 0;
+        caster->attack_spell_override = BlockId();
         char_set_weapon_icon(caster, 0, StatusChange::ZERO, 0);
         char_set_attack_info(caster, interval_t::zero(), 0);
 

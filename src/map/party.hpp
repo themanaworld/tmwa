@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include <functional>
 
@@ -34,25 +34,25 @@ struct map_session_data;
 struct block_list;
 
 void do_init_party(void);
-struct party *party_search(int party_id);
+struct party *party_search(PartyId party_id);
 struct party *party_searchname(PartyName str);
 
 int party_create(dumb_ptr<map_session_data> sd, PartyName name);
-void party_created(int account_id, int fail, int party_id, PartyName name);
-void party_request_info(int party_id);
-int party_invite(dumb_ptr<map_session_data> sd, int account_id);
-int party_member_added(int party_id, int account_id, int flag);
+void party_created(AccountId account_id, int fail, PartyId party_id, PartyName name);
+void party_request_info(PartyId party_id);
+int party_invite(dumb_ptr<map_session_data> sd, AccountId account_id);
+int party_member_added(PartyId party_id, AccountId account_id, int flag);
 int party_leave(dumb_ptr<map_session_data> sd);
-int party_removemember(dumb_ptr<map_session_data> sd, int account_id);
-int party_member_leaved(int party_id, int account_id, CharName name);
-int party_reply_invite(dumb_ptr<map_session_data> sd, int account_id,
+int party_removemember(dumb_ptr<map_session_data> sd, AccountId account_id);
+int party_member_leaved(PartyId party_id, AccountId account_id, CharName name);
+int party_reply_invite(dumb_ptr<map_session_data> sd, AccountId account_id,
         int flag);
-int party_recv_noinfo(int party_id);
+int party_recv_noinfo(PartyId party_id);
 int party_recv_info(const struct party *sp);
-void party_recv_movemap(int party_id, int account_id, MapName map,
+void party_recv_movemap(PartyId party_id, AccountId account_id, MapName map,
         int online, int lv);
-int party_broken(int party_id);
-int party_optionchanged(int party_id, int account_id, int exp, int item,
+int party_broken(PartyId party_id);
+int party_optionchanged(PartyId party_id, AccountId account_id, int exp, int item,
         int flag);
 int party_changeoption(dumb_ptr<map_session_data> sd, int exp, int item);
 
@@ -60,10 +60,10 @@ int party_send_movemap(dumb_ptr<map_session_data> sd);
 int party_send_logout(dumb_ptr<map_session_data> sd);
 
 void party_send_message(dumb_ptr<map_session_data> sd, XString mes);
-void party_recv_message(int party_id, int account_id, XString mes);
+void party_recv_message(PartyId party_id, AccountId account_id, XString mes);
 
 void party_send_xy_clear(struct party *p);
-void party_send_hp_check(dumb_ptr<block_list> bl, int party_id, int *flag);
+void party_send_hp_check(dumb_ptr<block_list> bl, PartyId party_id, int *flag);
 
 int party_exp_share(struct party *p, map_local *map, int base_exp, int job_exp);
 

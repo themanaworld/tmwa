@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "mob.t.hpp"
 
@@ -72,41 +72,43 @@ struct mob_db_
     int mutations_nr, mutation_power;
     struct
     {
-        int nameid;
+        ItemNameId nameid;
         random_::Fixed<int, 10000> p;
     } dropitem[8];
-    short hair, hair_color, weapon, shield, head_top, head_mid, head_buttom, option, clothes_color; // [Valaris]
+    short hair, hair_color, weapon;
+    ItemNameId shield, head_top, head_mid, head_buttom;
+    short option, clothes_color; // [Valaris]
     int equip;                 // [Valaris]
     std::vector<struct mob_skill> skills;
 };
-extern struct mob_db_ mob_db[];
+struct mob_db_& get_mob_db(Species);
 
-int mobdb_searchname(MobName str);
-int mobdb_checkid(const int id);
-int mob_once_spawn(dumb_ptr<map_session_data> sd,
+Species mobdb_searchname(MobName str);
+Species mobdb_checkid(Species id);
+BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
         MapName mapname, int x, int y,
-        MobName mobname, int class_, int amount,
+        MobName mobname, Species class_, int amount,
         NpcEvent event);
-int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
+BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
         MapName mapname, int x0, int y0, int x1, int y1,
-        MobName mobname, int class_, int amount,
+        MobName mobname, Species class_, int amount,
         NpcEvent event);
 
 int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist);
 int mob_stop_walking(dumb_ptr<mob_data> md, int type);
 int mob_stopattack(dumb_ptr<mob_data>);
-int mob_spawn(int);
+int mob_spawn(BlockId);
 int mob_damage(dumb_ptr<block_list>, dumb_ptr<mob_data>, int, int);
 int mob_heal(dumb_ptr<mob_data>, int);
-short mob_get_hair(int);
-short mob_get_hair_color(int);
-short mob_get_weapon(int);
-short mob_get_shield(int);
-short mob_get_head_top(int);
-short mob_get_head_mid(int);
-short mob_get_head_buttom(int);
-short mob_get_clothes_color(int);  //player mob dye [Valaris]
-int mob_get_equip(int);       // mob equip [Valaris]
+short mob_get_hair(Species);
+short mob_get_hair_color(Species);
+short mob_get_weapon(Species);
+ItemNameId mob_get_shield(Species);
+ItemNameId mob_get_head_top(Species);
+ItemNameId mob_get_head_mid(Species);
+ItemNameId mob_get_head_buttom(Species);
+short mob_get_clothes_color(Species);  //player mob dye [Valaris]
+int mob_get_equip(Species);       // mob equip [Valaris]
 
 bool mob_readdb(ZString filename);
 bool mob_readskilldb(ZString filename);
@@ -114,7 +116,7 @@ void do_init_mob2(void);
 
 int mob_delete(dumb_ptr<mob_data> md);
 int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type);
-void mob_timer_delete(TimerData *, tick_t, int);
+void mob_timer_delete(TimerData *, tick_t, BlockId);
 
 int mob_deleteslave(dumb_ptr<mob_data> md);
 
@@ -125,8 +127,8 @@ int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy t
 
 int mobskill_use(dumb_ptr<mob_data> md, tick_t tick, MobSkillCondition event);
 int mobskill_event(dumb_ptr<mob_data> md, BF flag);
-void mobskill_castend_id(TimerData *tid, tick_t tick, int id);
-void mobskill_castend_pos(TimerData *tid, tick_t tick, int id);
+void mobskill_castend_id(TimerData *tid, tick_t tick, BlockId id);
+void mobskill_castend_pos(TimerData *tid, tick_t tick, BlockId id);
 int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag);
 
 void mob_reload(void);

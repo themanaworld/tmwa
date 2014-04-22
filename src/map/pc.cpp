@@ -248,8 +248,9 @@ earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
     EPOS::ARROW,
 }};
 
+// TODO use DMap<>
 static
-std::map<int, uint8_t> gm_accountm;
+std::map<AccountId, GmLevel> gm_accountm;
 
 static
 int pc_checkoverhp(dumb_ptr<map_session_data> sd);
@@ -265,14 +266,14 @@ void pc_setdead(dumb_ptr<map_session_data> sd)
     sd->state.dead_sit = 1;
 }
 
-uint8_t pc_isGM(dumb_ptr<map_session_data> sd)
+GmLevel pc_isGM(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retr(GmLevel(), sd);
 
     auto it = gm_accountm.find(sd->status_key.account_id);
     if (it != gm_accountm.end())
         return it->second;
-    return 0;
+    return GmLevel();
 }
 
 int pc_iskiller(dumb_ptr<map_session_data> src,
@@ -293,7 +294,7 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
     return 0;
 }
 
-void pc_set_gm_level(int account_id, uint8_t level)
+void pc_set_gm_level(AccountId account_id, GmLevel level)
 {
     if (level)
         gm_accountm[account_id] = level;
@@ -312,7 +313,7 @@ int distance(int x0, int y0, int x1, int y1)
 }
 
 static
-void pc_invincible_timer(TimerData *, tick_t, int id)
+void pc_invincible_timer(TimerData *, tick_t, BlockId id)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(id);
 
@@ -380,7 +381,7 @@ int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type)
  */
 static
 void pc_counttargeted_sub(dumb_ptr<block_list> bl,
-        int id, int *c, dumb_ptr<block_list> src, ATK target_lv)
+        BlockId id, int *c, dumb_ptr<block_list> src, ATK target_lv)
 {
     nullpo_retv(bl);
 
@@ -469,13 +470,18 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
  * 接続時の初期化
  *------------------------------------------
  */
-int pc_setnewpc(dumb_ptr<map_session_data> sd, int account_id, int char_id,
+int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char_id,
         int login_id1, tick_t client_tick, SEX sex)
 {
     nullpo_ret(sd);
 
-    sd->bl_id = account_id;
-    sd->char_id = char_id;
+    // TODO this is the primary surface
+    sd->bl_id = account_to_block(account_id);
+    sd->char_id_ = char_id;
+    // TODO figure out wtf is going on here.
+    // shouldn't these things be in the .status_key.char_id ?
+    // My guess is that this stuff happens even for non-auth'ed connections
+    // Possible fix: char send auth before client is allowed to know my IP?
     sd->login_id1 = login_id1;
     sd->login_id2 = 0;          // at this point, we can not know the value :(
     sd->client_tick = client_tick;
@@ -504,13 +510,11 @@ EPOS pc_equippoint(dumb_ptr<map_session_data> sd, int n)
 static
 int pc_setinventorydata(dumb_ptr<map_session_data> sd)
 {
-    int i, id;
-
     nullpo_ret(sd);
 
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (int i = 0; i < MAX_INVENTORY; i++)
     {
-        id = sd->status.inventory[i].nameid;
+        ItemNameId id = sd->status.inventory[i].nameid;
         sd->inventory_data[i] = itemdb_search(id);
     }
     return 0;
@@ -569,7 +573,7 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
 
     for (int i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].nameid <= 0)
+        if (!sd->status.inventory[i].nameid)
             continue;
         if (bool(sd->status.inventory[i].equip))
         {
@@ -619,8 +623,8 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
     item = sd->inventory_data[n];
     sc_data = battle_get_sc_data(sd);
 
-    if (battle_config.gm_all_equipment > 0
-        && pc_isGM(sd) >= battle_config.gm_all_equipment)
+    GmLevel gm_all_equipment = GmLevel::from(static_cast<uint32_t>(battle_config.gm_all_equipment));
+    if (gm_all_equipment && pc_isGM(sd).satisfies(gm_all_equipment))
         return 1;
 
     if (item == NULL)
@@ -638,7 +642,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
  * char鯖から送られてきたステータスを設定
  *------------------------------------------
  */
-int pc_authok(int id, int login_id2, TimeT connect_until_time,
+int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
         short tmw_version, const CharKey *st_key, const CharData *st_data)
 {
     dumb_ptr<map_session_data> sd = NULL;
@@ -646,7 +650,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     struct party *p;
     tick_t tick = gettick();
 
-    sd = map_id2sd(id);
+    sd = map_id2sd(account_to_block(id));
     if (sd == NULL)
         return 1;
 
@@ -682,7 +686,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     // sd->invincible_timer = nullptr;
 
     sd->deal_locked = 0;
-    sd->trade_partner = 0;
+    sd->trade_partner = AccountId();
 
     sd->inchealhptick = interval_t::zero();
     sd->inchealsptick = interval_t::zero();
@@ -725,17 +729,17 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         // This would leak information.
         // It's better to make it obvious that players can see you.
         if (false && bool(old_option & Option::INVISIBILITY))
-            is_atcommand(sd->sess, sd, "@invisible"_s, 0);
+            is_atcommand(sd->sess, sd, "@invisible"_s, GmLevel());
 
         if (bool(old_option & Option::HIDE))
-            is_atcommand(sd->sess, sd, "@hide"_s, 0);
+            is_atcommand(sd->sess, sd, "@hide"_s, GmLevel());
         // atcommand_hide might already send it, but also might not
         clif_changeoption(sd);
     }
 
     // パーティー関係の初期化
     sd->party_sended = 0;
-    sd->party_invite = 0;
+    sd->party_invite = PartyId();
     sd->party_x = -1;
     sd->party_y = -1;
     sd->party_hp = -1;
@@ -748,7 +752,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
                sd->status.last_point.y, BeingRemoveWhy::GONE);
 
     // パーティ、ギルドデータの要求
-    if (sd->status.party_id > 0
+    if (sd->status.party_id
         && (p = party_search(sd->status.party_id)) == NULL)
         party_request_info(sd->status.party_id);
 
@@ -835,11 +839,11 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
  * session idに問題ありなので後始末
  *------------------------------------------
  */
-int pc_authfail(int id)
+int pc_authfail(AccountId id)
 {
     dumb_ptr<map_session_data> sd;
 
-    sd = map_id2sd(id);
+    sd = map_id2sd(account_to_block(id));
     if (sd == NULL)
         return 1;
 
@@ -966,7 +970,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->weight = 0;
         for (int i = 0; i < MAX_INVENTORY; i++)
         {
-            if (sd->status.inventory[i].nameid == 0
+            if (!sd->status.inventory[i].nameid
                 || sd->inventory_data[i] == NULL)
                 continue;
             sd->weight +=
@@ -1100,10 +1104,10 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                         argrec_t arg[2] =
                         {
                             {"@slotId"_s, static_cast<int>(i)},
-                            {"@itemId"_s, sd->inventory_data[index]->nameid},
+                            {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
                         };
                         run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
-                                sd->bl_id, 0,
+                                sd->bl_id, BlockId(),
                                 arg);
                     }
                     sd->state.lr_flag = 0;
@@ -1114,13 +1118,13 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     argrec_t arg[2] =
                     {
                         {"@slotId"_s, static_cast<int>(i)},
-                        {"@itemId"_s, sd->inventory_data[index]->nameid},
+                        {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
                     };
                     sd->watk += sd->inventory_data[index]->atk;
 
                     sd->attackrange += sd->inventory_data[index]->range;
                     run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
-                            sd->bl_id, 0,
+                            sd->bl_id, BlockId(),
                             arg);
                 }
             }
@@ -1129,11 +1133,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 argrec_t arg[2] =
                 {
                     {"@slotId"_s, static_cast<int>(i)},
-                    {"@itemId"_s, sd->inventory_data[index]->nameid},
+                    {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
                 };
                 sd->watk += sd->inventory_data[index]->atk;
                 run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
-                        sd->bl_id, 0,
+                        sd->bl_id, BlockId(),
                         arg);
             }
         }
@@ -1156,11 +1160,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             argrec_t arg[2] =
             {
                 {"@slotId"_s, static_cast<int>(EQUIP::ARROW)},
-                {"@itemId"_s, sd->inventory_data[index]->nameid},
+                {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
             };
             sd->state.lr_flag = 2;
             run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
-                    sd->bl_id, 0,
+                    sd->bl_id, BlockId(),
                     arg);
             sd->state.lr_flag = 0;
             sd->arrow_atk += sd->inventory_data[index]->atk;
@@ -1816,7 +1820,7 @@ int pc_skill(dumb_ptr<map_session_data> sd, SkillID id, int level, int flag)
  * 3万個制限にかかるか確認
  *------------------------------------------
  */
-ADDITEM pc_checkadditem(dumb_ptr<map_session_data> sd, int nameid, int amount)
+ADDITEM pc_checkadditem(dumb_ptr<map_session_data> sd, ItemNameId nameid, int amount)
 {
     int i;
 
@@ -1852,7 +1856,7 @@ int pc_inventoryblank(dumb_ptr<map_session_data> sd)
 
     for (i = 0, b = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].nameid == 0)
+        if (!sd->status.inventory[i].nameid)
             b++;
     }
 
@@ -1900,7 +1904,7 @@ int pc_getzeny(dumb_ptr<map_session_data> sd, int zeny)
  * アイテムを探して、インデックスを返す
  *------------------------------------------
  */
-int pc_search_inventory(dumb_ptr<map_session_data> sd, int item_id)
+int pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id)
 {
     int i;
 
@@ -1909,14 +1913,14 @@ int pc_search_inventory(dumb_ptr<map_session_data> sd, int item_id)
     for (i = 0; i < MAX_INVENTORY; i++)
     {
         if (sd->status.inventory[i].nameid == item_id &&
-            (sd->status.inventory[i].amount > 0 || item_id == 0))
+            (sd->status.inventory[i].amount > 0 || !item_id))
             return i;
     }
 
     return -1;
 }
 
-int pc_count_all_items(dumb_ptr<map_session_data> player, int item_id)
+int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
 {
     int i;
     int count = 0;
@@ -1932,7 +1936,7 @@ int pc_count_all_items(dumb_ptr<map_session_data> player, int item_id)
     return count;
 }
 
-int pc_remove_items(dumb_ptr<map_session_data> player, int item_id, int count)
+int pc_remove_items(dumb_ptr<map_session_data> player, ItemNameId item_id, int count)
 {
     int i;
 
@@ -1974,7 +1978,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, struct item *item_data,
     nullpo_retr(PickupFail::BAD_ITEM, sd);
     nullpo_retr(PickupFail::BAD_ITEM, item_data);
 
-    if (item_data->nameid <= 0 || amount <= 0)
+    if (!item_data->nameid || amount <= 0)
         return PickupFail::BAD_ITEM;
     data = itemdb_search(item_data->nameid);
     if ((w = data->weight * amount) + sd->weight > sd->max_weight)
@@ -1998,7 +2002,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, struct item *item_data,
     if (i >= MAX_INVENTORY)
     {
         // 装 備品か未所有品だったので空き欄へ追加
-        i = pc_search_inventory(sd, 0);
+        i = pc_search_inventory(sd, ItemNameId());
         if (i >= 0)
         {
             sd->status.inventory[i] = *item_data;
@@ -2027,10 +2031,10 @@ int pc_delitem(dumb_ptr<map_session_data> sd, int n, int amount, int type)
 {
     nullpo_retr(1, sd);
 
-    if (sd->trade_partner != 0)
+    if (sd->trade_partner)
         trade_tradecancel(sd);
 
-    if (sd->status.inventory[n].nameid == 0 || amount <= 0
+    if (!sd->status.inventory[n].nameid || amount <= 0
         || sd->status.inventory[n].amount < amount
         || sd->inventory_data[n] == NULL)
         return 1;
@@ -2060,7 +2064,7 @@ int pc_dropitem(dumb_ptr<map_session_data> sd, int n, int amount)
 {
     nullpo_retr(1, sd);
 
-    if (sd->trade_partner != 0 || sd->npc_id != 0 || sd->state.storage_open)
+    if (sd->trade_partner || sd->npc_id || sd->state.storage_open)
         return 0;               // no dropping while trading/npc/storage
 
     if (n < 0 || n >= MAX_INVENTORY)
@@ -2071,9 +2075,9 @@ int pc_dropitem(dumb_ptr<map_session_data> sd, int n, int amount)
 
     pc_unequipinvyitem(sd, n, CalcStatus::NOW);
 
-    if (sd->status.inventory[n].nameid <= 0 ||
+    if (!sd->status.inventory[n].nameid ||
         sd->status.inventory[n].amount < amount ||
-        sd->trade_partner != 0 || sd->status.inventory[n].amount <= 0)
+        sd->trade_partner || sd->status.inventory[n].amount <= 0)
         return 1;
     map_addflooritem(&sd->status.inventory[n], amount,
             sd->bl_m, sd->bl_x, sd->bl_y,
@@ -2089,7 +2093,7 @@ int pc_dropitem(dumb_ptr<map_session_data> sd, int n, int amount)
  */
 
 static
-int can_pick_item_up_from(dumb_ptr<map_session_data> self, int other_id)
+int can_pick_item_up_from(dumb_ptr<map_session_data> self, BlockId other_id)
 {
     struct party *p = party_search(self->status.party_id);
 
@@ -2139,12 +2143,12 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
 
     if (fitem->first_get_id == fitem->third_get_id
         || fitem->second_get_id == fitem->third_get_id)
-        fitem->third_get_id = 0;
+        fitem->third_get_id = BlockId();
 
     if (fitem->first_get_id == fitem->second_get_id)
     {
         fitem->second_get_id = fitem->third_get_id;
-        fitem->third_get_id = 0;
+        fitem->third_get_id = BlockId();
     }
 
     can_take = can_pick_item_up_from(sd, fitem->first_get_id);
@@ -2187,7 +2191,7 @@ static
 int pc_isUseitem(dumb_ptr<map_session_data> sd, int n)
 {
     struct item_data *item;
-    int nameid;
+    ItemNameId nameid;
 
     nullpo_ret(sd);
 
@@ -2220,7 +2224,7 @@ int pc_useitem(dumb_ptr<map_session_data> sd, int n)
     if (n >= 0 && n < MAX_INVENTORY && sd->inventory_data[n])
     {
         amount = sd->status.inventory[n].amount;
-        if (sd->status.inventory[n].nameid <= 0
+        if (!sd->status.inventory[n].nameid
             || sd->status.inventory[n].amount <= 0
             || !pc_isUseitem(sd, n))
         {
@@ -2232,7 +2236,7 @@ int pc_useitem(dumb_ptr<map_session_data> sd, int n)
         clif_useitemack(sd, n, amount - 1, 1);
         pc_delitem(sd, n, 1, 1);
 
-        run_script(ScriptPointer(script, 0), sd->bl_id, 0);
+        run_script(ScriptPointer(script, 0), sd->bl_id, BlockId());
     }
 
     return 0;
@@ -2257,7 +2261,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
     if (sd->state.storage_open)
         storage_storage_quit(sd);  // 倉庫を開いてるなら保存する
 
-    if (sd->party_invite > 0)   // パーティ勧誘を拒否する
+    if (sd->party_invite)   // パーティ勧誘を拒否する
         party_reply_invite(sd, sd->party_invite_account, 0);
 
     skill_castcancel(sd, 0);  // 詠唱中断
@@ -2421,7 +2425,7 @@ interval_t calc_next_walk_step(dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
+void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
 {
     dumb_ptr<map_session_data> sd;
     int moveblock;
@@ -2496,7 +2500,7 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
                 BL::NUL);
         // sd->walktimer = nullptr;
 
-        if (sd->status.party_id > 0)
+        if (sd->status.party_id)
         {                       // パーティのＨＰ情報通知検査
             struct party *p = party_search(sd->status.party_id);
             if (p != NULL)
@@ -2516,7 +2520,7 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
         if (bool(map_getcell(sd->bl_m, x, y) & MapCell::NPC_NEAR))
             npc_touch_areanpc(sd, sd->bl_m, x, y);
         else
-            sd->areanpc_id = 0;
+            sd->areanpc_id = BlockId();
     }
     interval_t i = calc_next_walk_step(sd);
     if (i > interval_t::zero())
@@ -2622,7 +2626,7 @@ void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd)
     if (bool(map_getcell(sd->bl_m, sd->bl_x, sd->bl_y) & MapCell::NPC_NEAR))
         npc_touch_areanpc(sd, sd->bl_m, sd->bl_x, sd->bl_y);
     else
-        sd->areanpc_id = 0;
+        sd->areanpc_id = BlockId();
 }
 
 /*==========================================
@@ -2670,7 +2674,7 @@ int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
             -dx, -dy,
             BL::NUL);
 
-    if (sd->status.party_id > 0)
+    if (sd->status.party_id)
     {                           // パーティのＨＰ情報通知検査
         struct party *p = party_search(sd->status.party_id);
         if (p != NULL)
@@ -2728,7 +2732,7 @@ int pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos)
  *------------------------------------------
  */
 static
-void pc_attack_timer(TimerData *, tick_t tick, int id)
+void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
 {
     dumb_ptr<map_session_data> sd;
     dumb_ptr<block_list> bl;
@@ -2835,7 +2839,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
  * typeが1なら継続攻撃
  *------------------------------------------
  */
-int pc_attack(dumb_ptr<map_session_data> sd, int target_id, int type)
+int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
 {
     dumb_ptr<block_list> bl;
 
@@ -2847,7 +2851,7 @@ int pc_attack(dumb_ptr<map_session_data> sd, int target_id, int type)
 
     if (bl->bl_type == BL::NPC)
     {                           // monster npcs [Valaris]
-        npc_click(sd, RFIFOL(sd->sess, 2));
+        npc_click(sd, wrap<BlockId>(RFIFOL(sd->sess, 2)));
         return 0;
     }
 
@@ -2884,7 +2888,7 @@ int pc_stopattack(dumb_ptr<map_session_data> sd)
 
     sd->attacktimer.cancel();
 
-    sd->attacktarget = 0;
+    sd->attacktarget = BlockId();
     sd->state.attack_continue = 0;
 
     return 0;
@@ -3425,7 +3429,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
 
         sd->canlog_tick = gettick();
 
-        if (sd->status.party_id > 0)
+        if (sd->status.party_id)
         {                       // on-the-fly party hp updates [Valaris]
             struct party *p = party_search(sd->status.party_id);
             if (p != NULL)
@@ -3542,8 +3546,8 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         // [Fate] PK death, trigger scripts
         argrec_t arg[3] =
         {
-            {"@killerrid"_s, src->bl_id},
-            {"@victimrid"_s, sd->bl_id},
+            {"@killerrid"_s, static_cast<int32_t>(unwrap<BlockId>(src->bl_id))},
+            {"@victimrid"_s, static_cast<int32_t>(unwrap<BlockId>(sd->bl_id))},
             {"@victimlvl"_s, sd->status.base_level},
         };
         npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"_s), sd->bl_id, arg);
@@ -3585,7 +3589,7 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
             val = sd->status.job_level;
             break;
         case SP::CLASS:
-            val = sd->status.species;
+            val = unwrap<Species>(sd->status.species);
             break;
         case SP::SEX:
             val = static_cast<uint8_t>(sd->sex);
@@ -3689,7 +3693,7 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             clif_updatestatus(sd, type);
             break;
         case SP::CLASS:
-            sd->status.species = val;
+            sd->status.species = wrap<Species>(val);
             break;
         case SP::SKILLPOINT:
             sd->status.skill_point = val;
@@ -3792,7 +3796,7 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
     if (sp)
         clif_updatestatus(sd, SP::SP);
 
-    if (sd->status.party_id > 0)
+    if (sd->status.party_id)
     {                           // on-the-fly party hp updates [Valaris]
         struct party *p = party_search(sd->status.party_id);
         if (p != NULL)
@@ -4009,13 +4013,13 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
             sd->status.weapon = static_cast<ItemLook>(static_cast<uint16_t>(val));
             break;
         case LOOK::HEAD_BOTTOM:
-            sd->status.head_bottom = val;
+            sd->status.head_bottom = wrap<ItemNameId>(val);
             break;
         case LOOK::HEAD_TOP:
-            sd->status.head_top = val;
+            sd->status.head_top = wrap<ItemNameId>(val);
             break;
         case LOOK::HEAD_MID:
-            sd->status.head_mid = val;
+            sd->status.head_mid = wrap<ItemNameId>(val);
             break;
         case LOOK::HAIR_COLOR:
             sd->status.hair_color = val;
@@ -4024,7 +4028,7 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
             sd->status.clothes_color = val;
             break;
         case LOOK::SHIELD:
-            sd->status.shield = val;
+            sd->status.shield = wrap<ItemNameId>(val);
             break;
         case LOOK::SHOES:
             break;
@@ -4318,7 +4322,7 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, VarName reg, int val)
  *------------------------------------------
  */
 static
-void pc_eventtimer(TimerData *, tick_t, int id, NpcEvent data)
+void pc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(id);
     assert (sd != NULL);
@@ -4390,7 +4394,7 @@ int pc_signal_advanced_equipment_change(dumb_ptr<map_session_data> sd, int n)
 
 int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
 {
-    int nameid;
+    ItemNameId nameid;
     struct item_data *id;
     //ｿｽ]ｿｽｿｽｿｽｿｽｿｽ{ｿｽqｿｽﾌ場合ｿｽﾌ鯉ｿｽｿｽﾌ職ｿｽﾆゑｿｽｿｽZｿｽoｿｽｿｽｿｽｿｽ
 
@@ -4463,7 +4467,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
     }
     sd->status.inventory[n].equip = pos;
 
-    int view_i = 0;
+    ItemNameId view_i;
     ItemLook view_l = ItemLook::NONE;
     // TODO: This is ugly.
     if (sd->inventory_data[n])
@@ -4490,7 +4494,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
         {
             if (sd->inventory_data[n]->type == ItemType::WEAPON)
             {
-                sd->status.shield = 0;
+                sd->status.shield = ItemNameId();
                 if (sd->status.inventory[n].equip == EPOS::SHIELD)
                     sd->weapontype2 = view_l;
             }
@@ -4502,26 +4506,26 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
         }
         else
         {
-            sd->status.shield = 0;
+            sd->status.shield = ItemNameId();
             sd->weapontype2 = ItemLook::NONE;
         }
         pc_calcweapontype(sd);
-        clif_changelook(sd, LOOK::SHIELD, sd->status.shield);
+        clif_changelook(sd, LOOK::SHIELD, unwrap<ItemNameId>(sd->status.shield));
     }
     if (bool(sd->status.inventory[n].equip & EPOS::LEGS))
     {
         sd->status.head_bottom = view_i;
-        clif_changelook(sd, LOOK::HEAD_BOTTOM, sd->status.head_bottom);
+        clif_changelook(sd, LOOK::HEAD_BOTTOM, unwrap<ItemNameId>(sd->status.head_bottom));
     }
     if (bool(sd->status.inventory[n].equip & EPOS::HAT))
     {
         sd->status.head_top = view_i;
-        clif_changelook(sd, LOOK::HEAD_TOP, sd->status.head_top);
+        clif_changelook(sd, LOOK::HEAD_TOP, unwrap<ItemNameId>(sd->status.head_top));
     }
     if (bool(sd->status.inventory[n].equip & EPOS::TORSO))
     {
         sd->status.head_mid = view_i;
-        clif_changelook(sd, LOOK::HEAD_MID, sd->status.head_mid);
+        clif_changelook(sd, LOOK::HEAD_MID, unwrap<ItemNameId>(sd->status.head_mid));
     }
     pc_signal_advanced_equipment_change(sd, n);
 
@@ -4560,26 +4564,25 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
         }
         if (bool(sd->status.inventory[n].equip & EPOS::SHIELD))
         {
-            sd->status.shield = 0;
+            sd->status.shield = ItemNameId();
             sd->weapontype2 = ItemLook::NONE;
             pc_calcweapontype(sd);
-            clif_changelook(sd, LOOK::SHIELD, sd->status.shield);
+            clif_changelook(sd, LOOK::SHIELD, unwrap<ItemNameId>(sd->status.shield));
         }
         if (bool(sd->status.inventory[n].equip & EPOS::LEGS))
         {
-            sd->status.head_bottom = 0;
-            clif_changelook(sd, LOOK::HEAD_BOTTOM,
-                             sd->status.head_bottom);
+            sd->status.head_bottom = ItemNameId();
+            clif_changelook(sd, LOOK::HEAD_BOTTOM, unwrap<ItemNameId>(sd->status.head_bottom));
         }
         if (bool(sd->status.inventory[n].equip & EPOS::HAT))
         {
-            sd->status.head_top = 0;
-            clif_changelook(sd, LOOK::HEAD_TOP, sd->status.head_top);
+            sd->status.head_top = ItemNameId();
+            clif_changelook(sd, LOOK::HEAD_TOP, unwrap<ItemNameId>(sd->status.head_top));
         }
         if (bool(sd->status.inventory[n].equip & EPOS::TORSO))
         {
-            sd->status.head_mid = 0;
-            clif_changelook(sd, LOOK::HEAD_MID, sd->status.head_mid);
+            sd->status.head_mid = ItemNameId();
+            clif_changelook(sd, LOOK::HEAD_MID, unwrap<ItemNameId>(sd->status.head_mid));
         }
         pc_signal_advanced_equipment_change(sd, n);
 
@@ -4624,14 +4627,14 @@ int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
  */
 int pc_checkitem(dumb_ptr<map_session_data> sd)
 {
-    int i, j, k, id, calc_flag = 0;
+    int i, j, k, calc_flag = 0;
 
     nullpo_ret(sd);
 
     // 所持品空き詰め
     for (i = j = 0; i < MAX_INVENTORY; i++)
     {
-        if ((id = sd->status.inventory[i].nameid) == 0)
+        if (!(sd->status.inventory[i].nameid))
             continue;
         if (i > j)
         {
@@ -4647,7 +4650,7 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
 
     for (i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].nameid == 0)
+        if (!sd->status.inventory[i].nameid)
             continue;
         if (bool(sd->status.inventory[i].equip & ~pc_equippoint(sd, i)))
         {
@@ -4737,7 +4740,7 @@ int pc_calc_pvprank(dumb_ptr<map_session_data> sd)
  * PVP順位計算(timer)
  *------------------------------------------
  */
-void pc_calc_pvprank_timer(TimerData *, tick_t, int id)
+void pc_calc_pvprank_timer(TimerData *, tick_t, BlockId id)
 {
     dumb_ptr<map_session_data> sd = NULL;
     if (battle_config.pk_mode)  // disable pvp ranking if pk_mode on [Valaris]
@@ -4758,14 +4761,14 @@ void pc_calc_pvprank_timer(TimerData *, tick_t, int id)
  *------------------------------------------
  */
 static
-int pc_ismarried(dumb_ptr<map_session_data> sd)
+CharId pc_ismarried(dumb_ptr<map_session_data> sd)
 {
     if (sd == NULL)
-        return -1;
-    if (sd->status.partner_id > 0)
+        return CharId();
+    if (sd->status.partner_id)
         return sd->status.partner_id;
     else
-        return 0;
+        return CharId();
 }
 
 /*==========================================
@@ -4774,8 +4777,8 @@ int pc_ismarried(dumb_ptr<map_session_data> sd)
  */
 int pc_marriage(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> dstsd)
 {
-    if (sd == NULL || dstsd == NULL || sd->status.partner_id > 0
-        || dstsd->status.partner_id > 0)
+    if (sd == NULL || dstsd == NULL || sd->status.partner_id
+        || dstsd->status.partner_id)
         return -1;
     sd->status.partner_id = dstsd->status_key.char_id;
     dstsd->status.partner_id = sd->status_key.char_id;
@@ -4803,8 +4806,8 @@ int pc_divorce(dumb_ptr<map_session_data> sd)
                     sd->status.partner_id, p_sd->status.partner_id);
             return -1;
         }
-        p_sd->status.partner_id = 0;
-        sd->status.partner_id = 0;
+        p_sd->status.partner_id = CharId();
+        sd->status.partner_id = CharId();
 
         if (sd->npc_flags.divorce)
         {
@@ -5179,8 +5182,8 @@ int pc_read_gm_account(Session *s)
     // (RFIFOW(fd, 2) - 4) / 5
     for (int i = 4; i < RFIFOW(s, 2); i += 5)
     {
-        int account_id = RFIFOL(s, i);
-        uint8_t level = RFIFOB(s, i + 4);
+        AccountId account_id = wrap<AccountId>(RFIFOL(s, i));
+        GmLevel level = GmLevel::from(static_cast<uint32_t>(RFIFOB(s, i + 4)));
         gm_accountm[account_id] = level;
     }
     return gm_accountm.size();

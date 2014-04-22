@@ -103,13 +103,13 @@ void intif_wis_replay(int id, int flag)
 }
 
 // The transmission of GM only Wisp/Page from server to inter-server
-void intif_wis_message_to_gm(CharName Wisp_name, int min_gm_level, ZString mes)
+void intif_wis_message_to_gm(CharName Wisp_name, GmLevel min_gm_level, ZString mes)
 {
     size_t mes_len = mes.size() + 1;
     WFIFOW(char_session, 0) = 0x3003;
     WFIFOW(char_session, 2) = mes_len + 30;
     WFIFO_STRING(char_session, 4, Wisp_name.to__actual(), 24);
-    WFIFOW(char_session, 28) = min_gm_level;
+    WFIFOW(char_session, 28) = static_cast<uint16_t>(min_gm_level.get_all_bits());
     WFIFO_STRING(char_session, 30, mes, mes_len);
     WFIFOSET(char_session, WFIFOW(char_session, 2));
 
@@ -127,7 +127,7 @@ void intif_saveaccountreg(dumb_ptr<map_session_data> sd)
     assert (sd->status.account_reg_num < ACCOUNT_REG_NUM);
 
     WFIFOW(char_session, 0) = 0x3004;
-    WFIFOL(char_session, 4) = sd->bl_id;
+    WFIFOL(char_session, 4) = unwrap<BlockId>(sd->bl_id);
     for (j = 0, p = 8; j < sd->status.account_reg_num; j++, p += 36)
     {
         WFIFO_STRING(char_session, p, sd->status.account_reg[j].str, 32);
@@ -143,15 +143,15 @@ void intif_request_accountreg(dumb_ptr<map_session_data> sd)
     nullpo_retv(sd);
 
     WFIFOW(char_session, 0) = 0x3005;
-    WFIFOL(char_session, 2) = sd->bl_id;
+    WFIFOL(char_session, 2) = unwrap<BlockId>(sd->bl_id);
     WFIFOSET(char_session, 6);
 }
 
 // 倉庫データ要求
-void intif_request_storage(int account_id)
+void intif_request_storage(AccountId account_id)
 {
     WFIFOW(char_session, 0) = 0x3010;
-    WFIFOL(char_session, 2) = account_id;
+    WFIFOL(char_session, 2) = unwrap<AccountId>(account_id);
     WFIFOSET(char_session, 6);
 }
 
@@ -161,7 +161,7 @@ void intif_send_storage(struct storage *stor)
     nullpo_retv(stor);
     WFIFOW(char_session, 0) = 0x3011;
     WFIFOW(char_session, 2) = sizeof(struct storage) + 8;
-    WFIFOL(char_session, 4) = stor->account_id;
+    WFIFOL(char_session, 4) = unwrap<AccountId>(stor->account_id);
     WFIFO_STRUCT(char_session, 8, *stor);
     WFIFOSET(char_session, WFIFOW(char_session, 2));
 }
@@ -172,7 +172,7 @@ void intif_create_party(dumb_ptr<map_session_data> sd, PartyName name)
     nullpo_retv(sd);
 
     WFIFOW(char_session, 0) = 0x3020;
-    WFIFOL(char_session, 2) = sd->status_key.account_id;
+    WFIFOL(char_session, 2) = unwrap<AccountId>(sd->status_key.account_id);
     WFIFO_STRING(char_session, 6, name, 24);
     WFIFO_STRING(char_session, 30, sd->status_key.name.to__actual(), 24);
     WFIFO_STRING(char_session, 54, sd->bl_m->name_, 16);
@@ -181,23 +181,23 @@ void intif_create_party(dumb_ptr<map_session_data> sd, PartyName name)
 }
 
 // パーティ情報要求
-void intif_request_partyinfo(int party_id)
+void intif_request_partyinfo(PartyId party_id)
 {
     WFIFOW(char_session, 0) = 0x3021;
-    WFIFOL(char_session, 2) = party_id;
+    WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
     WFIFOSET(char_session, 6);
 }
 
 // パーティ追加要求
-void intif_party_addmember(int party_id, int account_id)
+void intif_party_addmember(PartyId party_id, AccountId account_id)
 {
     dumb_ptr<map_session_data> sd;
-    sd = map_id2sd(account_id);
+    sd = map_id2sd(account_to_block(account_id));
     if (sd != NULL)
     {
         WFIFOW(char_session, 0) = 0x3022;
-        WFIFOL(char_session, 2) = party_id;
-        WFIFOL(char_session, 6) = account_id;
+        WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
+        WFIFOL(char_session, 6) = unwrap<AccountId>(account_id);
         WFIFO_STRING(char_session, 10, sd->status_key.name.to__actual(), 24);
         WFIFO_STRING(char_session, 34, sd->bl_m->name_, 16);
         WFIFOW(char_session, 50) = sd->status.base_level;
@@ -206,22 +206,22 @@ void intif_party_addmember(int party_id, int account_id)
 }
 
 // パーティ設定変更
-void intif_party_changeoption(int party_id, int account_id, int exp, int item)
+void intif_party_changeoption(PartyId party_id, AccountId account_id, int exp, int item)
 {
     WFIFOW(char_session, 0) = 0x3023;
-    WFIFOL(char_session, 2) = party_id;
-    WFIFOL(char_session, 6) = account_id;
+    WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
+    WFIFOL(char_session, 6) = unwrap<AccountId>(account_id);
     WFIFOW(char_session, 10) = exp;
     WFIFOW(char_session, 12) = item;
     WFIFOSET(char_session, 14);
 }
 
 // パーティ脱退要求
-void intif_party_leave(int party_id, int account_id)
+void intif_party_leave(PartyId party_id, AccountId account_id)
 {
     WFIFOW(char_session, 0) = 0x3024;
-    WFIFOL(char_session, 2) = party_id;
-    WFIFOL(char_session, 6) = account_id;
+    WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
+    WFIFOL(char_session, 6) = unwrap<AccountId>(account_id);
     WFIFOSET(char_session, 10);
 }
 
@@ -231,8 +231,8 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
     if (sd != NULL)
     {
         WFIFOW(char_session, 0) = 0x3025;
-        WFIFOL(char_session, 2) = sd->status.party_id;
-        WFIFOL(char_session, 6) = sd->status_key.account_id;
+        WFIFOL(char_session, 2) = unwrap<PartyId>(sd->status.party_id);
+        WFIFOL(char_session, 6) = unwrap<AccountId>(sd->status_key.account_id);
         WFIFO_STRING(char_session, 10, sd->bl_m->name_, 16);
         WFIFOB(char_session, 26) = online;
         WFIFOW(char_session, 27) = sd->status.base_level;
@@ -241,23 +241,23 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
 }
 
 // パーティ会話送信
-void intif_party_message(int party_id, int account_id, XString mes)
+void intif_party_message(PartyId party_id, AccountId account_id, XString mes)
 {
     size_t len = mes.size() + 1;
     WFIFOW(char_session, 0) = 0x3027;
     WFIFOW(char_session, 2) = len + 12;
-    WFIFOL(char_session, 4) = party_id;
-    WFIFOL(char_session, 8) = account_id;
+    WFIFOL(char_session, 4) = unwrap<PartyId>(party_id);
+    WFIFOL(char_session, 8) = unwrap<AccountId>(account_id);
     WFIFO_STRING(char_session, 12, mes, len);
     WFIFOSET(char_session, len + 12);
 }
 
 // パーティ競合チェック要求
-void intif_party_checkconflict(int party_id, int account_id, CharName nick)
+void intif_party_checkconflict(PartyId party_id, AccountId account_id, CharName nick)
 {
     WFIFOW(char_session, 0) = 0x3028;
-    WFIFOL(char_session, 2) = party_id;
-    WFIFOL(char_session, 6) = account_id;
+    WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
+    WFIFOL(char_session, 6) = unwrap<AccountId>(account_id);
     WFIFO_STRING(char_session, 10, nick.to__actual(), 24);
     WFIFOSET(char_session, 34);
 }
@@ -326,14 +326,12 @@ static
 void mapif_parse_WisToGM(Session *s)
 {
     // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
-    int min_gm_level, len;
-
     if (RFIFOW(s, 2) - 30 <= 0)
         return;
 
-    len = RFIFOW(s, 2) - 30;
+    int len = RFIFOW(s, 2) - 30;
 
-    min_gm_level = RFIFOW(s, 28);
+    GmLevel min_gm_level = GmLevel::from(static_cast<uint32_t>(RFIFOW(s, 28)));
     CharName Wisp_name = stringish<CharName>(RFIFO_STRING<24>(s, 4));
     AString message = RFIFO_STRING(s, 30, len);
     // information is sended to all online GM
@@ -345,7 +343,7 @@ void mapif_parse_WisToGM(Session *s)
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            if (pc_isGM(pl_sd) >= min_gm_level)
+            if (pc_isGM(pl_sd).satisfies(min_gm_level))
                 clif_wis_message(s2, Wisp_name, message);
         }
     }
@@ -356,7 +354,7 @@ static
 int intif_parse_AccountReg(Session *s)
 {
     int j, p;
-    dumb_ptr<map_session_data> sd = map_id2sd(RFIFOL(s, 4));
+    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(wrap<AccountId>(RFIFOL(s, 4))));
     if (sd == NULL)
         return 1;
     for (p = 8, j = 0; p < RFIFOW(s, 2) && j < ACCOUNT_REG_NUM;
@@ -377,7 +375,7 @@ int intif_parse_LoadStorage(Session *s)
     struct storage *stor;
     dumb_ptr<map_session_data> sd;
 
-    sd = map_id2sd(RFIFOL(s, 4));
+    sd = map_id2sd(account_to_block(wrap<AccountId>(RFIFOL(s, 4))));
     if (sd == NULL)
     {
         if (battle_config.error_log)
@@ -385,7 +383,7 @@ int intif_parse_LoadStorage(Session *s)
                     RFIFOL(s, 4));
         return 1;
     }
-    stor = account2storage(RFIFOL(s, 4));
+    stor = account2storage(wrap<AccountId>(RFIFOL(s, 4)));
     if (stor->storage_status == 1)
     {                           // Already open.. lets ignore this update
         if (battle_config.error_log)
@@ -428,7 +426,7 @@ void intif_parse_SaveStorage(Session *s)
     if (battle_config.save_log)
         PRINTF("intif_savestorage: done %d %d\n"_fmt, RFIFOL(s, 2),
                 RFIFOB(s, 6));
-    storage_storage_saved(RFIFOL(s, 2));
+    storage_storage_saved(wrap<AccountId>(RFIFOL(s, 2)));
 }
 
 // パーティ作成可否
@@ -437,9 +435,9 @@ void intif_parse_PartyCreated(Session *s)
 {
     if (battle_config.etc_log)
         PRINTF("intif: party created\n"_fmt);
-    int account_id = RFIFOL(s, 2);
+    AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
     int fail = RFIFOB(s, 6);
-    int party_id = RFIFOL(s, 7);
+    PartyId party_id = wrap<PartyId>(RFIFOL(s, 7));
     PartyName name = stringish<PartyName>(RFIFO_STRING<24>(s, 11));
     party_created(account_id, fail, party_id, name);
 }
@@ -452,7 +450,7 @@ void intif_parse_PartyInfo(Session *s)
     {
         if (battle_config.error_log)
             PRINTF("intif: party noinfo %d\n"_fmt, RFIFOL(s, 4));
-        party_recv_noinfo(RFIFOL(s, 4));
+        party_recv_noinfo(wrap<PartyId>(RFIFOL(s, 4)));
         return;
     }
 
@@ -475,14 +473,14 @@ void intif_parse_PartyMemberAdded(Session *s)
     if (battle_config.etc_log)
         PRINTF("intif: party member added %d %d %d\n"_fmt, RFIFOL(s, 2),
                 RFIFOL(s, 6), RFIFOB(s, 10));
-    party_member_added(RFIFOL(s, 2), RFIFOL(s, 6), RFIFOB(s, 10));
+    party_member_added(wrap<PartyId>(RFIFOL(s, 2)), wrap<AccountId>(RFIFOL(s, 6)), RFIFOB(s, 10));
 }
 
 // パーティ設定変更通知
 static
 void intif_parse_PartyOptionChanged(Session *s)
 {
-    party_optionchanged(RFIFOL(s, 2), RFIFOL(s, 6), RFIFOW(s, 10),
+    party_optionchanged(wrap<PartyId>(RFIFOL(s, 2)), wrap<AccountId>(RFIFOL(s, 6)), RFIFOW(s, 10),
                          RFIFOW(s, 12), RFIFOB(s, 14));
 }
 
@@ -490,8 +488,8 @@ void intif_parse_PartyOptionChanged(Session *s)
 static
 void intif_parse_PartyMemberLeaved(Session *s)
 {
-    int party_id = RFIFOL(s, 2);
-    int account_id = RFIFOL(s, 6);
+    PartyId party_id = wrap<PartyId>(RFIFOL(s, 2));
+    AccountId account_id = wrap<AccountId>(RFIFOL(s, 6));
     CharName name = stringish<CharName>(RFIFO_STRING<24>(s, 10));
     if (battle_config.etc_log)
         PRINTF("intif: party member leaved %d %d %s\n"_fmt,
@@ -503,15 +501,15 @@ void intif_parse_PartyMemberLeaved(Session *s)
 static
 void intif_parse_PartyBroken(Session *s)
 {
-    party_broken(RFIFOL(s, 2));
+    party_broken(wrap<PartyId>(RFIFOL(s, 2)));
 }
 
 // パーティ移動通知
 static
 void intif_parse_PartyMove(Session *s)
 {
-    int party_id = RFIFOL(s, 2);
-    int account_id = RFIFOL(s, 6);
+    PartyId party_id = wrap<PartyId>(RFIFOL(s, 2));
+    AccountId account_id = wrap<AccountId>(RFIFOL(s, 6));
     MapName map = stringish<MapName>(RFIFO_STRING<16>(s, 10));
     uint8_t online = RFIFOB(s, 26);
     uint16_t lv = RFIFOW(s, 27);
@@ -524,7 +522,7 @@ void intif_parse_PartyMessage(Session *s)
 {
     size_t len = RFIFOW(s, 2) - 12;
     AString buf = RFIFO_STRING(s, 12, len);
-    party_recv_message(RFIFOL(s, 4), RFIFOL(s, 8), buf);
+    party_recv_message(wrap<PartyId>(RFIFOL(s, 4)), wrap<AccountId>(RFIFOL(s, 8)), buf);
 }
 
 //-----------------------------------------------------------------

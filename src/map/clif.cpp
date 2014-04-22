@@ -419,13 +419,13 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
             if (bl->bl_type == BL::PC)
             {
                 dumb_ptr<map_session_data> sd = bl->is_player();
-                if (sd->partyspy > 0)
+                if (sd->partyspy)
                 {
                     p = party_search(sd->partyspy);
                 }
                 else
                 {
-                    if (sd->status.party_id > 0)
+                    if (sd->status.party_id)
                         p = party_search(sd->status.party_id);
                 }
             }
@@ -547,7 +547,7 @@ int clif_authfail_fd(Session *s, int type)
  *
  *------------------------------------------
  */
-int clif_charselectok(int id)
+int clif_charselectok(BlockId id)
 {
     dumb_ptr<map_session_data> sd;
 
@@ -576,8 +576,8 @@ int clif_set009e(dumb_ptr<flooritem_data> fitem, uint8_t *buf)
 
     //009e <ID>.l <name ID>.w <identify flag>.B <X>.w <Y>.w <subX>.B <subY>.B <amount>.w
     WBUFW(buf, 0) = 0x9e;
-    WBUFL(buf, 2) = fitem->bl_id;
-    WBUFW(buf, 6) = fitem->item_data.nameid;
+    WBUFL(buf, 2) = unwrap<BlockId>(fitem->bl_id);
+    WBUFW(buf, 6) = unwrap<ItemNameId>(fitem->item_data.nameid);
     WBUFB(buf, 8) = 1; //identify;
     WBUFW(buf, 9) = fitem->bl_x;
     WBUFW(buf, 11) = fitem->bl_y;
@@ -598,7 +598,7 @@ int clif_dropflooritem(dumb_ptr<flooritem_data> fitem)
 
     nullpo_ret(fitem);
 
-    if (fitem->item_data.nameid <= 0)
+    if (!fitem->item_data.nameid)
         return 0;
     clif_set009e(fitem, buf);
     clif_send(buf, clif_parse_func_table[0x9e].len, fitem, SendWho::AREA);
@@ -617,7 +617,7 @@ int clif_clearflooritem(dumb_ptr<flooritem_data> fitem, Session *s)
     nullpo_ret(fitem);
 
     WBUFW(buf, 0) = 0xa1;
-    WBUFL(buf, 2) = fitem->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(fitem->bl_id);
 
     if (!s)
     {
@@ -643,7 +643,7 @@ int clif_clearchar(dumb_ptr<block_list> bl, BeingRemoveWhy type)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x80;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     if (type == BeingRemoveWhy::DISGUISE)
     {
         WBUFB(buf, 6) = static_cast<uint8_t>(BeingRemoveWhy::GONE);
@@ -694,10 +694,10 @@ int clif_clearchar_delay(tick_t tick,
  *
  *------------------------------------------
  */
-void clif_clearchar_id(int id, BeingRemoveWhy type, Session *s)
+void clif_clearchar_id(BlockId id, BeingRemoveWhy type, Session *s)
 {
     WFIFOW(s, 0) = 0x80;
-    WFIFOL(s, 2) = id;
+    WFIFOL(s, 2) = unwrap<BlockId>(id);
     WFIFOB(s, 6) = static_cast<uint8_t>(type);
     WFIFOSET(s, clif_parse_func_table[0x80].len);
 }
@@ -712,12 +712,12 @@ int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x1d8;
-    WBUFL(buf, 2) = sd->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
     WBUFW(buf, 6) = static_cast<uint16_t>(sd->speed.count());
     WBUFW(buf, 8) = static_cast<uint16_t>(sd->opt1);
     WBUFW(buf, 10) = static_cast<uint16_t>(sd->opt2);
     WBUFW(buf, 12) = static_cast<uint16_t>(sd->status.option);
-    WBUFW(buf, 14) = sd->status.species;
+    WBUFW(buf, 14) = unwrap<Species>(sd->status.species);
     WBUFW(buf, 16) = sd->status.hair;
 
     int widx = sd->equip_index_maybe[EQUIP::WEAPON];
@@ -728,20 +728,20 @@ int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
     {
         if (widx >= 0 && sd->inventory_data[widx])
         {
-            WBUFW(buf, 18) = sd->status.inventory[widx].nameid;
+            WBUFW(buf, 18) = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
         }
         else
-            WBUFW(buf, 18) = 0;
+            WBUFW(buf, 18) = unwrap<ItemNameId>(ItemNameId());
     }
     if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
     {
-        WBUFW(buf, 20) = sd->status.inventory[sidx].nameid;
+        WBUFW(buf, 20) = unwrap<ItemNameId>(sd->status.inventory[sidx].nameid);
     }
     else
-        WBUFW(buf, 20) = 0;
-    WBUFW(buf, 22) = sd->status.head_bottom;
-    WBUFW(buf, 24) = sd->status.head_top;
-    WBUFW(buf, 26) = sd->status.head_mid;
+        WBUFW(buf, 20) = unwrap<ItemNameId>(ItemNameId());
+    WBUFW(buf, 22) = unwrap<ItemNameId>(sd->status.head_bottom);
+    WBUFW(buf, 24) = unwrap<ItemNameId>(sd->status.head_top);
+    WBUFW(buf, 26) = unwrap<ItemNameId>(sd->status.head_mid);
     WBUFW(buf, 28) = sd->status.hair_color;
     WBUFW(buf, 30) = sd->status.clothes_color;
     WBUFW(buf, 32) = static_cast<uint8_t>(sd->head_dir);
@@ -755,7 +755,7 @@ int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
     // work around ICE in gcc 4.6
     uint8_t dir = static_cast<uint8_t>(sd->dir);
     WBUFB(buf, 48) |= dir;
-    WBUFW(buf, 49) = (pc_isGM(sd) == 60 || pc_isGM(sd) == 99) ? 0x80 : 0;
+    WBUFW(buf, 49) = pc_isGM(sd).get_public_word();
     WBUFB(buf, 51) = sd->state.dead_sit;
     WBUFW(buf, 52) = 0;
 
@@ -772,31 +772,31 @@ int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x1da;
-    WBUFL(buf, 2) = sd->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
     WBUFW(buf, 6) = static_cast<uint16_t>(sd->speed.count());
     WBUFW(buf, 8) = static_cast<uint16_t>(sd->opt1);
     WBUFW(buf, 10) = static_cast<uint16_t>(sd->opt2);
     WBUFW(buf, 12) = static_cast<uint16_t>(sd->status.option);
-    WBUFW(buf, 14) = sd->status.species;
+    WBUFW(buf, 14) = unwrap<Species>(sd->status.species);
     WBUFW(buf, 16) = sd->status.hair;
     int widx = sd->equip_index_maybe[EQUIP::WEAPON];
     int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
     if (widx >= 0 && sd->inventory_data[widx])
     {
-        WBUFW(buf, 18) = sd->status.inventory[widx].nameid;
+        WBUFW(buf, 18) = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
     }
     else
-        WBUFW(buf, 18) = 0;
+        WBUFW(buf, 18) = unwrap<ItemNameId>(ItemNameId());
     if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
     {
-        WBUFW(buf, 20) = sd->status.inventory[sidx].nameid;
+        WBUFW(buf, 20) = unwrap<ItemNameId>(sd->status.inventory[sidx].nameid);
     }
     else
-        WBUFW(buf, 20) = 0;
-    WBUFW(buf, 22) = sd->status.head_bottom;
+        WBUFW(buf, 20) = unwrap<ItemNameId>(ItemNameId());
+    WBUFW(buf, 22) = unwrap<ItemNameId>(sd->status.head_bottom);
     WBUFL(buf, 24) = gettick().time_since_epoch().count();
-    WBUFW(buf, 28) = sd->status.head_top;
-    WBUFW(buf, 30) = sd->status.head_mid;
+    WBUFW(buf, 28) = unwrap<ItemNameId>(sd->status.head_top);
+    WBUFW(buf, 30) = unwrap<ItemNameId>(sd->status.head_mid);
     WBUFW(buf, 32) = sd->status.hair_color;
     WBUFW(buf, 34) = sd->status.clothes_color;
     WBUFW(buf, 36) = static_cast<uint8_t>(sd->head_dir);
@@ -807,7 +807,7 @@ int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
     WBUFB(buf, 48) = sd->status.karma;
     WBUFB(buf, 49) = static_cast<uint8_t>(sd->sex);
     WBUFPOS2(buf, 50, sd->bl_x, sd->bl_y, sd->to_x, sd->to_y);
-    WBUFW(buf, 55) = pc_isGM(sd) == 60 ? 0x80 : 0;
+    WBUFW(buf, 55) = pc_isGM(sd).get_public_word();
     WBUFB(buf, 57) = 5;
     WBUFW(buf, 58) = 0;
 
@@ -826,12 +826,12 @@ int clif_mob0078(dumb_ptr<mob_data> md, unsigned char *buf)
     nullpo_ret(md);
 
     WBUFW(buf, 0) = 0x78;
-    WBUFL(buf, 2) = md->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(md->bl_id);
     WBUFW(buf, 6) = static_cast<uint16_t>(battle_get_speed(md).count());
     WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
     WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
     WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
-    WBUFW(buf, 14) = md->mob_class;
+    WBUFW(buf, 14) = unwrap<Species>(md->mob_class);
     // snip: stuff do do with disguise as a PC
     WBUFPOS(buf, 46, md->bl_x, md->bl_y);
     // work around ICE in gcc 4.6
@@ -857,12 +857,12 @@ int clif_mob007b(dumb_ptr<mob_data> md, unsigned char *buf)
     nullpo_ret(md);
 
     WBUFW(buf, 0) = 0x7b;
-    WBUFL(buf, 2) = md->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(md->bl_id);
     WBUFW(buf, 6) = static_cast<uint16_t>(battle_get_speed(md).count());
     WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
     WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
     WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
-    WBUFW(buf, 14) = md->mob_class;
+    WBUFW(buf, 14) = unwrap<Species>(md->mob_class);
     // snip: stuff for monsters disguised as PCs
     WBUFL(buf, 22) = gettick().time_since_epoch().count();
 
@@ -887,7 +887,7 @@ int clif_npc0078(dumb_ptr<npc_data> nd, unsigned char *buf)
     really_memset0(buf, clif_parse_func_table[0x78].len);
 
     WBUFW(buf, 0) = 0x78;
-    WBUFL(buf, 2) = nd->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(nd->bl_id);
     WBUFW(buf, 6) = static_cast<uint16_t>(nd->speed.count());
     WBUFW(buf, 14) = nd->npc_class;
     WBUFPOS(buf, 46, nd->bl_x, nd->bl_y);
@@ -969,7 +969,7 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
     really_memset0(buf, clif_parse_func_table[0x7c].len);
 
     WBUFW(buf, 0) = 0x7c;
-    WBUFL(buf, 2) = nd->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(nd->bl_id);
     WBUFW(buf, 6) = static_cast<uint16_t>(nd->speed.count());
     WBUFW(buf, 20) = nd->npc_class;
     WBUFPOS(buf, 36, nd->bl_x, nd->bl_y);
@@ -982,7 +982,7 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
     return 0;
 }
 
-int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, int fake_npc_id)
+int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_npc_id)
 {
     nullpo_ret(sd);
 
@@ -992,7 +992,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, int fake_npc_i
         return 0;
 
     WFIFOW(s, 0) = 0x7c;
-    WFIFOL(s, 2) = fake_npc_id;
+    WFIFOL(s, 2) = unwrap<BlockId>(fake_npc_id);
     WFIFOW(s, 6) = 0;
     WFIFOW(s, 8) = 0;
     WFIFOW(s, 10) = 0;
@@ -1002,7 +1002,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, int fake_npc_i
     WFIFOSET(s, clif_parse_func_table[0x7c].len);
 
     WFIFOW(s, 0) = 0x78;
-    WFIFOL(s, 2) = fake_npc_id;
+    WFIFOL(s, 2) = unwrap<BlockId>(fake_npc_id);
     WFIFOW(s, 6) = 0;
     WFIFOW(s, 8) = 0;
     WFIFOW(s, 10) = 0;
@@ -1033,12 +1033,12 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
         really_memset0(buf, clif_parse_func_table[0x7c].len);
 
         WBUFW(buf, 0) = 0x7c;
-        WBUFL(buf, 2) = md->bl_id;
+        WBUFL(buf, 2) = unwrap<BlockId>(md->bl_id);
         WBUFW(buf, 6) = md->stats[mob_stat::SPEED];
         WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
         WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
         WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
-        WBUFW(buf, 20) = md->mob_class;
+        WBUFW(buf, 20) = unwrap<Species>(md->mob_class);
         WBUFPOS(buf, 36, md->bl_x, md->bl_y);
         clif_send(buf, clif_parse_func_table[0x7c].len, md, SendWho::AREA);
     }
@@ -1186,7 +1186,7 @@ void clif_fixpos(dumb_ptr<block_list> bl)
     nullpo_retv(bl);
 
     WBUFW(buf, 0) = 0x88;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     WBUFW(buf, 6) = bl->bl_x;
     WBUFW(buf, 8) = bl->bl_y;
 
@@ -1197,13 +1197,13 @@ void clif_fixpos(dumb_ptr<block_list> bl)
  *
  *------------------------------------------
  */
-int clif_npcbuysell(dumb_ptr<map_session_data> sd, int id)
+int clif_npcbuysell(dumb_ptr<map_session_data> sd, BlockId id)
 {
     nullpo_ret(sd);
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0xc4;
-    WFIFOL(s, 2) = id;
+    WFIFOL(s, 2) = unwrap<BlockId>(id);
     WFIFOSET(s, clif_parse_func_table[0xc4].len);
 
     return 0;
@@ -1230,7 +1230,7 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
         WFIFOL(s, 4 + i * 11) = val; // base price
         WFIFOL(s, 8 + i * 11) = val; // actual price
         WFIFOB(s, 12 + i * 11) = static_cast<uint8_t>(id->type);
-        WFIFOW(s, 13 + i * 11) = nd->shop_items[i].nameid;
+        WFIFOW(s, 13 + i * 11) = unwrap<ItemNameId>(nd->shop_items[i].nameid);
     }
     WFIFOW(s, 2) = i * 11 + 4;
     WFIFOSET(s, WFIFOW(s, 2));
@@ -1252,7 +1252,7 @@ int clif_selllist(dumb_ptr<map_session_data> sd)
     WFIFOW(s, 0) = 0xc7;
     for (i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].nameid > 0 && sd->inventory_data[i])
+        if (sd->status.inventory[i].nameid && sd->inventory_data[i])
         {
             val = sd->inventory_data[i]->value_sell;
             if (val < 0)
@@ -1273,7 +1273,7 @@ int clif_selllist(dumb_ptr<map_session_data> sd)
  *
  *------------------------------------------
  */
-void clif_scriptmes(dumb_ptr<map_session_data> sd, int npcid, XString mes)
+void clif_scriptmes(dumb_ptr<map_session_data> sd, BlockId npcid, XString mes)
 {
     nullpo_retv(sd);
 
@@ -1282,7 +1282,7 @@ void clif_scriptmes(dumb_ptr<map_session_data> sd, int npcid, XString mes)
     size_t len = mes.size() + 1;
     WFIFOW(s, 0) = 0xb4;
     WFIFOW(s, 2) = len + 8;
-    WFIFOL(s, 4) = npcid;
+    WFIFOL(s, 4) = unwrap<BlockId>(npcid);
     WFIFO_STRING(s, 8, mes, len);
     WFIFOSET(s, WFIFOW(s, 2));
 }
@@ -1291,13 +1291,13 @@ void clif_scriptmes(dumb_ptr<map_session_data> sd, int npcid, XString mes)
  *
  *------------------------------------------
  */
-void clif_scriptnext(dumb_ptr<map_session_data> sd, int npcid)
+void clif_scriptnext(dumb_ptr<map_session_data> sd, BlockId npcid)
 {
     nullpo_retv(sd);
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0xb5;
-    WFIFOL(s, 2) = npcid;
+    WFIFOL(s, 2) = unwrap<BlockId>(npcid);
     WFIFOSET(s, clif_parse_func_table[0xb5].len);
 }
 
@@ -1305,13 +1305,13 @@ void clif_scriptnext(dumb_ptr<map_session_data> sd, int npcid)
  *
  *------------------------------------------
  */
-void clif_scriptclose(dumb_ptr<map_session_data> sd, int npcid)
+void clif_scriptclose(dumb_ptr<map_session_data> sd, BlockId npcid)
 {
     nullpo_retv(sd);
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0xb6;
-    WFIFOL(s, 2) = npcid;
+    WFIFOL(s, 2) = unwrap<BlockId>(npcid);
     WFIFOSET(s, clif_parse_func_table[0xb6].len);
 }
 
@@ -1319,7 +1319,7 @@ void clif_scriptclose(dumb_ptr<map_session_data> sd, int npcid)
  *
  *------------------------------------------
  */
-void clif_scriptmenu(dumb_ptr<map_session_data> sd, int npcid, XString mes)
+void clif_scriptmenu(dumb_ptr<map_session_data> sd, BlockId npcid, XString mes)
 {
     nullpo_retv(sd);
 
@@ -1327,7 +1327,7 @@ void clif_scriptmenu(dumb_ptr<map_session_data> sd, int npcid, XString mes)
     size_t len = mes.size() + 1;
     WFIFOW(s, 0) = 0xb7;
     WFIFOW(s, 2) = len + 8;
-    WFIFOL(s, 4) = npcid;
+    WFIFOL(s, 4) = unwrap<BlockId>(npcid);
     WFIFO_STRING(s, 8, mes, len);
     WFIFOSET(s, WFIFOW(s, 2));
 }
@@ -1336,13 +1336,13 @@ void clif_scriptmenu(dumb_ptr<map_session_data> sd, int npcid, XString mes)
  *
  *------------------------------------------
  */
-void clif_scriptinput(dumb_ptr<map_session_data> sd, int npcid)
+void clif_scriptinput(dumb_ptr<map_session_data> sd, BlockId npcid)
 {
     nullpo_retv(sd);
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0x142;
-    WFIFOL(s, 2) = npcid;
+    WFIFOL(s, 2) = unwrap<BlockId>(npcid);
     WFIFOSET(s, clif_parse_func_table[0x142].len);
 }
 
@@ -1350,34 +1350,14 @@ void clif_scriptinput(dumb_ptr<map_session_data> sd, int npcid)
  *
  *------------------------------------------
  */
-void clif_scriptinputstr(dumb_ptr<map_session_data> sd, int npcid)
+void clif_scriptinputstr(dumb_ptr<map_session_data> sd, BlockId npcid)
 {
     nullpo_retv(sd);
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0x1d4;
-    WFIFOL(s, 2) = npcid;
+    WFIFOL(s, 2) = unwrap<BlockId>(npcid);
     WFIFOSET(s, clif_parse_func_table[0x1d4].len);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-void clif_viewpoint(dumb_ptr<map_session_data> sd, int npc_id, int type,
-        int x, int y, int id, int color)
-{
-    nullpo_retv(sd);
-
-    Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x144;
-    WFIFOL(s, 2) = npc_id;
-    WFIFOL(s, 6) = type;
-    WFIFOL(s, 10) = x;
-    WFIFOL(s, 14) = y;
-    WFIFOB(s, 18) = id;
-    WFIFOL(s, 19) = color;
-    WFIFOSET(s, clif_parse_func_table[0x144].len);
 }
 
 /*==========================================
@@ -1408,14 +1388,14 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
     }
     else
     {
-        if (n < 0 || n >= MAX_INVENTORY || sd->status.inventory[n].nameid <= 0
+        if (n < 0 || n >= MAX_INVENTORY || !sd->status.inventory[n].nameid
             || sd->inventory_data[n] == NULL)
             return 1;
 
         WFIFOW(s, 0) = 0xa0;
         WFIFOW(s, 2) = n + 2;
         WFIFOW(s, 4) = amount;
-        WFIFOW(s, 6) = sd->status.inventory[n].nameid;
+        WFIFOW(s, 6) = unwrap<ItemNameId>(sd->status.inventory[n].nameid);
         WFIFOB(s, 8) = 1; //identify;
         WFIFOB(s, 9) = 0; // broken or attribute;
         WFIFOB(s, 10) = 0; //refine;
@@ -1466,12 +1446,12 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
     WFIFOW(s, 0) = 0x1ee;
     for (int i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].nameid <= 0
+        if (!sd->status.inventory[i].nameid
             || sd->inventory_data[i] == NULL
             || itemdb_isequip2(sd->inventory_data[i]))
             continue;
         WFIFOW(s, n * 18 + 4) = i + 2;
-        WFIFOW(s, n * 18 + 6) = sd->status.inventory[i].nameid;
+        WFIFOW(s, n * 18 + 6) = unwrap<ItemNameId>(sd->status.inventory[i].nameid);
         WFIFOB(s, n * 18 + 8) = static_cast<uint8_t>(sd->inventory_data[i]->type);
         WFIFOB(s, n * 18 + 9) = 1; //identify;
         WFIFOW(s, n * 18 + 10) = sd->status.inventory[i].amount;
@@ -1511,12 +1491,12 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
     int n = 0;
     for (int i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].nameid <= 0
+        if (!sd->status.inventory[i].nameid
             || sd->inventory_data[i] == NULL
             || !itemdb_isequip2(sd->inventory_data[i]))
             continue;
         WFIFOW(s, n * 20 + 4) = i + 2;
-        WFIFOW(s, n * 20 + 6) = sd->status.inventory[i].nameid;
+        WFIFOW(s, n * 20 + 6) = unwrap<ItemNameId>(sd->status.inventory[i].nameid);
         WFIFOB(s, n * 20 + 8) = static_cast<uint8_t>(
                 sd->inventory_data[i]->type == ItemType::_7
                 ? ItemType::WEAPON
@@ -1555,7 +1535,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor)
     int n = 0;
     for (int i = 0; i < MAX_STORAGE; i++)
     {
-        if (stor->storage_[i].nameid <= 0)
+        if (!stor->storage_[i].nameid)
             continue;
 
         struct item_data *id;
@@ -1565,7 +1545,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor)
             continue;
 
         WFIFOW(s, n * 18 + 4) = i + 1;
-        WFIFOW(s, n * 18 + 6) = stor->storage_[i].nameid;
+        WFIFOW(s, n * 18 + 6) = unwrap<ItemNameId>(stor->storage_[i].nameid);
         WFIFOB(s, n * 18 + 8) = static_cast<uint8_t>(id->type);
         WFIFOB(s, n * 18 + 9) = 0; //identify;
         WFIFOW(s, n * 18 + 10) = stor->storage_[i].amount;
@@ -1598,7 +1578,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
     int n = 0;
     for (int i = 0; i < MAX_STORAGE; i++)
     {
-        if (stor->storage_[i].nameid <= 0)
+        if (!stor->storage_[i].nameid)
             continue;
 
         struct item_data *id;
@@ -1607,7 +1587,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
         if (!itemdb_isequip2(id))
             continue;
         WFIFOW(s, n * 20 + 4) = i + 1;
-        WFIFOW(s, n * 20 + 6) = stor->storage_[i].nameid;
+        WFIFOW(s, n * 20 + 6) = unwrap<ItemNameId>(stor->storage_[i].nameid);
         WFIFOB(s, n * 20 + 8) = static_cast<uint8_t>(id->type);
         WFIFOB(s, n * 20 + 9) = 0; //identify;
         WFIFOW(s, n * 20 + 10) = static_cast<uint16_t>(id->equip);
@@ -1788,7 +1768,7 @@ int clif_updatestatus(dumb_ptr<map_session_data> sd, SP type)
             break;
 
         case SP::GM:
-            WFIFOL(s, 4) = pc_isGM(sd);
+            WFIFOL(s, 4) = pc_isGM(sd).get_all_bits();
             break;
 
         default:
@@ -1829,7 +1809,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
         && (type == LOOK::WEAPON || type == LOOK::SHIELD || type >= LOOK::SHOES))
     {
         WBUFW(buf, 0) = 0x1d7;
-        WBUFL(buf, 2) = bl->bl_id;
+        WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
         if (type >= LOOK::SHOES)
         {
             EQUIP equip_point = equip_points[type];
@@ -1838,7 +1818,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
             int idx = sd->equip_index_maybe[equip_point];
             if (idx >= 0 && sd->inventory_data[idx])
             {
-                WBUFW(buf, 7) = sd->status.inventory[idx].nameid;
+                WBUFW(buf, 7) = unwrap<ItemNameId>(sd->status.inventory[idx].nameid);
             }
             else
                 WBUFW(buf, 7) = 0;
@@ -1855,14 +1835,14 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
             {
                 if (widx >= 0 && sd->inventory_data[widx])
                 {
-                    WBUFW(buf, 7) = sd->status.inventory[widx].nameid;
+                    WBUFW(buf, 7) = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
                 }
                 else
                     WBUFW(buf, 7) = 0;
             }
             if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
             {
-                WBUFW(buf, 9) = sd->status.inventory[sidx].nameid;
+                WBUFW(buf, 9) = unwrap<ItemNameId>(sd->status.inventory[sidx].nameid);
             }
             else
                 WBUFW(buf, 9) = 0;
@@ -1875,7 +1855,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
     else
     {
         WBUFW(buf, 0) = 0x1d7;
-        WBUFL(buf, 2) = bl->bl_id;
+        WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
         WBUFB(buf, 6) = static_cast<uint8_t>(type);
         WBUFW(buf, 7) = val;
         WBUFW(buf, 9) = 0;
@@ -1952,8 +1932,7 @@ int clif_arrowequip(dumb_ptr<map_session_data> sd, int val)
 {
     nullpo_ret(sd);
 
-    if (sd->attacktarget && sd->attacktarget > 0)   // [Valaris]
-        sd->attacktarget = 0;
+    sd->attacktarget = BlockId();
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0x013c;
@@ -2047,7 +2026,7 @@ int clif_misceffect(dumb_ptr<block_list> bl, int type)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x19b;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     WBUFL(buf, 6) = type;
 
     clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::AREA);
@@ -2070,7 +2049,7 @@ int clif_changeoption(dumb_ptr<block_list> bl)
     sc_data = battle_get_sc_data(bl);
 
     WBUFW(buf, 0) = 0x119;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     WBUFW(buf, 6) = static_cast<uint16_t>(*battle_get_opt1(bl));
     WBUFW(buf, 8) = static_cast<uint16_t>(*battle_get_opt2(bl));
     WBUFW(buf, 10) = static_cast<uint16_t>(option);
@@ -2105,8 +2084,8 @@ int clif_useitemack(dumb_ptr<map_session_data> sd, int index, int amount,
 
         WBUFW(buf, 0) = 0x1c8;
         WBUFW(buf, 2) = index + 2;
-        WBUFW(buf, 4) = sd->status.inventory[index].nameid;
-        WBUFL(buf, 6) = sd->bl_id;
+        WBUFW(buf, 4) = unwrap<ItemNameId>(sd->status.inventory[index].nameid);
+        WBUFL(buf, 6) = unwrap<BlockId>(sd->bl_id);
         WBUFW(buf, 10) = amount;
         WBUFB(buf, 12) = ok;
         clif_send(buf, clif_parse_func_table[0x1c8].len, sd, SendWho::SELF);
@@ -2170,7 +2149,7 @@ void clif_tradeadditem(dumb_ptr<map_session_data> sd,
     else
     {
         index -= 2;
-        WFIFOW(s, 6) = sd->status.inventory[index].nameid;    // type id
+        WFIFOW(s, 6) = unwrap<ItemNameId>(sd->status.inventory[index].nameid);    // type id
         WFIFOB(s, 8) = 0; //identify;
         WFIFOB(s, 9) = 0; //broken or attribute;
         WFIFOB(s, 10) = 0; //refine;
@@ -2286,7 +2265,7 @@ int clif_storageitemadded(dumb_ptr<map_session_data> sd, struct storage *stor,
 /*      if ((view = itemdb_viewid(stor->storage_[index].nameid)) > 0)
                 WFIFOW(fd,8) =view;
         else*/
-    WFIFOW(s, 8) = stor->storage_[index].nameid;
+    WFIFOW(s, 8) = unwrap<ItemNameId>(stor->storage_[index].nameid);
     WFIFOB(s, 10) = 0; //identify;
     WFIFOB(s, 11) = 0; //broken or attribute;
     WFIFOB(s, 12) = 0; //refine;
@@ -2484,8 +2463,8 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
     sc_data = battle_get_sc_data(dst);
 
     WBUFW(buf, 0) = 0x8a;
-    WBUFL(buf, 2) = src->bl_id;
-    WBUFL(buf, 6) = dst->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(src->bl_id);
+    WBUFL(buf, 6) = unwrap<BlockId>(dst->bl_id);
     WBUFL(buf, 10) = tick.time_since_epoch().count();
     WBUFL(buf, 14) = sdelay.count();
     WBUFL(buf, 18) = ddelay.count();
@@ -2535,8 +2514,8 @@ void clif_getareachar_item(dumb_ptr<map_session_data> sd,
     Session *s = sd->sess;
     //009d <ID>.l <item ID>.w <identify flag>.B <X>.w <Y>.w <amount>.w <subX>.B <subY>.B
     WFIFOW(s, 0) = 0x9d;
-    WFIFOL(s, 2) = fitem->bl_id;
-    WFIFOW(s, 6) = fitem->item_data.nameid;
+    WFIFOL(s, 2) = unwrap<BlockId>(fitem->bl_id);
+    WFIFOW(s, 6) = unwrap<ItemNameId>(fitem->item_data.nameid);
     WFIFOB(s, 8) = 0; //identify;
     WFIFOW(s, 9) = fitem->bl_x;
     WFIFOW(s, 11) = fitem->bl_y;
@@ -2799,7 +2778,7 @@ int clif_skillcastcancel(dumb_ptr<block_list> bl)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x1b9;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     clif_send(buf, clif_parse_func_table[0x1b9].len, bl, SendWho::AREA);
 
     return 0;
@@ -2850,8 +2829,8 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 
     WBUFW(buf, 0) = 0x1de;
     WBUFW(buf, 2) = static_cast<uint16_t>(skill_id);
-    WBUFL(buf, 4) = src->bl_id;
-    WBUFL(buf, 8) = dst->bl_id;
+    WBUFL(buf, 4) = unwrap<BlockId>(src->bl_id);
+    WBUFL(buf, 8) = unwrap<BlockId>(dst->bl_id);
     WBUFL(buf, 12) = static_cast<uint32_t>(tick.time_since_epoch().count());
     WBUFL(buf, 16) = static_cast<uint32_t>(sdelay.count());
     WBUFL(buf, 20) = static_cast<uint32_t>(ddelay.count());
@@ -2876,7 +2855,7 @@ int clif_status_change(dumb_ptr<block_list> bl, StatusChange type, int flag)
 
     WBUFW(buf, 0) = 0x0196;
     WBUFW(buf, 2) = static_cast<uint16_t>(type);
-    WBUFL(buf, 4) = bl->bl_id;
+    WBUFL(buf, 4) = unwrap<BlockId>(bl->bl_id);
     WBUFB(buf, 8) = flag;
     clif_send(buf, clif_parse_func_table[0x196].len, bl, SendWho::AREA);
     return 0;
@@ -2930,7 +2909,7 @@ void clif_resurrection(dumb_ptr<block_list> bl, int type)
     nullpo_retv(bl);
 
     WBUFW(buf, 0) = 0x148;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     WBUFW(buf, 6) = type;
 
     clif_send(buf, clif_parse_func_table[0x148].len, bl,
@@ -3002,11 +2981,11 @@ int clif_party_info(struct party *p, Session *s)
     for (i = c = 0; i < MAX_PARTY; i++)
     {
         struct party_member *m = &p->member[i];
-        if (m->account_id > 0)
+        if (m->account_id)
         {
             if (sd == NULL)
                 sd = dumb_ptr<map_session_data>(m->sd);
-            WBUFL(buf, 28 + c * 46) = m->account_id;
+            WBUFL(buf, 28 + c * 46) = unwrap<AccountId>(m->account_id);
             WBUF_STRING(buf, 28 + c * 46 + 4, m->name.to__actual(), 24);
             WBUF_STRING(buf, 28 + c * 46 + 28, m->map, 16);
             WBUFB(buf, 28 + c * 46 + 44) = (m->leader) ? 0 : 1;
@@ -3050,7 +3029,7 @@ void clif_party_invite(dumb_ptr<map_session_data> sd,
         return;
 
     WFIFOW(s, 0) = 0xfe;
-    WFIFOL(s, 2) = sd->status_key.account_id;
+    WFIFOL(s, 2) = unwrap<AccountId>(sd->status_key.account_id);
     WFIFO_STRING(s, 6, p->name, 24);
     WFIFOSET(s, clif_parse_func_table[0xfe].len);
 }
@@ -3097,7 +3076,7 @@ void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
     {
         int i;
         for (i = 0; i < MAX_PARTY; i++)
-            if ((sd = map_id2sd(p->member[i].account_id)) != NULL)
+            if ((sd = map_id2sd(account_to_block(p->member[i].account_id))) != NULL)
                 break;
     }
     if (sd == NULL)
@@ -3119,7 +3098,7 @@ void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
  *------------------------------------------
  */
 void clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
-        int account_id, CharName name, int flag)
+        AccountId account_id, CharName name, int flag)
 {
     unsigned char buf[64];
     int i;
@@ -3127,7 +3106,7 @@ void clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
     nullpo_retv(p);
 
     WBUFW(buf, 0) = 0x105;
-    WBUFL(buf, 2) = account_id;
+    WBUFL(buf, 2) = unwrap<AccountId>(account_id);
     WBUF_STRING(buf, 6, name.to__actual(), 24);
     WBUFB(buf, 30) = flag & 0x0f;
 
@@ -3154,7 +3133,7 @@ void clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
  * パーティメッセージ送信
  *------------------------------------------
  */
-void clif_party_message(struct party *p, int account_id, XString mes)
+void clif_party_message(struct party *p, AccountId account_id, XString mes)
 {
     // always set, but clang is not smart enough
     dumb_ptr<map_session_data> sd = nullptr;
@@ -3174,7 +3153,7 @@ void clif_party_message(struct party *p, int account_id, XString mes)
         unsigned char buf[len + 8];
         WBUFW(buf, 0) = 0x109;
         WBUFW(buf, 2) = len + 8;
-        WBUFL(buf, 4) = account_id;
+        WBUFL(buf, 4) = unwrap<AccountId>(account_id);
         WBUF_STRING(buf, 8, mes, len);
         clif_send(buf, len + 8, sd, SendWho::PARTY);
     }
@@ -3191,7 +3170,7 @@ int clif_party_xy(struct party *, dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x107;
-    WBUFL(buf, 2) = sd->status_key.account_id;
+    WBUFL(buf, 2) = unwrap<AccountId>(sd->status_key.account_id);
     WBUFW(buf, 6) = sd->bl_x;
     WBUFW(buf, 8) = sd->bl_y;
     clif_send(buf, clif_parse_func_table[0x107].len, sd, SendWho::PARTY_SAMEMAP_WOS);
@@ -3209,7 +3188,7 @@ int clif_party_hp(struct party *, dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x106;
-    WBUFL(buf, 2) = sd->status_key.account_id;
+    WBUFL(buf, 2) = unwrap<AccountId>(sd->status_key.account_id);
     WBUFW(buf, 6) = (sd->status.hp > 0x7fff) ? 0x7fff : sd->status.hp;
     WBUFW(buf, 8) =
         (sd->status.max_hp > 0x7fff) ? 0x7fff : sd->status.max_hp;
@@ -3228,7 +3207,7 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0x139;
-    WFIFOL(s, 2) = bl->bl_id;
+    WFIFOL(s, 2) = unwrap<BlockId>(bl->bl_id);
     WFIFOW(s, 6) = bl->bl_x;
     WFIFOW(s, 8) = bl->bl_y;
     WFIFOW(s, 10) = sd->bl_x;
@@ -3249,7 +3228,7 @@ int clif_mvp_effect(dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x10c;
-    WBUFL(buf, 2) = sd->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
     clif_send(buf, clif_parse_func_table[0x10c].len, sd, SendWho::AREA);
     return 0;
 }
@@ -3265,7 +3244,7 @@ void clif_emotion(dumb_ptr<block_list> bl, int type)
     nullpo_retv(bl);
 
     WBUFW(buf, 0) = 0xc0;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     WBUFB(buf, 6) = type;
     clif_send(buf, clif_parse_func_table[0xc0].len, bl, SendWho::AREA);
 }
@@ -3285,7 +3264,7 @@ void clif_emotion_towards(dumb_ptr<block_list> bl,
         return;
 
     WBUFW(buf, 0) = 0xc0;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     WBUFB(buf, 6) = type;
 
     WFIFO_BUF_CLONE(sd->sess, buf, len);
@@ -3303,7 +3282,7 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
     nullpo_retv(sd);
 
     WBUFW(buf, 0) = 0x8a;
-    WBUFL(buf, 2) = sd->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
     WBUFB(buf, 26) = 2;
     clif_send(buf, clif_parse_func_table[0x8a].len, sd, SendWho::AREA);
 }
@@ -3313,13 +3292,13 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-int clif_GM_kickack(dumb_ptr<map_session_data> sd, int id)
+int clif_GM_kickack(dumb_ptr<map_session_data> sd, AccountId id)
 {
     nullpo_ret(sd);
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0xcd;
-    WFIFOL(s, 2) = id;
+    WFIFOL(s, 2) = unwrap<AccountId>(id);
     WFIFOSET(s, clif_parse_func_table[0xcd].len);
     return 0;
 }
@@ -3351,7 +3330,7 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
     WBUF_ZERO(buf, 0, clif_parse_func_table[0x19b].len);
 
     WBUFW(buf, 0) = 0x19b;
-    WBUFL(buf, 2) = bl->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
     WBUFL(buf, 6) = type;
 
     if (flag == 2)
@@ -3386,7 +3365,7 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
 static
 void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int account_id;            // account_id in the packet
+    AccountId account_id;            // account_id in the packet
 
     if (sd)
     {
@@ -3397,16 +3376,16 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
 
     if (RFIFOW(s, 0) == 0x72)
     {
-        account_id = RFIFOL(s, 2);
+        account_id = wrap<AccountId>(RFIFOL(s, 2));
     }
     else
         return;                 // Not the auth packet
 
-    WFIFOL(s, 0) = account_id;
+    WFIFOL(s, 0) = unwrap<AccountId>(account_id);
     WFIFOSET(s, 4);
 
     // if same account already connected, we disconnect the 2 sessions
-    dumb_ptr<map_session_data> old_sd = map_id2sd(account_id);
+    dumb_ptr<map_session_data> old_sd = map_id2sd(account_to_block(account_id));
     if (old_sd)
     {
         clif_authfail_fd(s, 2);   // same id
@@ -3420,7 +3399,7 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
         s->session_data.reset(sd.operator->());
         sd->sess = s;
 
-        pc_setnewpc(sd, account_id, RFIFOL(s, 6), RFIFOL(s, 10),
+        pc_setnewpc(sd, account_id, wrap<CharId>(RFIFOL(s, 6)), RFIFOL(s, 10),
                 tick_t(static_cast<interval_t>(RFIFOL(s, 14))),
                 static_cast<SEX>(RFIFOB(s, 18)));
 
@@ -3558,7 +3537,7 @@ void clif_parse_WalkToXY(Session *s, dumb_ptr<map_session_data> sd)
         return;
     }
 
-    if (sd->npc_id != 0 || sd->state.storage_open)
+    if (sd->npc_id || sd->state.storage_open)
         return;
 
     if (sd->canmove_tick > gettick())
@@ -3621,15 +3600,15 @@ static
 void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
 {
     dumb_ptr<block_list> bl;
-    int account_id;
+    BlockId account_id;
 
-    account_id = RFIFOL(s, 2);
+    account_id = wrap<BlockId>(RFIFOL(s, 2));
     bl = map_id2bl(account_id);
     if (bl == NULL)
         return;
 
     WFIFOW(s, 0) = 0x95;
-    WFIFOL(s, 2) = account_id;
+    WFIFOL(s, 2) = unwrap<BlockId>(account_id);
 
     switch (bl->bl_type)
     {
@@ -3651,7 +3630,7 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
 
             int send = 0;
 
-            if (ssd->status.party_id > 0 && (p = party_search(ssd->status.party_id)) != NULL)
+            if (ssd->status.party_id && (p = party_search(ssd->status.party_id)) != NULL)
             {
                 party_name = p->name;
                 send = 1;
@@ -3660,7 +3639,7 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
             if (send)
             {
                 WFIFOW(s, 0) = 0x195;
-                WFIFOL(s, 2) = account_id;
+                WFIFOL(s, 2) = unwrap<BlockId>(account_id);
                 WFIFO_STRING(s, 6, party_name, 24);
                 WFIFO_STRING(s, 30, ""_s, 24);
                 WFIFO_STRING(s, 54, ""_s, 24);
@@ -3669,7 +3648,7 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
 
             }
 
-            if (pc_isGM(sd) >= battle_config.hack_info_GM_level)
+            if (pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.hack_info_GM_level))))
             {
                 IP4Address ip = ssd->get_ip();
                 WFIFOW(s, 0) = 0x20C;
@@ -3678,7 +3657,7 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
                 if (battle_config.mask_ip_gms)
                     ip = MD5_ip(ip);
 
-                WFIFOL(s, 2) = account_id;
+                WFIFOL(s, 2) = unwrap<BlockId>(account_id);
                 WFIFOIP(s, 6) = ip;
                 WFIFOSET(s, clif_parse_func_table[0x20C].len);
              }
@@ -3731,7 +3710,7 @@ void clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         return;
     }
 
-    if (is_atcommand(s, sd, mbuf, 0))
+    if (is_atcommand(s, sd, mbuf, GmLevel()))
         return;
 
     if (!magic_message(sd, mbuf))
@@ -3748,7 +3727,7 @@ void clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         uint8_t sendbuf[mbuf_size + 8];
         WBUFW(sendbuf, 0) = 0x8d;
         WBUFW(sendbuf, 2) = mbuf_size + 8;   /* Header(2) + length(2) + ID(4). */
-        WBUFL(sendbuf, 4) = sd->bl_id;
+        WBUFL(sendbuf, 4) = unwrap<BlockId>(sd->bl_id);
         WBUF_STRING(sendbuf, 8, mbuf, mbuf_size);
 
         clif_send(sendbuf, mbuf_size + 8, sd, SendWho::AREA_CHAT_WOC);
@@ -3773,7 +3752,7 @@ void clif_message(dumb_ptr<block_list> bl, XString msg)
 
     WBUFW(buf, 0) = 0x8d;
     WBUFW(buf, 2) = msg_len + 8;
-    WBUFL(buf, 4) = bl->bl_id;
+    WBUFL(buf, 4) = unwrap<BlockId>(bl->bl_id);
     WBUF_STRING(buf, 8, msg, msg_len);
 
     clif_send(buf, WBUFW(buf, 2), bl, SendWho::AREA);
@@ -3815,7 +3794,7 @@ void clif_parse_ChangeDir(Session *s, dumb_ptr<map_session_data> sd)
     pc_setdir(sd, dir);
 
     WBUFW(buf, 0) = 0x9c;
-    WBUFL(buf, 2) = sd->bl_id;
+    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
     WBUFW(buf, 6) = 0;
     WBUFB(buf, 8) = client_dir;
 
@@ -3839,7 +3818,7 @@ void clif_parse_Emotion(Session *s, dumb_ptr<map_session_data> sd)
     {
         uint8_t emote = RFIFOB(s, 2);
         WBUFW(buf, 0) = 0xc0;
-        WBUFL(buf, 2) = sd->bl_id;
+        WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
         WBUFB(buf, 6) = emote;
         clif_send(buf, clif_parse_func_table[0xc0].len, sd, SendWho::AREA);
     }
@@ -3867,7 +3846,8 @@ static
 void clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[64];
-    int action_type, target_id;
+    int action_type;
+    BlockId target_id;
 
     nullpo_retv(sd);
 
@@ -3876,7 +3856,7 @@ void clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
         return;
     }
-    if (sd->npc_id != 0
+    if (sd->npc_id
         || bool(sd->opt1)
         || sd->state.storage_open)
         return;
@@ -3886,7 +3866,7 @@ void clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
     pc_stop_walking(sd, 0);
     pc_stopattack(sd);
 
-    target_id = RFIFOL(s, 2);
+    target_id = wrap<BlockId>(RFIFOL(s, 2));
     action_type = RFIFOB(s, 6);
 
     switch (action_type)
@@ -3905,8 +3885,7 @@ void clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
             }
             if (sd->invincible_timer)
                 pc_delinvincibletimer(sd);
-            if (sd->attacktarget > 0)   // [Valaris]
-                sd->attacktarget = 0;
+            sd->attacktarget = BlockId();
             pc_attack(sd, target_id, action_type != 0);
             break;
         case 0x02:             // sitdown
@@ -3917,7 +3896,7 @@ void clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
         case 0x03:             // standup
             pc_setstand(sd);
             WBUFW(buf, 0) = 0x8a;
-            WBUFL(buf, 2) = sd->bl_id;
+            WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
             WBUFB(buf, 26) = 3;
             clif_send(buf, clif_parse_func_table[0x8a].len, sd, SendWho::AREA);
             break;
@@ -3996,7 +3975,7 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
         return;
     }
 
-    if (is_atcommand(s, sd, mbuf, 0))
+    if (is_atcommand(s, sd, mbuf, GmLevel()))
     {
         return;
     }
@@ -4048,11 +4027,10 @@ static
 void clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
 {
     dumb_ptr<flooritem_data> fitem;
-    int map_object_id;
 
     nullpo_retv(sd);
 
-    map_object_id = RFIFOL(s, 2);
+    BlockId map_object_id = wrap<BlockId>(RFIFOL(s, 2));
     fitem = map_id_is_item(map_object_id);
 
     if (pc_isdead(sd))
@@ -4061,7 +4039,7 @@ void clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
         return;
     }
 
-    if (sd->npc_id != 0
+    if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)   //会話禁止
         return;
 
@@ -4099,7 +4077,7 @@ void clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
         clif_displaymessage(sd->sess, "Can't drop items here."_s);
         return;
     }
-    if (sd->npc_id != 0
+    if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)
     {
         clif_displaymessage(sd->sess, "Can't drop items right now."_s);
@@ -4126,7 +4104,7 @@ void clif_parse_UseItem(Session *s, dumb_ptr<map_session_data> sd)
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
         return;
     }
-    if (sd->npc_id != 0
+    if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)   //会話禁止
         return;
 
@@ -4153,7 +4131,7 @@ void clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
         return;
     }
     index = RFIFOW(s, 2) - 2;
-    if (sd->npc_id != 0)
+    if (sd->npc_id)
         return;
 
     if (sd->inventory_data[index])
@@ -4185,7 +4163,7 @@ void clif_parse_UnequipItem(Session *s, dumb_ptr<map_session_data> sd)
     }
     index = RFIFOW(s, 2) - 2;
 
-    if (sd->npc_id != 0
+    if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)
         return;
     pc_unequipitem(sd, index, CalcStatus::NOW);
@@ -4205,9 +4183,9 @@ void clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
         return;
     }
-    if (sd->npc_id != 0)
+    if (sd->npc_id)
         return;
-    npc_click(sd, RFIFOL(s, 2));
+    npc_click(sd, wrap<BlockId>(RFIFOL(s, 2)));
 }
 
 /*==========================================
@@ -4217,7 +4195,7 @@ void clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_NpcBuySellSelected(Session *s, dumb_ptr<map_session_data> sd)
 {
-    npc_buysellsel(sd, RFIFOL(s, 2), RFIFOB(s, 6));
+    npc_buysellsel(sd, wrap<BlockId>(RFIFOL(s, 2)), RFIFOB(s, 6));
 }
 
 /*==========================================
@@ -4268,7 +4246,7 @@ void clif_parse_TradeRequest(Session *, dumb_ptr<map_session_data> sd)
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_TRADE) >= 1)
     {
-        trade_traderequest(sd, RFIFOL(sd->sess, 2));
+        trade_traderequest(sd, wrap<BlockId>(RFIFOL(sd->sess, 2)));
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 0);
@@ -4368,7 +4346,7 @@ void clif_parse_NpcSelectMenu(Session *s, dumb_ptr<map_session_data> sd)
     nullpo_retv(sd);
 
     sd->npc_menu = RFIFOB(s, 6);
-    map_scriptcont(sd, RFIFOL(s, 2));
+    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 2)));
 }
 
 /*==========================================
@@ -4378,7 +4356,7 @@ void clif_parse_NpcSelectMenu(Session *s, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_NpcNextClicked(Session *s, dumb_ptr<map_session_data> sd)
 {
-    map_scriptcont(sd, RFIFOL(s, 2));
+    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 2)));
 }
 
 /*==========================================
@@ -4391,7 +4369,7 @@ void clif_parse_NpcAmountInput(Session *s, dumb_ptr<map_session_data> sd)
     nullpo_retv(sd);
 
     sd->npc_amount = RFIFOL(s, 6);
-    map_scriptcont(sd, RFIFOL(s, 2));
+    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 2)));
 }
 
 /*==========================================
@@ -4416,7 +4394,7 @@ void clif_parse_NpcStringInput(Session *s, dumb_ptr<map_session_data> sd)
         return;
     sd->npc_str = RFIFO_STRING(s, 8, len);
 
-    map_scriptcont(sd, RFIFOL(s, 4));
+    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 4)));
 }
 
 /*==========================================
@@ -4426,7 +4404,7 @@ void clif_parse_NpcStringInput(Session *s, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_NpcCloseClicked(Session *s, dumb_ptr<map_session_data> sd)
 {
-    map_scriptcont(sd, RFIFOL(s, 2));
+    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 2)));
 }
 
 /*==========================================
@@ -4443,7 +4421,7 @@ void clif_parse_MoveToKafra(Session *s, dumb_ptr<map_session_data> sd)
     item_index = RFIFOW(s, 2) - 2;
     item_amount = RFIFOL(s, 4);
 
-    if ((sd->npc_id != 0 && !sd->npc_flags.storage) || sd->trade_partner != 0
+    if ((sd->npc_id && !sd->npc_flags.storage) || sd->trade_partner
         || !sd->state.storage_open)
         return;
 
@@ -4465,7 +4443,7 @@ void clif_parse_MoveFromKafra(Session *s, dumb_ptr<map_session_data> sd)
     item_index = RFIFOW(s, 2) - 1;
     item_amount = RFIFOL(s, 4);
 
-    if ((sd->npc_id != 0 && !sd->npc_flags.storage) || sd->trade_partner != 0
+    if ((sd->npc_id && !sd->npc_flags.storage) || sd->trade_partner
         || !sd->state.storage_open)
         return;
 
@@ -4516,7 +4494,7 @@ void clif_parse_CreateParty(Session *s, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_PartyInvite(Session *s, dumb_ptr<map_session_data> sd)
 {
-    party_invite(sd, RFIFOL(s, 2));
+    party_invite(sd, wrap<AccountId>(RFIFOL(s, 2)));
 }
 
 /*==========================================
@@ -4532,11 +4510,11 @@ void clif_parse_ReplyPartyInvite(Session *s, dumb_ptr<map_session_data> sd)
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_PARTY) >= 1)
     {
-        party_reply_invite(sd, RFIFOL(s, 2), RFIFOL(s, 6));
+        party_reply_invite(sd, wrap<AccountId>(RFIFOL(s, 2)), RFIFOL(s, 6));
     }
     else
     {
-        party_reply_invite(sd, RFIFOL(s, 2), 0);
+        party_reply_invite(sd, wrap<AccountId>(RFIFOL(s, 2)), 0);
         clif_skill_fail(sd, SkillID::ONE, 0, 4);
     }
 }
@@ -4558,7 +4536,7 @@ void clif_parse_LeaveParty(Session *, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_RemovePartyMember(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int account_id = RFIFOL(s, 2);
+    AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
     // unused RFIFO_STRING<24>(fd, 6);
     party_removemember(sd, account_id);
 }
@@ -4593,7 +4571,7 @@ void clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
         return;
     }
 
-    if (is_atcommand(s, sd, mbuf, 0))
+    if (is_atcommand(s, sd, mbuf, GmLevel()))
         return;
 
     /* Don't send chat that results in an automatic ban. */

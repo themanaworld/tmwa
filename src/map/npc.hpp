@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include <cstddef>
 # include <cstdint>
@@ -32,7 +32,7 @@
 
 # include "map.hpp"
 
-constexpr int START_NPC_NUM = 110000000;
+constexpr BlockId START_NPC_NUM = wrap<BlockId>(110000000);
 
 constexpr int WARP_CLASS = 45;
 constexpr int WARP_DEBUG_CLASS = 722;
@@ -43,9 +43,9 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent npcname, int);
 void npc_timer_event(NpcEvent eventname);   // Added by RoVeRT
 int npc_command(dumb_ptr<map_session_data> sd, NpcName npcname, XString command);
 int npc_touch_areanpc(dumb_ptr<map_session_data>, map_local *, int, int);
-int npc_click(dumb_ptr<map_session_data>, int);
-int npc_scriptcont(dumb_ptr<map_session_data>, int);
-int npc_buysellsel(dumb_ptr<map_session_data>, int, int);
+int npc_click(dumb_ptr<map_session_data>, BlockId);
+int npc_scriptcont(dumb_ptr<map_session_data>, BlockId);
+int npc_buysellsel(dumb_ptr<map_session_data>, BlockId, int);
 int npc_buylist(dumb_ptr<map_session_data>, int, const uint16_t *);
 int npc_selllist(dumb_ptr<map_session_data>, int, const uint16_t *);
 int npc_parse_warp(XString w1, XString, NpcName w3, XString w4);
@@ -53,7 +53,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4);
 int npc_enable(NpcName name, bool flag);
 dumb_ptr<npc_data> npc_name2id(NpcName name);
 
-int npc_get_new_npc_id(void);
+BlockId npc_get_new_npc_id(void);
 
 /**
  * Spawns and installs a talk-only NPC
@@ -73,17 +73,17 @@ void npc_delsrcfile(XString);
 bool do_init_npc(void);
 int npc_event_do_oninit(void);
 
-int npc_event_doall_l(ScriptLabel name, int rid, Slice<argrec_t> argv);
-int npc_event_do_l(NpcEvent name, int rid, Slice<argrec_t> argv);
+int npc_event_doall_l(ScriptLabel name, BlockId rid, Slice<argrec_t> argv);
+int npc_event_do_l(NpcEvent name, BlockId rid, Slice<argrec_t> argv);
 inline
 int npc_event_doall(ScriptLabel name)
 {
-    return npc_event_doall_l(name, 0, nullptr);
+    return npc_event_doall_l(name, BlockId(), nullptr);
 }
 inline
 int npc_event_do(NpcEvent name)
 {
-    return npc_event_do_l(name, 0, nullptr);
+    return npc_event_do_l(name, BlockId(), nullptr);
 }
 
 void npc_timerevent_start(dumb_ptr<npc_data_script> nd);

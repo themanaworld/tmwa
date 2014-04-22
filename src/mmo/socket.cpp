@@ -33,7 +33,10 @@
 #include <cstring>
 #include <ctime>
 
+#include "../compat/memory.hpp"
+
 #include "../io/cxxstdio.hpp"
+
 #include "core.hpp"
 #include "timer.hpp"
 #include "utils.hpp"

@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "clif.t.hpp"
 
@@ -47,16 +47,16 @@ void clif_setwaitclose(Session *);
 
 int clif_authok(dumb_ptr<map_session_data>);
 int clif_authfail_fd(Session *, int);
-int clif_charselectok(int);
+int clif_charselectok(BlockId);
 int clif_dropflooritem(dumb_ptr<flooritem_data>);
 int clif_clearflooritem(dumb_ptr<flooritem_data>, Session *);
 int clif_clearchar(dumb_ptr<block_list>, BeingRemoveWhy); // area or fd
 int clif_clearchar_delay(tick_t, dumb_ptr<block_list>, BeingRemoveWhy);
-void clif_clearchar_id(int, BeingRemoveWhy, Session *);
+void clif_clearchar_id(BlockId, BeingRemoveWhy, Session *);
 int clif_spawnpc(dumb_ptr<map_session_data>);  //area
 int clif_spawnnpc(dumb_ptr<npc_data>); // area
 int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd,
-        int fake_npc_id);
+        BlockId fake_npc_id);
 int clif_spawnmob(dumb_ptr<mob_data>); // area
 int clif_walkok(dumb_ptr<map_session_data>);   // self
 int clif_movechar(dumb_ptr<map_session_data>); // area
@@ -66,16 +66,16 @@ void clif_changemapserver(dumb_ptr<map_session_data>, MapName, int, int, IP4Addr
 void clif_fixpos(dumb_ptr<block_list>); // area
 int clif_fixmobpos(dumb_ptr<mob_data> md);
 int clif_fixpcpos(dumb_ptr<map_session_data> sd);
-int clif_npcbuysell(dumb_ptr<map_session_data>, int);  //self
+int clif_npcbuysell(dumb_ptr<map_session_data>, BlockId);  //self
 int clif_buylist(dumb_ptr<map_session_data>, dumb_ptr<npc_data_shop>);   //self
 int clif_selllist(dumb_ptr<map_session_data>); //self
-void clif_scriptmes(dumb_ptr<map_session_data>, int, XString);   //self
-void clif_scriptnext(dumb_ptr<map_session_data>, int);  //self
-void clif_scriptclose(dumb_ptr<map_session_data>, int); //self
-void clif_scriptmenu(dumb_ptr<map_session_data>, int, XString);  //self
-void clif_scriptinput(dumb_ptr<map_session_data>, int); //self
-void clif_scriptinputstr(dumb_ptr<map_session_data> sd, int npcid);  // self
-void clif_viewpoint(dumb_ptr<map_session_data>, int, int, int, int, int, int);  //self
+void clif_scriptmes(dumb_ptr<map_session_data>, BlockId, XString);   //self
+void clif_scriptnext(dumb_ptr<map_session_data>, BlockId);  //self
+void clif_scriptclose(dumb_ptr<map_session_data>, BlockId); //self
+void clif_scriptmenu(dumb_ptr<map_session_data>, BlockId, XString);  //self
+void clif_scriptinput(dumb_ptr<map_session_data>, BlockId); //self
+void clif_scriptinputstr(dumb_ptr<map_session_data> sd, BlockId npcid);  // self
+
 int clif_additem(dumb_ptr<map_session_data>, int, int, PickupFail);   //self
 void clif_delitem(dumb_ptr<map_session_data>, int, int);    //self
 int clif_updatestatus(dumb_ptr<map_session_data>, SP);    //self
@@ -164,8 +164,8 @@ void clif_party_inviteack(dumb_ptr<map_session_data> sd, CharName nick, int flag
 void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd,
         int flag);
 void clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
-        int account_id, CharName name, int flag);
-void clif_party_message(struct party *p, int account_id, XString mes);
+        AccountId account_id, CharName name, int flag);
+void clif_party_message(struct party *p, AccountId account_id, XString mes);
 int clif_party_xy(struct party *p, dumb_ptr<map_session_data> sd);
 int clif_party_hp(struct party *p, dumb_ptr<map_session_data> sd);
 

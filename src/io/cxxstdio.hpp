@@ -226,7 +226,8 @@ namespace cxxstdio
         cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);  \
     })
 
-# define XSCANF(out, fmt, ...)                                              \
+# if 0
+#  define XSCANF(out, fmt, ...)                                             \
     ({                                                                      \
         struct format_impl                                                  \
         {                                                                   \
@@ -235,14 +236,19 @@ namespace cxxstdio
         };                                                                  \
         cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__);    \
     })
+# endif
 
 # define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
-# define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
+# if 0
+#  define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
+# endif
 # define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
 # define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<AString&>(str), fmt, ## __VA_ARGS__)
 # define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
-# define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
-# define SSCANF(str, fmt, ...)       XSCANF(maybe_cast<ZString>(str), fmt, ## __VA_ARGS__)
+# if 0
+#  define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
+#  define SSCANF(str, fmt, ...)       XSCANF(maybe_cast<ZString>(str), fmt, ## __VA_ARGS__)
+# endif
 
 # define STRPRINTF(fmt, ...)                        \
     ({                                              \

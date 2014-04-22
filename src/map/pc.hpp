@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "pc.t.hpp"
 
@@ -66,7 +66,7 @@ bool pc_is90overweight(dumb_ptr<map_session_data> sd)
 // should do something with the specified player.
 void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd);
 
-uint8_t pc_isGM(dumb_ptr<map_session_data> sd);
+GmLevel pc_isGM(dumb_ptr<map_session_data> sd);
 int pc_iskiller(dumb_ptr<map_session_data> src, dumb_ptr<map_session_data> target);   // [MouseJstr]
 
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled);    // [Fate]
@@ -74,9 +74,9 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
         ATK target_lv);
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
 void pc_makesavestatus(dumb_ptr<map_session_data>);
-int pc_setnewpc(dumb_ptr<map_session_data>, int, int, int, tick_t, SEX);
-int pc_authok(int, int, TimeT, short tmw_version, const CharKey *, const CharData *);
-int pc_authfail(int accid);
+int pc_setnewpc(dumb_ptr<map_session_data>, AccountId, CharId, int, tick_t, SEX);
+int pc_authok(AccountId, int, TimeT, short tmw_version, const CharKey *, const CharData *);
+int pc_authfail(AccountId accid);
 
 EPOS pc_equippoint(dumb_ptr<map_session_data> sd, int n);
 
@@ -90,17 +90,17 @@ int pc_setpos(dumb_ptr<map_session_data>, MapName, int, int, BeingRemoveWhy);
 void pc_setsavepoint(dumb_ptr<map_session_data>, MapName, int, int);
 int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type);
 
-ADDITEM pc_checkadditem(dumb_ptr<map_session_data>, int, int);
+ADDITEM pc_checkadditem(dumb_ptr<map_session_data>, ItemNameId, int);
 int pc_inventoryblank(dumb_ptr<map_session_data>);
-int pc_search_inventory(dumb_ptr<map_session_data> sd, int item_id);
+int pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id);
 int pc_payzeny(dumb_ptr<map_session_data>, int);
 PickupFail pc_additem(dumb_ptr<map_session_data>, struct item *, int);
 int pc_getzeny(dumb_ptr<map_session_data>, int);
 int pc_delitem(dumb_ptr<map_session_data>, int, int, int);
 int pc_checkitem(dumb_ptr<map_session_data>);
-int pc_count_all_items(dumb_ptr<map_session_data> player, int item_id);
+int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id);
 int pc_remove_items(dumb_ptr<map_session_data> player,
-        int item_id, int count);
+        ItemNameId item_id, int count);
 
 int pc_takeitem(dumb_ptr<map_session_data>, dumb_ptr<flooritem_data>);
 int pc_dropitem(dumb_ptr<map_session_data>, int, int);
@@ -112,7 +112,7 @@ int pc_bonus(dumb_ptr<map_session_data>, SP, int);
 int pc_bonus2(dumb_ptr<map_session_data> sd, SP, int, int);
 int pc_skill(dumb_ptr<map_session_data>, SkillID, int, int);
 
-int pc_attack(dumb_ptr<map_session_data>, int, int);
+int pc_attack(dumb_ptr<map_session_data>, BlockId, int);
 int pc_stopattack(dumb_ptr<map_session_data>);
 
 int pc_gainexp_reason(dumb_ptr<map_session_data>, int, int,
@@ -158,13 +158,13 @@ int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick,
 int pc_cleareventtimer(dumb_ptr<map_session_data> sd);
 
 int pc_calc_pvprank(dumb_ptr<map_session_data> sd);
-void pc_calc_pvprank_timer(TimerData *, tick_t, int);
+void pc_calc_pvprank_timer(TimerData *, tick_t, BlockId);
 
 int pc_marriage(dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> dstsd);
 int pc_divorce(dumb_ptr<map_session_data> sd);
 dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd);
-void pc_set_gm_level(int account_id, uint8_t level);
+void pc_set_gm_level(AccountId account_id, GmLevel level);
 void pc_setstand(dumb_ptr<map_session_data> sd);
 void pc_cleanup(dumb_ptr<map_session_data> sd);  // [Fate] Clean up after a logged-out PC
 

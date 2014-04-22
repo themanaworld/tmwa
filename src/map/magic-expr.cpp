@@ -190,7 +190,7 @@ void stringify(val_t *v, int within_op)
         {
             dumb_ptr<invocation> invocation_ = within_op
                 ? v->v.v_invocation
-                : map_id2bl(v->v.v_int)->is_spell();
+                : map_id2bl(wrap<BlockId>(static_cast<uint32_t>(v->v.v_int)))->is_spell();
             buf = invocation_->spell->name;
         }
             break;
@@ -725,7 +725,7 @@ int fun_mob_id(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ENTITY_TYPE(0) != BL::MOB)
         return 1;
-    RESULTINT = ARGMOB(0)->mob_class;
+    RESULTINT = unwrap<Species>(ARGMOB(0)->mob_class);
     return 0;
 }
 
@@ -783,7 +783,7 @@ int fun_random_dir(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_hash_entity(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    RESULTINT = ARGENTITY(0)->bl_id;
+    RESULTINT = unwrap<BlockId>(ARGENTITY(0)->bl_id);
     return 0;
 }
 
@@ -794,7 +794,7 @@ magic_find_item(Slice<val_t> args, int index, struct item *item_, int *stackable
     int must_add_sequentially;
 
     if (ARG_TYPE(index) == TYPE::INT)
-        item_data = itemdb_exists(ARGINT(index));
+        item_data = itemdb_exists(wrap<ItemNameId>(static_cast<uint16_t>(ARGINT(index))));
     else if (ARG_TYPE(index) == TYPE::STRING)
         item_data = itemdb_searchname(ARGSTR(index));
     else
@@ -1559,13 +1559,13 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         if (ty == TYPE::ENTITY)
         {
             /* Dereference entities in preparation for calling function */
-            arg->v.v_entity = map_id2bl(arg->v.v_int);
+            arg->v.v_entity = map_id2bl(wrap<BlockId>(static_cast<uint32_t>(arg->v.v_int)));
             if (!arg->v.v_entity)
                 ty = arg->ty = TYPE::FAIL;
         }
         else if (ty == TYPE::INVOCATION)
         {
-            arg->v.v_invocation = map_id2bl(arg->v.v_int)->is_spell();
+            arg->v.v_invocation = map_id2bl(wrap<BlockId>(static_cast<uint32_t>(arg->v.v_int)))->is_spell();
             if (!arg->v.v_entity)
                 ty = arg->ty = TYPE::FAIL;
         }
@@ -1674,7 +1674,7 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
                 if (dest->ty == TYPE::ENTITY)
                 {
                     if (dest->v.v_entity)
-                        dest->v.v_int = dest->v.v_entity->bl_id;
+                        dest->v.v_int = static_cast<int32_t>(unwrap<BlockId>(dest->v.v_entity->bl_id));
                     else
                         dest->ty = TYPE::FAIL;
                 }
@@ -1700,7 +1700,7 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
 
             if (v.ty == TYPE::INVOCATION)
             {
-                dumb_ptr<invocation> t = map_id2bl(v.v.v_int)->is_spell();
+                dumb_ptr<invocation> t = map_id2bl(wrap<BlockId>(static_cast<uint32_t>(v.v.v_int)))->is_spell();
 
                 if (!t)
                     dest->ty = TYPE::UNDEF;

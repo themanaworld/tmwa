@@ -19,7 +19,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include <cstdint>
 
@@ -121,14 +121,17 @@ namespace ints
             ullong magnitude = V;
 
             template<class T>
+            constexpr
             operator T()
             {
                 typedef typename std::make_unsigned<T>::type U;
-
-                constexpr bool is_signed = T(-1) < T(0);
+                // boo, body of constexpr function can't use variables
+# define is_signed bool(T(-1) < T(0))
                 static_assert(is_signed >= (sign && magnitude), "signed");
-                constexpr ullong max = ullong(U(-1) >> is_signed);
+# define max ullong(ullong(U(-1) >> is_signed))
                 static_assert(magnitude <= max || (sign && magnitude == max + 1), "magna");
+# undef is_signed
+# undef max
                 return sign ? T(ullong(-magnitude)) : T(magnitude);
             }
         };
@@ -162,6 +165,7 @@ namespace ints
         struct nint64 { int64_t value; int64_t operator -() { return value; } };
 
         template<char... C>
+        constexpr
         SignedMagnitudeConstant<false, IntParser<C...>::value> operator "" _const()
         { return {}; }
 

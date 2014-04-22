@@ -22,6 +22,8 @@
 
 #include "../strings/xstring.hpp"
 
+#include "mmo.hpp"
+
 #include "../poison.hpp"
 
 TEST(extract, record_int)

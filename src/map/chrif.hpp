@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../strings/fwd.hpp"
 
@@ -48,13 +48,13 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
         MapName name, int x, int y,
         IP4Address ip, short port);
 
-void chrif_changegm(int id, ZString pass);
-void chrif_changeemail(int id, AccountEmail actual_email, AccountEmail new_email);
-void chrif_char_ask_name(int id, CharName character_name, short operation_type,
+void chrif_changegm(AccountId id, ZString pass);
+void chrif_changeemail(AccountId id, AccountEmail actual_email, AccountEmail new_email);
+void chrif_char_ask_name(AccountId id, CharName character_name, short operation_type,
         HumanTimeDiff modif);
 int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd);
 int chrif_reloadGMdb(void);
-int chrif_send_divorce(int char_id);
+int chrif_send_divorce(CharId char_id);
 
 void do_init_chrif(void);
 

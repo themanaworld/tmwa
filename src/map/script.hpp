@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include <cstdint>
 # include <cstring> // for inlined get_str - TODO remove
@@ -155,7 +155,7 @@ public:
     struct script_stack *stack;
     int start, end;
     ScriptEndState state;
-    int rid, oid;
+    BlockId rid, oid;
     ScriptPointer scriptp, new_scriptp;
     int defsp, new_defsp;
 };
@@ -177,8 +177,8 @@ struct argrec_t
     argrec_t(ZString n, int i) : name(n), v(i) {}
     argrec_t(ZString n, ZString z) : name(n), v(z) {}
 };
-int run_script_l(ScriptPointer, int, int, Slice<argrec_t> args);
-int run_script(ScriptPointer, int, int);
+int run_script_l(ScriptPointer, BlockId, BlockId, Slice<argrec_t> args);
+int run_script(ScriptPointer, BlockId, BlockId);
 
 struct ScriptLabel;
 extern

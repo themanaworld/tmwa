@@ -130,7 +130,7 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
     /* type: 2 - ban(year, month, day, hour, minute, second) */
     HumanTimeDiff ban_len {};
     ban_len.hour = length;
-    chrif_char_ask_name(-1, sd->status_key.name, 2, ban_len);
+    chrif_char_ask_name(AccountId(), sd->status_key.name, 2, ban_len);
     clif_setwaitclose(sd->sess);
 }
 
@@ -159,6 +159,6 @@ bool tmw_CheckChatLameness(dumb_ptr<map_session_data>, XString message)
 void tmw_GmHackMsg(ZString line)
 {
     intif_wis_message_to_gm(wisp_server_name,
-            battle_config.hack_info_GM_level,
+            GmLevel::from(static_cast<uint32_t>(battle_config.hack_info_GM_level)),
             line);
 }

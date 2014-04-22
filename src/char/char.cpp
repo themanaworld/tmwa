@@ -42,6 +42,7 @@
 #include "../compat/alg.hpp"
 
 #include "../ints/cmp.hpp"
+#include "../ints/udl.hpp"
 
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
@@ -117,10 +118,14 @@ static
 int char_name_option = 0;      // Option to know which letters/symbols are authorised in the name of a character (0: all, 1: only those in char_name_letters, 2: all EXCEPT those in char_name_letters) by [Yor]
 static
 std::bitset<256> char_name_letters;  // list of letters/symbols authorised (or not) in a character name. by [Yor]
+static constexpr
+GmLevel default_gm_level = GmLevel::from(0_u32);
+
 
 struct char_session_data : SessionData
 {
-    int account_id, login_id1, login_id2;
+    AccountId account_id;
+    int login_id1, login_id2;
     SEX sex;
     unsigned short packet_tmw_version;
     AccountEmail email;
@@ -134,8 +139,8 @@ void SessionDeleter::operator()(SessionData *sd)
 
 struct AuthFifoEntry
 {
-    int account_id;
-    int char_id;
+    AccountId account_id;
+    CharId char_id;
     int login_id1, login_id2;
     IP4Address ip;
     int delflag;
@@ -152,7 +157,7 @@ static
 int check_ip_flag = 1;         // It's to check IP of a player between char-server and other servers (part of anti-hacking system)
 
 static
-int char_id_count = 150000;
+CharId char_id_count = wrap<CharId>(150000);
 static
 std::vector<CharPair> char_keys;
 static
@@ -177,7 +182,7 @@ int online_sorting_option = 0; // sorting option to display online players in on
 static
 int online_refresh_html = 20;  // refresh time (in sec) of the html file in the explorer
 static
-int online_gm_display_min_level = 20;  // minimum GM level to display 'GM' when we want to display it
+GmLevel online_gm_display_min_level = GmLevel::from(20_u32);  // minimum GM level to display 'GM' when we want to display it
 
 static
 std::vector<Session *> online_chars;              // same size of char_keys, and id value of current server (or -1)
@@ -235,12 +240,12 @@ void char_log(XString line)
 // and returns its level (or 0 if it isn't a GM account or if not found)
 //----------------------------------------------------------------------
 static
-int isGM(int account_id)
+GmLevel isGM(AccountId account_id)
 {
     for (GM_Account& gma : gm_accounts)
         if (gma.account_id == account_id)
             return gma.level;
-    return 0;
+    return default_gm_level;
 }
 
 //----------------------------------------------
@@ -266,7 +271,7 @@ const CharPair *search_character(CharName character_name)
     return nullptr;
 }
 
-const CharPair *search_character_id(int char_id)
+const CharPair *search_character_id(CharId char_id)
 {
     for (const CharPair& cd : char_keys)
     {
@@ -342,7 +347,7 @@ AString mmo_char_tostr(struct CharPair *cp)
         if (p->inventory[i].nameid)
         {
             str_p += STRPRINTF("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d "_fmt,
-                    p->inventory[i].id,
+                    0 /*id*/,
                     p->inventory[i].nameid,
                     p->inventory[i].amount,
                     p->inventory[i].equip,
@@ -450,7 +455,7 @@ bool extract(XString str, CharPair *cp)
         return false;
 
     // TODO replace *every* lookup with a map lookup
-    static std::set<int> seen_ids;
+    static std::set<CharId> seen_ids;
     static std::set<CharName> seen_names;
     // we don't have to worry about deleted characters,
     // this is only called during startup
@@ -518,8 +523,8 @@ int mmo_char_init(void)
             continue;
 
         {
-            int i, j = 0;
-            if (SSCANF(line, "%d\t%%newid%%%n"_fmt, &i, &j) == 1 && j > 0)
+            CharId i;
+            if (extract(line, record<'\t'>(&i, "%newid%"_s)))
             {
                 if (char_id_count < i)
                     char_id_count = i;
@@ -533,8 +538,8 @@ int mmo_char_init(void)
             CHAR_LOG("Char skipped\n%s"_fmt, line);
             continue;
         }
-        if (cd.key.char_id >= char_id_count)
-            char_id_count = cd.key.char_id + 1;
+        if (char_id_count < next(cd.key.char_id))
+            char_id_count = next(cd.key.char_id);
         char_keys.push_back(std::move(cd));
         online_chars.push_back(nullptr);
     }
@@ -740,11 +745,11 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     CharKey& ck = cp.key;
     CharData& cd = *cp.data;
 
-    ck.char_id = char_id_count++;
+    ck.char_id = char_id_count; char_id_count = next(char_id_count);
     ck.account_id = sd->account_id;
     ck.char_num = slot;
     ck.name = name;
-    cd.species = 0;
+    cd.species = Species();
     cd.base_level = 1;
     cd.job_level = 1;
     cd.base_exp = 0;
@@ -765,17 +770,17 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     cd.option = static_cast<Option>(0x0000); // Option is only declared
     cd.karma = 0;
     cd.manner = 0;
-    cd.party_id = 0;
+    cd.party_id = PartyId();
     //cd.guild_id = 0;
     cd.hair = hair_style;
     cd.hair_color = hair_color;
     cd.clothes_color = 0;
     // removed initial armor/weapon - unused and problematic
     cd.weapon = ItemLook::NONE;
-    cd.shield = 0;
-    cd.head_top = 0;
-    cd.head_mid = 0;
-    cd.head_bottom = 0;
+    cd.shield = ItemNameId();
+    cd.head_top = ItemNameId();
+    cd.head_mid = ItemNameId();
+    cd.head_bottom = ItemNameId();
     cd.last_point = start_point;
     cd.save_point = start_point;
     char_keys.push_back(std::move(cp));
@@ -844,16 +849,16 @@ void create_online_files(void)
                     // displaying the character name
                     {
                         // without/with 'GM' display
-                        int gml = isGM(cd.key.account_id);
+                        GmLevel gml = isGM(cd.key.account_id);
                         {
-                            if (gml >= online_gm_display_min_level)
+                            if (gml.satisfies(online_gm_display_min_level))
                                 FPRINTF(fp, "%-24s (GM) "_fmt, cd.key.name);
                             else
                                 FPRINTF(fp, "%-24s      "_fmt, cd.key.name);
                         }
                         // name of the character in the html (no < >, because that create problem in html code)
                         FPRINTF(fp2, "        <td>"_fmt);
-                        if (gml >= online_gm_display_min_level)
+                        if (gml.satisfies(online_gm_display_min_level))
                             FPRINTF(fp2, "<b>"_fmt);
                         for (char c : cd.key.name.to__actual())
                         {
@@ -873,7 +878,7 @@ void create_online_files(void)
                                 break;
                             };
                         }
-                        if (gml >= online_gm_display_min_level)
+                        if (gml.satisfies(online_gm_display_min_level))
                             FPRINTF(fp2, "</b> (GM)"_fmt);
                         FPRINTF(fp2, "</td>\n"_fmt);
                     }
@@ -927,14 +932,14 @@ int count_users(void)
 // [Fate] Find inventory item based on equipment mask, return view.  ID must match view ID (!).
 //----------------------------------------
 static
-int find_equip_view(const CharPair *cp, EPOS equipmask)
+ItemNameId find_equip_view(const CharPair *cp, EPOS equipmask)
 {
     CharData *p = cp->data.get();
     for (int i = 0; i < MAX_INVENTORY; i++)
         if (p->inventory[i].nameid && p->inventory[i].amount
             && bool(p->inventory[i].equip & equipmask))
             return p->inventory[i].nameid;
-    return 0;
+    return ItemNameId();
 }
 
 //----------------------------------------
@@ -969,39 +974,39 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
         const CharKey *k = &cp->key;
         const CharData *p = cp->data.get();
 
-        WFIFOL(s, j) = k->char_id;
+        WFIFOL(s, j) = unwrap<CharId>(k->char_id);
         WFIFOL(s, j + 4) = p->base_exp;
         WFIFOL(s, j + 8) = p->zeny;
         WFIFOL(s, j + 12) = p->job_exp;
         WFIFOL(s, j + 16) = p->job_level;
 
-        WFIFOW(s, j + 20) = find_equip_view(cp, EPOS::SHOES);
-        WFIFOW(s, j + 22) = find_equip_view(cp, EPOS::GLOVES);
-        WFIFOW(s, j + 24) = find_equip_view(cp, EPOS::CAPE);
-        WFIFOW(s, j + 26) = find_equip_view(cp, EPOS::MISC1);
+        WFIFOW(s, j + 20) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::SHOES));
+        WFIFOW(s, j + 22) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::GLOVES));
+        WFIFOW(s, j + 24) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::CAPE));
+        WFIFOW(s, j + 26) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::MISC1));
         WFIFOL(s, j + 28) = static_cast<uint16_t>(p->option);
 
         WFIFOL(s, j + 32) = p->karma;
         WFIFOL(s, j + 36) = p->manner;
 
         WFIFOW(s, j + 40) = p->status_point;
-        WFIFOW(s, j + 42) = (p->hp > 0x7fff) ? 0x7fff : p->hp;
-        WFIFOW(s, j + 44) = (p->max_hp > 0x7fff) ? 0x7fff : p->max_hp;
-        WFIFOW(s, j + 46) = (p->sp > 0x7fff) ? 0x7fff : p->sp;
-        WFIFOW(s, j + 48) = (p->max_sp > 0x7fff) ? 0x7fff : p->max_sp;
+        WFIFOW(s, j + 42) = std::min(p->hp, 0x7fff);
+        WFIFOW(s, j + 44) = std::min(p->max_hp, 0x7fff);
+        WFIFOW(s, j + 46) = std::min(p->sp, 0x7fff);
+        WFIFOW(s, j + 48) = std::min(p->max_sp, 0x7fff);
         WFIFOW(s, j + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // p->speed;
-        WFIFOW(s, j + 52) = p->species;
+        WFIFOW(s, j + 52) = unwrap<Species>(p->species);
         WFIFOW(s, j + 54) = p->hair;
 //      WFIFOW(s,j+56) = p->weapon; // dont send weapon since TMW does not support it
         WFIFOW(s, j + 56) = 0;
         WFIFOW(s, j + 58) = p->base_level;
         WFIFOW(s, j + 60) = p->skill_point;
-        WFIFOW(s, j + 62) = p->head_bottom;
-        WFIFOW(s, j + 64) = p->shield;
-        WFIFOW(s, j + 66) = p->head_top;
-        WFIFOW(s, j + 68) = p->head_mid;
+        WFIFOW(s, j + 62) = unwrap<ItemNameId>(p->head_bottom);
+        WFIFOW(s, j + 64) = unwrap<ItemNameId>(p->shield);
+        WFIFOW(s, j + 66) = unwrap<ItemNameId>(p->head_top);
+        WFIFOW(s, j + 68) = unwrap<ItemNameId>(p->head_mid);
         WFIFOW(s, j + 70) = p->hair_color;
-        WFIFOW(s, j + 72) = find_equip_view(cp, EPOS::MISC2);
+        WFIFOW(s, j + 72) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::MISC2));
 //      WFIFOW(s,j+72) = p->clothes_color;
 
         WFIFO_STRING(s, j + 74, k->name.to__actual(), 24);
@@ -1021,7 +1026,7 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
 }
 
 static
-int set_account_reg2(int acc, Slice<global_reg> reg)
+int set_account_reg2(AccountId acc, Slice<global_reg> reg)
 {
     size_t num = reg.size();
     assert (num < ACCOUNT_REG2_NUM);
@@ -1053,43 +1058,44 @@ int char_divorce(CharPair *cp)
     CharKey *ck = &cp->key;
     CharData *cs = cp->data.get();
 
-    if (cs->partner_id <= 0)
+    if (!cs->partner_id)
     {
         WBUFW(buf, 0) = 0x2b12;
-        WBUFL(buf, 2) = ck->char_id;
-        WBUFL(buf, 6) = 0;     // partner id 0 means failure
+        WBUFL(buf, 2) = unwrap<CharId>(ck->char_id);
+        // partner id 0 means failure
+        WBUFL(buf, 6) = unwrap<CharId>(cs->partner_id);
         mapif_sendall(buf, 10);
         return 0;
     }
 
     WBUFW(buf, 0) = 0x2b12;
-    WBUFL(buf, 2) = ck->char_id;
+    WBUFL(buf, 2) = unwrap<CharId>(ck->char_id);
 
     for (CharPair& cd : char_keys)
     {
         if (cd.key.char_id == cs->partner_id
             && cd.data->partner_id == ck->char_id)
         {
-            WBUFL(buf, 6) = cs->partner_id;
+            WBUFL(buf, 6) = unwrap<CharId>(cs->partner_id);
             mapif_sendall(buf, 10);
-            cs->partner_id = 0;
-            cd.data->partner_id = 0;
+            cs->partner_id = CharId();
+            cd.data->partner_id = CharId();
             return 0;
         }
         // The other char doesn't have us as their partner, so just clear our partner
         // Don't worry about this, as the map server should verify itself that the other doesn't have us as a partner, and so won't mess with their marriage
         else if (cd.key.char_id == cs->partner_id)
         {
-            WBUFL(buf, 6) = cs->partner_id;
+            WBUFL(buf, 6) = unwrap<CharId>(cs->partner_id);
             mapif_sendall(buf, 10);
-            cs->partner_id = 0;
+            cs->partner_id = CharId();
             return 0;
         }
     }
 
     // Our partner wasn't found, so just clear our marriage
-    WBUFL(buf, 6) = cs->partner_id;
-    cs->partner_id = 0;
+    WBUFL(buf, 6) = unwrap<CharId>(cs->partner_id);
+    cs->partner_id = CharId();
     mapif_sendall(buf, 10);
 
     return 0;
@@ -1099,25 +1105,24 @@ int char_divorce(CharPair *cp)
 // Force disconnection of an online player (with account value) by [Yor]
 //----------------------------------------------------------------------
 static
-int disconnect_player(int accound_id)
+void disconnect_player(AccountId accound_id)
 {
     // disconnect player if online on char-server
     for (io::FD i : iter_fds())
     {
-        if (!get_session(i))
+        Session *s = get_session(i);
+        if (!s)
             continue;
-        struct char_session_data *sd = static_cast<char_session_data *>(get_session(i)->session_data.get());
+        struct char_session_data *sd = static_cast<char_session_data *>(s->session_data.get());
         if (sd)
         {
             if (sd->account_id == accound_id)
             {
-                get_session(i)->set_eof();
-                return 1;
+                s->set_eof();
+                return;
             }
         }
     }
-
-    return 0;
 }
 
 // キャラ削除に伴うデータ削除
@@ -1138,7 +1143,7 @@ int char_delete(CharPair *cp)
     {
         unsigned char buf[6];
         WBUFW(buf, 0) = 0x2afe;
-        WBUFL(buf, 2) = ck->account_id;
+        WBUFL(buf, 2) = unwrap<AccountId>(ck->account_id);
         mapif_sendall(buf, 6);
     }
 
@@ -1193,11 +1198,12 @@ void parse_tologin(Session *ls)
                     return;
                 for (io::FD i : iter_fds())
                 {
+                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
                     Session *s2 = get_session(i);
                     if (!s2)
                         continue;
                     sd = static_cast<char_session_data *>(s2->session_data.get());
-                    if (sd && sd->account_id == RFIFOL(ls, 2))
+                    if (sd && sd->account_id == acc)
                     {
                         if (RFIFOB(ls, 6) != 0)
                         {
@@ -1234,13 +1240,14 @@ void parse_tologin(Session *ls)
                     return;
                 for (io::FD i : iter_fds())
                 {
+                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
                     Session *s2 = get_session(i);
                     if (!s2)
                         continue;
                     sd = static_cast<char_session_data *>(s2->session_data.get());
                     if (sd)
                     {
-                        if (sd->account_id == RFIFOL(ls, 2))
+                        if (sd->account_id == acc)
                         {
                             sd->email = stringish<AccountEmail>(RFIFO_STRING<40>(ls, 6));
                             if (!e_mail_check(sd->email))
@@ -1257,10 +1264,12 @@ void parse_tologin(Session *ls)
                 if (RFIFOREST(ls) < 10)
                     return;
                 {
+                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
+                    GmLevel gml = GmLevel::from(RFIFOL(ls, 2));
                     unsigned char buf[10];
                     WBUFW(buf, 0) = 0x2b0b;
-                    WBUFL(buf, 2) = RFIFOL(ls, 2);    // account
-                    WBUFL(buf, 6) = RFIFOL(ls, 6);    // GM level
+                    WBUFL(buf, 2) = unwrap<AccountId>(acc);
+                    WBUFL(buf, 6) = gml.get_all_bits();
                     mapif_sendall(buf, 10);
                 }
                 RFIFOSKIP(ls, 10);
@@ -1271,10 +1280,10 @@ void parse_tologin(Session *ls)
                     return;
                 {
                     unsigned char buf[7];
-                    int acc = RFIFOL(ls, 2);
+                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
                     SEX sex = static_cast<SEX>(RFIFOB(ls, 6));
                     RFIFOSKIP(ls, 7);
-                    if (acc > 0)
+                    if (acc)
                     {
                         for (CharPair& cp : char_keys)
                         {
@@ -1292,17 +1301,17 @@ void parse_tologin(Session *ls)
                                         cd.inventory[j].equip = EPOS::ZERO;
                                 }
                                 cd.weapon = ItemLook::NONE;
-                                cd.shield = 0;
-                                cd.head_top = 0;
-                                cd.head_mid = 0;
-                                cd.head_bottom = 0;
+                                cd.shield = ItemNameId();
+                                cd.head_top = ItemNameId();
+                                cd.head_mid = ItemNameId();
+                                cd.head_bottom = ItemNameId();
                             }
                         }
                         // disconnect player if online on char-server
                         disconnect_player(acc);
                     }
                     WBUFW(buf, 0) = 0x2b0d;
-                    WBUFL(buf, 2) = acc;
+                    WBUFL(buf, 2) = unwrap<AccountId>(acc);
                     WBUFB(buf, 6) = static_cast<uint8_t>(sex);
                     mapif_sendall(buf, 7);
                 }
@@ -1353,8 +1362,8 @@ void parse_tologin(Session *ls)
                     return;
                 {
                     Array<struct global_reg, ACCOUNT_REG2_NUM> reg;
-                    int j, p, acc;
-                    acc = RFIFOL(ls, 4);
+                    int j, p;
+                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 4));
                     for (p = 8, j = 0;
                          p < RFIFOW(ls, 2) && j < ACCOUNT_REG2_NUM;
                          p += 36, j++)
@@ -1377,13 +1386,13 @@ void parse_tologin(Session *ls)
             {                   // [Fate] Itemfrob package: forwarded from login-server
                 if (RFIFOREST(ls) < 10)
                     return;
-                int source_id = RFIFOL(ls, 2);
-                int dest_id = RFIFOL(ls, 6);
+                ItemNameId source_id = wrap<ItemNameId>(RFIFOL(ls, 2));
+                ItemNameId dest_id = wrap<ItemNameId>(RFIFOL(ls, 6));
                 unsigned char buf[10];
 
                 WBUFW(buf, 0) = 0x2afa;
-                WBUFL(buf, 2) = source_id;
-                WBUFL(buf, 6) = dest_id;
+                WBUFL(buf, 2) = unwrap<ItemNameId>(source_id);
+                WBUFL(buf, 6) = unwrap<ItemNameId>(dest_id);
 
                 mapif_sendall(buf, 10);    // forward package to map servers
                 for (CharPair& cp : char_keys)
@@ -1425,6 +1434,9 @@ void parse_tologin(Session *ls)
             case 0x2730:
                 if (RFIFOREST(ls) < 6)
                     return;
+            {
+                AccountId aid = wrap<AccountId>(RFIFOL(ls, 2));
+
                 // Deletion of all characters of the account
 //#warning "This comment is a lie, but it's still true."
                 // needs to use index because they may move during resize
@@ -1432,7 +1444,7 @@ void parse_tologin(Session *ls)
                 {
                     CharPair& cp = char_keys[idx];
                     CharKey& ck = cp.key;
-                    if (ck.account_id == RFIFOL(ls, 2))
+                    if (ck.account_id == aid)
                     {
                         char_delete(&cp);
                         if (&cp != &char_keys.back())
@@ -1441,7 +1453,7 @@ void parse_tologin(Session *ls)
                             // if moved character owns to deleted account, check again it's character
                             // YES this is the newly swapped one
                             // we could avoid this by working backwards
-                            if (ck.account_id == RFIFOL(ls, 2))
+                            if (ck.account_id == aid)
                             {
                                 idx--;
                                 // Correct moved character reference in the character's owner by [Yor]
@@ -1451,16 +1463,17 @@ void parse_tologin(Session *ls)
                     }
                 }
                 // Deletion of the storage
-                inter_storage_delete(RFIFOL(ls, 2));
+                inter_storage_delete(aid);
                 // send to all map-servers to disconnect the player
                 {
                     unsigned char buf[6];
                     WBUFW(buf, 0) = 0x2b13;
-                    WBUFL(buf, 2) = RFIFOL(ls, 2);
+                    WBUFL(buf, 2) = unwrap<AccountId>(aid);
                     mapif_sendall(buf, 6);
                 }
                 // disconnect player if online on char-server
-                disconnect_player(RFIFOL(ls, 2));
+                disconnect_player(aid);
+            }
                 RFIFOSKIP(ls, 6);
                 break;
 
@@ -1468,17 +1481,20 @@ void parse_tologin(Session *ls)
             case 0x2731:
                 if (RFIFOREST(ls) < 11)
                     return;
+            {
+                AccountId aid = wrap<AccountId>(RFIFOL(ls, 2));
                 // send to all map-servers to disconnect the player
                 {
                     unsigned char buf[11];
                     WBUFW(buf, 0) = 0x2b14;
-                    WBUFL(buf, 2) = RFIFOL(ls, 2);
+                    WBUFL(buf, 2) = unwrap<AccountId>(aid);
                     WBUFB(buf, 6) = RFIFOB(ls, 6);    // 0: change of statut, 1: ban
                     WBUFL(buf, 7) = RFIFOL(ls, 7);    // status or final date of a banishment
                     mapif_sendall(buf, 11);
                 }
                 // disconnect player if online on char-server
-                disconnect_player(RFIFOL(ls, 2));
+                disconnect_player(aid);
+            }
                 RFIFOSKIP(ls, 11);
                 break;
 
@@ -1493,7 +1509,7 @@ void parse_tologin(Session *ls)
                     gm_accounts.reserve((len - 4) / 5);
                     for (int i = 4; i < len; i += 5)
                     {
-                        gm_accounts.push_back({static_cast<int>(RFIFOL(ls, i)), RFIFOB(ls, i + 4)});
+                        gm_accounts.push_back({wrap<AccountId>(RFIFOL(ls, i)), GmLevel::from(static_cast<uint32_t>(RFIFOB(ls, i + 4)))});
                     }
                     PRINTF("From login-server: receiving of %zu GM accounts information.\n"_fmt,
                          gm_accounts.size());
@@ -1512,7 +1528,7 @@ void parse_tologin(Session *ls)
                 if (RFIFOREST(ls) < 7)
                     return;
                 {
-                    int acc = RFIFOL(ls, 2);
+                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
                     int status = RFIFOB(ls, 6);
 
                     for (io::FD i : iter_fds())
@@ -1668,8 +1684,8 @@ void parse_frommap(Session *ms)
                 if (RFIFOREST(ms) < 22)
                     return;
             {
-                int account_id = RFIFOL(ms, 2);
-                int char_id = RFIFOL(ms, 6);
+                AccountId account_id = wrap<AccountId>(RFIFOL(ms, 2));
+                CharId char_id = wrap<CharId>(RFIFOL(ms, 6));
                 int login_id1 = RFIFOL(ms, 10);
                 int login_id2 = RFIFOL(ms, 14);
                 IP4Address ip = RFIFOIP(ms, 18);
@@ -1700,7 +1716,7 @@ void parse_frommap(Session *ms)
                         afi.delflag = 1;
                         WFIFOW(ms, 0) = 0x2afd;
                         WFIFOW(ms, 2) = 18 + sizeof(*ck) + sizeof(*cd);
-                        WFIFOL(ms, 4) = account_id;
+                        WFIFOL(ms, 4) = unwrap<AccountId>(account_id);
                         WFIFOL(ms, 8) = afi.login_id2;
                         WFIFOL(ms, 12) = static_cast<time_t>(afi.connect_until_time);
                         cd->sex = afi.sex;
@@ -1716,7 +1732,7 @@ void parse_frommap(Session *ms)
                 }
                 {
                     WFIFOW(ms, 0) = 0x2afe;
-                    WFIFOL(ms, 2) = account_id;
+                    WFIFOL(ms, 2) = unwrap<AccountId>(account_id);
                     WFIFOSET(ms, 6);
                     PRINTF("auth_fifo search error! account %d not authentified.\n"_fmt,
                             account_id);
@@ -1743,7 +1759,7 @@ void parse_frommap(Session *ms)
                 // add online players in the list by [Yor]
                 for (int i = 0; i < server[id].users; i++)
                 {
-                    int char_id = RFIFOL(ms, 6 + i * 4);
+                    CharId char_id = wrap<CharId>(RFIFOL(ms, 6 + i * 4));
                     for (const CharPair& cd : char_keys)
                     {
                         if (cd.key.char_id == char_id)
@@ -1768,16 +1784,20 @@ void parse_frommap(Session *ms)
             case 0x2b01:
                 if (RFIFOREST(ms) < 4 || RFIFOREST(ms) < RFIFOW(ms, 2))
                     return;
+            {
+                AccountId aid = wrap<AccountId>(RFIFOL(ms, 4));
+                CharId cid = wrap<CharId>(RFIFOL(ms, 8));
                 for (CharPair& cd : char_keys)
                 {
-                    if (cd.key.account_id == RFIFOL(ms, 4) &&
-                        cd.key.char_id == RFIFOL(ms, 8))
+                    if (cd.key.account_id == aid &&
+                        cd.key.char_id == cid)
                     {
                         RFIFO_STRUCT(ms, 12, cd.key);
                         RFIFO_STRUCT(ms, 12 + sizeof(cd.key), *cd.data);
                         break;
                     }
                 }
+            }
                 RFIFOSKIP(ms, RFIFOW(ms, 2));
                 break;
 
@@ -1786,11 +1806,11 @@ void parse_frommap(Session *ms)
                 if (RFIFOREST(ms) < 18)
                     return;
             {
-                int account_id = RFIFOL(ms, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(ms, 2));
                 if (auth_fifo_iter == auth_fifo.end())
                     auth_fifo_iter = auth_fifo.begin();
                 auth_fifo_iter->account_id = account_id;
-                auth_fifo_iter->char_id = 0;
+                auth_fifo_iter->char_id = CharId();
                 auth_fifo_iter->login_id1 = RFIFOL(ms, 6);
                 auth_fifo_iter->login_id2 = RFIFOL(ms, 10);
                 auth_fifo_iter->delflag = 2;
@@ -1798,7 +1818,7 @@ void parse_frommap(Session *ms)
                 auth_fifo_iter->ip = RFIFOIP(ms, 14);
                 auth_fifo_iter++;
                 WFIFOW(ms, 0) = 0x2b03;
-                WFIFOL(ms, 2) = account_id;
+                WFIFOL(ms, 2) = unwrap<AccountId>(account_id);
                 WFIFOB(ms, 6) = 0;
                 WFIFOSET(ms, 7);
             }
@@ -1815,8 +1835,8 @@ void parse_frommap(Session *ms)
                 RFIFO_WFIFO_CLONE(ms, ms, 44);
                 // overwrite
                 WFIFOW(ms, 0) = 0x2b06;
-                auth_fifo_iter->account_id = RFIFOL(ms, 2);
-                auth_fifo_iter->char_id = RFIFOL(ms, 14);
+                auth_fifo_iter->account_id = wrap<AccountId>(RFIFOL(ms, 2));
+                auth_fifo_iter->char_id = wrap<CharId>(RFIFOL(ms, 14));
                 auth_fifo_iter->login_id1 = RFIFOL(ms, 6);
                 auth_fifo_iter->login_id2 = RFIFOL(ms, 10);
                 auth_fifo_iter->delflag = 0;
@@ -1827,13 +1847,17 @@ void parse_frommap(Session *ms)
                 // default, if not found in the loop
                 WFIFOW(ms, 6) = 1;
                 for (const CharPair& cd : char_keys)
-                    if (cd.key.account_id == RFIFOL(ms, 2) &&
-                        cd.key.char_id == RFIFOL(ms, 14))
+                {
+                    AccountId aid = wrap<AccountId>(RFIFOL(ms, 2));
+                    CharId cid = wrap<CharId>(RFIFOL(ms, 14));
+                    if (cd.key.account_id == aid &&
+                        cd.key.char_id == cid)
                     {
                         auth_fifo_iter++;
                         WFIFOL(ms, 6) = 0;
                         break;
                     }
+                }
                 WFIFOSET(ms, 44);
                 RFIFOSKIP(ms, 49);
                 break;
@@ -1880,12 +1904,12 @@ void parse_frommap(Session *ms)
                 if (RFIFOREST(ms) < 44)
                     return;
                 {
-                    int acc = RFIFOL(ms, 2);  // account_id of who ask (-1 if nobody)
+                    AccountId acc = wrap<AccountId>(RFIFOL(ms, 2));  // account_id of who ask (-1 if nobody)
                     CharName character_name = stringish<CharName>(RFIFO_STRING<24>(ms, 6));
                     int operation = RFIFOW(ms, 30);
                     // prepare answer
                     WFIFOW(ms, 0) = 0x2b0f;    // answer
-                    WFIFOL(ms, 2) = acc;   // who want do operation
+                    WFIFOL(ms, 2) = unwrap<AccountId>(acc);   // who want do operation
                     WFIFOW(ms, 30) = operation;  // type of operation: 1-block, 2-ban, 3-unblock, 4-unban, 5-changesex
                     // search character
                     const CharPair *cd = search_character(character_name);
@@ -1897,13 +1921,13 @@ void parse_frommap(Session *ms)
                         switch (RFIFOW(ms, 30))
                         {
                             case 1:    // block
-                                if (acc == -1
-                                    || isGM(acc) >= isGM(ck->account_id))
+                                if (!acc
+                                    || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x2724;
-                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
+                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
                                         WFIFOL(login_session, 6) = 5;   // status of the account
                                         WFIFOSET(login_session, 10);
                                     }
@@ -1914,13 +1938,13 @@ void parse_frommap(Session *ms)
                                     WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                                 break;
                             case 2:    // ban
-                                if (acc == -1
-                                    || isGM(acc) >= isGM(ck->account_id))
+                                if (!acc
+                                    || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x2725;
-                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
+                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
                                         HumanTimeDiff ban_change;
                                         RFIFO_STRUCT(ms, 32, ban_change);
                                         WFIFO_STRUCT(login_session, 6, ban_change);
@@ -1933,13 +1957,13 @@ void parse_frommap(Session *ms)
                                     WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                                 break;
                             case 3:    // unblock
-                                if (acc == -1
-                                    || isGM(acc) >= isGM(ck->account_id))
+                                if (!acc
+                                    || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x2724;
-                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
+                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
                                         WFIFOL(login_session, 6) = 0;   // status of the account
                                         WFIFOSET(login_session, 10);
                                     }
@@ -1950,13 +1974,13 @@ void parse_frommap(Session *ms)
                                     WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                                 break;
                             case 4:    // unban
-                                if (acc == -1
-                                    || isGM(acc) >= isGM(ck->account_id))
+                                if (!acc
+                                    || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x272a;
-                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
+                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
                                         WFIFOSET(login_session, 6);
                                     }
                                     else
@@ -1966,13 +1990,13 @@ void parse_frommap(Session *ms)
                                     WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                                 break;
                             case 5:    // changesex
-                                if (acc == -1
-                                    || isGM(acc) >= isGM(ck->account_id))
+                                if (!acc
+                                    || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x2727;
-                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
+                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
                                         WFIFOSET(login_session, 6);
                                     }
                                     else
@@ -1990,7 +2014,7 @@ void parse_frommap(Session *ms)
                         WFIFOW(ms, 32) = 1;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                     }
                     // send answer if a player ask, not if the server ask
-                    if (acc != -1)
+                    if (acc)
                     {
                         WFIFOSET(ms, 34);
                     }
@@ -2007,7 +2031,7 @@ void parse_frommap(Session *ms)
                 {
                     Array<struct global_reg, ACCOUNT_REG2_NUM> reg;
                     int p, j;
-                    int acc = RFIFOL(ms, 4);
+                    AccountId acc = wrap<AccountId>(RFIFOL(ms, 4));
                     for (p = 8, j = 0;
                          p < RFIFOW(ms, 2) && j < ACCOUNT_REG2_NUM;
                          p += 36, j++)
@@ -2033,8 +2057,9 @@ void parse_frommap(Session *ms)
                 if (RFIFOREST(ms) < 4)
                     return;
                 {
+                    CharId cid = wrap<CharId>(RFIFOL(ms, 2));
                     for (CharPair& cd : char_keys)
-                        if (cd.key.char_id == RFIFOL(ms, 2))
+                        if (cd.key.char_id == cid)
                         {
                             char_divorce(&cd);
                             break;
@@ -2144,7 +2169,7 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
                 }
             }
             WFIFOW(s, 0) = 0x71;
-            WFIFOL(s, 2) = ck->char_id;
+            WFIFOL(s, 2) = unwrap<CharId>(ck->char_id);
             WFIFO_STRING(s, 6, cd->last_point.map_, 16);
             PRINTF("Character selection '%s' (account: %d, slot: %d) [%s]\n"_fmt,
                  ck->name,
@@ -2204,7 +2229,7 @@ void parse_char(Session *s)
                     return;
                 {
                     WFIFOW(login_session, 0) = 0x2740;
-                    WFIFOL(login_session, 2) = sd->account_id;
+                    WFIFOL(login_session, 2) = unwrap<AccountId>(sd->account_id);
                     AccountPass old_pass = stringish<AccountPass>(RFIFO_STRING<24>(s, 2));
                     WFIFO_STRING(login_session, 6, old_pass, 24);
                     AccountPass new_pass = stringish<AccountPass>(RFIFO_STRING<24>(s, 26));
@@ -2218,8 +2243,8 @@ void parse_char(Session *s)
                 if (RFIFOREST(s) < 17)
                     return;
                 {
-                    int account_id = RFIFOL(s, 2);
-                    int GM_value = isGM(account_id);
+                    AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
+                    GmLevel GM_value = isGM(account_id);
                     if (GM_value)
                         PRINTF("Account Logged On; Account ID: %d (GM level %d).\n"_fmt,
                                 account_id, GM_value);
@@ -2239,7 +2264,7 @@ void parse_char(Session *s)
                     sd->packet_tmw_version = RFIFOW(s, 14);
                     sd->sex = static_cast<SEX>(RFIFOB(s, 16));
                     // send back account_id
-                    WFIFOL(s, 0) = account_id;
+                    WFIFOL(s, 0) = unwrap<AccountId>(account_id);
                     WFIFOSET(s, 4);
                     // search authentification
                     for (AuthFifoEntry& afi : auth_fifo)
@@ -2259,7 +2284,7 @@ void parse_char(Session *s)
                                 {   // don't send request if no login-server
                                     // request to login-server to obtain e-mail/time limit
                                     WFIFOW(login_session, 0) = 0x2716;
-                                    WFIFOL(login_session, 2) = sd->account_id;
+                                    WFIFOL(login_session, 2) = unwrap<AccountId>(sd->account_id);
                                     WFIFOSET(login_session, 6);
                                 }
                                 // Record client version
@@ -2284,7 +2309,7 @@ void parse_char(Session *s)
                         {
                             // don't send request if no login-server
                             WFIFOW(login_session, 0) = 0x2712;  // ask login-server to authentify an account
-                            WFIFOL(login_session, 2) = sd->account_id;
+                            WFIFOL(login_session, 2) = unwrap<AccountId>(sd->account_id);
                             WFIFOL(login_session, 6) = sd->login_id1;
                             WFIFOL(login_session, 10) = sd->login_id2;  // relate to the versions higher than 18
                             WFIFOB(login_session, 14) = static_cast<uint8_t>(sd->sex);
@@ -2336,7 +2361,7 @@ void parse_char(Session *s)
                 WFIFOW(s, 0) = 0x6d;
                 WFIFO_ZERO(s, 2, 106);
 
-                WFIFOL(s, 2) = ck->char_id;
+                WFIFOL(s, 2) = unwrap<CharId>(ck->char_id);
                 WFIFOL(s, 2 + 4) = cd->base_exp;
                 WFIFOL(s, 2 + 8) = cd->zeny;
                 WFIFOL(s, 2 + 12) = cd->job_exp;
@@ -2351,15 +2376,15 @@ void parse_char(Session *s)
                 WFIFOW(s, 2 + 46) = saturate<int16_t>(cd->sp);
                 WFIFOW(s, 2 + 48) = saturate<int16_t>(cd->max_sp);
                 WFIFOW(s, 2 + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // cd->speed;
-                WFIFOW(s, 2 + 52) = cd->species;
+                WFIFOW(s, 2 + 52) = unwrap<Species>(cd->species);
                 WFIFOW(s, 2 + 54) = cd->hair;
 
                 WFIFOW(s, 2 + 58) = cd->base_level;
                 WFIFOW(s, 2 + 60) = cd->skill_point;
 
-                WFIFOW(s, 2 + 64) = cd->shield;
-                WFIFOW(s, 2 + 66) = cd->head_top;
-                WFIFOW(s, 2 + 68) = cd->head_mid;
+                WFIFOW(s, 2 + 64) = unwrap<ItemNameId>(cd->shield);
+                WFIFOW(s, 2 + 66) = unwrap<ItemNameId>(cd->head_top);
+                WFIFOW(s, 2 + 68) = unwrap<ItemNameId>(cd->head_mid);
                 WFIFOW(s, 2 + 70) = cd->hair_color;
 
                 WFIFO_STRING(s, 2 + 74, ck->name.to__actual(), 24);
@@ -2387,10 +2412,11 @@ void parse_char(Session *s)
 
                 {
                     {
+                        CharId cid = wrap<CharId>(RFIFOL(s, 2));
                         CharPair *cs = nullptr;
                         for (CharPair& cd : char_keys)
                         {
-                            if (cd.key.char_id == RFIFOL(s, 2))
+                            if (cd.key.char_id == cid)
                             {
                                 cs = &cd;
                                 break;
@@ -2467,8 +2493,8 @@ void parse_char(Session *s)
                     WFIFOW(s, 0) = 0x2b15;
                     for (const GM_Account& gma : gm_accounts)
                     {
-                        WFIFOL(s, len) = gma.account_id;
-                        WFIFOB(s, len + 4) = gma.level;
+                        WFIFOL(s, len) = unwrap<AccountId>(gma.account_id);
+                        WFIFOB(s, len + 4) = gma.level.get_all_bits();
                         len += 5;
                     }
                     WFIFOW(s, 2) = len;
@@ -2794,10 +2820,9 @@ bool char_config(XString w1, ZString w2)
             online_sorting_option = atoi(w2.c_str());
         }
         else if (w1 == "online_gm_display_min_level"_s)
-        {                       // minimum GM level to display 'GM' when we want to display it
-            online_gm_display_min_level = atoi(w2.c_str());
-            if (online_gm_display_min_level < 5)    // send online file every 5 seconds to player is enough
-                online_gm_display_min_level = 5;
+        {
+            // minimum GM level to display 'GM' when we want to display it
+            return extract(w2, &online_gm_display_min_level);
         }
         else if (w1 == "online_refresh_html"_s)
         {

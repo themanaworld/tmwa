@@ -424,7 +424,7 @@ obj/%.hpp.formatted: src/%.hpp tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
 	fgrep -q Copyright $<
-	fgrep -q ../sanity.hpp $<
+	if [[ $< == *fwd* ]]; then fgrep -q ../sanity.hpp $<; else fgrep -q '"fwd.hpp"' $<; fi
 	touch $@
 obj/%.tcc.formatted: src/%.tcc tools/indenter
 	$(MKDIR_FIRST)

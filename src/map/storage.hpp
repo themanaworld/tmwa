@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "map.hpp"
 
@@ -30,10 +30,10 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount);
 int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount);
 int storage_storageclose(dumb_ptr<map_session_data> sd);
 void do_final_storage(void);
-struct storage *account2storage(int account_id);
-struct storage *account2storage2(int account_id);
+struct storage *account2storage(AccountId account_id);
+struct storage *account2storage2(AccountId account_id);
 int storage_storage_quit(dumb_ptr<map_session_data> sd);
-int storage_storage_save(int account_id, int final);
-int storage_storage_saved(int account_id);
+int storage_storage_save(AccountId account_id, int final);
+int storage_storage_saved(AccountId account_id);
 
 #endif // TMWA_MAP_STORAGE_HPP

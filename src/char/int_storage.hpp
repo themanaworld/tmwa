@@ -21,16 +21,16 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../strings/fwd.hpp"
 
-struct Session;
+# include "../mmo/fwd.hpp"
 
 void inter_storage_init(void);
 int inter_storage_save(void);
-void inter_storage_delete(int account_id);
-struct storage *account2storage(int account_id);
+void inter_storage_delete(AccountId account_id);
+struct storage *account2storage(AccountId account_id);
 
 int inter_storage_parse_frommap(Session *ms);
 

@@ -751,12 +751,34 @@ bool read_constdb(ZString filename)
     {
         if (is_comment(line))
             continue;
+        // "%m[A-Za-z0-9_] %i %i"
 
-        AString name;
+        // TODO promote either qsplit() or asplit()
+        auto _it = std::find(line.begin(), line.end(), ' ');
+        auto name = line.xislice_h(_it);
+        auto _rest = line.xislice_t(_it);
+        while (_rest.startswith(' '))
+            _rest = _rest.xslice_t(1);
+        auto _it2 = std::find(_rest.begin(), _rest.end(), ' ');
+        auto val_ = _rest.xislice_h(_it2);
+        auto type_ = _rest.xislice_t(_it2);
+        while (type_.startswith(' '))
+            type_ = type_.xslice_t(1);
+        // yes, the above actually DTRT even for underlength input
+
         int val;
-        int type = 0; // if not provided
-        // TODO get rid of SSCANF - this is the last serious use
-        if (SSCANF(line, "%m[A-Za-z0-9_] %i %i"_fmt, &name, &val, &type) < 2)
+        int type = 0;
+        // Note for future archeaologists: this code is indented correctly
+        if (std::find_if_not(name.begin(), name.end(),
+                    [](char c)
+                    {
+                        return ('0' <= c && c <= '9')
+                            || ('A' <= c && c <= 'Z')
+                            || ('a' <= c && c <= 'z')
+                            || (c == '_');
+                    }) != name.end()
+                || !extract(val_, &val)
+                || (!extract(type_, &type) && type_))
         {
             PRINTF("Bad const line: %s\n"_fmt, line);
             rv = false;
@@ -1897,7 +1919,8 @@ void builtin_setlook(ScriptState *st)
 static
 void builtin_countitem(ScriptState *st)
 {
-    int nameid = 0, count = 0, i;
+    ItemNameId nameid;
+    int count = 0, i;
     dumb_ptr<map_session_data> sd;
 
     struct script_data *data;
@@ -1914,14 +1937,16 @@ void builtin_countitem(ScriptState *st)
             nameid = item_data->nameid;
     }
     else
-        nameid = conv_num(st, data);
+        nameid = wrap<ItemNameId>(conv_num(st, data));
 
-    if (nameid >= 500)          //if no such ID then skip this iteration
+    if (nameid)
+    {
         for (i = 0; i < MAX_INVENTORY; i++)
         {
             if (sd->status.inventory[i].nameid == nameid)
                 count += sd->status.inventory[i].amount;
         }
+    }
     else
     {
         if (battle_config.error_log)
@@ -1938,7 +1963,8 @@ void builtin_countitem(ScriptState *st)
 static
 void builtin_checkweight(ScriptState *st)
 {
-    int nameid = 0, amount;
+    ItemNameId nameid;
+    int amount;
     dumb_ptr<map_session_data> sd;
     struct script_data *data;
 
@@ -1954,10 +1980,10 @@ void builtin_checkweight(ScriptState *st)
             nameid = item_data->nameid;
     }
     else
-        nameid = conv_num(st, data);
+        nameid = wrap<ItemNameId>(conv_num(st, data));
 
     amount = conv_num(st, &AARGO2(3));
-    if (amount <= 0 || nameid < 500)
+    if (amount <= 0 || !nameid)
     {
         //if get wrong item ID or amount<=0, don't count weight of non existing items
         push_int(st->stack, ByteCode::INT, 0);
@@ -1982,7 +2008,8 @@ void builtin_checkweight(ScriptState *st)
 static
 void builtin_getitem(ScriptState *st)
 {
-    int nameid, amount;
+    ItemNameId nameid;
+    int amount;
     dumb_ptr<map_session_data> sd;
     struct script_data *data;
 
@@ -1994,12 +2021,11 @@ void builtin_getitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
-        nameid = 727;           //Default to iten
         if (item_data != NULL)
             nameid = item_data->nameid;
     }
     else
-        nameid = conv_num(st, data);
+        nameid = wrap<ItemNameId>(conv_num(st, data));
 
     if ((amount =
          conv_num(st, &AARGO2(3))) <= 0)
@@ -2007,12 +2033,12 @@ void builtin_getitem(ScriptState *st)
         return;               //return if amount <=0, skip the useles iteration
     }
 
-    if (nameid > 0)
+    if (nameid)
     {
         struct item item_tmp {};
         item_tmp.nameid = nameid;
         if (HARGO2(5))    //アイテムを指定したIDに渡す
-            sd = map_id2sd(conv_num(st, &AARGO2(5)));
+            sd = map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(5))));
         if (sd == NULL)         //アイテムを渡す相手がいなかったらお帰り
             return;
         PickupFail flag;
@@ -2034,7 +2060,8 @@ void builtin_getitem(ScriptState *st)
 static
 void builtin_makeitem(ScriptState *st)
 {
-    int nameid, amount;
+    ItemNameId nameid;
+    int amount;
     int x, y;
     dumb_ptr<map_session_data> sd;
     struct script_data *data;
@@ -2047,12 +2074,11 @@ void builtin_makeitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
-        nameid = 512;           //Apple Item ID
         if (item_data)
             nameid = item_data->nameid;
     }
     else
-        nameid = conv_num(st, data);
+        nameid = wrap<ItemNameId>(conv_num(st, data));
 
     amount = conv_num(st, &AARGO2(3));
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(4))));
@@ -2065,7 +2091,7 @@ void builtin_makeitem(ScriptState *st)
     else
         m = map_mapname2mapid(mapname);
 
-    if (nameid > 0)
+    if (nameid)
     {
         struct item item_tmp {};
         item_tmp.nameid = nameid;
@@ -2081,7 +2107,8 @@ void builtin_makeitem(ScriptState *st)
 static
 void builtin_delitem(ScriptState *st)
 {
-    int nameid = 0, amount, i;
+    ItemNameId nameid;
+    int amount, i;
     dumb_ptr<map_session_data> sd;
     struct script_data *data;
 
@@ -2093,29 +2120,20 @@ void builtin_delitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
-        //nameid=512;
         if (item_data)
             nameid = item_data->nameid;
     }
     else
-        nameid = conv_num(st, data);
+        nameid = wrap<ItemNameId>(conv_num(st, data));
 
     amount = conv_num(st, &AARGO2(3));
 
-    if (nameid < 500 || amount <= 0)
+    if (!nameid || amount <= 0)
     {
         //by Lupus. Don't run FOR if u got wrong item ID or amount<=0
         return;
     }
 
-    for (i = 0; i < MAX_INVENTORY; i++)
-    {
-        if (sd->status.inventory[i].nameid <= 0
-            || sd->inventory_data[i] == NULL
-            || sd->inventory_data[i]->type != ItemType::_7
-            || sd->status.inventory[i].amount <= 0)
-            continue;
-    }
     for (i = 0; i < MAX_INVENTORY; i++)
     {
         if (sd->status.inventory[i].nameid == nameid)
@@ -2184,13 +2202,13 @@ void builtin_getcharid(ScriptState *st)
         return;
     }
     if (num == 0)
-        push_int(st->stack, ByteCode::INT, sd->status_key.char_id);
+        push_int(st->stack, ByteCode::INT, unwrap<CharId>(sd->status_key.char_id));
     if (num == 1)
-        push_int(st->stack, ByteCode::INT, sd->status.party_id);
+        push_int(st->stack, ByteCode::INT, unwrap<PartyId>(sd->status.party_id));
     if (num == 2)
         push_int(st->stack, ByteCode::INT, 0/*guild_id*/);
     if (num == 3)
-        push_int(st->stack, ByteCode::INT, sd->status_key.account_id);
+        push_int(st->stack, ByteCode::INT, unwrap<AccountId>(sd->status_key.account_id));
 }
 
 /*==========================================
@@ -2198,7 +2216,7 @@ void builtin_getcharid(ScriptState *st)
  *------------------------------------------
  */
 static
-dumb_string builtin_getpartyname_sub(int party_id)
+dumb_string builtin_getpartyname_sub(PartyId party_id)
 {
     struct party *p = party_search(party_id);
 
@@ -2282,7 +2300,7 @@ void builtin_getequipid(ScriptState *st)
     {
         item = sd->inventory_data[i];
         if (item)
-            push_int(st->stack, ByteCode::INT, item->nameid);
+            push_int(st->stack, ByteCode::INT, unwrap<ItemNameId>(item->nameid));
         else
             push_int(st->stack, ByteCode::INT, 0);
     }
@@ -2423,7 +2441,7 @@ void builtin_getskilllv(ScriptState *st)
 static
 void builtin_getgmlevel(ScriptState *st)
 {
-    push_int(st->stack, ByteCode::INT, pc_isGM(script_rid2sd(st)));
+    push_int(st->stack, ByteCode::INT, pc_isGM(script_rid2sd(st)).get_all_bits());
 }
 
 /*==========================================
@@ -2613,14 +2631,15 @@ void builtin_getexp(ScriptState *st)
 static
 void builtin_monster(ScriptState *st)
 {
-    int mob_class, amount, x, y;
+    Species mob_class;
+    int amount, x, y;
     NpcEvent event;
 
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x = conv_num(st, &AARGO2(3));
     y = conv_num(st, &AARGO2(4));
     MobName str = stringish<MobName>(ZString(conv_str(st, &AARGO2(5))));
-    mob_class = conv_num(st, &AARGO2(6));
+    mob_class = wrap<Species>(conv_num(st, &AARGO2(6)));
     amount = conv_num(st, &AARGO2(7));
     if (HARGO2(8))
         extract(ZString(conv_str(st, &AARGO2(8))), &event);
@@ -2636,7 +2655,8 @@ void builtin_monster(ScriptState *st)
 static
 void builtin_areamonster(ScriptState *st)
 {
-    int mob_class, amount, x0, y0, x1, y1;
+    Species mob_class;
+    int amount, x0, y0, x1, y1;
     NpcEvent event;
 
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
@@ -2645,7 +2665,7 @@ void builtin_areamonster(ScriptState *st)
     x1 = conv_num(st, &AARGO2(5));
     y1 = conv_num(st, &AARGO2(6));
     MobName str = stringish<MobName>(ZString(conv_str(st, &AARGO2(7))));
-    mob_class = conv_num(st, &AARGO2(8));
+    mob_class = wrap<Species>(conv_num(st, &AARGO2(8)));
     amount = conv_num(st, &AARGO2(9));
     if (HARGO2(10))
         extract(ZString(conv_str(st, &AARGO2(10))), &event);
@@ -2997,7 +3017,7 @@ void builtin_getareausers(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_getareadropitem_sub(dumb_ptr<block_list> bl, int item, int *amount)
+void builtin_getareadropitem_sub(dumb_ptr<block_list> bl, ItemNameId item, int *amount)
 {
     dumb_ptr<flooritem_data> drop = bl->is_item();
 
@@ -3007,7 +3027,7 @@ void builtin_getareadropitem_sub(dumb_ptr<block_list> bl, int item, int *amount)
 }
 
 static
-void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, int item, int *amount)
+void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, ItemNameId item, int *amount)
 {
     dumb_ptr<flooritem_data> drop = bl->is_item();
 
@@ -3022,7 +3042,8 @@ void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, int item, in
 static
 void builtin_getareadropitem(ScriptState *st)
 {
-    int x0, y0, x1, y1, item, amount = 0, delitems = 0;
+    ItemNameId item;
+    int x0, y0, x1, y1, amount = 0, delitems = 0;
     struct script_data *data;
 
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
@@ -3037,12 +3058,11 @@ void builtin_getareadropitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
-        item = 512;
         if (item_data)
             item = item_data->nameid;
     }
     else
-        item = conv_num(st, data);
+        item = wrap<ItemNameId>(conv_num(st, data));
 
     if (HARGO2(8))
         delitems = conv_num(st, &AARGO2(8));
@@ -3113,7 +3133,7 @@ void builtin_sc_start(ScriptState *st)
         tick *= 1000;
     val1 = conv_num(st, &AARGO2(4));
     if (HARGO2(5))    //指定したキャラを状態異常にする
-        bl = map_id2bl(conv_num(st, &AARGO2(5)));
+        bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARGO2(5))));
     else
         bl = map_id2bl(st->rid);
     skill_status_change_start(bl, type, val1, tick);
@@ -3177,7 +3197,7 @@ void builtin_changesex(ScriptState *st)
     dumb_ptr<map_session_data> sd = NULL;
     sd = script_rid2sd(st);
 
-    chrif_char_ask_name(-1, sd->status_key.name, 5, HumanTimeDiff()); // type: 5 - changesex
+    chrif_char_ask_name(AccountId(), sd->status_key.name, 5, HumanTimeDiff()); // type: 5 - changesex
     chrif_save(sd);
 }
 
@@ -3188,7 +3208,7 @@ void builtin_changesex(ScriptState *st)
 static
 void builtin_attachrid(ScriptState *st)
 {
-    st->rid = conv_num(st, &AARGO2(2));
+    st->rid = wrap<BlockId>(conv_num(st, &AARGO2(2)));
     push_int(st->stack, ByteCode::INT, (map_id2sd(st->rid) != NULL));
 }
 
@@ -3199,7 +3219,7 @@ void builtin_attachrid(ScriptState *st)
 static
 void builtin_detachrid(ScriptState *st)
 {
-    st->rid = 0;
+    st->rid = BlockId();
 }
 
 /*==========================================
@@ -3210,8 +3230,7 @@ static
 void builtin_isloggedin(ScriptState *st)
 {
     push_int(st->stack, ByteCode::INT,
-              map_id2sd(conv_num(st,
-                          &AARGO2(2))) != NULL);
+              map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(2)))) != NULL);
 }
 
 static
@@ -3456,7 +3475,7 @@ void builtin_getitemname(ScriptState *st)
     }
     else
     {
-        int item_id = conv_num(st, data);
+        ItemNameId item_id = wrap<ItemNameId>(conv_num(st, data));
         i_data = itemdb_search(item_id);
     }
 
@@ -3486,7 +3505,7 @@ void builtin_getpartnerid2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_int(st->stack, ByteCode::INT, sd->status.partner_id);
+    push_int(st->stack, ByteCode::INT, unwrap<CharId>(sd->status.partner_id));
 }
 
 /*==========================================
@@ -3502,11 +3521,11 @@ void builtin_getinventorylist(ScriptState *st)
         return;
     for (i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].nameid > 0
+        if (sd->status.inventory[i].nameid
             && sd->status.inventory[i].amount > 0)
         {
             pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_id"_s), j),
-                       sd->status.inventory[i].nameid);
+                       unwrap<ItemNameId>(sd->status.inventory[i].nameid));
             pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_amount"_s), j),
                        sd->status.inventory[i].amount);
             pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_equip"_s), j),
@@ -3616,7 +3635,7 @@ static
 void builtin_misceffect(ScriptState *st)
 {
     int type;
-    int id = 0;
+    BlockId id;
     CharName name;
     dumb_ptr<block_list> bl = NULL;
 
@@ -3631,7 +3650,7 @@ void builtin_misceffect(ScriptState *st)
         if (sdata->type == ByteCode::STR || sdata->type == ByteCode::CONSTSTR)
             name = stringish<CharName>(ZString(conv_str(st, sdata)));
         else
-            id = conv_num(st, sdata);
+            id = wrap<BlockId>(conv_num(st, sdata));
     }
 
     if (name.to__actual())
@@ -3753,7 +3772,7 @@ void builtin_gmcommand(ScriptState *st)
     sd = script_rid2sd(st);
     dumb_string cmd = conv_str(st, &AARGO2(2));
 
-    is_atcommand(sd->sess, sd, cmd, 99);
+    is_atcommand(sd->sess, sd, cmd, GmLevel::from(-1U));
 
 }
 
@@ -3852,13 +3871,13 @@ void builtin_getlook(ScriptState *st)
             val = static_cast<uint16_t>(sd->status.weapon);
             break;
         case LOOK::HEAD_BOTTOM: //3
-            val = sd->status.head_bottom;
+            val = unwrap<ItemNameId>(sd->status.head_bottom);
             break;
         case LOOK::HEAD_TOP:    //4
-            val = sd->status.head_top;
+            val = unwrap<ItemNameId>(sd->status.head_top);
             break;
         case LOOK::HEAD_MID:    //5
-            val = sd->status.head_mid;
+            val = unwrap<ItemNameId>(sd->status.head_mid);
             break;
         case LOOK::HAIR_COLOR:  //6
             val = sd->status.hair_color;
@@ -3867,7 +3886,7 @@ void builtin_getlook(ScriptState *st)
             val = sd->status.clothes_color;
             break;
         case LOOK::SHIELD:      //8
-            val = sd->status.shield;
+            val = unwrap<ItemNameId>(sd->status.shield);
             break;
         case LOOK::SHOES:       //9
             break;
@@ -4735,12 +4754,12 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
  * スクリプトの実行
  *------------------------------------------
  */
-int run_script(ScriptPointer sp, int rid, int oid)
+int run_script(ScriptPointer sp, BlockId rid, BlockId oid)
 {
     return run_script_l(sp, rid, oid, nullptr);
 }
 
-int run_script_l(ScriptPointer sp, int rid, int oid,
+int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
         Slice<argrec_t> args)
 {
     struct script_stack stack;

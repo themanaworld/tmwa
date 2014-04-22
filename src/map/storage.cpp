@@ -19,14 +19,14 @@
 #include "../poison.hpp"
 
 static
-Map<int, struct storage> storage_db;
+Map<AccountId, struct storage> storage_db;
 
 void do_final_storage(void)
 {
     storage_db.clear();
 }
 
-struct storage *account2storage(int account_id)
+struct storage *account2storage(AccountId account_id)
 {
     struct storage *stor = storage_db.search(account_id);
     if (stor == NULL)
@@ -38,13 +38,13 @@ struct storage *account2storage(int account_id)
 }
 
 // Just to ask storage, without creation
-struct storage *account2storage2(int account_id)
+struct storage *account2storage2(AccountId account_id)
 {
     return storage_db.search(account_id);
 }
 
 static
-void storage_delete(int account_id)
+void storage_delete(AccountId account_id)
 {
     storage_db.erase(account_id);
 }
@@ -89,7 +89,7 @@ int storage_additem(dumb_ptr<map_session_data> sd, struct storage *stor,
     struct item_data *data;
     int i;
 
-    if (item_data->nameid <= 0 || amount <= 0)
+    if (!item_data->nameid || amount <= 0)
         return 1;
 
     data = itemdb_search(item_data->nameid);
@@ -133,7 +133,7 @@ int storage_delitem(dumb_ptr<map_session_data> sd, struct storage *stor,
                             int n, int amount)
 {
 
-    if (stor->storage_[n].nameid == 0 || stor->storage_[n].amount < amount)
+    if (!stor->storage_[n].nameid || stor->storage_[n].amount < amount)
         return 1;
 
     stor->storage_[n].amount -= amount;
@@ -167,7 +167,7 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount)
     if (index < 0 || index >= MAX_INVENTORY)
         return 0;
 
-    if (sd->status.inventory[index].nameid <= 0)
+    if (!sd->status.inventory[index].nameid)
         return 0;               //No item on that spot
 
     if (amount < 1 || amount > sd->status.inventory[index].amount)
@@ -200,7 +200,7 @@ int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount)
     if (index < 0 || index >= MAX_STORAGE)
         return 0;
 
-    if (stor->storage_[index].nameid <= 0)
+    if (!stor->storage_[index].nameid)
         return 0;               //Nothing there
 
     if (amount < 1 || amount > stor->storage_[index].amount)
@@ -267,7 +267,7 @@ int storage_storage_quit(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
-int storage_storage_save(int account_id, int final)
+int storage_storage_save(AccountId account_id, int final)
 {
     struct storage *stor;
 
@@ -295,7 +295,7 @@ int storage_storage_save(int account_id, int final)
 }
 
 //Ack from Char-server indicating the storage was saved. [Skotlex]
-int storage_storage_saved(int account_id)
+int storage_storage_saved(AccountId account_id)
 {
     struct storage *stor = account2storage2(account_id);
 

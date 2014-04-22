@@ -46,7 +46,7 @@
 AString storage_txt = "save/storage.txt"_s;
 
 static
-Map<int, struct storage> storage_db;
+Map<AccountId, struct storage> storage_db;
 
 // 倉庫データを文字列に変換
 static
@@ -63,7 +63,7 @@ AString storage_tostr(struct storage *p)
         {
             str += STRPRINTF(
                     "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d "_fmt,
-                    p->storage_[i].id,
+                    0 /*id*/,
                     p->storage_[i].nameid,
                     p->storage_[i].amount,
                     p->storage_[i].equip,
@@ -98,7 +98,7 @@ bool extract(XString str, struct storage *p)
                     vrec<' '>(&storage_items))))
         return false;
 
-    if (p->account_id <= 0)
+    if (!p->account_id)
         return false;
 
     if (storage_items.size() > MAX_STORAGE)
@@ -111,7 +111,7 @@ bool extract(XString str, struct storage *p)
 }
 
 // アカウントから倉庫データインデックスを得る（新規倉庫追加可能）
-struct storage *account2storage(int account_id)
+struct storage *account2storage(AccountId account_id)
 {
     struct storage *s = storage_db.search(account_id);
     if (s == NULL)
@@ -178,7 +178,7 @@ int inter_storage_save(void)
 }
 
 // 倉庫データ削除
-void inter_storage_delete(int account_id)
+void inter_storage_delete(AccountId account_id)
 {
     storage_db.erase(account_id);
 }
@@ -188,22 +188,22 @@ void inter_storage_delete(int account_id)
 
 // 倉庫データの送信
 static
-void mapif_load_storage(Session *ss, int account_id)
+void mapif_load_storage(Session *ss, AccountId account_id)
 {
     struct storage *st = account2storage(account_id);
     WFIFOW(ss, 0) = 0x3810;
     WFIFOW(ss, 2) = sizeof(struct storage) + 8;
-    WFIFOL(ss, 4) = account_id;
+    WFIFOL(ss, 4) = unwrap<AccountId>(account_id);
     WFIFO_STRUCT(ss, 8, *st);
     WFIFOSET(ss, WFIFOW(ss, 2));
 }
 
 // 倉庫データ保存完了送信
 static
-void mapif_save_storage_ack(Session *ss, int account_id)
+void mapif_save_storage_ack(Session *ss, AccountId account_id)
 {
     WFIFOW(ss, 0) = 0x3811;
-    WFIFOL(ss, 2) = account_id;
+    WFIFOL(ss, 2) = unwrap<AccountId>(account_id);
     WFIFOB(ss, 6) = 0;
     WFIFOSET(ss, 7);
 }
@@ -215,7 +215,8 @@ void mapif_save_storage_ack(Session *ss, int account_id)
 static
 void mapif_parse_LoadStorage(Session *ss)
 {
-    mapif_load_storage(ss, RFIFOL(ss, 2));
+    AccountId account_id = wrap<AccountId>(RFIFOL(ss, 2));
+    mapif_load_storage(ss, account_id);
 }
 
 // 倉庫データ受信＆保存
@@ -223,7 +224,7 @@ static
 void mapif_parse_SaveStorage(Session *ss)
 {
     struct storage *st;
-    int account_id = RFIFOL(ss, 4);
+    AccountId account_id = wrap<AccountId>(RFIFOL(ss, 4));
     int len = RFIFOW(ss, 2);
     if (sizeof(struct storage) != len - 8)
     {

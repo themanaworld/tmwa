@@ -60,13 +60,15 @@ static
 std::list<AString> npc_srcs;
 
 static
-int npc_id = START_NPC_NUM;
+BlockId npc_id = START_NPC_NUM;
 static
 int npc_warp, npc_shop, npc_script, npc_mob;
 
-int npc_get_new_npc_id(void)
+BlockId npc_get_new_npc_id(void)
 {
-    return npc_id++;
+    BlockId rv = npc_id;
+    npc_id = next(npc_id);
+    return rv;
 }
 
 struct event_data
@@ -169,7 +171,7 @@ int npc_event_dequeue(dumb_ptr<map_session_data> sd)
 {
     nullpo_ret(sd);
 
-    sd->npc_id = 0;
+    sd->npc_id = BlockId();
 
     if (!sd->eventqueuel.empty())
     {
@@ -220,7 +222,7 @@ void npc_timer_event(NpcEvent eventname)
  */
 static
 void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
-        int *c, ScriptLabel name, int rid, Slice<argrec_t> argv)
+        int *c, ScriptLabel name, BlockId rid, Slice<argrec_t> argv)
 {
     ScriptLabel p = key.label;
 
@@ -234,7 +236,7 @@ void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
     }
 }
 
-int npc_event_doall_l(ScriptLabel name, int rid, Slice<argrec_t> args)
+int npc_event_doall_l(ScriptLabel name, BlockId rid, Slice<argrec_t> args)
 {
     int c = 0;
 
@@ -245,7 +247,7 @@ int npc_event_doall_l(ScriptLabel name, int rid, Slice<argrec_t> args)
 
 static
 void npc_event_do_sub(NpcEvent key, struct event_data *ev,
-        int *c, NpcEvent name, int rid, Slice<argrec_t> argv)
+        int *c, NpcEvent name, BlockId rid, Slice<argrec_t> argv)
 {
     nullpo_retv(ev);
 
@@ -257,7 +259,7 @@ void npc_event_do_sub(NpcEvent key, struct event_data *ev,
     }
 }
 
-int npc_event_do_l(NpcEvent name, int rid, Slice<argrec_t> args)
+int npc_event_do_l(NpcEvent name, BlockId rid, Slice<argrec_t> args)
 {
     int c = 0;
 
@@ -322,7 +324,7 @@ int npc_event_do_oninit(void)
 /// This will be called later if you call npc_timerevent_start.
 /// This function may only expire, but not deactivate, the counter.
 static
-void npc_timerevent(TimerData *, tick_t tick, int id, interval_t data)
+void npc_timerevent(TimerData *, tick_t tick, BlockId id, interval_t data)
 {
     dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
     assert (nd != NULL);
@@ -345,7 +347,7 @@ void npc_timerevent(TimerData *, tick_t tick, int id, interval_t data)
                     id, next));
     }
 
-    run_script(ScriptPointer(nd->scr.script.get(), te->pos), 0, nd->bl_id);
+    run_script(ScriptPointer(nd->scr.script.get(), te->pos), BlockId(), nd->bl_id);
 }
 
 /// Start (or resume) counting ticks to the next npc_timerevent.
@@ -500,7 +502,7 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
             return 1;
     }
 
-    if (sd->npc_id != 0)
+    if (sd->npc_id)
     {
         sd->eventqueuel.push_back(eventname);
         return 1;
@@ -526,7 +528,7 @@ void npc_command_sub(NpcEvent key, struct event_data *ev, NpcName npcname, XStri
         XString temp = key.label.xslice_t(9);
 
         if (command == temp)
-            run_script(ScriptPointer(ev->nd->scr.script.get(), ev->pos), 0, ev->nd->bl_id);
+            run_script(ScriptPointer(ev->nd->scr.script.get(), ev->pos), BlockId(), ev->nd->bl_id);
     }
 }
 
@@ -626,7 +628,7 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
  *------------------------------------------
  */
 static
-int npc_checknear(dumb_ptr<map_session_data> sd, int id)
+int npc_checknear(dumb_ptr<map_session_data> sd, BlockId id)
 {
     dumb_ptr<npc_data> nd;
 
@@ -657,13 +659,13 @@ int npc_checknear(dumb_ptr<map_session_data> sd, int id)
  * クリック時のNPC処理
  *------------------------------------------
  */
-int npc_click(dumb_ptr<map_session_data> sd, int id)
+int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
 {
     dumb_ptr<npc_data> nd;
 
     nullpo_retr(1, sd);
 
-    if (sd->npc_id != 0)
+    if (sd->npc_id)
     {
         if (battle_config.error_log)
             PRINTF("npc_click: npc_id != 0\n"_fmt);
@@ -706,7 +708,7 @@ int npc_click(dumb_ptr<map_session_data> sd, int id)
  *
  *------------------------------------------
  */
-int npc_scriptcont(dumb_ptr<map_session_data> sd, int id)
+int npc_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
 {
     dumb_ptr<npc_data> nd;
 
@@ -738,7 +740,7 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, int id)
  *
  *------------------------------------------
  */
-int npc_buysellsel(dumb_ptr<map_session_data> sd, int id, int type)
+int npc_buysellsel(dumb_ptr<map_session_data> sd, BlockId id, int type)
 {
     dumb_ptr<npc_data> nd;
 
@@ -752,7 +754,7 @@ int npc_buysellsel(dumb_ptr<map_session_data> sd, int id, int type)
     {
         if (battle_config.error_log)
             PRINTF("no such shop npc : %d\n"_fmt, id);
-        sd->npc_id = 0;
+        sd->npc_id = BlockId();
         return 1;
     }
     if (nd->flag & 1)           // 無効化されている
@@ -794,24 +796,28 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
 
     for (i = 0, w = 0, z = 0; i < n; i++)
     {
+        // TODO this *really needs to be made into a struct
+        const uint16_t& item_l_count = item_list[i * 2];
+        const ItemNameId& item_l_id = wrap<ItemNameId>(item_list[i * 2 + 1]);
+
         for (j = 0; j < nd->is_shop()->shop_items.size(); j++)
         {
-            if (nd->is_shop()->shop_items[j].nameid == item_list[i * 2 + 1])
+            if (nd->is_shop()->shop_items[j].nameid == item_l_id)
                 break;
         }
         if (j == nd->is_shop()->shop_items.size())
             return 3;
 
-        z += static_cast<double>(nd->is_shop()->shop_items[j].value) * item_list[i * 2];
-        itemamount += item_list[i * 2];
+        z += static_cast<double>(nd->is_shop()->shop_items[j].value) * item_l_count;
+        itemamount += item_l_count;
 
-        switch (pc_checkadditem(sd, item_list[i * 2 + 1], item_list[i * 2]))
+        switch (pc_checkadditem(sd, item_l_id, item_l_count))
         {
             case ADDITEM::EXIST:
                 break;
             case ADDITEM::NEW:
-                if (itemdb_isequip(item_list[i * 2 + 1]))
-                    new_stacks += item_list[i * 2];
+                if (itemdb_isequip(item_l_id))
+                    new_stacks += item_l_count;
                 else
                     new_stacks++;
                 break;
@@ -819,7 +825,7 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
                 return 2;
         }
 
-        w += itemdb_weight(item_list[i * 2 + 1]) * item_list[i * 2];
+        w += itemdb_weight(item_l_id) * item_l_count;
     }
 
     if (z > static_cast<double>(sd->status.zeny))
@@ -828,17 +834,20 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
         return 2;               // 重量超過
     if (pc_inventoryblank(sd) < new_stacks)
         return 3;               // 種類数超過
-    if (sd->trade_partner != 0)
+    if (sd->trade_partner)
         return 4;               // cant buy while trading
 
     pc_payzeny(sd, static_cast<int>(z));
 
     for (i = 0; i < n; i++)
     {
+        const uint16_t& item_l_count = item_list[i * 2];
+        const ItemNameId& item_l_id = wrap<ItemNameId>(item_list[i * 2 + 1]);
+
         struct item_data *item_data;
-        if ((item_data = itemdb_exists(item_list[i * 2 + 1])) != NULL)
+        if ((item_data = itemdb_exists(item_l_id)) != NULL)
         {
-            int amount = item_list[i * 2];
+            int amount = item_l_count;
             struct item item_tmp {};
 
             item_tmp.nameid = item_data->nameid;
@@ -881,14 +890,13 @@ int npc_selllist(dumb_ptr<map_session_data> sd, int n,
         return 1;
     for (i = 0, z = 0; i < n; i++)
     {
-        int nameid;
         if (item_list[i * 2] - 2 < 0 || item_list[i * 2] - 2 >= MAX_INVENTORY)
             return 1;
-        nameid = sd->status.inventory[item_list[i * 2] - 2].nameid;
-        if (nameid == 0 ||
+        ItemNameId nameid = sd->status.inventory[item_list[i * 2] - 2].nameid;
+        if (!nameid ||
             sd->status.inventory[item_list[i * 2] - 2].amount < item_list[i * 2 + 1])
             return 1;
-        if (sd->trade_partner != 0)
+        if (sd->trade_partner)
             return 2;           // cant sell while trading
         z += static_cast<double>(itemdb_value_sell(nameid)) * item_list[i * 2 + 1];
         itemamount += item_list[i * 2 + 1];
@@ -1076,7 +1084,7 @@ bool extract(XString xs, npc_item_list *itv)
     if (!extract(xs, record<':'>(&name_or_id, &itv->value)))
         return false;
     struct item_data *id = nullptr;
-    if (extract(name_or_id, &itv->nameid) && itv->nameid > 0)
+    if (extract(name_or_id, &itv->nameid) && itv->nameid)
         goto return_true;
 
     id = itemdb_searchname(name_or_id.rstrip());
@@ -1456,7 +1464,8 @@ int npc_parse_function(XString, XString, XString w3, ZString,
 static
 int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
 {
-    int x, y, xs, ys, mob_class, num;
+    int x, y, xs, ys, num;
+    Species mob_class;
     int i;
     MapName mapname;
     NpcEvent eventname;
@@ -1491,9 +1500,9 @@ int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
         md->bl_x = x;
         md->bl_y = y;
         if (w3 == ENGLISH_NAME)
-            md->name = mob_db[mob_class].name;
+            md->name = get_mob_db(mob_class).name;
         else if (w3 == JAPANESE_NAME)
-            md->name = mob_db[mob_class].jname;
+            md->name = get_mob_db(mob_class).jname;
         else
             md->name = w3;
 
@@ -1510,8 +1519,8 @@ int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
 
         really_memzero_this(&md->state);
         // md->timer = nullptr;
-        md->target_id = 0;
-        md->attacked_id = 0;
+        md->target_id = BlockId();
+        md->attacked_id = BlockId();
 
         md->lootitemv.clear();
 
@@ -1680,7 +1689,7 @@ bool do_init_npc(void)
             rv = false;
             continue;
         }
-        PRINTF("\rLoading NPCs [%d]: %-54s"_fmt, npc_id - START_NPC_NUM,
+        PRINTF("\rLoading NPCs [%d]: %-54s"_fmt, unwrap<BlockId>(npc_id) - unwrap<BlockId>(START_NPC_NUM),
                 nsl);
         int lines = 0;
         AString zline;
@@ -1760,7 +1769,7 @@ bool do_init_npc(void)
         fflush(stdout);
     }
     PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n"_fmt,
-            npc_id - START_NPC_NUM, npc_warp, npc_shop, npc_script, npc_mob, ""_s);
+            unwrap<BlockId>(npc_id) - unwrap<BlockId>(START_NPC_NUM), npc_warp, npc_shop, npc_script, npc_mob, ""_s);
 
     if (script_errors)
     {

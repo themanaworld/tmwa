@@ -20,7 +20,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "magic-interpreter.t.hpp"
 
@@ -223,7 +223,7 @@ struct effect_t
 struct component_t
 {
     dumb_ptr<component_t> next;
-    int item_id;
+    ItemNameId item_id;
     int count;
 };
 
@@ -349,7 +349,7 @@ struct cont_activation_record_t
             int id;
             TYPE ty;
             dumb_ptr<effect_t> body;
-            dumb_ptr<std::vector<int>> entities_vp;
+            dumb_ptr<std::vector<BlockId>> entities_vp;
             int index;
         } c_foreach;
         struct
@@ -377,7 +377,7 @@ struct cont_activation_record_t
 struct status_change_ref_t
 {
     StatusChange sc_type;
-    int bl_id;
+    BlockId bl_id;
 };
 
 struct invocation : block_list
@@ -387,8 +387,8 @@ struct invocation : block_list
 
     dumb_ptr<env_t> env;
     dumb_ptr<spell_t> spell;
-    int caster;                /* this is the person who originally invoked the spell */
-    int subject;               /* when this person dies, the spell dies with it */
+    BlockId caster;                /* this is the person who originally invoked the spell */
+    BlockId subject;               /* when this person dies, the spell dies with it */
 
     Timer timer;                 /* spell timer, if any */
 
@@ -414,7 +414,7 @@ extern env_t magic_default_env; /* Fake default environment */
 /**
  * Adds a component selection to a component holder (which may initially be NULL)
  */
-void magic_add_component(dumb_ptr<component_t> *component_holder, int id, int count);
+void magic_add_component(dumb_ptr<component_t> *component_holder, ItemNameId id, int count);
 
 dumb_ptr<teleport_anchor_t> magic_find_anchor(XString name);
 

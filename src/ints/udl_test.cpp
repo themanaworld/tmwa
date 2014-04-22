@@ -475,9 +475,10 @@ TEST(ints, smc)
 
 TEST(ints, constant)
 {
-    EXPECT_EQ(0_const, (ints::SignedMagnitudeConstant<false, 0>{}));
-    EXPECT_EQ(1_const, (ints::SignedMagnitudeConstant<false, 1>{}));
-    EXPECT_EQ(1_const, (ints::SignedMagnitudeConstant<false, 1>{}));
+    // gtest is funny with conversions
+    assert(0_const == (ints::SignedMagnitudeConstant<false, 0>{}));
+    assert(1_const == (ints::SignedMagnitudeConstant<false, 1>{}));
+    assert(1_const == (ints::SignedMagnitudeConstant<false, 1>{}));
 }
 
 TEST(ints, udl8)

@@ -42,7 +42,7 @@
 #include "../poison.hpp"
 
 static
-Map<int, struct item_data> item_db;
+Map<ItemNameId, struct item_data> item_db;
 
 // Function declarations
 
@@ -77,7 +77,7 @@ struct item_data *itemdb_searchname(XString str_)
  * DBの存在確認
  *------------------------------------------
  */
-struct item_data *itemdb_exists(int nameid)
+struct item_data *itemdb_exists(ItemNameId nameid)
 {
     return item_db.search(nameid);
 }
@@ -86,7 +86,7 @@ struct item_data *itemdb_exists(int nameid)
  * DBの検索
  *------------------------------------------
  */
-struct item_data *itemdb_search(int nameid)
+struct item_data *itemdb_search(ItemNameId nameid)
 {
     struct item_data *id = item_db.search(nameid);
     if (id)
@@ -101,22 +101,7 @@ struct item_data *itemdb_search(int nameid)
     id->sex = SEX::NEUTRAL;
     id->elv = 0;
 
-    if (nameid > 500 && nameid < 600)
-        id->type = ItemType::USE;
-    else if (nameid > 600 && nameid < 700)
-        id->type = ItemType::_2;
-    else if ((nameid > 700 && nameid < 1100) ||
-             (nameid > 7000 && nameid < 8000))
-        id->type = ItemType::JUNK;
-    else if (nameid >= 1750 && nameid < 1771)
-        id->type = ItemType::ARROW;
-    else if (nameid > 1100 && nameid < 2000)
-        id->type = ItemType::WEAPON;
-    else if ((nameid > 2100 && nameid < 3000) ||
-             (nameid > 5000 && nameid < 6000))
-        id->type = ItemType::ARMOR;
-    else if (nameid > 4000 && nameid < 5000)
-        id->type = ItemType::_6;
+    id->type = ItemType::JUNK;
 
     return id;
 }
@@ -125,7 +110,7 @@ struct item_data *itemdb_search(int nameid)
  *
  *------------------------------------------
  */
-int itemdb_isequip(int nameid)
+int itemdb_isequip(ItemNameId nameid)
 {
     ItemType type = itemdb_type(nameid);
     return !(type == ItemType::USE
@@ -155,7 +140,7 @@ int itemdb_isequip2(struct item_data *data)
  *
  *------------------------------------------
  */
-int itemdb_isequip3(int nameid)
+int itemdb_isequip3(ItemNameId nameid)
 {
     ItemType type = itemdb_type(nameid);
     return (type == ItemType::WEAPON

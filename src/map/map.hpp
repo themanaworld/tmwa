@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "map.t.hpp"
 
@@ -29,6 +29,8 @@
 
 # include <functional>
 # include <list>
+
+# include "../ints/udl.hpp"
 
 # include "../strings/fwd.hpp"
 # include "../strings/rstring.hpp"
@@ -57,7 +59,7 @@ constexpr std::chrono::seconds LIFETIME_FLOORITEM = std::chrono::minutes(1);
 constexpr int MAX_SKILL_LEVEL = 100;
 constexpr int MAX_EVENTTIMER = 32;
 constexpr interval_t NATURAL_HEAL_INTERVAL = std::chrono::milliseconds(500);
-constexpr int MAX_FLOORITEM = 500000;
+constexpr BlockId MAX_FLOORITEM = wrap<BlockId>(500000_u32);
 constexpr int MAX_LEVEL = 255;
 constexpr int MAX_WALKPATH = 48;
 constexpr int MAX_DROP_PER_MAP = 48;
@@ -106,7 +108,7 @@ struct map_local;
 struct block_list
 {
     dumb_ptr<block_list> bl_next, bl_prev;
-    int bl_id;
+    BlockId bl_id;
     map_local *bl_m;
     short bl_x, bl_y;
     BL bl_type;
@@ -141,7 +143,7 @@ struct status_change
 {
     Timer timer;
     int val1;
-    int spell_invocation;      /* [Fate] If triggered by a spell, record here */
+    BlockId spell_invocation;      /* [Fate] If triggered by a spell, record here */
 };
 
 struct invocation;
@@ -190,7 +192,8 @@ struct map_session_data : block_list, SessionData
         unsigned unbreakable_armor:1;
         unsigned deaf:1;
     } special_state;
-    int char_id, login_id1, login_id2;
+    CharId char_id_;
+    int login_id1, login_id2;
     SEX sex;
     unsigned char tmw_version;  // tmw client version
     CharKey status_key;
@@ -209,7 +212,7 @@ struct map_session_data : block_list, SessionData
     tick_t client_tick, server_tick;
     struct walkpath_data walkpath;
     Timer walktimer;
-    int npc_id, areanpc_id, npc_shopid;
+    BlockId npc_id, areanpc_id, npc_shopid;
     // this is important
     int npc_pos;
     int npc_menu;
@@ -226,16 +229,16 @@ struct map_session_data : block_list, SessionData
     } npc_flags;
 
     Timer attacktimer;
-    int attacktarget;
+    BlockId attacktarget;
     ATK attacktarget_lv;
     tick_t attackabletime;
 
     // used by @hugo and @linus
-    int followtarget;
+    BlockId followtarget;
 
     tick_t cast_tick;     // [Fate] Next tick at which spellcasting is allowed
     dumb_ptr<invocation> active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
-    int attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
+    BlockId attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
     // like a weapon.  Check pc_attack_timer() for details.
     // Weapon equipment slot (slot 4) item override
     StatusChange attack_spell_icon_override;
@@ -296,16 +299,18 @@ struct map_session_data : block_list, SessionData
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
 
-    int trade_partner;
+    AccountId trade_partner;
     Array<int, TRADE_MAX> deal_item_index;
     Array<int, TRADE_MAX> deal_item_amount;
     int deal_zeny;
     short deal_locked;
 
-    int party_sended, party_invite, party_invite_account;
+    int party_sended;
+    PartyId party_invite;
+    AccountId party_invite_account;
     int party_hp, party_x, party_y;
 
-    int partyspy;              // [Syrus22]
+    PartyId partyspy;              // [Syrus22]
 
     int catch_target_class;
 
@@ -349,7 +354,8 @@ struct npc_label_list
 };
 struct npc_item_list
 {
-    int nameid, value;
+    ItemNameId nameid;
+    int value;
 };
 
 class npc_data_script;
@@ -446,7 +452,7 @@ constexpr int MOB_XP_BONUS_SHIFT = 10;
 struct mob_data : block_list
 {
     short n;
-    short mob_class;
+    Species mob_class;
     DIR dir;
     MobMode mode;
     struct
@@ -472,7 +478,7 @@ struct mob_data : block_list
     Timer timer;
     short to_x, to_y;
     int hp;
-    int target_id, attacked_id;
+    BlockId target_id, attacked_id;
     ATK target_lv;
     struct walkpath_data walkpath;
     tick_t next_walktime;
@@ -482,7 +488,7 @@ struct mob_data : block_list
     short move_fail_count;
     struct DmgLogEntry
     {
-        int id;
+        BlockId id;
         int dmg;
     };
     // logically a map ...
@@ -499,14 +505,15 @@ struct mob_data : block_list
     Timer deletetimer;
 
     Timer skilltimer;
-    int skilltarget;
+    BlockId skilltarget;
     short skillx, skilly;
     SkillID skillid;
     short skilllv;
     struct mob_skill *skillidx;
     std::unique_ptr<tick_t[]> skilldelayup; // [MAX_MOBSKILL];
     LevelElement def_ele;
-    int master_id, master_dist;
+    BlockId master_id;
+    int master_dist;
     int exclusion_src, exclusion_party;
     NpcEvent npc_event;
     // [Fate] mob-specific stats
@@ -560,7 +567,7 @@ struct flooritem_data : block_list
 {
     short subx, suby;
     Timer cleartimer;
-    int first_get_id, second_get_id, third_get_id;
+    BlockId first_get_id, second_get_id, third_get_id;
     tick_t first_get_tick, second_get_tick, third_get_tick;
     struct item item_data;
 };
@@ -607,9 +614,9 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)>,
 //block関連に追加
 int map_count_oncell(map_local *m, int x, int y);
 // 一時的object関連
-int map_addobject(dumb_ptr<block_list>);
-int map_delobject(int, BL type);
-int map_delobjectnofree(int id, BL type);
+BlockId map_addobject(dumb_ptr<block_list>);
+void map_delobject(BlockId, BL type);
+void map_delobjectnofree(BlockId id, BL type);
 void map_foreachobject(std::function<void(dumb_ptr<block_list>)>,
         BL);
 //
@@ -626,56 +633,56 @@ void map_log(XString line);
             sd->status_key.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat"_s)), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
-void map_clearflooritem_timer(TimerData *, tick_t, int);
+void map_clearflooritem_timer(TimerData *, tick_t, BlockId);
 inline
-void map_clearflooritem(int id)
+void map_clearflooritem(BlockId id)
 {
     map_clearflooritem_timer(nullptr, tick_t(), id);
 }
-int map_addflooritem_any(struct item *, int amount,
+BlockId map_addflooritem_any(struct item *, int amount,
         map_local *m, int x, int y,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal);
-int map_addflooritem(struct item *, int,
+BlockId map_addflooritem(struct item *, int,
         map_local *, int, int,
         dumb_ptr<map_session_data>, dumb_ptr<map_session_data>,
         dumb_ptr<map_session_data>);
 
 // キャラid＝＞キャラ名 変換関連
 extern
-DMap<int, dumb_ptr<block_list>> id_db;
-void map_addchariddb(int charid, CharName name);
-CharName map_charid2nick(int);
+DMap<BlockId, dumb_ptr<block_list>> id_db;
+void map_addchariddb(CharId charid, CharName name);
+CharName map_charid2nick(CharId);
 
-dumb_ptr<map_session_data> map_id2sd(int);
-dumb_ptr<block_list> map_id2bl(int);
+dumb_ptr<map_session_data> map_id2sd(BlockId);
+dumb_ptr<block_list> map_id2bl(BlockId);
 
 inline
-dumb_ptr<map_session_data> map_id_is_player(int id)
+dumb_ptr<map_session_data> map_id_is_player(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
     return bl ? bl->is_player() : nullptr;
 }
 inline
-dumb_ptr<npc_data> map_id_is_npc(int id)
+dumb_ptr<npc_data> map_id_is_npc(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
     return bl ? bl->is_npc() : nullptr;
 }
 inline
-dumb_ptr<mob_data> map_id_is_mob(int id)
+dumb_ptr<mob_data> map_id_is_mob(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
     return bl ? bl->is_mob() : nullptr;
 }
 inline
-dumb_ptr<flooritem_data> map_id_is_item(int id)
+dumb_ptr<flooritem_data> map_id_is_item(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
     return bl ? bl->is_item() : nullptr;
 }
 inline
-dumb_ptr<invocation> map_id_is_spell(int id)
+dumb_ptr<invocation> map_id_is_spell(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
     return bl ? bl->is_spell() : nullptr;
@@ -688,7 +695,7 @@ int map_setipport(MapName name, IP4Address ip, int port);
 void map_addiddb(dumb_ptr<block_list>);
 void map_deliddb(dumb_ptr<block_list> bl);
 void map_addnickdb(dumb_ptr<map_session_data>);
-int map_scriptcont(dumb_ptr<map_session_data> sd, int id);  /* Continues a script either on a spell or on an NPC */
+int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id);  /* Continues a script either on a spell or on an NPC */
 dumb_ptr<map_session_data> map_nick2sd(CharName);
 int compare_item(struct item *a, struct item *b);
 

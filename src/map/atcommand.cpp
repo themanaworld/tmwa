@@ -81,12 +81,12 @@ enum class ATCE
 struct AtCommandInfo
 {
     ZString args;
-    int level;
+    GmLevel level;
     ATCE (*proc)(Session *s, dumb_ptr<map_session_data> sd, ZString message);
     ZString help;
 
-    AtCommandInfo(ZString a, int l, ATCE (*p)(Session *s, dumb_ptr<map_session_data>, ZString), ZString h)
-    : args(a), level(l), proc(p), help(h)
+    AtCommandInfo(ZString a, uint32_t l, ATCE (*p)(Session *s, dumb_ptr<map_session_data>, ZString), ZString h)
+    : args(a), level(GmLevel::from(l)), proc(p), help(h)
     {}
 };
 
@@ -242,7 +242,7 @@ io::AppendFile *get_gm_log()
 }
 
 bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
-        ZString message, int gmlvl)
+        ZString message, GmLevel gmlvl)
 {
     nullpo_retr(false, sd);
 
@@ -272,7 +272,7 @@ bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
         return true;
         // don't show in chat
     }
-    if (info->level > gmlvl)
+    if (!(gmlvl.satisfies(info->level)))
     {
         AString output = STRPRINTF("GM command is level %d, but you are level %d: %s"_fmt,
                 info->level, gmlvl,
@@ -368,11 +368,7 @@ bool atcommand_config_read(ZString cfgName)
         AtCommandInfo *p = get_atcommandinfo_byname(w1);
         if (p != NULL)
         {
-            p->level = atoi(w2.c_str());
-            if (p->level > 100)
-                p->level = 100;
-            else if (p->level < 0)
-                p->level = 0;
+            p->level = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
         }
         else if (w1 == "import"_s)
             rv &= atcommand_config_read(w2);
@@ -391,12 +387,14 @@ bool atcommand_config_read(ZString cfgName)
 static
 void atc_do_help(Session *s, ZString cmd, const AtCommandInfo& info)
 {
+    // TODO convert to hex or something
+    uint32_t level = info.level.get_all_bits();
     auto msg = STRPRINTF("\u2007\u2007%d: @%s %s"_fmt, info.level, cmd, info.args);
     // manually padding because *space*
     size_t ll = 1;
-    if (info.level >= 10)
+    if (level >= 10)
         ++ll;
-    if (info.level >= 100)
+    if (level >= 100)
         ++ll;
     clif_displaymessage(s, msg.xslice_t((ll - 1) * 3));
 }
@@ -436,20 +434,34 @@ ATCE atcommand_help(Session *s, dumb_ptr<map_session_data>,
         return ATCE::OKAY;
     }
 
-    int low = 0, high;
+    // previous logic is silly
+    //
+    // @help N: list all commands available at level N
+    // @help M-N: list all commands available at level N that were not at level M
+    GmLevel low, high;
+    bool pass;
     if (extract(message, &high))
-        ++high;
-    else if (!extract(message, record<'-'>(&low, &high)))
+    {
+        pass = true;
+    }
+    else if (extract(message, record<'-'>(&low, &high)))
+    {
+        pass = false;
+    }
+    else
         return ATCE::USAGE;
 
-    if (low < 0 || high > 100 || low >= high)
+    if (low.obsoletes(high))
         return ATCE::RANGE;
-    clif_displaymessage(s, STRPRINTF("Synopses of GM commands in level [%d, %d):"_fmt, low, high));
+    if (pass)
+        clif_displaymessage(s, STRPRINTF("Synopses of GM commands available at level %u:"_fmt, high));
+    else
+        clif_displaymessage(s, STRPRINTF("Synopses of GM commands available at level %u, but not at level %u:"_fmt, high, low));
     for (const auto& pair : atcommand_info)
     {
         auto cmd = ZString(strings::really_construct_from_a_pointer, &*pair.first.begin(), nullptr);
         const AtCommandInfo& info = pair.second;
-        if (low <= info.level && info.level < high)
+        if ((!low.satisfies(info.level) || pass) && high.satisfies(info.level))
             atc_do_help(s, cmd, info);
     }
     return ATCE::OKAY;
@@ -510,21 +522,21 @@ ATCE atcommand_charwarp(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can rura+ only lower or same GM level
             if (x > 0 && x < 800 && y > 0 && y < 800)
             {
                 map_local *m = map_mapname2mapid(map_name);
                 if (m != nullptr && m->flag.get(MapFlag::NOWARPTO)
-                    && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+                    && !pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level))))
                 {
                     clif_displaymessage(s,
                             "You are not authorised to warp someone to this map."_s);
                     return ATCE::PERM;
                 }
                 if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                    && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+                    && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
                 {
                     clif_displaymessage(s,
                             "You are not authorised to warp this player from its actual map."_s);
@@ -586,14 +598,14 @@ ATCE atcommand_warp(Session *s, dumb_ptr<map_session_data> sd,
     {
         map_local *m = map_mapname2mapid(map_name);
         if (m != nullptr && m->flag.get(MapFlag::NOWARPTO)
-            && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to this map."_s);
             return ATCE::PERM;
         }
         if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
-            && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map."_s);
@@ -627,7 +639,7 @@ ATCE atcommand_where(Session *s, dumb_ptr<map_session_data> sd,
     if (pl_sd != NULL &&
         !((battle_config.hide_GM_session
            || bool(pl_sd->status.option & Option::HIDE))
-          && (pc_isGM(pl_sd) > pc_isGM(sd))))
+          && !(pc_isGM(sd).detects(pc_isGM(pl_sd)))))
     {
         // you can look only lower or same level
         AString output = STRPRINTF("%s: %s (%d,%d)"_fmt,
@@ -661,14 +673,14 @@ ATCE atcommand_goto(Session *s, dumb_ptr<map_session_data> sd,
     if (pl_sd != NULL)
     {
         if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
-            && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to the map of this player."_s);
             return ATCE::PERM;
         }
         if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
-            && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map."_s);
@@ -702,14 +714,14 @@ ATCE atcommand_jump(Session *s, dumb_ptr<map_session_data> sd,
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
         if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARPTO)
-            && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to your actual map."_s);
             return ATCE::PERM;
         }
         if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
-            && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map."_s);
@@ -733,12 +745,11 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    int pl_GM_level, GM_level;
     VString<23> match_text = message;
     match_text = match_text.to_lower();
 
     count = 0;
-    GM_level = pc_isGM(sd);
+    GmLevel gm_level = pc_isGM(sd);
     for (io::FD i : iter_fds())
     {
         Session *s2 = get_session(i);
@@ -747,11 +758,11 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            pl_GM_level = pc_isGM(pl_sd);
+            GmLevel pl_gm_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
                   || bool(pl_sd->status.option & Option::HIDE))
-                 && (pl_GM_level > GM_level)))
+                 && !(gm_level.detects(pl_gm_level))))
             {
                 // you can look only lower or same level
                 VString<23> player_name = pl_sd->status_key.name.to__lower();
@@ -759,10 +770,10 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
                 {
                     // search with no case sensitive
                     AString output;
-                    if (pl_GM_level > 0)
+                    if (pl_gm_level)
                         output = STRPRINTF(
-                                "Name: %s (GM:%d) | Location: %s %d %d"_fmt,
-                                pl_sd->status_key.name, pl_GM_level,
+                                "Name: %s (GM:%u) | Location: %s %d %d"_fmt,
+                                pl_sd->status_key.name, pl_gm_level,
                                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                     else
                         output = STRPRINTF(
@@ -794,14 +805,13 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    int pl_GM_level, GM_level;
     struct party *p;
 
     VString<23> match_text = message;
     match_text = match_text.to_lower();
 
     count = 0;
-    GM_level = pc_isGM(sd);
+    GmLevel gm_level = pc_isGM(sd);
     for (io::FD i : iter_fds())
     {
         Session *s2 = get_session(i);
@@ -810,11 +820,11 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            pl_GM_level = pc_isGM(pl_sd);
+            GmLevel pl_gm_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
                   || bool(pl_sd->status.option & Option::HIDE))
-                 && (pl_GM_level > GM_level)))
+                 && (!(gm_level.detects(pl_gm_level)))))
             {
                 // you can look only lower or same level
                 VString<23> player_name = pl_sd->status_key.name.to__lower();
@@ -824,10 +834,10 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
                     p = party_search(pl_sd->status.party_id);
                     PartyName temp0 = p ? p->name : stringish<PartyName>("None"_s);
                     AString output;
-                    if (pl_GM_level > 0)
+                    if (pl_gm_level)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Party: '%s'"_fmt,
-                                pl_sd->status_key.name, pl_GM_level, temp0);
+                                pl_sd->status_key.name, pl_gm_level, temp0);
                     clif_displaymessage(s, output);
                     count++;
                 }
@@ -853,7 +863,6 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    int pl_GM_level, GM_level;
     map_local *map_id;
 
     {
@@ -865,7 +874,7 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     count = 0;
-    GM_level = pc_isGM(sd);
+    GmLevel gm_level = pc_isGM(sd);
     for (io::FD i : iter_fds())
     {
         Session *s2 = get_session(i);
@@ -874,20 +883,20 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            pl_GM_level = pc_isGM(pl_sd);
+            GmLevel pl_gm_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
                   || bool(pl_sd->status.option & Option::HIDE))
-                 && (pl_GM_level > GM_level)))
+                 && (!(gm_level.detects(pl_gm_level)))))
             {
                 // you can look only lower or same level
                 if (pl_sd->bl_m == map_id)
                 {
                     AString output;
-                    if (pl_GM_level > 0)
+                    if (pl_gm_level)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d"_fmt,
-                                pl_sd->status_key.name, pl_GM_level,
+                                pl_sd->status_key.name, pl_gm_level,
                                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                     else
                         output = STRPRINTF(
@@ -913,7 +922,6 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    int pl_GM_level, GM_level;
     struct party *p;
 
     map_local *map_id;
@@ -926,7 +934,7 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     count = 0;
-    GM_level = pc_isGM(sd);
+    GmLevel gm_level = pc_isGM(sd);
     for (io::FD i : iter_fds())
     {
         Session *s2 = get_session(i);
@@ -935,11 +943,11 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            pl_GM_level = pc_isGM(pl_sd);
+            GmLevel pl_gm_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
                   || bool(pl_sd->status.option & Option::HIDE))
-                 && (pl_GM_level > GM_level)))
+                 && (!(gm_level.detects(pl_gm_level)))))
             {
                 // you can look only lower or same level
                 if (pl_sd->bl_m == map_id)
@@ -947,9 +955,9 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
                     p = party_search(pl_sd->status.party_id);
                     PartyName temp0 = p ? p->name : stringish<PartyName>("None"_s);
                     AString output;
-                    if (pl_GM_level > 0)
+                    if (pl_gm_level)
                         output = STRPRINTF("Name: %s (GM:%d) | Party: '%s'"_fmt,
-                                pl_sd->status_key.name, pl_GM_level, temp0);
+                                pl_sd->status_key.name, pl_gm_level, temp0);
                     else
                         output = STRPRINTF("Name: %s | Party: '%s'"_fmt,
                                 pl_sd->status_key.name, temp0);
@@ -979,14 +987,13 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    int pl_GM_level, GM_level;
     struct party *p;
 
     VString<23> match_text = message;
     match_text = match_text.to_lower();
 
     count = 0;
-    GM_level = pc_isGM(sd);
+    GmLevel gm_level = pc_isGM(sd);
     for (io::FD i : iter_fds())
     {
         Session *s2 = get_session(i);
@@ -995,13 +1002,13 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            pl_GM_level = pc_isGM(pl_sd);
-            if (pl_GM_level > 0)
+            GmLevel pl_gm_level = pc_isGM(pl_sd);
+            if (pl_gm_level)
             {
                 if (!
                     ((battle_config.hide_GM_session
                       || bool(pl_sd->status.option & Option::HIDE))
-                     && (pl_GM_level > GM_level)))
+                     && (!(gm_level.detects(pl_gm_level)))))
                 {
                     // you can look only lower or same level
                     VString<23> player_name = pl_sd->status_key.name.to__lower();
@@ -1011,7 +1018,7 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
                         AString output;
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d"_fmt,
-                                pl_sd->status_key.name, pl_GM_level,
+                                pl_sd->status_key.name, pl_gm_level,
                                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                         clif_displaymessage(s, output);
                         output = STRPRINTF(
@@ -1064,14 +1071,14 @@ ATCE atcommand_load(Session *s, dumb_ptr<map_session_data> sd,
 {
     map_local *m = map_mapname2mapid(sd->status.save_point.map_);
     if (m != nullptr && m->flag.get(MapFlag::NOWARPTO)
-        && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
                              "You are not authorised to warp you to your save map."_s);
         return ATCE::PERM;
     }
     if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
-        && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
                              "You are not authorised to warp you from your actual map."_s);
@@ -1217,7 +1224,7 @@ ATCE atcommand_kill(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can kill only lower or same level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
@@ -1322,7 +1329,8 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     XString item_name;
-    int number = 0, item_id;
+    int number = 0;
+    ItemNameId item_id;
     struct item_data *item_data = NULL;
     int get_count, i;
 
@@ -1336,15 +1344,12 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
     if (number <= 0)
         number = 1;
 
-    item_id = 0;
     if ((item_data = itemdb_searchname(item_name)) != NULL)
         item_id = item_data->nameid;
     else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != NULL)
         item_id = item_data->nameid;
-    else
-        item_id = 0;
 
-    if (item_id >= 500)
+    if (item_id)
     {
         get_count = number;
         if (item_data->type == ItemType::WEAPON
@@ -1722,22 +1727,21 @@ ATCE atcommand_spawn(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MobName monster;
-    int mob_id;
+    Species mob_id;
     int number = 0;
     int x = 0, y = 0;
     int count;
-    int i, j, k;
     int mx, my, range;
 
     if (!extract(message, record<' ', 1>(&monster, &number, &x, &y)))
         return ATCE::USAGE;
 
     // If monster identifier/name argument is a name
-    if ((mob_id = mobdb_searchname(monster)) == 0)
+    if ((mob_id = mobdb_searchname(monster)) == Species())
         // check name first (to avoid possible name begining by a number)
-        mob_id = mobdb_checkid(atoi(monster.c_str()));
+        mob_id = mobdb_checkid(wrap<Species>(atoi(monster.c_str())));
 
-    if (mob_id == 0)
+    if (mob_id == Species())
         return ATCE::EXIST;
 
     if (number <= 0)
@@ -1756,11 +1760,11 @@ ATCE atcommand_spawn(Session *s, dumb_ptr<map_session_data> sd,
     range = sqrt(number) / 2;
     range = range * 2 + 5;
     // calculation of an odd number (+ 4 area around)
-    for (i = 0; i < number; i++)
+    for (int i = 0; i < number; i++)
     {
-        j = 0;
-        k = 0;
-        while (j++ < 8 && k == 0)
+        int j = 0;
+        BlockId k;
+        while (j++ < 8 && !k)
         {
             // try 8 times to spawn the monster (needed for close area)
             if (x <= 0)
@@ -1773,7 +1777,7 @@ ATCE atcommand_spawn(Session *s, dumb_ptr<map_session_data> sd,
                 my = y;
             k = mob_once_spawn(sd, MOB_THIS_MAP, mx, my, MobName(), mob_id, 1, NpcEvent());
         }
-        count += (k != 0) ? 1 : 0;
+        count += k ? 1 : 0;
     }
 
     if (count != 0)
@@ -2066,18 +2070,18 @@ ATCE atcommand_recall(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can recall only lower or same level
             if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARPTO)
-                && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+                && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
             {
                 clif_displaymessage(s,
                         "You are not authorised to warp somenone to your actual map."_s);
                 return ATCE::PERM;
             }
             if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+                && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
             {
                 clif_displaymessage(s,
                         "You are not authorised to warp this player from its actual map."_s);
@@ -2199,8 +2203,8 @@ ATCE atcommand_character_stats_all(Session *s, dumb_ptr<map_session_data>,
         if (pl_sd && pl_sd->state.auth)
         {
             AString gmlevel;
-            if (pc_isGM(pl_sd) > 0)
-                gmlevel = STRPRINTF("| GM Lvl: %d"_fmt, pc_isGM(pl_sd));
+            if (GmLevel pl_gm_level = pc_isGM(pl_sd))
+                gmlevel = STRPRINTF("| GM Lvl: %d"_fmt, pl_gm_level);
             else
                 gmlevel = " "_s;
 
@@ -2254,7 +2258,7 @@ ATCE atcommand_character_option(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can change option only to lower or same level
             pl_sd->opt1 = opt1;
@@ -2389,7 +2393,7 @@ ATCE atcommand_character_save(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can change save point only to lower or same gm level
             map_local *m = map_mapname2mapid(map_name);
@@ -2401,7 +2405,7 @@ ATCE atcommand_character_save(Session *s, dumb_ptr<map_session_data> sd,
             else
             {
                 if (m != nullptr && m->flag.get(MapFlag::NOWARPTO)
-                    && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+                    && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
                 {
                     clif_displaymessage(s,
                             "You are not authorised to set this map as a save map."_s);
@@ -2438,7 +2442,7 @@ ATCE atcommand_doom(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth && s2 != s
-            && pc_isGM(sd) >= pc_isGM(pl_sd))
+            && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can doom only lower or same gm level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
@@ -2462,7 +2466,7 @@ ATCE atcommand_doommap(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth && s2 != s && sd->bl_m == pl_sd->bl_m
-            && pc_isGM(sd) >= pc_isGM(pl_sd))
+            && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can doom only lower or same gm level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
@@ -2539,7 +2543,7 @@ ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can change base level only lower or same gm level
             if (level > 0)
@@ -2626,7 +2630,7 @@ ATCE atcommand_character_joblevel(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can change job level only lower or same gm level
             max_level -= 40;
@@ -2700,7 +2704,7 @@ ATCE atcommand_kick(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
             // you can kick only lower or same gm level
             clif_GM_kick(sd, pl_sd, 1);
         else
@@ -2729,7 +2733,7 @@ ATCE atcommand_kickall(Session *s, dumb_ptr<map_session_data> sd,
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
-            && pl_sd->state.auth && pc_isGM(sd) >= pc_isGM(pl_sd))
+            && pl_sd->state.auth && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can kick only lower or same gm level
             if (sd->status_key.account_id != pl_sd->status_key.account_id)
@@ -2964,7 +2968,7 @@ ATCE atcommand_idsearch(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     ItemName item_name;
-    int i, match;
+    int match;
     struct item_data *item;
 
     if (!extract(message, &item_name) || !item_name)
@@ -2973,7 +2977,7 @@ ATCE atcommand_idsearch(Session *s, dumb_ptr<map_session_data>,
     AString output = STRPRINTF("The reference result of '%s' (name: id):"_fmt, item_name);
     clif_displaymessage(s, output);
     match = 0;
-    for (i = 0; i < 20000; i++)
+    for (ItemNameId i = wrap<ItemNameId>(0); i < wrap<ItemNameId>(-1); i = next(i))
     {
         if ((item = itemdb_exists(i)) != NULL
             && item->jname.contains_seq(item_name))
@@ -3001,7 +3005,7 @@ ATCE atcommand_charskreset(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can reset skill points only lower or same gm level
             pc_resetskill(pl_sd);
@@ -3036,7 +3040,7 @@ ATCE atcommand_charstreset(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can reset stats points only lower or same gm level
             pc_resetstate(pl_sd);
@@ -3072,7 +3076,7 @@ ATCE atcommand_charreset(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can reset a character only for lower or same GM level
             pc_resetstate(pl_sd);
@@ -3112,7 +3116,7 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can reset a character only for lower or same GM level
             int i;
@@ -3148,9 +3152,9 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
 
             // Give knife and shirt
             struct item item;
-            item.nameid = 1201;
+            item.nameid = wrap<ItemNameId>(1201);
             pc_additem(pl_sd, &item, 1);
-            item.nameid = 1202;
+            item.nameid = wrap<ItemNameId>(1202);
             pc_additem(pl_sd, &item, 1);
 
             // Reset stats and skills
@@ -3341,7 +3345,7 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
     int count;
 
     if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARPTO)
-        && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp somenone to your actual map."_s);
@@ -3358,11 +3362,11 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
         if (pl_sd
             && pl_sd->state.auth
             && sd->status_key.account_id != pl_sd->status_key.account_id
-            && pc_isGM(sd) >= pc_isGM(pl_sd))
+            && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can recall only lower or same level
             if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+                && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
                 count++;
             else
                 pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
@@ -3393,7 +3397,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARPTO)
-        && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp somenone to your actual map."_s);
@@ -3402,7 +3406,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
 
     if ((p = party_searchname(party_name)) != NULL ||
             // name first to avoid error when name begin with a number
-        (p = party_search(atoi(message.c_str()))) != NULL)
+        (p = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))))) != NULL)
     {
         count = 0;
         for (io::FD i : iter_fds())
@@ -3416,7 +3420,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
                 && pl_sd->status.party_id == p->party_id)
             {
                 if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                    && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+                    && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
                     count++;
                 else
                     pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
@@ -3585,11 +3589,11 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
     struct party *p;
     if ((p = party_searchname(party_name)) != NULL ||
             // name first to avoid error when name begin with a number
-        (p = party_search(atoi(message.c_str()))) != NULL)
+        (p = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))))) != NULL)
     {
         if (sd->partyspy == p->party_id)
         {
-            sd->partyspy = 0;
+            sd->partyspy = PartyId();
             AString output = STRPRINTF("No longer spying on the %s party."_fmt, p->name);
             clif_displaymessage(s, output);
         }
@@ -3673,26 +3677,25 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
 {
     CharName character;
     XString item_name;
-    int i, number = 0, item_id, item_position, count;
+    int i, number = 0;
+    ItemNameId item_id;
+    int item_position, count;
     struct item_data *item_data;
 
     if (!asplit(message, &item_name, &number, &character) || number < 1)
         return ATCE::USAGE;
 
-    item_id = 0;
     if ((item_data = itemdb_searchname(item_name)) != NULL)
         item_id = item_data->nameid;
     else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != NULL)
         item_id = item_data->nameid;
-    else
-        item_id = 0;
 
-    if (item_id > 500)
+    if (item_id)
     {
         dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
         if (pl_sd != NULL)
         {
-            if (pc_isGM(sd) >= pc_isGM(pl_sd))
+            if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
             {
                 // you can kill only lower or same level
                 item_position = pc_search_inventory(pl_sd, item_id);
@@ -3856,14 +3859,14 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can look items only lower or same level
             counter = 0;
             count = 0;
             for (i = 0; i < MAX_INVENTORY; i++)
             {
-                if (pl_sd->status.inventory[i].nameid > 0
+                if (pl_sd->status.inventory[i].nameid
                     && (item_data =
                         itemdb_search(pl_sd->status.inventory[i].nameid)) !=
                     NULL)
@@ -3968,7 +3971,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
+        if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can look items only lower or same level
             if ((stor = account2storage2(pl_sd->status_key.account_id)) != NULL)
@@ -3977,7 +3980,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                 count = 0;
                 for (i = 0; i < MAX_STORAGE; i++)
                 {
-                    if (stor->storage_[i].nameid > 0
+                    if (stor->storage_[i].nameid
                         && (item_data =
                             itemdb_search(stor->storage_[i].nameid)) != NULL)
                     {
@@ -4382,30 +4385,29 @@ ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MobName name;
-    int mob_id = 0;
+    Species mob_id;
     int x = 0;
     int y = 0;
-    int id = 0;
     tick_t tick = gettick();
 
     if (!extract(message, &name) || !name)
         return ATCE::USAGE;
 
-    if ((mob_id = atoi(name.c_str())) == 0)
+    if ((mob_id = wrap<Species>(static_cast<uint16_t>(atoi(name.c_str())))) == Species())
         mob_id = mobdb_searchname(name);
-    if (mob_id == 0)
+    if (mob_id == Species())
         return ATCE::EXIST;
 
     x = sd->bl_x + random_::in(-5, 4);
     y = sd->bl_y + random_::in(-5, 4);
 
-    id = mob_once_spawn(sd, MOB_THIS_MAP, x, y, JAPANESE_NAME, mob_id, 1, NpcEvent());
+    BlockId id = mob_once_spawn(sd, MOB_THIS_MAP, x, y, JAPANESE_NAME, mob_id, 1, NpcEvent());
     dumb_ptr<mob_data> md = map_id_is_mob(id);
     if (md)
     {
         md->master_id = sd->bl_id;
         md->state.special_mob_ai = 1;
-        md->mode = mob_db[md->mob_class].mode | MobMode::AGGRESSIVE;
+        md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
         md->deletetimer = Timer(tick + std::chrono::minutes(1),
                 std::bind(mob_timer_delete, ph::_1, ph::_2,
                     id));
@@ -4419,7 +4421,7 @@ static
 ATCE atcommand_adjcmdlvl(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
-    int newlev;
+    GmLevel newlev;
     XString cmd;
 
     if (!extract(message, record<' '>(&newlev, &cmd)))
@@ -4446,11 +4448,10 @@ static
 ATCE atcommand_adjgmlvl(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
-    int newlev;
+    GmLevel newlev;
     CharName user;
 
-    if (!asplit(message, &newlev, &user)
-        || newlev < 0 || newlev > 99)
+    if (!asplit(message, &newlev, &user))
     {
         clif_displaymessage(s, "usage: @adjgmlvl <lvl> <user>."_s);
         return ATCE::USAGE;
@@ -4660,14 +4661,14 @@ ATCE atcommand_jump_iterate(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
-        && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp you to the map of this player."_s);
         return ATCE::PERM;
     }
     if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
-        && battle_config.any_warp_GM_min_level > pc_isGM(sd))
+        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp you from your actual map."_s);
@@ -4897,7 +4898,7 @@ ATCE atcommand_doomspot(Session *s, dumb_ptr<map_session_data> sd,
         if (pl_sd
             && pl_sd->state.auth && s2 != s && sd->bl_m == pl_sd->bl_m
             && sd->bl_x == pl_sd->bl_x && sd->bl_y == pl_sd->bl_y
-            && pc_isGM(sd) >= pc_isGM(pl_sd))
+            && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can doom only lower or same gm level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);

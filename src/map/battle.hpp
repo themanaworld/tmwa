@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "battle.t.hpp"
 
@@ -69,7 +69,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
         tick_t tick);
 
 int battle_is_unarmed(dumb_ptr<block_list> bl);
-int battle_get_class(dumb_ptr<block_list> bl);
+Species battle_get_class(dumb_ptr<block_list> bl);
 DIR battle_get_dir(dumb_ptr<block_list> bl);
 int battle_get_lv(dumb_ptr<block_list> bl);
 int battle_get_range(dumb_ptr<block_list> bl);
@@ -95,7 +95,7 @@ Element battle_get_elem_type(dumb_ptr<block_list> bl)
 {
     return battle_get_element(bl).element;
 }
-int battle_get_party_id(dumb_ptr<block_list> bl);
+PartyId battle_get_party_id(dumb_ptr<block_list> bl);
 Race battle_get_race(dumb_ptr<block_list> bl);
 MobMode battle_get_mode(dumb_ptr<block_list> bl);
 int battle_get_stat(SP stat_id, dumb_ptr<block_list> bl);

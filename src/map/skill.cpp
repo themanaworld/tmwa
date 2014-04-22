@@ -94,7 +94,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
 
 static
 void skill_status_change_timer(TimerData *tid, tick_t tick,
-        int id, StatusChange type);
+        BlockId id, StatusChange type);
 
 int skill_get_hit(SkillID id)
 {
@@ -316,8 +316,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
                 dumb_ptr<mob_data> md = bl->is_mob();
                 if (battle_config.mob_changetarget_byskill == 1)
                 {
-                    int target;
-                    target = md->target_id;
+                    BlockId target = md->target_id;
                     if (src->bl_type == BL::PC)
                         md->target_id = src->bl_id;
                     mobskill_use(md, tick, MobSkillCondition::ANY);
@@ -389,7 +388,9 @@ void skill_area_sub(dumb_ptr<block_list> bl,
 
 // these variables are set in the 'else' branches,
 // and used in the (recursive) 'if' branch
-static int skill_area_temp_id, skill_area_temp_hp;
+// TODO kill it, kill it with fire.
+static BlockId skill_area_temp_id;
+static int skill_area_temp_hp;
 
 
 /*==========================================
@@ -823,7 +824,7 @@ int skill_update_heal_animation(dumb_ptr<map_session_data> sd)
  * ステータス異常終了タイマー
  *------------------------------------------
  */
-void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange type)
+void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusChange type)
 {
     dumb_ptr<block_list> bl;
     dumb_ptr<map_session_data> sd = NULL;
@@ -846,7 +847,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
     {                           // Must report termination
         spell_effect_report_termination(sc_data[type].spell_invocation,
                                          bl->bl_id, type, 0);
-        sc_data[type].spell_invocation = 0;
+        sc_data[type].spell_invocation = BlockId();
     }
 
     switch (type)
@@ -920,12 +921,12 @@ int skill_status_change_start(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
         interval_t tick)
 {
-    return skill_status_effect(bl, type, val1, tick, 0);
+    return skill_status_effect(bl, type, val1, tick, BlockId());
 }
 
 int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
-        interval_t tick, int spell_invocation)
+        interval_t tick, BlockId spell_invocation)
 {
     dumb_ptr<map_session_data> sd = NULL;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;

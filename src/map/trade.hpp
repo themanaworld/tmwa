@@ -21,11 +21,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "map.hpp"
 
-void trade_traderequest(dumb_ptr<map_session_data> sd, int target_id);
+void trade_traderequest(dumb_ptr<map_session_data> sd, BlockId target_id);
 void trade_tradeack(dumb_ptr<map_session_data> sd, int type);
 void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount);
 void trade_tradeok(dumb_ptr<map_session_data> sd);

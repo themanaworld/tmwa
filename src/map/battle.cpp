@@ -77,15 +77,15 @@ int battle_counttargeted(dumb_ptr<block_list> bl, dumb_ptr<block_list> src,
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_class(dumb_ptr<block_list> bl)
+Species battle_get_class(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retr(Species(), bl);
     if (bl->bl_type == BL::MOB)
         return bl->is_mob()->mob_class;
     else if (bl->bl_type == BL::PC)
-        return 0;
+        return bl->is_player()->status.species;
     else
-        return 0;
+        return Species();
 }
 
 /*==========================================
@@ -129,7 +129,7 @@ int battle_get_range(dumb_ptr<block_list> bl)
 {
     nullpo_ret(bl);
     if (bl->bl_type == BL::MOB)
-        return mob_db[bl->is_mob()->mob_class].range;
+        return get_mob_db(bl->is_mob()->mob_class).range;
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->attackrange;
     else
@@ -768,7 +768,7 @@ interval_t battle_get_amotion(dumb_ptr<block_list> bl)
         interval_t amotion = std::chrono::seconds(2);
         int aspd_rate = 100;
         if (bl->bl_type == BL::MOB)
-            amotion = static_cast<interval_t>(mob_db[bl->is_mob()->mob_class].amotion);
+            amotion = static_cast<interval_t>(get_mob_db(bl->is_mob()->mob_class).amotion);
 
         if (sc_data)
         {
@@ -789,7 +789,7 @@ interval_t battle_get_dmotion(dumb_ptr<block_list> bl)
     nullpo_retr(interval_t::zero(), bl);
     if (bl->bl_type == BL::MOB)
     {
-        return static_cast<interval_t>(mob_db[bl->is_mob()->mob_class].dmotion);
+        return static_cast<interval_t>(get_mob_db(bl->is_mob()->mob_class).dmotion);
     }
     else if (bl->bl_type == BL::PC)
     {
@@ -810,26 +810,26 @@ LevelElement battle_get_element(dumb_ptr<block_list> bl)
     return ret;
 }
 
-int battle_get_party_id(dumb_ptr<block_list> bl)
+PartyId battle_get_party_id(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retr(PartyId(), bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->status.party_id;
     else if (bl->bl_type == BL::MOB)
     {
         dumb_ptr<mob_data> md = bl->is_mob();
-        if (md->master_id > 0)
-            return -md->master_id;
-        return -md->bl_id;
+        if (md->master_id)
+            return wrap<PartyId>(-unwrap<BlockId>(md->master_id));
+        return wrap<PartyId>(-unwrap<BlockId>(md->bl_id));
     }
-    return 0;
+    return PartyId();
 }
 
 Race battle_get_race(dumb_ptr<block_list> bl)
 {
     nullpo_retr(Race::formless, bl);
     if (bl->bl_type == BL::MOB)
-        return mob_db[bl->is_mob()->mob_class].race;
+        return get_mob_db(bl->is_mob()->mob_class).race;
     else if (bl->bl_type == BL::PC)
         return Race::demihuman;
     else
@@ -840,7 +840,7 @@ MobMode battle_get_mode(dumb_ptr<block_list> bl)
 {
     nullpo_retr(MobMode::CAN_MOVE, bl);
     if (bl->bl_type == BL::MOB)
-        return mob_db[bl->is_mob()->mob_class].mode;
+        return get_mob_db(bl->is_mob()->mob_class).mode;
     // とりあえず動くということで1
     return MobMode::CAN_MOVE;
 }
@@ -1143,7 +1143,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
         atkmin = battle_get_atk(src);
         atkmax = battle_get_atk2(src);
     }
-    if (mob_db[md->mob_class].range > 3)
+    if (get_mob_db(md->mob_class).range > 3)
         flag = (flag & ~BF::RANGEMASK) | BF::LONG;
 
     if (atkmin > atkmax)
@@ -2059,7 +2059,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         if (src->bl_type == BL::PC)
         {
             int weapon_index = sd->equip_index_maybe[EQUIP::WEAPON];
-            int weapon = 0;
+            ItemNameId weapon;
             if (weapon_index >= 0 && sd->inventory_data[weapon_index]
                     && bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
                 weapon = sd->inventory_data[weapon_index]->nameid;
@@ -2068,8 +2068,8 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                      sd->status_key.char_id, src->bl_m->name_, src->bl_x, src->bl_y,
                      (target->bl_type == BL::PC) ? "PC"_s : "MOB"_s,
                      (target->bl_type == BL::PC)
-                     ? target->is_player()-> status_key.char_id
-                     : target->bl_id,
+                     ? unwrap<CharId>(target->is_player()->status_key.char_id)
+                     : unwrap<BlockId>(target->bl_id),
                      battle_get_class(target),
                      wd.damage + wd.damage2, weapon);
         }
@@ -2081,8 +2081,8 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                      sd2->status_key.char_id, target->bl_m->name_, target->bl_x, target->bl_y,
                      (src->bl_type == BL::PC) ? "PC"_s : "MOB"_s,
                      (src->bl_type == BL::PC)
-                     ? src->is_player()->status_key.char_id
-                     : src->bl_id,
+                     ? unwrap<CharId>(src->is_player()->status_key.char_id)
+                     : unwrap<BlockId>(src->bl_id),
                      battle_get_class(src),
                      wd.damage + wd.damage2);
         }
@@ -2161,7 +2161,7 @@ bool battle_check_undead(Race race, Element element)
 int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         BCT flag)
 {
-    int s_p, t_p;
+    PartyId s_p, t_p;
     dumb_ptr<block_list> ss = src;
 
     nullpo_ret(src);
@@ -2191,7 +2191,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
     if (src->bl_type == BL::MOB)
     {
         dumb_ptr<mob_data> md = src->is_mob();
-        if (md && md->master_id > 0)
+        if (md && md->master_id)
         {
             if (md->master_id == target->bl_id)    // 主なら肯定
                 return 1;
@@ -2253,7 +2253,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         {                       // [MouseJstr]
             if (battle_config.pk_mode)
                 return 1;       // prevent novice engagement in pk_mode [Valaris]
-            else if (ss->bl_m->flag.get(MapFlag::PVP_NOPARTY) && s_p > 0 && t_p > 0
+            else if (ss->bl_m->flag.get(MapFlag::PVP_NOPARTY) && s_p && t_p
                      && s_p == t_p)
                 return 1;
             return 0;

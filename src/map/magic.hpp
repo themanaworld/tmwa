@@ -20,7 +20,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../strings/fwd.hpp"
 
@@ -59,7 +59,7 @@ void magic_unshroud(dumb_ptr<map_session_data> character);
  * \param sc_id ID of the status change entry that finished
  * \param supplanted Whether the status_change finished normally (0) or was supplanted by a new status_change (1)
  */
-void spell_effect_report_termination(int invocation, int bl_id,
+void spell_effect_report_termination(BlockId invocation, BlockId bl_id,
         StatusChange sc_id, int supplanted);
 
 /**
@@ -97,7 +97,7 @@ void magic_stop_completely(dumb_ptr<map_session_data> c);
  *
  * Returns 0 if there is no charged spell or the spell is depleted.
  */
-int spell_attack(int caster, int target);
+int spell_attack(BlockId caster, BlockId target);
 
 void spell_free_invocation(dumb_ptr<invocation> invocation);
 

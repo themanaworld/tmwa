@@ -21,18 +21,18 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../strings/fwd.hpp"
 
-struct Session;
+# include "../mmo/fwd.hpp"
 
 void inter_party_init(void);
 int inter_party_save(void);
 
 int inter_party_parse_frommap(Session *ms);
 
-void inter_party_leave(int party_id, int account_id);
+void inter_party_leave(PartyId party_id, AccountId account_id);
 
 extern AString party_txt;
 

@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../strings/fwd.hpp"
 
@@ -41,7 +41,7 @@ struct mmo_map_server
 };
 
 const CharPair *search_character(CharName character_name);
-const CharPair *search_character_id(int char_id);
+const CharPair *search_character_id(CharId char_id);
 Session *server_for(const CharPair *mcs);
 
 int mapif_sendall(const uint8_t *buf, unsigned int len);

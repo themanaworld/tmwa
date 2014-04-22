@@ -259,7 +259,8 @@ static
 TString parameters; // needs to be global since it's passed to the parse function
 // really should be added to session data
 static
-int list_first, list_last, list_type, list_count;  // parameter to display a list of accounts
+AccountId list_first, list_last;
+int list_type, list_count;  // parameter to display a list of accounts
 static
 int already_exit_function = 0; // sometimes, the exit function is called twice... so, don't log twice the message
 
@@ -1174,19 +1175,12 @@ void idaccount(ZString param)
 // Sub-function: Asking to displaying information about an account (by its id)
 //----------------------------------------------------------------------------
 static
-void infoaccount(int account_id)
+void infoaccount(AccountId account_id)
 {
-    if (account_id < 0)
-    {
-        PRINTF("Please input a positive value for the id.\n"_fmt);
-        LADMIN_LOG("Negative value was given to found the account.\n"_fmt);
-        return;
-    }
-
     LADMIN_LOG("Request to login-server to obtain information about an account (by its id).\n"_fmt);
 
     WFIFOW(login_session, 0) = 0x7954;
-    WFIFOL(login_session, 2) = account_id;
+    WFIFOL(login_session, 2) = unwrap<AccountId>(account_id);
     WFIFOSET(login_session, 6);
     bytes_to_read = 1;
 }
@@ -1227,8 +1221,8 @@ void listaccount(ZString param, int type)
     list_type = type;
 
     // set default values
-    list_first = 0;
-    list_last = 0;
+    list_first = AccountId();
+    list_last = AccountId();
 
     if (list_type == 1)
     {                           // if listgm
@@ -1250,18 +1244,16 @@ void listaccount(ZString param, int type)
     {
         // if list (list_type == 0)
         extract(param, record<' '>(&list_first, &list_last));
-        if (list_first < 0)
-            list_first = 0;
-        if (list_last < list_first || list_last < 0)
-            list_last = 0;
+        if (list_last < list_first)
+            list_last = AccountId();
     }
 
     LADMIN_LOG("Request to login-server to obtain the list of accounts from %d to %d.\n"_fmt,
           list_first, list_last);
 
     WFIFOW(login_session, 0) = 0x7920;
-    WFIFOL(login_session, 2) = list_first;
-    WFIFOL(login_session, 6) = list_last;
+    WFIFOL(login_session, 2) = unwrap<AccountId>(list_first);
+    WFIFOL(login_session, 6) = unwrap<AccountId>(list_last);
     WFIFOSET(login_session, 10);
     bytes_to_read = 1;
 
@@ -1277,7 +1269,7 @@ void listaccount(ZString param, int type)
 static
 int itemfrob(ZString param)
 {
-    int source_id, dest_id;
+    ItemNameId source_id, dest_id;
 
     if (!extract(param, record<' '>(&source_id, &dest_id)))
     {
@@ -1286,8 +1278,8 @@ int itemfrob(ZString param)
     }
 
     WFIFOW(login_session, 0) = 0x7924;
-    WFIFOL(login_session, 2) = source_id;
-    WFIFOL(login_session, 6) = dest_id;
+    WFIFOL(login_session, 2) = unwrap<ItemNameId>(source_id);
+    WFIFOL(login_session, 6) = unwrap<ItemNameId>(dest_id);
     WFIFOSET(login_session, 10);
     bytes_to_read = 1;          // all logging is done to the three main servers
 
@@ -1339,19 +1331,12 @@ void changememo(ZString param)
 // Sub-function: Asking to obtain an account name
 //-----------------------------------------------
 static
-void nameaccount(int id)
+void nameaccount(AccountId id)
 {
-    if (id < 0)
-    {
-        PRINTF("Please input a positive value for the id.\n"_fmt);
-        LADMIN_LOG("Negativ id given to search an account name ('name' command).\n"_fmt);
-        return;
-    }
-
     LADMIN_LOG("Request to login-server to know an account name.\n"_fmt);
 
     WFIFOW(login_session, 0) = 0x7946;
-    WFIFOL(login_session, 2) = id;
+    WFIFOL(login_session, 2) = unwrap<AccountId>(id);
     WFIFOSET(login_session, 6);
     bytes_to_read = 1;
 }
@@ -1892,7 +1877,7 @@ void prompt(void)
         else if (command == "id"_s)
             idaccount(parameters);
         else if (command == "info"_s)
-            infoaccount(atoi(parameters.c_str()));
+            infoaccount(wrap<AccountId>(static_cast<uint32_t>(atoi(parameters.c_str()))));
         else if (command == "kami"_s)
             sendbroadcast(parameters);  // flag for normal
         else if (command == "itemfrob"_s)
@@ -1908,7 +1893,7 @@ void prompt(void)
         else if (command == "memo"_s)
             changememo(parameters);
         else if (command == "name"_s)
-            nameaccount(atoi(parameters.c_str()));
+            nameaccount(wrap<AccountId>(static_cast<uint32_t>(atoi(parameters.c_str()))));
         else if (command == "password"_s)
             changepasswd(parameters);
         else if (command == "reloadgm"_s)
@@ -2031,7 +2016,8 @@ void parse_fromlogin(Session *s)
                     {
                         AccountName userid = stringish<AccountName>(RFIFO_STRING<24>(s, i + 5));
                         VString<23> lower_userid = userid.to_lower();
-                        list_first = RFIFOL(s, i) + 1;
+                        // what?
+                        list_first = next(wrap<AccountId>(RFIFOL(s, i)));
                         // here are checks...
                         if (list_type == 0
                             || (list_type == 1 && RFIFOB(s, i + 4) > 0)
@@ -2098,8 +2084,8 @@ void parse_fromlogin(Session *s)
                     LADMIN_LOG("Request to login-server to obtain the list of accounts from %d to %d (complement).\n"_fmt,
                           list_first, list_last);
                     WFIFOW(login_session, 0) = 0x7920;
-                    WFIFOL(login_session, 2) = list_first;
-                    WFIFOL(login_session, 6) = list_last;
+                    WFIFOL(login_session, 2) = unwrap<AccountId>(list_first);
+                    WFIFOL(login_session, 6) = unwrap<AccountId>(list_last);
                     WFIFOSET(login_session, 10);
                     bytes_to_read = 1;
                 }
@@ -2110,9 +2096,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int accid = RFIFOL(s, 2);
+                AccountId accid = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (accid == -1)
+                if (!accid)
                 {
                     PRINTF("Account [%s] creation failed. Same account already exists.\n"_fmt,
                             name);
@@ -2135,9 +2121,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int accid = RFIFOL(s, 2);
+                AccountId accid = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (accid == -1)
+                if (!accid)
                 {
                     PRINTF("Account [%s] deletion failed. Account doesn't exist.\n"_fmt,
                             name);
@@ -2160,9 +2146,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int accid = RFIFOL(s, 2);
+                AccountId accid = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (accid == -1)
+                if (!accid)
                 {
                     PRINTF("Account [%s] password changing failed.\n"_fmt,
                             name);
@@ -2187,10 +2173,10 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 34)
                     return;
             {
-                int accid = RFIFOL(s, 2);
+                AccountId accid = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
                 int state = RFIFOL(s, 30);
-                if (accid == -1)
+                if (!accid)
                 {
                     PRINTF("Account [%s] state changing failed. Account doesn't exist.\n"_fmt,
                             name);
@@ -2280,9 +2266,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("The account [%s] doesn't exist or the password is incorrect.\n"_fmt,
                             name);
@@ -2305,9 +2291,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("Account [%s] sex changing failed.\n"_fmt,
                             name);
@@ -2332,9 +2318,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("Account [%s] GM level changing failed.\n"_fmt,
                             name);
@@ -2360,9 +2346,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("Account [%s] e-mail changing failed.\n"_fmt,
                             name);
@@ -2387,9 +2373,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("Account [%s] memo changing failed. Account doesn't exist.\n"_fmt,
                             name);
@@ -2412,9 +2398,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("Unable to find the account [%s] id. Account doesn't exist.\n"_fmt,
                             name);
@@ -2437,7 +2423,7 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 30)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
                 if (!name)
                 {
@@ -2462,7 +2448,7 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 34)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
                 if (RFIFOL(s, 2) == -1)
                 {
@@ -2501,9 +2487,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 34)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("Account [%s] final date of banishment changing failed. Account doesn't exist.\n"_fmt,
                             name);
@@ -2540,9 +2526,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 34)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("Account [%s] final date of banishment changing failed. Account doesn't exist.\n"_fmt,
                             name);
@@ -2597,9 +2583,9 @@ void parse_fromlogin(Session *s)
                 if (RFIFOREST(s) < 34)
                     return;
             {
-                int account_id = RFIFOL(s, 2);
+                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
                 AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (account_id == -1)
+                if (!account_id)
                 {
                     PRINTF("Account [%s] validity limit changing failed. Account doesn't exist.\n"_fmt,
                             name);
@@ -2640,10 +2626,11 @@ void parse_fromlogin(Session *s)
                     || RFIFOREST(s) < (150 + RFIFOW(s, 148)))
                     return;
                 {
-                    int account_id = RFIFOL(s, 2);
-                    uint8_t gm = RFIFOB(s, 6);
+                    AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
+                    // TODO fix size (there's a lot of other stuff wrong with this packet too
+                    GmLevel gm = GmLevel::from(static_cast<uint32_t>(RFIFOB(s, 6)));
                     AccountName userid = stringish<AccountName>(RFIFO_STRING<24>(s, 7));
-                    uint8_t sex = RFIFOB(s, 31);
+                    SEX sex = static_cast<SEX>(RFIFOB(s, 31));
                     int connections = RFIFOL(s, 32);
                     int state = RFIFOL(s, 36);
                     timestamp_seconds_buffer error_message = stringish<timestamp_seconds_buffer>(RFIFO_STRING<20>(s, 40));
@@ -2653,7 +2640,7 @@ void parse_fromlogin(Session *s)
                     TimeT connect_until_time = static_cast<time_t>(RFIFOL(s, 140));
                     TimeT ban_until_time = static_cast<time_t>(RFIFOL(s, 144));
                     AString memo = RFIFO_STRING(s, 150, RFIFOW(s, 148));
-                    if (account_id == -1)
+                    if (!account_id)
                     {
                         PRINTF("Unabled to find the account [%s]. Account doesn't exist.\n"_fmt,
                                 userid);
@@ -2681,11 +2668,11 @@ void parse_fromlogin(Session *s)
                                     account_id, gm);
                         }
                         PRINTF(" Name:   '%s'\n"_fmt, userid);
-                        if (sex == 0)
+                        if (sex == SEX::FEMALE)
                             PRINTF(" Sex:    Female\n"_fmt);
-                        else if (sex == 1)
+                        else if (sex == SEX::MALE)
                             PRINTF(" Sex:    Male\n"_fmt);
-                        else
+                        else // doesn't happen anymore
                             PRINTF(" Sex:    Server\n"_fmt);
                         PRINTF(" E-mail: %s\n"_fmt, email);
                         switch (state)

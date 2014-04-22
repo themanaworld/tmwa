@@ -21,14 +21,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../strings/fwd.hpp"
 
 # include "map.hpp"
 
 bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
-        ZString message, int gmlvl);
+        ZString message, GmLevel gmlvl);
 
 bool atcommand_config_read(ZString cfgName);
 

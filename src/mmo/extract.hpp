@@ -19,7 +19,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include <cerrno>
 # include <cstdlib>
@@ -27,10 +27,16 @@
 # include <algorithm>
 # include <vector>
 
+# include "../ints/wrap.hpp"
+
 # include "../strings/xstring.hpp"
 
-# include "mmo.hpp"
+# include "../generic/enum.hpp"
+
 # include "utils.hpp"
+
+template<class T>
+bool do_extract(XString str, T t);
 
 template<class T, typename=typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, char>::value && !std::is_same<T, bool>::value>::type>
 bool extract(XString str, T *iv)
@@ -96,6 +102,12 @@ bool extract(XString str, VString<N> *out)
         return false;
     *out = str;
     return true;
+}
+
+inline
+bool extract(XString str, LString exact)
+{
+    return str == exact;
 }
 
 template<class T>
@@ -200,27 +212,20 @@ bool extract(XString str, struct global_reg *var);
 
 bool extract(XString str, struct item *it);
 
-inline
-bool extract(XString str, MapName *m)
+bool extract(XString str, MapName *m);
+
+bool extract(XString str, CharName *out);
+
+template<class T>
+bool do_extract(XString str, T t)
 {
-    XString::iterator it = std::find(str.begin(), str.end(), '.');
-    str = str.xislice_h(it);
-    VString<15> tmp;
-    bool rv = extract(str, &tmp);
-    *m = tmp;
-    return rv;
+    return extract(str, t);
 }
 
-inline
-bool extract(XString str, CharName *out)
+template<class R>
+bool extract(XString str, Wrapped<R> *w)
 {
-    VString<23> tmp;
-    if (extract(str, &tmp))
-    {
-        *out = CharName(tmp);
-        return true;
-    }
-    return false;
+    return extract(str, &w->_value);
 }
 
 #endif // TMWA_MMO_EXTRACT_HPP

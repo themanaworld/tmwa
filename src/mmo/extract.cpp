@@ -22,6 +22,8 @@
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "mmo.hpp"
+
 #include "../poison.hpp"
 
 bool extract(XString str, XString *rv)
@@ -47,7 +49,7 @@ bool extract(XString str, struct item *it)
     XString ignored;
     return extract(str,
             record<',', 11>(
-                &it->id,
+                &ignored,
                 &it->nameid,
                 &it->amount,
                 &it->equip,
@@ -59,4 +61,25 @@ bool extract(XString str, struct item *it)
                 &ignored,
                 &ignored,
                 &ignored));
+}
+
+bool extract(XString str, MapName *m)
+{
+    XString::iterator it = std::find(str.begin(), str.end(), '.');
+    str = str.xislice_h(it);
+    VString<15> tmp;
+    bool rv = extract(str, &tmp);
+    *m = tmp;
+    return rv;
+}
+
+bool extract(XString str, CharName *out)
+{
+    VString<23> tmp;
+    if (extract(str, &tmp))
+    {
+        *out = CharName(tmp);
+        return true;
+    }
+    return false;
 }

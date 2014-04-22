@@ -76,7 +76,7 @@
 
 #include "../poison.hpp"
 
-DMap<int, dumb_ptr<block_list>> id_db;
+DMap<BlockId, dumb_ptr<block_list>> id_db;
 
 UPMap<MapName, map_abstract> maps_db;
 
@@ -90,14 +90,14 @@ struct charid2nick
 };
 
 static
-Map<int, struct charid2nick> charid_db;
+Map<CharId, struct charid2nick> charid_db;
 
 static
 int users = 0;
 static
-Array<dumb_ptr<block_list>, MAX_FLOORITEM> object;
+Array<dumb_ptr<block_list>, unwrap<BlockId>(MAX_FLOORITEM)> object;
 static
-int first_free_object_id = 0, last_object_id = 0;
+BlockId first_free_object_id = BlockId();
 
 interval_t autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
@@ -535,29 +535,27 @@ void map_foreachincell(std::function<void(dumb_ptr<block_list>)> func,
  * bl->bl_idもこの中で設定して問題無い?
  *------------------------------------------
  */
-int map_addobject(dumb_ptr<block_list> bl)
+BlockId map_addobject(dumb_ptr<block_list> bl)
 {
-    int i;
+    BlockId i;
     if (!bl)
     {
         PRINTF("map_addobject nullpo?\n"_fmt);
-        return 0;
+        return BlockId();
     }
-    if (first_free_object_id < 2 || first_free_object_id >= MAX_FLOORITEM)
-        first_free_object_id = 2;
-    for (i = first_free_object_id; i < MAX_FLOORITEM; i++)
-        if (!object[i])
+    if (first_free_object_id < wrap<BlockId>(2) || first_free_object_id == MAX_FLOORITEM)
+        first_free_object_id = wrap<BlockId>(2);
+    for (i = first_free_object_id; i < MAX_FLOORITEM; i = next(i))
+        if (!object[i._value])
             break;
-    if (i >= MAX_FLOORITEM)
+    if (i == MAX_FLOORITEM)
     {
         if (battle_config.error_log)
             PRINTF("no free object id\n"_fmt);
-        return 0;
+        return BlockId();
     }
     first_free_object_id = i;
-    if (last_object_id < i)
-        last_object_id = i;
-    object[i] = bl;
+    object[i._value] = bl;
     id_db.put(i, bl);
     return i;
 }
@@ -567,32 +565,26 @@ int map_addobject(dumb_ptr<block_list> bl)
  *      map_delobjectのfreeしないバージョン
  *------------------------------------------
  */
-int map_delobjectnofree(int id, BL type)
+void map_delobjectnofree(BlockId id, BL type)
 {
     assert (id < MAX_FLOORITEM);
-    if (!object[id])
-        return 0;
+    if (!object[id._value])
+        return;
 
-    if (object[id]->bl_type != type)
+    if (object[id._value]->bl_type != type)
     {
         FPRINTF(stderr, "Incorrect type: expected %d, got %d\n"_fmt,
                 type,
-                object[id]->bl_type);
+                object[id._value]->bl_type);
         abort();
     }
 
-    map_delblock(object[id]);
+    map_delblock(object[id._value]);
     id_db.put(id, dumb_ptr<block_list>());
-//  map_freeblock(object[id]);
-    object[id] = nullptr;
+    object[id._value] = nullptr;
 
-    if (first_free_object_id > id)
+    if (id < first_free_object_id)
         first_free_object_id = id;
-
-    while (last_object_id > 2 && object[last_object_id] == NULL)
-        last_object_id--;
-
-    return 0;
 }
 
 /*==========================================
@@ -603,21 +595,19 @@ int map_delobjectnofree(int id, BL type)
  * addとの対称性が無いのが気になる
  *------------------------------------------
  */
-int map_delobject(int id, BL type)
+void map_delobject(BlockId id, BL type)
 {
     assert (id < MAX_FLOORITEM);
-    dumb_ptr<block_list> obj = object[id];
+    dumb_ptr<block_list> obj = object[id._value];
 
     if (obj == NULL)
-        return 0;
+        return;
 
     map_delobjectnofree(id, type);
     if (obj->bl_type == BL::PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
         pc_cleanup(obj->is_player());
 
     MapBlockLock::freeblock(obj);
-
-    return 0;
 }
 
 /*==========================================
@@ -628,24 +618,28 @@ int map_delobject(int id, BL type)
 void map_foreachobject(std::function<void(dumb_ptr<block_list>)> func,
         BL type)
 {
-    assert (last_object_id < MAX_FLOORITEM);
     std::vector<dumb_ptr<block_list>> bl_list;
-    for (int i = 2; i <= last_object_id; i++)
+    for (BlockId i = wrap<BlockId>(2); i < MAX_FLOORITEM; i = next(i))
     {
-        if (!object[i])
+        if (!object[i._value])
             continue;
         {
-            if (type != BL::NUL && object[i]->bl_type != type)
+            if (type != BL::NUL && object[i._value]->bl_type != type)
                 continue;
-            bl_list.push_back(object[i]);
+            bl_list.push_back(object[i._value]);
         }
     }
 
     MapBlockLock lock;
 
     for (dumb_ptr<block_list> bl : bl_list)
+    {
+        // TODO figure out if the second branch can happen
+        // bl_prev is non-null for all that are on a map (see bl_head)
+        // bl_next is only meaningful for objects that are on a map
         if (bl->bl_prev || bl->bl_next)
             func(bl);
+    }
 }
 
 /*==========================================
@@ -658,10 +652,10 @@ void map_foreachobject(std::function<void(dumb_ptr<block_list>)> func,
  * map.h内で#defineしてある
  *------------------------------------------
  */
-void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
+void map_clearflooritem_timer(TimerData *tid, tick_t, BlockId id)
 {
     assert (id < MAX_FLOORITEM);
-    dumb_ptr<block_list> obj = object[id];
+    dumb_ptr<block_list> obj = object[id._value];
     assert (obj && obj->bl_type == BL::ITEM);
     dumb_ptr<flooritem_data> fitem = obj->is_item();
     if (!tid)
@@ -697,17 +691,17 @@ std::pair<uint16_t, uint16_t> map_searchrandfreecell(map_local *m, int x, int y,
  * item_dataはamount以外をcopyする
  *------------------------------------------
  */
-int map_addflooritem_any(struct item *item_data, int amount,
+BlockId map_addflooritem_any(struct item *item_data, int amount,
         map_local *m, int x, int y,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal)
 {
     dumb_ptr<flooritem_data> fitem = NULL;
 
-    nullpo_ret(item_data);
+    nullpo_retr(BlockId(), item_data);
     auto xy = map_searchrandfreecell(m, x, y, dispersal);
     if (xy.first == 0 && xy.second == 0)
-        return 0;
+        return BlockId();
 
     fitem.new_();
     fitem->bl_type = BL::ITEM;
@@ -715,18 +709,18 @@ int map_addflooritem_any(struct item *item_data, int amount,
     fitem->bl_m = m;
     fitem->bl_x = xy.first;
     fitem->bl_y = xy.second;
-    fitem->first_get_id = 0;
+    fitem->first_get_id = BlockId();
     fitem->first_get_tick = tick_t();
-    fitem->second_get_id = 0;
+    fitem->second_get_id = BlockId();
     fitem->second_get_tick = tick_t();
-    fitem->third_get_id = 0;
+    fitem->third_get_id = BlockId();
     fitem->third_get_tick = tick_t();
 
     fitem->bl_id = map_addobject(fitem);
-    if (fitem->bl_id == 0)
+    if (!fitem->bl_id)
     {
         fitem.delete_();
-        return 0;
+        return BlockId();
     }
 
     tick_t tick = gettick();
@@ -762,7 +756,7 @@ int map_addflooritem_any(struct item *item_data, int amount,
     return fitem->bl_id;
 }
 
-int map_addflooritem(struct item *item_data, int amount,
+BlockId map_addflooritem(struct item *item_data, int amount,
         map_local *m, int x, int y,
         dumb_ptr<map_session_data> first_sd,
         dumb_ptr<map_session_data> second_sd,
@@ -786,7 +780,7 @@ int map_addflooritem(struct item *item_data, int amount,
  * charid_dbへ追加(返信待ちがあれば返信)
  *------------------------------------------
  */
-void map_addchariddb(int charid, CharName name)
+void map_addchariddb(CharId charid, CharName name)
 {
     struct charid2nick *p = charid_db.search(charid);
     if (p == NULL)
@@ -842,7 +836,7 @@ void map_quit(dumb_ptr<map_session_data> sd)
     if (sd->trade_partner)      // 取引を中断する
         trade_tradecancel(sd);
 
-    if (sd->party_invite > 0)   // パーティ勧誘を拒否する
+    if (sd->party_invite)   // パーティ勧誘を拒否する
         party_reply_invite(sd, sd->party_invite_account, 0);
 
     party_send_logout(sd);     // パーティのログアウトメッセージ送信
@@ -885,7 +879,7 @@ void map_quit(dumb_ptr<map_session_data> sd)
  * id番号のPCを探す。居なければNULL
  *------------------------------------------
  */
-dumb_ptr<map_session_data> map_id2sd(int id)
+dumb_ptr<map_session_data> map_id2sd(BlockId id)
 {
     // This is bogus.
     // However, there might be differences for de-auth'ed accounts.
@@ -923,7 +917,7 @@ dumb_ptr<map_session_data> map_id2sd(int id)
  * char_id番号の名前を探す
  *------------------------------------------
  */
-CharName map_charid2nick(int id)
+CharName map_charid2nick(CharId id)
 {
     struct charid2nick *p = charid_db.search(id);
 
@@ -1028,11 +1022,11 @@ dumb_ptr<map_session_data> map_nick2sd(CharName nick)
  * 一時objectの場合は配列を引くのみ
  *------------------------------------------
  */
-dumb_ptr<block_list> map_id2bl(int id)
+dumb_ptr<block_list> map_id2bl(BlockId id)
 {
     dumb_ptr<block_list> bl = NULL;
-    if (id < sizeof(object) / sizeof(object[0]))
-        bl = object[id];
+    if (id < MAX_FLOORITEM)
+        bl = object[id._value];
     else
         bl = id_db.get(id);
 
@@ -1768,7 +1762,7 @@ int do_init(Slice<ZString> argv)
     return 0;
 }
 
-int map_scriptcont(dumb_ptr<map_session_data> sd, int id)
+int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
 

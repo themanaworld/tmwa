@@ -134,8 +134,8 @@ int chrif_save(dumb_ptr<map_session_data> sd)
 
     WFIFOW(char_session, 0) = 0x2b01;
     WFIFOW(char_session, 2) = sizeof(sd->status_key) + sizeof(sd->status) + 12;
-    WFIFOL(char_session, 4) = sd->bl_id;
-    WFIFOL(char_session, 8) = sd->char_id;
+    WFIFOL(char_session, 4) = unwrap<BlockId>(sd->bl_id);
+    WFIFOL(char_session, 8) = unwrap<CharId>(sd->char_id_);
     WFIFO_STRUCT(char_session, 12, sd->status_key);
     WFIFO_STRUCT(char_session, 12 + sizeof(sd->status_key), sd->status);
     WFIFOSET(char_session, WFIFOW(char_session, 2));
@@ -239,10 +239,10 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
     }
 
     WFIFOW(char_session, 0) = 0x2b05;
-    WFIFOL(char_session, 2) = sd->bl_id;
+    WFIFOL(char_session, 2) = unwrap<BlockId>(sd->bl_id);
     WFIFOL(char_session, 6) = sd->login_id1;
     WFIFOL(char_session, 10) = sd->login_id2;
-    WFIFOL(char_session, 14) = sd->status_key.char_id;
+    WFIFOL(char_session, 14) = unwrap<CharId>(sd->status_key.char_id);
     WFIFO_STRING(char_session, 18, name, 16);
     WFIFOW(char_session, 34) = x;
     WFIFOW(char_session, 36) = y;
@@ -262,9 +262,9 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
 static
 int chrif_changemapserverack(Session *s)
 {
-    dumb_ptr<map_session_data> sd = map_id2sd(RFIFOL(s, 2));
+    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(wrap<AccountId>(RFIFOL(s, 2))));
 
-    if (sd == NULL || sd->status_key.char_id != RFIFOL(s, 14))
+    if (sd == NULL || sd->status_key.char_id != wrap<CharId>(RFIFOL(s, 14)))
         return -1;
 
     if (RFIFOL(s, 6) == 1)
@@ -350,8 +350,8 @@ int chrif_authreq(dumb_ptr<map_session_data> sd)
         {
             assert (s == sd->sess);
             WFIFOW(char_session, 0) = 0x2afc;
-            WFIFOL(char_session, 2) = sd->bl_id;
-            WFIFOL(char_session, 6) = sd->char_id;
+            WFIFOL(char_session, 2) = unwrap<BlockId>(sd->bl_id);
+            WFIFOL(char_session, 6) = unwrap<CharId>(sd->char_id_);
             WFIFOL(char_session, 10) = sd->login_id1;
             WFIFOL(char_session, 14) = sd->login_id2;
             WFIFOIP(char_session, 18) = s->client_ip;
@@ -389,7 +389,7 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
     }
 
     WFIFOW(char_session, 0) = 0x2b02;
-    WFIFOL(char_session, 2) = sd->bl_id;
+    WFIFOL(char_session, 2) = unwrap<BlockId>(sd->bl_id);
     WFIFOL(char_session, 6) = sd->login_id1;
     WFIFOL(char_session, 10) = sd->login_id2;
     WFIFOIP(char_session, 14) = s_ip;
@@ -402,7 +402,7 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
  * GMに変化要求
  *------------------------------------------
  */
-void chrif_changegm(int id, ZString pass)
+void chrif_changegm(AccountId id, ZString pass)
 {
     if (battle_config.etc_log)
         PRINTF("chrif_changegm: account: %d, password: '%s'.\n"_fmt, id, pass);
@@ -410,7 +410,7 @@ void chrif_changegm(int id, ZString pass)
     size_t len = pass.size() + 1;
     WFIFOW(char_session, 0) = 0x2b0a;
     WFIFOW(char_session, 2) = len + 8;
-    WFIFOL(char_session, 4) = id;
+    WFIFOL(char_session, 4) = unwrap<AccountId>(id);
     WFIFO_STRING(char_session, 8, pass, len);
     WFIFOSET(char_session, len + 8);
 }
@@ -419,7 +419,7 @@ void chrif_changegm(int id, ZString pass)
  * Change Email
  *------------------------------------------
  */
-void chrif_changeemail(int id, AccountEmail actual_email,
+void chrif_changeemail(AccountId id, AccountEmail actual_email,
         AccountEmail new_email)
 {
     if (battle_config.etc_log)
@@ -427,7 +427,7 @@ void chrif_changeemail(int id, AccountEmail actual_email,
              id, actual_email, new_email);
 
     WFIFOW(char_session, 0) = 0x2b0c;
-    WFIFOL(char_session, 2) = id;
+    WFIFOL(char_session, 2) = unwrap<AccountId>(id);
     WFIFO_STRING(char_session, 6, actual_email, 40);
     WFIFO_STRING(char_session, 46, new_email, 40);
     WFIFOSET(char_session, 86);
@@ -444,11 +444,11 @@ void chrif_changeemail(int id, AccountEmail actual_email,
  *   5: changesex
  *------------------------------------------
  */
-void chrif_char_ask_name(int id, CharName character_name, short operation_type,
+void chrif_char_ask_name(AccountId id, CharName character_name, short operation_type,
         HumanTimeDiff modif)
 {
     WFIFOW(char_session, 0) = 0x2b0e;
-    WFIFOL(char_session, 2) = id;   // account_id of who ask (for answer) -1 if nobody
+    WFIFOL(char_session, 2) = unwrap<AccountId>(id);   // account_id of who ask (for answer) -1 if nobody
     WFIFO_STRING(char_session, 6, character_name.to__actual(), 24);
     WFIFOW(char_session, 30) = operation_type;  // type of operation
     if (operation_type == 2)
@@ -476,11 +476,11 @@ void chrif_char_ask_name(int id, CharName character_name, short operation_type,
 static
 int chrif_char_ask_name_answer(Session *s)
 {
-    int acc = RFIFOL(s, 2);       // account_id of who has asked (-1 if nobody)
+    AccountId acc = wrap<AccountId>(RFIFOL(s, 2));       // account_id of who has asked (-1 if nobody)
     CharName player_name = stringish<CharName>(RFIFO_STRING<24>(s, 6));
 
-    dumb_ptr<map_session_data> sd = map_id2sd(acc);
-    if (acc >= 0 && sd != NULL)
+    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(acc));
+    if (acc && sd != NULL)
     {
         AString output;
         if (RFIFOW(s, 32) == 1)   // player not found
@@ -613,20 +613,17 @@ int chrif_char_ask_name_answer(Session *s)
 static
 void chrif_changedgm(Session *s)
 {
-    int acc, level;
-    dumb_ptr<map_session_data> sd = NULL;
+    AccountId acc = wrap<AccountId>(RFIFOL(s, 2));
+    GmLevel level = GmLevel::from(RFIFOL(s, 6));
 
-    acc = RFIFOL(s, 2);
-    level = RFIFOL(s, 6);
-
-    sd = map_id2sd(acc);
+    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(acc));
 
     if (battle_config.etc_log)
         PRINTF("chrif_changedgm: account: %d, GM level 0 -> %d.\n"_fmt, acc,
                 level);
     if (sd != NULL)
     {
-        if (level > 0)
+        if (level)
             clif_displaymessage(sd->sess, "GM modification success."_s);
         else
             clif_displaymessage(sd->sess, "Failure of GM modification."_s);
@@ -640,15 +637,15 @@ void chrif_changedgm(Session *s)
 static
 void chrif_changedsex(Session *s)
 {
-    int acc, i;
+    int i;
     dumb_ptr<map_session_data> sd;
 
-    acc = RFIFOL(s, 2);
+    AccountId acc = wrap<AccountId>(RFIFOL(s, 2));
     SEX sex = static_cast<SEX>(RFIFOB(s, 6));
     if (battle_config.etc_log)
         PRINTF("chrif_changedsex %d.\n"_fmt, acc);
-    sd = map_id2sd(acc);
-    if (acc > 0)
+    sd = map_id2sd(account_to_block(acc));
+    if (acc)
     {
         if (sd != NULL && sd->status.sex != sex)
         {
@@ -703,7 +700,7 @@ int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd)
     }
     WFIFOW(char_session, 0) = 0x2b10;
     WFIFOW(char_session, 2) = p;
-    WFIFOL(char_session, 4) = sd->bl_id;
+    WFIFOL(char_session, 4) = unwrap<BlockId>(sd->bl_id);
     WFIFOSET(char_session, p);
 
     return 0;
@@ -717,7 +714,7 @@ static
 int chrif_accountreg2(Session *s)
 {
     int j, p;
-    dumb_ptr<map_session_data> sd = map_id2sd(RFIFOL(s, 4));
+    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(wrap<AccountId>(RFIFOL(s, 4))));
     if (sd == NULL)
         return 1;
 
@@ -739,7 +736,7 @@ int chrif_accountreg2(Session *s)
  *------------------------------------------
  */
 static
-int chrif_divorce(int char_id, int partner_id)
+int chrif_divorce(CharId char_id, CharId partner_id)
 {
     dumb_ptr<map_session_data> sd = NULL;
 
@@ -749,7 +746,7 @@ int chrif_divorce(int char_id, int partner_id)
     sd = map_nick2sd(map_charid2nick(char_id));
     if (sd && sd->status.partner_id == partner_id)
     {
-        sd->status.partner_id = 0;
+        sd->status.partner_id = CharId();
 
         if (sd->npc_flags.divorce)
         {
@@ -761,7 +758,7 @@ int chrif_divorce(int char_id, int partner_id)
     sd = map_nick2sd(map_charid2nick(partner_id));
     nullpo_ret(sd);
     if (sd->status.partner_id == char_id)
-        sd->status.partner_id = 0;
+        sd->status.partner_id = CharId();
 
     return 0;
 }
@@ -771,13 +768,13 @@ int chrif_divorce(int char_id, int partner_id)
  * Needed to divorce when partner is not connected to map server
  *-------------------------------------
  */
-int chrif_send_divorce(int char_id)
+int chrif_send_divorce(CharId char_id)
 {
     if (!char_session)
         return -1;
 
     WFIFOW(char_session, 0) = 0x2b16;
-    WFIFOL(char_session, 2) = char_id;
+    WFIFOL(char_session, 2) = unwrap<CharId>(char_id);
     WFIFOSET(char_session, 6);
     return 0;
 }
@@ -789,14 +786,13 @@ int chrif_send_divorce(int char_id)
 static
 int chrif_accountdeletion(Session *s)
 {
-    int acc;
     dumb_ptr<map_session_data> sd;
 
-    acc = RFIFOL(s, 2);
+    AccountId acc = wrap<AccountId>(RFIFOL(s, 2));
     if (battle_config.etc_log)
         PRINTF("chrif_accountdeletion %d.\n"_fmt, acc);
-    sd = map_id2sd(acc);
-    if (acc > 0)
+    sd = map_id2sd(account_to_block(acc));
+    if (acc)
     {
         if (sd != NULL)
         {
@@ -822,14 +818,13 @@ int chrif_accountdeletion(Session *s)
 static
 int chrif_accountban(Session *s)
 {
-    int acc;
     dumb_ptr<map_session_data> sd;
 
-    acc = RFIFOL(s, 2);
+    AccountId acc = wrap<AccountId>(RFIFOL(s, 2));
     if (battle_config.etc_log)
         PRINTF("chrif_accountban %d.\n"_fmt, acc);
-    sd = map_id2sd(acc);
-    if (acc > 0)
+    sd = map_id2sd(account_to_block(acc));
+    if (acc)
     {
         if (sd != NULL)
         {
@@ -937,7 +932,7 @@ int chrif_reloadGMdb(void)
  */
 
 static
-void ladmin_itemfrob_fix_item(int source, int dest, struct item *item)
+void ladmin_itemfrob_fix_item(ItemNameId source, ItemNameId dest, struct item *item)
 {
     if (item && item->nameid == source)
     {
@@ -947,7 +942,7 @@ void ladmin_itemfrob_fix_item(int source, int dest, struct item *item)
 }
 
 static
-void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
+void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameId dest_id)
 {
 #define IFIX(v) if (v == source_id) {v = dest_id; }
 #define FIX(item) ladmin_itemfrob_fix_item(source_id, dest_id, &item)
@@ -1011,7 +1006,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
 }
 
 static
-void ladmin_itemfrob_c(dumb_ptr<block_list> bl, int source_id, int dest_id)
+void ladmin_itemfrob_c(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameId dest_id)
 {
     ladmin_itemfrob_c2(bl, source_id, dest_id);
 }
@@ -1019,8 +1014,8 @@ void ladmin_itemfrob_c(dumb_ptr<block_list> bl, int source_id, int dest_id)
 static
 void ladmin_itemfrob(Session *s)
 {
-    int source_id = RFIFOL(s, 2);
-    int dest_id = RFIFOL(s, 6);
+    ItemNameId source_id = wrap<ItemNameId>(static_cast<uint16_t>(RFIFOL(s, 2)));
+    ItemNameId dest_id = wrap<ItemNameId>(static_cast<uint16_t>(RFIFOL(s, 6)));
     dumb_ptr<block_list> bl = map_get_first_session();
 
     // flooritems
@@ -1104,7 +1099,7 @@ void chrif_parse(Session *s)
                 break;
             case 0x2afd:
             {
-                int id = RFIFOL(s, 4);
+                AccountId id = wrap<AccountId>(RFIFOL(s, 4));
                 int login_id2 = RFIFOL(s, 8);
                 TimeT connect_until_time = static_cast<time_t>(RFIFOL(s, 12));
                 short tmw_version = RFIFOW(s, 16);
@@ -1118,13 +1113,13 @@ void chrif_parse(Session *s)
             }
                 break;
             case 0x2afe:
-                pc_authfail(RFIFOL(s, 2));
+                pc_authfail(wrap<AccountId>(RFIFOL(s, 2)));
                 break;
             case 0x2b00:
                 map_setusers(RFIFOL(s, 2));
                 break;
             case 0x2b03:
-                clif_charselectok(RFIFOL(s, 2));
+                clif_charselectok(wrap<BlockId>(RFIFOL(s, 2)));
                 break;
             case 0x2b04:
                 chrif_recvmap(s);
@@ -1145,7 +1140,7 @@ void chrif_parse(Session *s)
                 chrif_accountreg2(s);
                 break;
             case 0x2b12:
-                chrif_divorce(RFIFOL(s, 2), RFIFOL(s, 6));
+                chrif_divorce(wrap<CharId>(RFIFOL(s, 2)), wrap<CharId>(RFIFOL(s, 6)));
                 break;
             case 0x2b13:
                 chrif_accountdeletion(s);
@@ -1193,7 +1188,7 @@ void send_users_tochar(TimerData *, tick_t)
                || sd->state.shroud_active
                || bool(sd->status.option & Option::HIDE)) && pc_isGM(sd)))
         {
-            WFIFOL(char_session, 6 + 4 * users) = sd->status_key.char_id;
+            WFIFOL(char_session, 6 + 4 * users) = unwrap<CharId>(sd->status_key.char_id);
             users++;
         }
     }

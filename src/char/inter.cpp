@@ -240,7 +240,7 @@ void mapif_wis_message(Session *tms, CharName src, CharName dst, XString msg)
 
     WBUFW(buf, 0) = 0x3801;
     WBUFW(buf, 2) = 56 + str_size;
-    WBUFL(buf, 4) = mcs->key.char_id; // formerly, whisper ID
+    WBUFL(buf, 4) = unwrap<CharId>(mcs->key.char_id); // formerly, whisper ID
     WBUF_STRING(buf, 8, src.to__actual(), 24);
     WBUF_STRING(buf, 32, dst.to__actual(), 24);
     WBUF_STRING(buf, 56, msg, str_size);
@@ -368,7 +368,8 @@ void mapif_parse_WisRequest(Session *sms)
 static
 int mapif_parse_WisReply(Session *tms)
 {
-    int id = RFIFOL(tms, 2), flag = RFIFOB(tms, 6);
+    CharId id = wrap<CharId>(RFIFOL(tms, 2));
+    uint8_t flag = RFIFOB(tms, 6);
 
     const CharPair *smcs = search_character_id(id);
     CharName from = smcs->key.name;

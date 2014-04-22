@@ -21,10 +21,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../strings/vstring.hpp"
 
+# include "../mmo/ids.hpp"
 # include "../mmo/mmo.hpp"
 
 namespace e
@@ -584,5 +585,11 @@ struct MobName : VString<23> {};
 struct NpcName : VString<23> {};
 struct ScriptLabel : VString<23> {};
 struct ItemName : VString<23> {};
+
+class BlockId : public Wrapped<uint32_t> { public: BlockId() : Wrapped<uint32_t>() {} protected: template<class... A> constexpr explicit BlockId(A... a) : Wrapped<uint32_t>(a...) {} };
+inline
+BlockId account_to_block(AccountId a) { return wrap<BlockId>(unwrap<AccountId>(a)); }
+inline
+AccountId block_to_account(BlockId b) { return wrap<AccountId>(unwrap<BlockId>(b)); }
 
 #endif // TMWA_MAP_MAP_T_HPP

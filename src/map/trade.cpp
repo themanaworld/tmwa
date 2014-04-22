@@ -38,7 +38,7 @@
  * 取引要請を相手に送る
  *------------------------------------------
  */
-void trade_traderequest(dumb_ptr<map_session_data> sd, int target_id)
+void trade_traderequest(dumb_ptr<map_session_data> sd, BlockId target_id)
 {
     dumb_ptr<map_session_data> target_sd;
 
@@ -48,7 +48,7 @@ void trade_traderequest(dumb_ptr<map_session_data> sd, int target_id)
     {
         if (!battle_config.invite_request_check)
         {
-            if (target_sd->party_invite > 0)
+            if (target_sd->party_invite)
             {
                 clif_tradestart(sd, 2);    // 相手はPT要請中かGuild要請中
                 return;
@@ -60,7 +60,7 @@ void trade_traderequest(dumb_ptr<map_session_data> sd, int target_id)
             clif_tradestart(sd, 2);
             return;
         }
-        if ((target_sd->trade_partner != 0) || (sd->trade_partner != 0))
+        if ((target_sd->trade_partner) || (sd->trade_partner))
         {
             trade_tradecancel(sd); //person is in another trade
         }
@@ -97,20 +97,20 @@ void trade_tradeack(dumb_ptr<map_session_data> sd, int type)
     dumb_ptr<map_session_data> target_sd;
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(sd->trade_partner)) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
     {
         clif_tradestart(target_sd, type);
         clif_tradestart(sd, type);
         if (type == 4)
         {                       // Cancel
             sd->deal_locked = 0;
-            sd->trade_partner = 0;
+            sd->trade_partner = AccountId();
             target_sd->deal_locked = 0;
-            target_sd->trade_partner = 0;
+            target_sd->trade_partner = AccountId();
         }
-        if (sd->npc_id != 0)
+        if (sd->npc_id)
             npc_event_dequeue(sd);
-        if (target_sd->npc_id != 0)
+        if (target_sd->npc_id)
             npc_event_dequeue(target_sd);
 
         //close STORAGE window if it's open. It protects from spooffing packets [Lupus]
@@ -135,7 +135,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
 
     nullpo_retv(sd);
 
-    if (((target_sd = map_id2sd(sd->trade_partner)) != NULL)
+    if (((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
         && (sd->deal_locked < 1))
     {
         if (index < 2 || index >= MAX_INVENTORY + 2)
@@ -153,7 +153,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
             // determine free slots of receiver
             for (i = 0; i < MAX_INVENTORY; i++)
             {
-                if (target_sd->status.inventory[i].nameid == 0
+                if (!target_sd->status.inventory[i].nameid
                     && target_sd->inventory_data[i] == NULL)
                     free_++;
             }
@@ -273,7 +273,7 @@ void trade_tradeok(dumb_ptr<map_session_data> sd)
 
     }
 
-    if ((target_sd = map_id2sd(sd->trade_partner)) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
     {
         sd->deal_locked = 1;
         clif_tradeitemok(sd, 0, 0, 0);
@@ -293,7 +293,7 @@ void trade_tradecancel(dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(sd->trade_partner)) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
     {
         for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
         {                       //give items back (only virtual)
@@ -327,9 +327,9 @@ void trade_tradecancel(dumb_ptr<map_session_data> sd)
             target_sd->deal_zeny = 0;
         }
         sd->deal_locked = 0;
-        sd->trade_partner = 0;
+        sd->trade_partner = AccountId();
         target_sd->deal_locked = 0;
-        target_sd->trade_partner = 0;
+        target_sd->trade_partner = AccountId();
         clif_tradecancelled(sd);
         clif_tradecancelled(target_sd);
     }
@@ -346,7 +346,7 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(sd->trade_partner)) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
     {
         MAP_LOG_PC(sd, " TRADECOMMIT WITH %d GIVE %d GET %d"_fmt,
                     target_sd->status_key.char_id, sd->deal_zeny,
@@ -373,8 +373,8 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                     MAP_LOG_PC(sd, " TRADECANCEL"_fmt);
                     return;
                 }
-                sd->trade_partner = 0;
-                target_sd->trade_partner = 0;
+                sd->trade_partner = AccountId();
+                target_sd->trade_partner = AccountId();
                 for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
                 {
                     if (sd->deal_item_amount[trade_i] != 0)
@@ -449,7 +449,7 @@ void trade_verifyzeny(dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(sd->trade_partner)) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
     {
         if (sd->deal_zeny > sd->status.zeny)
         {

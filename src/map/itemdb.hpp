@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../mmo/mmo.hpp"
 
@@ -30,7 +30,7 @@
 
 struct item_data
 {
-    int nameid;
+    ItemNameId nameid;
     ItemName name, jname;
     int value_buy;
     int value_sell;
@@ -58,43 +58,44 @@ struct random_item_data
 inline
 struct item_data *itemdb_searchname(ItemName) = delete;
 struct item_data *itemdb_searchname(XString name);
-struct item_data *itemdb_search(int nameid);
-struct item_data *itemdb_exists(int nameid);
+// TODO this function should die
+struct item_data *itemdb_search(ItemNameId nameid);
+struct item_data *itemdb_exists(ItemNameId nameid);
 
 inline
-ItemType itemdb_type(int n)
+ItemType itemdb_type(ItemNameId n)
 {
     return itemdb_search(n)->type;
 }
 inline
-ItemLook itemdb_look(int n)
+ItemLook itemdb_look(ItemNameId n)
 {
     return itemdb_search(n)->look;
 }
 inline
-int itemdb_weight(int n)
+int itemdb_weight(ItemNameId n)
 {
     return itemdb_search(n)->weight;
 }
 inline
-const ScriptBuffer *itemdb_equipscript(int n)
+const ScriptBuffer *itemdb_equipscript(ItemNameId n)
 {
     return itemdb_search(n)->equip_script.get();
 }
 inline
-int itemdb_wlv(int n)
+int itemdb_wlv(ItemNameId n)
 {
     return itemdb_search(n)->wlv;
 }
 inline
-int itemdb_value_sell(int n)
+int itemdb_value_sell(ItemNameId n)
 {
     return itemdb_search(n)->value_sell;
 }
 
-int itemdb_isequip(int);
+int itemdb_isequip(ItemNameId);
 int itemdb_isequip2(struct item_data *);
-int itemdb_isequip3(int);
+int itemdb_isequip3(ItemNameId);
 
 void itemdb_reload(void);
 

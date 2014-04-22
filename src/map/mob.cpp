@@ -63,7 +63,12 @@ constexpr random_::Fraction MOB_LAZYMOVEPERC {50, 1000};
 // Warp probability in the negligent mode MOB (rate of 1000 minute)
 constexpr random_::Fraction MOB_LAZYWARPPERC {20, 1000};
 
+static
 struct mob_db_ mob_db[2001];
+struct mob_db_& get_mob_db(Species s)
+{
+    return mob_db[unwrap<Species>(s)];
+}
 
 /*==========================================
  * Local prototype declaration   (only required thing)
@@ -72,9 +77,9 @@ struct mob_db_ mob_db[2001];
 static
 int distance(int, int, int, int);
 static
-int mob_makedummymobdb(int);
+int mob_makedummymobdb(Species);
 static
-void mob_timer(TimerData *, tick_t, int, unsigned char);
+void mob_timer(TimerData *, tick_t, BlockId, unsigned char);
 static
 int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
         mob_skill& skill_idx);
@@ -83,30 +88,29 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
  * Mob is searched with a name.
  *------------------------------------------
  */
-int mobdb_searchname(MobName str)
+Species mobdb_searchname(MobName str)
 {
     int i;
 
     for (i = 0; i < sizeof(mob_db) / sizeof(mob_db[0]); i++)
     {
         if (mob_db[i].name == str || mob_db[i].jname == str)
-            return i;
+            return wrap<Species>(i);
     }
 
-    return 0;
+    return Species();
 }
 
 /*==========================================
  * Id Mob is checked.
  *------------------------------------------
  */
-int mobdb_checkid(const int id)
+Species mobdb_checkid(Species id)
 {
-    if (id <= 0 || id >= (sizeof(mob_db) / sizeof(mob_db[0]))
-        || !mob_db[id].name)
-        return 0;
-
-    return id;
+    // value range is [1001, 2000]
+    if (wrap<Species>(1000) < id && id < wrap<Species>(2001))
+        return id;
+    return Species();
 }
 
 static
@@ -117,14 +121,14 @@ void mob_init(dumb_ptr<mob_data> md);
  *------------------------------------------
  */
 static
-void mob_spawn_dataset(dumb_ptr<mob_data> md, MobName mobname, int mob_class)
+void mob_spawn_dataset(dumb_ptr<mob_data> md, MobName mobname, Species mob_class)
 {
     nullpo_retv(md);
 
     if (mobname == ENGLISH_NAME)
-        md->name = mob_db[mob_class].name;
+        md->name = get_mob_db(mob_class).name;
     else if (mobname == JAPANESE_NAME)
-        md->name = mob_db[mob_class].jname;
+        md->name = get_mob_db(mob_class).jname;
     else
         md->name = mobname;
 
@@ -136,8 +140,8 @@ void mob_spawn_dataset(dumb_ptr<mob_data> md, MobName mobname, int mob_class)
 
     really_memzero_this(&md->state);
     // md->timer = nullptr;
-    md->target_id = 0;
-    md->attacked_id = 0;
+    md->target_id = BlockId();
+    md->attacked_id = BlockId();
 
     mob_init(md);
 }
@@ -330,24 +334,24 @@ static
 void mob_init(dumb_ptr<mob_data> md)
 {
     int i;
-    const int mob_class = md->mob_class;
-    const int mutations_nr = mob_db[mob_class].mutations_nr;
-    const int mutation_power = mob_db[mob_class].mutation_power;
+    const Species mob_class = md->mob_class;
+    const int mutations_nr = get_mob_db(mob_class).mutations_nr;
+    const int mutation_power = get_mob_db(mob_class).mutation_power;
 
-    md->stats[mob_stat::LV] = mob_db[mob_class].lv;
-    md->stats[mob_stat::MAX_HP] = mob_db[mob_class].max_hp;
-    md->stats[mob_stat::STR] = mob_db[mob_class].attrs[ATTR::STR];
-    md->stats[mob_stat::AGI] = mob_db[mob_class].attrs[ATTR::AGI];
-    md->stats[mob_stat::VIT] = mob_db[mob_class].attrs[ATTR::VIT];
-    md->stats[mob_stat::INT] = mob_db[mob_class].attrs[ATTR::INT];
-    md->stats[mob_stat::DEX] = mob_db[mob_class].attrs[ATTR::DEX];
-    md->stats[mob_stat::LUK] = mob_db[mob_class].attrs[ATTR::LUK];
-    md->stats[mob_stat::ATK1] = mob_db[mob_class].atk1;
-    md->stats[mob_stat::ATK2] = mob_db[mob_class].atk2;
-    md->stats[mob_stat::ADELAY] = mob_db[mob_class].adelay;
-    md->stats[mob_stat::DEF] = mob_db[mob_class].def;
-    md->stats[mob_stat::MDEF] = mob_db[mob_class].mdef;
-    md->stats[mob_stat::SPEED] = mob_db[mob_class].speed;
+    md->stats[mob_stat::LV] = get_mob_db(mob_class).lv;
+    md->stats[mob_stat::MAX_HP] = get_mob_db(mob_class).max_hp;
+    md->stats[mob_stat::STR] = get_mob_db(mob_class).attrs[ATTR::STR];
+    md->stats[mob_stat::AGI] = get_mob_db(mob_class).attrs[ATTR::AGI];
+    md->stats[mob_stat::VIT] = get_mob_db(mob_class).attrs[ATTR::VIT];
+    md->stats[mob_stat::INT] = get_mob_db(mob_class).attrs[ATTR::INT];
+    md->stats[mob_stat::DEX] = get_mob_db(mob_class).attrs[ATTR::DEX];
+    md->stats[mob_stat::LUK] = get_mob_db(mob_class).attrs[ATTR::LUK];
+    md->stats[mob_stat::ATK1] = get_mob_db(mob_class).atk1;
+    md->stats[mob_stat::ATK2] = get_mob_db(mob_class).atk2;
+    md->stats[mob_stat::ADELAY] = get_mob_db(mob_class).adelay;
+    md->stats[mob_stat::DEF] = get_mob_db(mob_class).def;
+    md->stats[mob_stat::MDEF] = get_mob_db(mob_class).mdef;
+    md->stats[mob_stat::SPEED] = get_mob_db(mob_class).speed;
     md->stats[mob_stat::XP_BONUS] = MOB_XP_BONUS_BASE;
 
     for (i = 0; i < mutations_nr; i++)
@@ -391,22 +395,22 @@ void mob_init(dumb_ptr<mob_data> md)
  * The MOB appearance for one time (for scripts)
  *------------------------------------------
  */
-int mob_once_spawn(dumb_ptr<map_session_data> sd,
+BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
         MapName mapname, int x, int y,
-        MobName mobname, int mob_class, int amount,
+        MobName mobname, Species mob_class, int amount,
         NpcEvent event)
 {
     dumb_ptr<mob_data> md = NULL;
     map_local *m;
-    int count, r = mob_class;
+    int count;
 
     if (sd && mapname == MOB_THIS_MAP)
         m = sd->bl_m;
     else
         m = map_mapname2mapid(mapname);
 
-    if (m == nullptr || amount <= 0 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)  // 値が異常なら召喚を止める
-        return 0;
+    if (m == nullptr || amount <= 0 || mobdb_checkid(mob_class) == Species())
+        return BlockId();
 
     if (sd)
     {
@@ -429,9 +433,6 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd,
         md->bl_m = m;
         md->bl_x = x;
         md->bl_y = y;
-        if (r < 0 && battle_config.dead_branch_active == 1)
-            //移動してアクティブで反撃する
-            md->mode = MobMode::war;
         md->spawn.m = m;
         md->spawn.x0 = x;
         md->spawn.y0 = y;
@@ -446,19 +447,20 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd,
         map_addiddb(md);
         mob_spawn(md->bl_id);
     }
-    return (amount > 0) ? md->bl_id : 0;
+    return (amount > 0) ? md->bl_id : BlockId();
 }
 
 /*==========================================
  * The MOB appearance for one time (& area specification for scripts)
  *------------------------------------------
  */
-int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
+BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
         MapName mapname, int x0, int y0, int x1, int y1,
-        MobName mobname, int mob_class, int amount,
+        MobName mobname, Species mob_class, int amount,
         NpcEvent event)
 {
-    int x, y, i, max, lx = -1, ly = -1, id = 0;
+    int x, y, i, max, lx = -1, ly = -1;
+    BlockId id;
     map_local *m;
 
     if (mapname == MOB_THIS_MAP)
@@ -470,8 +472,8 @@ int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
     if (max > 1000)
         max = 1000;
 
-    if (m == nullptr || amount <= 0 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)  // A summon is stopped if a value is unusual
-        return 0;
+    if (m == nullptr || amount <= 0 || (mobdb_checkid(mob_class) == Species()))  // A summon is stopped if a value is unusual
+        return BlockId();
 
     for (i = 0; i < amount; i++)
     {
@@ -491,7 +493,7 @@ int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
                 y = ly;
             }
             else
-                return 0;       // Since reference of the place which boils first went wrong, it stops.
+                return BlockId();       // Since reference of the place which boils first went wrong, it stops.
         }
         id = mob_once_spawn(sd, mapname, x, y, mobname, mob_class, 1, event);
         lx = x;
@@ -501,49 +503,49 @@ int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
 }
 
 // TODO: deprecate these
-short mob_get_hair(int mob_class)
+short mob_get_hair(Species mob_class)
 {
-    return mob_db[mob_class].hair;
+    return get_mob_db(mob_class).hair;
 }
 
-short mob_get_hair_color(int mob_class)
+short mob_get_hair_color(Species mob_class)
 {
-    return mob_db[mob_class].hair_color;
+    return get_mob_db(mob_class).hair_color;
 }
 
-short mob_get_weapon(int mob_class)
+short mob_get_weapon(Species mob_class)
 {
-    return mob_db[mob_class].weapon;
+    return get_mob_db(mob_class).weapon;
 }
 
-short mob_get_shield(int mob_class)
+ItemNameId mob_get_shield(Species mob_class)
 {
-    return mob_db[mob_class].shield;
+    return get_mob_db(mob_class).shield;
 }
 
-short mob_get_head_top(int mob_class)
+ItemNameId mob_get_head_top(Species mob_class)
 {
-    return mob_db[mob_class].head_top;
+    return get_mob_db(mob_class).head_top;
 }
 
-short mob_get_head_mid(int mob_class)
+ItemNameId mob_get_head_mid(Species mob_class)
 {
-    return mob_db[mob_class].head_mid;
+    return get_mob_db(mob_class).head_mid;
 }
 
-short mob_get_head_buttom(int mob_class)
+ItemNameId mob_get_head_buttom(Species mob_class)
 {
-    return mob_db[mob_class].head_buttom;
+    return get_mob_db(mob_class).head_buttom;
 }
 
-short mob_get_clothes_color(int mob_class) // Add for player monster dye - Valaris
+short mob_get_clothes_color(Species mob_class) // Add for player monster dye - Valaris
 {
-    return mob_db[mob_class].clothes_color; // End
+    return get_mob_db(mob_class).clothes_color; // End
 }
 
-int mob_get_equip(int mob_class)   // mob equip [Valaris]
+int mob_get_equip(Species mob_class)   // mob equip [Valaris]
 {
-    return mob_db[mob_class].equip;
+    return get_mob_db(mob_class).equip;
 }
 
 /*==========================================
@@ -707,7 +709,7 @@ int mob_check_attack(dumb_ptr<mob_data> md)
 
     if ((tbl = map_id2bl(md->target_id)) == NULL)
     {
-        md->target_id = 0;
+        md->target_id = BlockId();
         md->state.attackable = false;
         return 0;
     }
@@ -725,7 +727,7 @@ int mob_check_attack(dumb_ptr<mob_data> md)
             || pc_isinvisible(tsd) || md->bl_m != tbl->bl_m || tbl->bl_prev == NULL
             || distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) >= 13)
         {
-            md->target_id = 0;
+            md->target_id = BlockId();
             md->state.attackable = false;
             return 0;
         }
@@ -735,21 +737,21 @@ int mob_check_attack(dumb_ptr<mob_data> md)
         if (md->bl_m != tbl->bl_m || tbl->bl_prev == NULL
             || distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) >= 13)
         {
-            md->target_id = 0;
+            md->target_id = BlockId();
             md->state.attackable = false;
             return 0;
         }
     }
 
     if (md->mode == MobMode::ZERO)
-        mode = mob_db[md->mob_class].mode;
+        mode = get_mob_db(md->mob_class).mode;
     else
         mode = md->mode;
 
-    Race race = mob_db[md->mob_class].race;
+    Race race = get_mob_db(md->mob_class).race;
     if (!bool(mode & MobMode::CAN_ATTACK))
     {
-        md->target_id = 0;
+        md->target_id = BlockId();
         md->state.attackable = false;
         return 0;
     }
@@ -759,12 +761,12 @@ int mob_check_attack(dumb_ptr<mob_data> md)
             && race != Race::_insect
             && race != Race::_demon))
     {
-        md->target_id = 0;
+        md->target_id = BlockId();
         md->state.attackable = false;
         return 0;
     }
 
-    range = mob_db[md->mob_class].range;
+    range = get_mob_db(md->mob_class).range;
     if (bool(mode & MobMode::CAN_MOVE))
         range++;
     if (distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) > range)
@@ -834,7 +836,7 @@ int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
  *------------------------------------------
  */
 static
-void mob_stopattacked(dumb_ptr<map_session_data> sd, int id)
+void mob_stopattacked(dumb_ptr<map_session_data> sd, BlockId id)
 {
     nullpo_retv(sd);
 
@@ -903,7 +905,8 @@ int mob_changestate(dumb_ptr<mob_data> md, MS state, bool type)
             clif_foreachclient(std::bind(mob_stopattacked, ph::_1, md->bl_id));
             skill_status_change_clear(md, 2); // The abnormalities in status are canceled.
             md->deletetimer.cancel();
-            md->hp = md->target_id = md->attacked_id = 0;
+            md->hp = 0;
+            md->target_id = md->attacked_id = BlockId();
             md->state.attackable = false;
         }
             break;
@@ -918,7 +921,7 @@ int mob_changestate(dumb_ptr<mob_data> md, MS state, bool type)
  *------------------------------------------
  */
 static
-void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
+void mob_timer(TimerData *, tick_t tick, BlockId id, unsigned char data)
 {
     dumb_ptr<mob_data> md;
     dumb_ptr<block_list> bl;
@@ -1012,7 +1015,7 @@ int mob_walktoxy(dumb_ptr<mob_data> md, int x, int y, int easy)
  *------------------------------------------
  */
 static
-void mob_delayspawn(TimerData *, tick_t, int m)
+void mob_delayspawn(TimerData *, tick_t, BlockId m)
 {
     mob_spawn(m);
 }
@@ -1022,7 +1025,7 @@ void mob_delayspawn(TimerData *, tick_t, int m)
  *------------------------------------------
  */
 static
-int mob_setdelayspawn(int id)
+int mob_setdelayspawn(BlockId id)
 {
     dumb_ptr<mob_data> md;
     dumb_ptr<block_list> bl;
@@ -1066,7 +1069,7 @@ int mob_setdelayspawn(int id)
  * Mob spawning. Initialization is also variously here.
  *------------------------------------------
  */
-int mob_spawn(int id)
+int mob_spawn(BlockId id)
 {
     int x = 0, y = 0;
     tick_t tick = gettick();
@@ -1130,15 +1133,15 @@ int mob_spawn(int id)
     map_addblock(md);
 
     really_memzero_this(&md->state);
-    md->attacked_id = 0;
-    md->target_id = 0;
+    md->attacked_id = BlockId();
+    md->target_id = BlockId();
     md->move_fail_count = 0;
     mob_init(md);
 
     if (!md->stats[mob_stat::SPEED])
-        md->stats[mob_stat::SPEED] = mob_db[md->mob_class].speed;
-    md->def_ele = mob_db[md->mob_class].element;
-    md->master_id = 0;
+        md->stats[mob_stat::SPEED] = get_mob_db(md->mob_class).speed;
+    md->def_ele = get_mob_db(md->mob_class).element;
+    md->master_id = BlockId();
     md->master_dist = 0;
 
     md->state.state = MS::IDLE;
@@ -1152,8 +1155,8 @@ int mob_spawn(int id)
     // md->deletetimer = nullptr;
 
     // md->skilltimer = nullptr;
-    md->skilldelayup = make_unique<tick_t[]>(mob_db[md->mob_class].skills.size());
-    for (size_t i = 0; i < mob_db[md->mob_class].skills.size(); i++)
+    md->skilldelayup = make_unique<tick_t[]>(get_mob_db(md->mob_class).skills.size());
+    for (size_t i = 0; i < get_mob_db(md->mob_class).skills.size(); i++)
         md->skilldelayup[i] = tick - std::chrono::hours(10);
     md->skillid = SkillID();
     md->skilllv = 0;
@@ -1204,9 +1207,9 @@ int distance(int x0, int y0, int x1, int y1)
  */
 int mob_stopattack(dumb_ptr<mob_data> md)
 {
-    md->target_id = 0;
+    md->target_id = BlockId();
     md->state.attackable = false;
-    md->attacked_id = 0;
+    md->attacked_id = BlockId();
     return 0;
 }
 
@@ -1331,11 +1334,11 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
 
     sc_data = battle_get_sc_data(bl);
     Option *option = battle_get_option(bl);
-    Race race = mob_db[md->mob_class].race;
+    Race race = get_mob_db(md->mob_class).race;
 
     if (md->mode == MobMode::ZERO)
     {
-        mode = mob_db[md->mob_class].mode;
+        mode = get_mob_db(md->mob_class).mode;
     }
     else
     {
@@ -1343,11 +1346,11 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
     }
     if (!bool(mode & MobMode::CAN_ATTACK))
     {
-        md->target_id = 0;
+        md->target_id = BlockId();
         return 0;
     }
     // Nothing will be carried out if there is no mind of changing TAGE by TAGE ending.
-    if ((md->target_id > 0 && md->state.attackable)
+    if ((md->target_id && md->state.attackable)
         && (!bool(mode & MobMode::AGGRESSIVE)
             || !random_::chance({25 + 1, 100})))
         return 0;
@@ -1410,14 +1413,14 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
         return;
 
     if (smd->mode == MobMode::ZERO)
-        mode = mob_db[smd->mob_class].mode;
+        mode = get_mob_db(smd->mob_class).mode;
     else
         mode = smd->mode;
 
     // アクティブでターゲット射程内にいるなら、ロックする
     if (bool(mode & MobMode::AGGRESSIVE))
     {
-        Race race = mob_db[smd->mob_class].race;
+        Race race = get_mob_db(smd->mob_class).race;
         //対象がPCの場合
         if (tsd &&
             !pc_isdead(tsd) &&
@@ -1477,7 +1480,7 @@ void mob_ai_sub_hard_lootsearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, 
 
     if (md->mode == MobMode::ZERO)
     {
-        mode = mob_db[md->mob_class].mode;
+        mode = get_mob_db(md->mob_class).mode;
     }
     else
     {
@@ -1516,8 +1519,8 @@ void mob_ai_sub_hard_linksearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, 
     nullpo_retv(md);
     nullpo_retv(target);
 
-    if (md->attacked_id > 0
-        && bool(mob_db[md->mob_class].mode & MobMode::ASSIST))
+    if (md->attacked_id
+        && bool(get_mob_db(md->mob_class).mode & MobMode::ASSIST))
     {
         if (tmd->mob_class == md->mob_class
             && tmd->bl_m == md->bl_m
@@ -1551,7 +1554,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     if ((bl = map_id2bl(md->master_id)) != NULL)
         mmd = bl->is_mob();
 
-    mode = mob_db[md->mob_class].mode;
+    mode = get_mob_db(md->mob_class).mode;
 
     // It is not main monster/leader.
     if (!mmd || mmd->bl_type != BL::MOB || mmd->bl_id != md->master_id)
@@ -1639,7 +1642,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     }
 
     // There is the master, the master locks a target and he does not lock.
-    if ((mmd->target_id > 0 && mmd->state.attackable)
+    if ((mmd->target_id && mmd->state.attackable)
         && (!md->target_id || !md->state.attackable))
     {
         dumb_ptr<map_session_data> sd = map_id2sd(mmd->target_id);
@@ -1647,7 +1650,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
             && !pc_isinvisible(sd))
         {
 
-            Race race = mob_db[md->mob_class].race;
+            Race race = get_mob_db(md->mob_class).race;
             if (bool(mode & MobMode::BOSS)
                 || (!sd->state.gangsterparadise
                     || race == Race::_insect
@@ -1675,7 +1678,7 @@ int mob_unlocktarget(dumb_ptr<mob_data> md, tick_t tick)
 {
     nullpo_ret(md);
 
-    md->target_id = 0;
+    md->target_id = BlockId();
     md->state.attackable = false;
     md->state.skillstate = MobSkillState::MSS_IDLE;
     md->next_walktime = tick + std::chrono::seconds(3) + std::chrono::milliseconds(random_::to(3000));
@@ -1770,20 +1773,20 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     }
 
     if (md->mode == MobMode::ZERO)
-        mode = mob_db[md->mob_class].mode;
+        mode = get_mob_db(md->mob_class).mode;
     else
         mode = md->mode;
 
-    Race race = mob_db[md->mob_class].race;
+    Race race = get_mob_db(md->mob_class).race;
 
     // Abnormalities
     if (bool(md->opt1) && md->opt1 != Opt1::_stone6)
         return;
 
-    if (!bool(mode & MobMode::CAN_ATTACK) && md->target_id > 0)
-        md->target_id = 0;
+    if (!bool(mode & MobMode::CAN_ATTACK) && md->target_id)
+        md->target_id = BlockId();
 
-    if (md->attacked_id > 0 && bool(mode & MobMode::ASSIST))
+    if (md->attacked_id && bool(mode & MobMode::ASSIST))
     {                           // Link monster
         dumb_ptr<map_session_data> asd = map_id2sd(md->attacked_id);
         if (asd)
@@ -1800,7 +1803,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     }
 
     // It checks to see it was attacked first (if active, it is target change at 25% of probability).
-    if (mode != MobMode::ZERO && md->attacked_id > 0
+    if (mode != MobMode::ZERO && md->attacked_id
         && (!md->target_id || !md->state.attackable
             || (bool(mode & MobMode::AGGRESSIVE) && random_::chance({25, 100}))))
     {
@@ -1815,13 +1818,13 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                 || (dist =
                     distance(md->bl_x, md->bl_y, abl->bl_x, abl->bl_y)) >= 32
                 || battle_check_target(bl, abl, BCT_ENEMY) == 0)
-                md->attacked_id = 0;
+                md->attacked_id = BlockId();
             else
             {
                 md->target_id = md->attacked_id;    // set target
                 md->state.attackable = true;
                 attack_type = 1;
-                md->attacked_id = 0;
+                md->attacked_id = BlockId();
                 md->min_chase = dist + 13;
                 if (md->min_chase > 26)
                     md->min_chase = 26;
@@ -1831,7 +1834,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
 
     md->state.master_check = 0;
     // Processing of slave monster
-    if (md->master_id > 0 && md->state.special_mob_ai == 0)
+    if (md->master_id && md->state.special_mob_ai == 0)
         mob_ai_sub_hard_slavemob(md, tick);
 
     // アクティヴモンスターの策敵 (?? of a bitter taste TIVU monster)
@@ -1872,7 +1875,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     }
 
     // It will attack, if the candidate for an attack is.
-    if (md->target_id > 0)
+    if (md->target_id)
     {
         if ((tbl = map_id2bl(md->target_id)))
         {
@@ -1892,7 +1895,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                              && race != Race::_insect
                              && race != Race::_demon))
                     mob_unlocktarget(md, tick);    // スキルなどによる策敵妨害
-                else if (!battle_check_range(md, tbl, mob_db[md->mob_class].range))
+                else if (!battle_check_range(md, tbl, get_mob_db(md->mob_class).range))
                 {
                     // 攻撃範囲外なので移動
                     if (!bool(mode & MobMode::CAN_MOVE))
@@ -1975,7 +1978,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     || (dist =
                         distance(md->bl_x, md->bl_y, tbl->bl_x,
                                   tbl->bl_y)) >= md->min_chase
-                    || !bool(mob_db[md->mob_class].mode & MobMode::LOOTER))
+                    || !bool(get_mob_db(md->mob_class).mode & MobMode::LOOTER))
                 {
                     // 遠すぎるかアイテムがなくなった
                     mob_unlocktarget(md, tick);
@@ -2034,7 +2037,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     // mobs that are not slaves can random-walk
     if (bool(mode & MobMode::CAN_MOVE)
         && mob_can_move(md)
-        && (md->master_id == 0 || md->state.special_mob_ai
+        && (!md->master_id || md->state.special_mob_ai
             || md->master_dist > 10))
     {
         // if walktime is more than 7 seconds in the future,
@@ -2110,7 +2113,7 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
     }
 
     if (md->next_walktime < tick
-        && bool(mob_db[md->mob_class].mode & MobMode::CAN_MOVE)
+        && bool(get_mob_db(md->mob_class).mode & MobMode::CAN_MOVE)
         && mob_can_move(md))
     {
 
@@ -2125,8 +2128,8 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
             // MOB which is not not the summons MOB but BOSS, either sometimes reboils.
             else if (random_::chance(MOB_LAZYWARPPERC)
                     && md->spawn.x0 <= 0
-                    && md->master_id != 0
-                    && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
+                    && md->master_id
+                    && !bool(get_mob_db(md->mob_class).mode & MobMode::BOSS))
                 mob_spawn(md->bl_id);
 
         }
@@ -2137,8 +2140,8 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
             // MOB which is not BOSS which is not Summons MOB, either -- a case -- sometimes -- leaping
             if (random_::chance(MOB_LAZYWARPPERC)
                 && md->spawn.x0 <= 0
-                && md->master_id != 0
-                && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
+                && md->master_id
+                && !bool(get_mob_db(md->mob_class).mode & MobMode::BOSS))
                 mob_warp(md, nullptr, -1, -1, BeingRemoveWhy::NEGATIVE1);
         }
 
@@ -2167,7 +2170,8 @@ struct delay_item_drop
 {
     map_local *m;
     int x, y;
-    int nameid, amount;
+    ItemNameId nameid;
+    int amount;
     dumb_ptr<map_session_data> first_sd, second_sd, third_sd;
 };
 
@@ -2273,7 +2277,7 @@ int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type)
     return 0;
 }
 
-void mob_timer_delete(TimerData *, tick_t, int id)
+void mob_timer_delete(TimerData *, tick_t, BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
     dumb_ptr<mob_data> md;
@@ -2289,14 +2293,14 @@ void mob_timer_delete(TimerData *, tick_t, int id)
  *------------------------------------------
  */
 static
-void mob_deleteslave_sub(dumb_ptr<block_list> bl, int id)
+void mob_deleteslave_sub(dumb_ptr<block_list> bl, BlockId id)
 {
     dumb_ptr<mob_data> md;
 
     nullpo_retv(bl);
     md = bl->is_mob();
 
-    if (md->master_id > 0 && md->master_id == id)
+    if (md->master_id && md->master_id == id)
         mob_damage(NULL, md, md->hp, 1);
 }
 
@@ -2342,7 +2346,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         && bool(md->mode & MobMode::TURNS_AGAINST_BAD_MASTER))
     {
         /* If the master hits a monster, have the monster turn against him */
-        md->master_id = 0;
+        md->master_id = BlockId();
         md->mode = MobMode::war;        /* Regular war mode */
         md->target_id = src->bl_id;
         md->attacked_id = src->bl_id;
@@ -2410,7 +2414,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
         damage_logged_pc:
 
-            if (md->attacked_id <= 0 && md->state.special_mob_ai == 0)
+            if (!md->attacked_id && md->state.special_mob_ai == 0)
                 md->attacked_id = sd->bl_id;
         }
         if (src && src->bl_type == BL::MOB
@@ -2442,7 +2446,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 app.dmg = damage;
                 md->dmglogv.push_back(app);
 
-                if (md->attacked_id <= 0 && md->state.special_mob_ai == 0)
+                if (!md->attacked_id && md->state.special_mob_ai == 0)
                     md->attacked_id = md2->master_id;
             }
         damage_logged_slave:
@@ -2544,23 +2548,23 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 per = 1;
 
             base_exp =
-                ((mob_db[md->mob_class].base_exp *
+                ((get_mob_db(md->mob_class).base_exp *
                   md->stats[mob_stat::XP_BONUS]) >> MOB_XP_BONUS_SHIFT) * per / 256;
             if (base_exp < 1)
                 base_exp = 1;
             if (sd && md && battle_config.pk_mode == 1
-                && (mob_db[md->mob_class].lv - sd->status.base_level >= 20))
+                && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
             {
                 base_exp *= 1.15;   // pk_mode additional exp if monster >20 levels [Valaris]
             }
             if (md->state.special_mob_ai >= 1
                 && battle_config.alchemist_summon_reward != 1)
                 base_exp = 0;   // Added [Valaris]
-            job_exp = mob_db[md->mob_class].job_exp * per / 256;
+            job_exp = get_mob_db(md->mob_class).job_exp * per / 256;
             if (job_exp < 1)
                 job_exp = 1;
             if (sd && md && battle_config.pk_mode == 1
-                && (mob_db[md->mob_class].lv - sd->status.base_level >= 20))
+                && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
             {
                 job_exp *= 1.15;    // pk_mode additional exp if monster >20 levels [Valaris]
             }
@@ -2568,8 +2572,8 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 && battle_config.alchemist_summon_reward != 1)
                 job_exp = 0;    // Added [Valaris]
 
-            int pid = tmpsdi->status.party_id;
-            if (pid > 0)
+            PartyId pid = tmpsdi->status.party_id;
+            if (pid)
             {
                 std::vector<DmgLogParty>::iterator it = std::find_if(ptv.begin(), ptv.end(),
                         [pid](const DmgLogParty& dlp)
@@ -2613,19 +2617,19 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 if (md->state.special_mob_ai >= 1 && battle_config.alchemist_summon_reward != 1)    // Added [Valaris]
                     break;      // End
 
-                if (mob_db[md->mob_class].dropitem[i].nameid <= 0)
+                if (!get_mob_db(md->mob_class).dropitem[i].nameid)
                     continue;
-                random_::Fixed<int, 10000> drop_rate = mob_db[md->mob_class].dropitem[i].p;
+                random_::Fixed<int, 10000> drop_rate = get_mob_db(md->mob_class).dropitem[i].p;
                 if (battle_config.drops_by_luk > 0 && sd && md)
                     drop_rate.num += (sd->status.attrs[ATTR::LUK] * battle_config.drops_by_luk) / 100;   // drops affected by luk [Valaris]
                 if (sd && md && battle_config.pk_mode == 1
-                    && (mob_db[md->mob_class].lv - sd->status.base_level >= 20))
+                    && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
                     drop_rate.num *= 1.25;  // pk_mode increase drops if 20 level difference [Valaris]
                 if (!random_::chance(drop_rate))
                     continue;
 
                 struct delay_item_drop ditem {};
-                ditem.nameid = mob_db[md->mob_class].dropitem[i].nameid;
+                ditem.nameid = get_mob_db(md->mob_class).dropitem[i].nameid;
                 ditem.amount = 1;
                 ditem.m = md->bl_m;
                 ditem.x = md->bl_x;
@@ -2721,7 +2725,7 @@ int mob_heal(dumb_ptr<mob_data> md, int heal)
  *------------------------------------------
  */
 static
-void mob_warpslave_sub(dumb_ptr<block_list> bl, int id, int x, int y)
+void mob_warpslave_sub(dumb_ptr<block_list> bl, BlockId id, int x, int y)
 {
     dumb_ptr<mob_data> md = bl->is_mob();
 
@@ -2806,9 +2810,9 @@ int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy t
             PRINTF("MOB %d warp failed, mob_class = %d\n"_fmt, md->bl_id, md->mob_class);
     }
 
-    md->target_id = 0;          // タゲを解除する
+    md->target_id = BlockId();          // タゲを解除する
     md->state.attackable = false;
-    md->attacked_id = 0;
+    md->attacked_id = BlockId();
     md->state.skillstate = MobSkillState::MSS_IDLE;
     mob_changestate(md, MS::IDLE, 0);
 
@@ -2835,7 +2839,7 @@ int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy t
  *------------------------------------------
  */
 static
-void mob_countslave_sub(dumb_ptr<block_list> bl, int id, int *c)
+void mob_countslave_sub(dumb_ptr<block_list> bl, BlockId id, int *c)
 {
     dumb_ptr<mob_data> md;
 
@@ -2869,36 +2873,38 @@ int mob_countslave(dumb_ptr<mob_data> md)
  * 手下MOB召喚
  *------------------------------------------
  */
-int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
+int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
 {
     dumb_ptr<mob_data> md;
-    int bx, by, count = 0, mob_class, k, a = amount;
+    int bx, by, count = 0, a = amount;
 
     nullpo_ret(md2);
-    nullpo_ret(value);
+    nullpo_ret(value_);
 
     bx = md2->bl_x;
     by = md2->bl_y;
     map_local *m = md2->bl_m;
 
-    if (value[0] <= 1000 || value[0] > 2000)    // 値が異常なら召喚を止める
-        return 0;
-    while (count < 5 && value[count] > 1000 && value[count] <= 2000)
-        count++;
+    Species values[5];
+    for (count = 0; count < 5 && values[count] != Species(); ++count)
+        values[count] = wrap<Species>(value_[count]);
     if (count < 1)
         return 0;
 
-    for (k = 0; k < count; k++)
+    for (int k = 0; k < count; k++)
     {
         amount = a;
-        mob_class = value[k];
-        if (mob_class <= 1000 || mob_class > 2000)
+        Species mob_class = values[k];
+        if (mobdb_checkid(mob_class) == Species())
+        {
+            PRINTF("Warning: bad slave class %u\n"_fmt, mob_class);
             continue;
+        }
         for (; amount > 0; amount--)
         {
             int x = 0, y = 0, i = 0;
             md.new_();
-            if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
+            if (bool(get_mob_db(mob_class).mode & MobMode::LOOTER))
                 md->lootitemv.clear();
 
             while ((x <= 0
@@ -2949,7 +2955,7 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
  */
 static
 void mob_counttargeted_sub(dumb_ptr<block_list> bl,
-        int id, int *c, dumb_ptr<block_list> src, ATK target_lv)
+        BlockId id, int *c, dumb_ptr<block_list> src, ATK target_lv)
 {
     nullpo_retv(bl);
     nullpo_retv(c);
@@ -2999,7 +3005,7 @@ int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
  * スキル使用（詠唱完了、ID指定）
  *------------------------------------------
  */
-void mobskill_castend_id(TimerData *, tick_t tick, int id)
+void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
 {
     dumb_ptr<mob_data> md = NULL;
     dumb_ptr<block_list> bl;
@@ -3038,7 +3044,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
     if (range + battle_config.monster_skill_add_range < distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y))
         return;
 
-    md->skilldelayup[md->skillidx - &mob_db[md->mob_class].skills.front()] = tick;
+    md->skilldelayup[md->skillidx - &get_mob_db(md->mob_class).skills.front()] = tick;
 
     if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n"_fmt,
@@ -3065,7 +3071,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
  * スキル使用（詠唱完了、場所指定）
  *------------------------------------------
  */
-void mobskill_castend_pos(TimerData *, tick_t tick, int id)
+void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
 {
     dumb_ptr<mob_data> md = NULL;
     dumb_ptr<block_list> bl;
@@ -3089,7 +3095,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, int id)
         range = battle_get_range(md) - (range + 1);
     if (range + battle_config.monster_skill_add_range < distance(md->bl_x, md->bl_y, md->skillx, md->skilly))
         return;
-    md->skilldelayup[md->skillidx - &mob_db[md->mob_class].skills.front()] = tick;
+    md->skilldelayup[md->skillidx - &get_mob_db(md->mob_class).skills.front()] = tick;
 
     if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n"_fmt,
@@ -3139,7 +3145,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
 
     interval_t casttime = skill_castfix(md, ms->casttime);
     md->state.skillcastcancel = ms->cancel;
-    md->skilldelayup[ms - &mob_db[md->mob_class].skills.front()] = gettick();
+    md->skilldelayup[ms - &get_mob_db(md->mob_class).skills.front()] = gettick();
 
     if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill use target_id=%d skill=%d lv=%d cast=%d, mob_class = %d\n"_fmt,
@@ -3209,7 +3215,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
 
 //  delay=skill_delayfix(sd, skill_get_delay( skill_id,skill_lv) );
     interval_t casttime = skill_castfix(md, ms->casttime);
-    md->skilldelayup[ms - &mob_db[md->mob_class].skills.front()] = gettick();
+    md->skilldelayup[ms - &get_mob_db(md->mob_class).skills.front()] = gettick();
     md->state.skillcastcancel = ms->cancel;
 
     if (battle_config.monster_skill_log == 1)
@@ -3223,7 +3229,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
 
     md->skillx = skill_x;
     md->skilly = skill_y;
-    md->skilltarget = 0;
+    md->skilltarget = BlockId();
     md->skillid = skill_id;
     md->skilllv = skill_lv;
     md->skillidx = &skill_idx;
@@ -3252,7 +3258,7 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
     int max_hp;
 
     nullpo_ret(md);
-    std::vector<mob_skill>& ms = mob_db[md->mob_class].skills;
+    std::vector<mob_skill>& ms = get_mob_db(md->mob_class).skills;
 
     max_hp = battle_get_max_hp(md);
 
@@ -3374,42 +3380,42 @@ int mobskill_event(dumb_ptr<mob_data> md, BF flag)
  *------------------------------------------
  */
 static
-int mob_makedummymobdb(int mob_class)
+int mob_makedummymobdb(Species mob_class)
 {
     int i;
 
-    SNPRINTF(mob_db[mob_class].name, 24, "mob%d"_fmt, mob_class);
-    SNPRINTF(mob_db[mob_class].jname, 24, "mob%d"_fmt, mob_class);
-    mob_db[mob_class].lv = 1;
-    mob_db[mob_class].max_hp = 1000;
-    mob_db[mob_class].max_sp = 1;
-    mob_db[mob_class].base_exp = 2;
-    mob_db[mob_class].job_exp = 1;
-    mob_db[mob_class].range = 1;
-    mob_db[mob_class].atk1 = 7;
-    mob_db[mob_class].atk2 = 10;
-    mob_db[mob_class].def = 0;
-    mob_db[mob_class].mdef = 0;
-    mob_db[mob_class].attrs[ATTR::STR] = 1;
-    mob_db[mob_class].attrs[ATTR::AGI] = 1;
-    mob_db[mob_class].attrs[ATTR::VIT] = 1;
-    mob_db[mob_class].attrs[ATTR::INT] = 1;
-    mob_db[mob_class].attrs[ATTR::DEX] = 6;
-    mob_db[mob_class].attrs[ATTR::LUK] = 2;
-    mob_db[mob_class].range2 = 10;
-    mob_db[mob_class].range3 = 10;
-    mob_db[mob_class].size = 0; // 1
-    mob_db[mob_class].race = Race::formless;
-    mob_db[mob_class].element = LevelElement{0, Element::neutral};
-    mob_db[mob_class].mode = MobMode::ZERO;
-    mob_db[mob_class].speed = 300;
-    mob_db[mob_class].adelay = 1000;
-    mob_db[mob_class].amotion = 500;
-    mob_db[mob_class].dmotion = 500;
+    SNPRINTF(get_mob_db(mob_class).name, 24, "mob%d"_fmt, mob_class);
+    SNPRINTF(get_mob_db(mob_class).jname, 24, "mob%d"_fmt, mob_class);
+    get_mob_db(mob_class).lv = 1;
+    get_mob_db(mob_class).max_hp = 1000;
+    get_mob_db(mob_class).max_sp = 1;
+    get_mob_db(mob_class).base_exp = 2;
+    get_mob_db(mob_class).job_exp = 1;
+    get_mob_db(mob_class).range = 1;
+    get_mob_db(mob_class).atk1 = 7;
+    get_mob_db(mob_class).atk2 = 10;
+    get_mob_db(mob_class).def = 0;
+    get_mob_db(mob_class).mdef = 0;
+    get_mob_db(mob_class).attrs[ATTR::STR] = 1;
+    get_mob_db(mob_class).attrs[ATTR::AGI] = 1;
+    get_mob_db(mob_class).attrs[ATTR::VIT] = 1;
+    get_mob_db(mob_class).attrs[ATTR::INT] = 1;
+    get_mob_db(mob_class).attrs[ATTR::DEX] = 6;
+    get_mob_db(mob_class).attrs[ATTR::LUK] = 2;
+    get_mob_db(mob_class).range2 = 10;
+    get_mob_db(mob_class).range3 = 10;
+    get_mob_db(mob_class).size = 0; // 1
+    get_mob_db(mob_class).race = Race::formless;
+    get_mob_db(mob_class).element = LevelElement{0, Element::neutral};
+    get_mob_db(mob_class).mode = MobMode::ZERO;
+    get_mob_db(mob_class).speed = 300;
+    get_mob_db(mob_class).adelay = 1000;
+    get_mob_db(mob_class).amotion = 500;
+    get_mob_db(mob_class).dmotion = 500;
     for (i = 0; i < 8; i++)
     {
-        mob_db[mob_class].dropitem[i].nameid = 0;
-        mob_db[mob_class].dropitem[i].p.num = 0;
+        get_mob_db(mob_class).dropitem[i].nameid = ItemNameId();
+        get_mob_db(mob_class).dropitem[i].p.num = 0;
     }
     return 0;
 }
@@ -3439,7 +3445,7 @@ bool mob_readdb(ZString filename)
         AString line;
         while (in.getline(line))
         {
-            int mob_class;
+            Species mob_class;
 
             if (is_comment(line))
                 continue;
@@ -3509,7 +3515,7 @@ bool mob_readdb(ZString filename)
                     )
             );
 
-            if (!okay || mob_class <= 1000 || mob_class > 2000)
+            if (!okay || mobdb_checkid(mob_class) == Species())
             {
                 PRINTF("bad mob line: %s\n"_fmt, line);
                 rv = false;
@@ -3517,52 +3523,52 @@ bool mob_readdb(ZString filename)
             }
 
             // TODO move this lower
-            mob_db[mob_class] = std::move(mdbv);
+            get_mob_db(mob_class) = std::move(mdbv);
 
-            if (mob_db[mob_class].base_exp < 0)
-                mob_db[mob_class].base_exp = 0;
-            else if (mob_db[mob_class].base_exp > 0
-                     && (mob_db[mob_class].base_exp *
+            if (get_mob_db(mob_class).base_exp < 0)
+                get_mob_db(mob_class).base_exp = 0;
+            else if (get_mob_db(mob_class).base_exp > 0
+                     && (get_mob_db(mob_class).base_exp *
                          battle_config.base_exp_rate / 100 > 1000000000
-                         || mob_db[mob_class].base_exp *
+                         || get_mob_db(mob_class).base_exp *
                          battle_config.base_exp_rate / 100 < 0))
-                mob_db[mob_class].base_exp = 1000000000;
+                get_mob_db(mob_class).base_exp = 1000000000;
             else
-                mob_db[mob_class].base_exp = mob_db[mob_class].base_exp * battle_config.base_exp_rate / 100;
+                get_mob_db(mob_class).base_exp = get_mob_db(mob_class).base_exp * battle_config.base_exp_rate / 100;
 
-            if (mob_db[mob_class].job_exp < 0)
-                mob_db[mob_class].job_exp = 0;
-            else if (mob_db[mob_class].job_exp > 0
-                     && (mob_db[mob_class].job_exp * battle_config.job_exp_rate /
+            if (get_mob_db(mob_class).job_exp < 0)
+                get_mob_db(mob_class).job_exp = 0;
+            else if (get_mob_db(mob_class).job_exp > 0
+                     && (get_mob_db(mob_class).job_exp * battle_config.job_exp_rate /
                          100 > 1000000000
-                         || mob_db[mob_class].job_exp *
+                         || get_mob_db(mob_class).job_exp *
                          battle_config.job_exp_rate / 100 < 0))
-                mob_db[mob_class].job_exp = 1000000000;
+                get_mob_db(mob_class).job_exp = 1000000000;
             else
-                mob_db[mob_class].job_exp = mob_db[mob_class].job_exp * battle_config.job_exp_rate / 100;
+                get_mob_db(mob_class).job_exp = get_mob_db(mob_class).job_exp * battle_config.job_exp_rate / 100;
 
             for (int i = 0; i < 8; i++)
             {
-                int rate = mob_db[mob_class].dropitem[i].p.num;
+                int rate = get_mob_db(mob_class).dropitem[i].p.num;
                 if (rate < 1) rate = 1;
                 if (rate > 10000) rate = 10000;
-                mob_db[mob_class].dropitem[i].p.num = rate;
+                get_mob_db(mob_class).dropitem[i].p.num = rate;
             }
 
 
-            mob_db[mob_class].skills.clear();
+            get_mob_db(mob_class).skills.clear();
 
-            mob_db[mob_class].hair = 0;
-            mob_db[mob_class].hair_color = 0;
-            mob_db[mob_class].weapon = 0;
-            mob_db[mob_class].shield = 0;
-            mob_db[mob_class].head_top = 0;
-            mob_db[mob_class].head_mid = 0;
-            mob_db[mob_class].head_buttom = 0;
-            mob_db[mob_class].clothes_color = 0;    //Add for player monster dye - Valaris
+            get_mob_db(mob_class).hair = 0;
+            get_mob_db(mob_class).hair_color = 0;
+            get_mob_db(mob_class).weapon = 0;
+            get_mob_db(mob_class).shield = ItemNameId();
+            get_mob_db(mob_class).head_top = ItemNameId();
+            get_mob_db(mob_class).head_mid = ItemNameId();
+            get_mob_db(mob_class).head_buttom = ItemNameId();
+            get_mob_db(mob_class).clothes_color = 0;    //Add for player monster dye - Valaris
 
-            if (mob_db[mob_class].base_exp == 0)
-                mob_db[mob_class].base_exp = mob_gen_exp(&mob_db[mob_class]);
+            if (get_mob_db(mob_class).base_exp == 0)
+                get_mob_db(mob_class).base_exp = mob_gen_exp(&get_mob_db(mob_class));
         }
         PRINTF("read %s done\n"_fmt, filename);
     }
@@ -3650,15 +3656,15 @@ bool mob_readskilldb(ZString filename)
         AString line;
         while (in.getline(line))
         {
-            int mob_id;
+            Species mob_id;
 
             if (is_comment(line))
                 continue;
 
             XString blah;
-            if (extract(line, record<','>(&mob_id, &blah)) && mob_id > 0 && blah == "clear"_s)
+            if (extract(line, record<','>(&mob_id, &blah)) && mobdb_checkid(mob_id) != Species() && blah == "clear"_s)
             {
-                mob_db[mob_id].skills.clear();
+                get_mob_db(mob_id).skills.clear();
                 continue;
             }
 
@@ -3706,13 +3712,13 @@ bool mob_readskilldb(ZString filename)
             msv.casttime = std::chrono::milliseconds(casttime);
             msv.delay = std::chrono::milliseconds(delay);
 
-            if (mob_id <= 0)
+            if (mobdb_checkid(mob_id) == Species())
             {
                 rv = false;
                 continue;
             }
 
-            mob_db[mob_id].skills.push_back(std::move(msv));
+            get_mob_db(mob_id).skills.push_back(std::move(msv));
         }
         PRINTF("read %s done\n"_fmt, filename);
     }

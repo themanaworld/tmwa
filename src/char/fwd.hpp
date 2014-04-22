@@ -1,8 +1,8 @@
-#ifndef TMWA_COMPAT_ALG_HPP
-#define TMWA_COMPAT_ALG_HPP
-//    alg.hpp - Silly math stuff.
+#ifndef TMWA_CHAR_FWD_HPP
+#define TMWA_CHAR_FWD_HPP
+//    char/fwd.hpp - list of type names for char server
 //
-//    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -19,23 +19,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+# include "../sanity.hpp"
 
-# if 0
-#  include <type_traits>
+// meh, add more when I feel like it
 
-
-template<class A, class B>
-typename std::common_type<A, B>::type min(A a, B b)
-{
-    return a < b ? a : b;
-}
-
-template<class A, class B>
-typename std::common_type<A, B>::type max(A a, B b)
-{
-    return b < a ? a : b;
-}
-# endif
-
-#endif // TMWA_COMPAT_ALG_HPP
+#endif // TMWA_CHAR_FWD_HPP

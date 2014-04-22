@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include "../compat/memory.hpp"
 
@@ -29,6 +29,7 @@
 
 # include "../generic/enum.hpp"
 
+# include "ids.hpp"
 # include "timer.t.hpp"
 
 // affects CharName
@@ -199,8 +200,7 @@ using e::EPOS;
 
 struct item
 {
-    int id;
-    short nameid;
+    ItemNameId nameid;
     short amount;
     EPOS equip;
 };
@@ -322,28 +322,28 @@ SEX sex_from_char(char c)
 struct CharKey
 {
     CharName name;
-    int account_id;
-    int char_id;
+    AccountId account_id;
+    CharId char_id;
     unsigned char char_num;
 };
 
 struct CharData
 {
-    int partner_id;
+    CharId partner_id;
 
     int base_exp, job_exp, zeny;
 
-    short species;
+    Species species;
     short status_point, skill_point;
     int hp, max_hp, sp, max_sp;
     Option option;
     short karma, manner;
     short hair, hair_color, clothes_color;
-    int party_id;
+    PartyId party_id;
 
     ItemLook weapon;
-    short shield;
-    short head_top, head_mid, head_bottom;
+    ItemNameId shield;
+    ItemNameId head_top, head_mid, head_bottom;
 
     unsigned char base_level, job_level;
     earray<short, ATTR, ATTR::COUNT> attrs;
@@ -375,8 +375,8 @@ struct CharPair
 
 struct storage
 {
-    int dirty;
-    int account_id;
+    bool dirty;
+    AccountId account_id;
     short storage_status;
     short storage_amount;
     Array<struct item, MAX_STORAGE> storage_;
@@ -384,13 +384,13 @@ struct storage
 
 struct GM_Account
 {
-    int account_id;
-    uint8_t level;
+    AccountId account_id;
+    GmLevel level;
 };
 
 struct party_member
 {
-    int account_id;
+    AccountId account_id;
     CharName name;
     MapName map;
     int leader, online, lv;
@@ -399,7 +399,7 @@ struct party_member
 
 struct party
 {
-    int party_id;
+    PartyId party_id;
     PartyName name;
     int exp;
     int item;

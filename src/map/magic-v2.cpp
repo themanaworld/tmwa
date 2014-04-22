@@ -559,7 +559,7 @@ namespace magic_v2
     }
 
     static
-    bool parse_item(const SExpr& s, int& id, int& count)
+    bool parse_item(const SExpr& s, ItemNameId& id, int& count)
     {
         if (s._type == sexpr::STRING)
         {
@@ -679,7 +679,8 @@ namespace magic_v2
             dumb_ptr<component_t> items = nullptr;
             for (auto it = s._list.begin() + 1, end = s._list.end(); it != end; ++it)
             {
-                int id, count;
+                ItemNameId id;
+                int count;
                 if (!parse_item(*it, id, count))
                     return false;
                 magic_add_component(&items, id, count);
@@ -693,7 +694,8 @@ namespace magic_v2
             dumb_ptr<component_t> items = nullptr;
             for (auto it = s._list.begin() + 1, end = s._list.end(); it != end; ++it)
             {
-                int id, count;
+                ItemNameId id;
+                int count;
                 if (!parse_item(*it, id, count))
                     return false;
                 magic_add_component(&items, id, count);
