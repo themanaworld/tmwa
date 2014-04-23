@@ -101,7 +101,9 @@ namespace cxxstdio
         return v;
     }
 
+    inline
     const char *convert_for_printf(const char *) = delete;
+    inline
     char *convert_for_scanf(char *) = delete;
 
 # if 0

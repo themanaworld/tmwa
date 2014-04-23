@@ -41,7 +41,7 @@
 # define nullpo_ret(t) nullpo_retr(0, t)
 # define nullpo_retv(t) nullpo_retr(, t)
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 /// Used by macros in this header
 bool nullpo_chk(const char *file, int line, const char *func,

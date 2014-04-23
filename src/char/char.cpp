@@ -2474,7 +2474,7 @@ void parse_char(Session *s)
                 {
                     int len;
                     WFIFOB(s, 2) = 0;
-                    s->set_parsers(SessionParsers{func_parse: parse_frommap, func_delete: delete_frommap});
+                    s->set_parsers(SessionParsers{.func_parse= parse_frommap, .func_delete= delete_frommap});
                     server_session[i] = s;
                     if (anti_freeze_enable)
                         server_freezeflag[i] = 5;   // Map anti-freeze system. Counter. 5 ok, 4...0 freezed
@@ -2612,7 +2612,7 @@ void check_connect_login_server(TimerData *, tick_t)
     {
         PRINTF("Attempt to connect to login-server...\n"_fmt);
         login_session = make_connection(login_ip, login_port,
-                SessionParsers{func_parse: parse_tologin, func_delete: delete_tologin});
+                SessionParsers{.func_parse= parse_tologin, .func_delete= delete_tologin});
         if (!login_session)
             return;
         realloc_fifo(login_session, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);

@@ -586,7 +586,7 @@ struct NpcName : VString<23> {};
 struct ScriptLabel : VString<23> {};
 struct ItemName : VString<23> {};
 
-class BlockId : public Wrapped<uint32_t> { public: BlockId() : Wrapped<uint32_t>() {} protected: template<class... A> constexpr explicit BlockId(A... a) : Wrapped<uint32_t>(a...) {} };
+class BlockId : public Wrapped<uint32_t> { public: BlockId() : Wrapped<uint32_t>() {} protected: constexpr explicit BlockId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 inline
 BlockId account_to_block(AccountId a) { return wrap<BlockId>(unwrap<AccountId>(a)); }
 inline

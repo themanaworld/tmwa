@@ -45,17 +45,17 @@ namespace ints
             bool operator !() const { return !_value; }
         };
 
-        template<class W>
+        template<class W, typename=typename W::wrapped_type>
         bool operator == (W l, W r)
         {
             return l._value == r._value;
         }
-        template<class W>
+        template<class W, typename=typename W::wrapped_type>
         bool operator != (W l, W r)
         {
             return l._value != r._value;
         }
-        template<class W>
+        template<class W, typename=typename W::wrapped_type>
         bool operator < (W l, W r)
         {
             return l._value < r._value;
@@ -74,8 +74,8 @@ namespace ints
             struct Sub : T
             {
                 constexpr
-                Sub(typename T::wrapped_type v)
-                : T(v)
+                Sub(typename T::wrapped_type v2)
+                : T(v2)
                 {}
             };
             return Sub(v);

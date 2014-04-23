@@ -228,7 +228,7 @@ void connect_client(Session *ls)
     fd.fcntl(F_SETFL, O_NONBLOCK);
 
     set_session(fd, make_unique<Session>(
-                SessionIO{func_recv: recv_to_fifo, func_send: send_from_fifo},
+                SessionIO{.func_recv= recv_to_fifo, .func_send= send_from_fifo},
                 ls->for_inferior));
     Session *s = get_session(fd);
     s->fd = fd;
@@ -291,8 +291,8 @@ Session *make_listen_port(uint16_t port, SessionParsers inferior)
     readfds.set(fd);
 
     set_session(fd, make_unique<Session>(
-                SessionIO{func_recv: connect_client, func_send: nullptr},
-                SessionParsers{func_parse: nullptr, func_delete: nothing_delete}));
+                SessionIO{.func_recv= connect_client, .func_send= nullptr},
+                SessionParsers{.func_parse= nullptr, .func_delete= nothing_delete}));
     Session *s = get_session(fd);
     s->for_inferior = inferior;
     s->fd = fd;
@@ -346,7 +346,7 @@ Session *make_connection(IP4Address ip, uint16_t port, SessionParsers parsers)
     readfds.set(fd);
 
     set_session(fd, make_unique<Session>(
-                SessionIO{func_recv: recv_to_fifo, func_send: send_from_fifo},
+                SessionIO{.func_recv= recv_to_fifo, .func_send= send_from_fifo},
                 parsers));
     Session *s = get_session(fd);
     s->fd = fd;

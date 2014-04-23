@@ -25,13 +25,13 @@
 
 # include "extract.hpp"
 
-class Species : public Wrapped<uint16_t> { public: explicit operator bool() const = delete; bool operator !() const = delete; Species() : Wrapped<uint16_t>() {} protected: template<class... A> constexpr explicit Species(A... a) : Wrapped<uint16_t>(a...) {} };
+class Species : public Wrapped<uint16_t> { public: explicit operator bool() const = delete; bool operator !() const = delete; Species() : Wrapped<uint16_t>() {} protected: constexpr explicit Species(uint16_t a) : Wrapped<uint16_t>(a) {} };
 
-class AccountId : public Wrapped<uint32_t> { public: AccountId() : Wrapped<uint32_t>() {} protected: template<class... A> constexpr explicit AccountId(A... a) : Wrapped<uint32_t>(a...) {} };
-class CharId : public Wrapped<uint32_t> { public: CharId() : Wrapped<uint32_t>() {} protected: template<class... A> constexpr explicit CharId(A... a) : Wrapped<uint32_t>(a...) {} };
+class AccountId : public Wrapped<uint32_t> { public: AccountId() : Wrapped<uint32_t>() {} protected: constexpr explicit AccountId(uint32_t a) : Wrapped<uint32_t>(a) {} };
+class CharId : public Wrapped<uint32_t> { public: CharId() : Wrapped<uint32_t>() {} protected: constexpr explicit CharId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 // important note: slave mobs synthesize PartyId as -BlockId of master
-class PartyId : public Wrapped<uint32_t> { public: PartyId() : Wrapped<uint32_t>() {} protected: template<class... A> constexpr explicit PartyId(A... a) : Wrapped<uint32_t>(a...) {} };
-class ItemNameId : public Wrapped<uint16_t> { public: ItemNameId() : Wrapped<uint16_t>() {} protected: template<class... A> constexpr explicit ItemNameId(A... a) : Wrapped<uint16_t>(a...) {} };
+class PartyId : public Wrapped<uint32_t> { public: PartyId() : Wrapped<uint32_t>() {} protected: constexpr explicit PartyId(uint32_t a) : Wrapped<uint32_t>(a) {} };
+class ItemNameId : public Wrapped<uint16_t> { public: ItemNameId() : Wrapped<uint16_t>() {} protected: constexpr explicit ItemNameId(uint16_t a) : Wrapped<uint16_t>(a) {} };
 
 class GmLevel
 {
@@ -41,7 +41,7 @@ class GmLevel
     constexpr explicit
     GmLevel(uint32_t b) : bits(b) {}
     constexpr explicit
-    operator uint32_t() { return bits; }
+    operator uint32_t() const { return bits; }
 
     template<class T>
     explicit
@@ -65,16 +65,16 @@ public:
 
     // the argument is the level of a command
     constexpr
-    bool satisfies(GmLevel perm) { return bits >= perm.bits; }
+    bool satisfies(GmLevel perm) const { return bits >= perm.bits; }
     // the argument is another player's gm level, for info commands
     constexpr
-    bool detects(GmLevel other) { return bits >= other.bits; }
+    bool detects(GmLevel other) const { return bits >= other.bits; }
     // the argument is another player's gm level, for aggressive commands
     constexpr
-    bool overwhelms(GmLevel other) { return bits >= other.bits; }
+    bool overwhelms(GmLevel other) const { return bits >= other.bits; }
     // the argument is another potential permission level
     constexpr
-    bool obsoletes(GmLevel plvl) { return bits >= plvl.bits; }
+    bool obsoletes(GmLevel plvl) const { return bits >= plvl.bits; }
 
     constexpr
     uint16_t get_public_word() const

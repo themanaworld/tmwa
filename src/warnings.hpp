@@ -21,9 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#if 0
-# include "../sanity.hpp"
-#endif
+// just mention "fwd.hpp" to make formatter happy
 
 // This file is currently targeted at:
 // GCC 4.6 (incomplete due to bugs)
@@ -221,6 +219,18 @@ E("-Wbuiltin-macro-redefined")
 //W("-Wc++11-compat")
 I("-Wc++0x-compat")
 
+// I care about whether my code compiles with the standard as implemented
+// by certain compilers, not whether it matches with an *exact* standard.
+#ifdef __clang__
+# if __has_warning("-Wc++1y-extensions")
+IC("-Wc++1y-extensions")
+# else
+static_assert('E', "-Wc++1y-extensions not in this clang version");
+# endif
+#else
+static_assert('E', "-Wc++1y-extensions not in GCC");
+#endif
+
 /// Warn about pointer casts which increase alignment
 X("-Wcast-align")
 
@@ -355,6 +365,10 @@ EG47("-Wfree-nonheap-object")
 
 // -Wgnu is a clang alias for -Wpedantic
 
+// Foo{x: y}
+EC("-Wgnu-designator")
+
+
 /// Warn whenever type qualifiers are ignored.
 E("-Wignored-qualifiers")
 
@@ -403,6 +417,9 @@ E("-Wmain")
 
 /// Warn about maybe uninitialized automatic variables
 EG47("-Wmaybe-uninitialized")
+
+// bitch about 'struct Foo' vs 'class Foo'
+IC("-Wmismatched-tags")
 
 /// Warn about possibly missing braces around
 /// initializers

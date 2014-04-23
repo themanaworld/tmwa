@@ -2995,7 +2995,7 @@ void parse_login(Session *s)
                         WFIFOW(s, 0) = 0x2711;
                         WFIFOB(s, 2) = 0;
                         WFIFOSET(s, 3);
-                        s->set_parsers(SessionParsers{func_parse: parse_fromchar, func_delete: delete_fromchar});
+                        s->set_parsers(SessionParsers{.func_parse= parse_fromchar, .func_delete= delete_fromchar});
                         realloc_fifo(s, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
                         // send GM account to char-server
                         len = 4;
@@ -3069,7 +3069,7 @@ void parse_login(Session *s)
                                  password, ip);
                             PRINTF("Connection of a remote administration accepted (non encrypted password).\n"_fmt);
                             WFIFOB(s, 2) = 0;
-                            s->set_parsers(SessionParsers{func_parse: parse_admin, func_delete: delete_admin});
+                            s->set_parsers(SessionParsers{.func_parse= parse_admin, .func_delete= delete_admin});
                         }
                         else if (admin_state != 1)
                             LOGIN_LOG("'ladmin'-login: Connection in administration mode REFUSED - remote administration is disabled (non encrypted password: %s, ip: %s)\n"_fmt,
@@ -3872,7 +3872,7 @@ int do_init(Slice<ZString> argv)
     read_gm_account();
     mmo_auth_init();
 //     set_termfunc (mmo_auth_sync);
-    login_session = make_listen_port(login_port, SessionParsers{func_parse: parse_login, func_delete: delete_login});
+    login_session = make_listen_port(login_port, SessionParsers{.func_parse= parse_login, .func_delete= delete_login});
 
 
     Timer(gettick() + std::chrono::minutes(5),

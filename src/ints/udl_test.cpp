@@ -30,439 +30,439 @@ TEST(ints, smc)
 {
     {
         ints::SignedMagnitudeConstant<false, 0> i;
-        static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        (void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        (void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0> i;
-        static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        (void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        (void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x7e> i;
-        static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        (void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        (void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x7e> i;
-        static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        (void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x7f> i;
-        static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        (void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        (void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x7f> i;
-        static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        (void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x80> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        (void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x80> i;
-        static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        (void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0xfe> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        (void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0xfe> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0xff> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        (void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0xff> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false,0x100> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true, 0x100> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x7ffe> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x7ffe> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x7fff> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x7fff> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x8000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x8000> i;
-        //static_cast<int8_t>(i);
-        static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        (void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0xfffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0xfffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0xffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        (void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0xffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false,0x10000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true, 0x10000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x7ffffffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x7ffffffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x7fffffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x7fffffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x80000000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x80000000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        (void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0xfffffffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0xfffffffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0xffffffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        (void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0xffffffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false,0x100000000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        //static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        //(void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true, 0x100000000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x7ffffffffffffffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        //static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        //(void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x7ffffffffffffffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x7fffffffffffffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        //static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        //(void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x7fffffffffffffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0x8000000000000000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        //static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        //static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        //(void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        //(void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0x8000000000000000> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        (void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0xfffffffffffffffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        //static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        //static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        //(void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        //(void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0xfffffffffffffffe> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        //static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        //(void)static_cast<int64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<false, 0xffffffffffffffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        //static_cast<int64_t>(i);
-        //static_cast<uint8_t>(i);
-        //static_cast<uint16_t>(i);
-        //static_cast<uint32_t>(i);
-        static_cast<uint64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        //(void)static_cast<int64_t>(i);
+        //(void)static_cast<uint8_t>(i);
+        //(void)static_cast<uint16_t>(i);
+        //(void)static_cast<uint32_t>(i);
+        (void)static_cast<uint64_t>(i);
     }
     {
         ints::SignedMagnitudeConstant<true,  0xffffffffffffffff> i;
-        //static_cast<int8_t>(i);
-        //static_cast<int16_t>(i);
-        //static_cast<int32_t>(i);
-        //static_cast<int64_t>(i);
+        //(void)static_cast<int8_t>(i);
+        //(void)static_cast<int16_t>(i);
+        //(void)static_cast<int32_t>(i);
+        //(void)static_cast<int64_t>(i);
     }
     {
         //ints::SignedMagnitudeConstant<false,0x10000000000000000> i;

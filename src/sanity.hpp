@@ -19,9 +19,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# if 0
-#  include "../sanity.hpp"
-# endif
+// just mention "fwd.hpp" to make formatter happy
 
 # ifndef __cplusplus
 #  error "Please compile in C++ mode"

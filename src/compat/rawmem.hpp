@@ -23,7 +23,7 @@
 # include <cstdint>
 # include <cstring>
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 inline
 void really_memcpy(uint8_t *dest, const uint8_t *src, size_t n)

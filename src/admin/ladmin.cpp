@@ -260,6 +260,7 @@ TString parameters; // needs to be global since it's passed to the parse functio
 // really should be added to session data
 static
 AccountId list_first, list_last;
+static
 int list_type, list_count;  // parameter to display a list of accounts
 static
 int already_exit_function = 0; // sometimes, the exit function is called twice... so, don't log twice the message
@@ -286,7 +287,7 @@ void ladmin_log(XString line)
     log_with_timestamp(logfp, line);
 }
 
-static
+static __attribute__((noreturn))
 void delete_fromlogin(Session *)
 {
     {
@@ -2770,7 +2771,7 @@ int Connect_login_server(void)
     Iprintf("Attempt to connect to login-server...\n"_fmt);
     LADMIN_LOG("Attempt to connect to login-server...\n"_fmt);
 
-    login_session = make_connection(login_ip, login_port, SessionParsers{func_parse: parse_fromlogin, func_delete: delete_fromlogin});
+    login_session = make_connection(login_ip, login_port, SessionParsers{.func_parse= parse_fromlogin, .func_delete= delete_fromlogin});
 
     if (!login_session)
         return 0;

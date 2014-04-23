@@ -25,6 +25,8 @@
 
 namespace ints
 {
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wtype-limits"
     template<class T, class U>
     T saturate(const U& v)
     {
@@ -58,6 +60,7 @@ namespace ints
             return v;
         }
     }
+# pragma GCC diagnostic pop
 } // namespace ints
 
 using ints::saturate;

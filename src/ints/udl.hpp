@@ -122,7 +122,7 @@ namespace ints
 
             template<class T>
             constexpr
-            operator T()
+            operator T() const
             {
                 typedef typename std::make_unsigned<T>::type U;
                 // boo, body of constexpr function can't use variables

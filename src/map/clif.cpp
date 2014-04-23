@@ -5482,5 +5482,5 @@ void clif_parse(Session *s)
 
 void do_init_clif(void)
 {
-    make_listen_port(map_port, SessionParsers{func_parse: clif_parse, func_delete: clif_delete});
+    make_listen_port(map_port, SessionParsers{.func_parse= clif_parse, .func_delete= clif_delete});
 }

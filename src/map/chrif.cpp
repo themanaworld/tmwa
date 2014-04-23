@@ -1210,7 +1210,7 @@ void check_connect_char_server(TimerData *, tick_t)
         PRINTF("Attempt to connect to char-server...\n"_fmt);
         chrif_state = 0;
         char_session = make_connection(char_ip, char_port,
-                SessionParsers{func_parse: chrif_parse, func_delete: chrif_delete});
+                SessionParsers{.func_parse= chrif_parse, .func_delete= chrif_delete});
         if (!char_session)
             return;
         realloc_fifo(char_session, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
