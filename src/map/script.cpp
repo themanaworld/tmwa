@@ -746,10 +746,14 @@ bool read_constdb(ZString filename)
     }
 
     bool rv = true;
-    AString line;
-    while (in.getline(line))
+    AString line_;
+    while (in.getline(line_))
     {
-        if (is_comment(line))
+        // is_comment only works for whole-line comments
+        // that could change once the Z dependency is dropped ...
+        LString comment = "//"_s;
+        XString line = line_.xislice_h(std::search(line_.begin(), line_.end(), comment.begin(), comment.end())).rstrip();
+        if (!line)
             continue;
         // "%m[A-Za-z0-9_] %i %i"
 
@@ -780,7 +784,7 @@ bool read_constdb(ZString filename)
                 || !extract(val_, &val)
                 || (!extract(type_, &type) && type_))
         {
-            PRINTF("Bad const line: %s\n"_fmt, line);
+            PRINTF("Bad const line: %s\n"_fmt, line_);
             rv = false;
             continue;
         }
