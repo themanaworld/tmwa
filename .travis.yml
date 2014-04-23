@@ -74,6 +74,9 @@ env:
   - ignore=this
 
 matrix:
+  allow_failures:
+    - compiler: clang
+      env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.2
   exclude:
     - env: ignore=this
   include:

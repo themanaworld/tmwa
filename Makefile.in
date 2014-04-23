@@ -167,8 +167,12 @@ SHELL=bash
 # path lists
 REAL_SOURCES := $(shell cd ${SRC_DIR}; find src/ -name '*.cpp')
 REAL_HEADERS := $(shell cd ${SRC_DIR}; find src/ -name '*.hpp' -o -name '*.tcc')
+PIES := $(shell cd ${SRC_DIR}; find src/ -name '*.py')
 SOURCES := ${REAL_SOURCES}
 HEADERS := ${REAL_HEADERS}
+PATTERN_ROOTS := $(patsubst src/%.cpp,%,${SOURCES})
+PATTERN_MAINS := $(patsubst %/main,%,$(filter %/main,${PATTERN_ROOTS}))
+PATTERN_TESTS := $(patsubst %/test,%,$(filter %/test,${PATTERN_ROOTS}))
 DEPENDS := $(patsubst src/%.cpp,obj/%.d,${SOURCES})
 PREPROCESSED := $(patsubst %.d,%.ii,${DEPENDS})
 IRS := $(patsubst %.d,%.ll,${DEPENDS})
@@ -176,11 +180,9 @@ BITCODES := $(patsubst %.d,%.bc,${DEPENDS})
 ASSEMBLED := $(patsubst %.d,%.s,${DEPENDS})
 OBJECTS := $(patsubst %.d,%.o,${DEPENDS})
 MAIN_SOURCES := $(filter %/main.cpp,${SOURCES})
+TEST_SOURCES := $(filter %/test.cpp,${SOURCES})
 BINARIES := $(patsubst src/%/main.cpp,bin/tmwa-%,${MAIN_SOURCES})
-
-TEST_DEPENDS := $(patsubst src/%/test.cpp,obj/%/autolist.d,$(filter %/test.cpp,${SOURCES}))
-DEPENDS += ${TEST_DEPENDS}
-TEST_BINARIES := $(patsubst obj/%/autolist.d,bin/test-%,${TEST_DEPENDS})
+TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
 
 # tricky part
 
@@ -193,14 +195,15 @@ TEST_BINARIES := $(patsubst obj/%/autolist.d,bin/test-%,${TEST_DEPENDS})
 # 6: Merge new deps into the existing dep list.
 # 7: Recurse over all new deps (see 5).
 define RECURSIVE_DEPS_IMPL
-$(eval more_deps := $(shell cat $(patsubst %/test.d,%/autolist.d,${1})))
-$(eval more_deps := $(patsubst src/%.hpp,obj/%.d,${more_deps}))
+$(eval more_deps := $(value ${1}))
+$(eval more_deps := $(patsubst src/%.hpp,%,${more_deps}))
 
-$(eval more_deps := $(filter ${DEPENDS},${more_deps}))
+$(eval more_deps := $(filter ${PATTERN_ROOTS},${more_deps}))
 $(eval more_deps := $(filter-out ${cur_deps},${more_deps}))
 $(eval cur_deps += ${more_deps})
-$(foreach dep,${more_deps},$(call RECURSIVE_DEPS_IMPL,${dep}))
+$(foreach dep,${more_deps},${call RECURSIVE_DEPS_IMPL,${dep}})
 endef
+
 
 # 1: Initialize the dep list ($1 is a %.d).
 # 2: Call the real function on it.
@@ -214,14 +217,13 @@ ${cur_deps}
 endef
 
 # Apply the rules to all the main.cpp files
-$(foreach exe,${BINARIES},$(eval ${exe}: $(strip $(patsubst %.d,%.o,$(call RECURSIVE_DEPS,$(patsubst bin/tmwa-%,obj/%/main.d,${exe}))))))
-$(foreach exe,${TEST_BINARIES},$(eval ${exe}: $(strip $(patsubst %.d,%.o,$(call RECURSIVE_DEPS,$(patsubst bin/test-%,obj/%/test.d,${exe}))))))
+# (now below, since it has to go below the include)
 
 # utility functions for the rules
 MKDIR_FIRST = @mkdir -p ${@D}
 
 # Stuff sensitive to attoconf
-CXXFLAGS += ${WARNINGS}
+CPPFLAGS += ${WARNINGS}
 ifeq (${ENABLE_WARNINGS},yes)
 WARNINGS := -include ${SRC_DIR}/src/warnings.hpp
 endif
@@ -243,11 +245,51 @@ CXXFLAGS += -fstack-protector
 override CXXFLAGS += -fno-strict-aliasing
 override CXXFLAGS += -fvisibility=hidden
 
-# actual rules
+
+
+
+
+# above is configury
+# below are actual rules
+
+# first pass, include silently, but force rebuild
+ifndef MAKE_RESTARTS
+-include ${DEPENDS}
+else
+include ${DEPENDS}
+endif
+
+thisdir := $(abspath .)
+#$(foreach root,${PATTERN_ROOTS},$(info pre-root: ${root} := $(value ${root}))$(info ))
+# can't do $(filter %.hpp yet)
+$(foreach root,${PATTERN_ROOTS},$(eval ${root} := $(sort $(patsubst ${thisdir}/%,%,$(abspath $(patsubst ${SRC_DIR}/%,%,$(wildcard $(value ${root})) $(filter conf-raw/%.h,$(value ${root}))))))))
+# have to redo what we undid to get it as a variable
+$(foreach root,${PATTERN_ROOTS},$(eval obj/${root}.ii obj/${root}.ll obj/${root}.bc obj/${root}.s obj/${root}.o obj/${root}.d : $(value ${root})) )
+#$(foreach root,${PATTERN_ROOTS},$(info post-root: ${root} := $(value ${root}))$(info ))
+
+# test.o implicitly (NOT explicitly) depends on all (nonexistent) test_*.hpp
+# TODO actually have more than one test.o, each with its own set of files
+$(foreach test,${PATTERN_TESTS},$(eval ${test}/test += $(patsubst %,src/%.hpp,$(filter %_test,${PATTERN_ROOTS}))))
+
+
+$(foreach main,${PATTERN_MAINS},$(eval main-${main} := $(strip $(call RECURSIVE_DEPS,${main}/main))))
+# actual rule deps
+$(foreach main,${PATTERN_MAINS},$(eval bin/tmwa-${main} : $(patsubst %,obj/%.o,$(value main-${main}))))
+$(foreach main,${PATTERN_MAINS},$(eval bin/tmwa-${main}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value main-${main})))))
+#$(foreach main,${PATTERN_MAINS},$(info post-main: main-${main}: $(value main-${main})) $(info ))
+
+$(foreach test,${PATTERN_TESTS},$(eval test-${test} := $(strip $(call RECURSIVE_DEPS,${test}/test))))
+# actual rule deps
+$(foreach test,${PATTERN_TESTS},$(eval bin/test-${test} : $(patsubst %,obj/%.o,$(value test-${test}))))
+$(foreach test,${PATTERN_TESTS},$(eval bin/test-${test}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value test-${test})))))
+#$(foreach test,${PATTERN_TESTS},$(info post-test: test-${test}: $(value test-${test})) $(info ))
+
+
 vpath %.cpp ${SRC_DIR}
 vpath %.hpp ${SRC_DIR}
 vpath %.tcc ${SRC_DIR}
 vpath tools/% ${SRC_DIR}
+vpath %.py ${SRC_DIR}
 
 .DELETE_ON_ERROR:
 .DEFAULT_GOAL := all
@@ -267,14 +309,10 @@ distclean: clean gen-clean
 gen-clean: ;
 
 ifndef MAKE_RESTARTS
-# prevent errors if missing header
 obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
-	set -o pipefail; \
-	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MP -MM $< \
-	    -MT '$(patsubst %.d,%.ii,$@) $(patsubst %.d,%.ll,$@) $(patsubst %.d,%.bc,$@) $(patsubst %.d,%.s,$@) $(patsubst %.d,%.o,$@) $@' \
-	    | sed -e ':again; s:/[^/. ]*/\.\./:/:; t again' \
-	    -e 's: ${SRC_DIR}/: :g' \
+	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM $< \
+	    -MT '$(patsubst obj/%.d,%,$@) := ' \
 	    > $@
 endif
 # the above SRC_DIR replacement is not really safe, but it works okayish.
@@ -294,20 +332,16 @@ obj/%.o: src/%.cpp
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
-obj/%/autolist.d: $(filter-out %/autolist.d,${DEPENDS})
-	echo $@: $(filter %_test.d,$^) > $@
-include ${DEPENDS}
-
 # I'm not convinced keeping the bin/ is a good idea
-# TODO - for development, regenerate -gdb.py even if the binary
-# doesn't need to be rebuilt. For release, the version forces rebuild.
-bin/%:
+bin/%-gdb.py:
 	$(MKDIR_FIRST)
-	$l ${CXX} ${LDFLAGS} $^ ${LDLIBS} -o $@
 	cat ${SRC_DIR}/src/main-gdb-head.py \
-	    $(wildcard $(patsubst obj/%.o,${SRC_DIR}/src/%.py,$^)) \
+	    $^ \
 	    ${SRC_DIR}/src/main-gdb-tail.py \
-	    > $@-gdb.py
+	    > $@
+bin/%: bin/%-gdb.py
+	$(MKDIR_FIRST)
+	$l ${CXX} ${LDFLAGS} $(filter-out bin/%-gdb.py,$^) ${LDLIBS} -o $@
 
 ${TEST_BINARIES}: obj/gtest-all.o
 
