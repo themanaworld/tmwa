@@ -23,10 +23,13 @@
 
 # include "fwd.hpp"
 
+# include <algorithm>
+
 # include "../compat/memory.hpp"
 
 # include "../strings/vstring.hpp"
 
+# include "../generic/array.hpp"
 # include "../generic/enum.hpp"
 
 # include "ids.hpp"
@@ -63,20 +66,6 @@ constexpr int MAX_PARTY = 12;
 # define MAX_HAIR_COLOR battle_config.max_hair_color
 # define MIN_CLOTH_COLOR battle_config.min_cloth_color
 # define MAX_CLOTH_COLOR battle_config.max_cloth_color
-
-template<class T, size_t n>
-struct Array
-{
-    T data[n];
-public:
-    T& operator [](size_t i) { assert (i < n); return data[i]; }
-    const T& operator [](size_t i) const { assert (i < n); return data[i]; }
-
-    T *begin() { return data + 0; }
-    T *end() { return data + n; }
-    const T *begin() const { return data + 0; }
-    const T *end() const { return data + n; }
-};
 
 struct AccountName : VString<23> {};
 struct AccountPass : VString<23> {};

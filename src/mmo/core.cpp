@@ -22,15 +22,13 @@
 
 #include <sys/wait.h>
 
-#include <unistd.h>
+#include <alloca.h>
 
 #include <csignal>
 #include <cstdlib>
-#include <ctime>
 
 #include "../strings/zstring.hpp"
-
-#include "../generic/random.hpp"
+#include "../strings/literal.hpp"
 
 #include "../io/cxxstdio.hpp"
 

@@ -23,7 +23,7 @@
 
 # include <cstdlib>
 
-# include "../strings/zstring.hpp"
+# include "../strings/fwd.hpp"
 
 # include "../io/line.hpp"
 

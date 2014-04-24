@@ -25,7 +25,7 @@
 
 # include "../strings/fwd.hpp"
 
-struct Session;
+# include "../mmo/fwd.hpp"
 
 bool inter_config(XString key, ZString value);
 void inter_init2();

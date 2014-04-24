@@ -18,7 +18,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <cstddef>
+
+#include <algorithm>
+#include <map>
 #include <set>
+
+#include "../strings/rstring.hpp"
+#include "../strings/literal.hpp"
+
+#include "../io/cxxstdio.hpp"
+#include "../io/line.hpp"
 
 #include "../sexpr/parser.hpp"
 
@@ -26,6 +36,7 @@
 
 #include "itemdb.hpp"
 #include "magic-expr.hpp"
+#include "magic-interpreter.hpp"
 
 #include "../poison.hpp"
 

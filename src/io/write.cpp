@@ -18,13 +18,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <sys/uio.h>
-
 #include <fcntl.h>
-#include <unistd.h>
 
+#include <cstdio>
 #include <cstdlib>
 
+#include <algorithm>
+
+#include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../poison.hpp"

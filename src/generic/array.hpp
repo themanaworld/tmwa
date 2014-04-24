@@ -1,7 +1,8 @@
-#include "alg.hpp"
-//    alg.cpp - Silly math stuff.
+#ifndef TMWA_GENERIC_ARRAY_HPP
+#define TMWA_GENERIC_ARRAY_HPP
+//    array.hpp - A simple bounds-checked array.
 //
-//    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,4 +19,23 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../poison.hpp"
+# include "fwd.hpp"
+
+# include <cassert>
+# include <cstddef>
+
+template<class T, size_t n>
+struct Array
+{
+    T data[n];
+public:
+    T& operator [](size_t i) { assert (i < n); return data[i]; }
+    const T& operator [](size_t i) const { assert (i < n); return data[i]; }
+
+    T *begin() { return data + 0; }
+    T *end() { return data + n; }
+    const T *begin() const { return data + 0; }
+    const T *end() const { return data + n; }
+};
+
+#endif // TMWA_GENERIC_ARRAY_HPP

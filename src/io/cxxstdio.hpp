@@ -19,7 +19,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+# include "fwd.hpp"
 
 # include <cstdarg>
 # include <cstdio>
@@ -27,8 +27,6 @@
 # include "../compat/cast.hpp"
 
 # include "../generic/enum.hpp"
-
-# include "fwd.hpp"
 
 
 namespace cxxstdio

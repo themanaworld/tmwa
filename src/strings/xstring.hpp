@@ -22,7 +22,6 @@
 # include "fwd.hpp"
 
 # include "base.hpp"
-# include "literal.hpp"
 
 namespace strings
 {

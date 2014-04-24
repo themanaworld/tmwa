@@ -22,9 +22,12 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <cstdio>
 #include <cstdlib>
 
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "cxxstdio.hpp"
 #include "fd.hpp"

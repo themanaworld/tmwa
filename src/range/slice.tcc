@@ -19,8 +19,6 @@
 
 #include <cassert>
 
-#include <algorithm>
-
 // simple pointer-wrapping iterator
 template<class T>
 class Slice<T>::iterator

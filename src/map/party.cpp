@@ -21,8 +21,6 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstring>
-
 #include "../compat/nullpo.hpp"
 
 #include "../strings/xstring.hpp"
@@ -31,7 +29,8 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "../mmo/socket.hpp"
+#include "../mmo/ids.hpp"
+#include "../mmo/mmo.hpp"
 #include "../mmo/timer.hpp"
 
 #include "battle.hpp"
@@ -39,7 +38,6 @@
 #include "intif.hpp"
 #include "map.hpp"
 #include "pc.hpp"
-#include "tmw.hpp"
 
 #include "../poison.hpp"
 

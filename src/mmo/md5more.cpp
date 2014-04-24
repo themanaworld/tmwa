@@ -20,11 +20,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <algorithm>
+
 #include "../compat/rawmem.hpp"
 
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/read.hpp"
+
+#include "../mmo/ip.hpp"
+#include "../mmo/mmo.hpp"
 
 #include "../poison.hpp"
 

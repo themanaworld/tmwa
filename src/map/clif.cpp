@@ -20,13 +20,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <arpa/inet.h>
-
-#include <cstdlib>
-#include <cstring>
+#include <cassert>
 #include <ctime>
 
-#include "../compat/alg.hpp"
+#include <algorithm>
+
 #include "../compat/attr.hpp"
 #include "../compat/fun.hpp"
 #include "../compat/nullpo.hpp"
@@ -37,14 +35,14 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
-#include "../generic/random.hpp"
-
 #include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 
+#include "../mmo/ip.hpp"
 #include "../mmo/md5more.hpp"
 #include "../mmo/socket.hpp"
 #include "../mmo/timer.hpp"
+#include "../mmo/utils.hpp"
 #include "../mmo/version.hpp"
 
 #include "atcommand.hpp"

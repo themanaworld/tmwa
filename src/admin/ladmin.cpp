@@ -1,4 +1,4 @@
-#include <arpa/inet.h>
+#include "ladmin.hpp"
 //    ladmin.cpp - Local administration tool.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -26,13 +26,13 @@
 
 #include <cassert>
 
+#include <algorithm>
+
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
-
-#include "../generic/md5.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
@@ -42,6 +42,7 @@
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
 #include "../mmo/human_time_diff.hpp"
+#include "../mmo/ip.hpp"
 #include "../mmo/mmo.hpp"
 #include "../mmo/socket.hpp"
 #include "../mmo/utils.hpp"

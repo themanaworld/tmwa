@@ -1,4 +1,5 @@
 #include "magic-interpreter-base.hpp"
+#include "magic.hpp"
 //    magic-interpreter-base.cpp - Core of the old magic system.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -19,7 +20,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "magic-interpreter-aux.hpp"
+#include <algorithm>
+
 #include "magic-interpreter.hpp"
 
 #include "../strings/astring.hpp"
@@ -296,7 +298,7 @@ int spellguard_can_satisfy(spellguard_check_t *check, dumb_ptr<map_session_data>
         interval_t casttime = check->casttime;
 
         if (env->VAR(VAR_MIN_CASTTIME).ty == TYPE::INT)
-            casttime = max(casttime, static_cast<interval_t>(env->VAR(VAR_MIN_CASTTIME).v.v_int));
+            casttime = std::max(casttime, static_cast<interval_t>(env->VAR(VAR_MIN_CASTTIME).v.v_int));
 
         caster->cast_tick = tick + casttime;    /* Make sure not to cast too frequently */
 

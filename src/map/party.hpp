@@ -27,11 +27,8 @@
 
 # include "../strings/fwd.hpp"
 
-# include "map.hpp"
-
-struct party;
-struct map_session_data;
-struct block_list;
+# include "../mmo/fwd.hpp"
+# include "../mmo/dumb_ptr.hpp"
 
 void do_init_party(void);
 struct party *party_search(PartyId party_id);

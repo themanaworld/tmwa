@@ -19,16 +19,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cctype>
-#include <cstring>
-
 #include "../compat/nullpo.hpp"
 
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../io/cxxstdio.hpp"
+
+#include "../mmo/human_time_diff.hpp"
+#include "../mmo/utils.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"

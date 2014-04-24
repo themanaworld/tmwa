@@ -23,7 +23,6 @@
 
 # include "fwd.hpp"
 
-# include <cstddef>
 # include <cstdint>
 
 # include "../strings/fwd.hpp"
@@ -34,6 +33,7 @@
 
 constexpr BlockId START_NPC_NUM = wrap<BlockId>(110000000);
 
+// TODO make these species, see npc_class in npc_data
 constexpr int WARP_CLASS = 45;
 constexpr int WARP_DEBUG_CLASS = 722;
 constexpr int INVISIBLE_CLASS = 32767;

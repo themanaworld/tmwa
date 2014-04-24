@@ -20,6 +20,9 @@
 
 #include <cerrno>
 
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../poison.hpp"
 
 namespace sexpr

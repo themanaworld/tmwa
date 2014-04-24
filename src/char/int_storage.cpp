@@ -20,20 +20,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstdlib>
-#include <cstring>
-
-#include <functional>
-
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/xstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
+#include "../io/write.hpp"
 
 #include "../mmo/extract.hpp"
 #include "../mmo/mmo.hpp"

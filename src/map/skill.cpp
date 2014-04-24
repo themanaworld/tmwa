@@ -22,9 +22,8 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cassert>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
+
+#include <algorithm>
 
 #include "../compat/attr.hpp"
 #include "../compat/fun.hpp"
@@ -32,7 +31,10 @@
 
 #include "../strings/mstring.hpp"
 #include "../strings/rstring.hpp"
+#include "../strings/astring.hpp"
+#include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../generic/random.hpp"
 
@@ -40,13 +42,11 @@
 #include "../io/read.hpp"
 
 #include "../mmo/extract.hpp"
-#include "../mmo/socket.hpp"
 #include "../mmo/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
 #include "magic.hpp"
-#include "map.hpp"
 #include "mob.hpp"
 #include "pc.hpp"
 

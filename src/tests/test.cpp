@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 //    test.cpp - Driver for testwuite
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -17,6 +16,8 @@
 //
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include <gtest/gtest.h>
 
 #include "../poison.hpp"
 

@@ -23,6 +23,7 @@
 #include "vstring.hpp"
 #include "xstring.hpp"
 #include "rstring.hpp"
+#include "literal.hpp"
 
 #include "../poison.hpp"
 

@@ -21,9 +21,6 @@
 
 # include "fwd.hpp"
 
-# include <cstdarg>
-# include <cstring>
-
 # include "base.hpp"
 # include "rstring.hpp"
 

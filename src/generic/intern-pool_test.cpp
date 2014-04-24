@@ -20,7 +20,7 @@
 
 #include <gtest/gtest.h>
 
-#include "../strings/base.hpp"
+#include "../strings/literal.hpp"
 
 #include "../poison.hpp"
 

@@ -21,10 +21,7 @@
 
 # include "fwd.hpp"
 
-# include <cstring>
-
 # include "base.hpp"
-# include "literal.hpp"
 
 namespace strings
 {

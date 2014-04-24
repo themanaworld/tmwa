@@ -22,6 +22,7 @@
 # include "fwd.hpp"
 
 # include <cassert>
+# include <cstddef>
 
 # include <algorithm>
 # include <type_traits>
@@ -124,6 +125,7 @@ public:
 
 // std::underlying_type isn't supported until gcc 4.7
 // this is a poor man's emulation
+// TODO I'm depending on GCC 4.7 now, this can go away
 template<class E>
 struct underlying_type
 {

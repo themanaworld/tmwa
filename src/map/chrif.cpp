@@ -20,10 +20,6 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <arpa/inet.h>
-
-#include <cstring>
-
 #include "../compat/fun.hpp"
 #include "../compat/nullpo.hpp"
 
@@ -32,6 +28,9 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "../mmo/human_time_diff.hpp"
+#include "../mmo/ip.hpp"
+#include "../mmo/mmo.hpp"
 #include "../mmo/socket.hpp"
 #include "../mmo/timer.hpp"
 #include "../mmo/utils.hpp"

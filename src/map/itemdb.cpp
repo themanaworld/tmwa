@@ -20,24 +20,19 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstdlib>
-#include <cstring>
-
-#include "../compat/nullpo.hpp"
+#include <algorithm>
 
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../generic/db.hpp"
-#include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/extract.hpp"
-#include "../mmo/socket.hpp"
 
 #include "../poison.hpp"
 

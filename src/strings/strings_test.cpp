@@ -1,4 +1,3 @@
-#include "all.hpp"
 //    strings_test.cpp - Testsuite part 1 for strings.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -21,6 +20,8 @@
 #include <algorithm>
 
 #include <gtest/gtest.h>
+
+#include "all.hpp"
 
 #include "../poison.hpp"
 

@@ -23,6 +23,8 @@
 
 # include "fwd.hpp"
 
+# include <cstdint>
+
 # include "../generic/enum.hpp"
 
 namespace e

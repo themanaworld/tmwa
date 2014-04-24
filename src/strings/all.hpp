@@ -29,6 +29,7 @@
 # include "sstring.hpp"
 # include "zstring.hpp"
 # include "xstring.hpp"
+# include "literal.hpp"
 # include "vstring.hpp"
 
 #endif // TMWA_STRINGS_ALL_HPP

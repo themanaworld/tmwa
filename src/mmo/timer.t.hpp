@@ -28,8 +28,6 @@
 
 # include "dumb_ptr.hpp"
 
-struct TimerData;
-
 /// An implementation of the C++ "clock" concept, exposing
 /// durations in milliseconds.
 class milli_clock

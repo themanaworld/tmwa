@@ -24,8 +24,12 @@
 // meh, add more when I feel like it
 class MapName;
 class CharName;
+class CharPair;
 
 class Session;
+
+class HumanTimeDiff;
+class IP4Address;
 
 class AccountId;
 class CharId;
@@ -33,5 +37,17 @@ class PartyId;
 class ItemUnkId;
 class ItemNameId;
 class GmLevel;
+
+class AccountName;
+class AccountPass;
+class AccountCrypt;
+class AccountEmail;
+class ServerName;
+class PartyName;
+class VarName;
+class MapName;
+class CharName;
+
+class TimerData;
 
 #endif // TMWA_MMO_FWD_HPP

@@ -23,8 +23,6 @@
 
 #include <cassert>
 #include <cmath>
-#include <cstdlib>
-#include <cstring>
 
 #include <algorithm>
 
@@ -32,6 +30,7 @@
 #include "../compat/nullpo.hpp"
 
 #include "../strings/astring.hpp"
+#include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../generic/random.hpp"

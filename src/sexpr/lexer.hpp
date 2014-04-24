@@ -23,9 +23,8 @@
 
 # include <vector>
 
+# include "../strings/fwd.hpp"
 # include "../strings/astring.hpp"
-# include "../strings/vstring.hpp"
-# include "../strings/xstring.hpp"
 # include "../strings/zstring.hpp"
 
 # include "../io/line.hpp"

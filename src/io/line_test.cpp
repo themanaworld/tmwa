@@ -20,6 +20,7 @@
 
 #include <gtest/gtest.h>
 
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
 #include "../poison.hpp"

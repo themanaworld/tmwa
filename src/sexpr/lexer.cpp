@@ -19,6 +19,8 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "../strings/mstring.hpp"
+#include "../strings/vstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../io/cxxstdio.hpp"
 

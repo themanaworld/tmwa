@@ -27,7 +27,9 @@
 
 # include <vector>
 
-# include "../mmo/mmo.hpp"
+# include "../strings/fwd.hpp"
+
+# include "../mmo/fwd.hpp"
 
 bool load_resnametable(ZString filename);
 

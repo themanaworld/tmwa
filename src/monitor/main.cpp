@@ -30,6 +30,7 @@
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/fd.hpp"

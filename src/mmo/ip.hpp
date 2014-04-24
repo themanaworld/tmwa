@@ -23,9 +23,10 @@
 
 # include <netinet/in.h>
 
-# include "../strings/fwd.hpp"
+# include <cstddef>
+# include <cstdint>
 
-# include "extract.hpp"
+# include "../strings/fwd.hpp"
 
 // TODO - in the long run ports belong here also
 // and of course, IPv6 stuff.

@@ -24,10 +24,12 @@
 
 # include "magic-interpreter.hpp"
 
-# include "../range/slice.hpp"
+# include "../mmo/dumb_ptr.hpp"
 
-# include "../strings/fwd.hpp"
+# include "../range/fwd.hpp"
+
 # include "../strings/zstring.hpp"
+# include "../strings/literal.hpp"
 
 /*
  * Argument types:

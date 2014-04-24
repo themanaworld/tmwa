@@ -29,7 +29,6 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cstring>
 
 #include "../compat/nullpo.hpp"
 #include "../compat/fun.hpp"
@@ -40,6 +39,7 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../generic/db.hpp"
 #include "../generic/random2.hpp"
@@ -54,6 +54,7 @@
 #include "../mmo/extract.hpp"
 #include "../mmo/socket.hpp"
 #include "../mmo/timer.hpp"
+#include "../mmo/utils.hpp"
 #include "../mmo/version.hpp"
 
 #include "atcommand.hpp"
@@ -63,7 +64,7 @@
 #include "grfio.hpp"
 #include "itemdb.hpp"
 #include "magic.hpp"
-#include "magic-interpreter.hpp"
+#include "magic-interpreter.hpp" // for is_spell inline body
 #include "magic-v2.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
@@ -114,6 +115,10 @@ void SessionDeleter::operator()(SessionData *sd)
     really_delete1 static_cast<map_session_data *>(sd);
 }
 
+VString<49> convert_for_printf(NpcEvent ev)
+{
+    return STRNPRINTF(50, "%s::%s"_fmt, ev.npc, ev.label);
+}
 bool extract(XString str, NpcEvent *ev)
 {
     XString mid;

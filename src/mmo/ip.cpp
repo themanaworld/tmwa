@@ -23,6 +23,8 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "extract.hpp"
+
 #include "../poison.hpp"
 
 bool extract(XString str, IP4Address *rv)

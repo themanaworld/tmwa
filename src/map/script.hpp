@@ -24,20 +24,16 @@
 # include "fwd.hpp"
 
 # include <cstdint>
-# include <cstring> // for inlined get_str - TODO remove
 
 # include <vector>
 
 # include "../range/slice.hpp"
 
-# include "../strings/rstring.hpp"
-# include "../strings/astring.hpp"
 # include "../strings/zstring.hpp"
 
 # include "../generic/db.hpp"
 
 # include "../mmo/dumb_ptr.hpp"
-# include "../mmo/utils.hpp"
 
 # include "map.t.hpp"
 
@@ -180,7 +176,6 @@ struct argrec_t
 int run_script_l(ScriptPointer, BlockId, BlockId, Slice<argrec_t> args);
 int run_script(ScriptPointer, BlockId, BlockId);
 
-struct ScriptLabel;
 extern
 Map<ScriptLabel, int> scriptlabel_db;
 extern

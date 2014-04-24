@@ -25,7 +25,8 @@
 
 # include "../strings/fwd.hpp"
 
-# include "map.hpp"
+# include "../mmo/fwd.hpp"
+# include "../mmo/dumb_ptr.hpp"
 
 int intif_parse(Session *);
 

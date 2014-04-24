@@ -20,6 +20,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../strings/vstring.hpp"
+
 #include "../poison.hpp"
 
 static

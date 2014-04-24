@@ -18,9 +18,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "rstring.hpp"
+#include "astring.hpp"
 #include "tstring.hpp"
 #include "zstring.hpp"
 #include "xstring.hpp"
+#include "literal.hpp"
 
 #include "../poison.hpp"
 

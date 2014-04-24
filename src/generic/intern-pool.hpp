@@ -22,6 +22,7 @@
 # include "fwd.hpp"
 
 # include <cassert>
+# include <cstddef>
 
 # include <map>
 # include <vector>

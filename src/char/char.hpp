@@ -25,10 +25,10 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../generic/array.hpp"
+
 # include "../mmo/ip.hpp"
 # include "../mmo/mmo.hpp"
-
-struct Session;
 
 constexpr int MAX_MAP_SERVERS = 30;
 

@@ -25,11 +25,8 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../mmo/fwd.hpp"
 # include "../mmo/dumb_ptr.hpp"
-# include "../mmo/human_time_diff.hpp"
-# include "../mmo/ip.hpp"
-
-# include "map.hpp"
 
 void chrif_setuserid(AccountName);
 void chrif_setpasswd(AccountPass);

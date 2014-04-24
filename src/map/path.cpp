@@ -22,18 +22,19 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cassert>
+#include <cstddef>
+#include <cstdlib>
 
 #include "../compat/nullpo.hpp"
 
-#include "../generic/random.hpp"
+#include "../strings/literal.hpp"
 
 #include "../io/cxxstdio.hpp"
 
-#include "battle.hpp"
+#include "magic-interpreter.t.hpp"
+#include "map.hpp"
 
 #include "../poison.hpp"
-
-//#define PATH_STANDALONETEST
 
 constexpr int MAX_HEAP = 150;
 struct tmp_path

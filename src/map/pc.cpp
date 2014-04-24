@@ -23,16 +23,16 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cassert>
-#include <cstdlib>
-#include <cstring>
 
-#include "../compat/alg.hpp"
+#include <algorithm>
+
 #include "../compat/fun.hpp"
 #include "../compat/nullpo.hpp"
 
 #include "../strings/rstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../generic/random.hpp"
 
@@ -41,6 +41,7 @@
 
 #include "../mmo/socket.hpp"
 #include "../mmo/timer.hpp"
+#include "../mmo/utils.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -50,7 +51,6 @@
 #include "itemdb.hpp"
 #include "magic.hpp"
 #include "map.hpp"
-#include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp"
 #include "path.hpp"

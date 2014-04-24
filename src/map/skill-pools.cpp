@@ -1,3 +1,4 @@
+#include "skill-pools.hpp"
 #include "skill.hpp"
 //    skill-pools.cpp - Additional support for focusable skills.
 //

@@ -26,6 +26,7 @@
 #include "../strings/astring.hpp"
 #include "../strings/mstring.hpp"
 #include "../strings/xstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../poison.hpp"
 

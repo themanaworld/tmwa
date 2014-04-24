@@ -28,7 +28,9 @@
 
 # include "../strings/fwd.hpp"
 # include "../strings/rstring.hpp"
-# include "../strings/astring.hpp"
+# include "../strings/literal.hpp"
+
+# include "../generic/array.hpp"
 
 # include "map.hpp"
 
@@ -75,9 +77,6 @@ extern struct skill_name_db skill_names[];
 
 skill_name_db& skill_lookup_by_id(SkillID id);
 skill_name_db& skill_lookup_by_name(XString name);
-
-struct block_list;
-struct map_session_data;
 
 bool skill_readdb(ZString filename);
 

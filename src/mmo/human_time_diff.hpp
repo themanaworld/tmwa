@@ -21,6 +21,8 @@
 
 # include "fwd.hpp"
 
+# include <algorithm>
+
 # include "../strings/xstring.hpp"
 
 # include "extract.hpp"

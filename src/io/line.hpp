@@ -22,10 +22,9 @@
 # include "fwd.hpp"
 
 # include "../strings/rstring.hpp"
-# include "../strings/astring.hpp"
 # include "../strings/zstring.hpp"
+# include "../strings/literal.hpp"
 
-# include "fd.hpp"
 # include "read.hpp"
 
 

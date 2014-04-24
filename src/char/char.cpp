@@ -22,8 +22,6 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <sys/wait.h>
 
 #include <netdb.h>
@@ -33,13 +31,12 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cstring>
-#include <ctime>
 
+#include <algorithm>
+#include <array>
 #include <bitset>
+#include <chrono>
 #include <set>
-
-#include "../compat/alg.hpp"
 
 #include "../ints/cmp.hpp"
 #include "../ints/udl.hpp"
@@ -49,19 +46,22 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
-#include "../generic/db.hpp"
+#include "../generic/array.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 #include "../io/tty.hpp"
+#include "../io/write.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
 #include "../mmo/extract.hpp"
 #include "../mmo/human_time_diff.hpp"
+#include "../mmo/mmo.hpp"
 #include "../mmo/socket.hpp"
 #include "../mmo/timer.hpp"
+#include "../mmo/utils.hpp"
 #include "../mmo/version.hpp"
 
 #include "inter.hpp"

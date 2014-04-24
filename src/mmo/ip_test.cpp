@@ -20,6 +20,9 @@
 
 #include <gtest/gtest.h>
 
+#include "../strings/vstring.hpp"
+#include "../strings/literal.hpp"
+
 #include "../io/cxxstdio.hpp"
 
 #include "../poison.hpp"

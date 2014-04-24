@@ -20,9 +20,9 @@
 
 #include <gtest/gtest.h>
 
-#include "../ints/udl.hpp"
+#include <algorithm>
 
-#include "../strings/xstring.hpp"
+#include "../ints/udl.hpp"
 
 #include "../poison.hpp"
 

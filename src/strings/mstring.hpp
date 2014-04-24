@@ -23,8 +23,6 @@
 
 # include <deque>
 
-# include "base.hpp"
-
 namespace strings
 {
     /// An owning string that is still expected to change.

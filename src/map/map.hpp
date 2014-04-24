@@ -25,8 +25,7 @@
 
 # include "map.t.hpp"
 
-# include <netinet/in.h>
-
+# include <chrono>
 # include <functional>
 # include <list>
 
@@ -40,10 +39,9 @@
 # include "../generic/db.hpp"
 # include "../generic/matrix.hpp"
 
-# include "../io/cxxstdio.hpp"
-
 # include "../mmo/socket.hpp"
 # include "../mmo/timer.t.hpp"
+# include "../mmo/utils.hpp"
 
 # include "battle.t.hpp"
 # include "magic-interpreter.t.hpp"
@@ -91,19 +89,9 @@ struct NpcEvent
         return l.npc < r.npc || (l.npc == r.npc && l.label < r.label);
     }
 
-    friend VString<49> convert_for_printf(NpcEvent ev)
-    {
-        return STRNPRINTF(50, "%s::%s"_fmt, ev.npc, ev.label);
-    }
+    friend VString<49> convert_for_printf(NpcEvent ev);
 };
 bool extract(XString str, NpcEvent *ev);
-
-struct map_session_data;
-struct npc_data;
-struct mob_data;
-struct flooritem_data;
-struct invocation;
-struct map_local;
 
 struct block_list
 {
@@ -145,11 +133,6 @@ struct status_change
     int val1;
     BlockId spell_invocation;      /* [Fate] If triggered by a spell, record here */
 };
-
-struct invocation;
-
-struct npc_data;
-struct item_data;
 
 struct quick_regeneration
 {                               // [Fate]
@@ -358,14 +341,12 @@ struct npc_item_list
     int value;
 };
 
-class npc_data_script;
-class npc_data_shop;
-class npc_data_warp;
-class npc_data_message;
 struct npc_data : block_list
 {
     NpcSubtype npc_subtype;
     short n;
+    // TODO This *should* be a Species, but the script files give -1 for
+    // event-only which is not valid unsigned
     short npc_class;
     DIR dir;
     interval_t speed;

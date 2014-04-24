@@ -18,14 +18,18 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstring>
+#include <algorithm>
+#include <utility>
 
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
 
+#include "../mmo/dumb_ptr.hpp"
+
 #include "magic-interpreter.hpp"
 
+#include "map.hpp"
 #include "pc.hpp"
 
 #include "magic-expr.hpp"

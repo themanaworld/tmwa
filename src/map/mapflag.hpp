@@ -21,9 +21,9 @@
 
 # include "fwd.hpp"
 
-# include "../mmo/extract.hpp" // TODO remove this (requires specializing the *other* half)
+# include <cstdint>
 
-# include "../strings/xstring.hpp"
+# include "../mmo/extract.hpp" // TODO remove this (requires specializing the *other* half)
 
 // originally from script.cpp
 // These are part of the script API, so they can't change ever,

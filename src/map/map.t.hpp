@@ -23,7 +23,11 @@
 
 # include "fwd.hpp"
 
+# include <cstdint>
+
 # include "../strings/vstring.hpp"
+
+# include "../generic/enum.hpp"
 
 # include "../mmo/ids.hpp"
 # include "../mmo/mmo.hpp"

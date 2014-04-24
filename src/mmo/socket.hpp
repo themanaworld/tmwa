@@ -23,13 +23,13 @@
 
 # include "fwd.hpp"
 
-# include <netinet/in.h>
+# include <algorithm>
 
-# include <cstdio>
+# include <sys/select.h>
 
-# include <array>
 # include <memory>
 
+# include "../compat/iter.hpp"
 # include "../compat/rawmem.hpp"
 
 # include "../strings/astring.hpp"
@@ -52,7 +52,6 @@ struct SessionDeleter
     void operator()(SessionData *sd);
 };
 
-struct Session;
 struct SessionIO
 {
     void (*func_recv)(Session *);

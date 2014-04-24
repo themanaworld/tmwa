@@ -1,3 +1,4 @@
+#include "login.hpp"
 //    login.cpp - Core of the login server.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -20,8 +21,6 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <arpa/inet.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 
 #include <netdb.h>
@@ -29,14 +28,10 @@
 
 #include <sys/resource.h>
 
-#include <cstdlib>
-#include <cstring>
 #include <ctime>
 
 #include <algorithm>
-#include <array>
 #include <set>
-#include <type_traits>
 
 #include "../ints/udl.hpp"
 
@@ -53,11 +48,13 @@
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 #include "../io/tty.hpp"
+#include "../io/write.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
 #include "../mmo/extract.hpp"
 #include "../mmo/human_time_diff.hpp"
+#include "../mmo/ids.hpp"
 #include "../mmo/md5more.hpp"
 #include "../mmo/mmo.hpp"
 #include "../mmo/socket.hpp"

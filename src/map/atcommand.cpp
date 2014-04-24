@@ -20,9 +20,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cmath>
-#include <cstring>
 #include <ctime>
+
+#include <algorithm>
 
 #include "../conf/version.hpp"
 
@@ -35,6 +35,7 @@
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../generic/db.hpp"
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -45,9 +46,11 @@
 #include "../mmo/core.hpp"
 #include "../mmo/extract.hpp"
 #include "../mmo/human_time_diff.hpp"
+#include "../mmo/ids.hpp"
 #include "../mmo/mmo.hpp"
 #include "../mmo/socket.hpp"
 #include "../mmo/timer.hpp"
+#include "../mmo/utils.hpp"
 #include "../mmo/version.hpp"
 
 #include "battle.hpp"
@@ -60,7 +63,6 @@
 #include "npc.hpp"
 #include "party.hpp"
 #include "pc.hpp"
-#include "script.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 #include "tmw.hpp"

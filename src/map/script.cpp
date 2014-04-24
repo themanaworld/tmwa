@@ -23,12 +23,11 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cassert>
-#include <cctype>
 #include <cmath>
 #include <cstdlib>
-#include <cstring>
 #include <ctime>
 
+#include <algorithm>
 #include <set>
 
 #include "../compat/fun.hpp"
@@ -38,6 +37,7 @@
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../generic/db.hpp"
 #include "../generic/intern-pool.hpp"
@@ -46,13 +46,14 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
+#include "../io/write.hpp"
 
-#include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
 #include "../mmo/extract.hpp"
+#include "../mmo/human_time_diff.hpp"
 #include "../mmo/socket.hpp"
-#include "../mmo/utils.hpp"
 #include "../mmo/timer.hpp"
+#include "../mmo/utils.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"

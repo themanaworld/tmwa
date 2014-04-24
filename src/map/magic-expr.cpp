@@ -22,23 +22,27 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cassert>
-#include <cmath>
 
-#include "../compat/alg.hpp"
+#include <algorithm>
 
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/vstring.hpp"
+#include "../strings/literal.hpp"
 
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
 
+#include "../mmo/dumb_ptr.hpp"
+
 #include "battle.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
 #include "itemdb.hpp"
+
+#include "magic-interpreter.hpp"
 
 #include "../poison.hpp"
 

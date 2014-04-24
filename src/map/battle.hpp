@@ -27,6 +27,7 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../mmo/dumb_ptr.hpp"
 # include "../mmo/timer.t.hpp"
 
 # include "magic-interpreter.t.hpp"
@@ -43,10 +44,6 @@ struct Damage
     BF flag;
     ATK dmg_lv;
 };
-
-struct map_session_data;
-struct mob_data;
-struct block_list;
 
 // ダメージ計算
 

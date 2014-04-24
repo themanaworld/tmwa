@@ -24,9 +24,10 @@
 
 # include "../range/slice.hpp"
 
+# include "../strings/fwd.hpp"
 # include "../strings/zstring.hpp"
 
-# include "magic-interpreter.hpp"
+# include "magic-interpreter.t.hpp"
 
 /* Helper definitions for dealing with functions and operations */
 
@@ -36,6 +37,7 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
 void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
         area_t& area);
 
+// TODO kill this like I killed VAR
 # define ARGINT(x) args[x].v.v_int
 # define ARGDIR(x) args[x].v.v_dir
 # define ARGSTR(x) ZString(args[x].v.v_string)

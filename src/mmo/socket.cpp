@@ -21,25 +21,23 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
-//#include <sys/types.h>
 
 #include <fcntl.h>
-#include <unistd.h>
 
 #include <cstdlib>
-#include <cstring>
-#include <ctime>
+
+#include <array>
 
 #include "../compat/memory.hpp"
 
 #include "../io/cxxstdio.hpp"
 
+#include "../mmo/utils.hpp"
+
 #include "core.hpp"
 #include "timer.hpp"
-#include "utils.hpp"
 
 #include "../poison.hpp"
 

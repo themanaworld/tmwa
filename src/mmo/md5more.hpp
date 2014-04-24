@@ -25,10 +25,7 @@
 
 # include "../generic/md5.hpp"
 
-# include "../io/read.hpp"
-
-# include "ip.hpp"
-# include "mmo.hpp"
+# include "../io/fwd.hpp"
 
 MD5_state MD5_from_FILE(io::ReadFile& in);
 

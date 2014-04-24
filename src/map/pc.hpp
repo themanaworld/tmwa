@@ -27,6 +27,8 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../mmo/utils.hpp"
+
 # include "clif.t.hpp"
 # include "map.hpp"
 

@@ -21,13 +21,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstring>
+#include <algorithm>
 
-#include "../compat/alg.hpp"
 #include "../compat/nullpo.hpp"
 
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
 
 #include "../generic/random.hpp"
 

@@ -22,6 +22,30 @@
 # include "../sanity.hpp"
 
 // meh, add more when I feel like it
+class BlockId;
+struct block_list;
 struct map_session_data;
+struct npc_data;
+struct mob_data;
+struct flooritem_data;
+struct invocation;
+struct map_local;
+class npc_data_script;
+class npc_data_shop;
+class npc_data_warp;
+class npc_data_message;
+struct NpcEvent;
+
+struct item_data;
+
+// magic
+struct fun_t;
+struct op_t;
+struct expr_t;
+struct val_t;
+struct location_t;
+struct area_t;
+struct spell_t;
+struct invocation;
 
 #endif // TMWA_MAP_FWD_HPP

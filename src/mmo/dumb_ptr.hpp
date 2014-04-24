@@ -24,6 +24,7 @@
 # include <cstring>
 
 # include <algorithm>
+# include <utility>
 
 # include "../strings/astring.hpp"
 # include "../strings/zstring.hpp"
@@ -199,10 +200,6 @@ struct dumb_string
         std::copy(b, e, &rv.impl[0]);
         return rv;
     }
-    static dumb_string copy(const char *sz)
-    {
-        return dumb_string::copy(sz, sz + strlen(sz));
-    }
     static dumb_string copys(XString s)
     {
         return dumb_string::copy(&*s.begin(), &*s.end());
@@ -227,7 +224,7 @@ struct dumb_string
 
     dumb_string dup() const
     {
-        return dumb_string::copy(&impl[0]);
+        return dumb_string::copy(&impl[0], &impl[0] + impl.size());
     }
     void delete_()
     {

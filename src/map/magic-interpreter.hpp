@@ -26,22 +26,19 @@
 
 # include <cassert>
 
+# include <memory>
+
 # include "../strings/fwd.hpp"
 # include "../strings/rstring.hpp"
 
-# include "magic.hpp"
+# include "../mmo/dumb_ptr.hpp"
+# include "../mmo/ids.hpp"
+# include "../mmo/timer.t.hpp"
+# include "../mmo/utils.hpp"
+
 # include "map.hpp"
 # include "script.hpp"
 # include "skill.t.hpp"
-
-struct fun_t;
-struct op_t;
-struct expr_t;
-struct val_t;
-struct location_t;
-struct area_t;
-struct spell_t;
-struct invocation;
 
 struct location_t
 {
@@ -318,8 +315,6 @@ struct magic_conf_t
 # define VAR_TARGET              6
 # define VAR_SCRIPTTARGET        7
 # define VAR_LOCATION            8
-
-struct magic_config;
 
 struct env_t
 {

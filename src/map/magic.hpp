@@ -26,10 +26,8 @@
 
 # include "../mmo/dumb_ptr.hpp"
 
-# include "map.hpp"
+# include "map.t.hpp"
 # include "skill.t.hpp"
-
-struct invocation;              /* Spell invocation */
 
 /**
  * Try to cast magic.

@@ -20,25 +20,23 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <sys/stat.h>
-
 #include <fcntl.h>
 #include <unistd.h>
 
 #include <cassert>
-#include <cstdio>
-#include <cstring>
 
 #include <map>
 
 #include "../strings/mstring.hpp"
 #include "../strings/rstring.hpp"
 #include "../strings/astring.hpp"
+#include "../strings/zstring.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
 #include "../mmo/extract.hpp"
+#include "../mmo/mmo.hpp"
 
 #include "../poison.hpp"
 

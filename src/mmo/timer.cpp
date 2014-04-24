@@ -24,15 +24,11 @@
 #include <sys/time.h>
 
 #include <cassert>
-#include <cstring>
 
+#include <algorithm>
 #include <queue>
 
 #include "../strings/zstring.hpp"
-
-#include "../io/cxxstdio.hpp"
-
-#include "utils.hpp"
 
 #include "../poison.hpp"
 

@@ -18,9 +18,8 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cassert>
+#include <cstdarg>
 #include <cstdio>
-
-#include "../compat/cast.hpp"
 
 #include "rstring.hpp"
 #include "astring.hpp"
@@ -28,6 +27,7 @@
 #include "sstring.hpp"
 #include "zstring.hpp"
 #include "xstring.hpp"
+#include "literal.hpp"
 
 namespace strings
 {
