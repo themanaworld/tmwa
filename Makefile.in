@@ -301,8 +301,14 @@ bc: ${BITCODES}
 s: ${ASSEMBLED}
 o: ${OBJECTS}
 
-mostlyclean:
-	$c rm -rf obj conf-raw
+clean-deps:
+	-$c find obj -name '*.d' -delete
+clean-obj:
+	-$c find obj -name '*.o' -delete
+clean-conf:
+	$c rm -rf conf-raw
+mostlyclean: clean-conf
+	$c rm -rf obj
 clean: mostlyclean
 	$c rm -rf bin
 distclean: clean gen-clean
@@ -311,7 +317,8 @@ gen-clean: ;
 ifndef MAKE_RESTARTS
 obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
-	$c ${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM \
+# Not using $c because it's slow and this should be fast
+	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM \
 	    -MT '$(patsubst obj/%.d,%,$@) := ' \
 	    -MF $@ $<
 endif
