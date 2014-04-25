@@ -46,7 +46,7 @@
 
 #include "battle.hpp"
 #include "clif.hpp"
-#include "magic.hpp"
+#include "magic-stmt.hpp"
 #include "mob.hpp"
 #include "pc.hpp"
 

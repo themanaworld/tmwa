@@ -22,14 +22,14 @@
 
 # include "fwd.hpp"
 
-# include "magic-interpreter.hpp"
-
 # include "../mmo/dumb_ptr.hpp"
 
 # include "../range/fwd.hpp"
 
 # include "../strings/zstring.hpp"
 # include "../strings/literal.hpp"
+
+# include "magic-interpreter.t.hpp"
 
 /*
  * Argument types:
@@ -52,26 +52,12 @@ struct fun_t
     int (*fun)(dumb_ptr<env_t> env, val_t *result, Slice<val_t> arga);
 };
 
-struct op_t
-{
-    ZString name;
-    ZString signature;
-    int (*op)(dumb_ptr<env_t> env, Slice<val_t> arga);
-};
-
 /**
  * Retrieves a function by name
  * @param name The name to look up
  * @return A function of that name, or NULL.
  */
 fun_t *magic_get_fun(ZString name);
-
-/**
- * Retrieves an operation by name
- * @param name The name to look up
- * @return An operation of that name, or NULL, and a function index
- */
-op_t *magic_get_op(ZString name);
 
 /**
  * Evaluates an expression and stores the result in `dest'
@@ -108,5 +94,13 @@ int magic_find_item(Slice<val_t> args, int index, struct item *item, int *stacka
     }
 
 int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area);
+
+/* Helper definitions for dealing with functions and operations */
+
+int magic_signature_check(ZString opname, ZString funname, ZString signature,
+        Slice<val_t> args, int line, int column);
+
+void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
+        area_t& area);
 
 #endif // TMWA_MAP_MAGIC_EXPR_HPP

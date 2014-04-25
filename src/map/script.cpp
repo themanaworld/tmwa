@@ -61,7 +61,7 @@
 #include "clif.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
-#include "magic.hpp"
+#include "magic-interpreter-base.hpp"
 #include "map.hpp"
 #include "mob.hpp"
 #include "npc.hpp"

@@ -1,8 +1,9 @@
 #ifndef TMWA_MAP_MAGIC_INTERPRETER_BASE_HPP
 #define TMWA_MAP_MAGIC_INTERPRETER_BASE_HPP
-//    magic-interpreter-base.hpp - dummy header to make Make dependencies work.
+//    magic-interpreter-base.hpp - Core of the old magic system.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2004-2011 The Mana World Development Team
+//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -20,5 +21,64 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # include "fwd.hpp"
+
+# include "../strings/fwd.hpp"
+
+# include "../mmo/dumb_ptr.hpp"
+
+extern magic_conf_t magic_conf; /* Global magic conf */
+extern env_t magic_default_env; /* Fake default environment */
+
+/**
+ * Adds a component selection to a component holder (which may initially be NULL)
+ */
+void magic_add_component(dumb_ptr<component_t> *component_holder, ItemNameId id, int count);
+
+/**
+ * Identifies the invocation used to trigger a spell
+ *
+ * Returns empty string if not found
+ */
+AString magic_find_invocation(XString spellname);
+
+/**
+ * Identifies the invocation used to denote a teleport location
+ *
+ * Returns empty string if not found
+ */
+AString magic_find_anchor_invocation(XString teleport_location);
+
+dumb_ptr<teleport_anchor_t> magic_find_anchor(XString name);
+
+dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
+        dumb_ptr<map_session_data> caster, int spellpower, XString param);
+
+void magic_free_env(dumb_ptr<env_t> env);
+
+/**
+ * near_miss is set to nonzero iff the spell only failed due to ephemereal issues (spell delay in effect, out of mana, out of components)
+ */
+effect_set_t *spell_trigger(dumb_ptr<spell_t> spell,
+        dumb_ptr<map_session_data> caster,
+        dumb_ptr<env_t> env, int *near_miss);
+
+dumb_ptr<invocation> spell_instantiate(effect_set_t *effect, dumb_ptr<env_t> env);
+
+/**
+ * Bind a spell to a subject (this is a no-op for `local' spells).
+ */
+void spell_bind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocation);
+
+// 1 on failure
+int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocation);
+
+/**
+ * Clones a spell to run the at_effect field
+ */
+dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> source);
+
+dumb_ptr<spell_t> magic_find_spell(XString invocation);
+
+void spell_update_location(dumb_ptr<invocation> invocation);
 
 #endif // TMWA_MAP_MAGIC_INTERPRETER_BASE_HPP

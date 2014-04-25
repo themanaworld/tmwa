@@ -311,9 +311,9 @@ gen-clean: ;
 ifndef MAKE_RESTARTS
 obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
-	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM $< \
+	$c ${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM \
 	    -MT '$(patsubst obj/%.d,%,$@) := ' \
-	    > $@
+	    -MF $@ $<
 endif
 # the above SRC_DIR replacement is not really safe, but it works okayish.
 obj/%.ii: src/%.cpp

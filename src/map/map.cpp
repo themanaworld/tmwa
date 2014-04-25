@@ -63,8 +63,8 @@
 #include "clif.hpp"
 #include "grfio.hpp"
 #include "itemdb.hpp"
-#include "magic.hpp"
 #include "magic-interpreter.hpp" // for is_spell inline body
+#include "magic-stmt.hpp"
 #include "magic-v2.hpp"
 #include "mob.hpp"
 #include "npc.hpp"

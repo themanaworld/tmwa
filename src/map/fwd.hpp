@@ -47,5 +47,10 @@ struct location_t;
 struct area_t;
 struct spell_t;
 struct invocation;
+struct teleport_anchor_t;
+struct env_t;
+struct magic_conf_t;
+struct component_t;
+struct effect_set_t;
 
 #endif // TMWA_MAP_FWD_HPP

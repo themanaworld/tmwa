@@ -49,7 +49,7 @@
 #include "clif.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
-#include "magic.hpp"
+#include "magic-stmt.hpp"
 #include "map.hpp"
 #include "npc.hpp"
 #include "party.hpp"

@@ -1,3 +1,4 @@
+#include "magic.hpp"
 //    magic.cpp - Entry to the magic system.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -27,15 +28,12 @@
 
 #include "../mmo/dumb_ptr.hpp"
 
-#include "magic-interpreter.hpp"
-
-#include "map.hpp"
-#include "pc.hpp"
-
 #include "magic-expr.hpp"
+#include "magic-interpreter.hpp"
 #include "magic-interpreter-base.hpp"
 #include "magic-stmt.hpp"
-#include "magic.hpp"
+#include "map.hpp"
+#include "pc.hpp"
 
 #include "../poison.hpp"
 

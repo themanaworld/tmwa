@@ -1,6 +1,4 @@
-#include "magic-expr-eval.hpp"
 #include "magic-expr.hpp"
-#include "magic-interpreter-aux.hpp"
 //    magic-expr.cpp - Pure functions for the old magic backend.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -38,13 +36,20 @@
 #include "../mmo/dumb_ptr.hpp"
 
 #include "battle.hpp"
+#include "itemdb.hpp"
+#include "magic-expr-eval.hpp"
+#include "magic-interpreter.hpp"
+#include "magic-interpreter-base.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
-#include "itemdb.hpp"
-
-#include "magic-interpreter.hpp"
 
 #include "../poison.hpp"
+
+template<class T>
+bool CHECK_TYPE(T *v, TYPE t)
+{
+    return v->ty == t;
+}
 
 static
 void free_area(dumb_ptr<area_t> area)
@@ -791,8 +796,8 @@ int fun_hash_entity(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     return 0;
 }
 
-int                            // ret -1: not a string, ret 1: no such item, ret 0: OK
-magic_find_item(Slice<val_t> args, int index, struct item *item_, int *stackable)
+// ret -1: not a string, ret 1: no such item, ret 0: OK
+int magic_find_item(Slice<val_t> args, int index, struct item *item_, int *stackable)
 {
     struct item_data *item_data;
     int must_add_sequentially;

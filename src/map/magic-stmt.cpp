@@ -1,5 +1,4 @@
 #include "magic-stmt.hpp"
-#include "magic.hpp"
 //    magic-stmt.cpp - Imperative commands for the magic backend.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -33,12 +32,13 @@
 
 #include "../mmo/timer.hpp"
 
+#include "battle.hpp"
+#include "clif.hpp"
+#include "magic.hpp"
 #include "magic-expr.hpp"
 #include "magic-expr-eval.hpp"
 #include "magic-interpreter.hpp"
-
-#include "battle.hpp"
-#include "clif.hpp"
+#include "magic-interpreter-base.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
 #include "pc.hpp"

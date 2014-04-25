@@ -1,5 +1,4 @@
 #include "magic-interpreter-base.hpp"
-#include "magic.hpp"
 //    magic-interpreter-base.cpp - Core of the old magic system.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -22,8 +21,6 @@
 
 #include <algorithm>
 
-#include "magic-interpreter.hpp"
-
 #include "../strings/astring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -31,8 +28,9 @@
 
 #include "../mmo/timer.hpp"
 
+#include "magic.hpp"
 #include "magic-expr.hpp"
-
+#include "magic-interpreter.hpp"
 #include "pc.hpp"
 
 #include "../poison.hpp"
