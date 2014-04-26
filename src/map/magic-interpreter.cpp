@@ -1,5 +1,5 @@
 #include "magic-interpreter.hpp"
-//    magic-interpreter.hpp - Old magic.
+//    magic-interpreter.cpp - Old magic.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //

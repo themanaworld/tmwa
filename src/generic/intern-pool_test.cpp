@@ -1,5 +1,5 @@
 #include "intern-pool.hpp"
-//    intern-pool.hpp - Testsuite for cached integer/string lookups.
+//    intern-pool_test.cpp - Testsuite for cached integer/string lookups.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //

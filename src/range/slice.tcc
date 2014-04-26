@@ -1,4 +1,4 @@
-//    strings/base.tcc - Inline functions for strings/base.hpp
+//    ranges/slice.tcc - Inline functions for strings/base.hpp
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //

@@ -1,5 +1,5 @@
 #include "lock.hpp"
-//    io/lock.hpp - Output to files with atomic replacement and backups.
+//    io/lock.cpp - Output to files with atomic replacement and backups.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //

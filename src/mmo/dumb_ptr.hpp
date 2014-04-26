@@ -1,6 +1,6 @@
 #ifndef TMWA_MMO_DUMB_PTR_HPP
 #define TMWA_MMO_DUMB_PTR_HPP
-//    ptr.hpp - temporary new/delete wrappers
+//    dumb_ptr.hpp - temporary new/delete wrappers
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //

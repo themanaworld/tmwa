@@ -1,5 +1,5 @@
 #include "line.hpp"
-//    io/line.hpp - Input from files, line-by-line
+//    io/line.cpp - Input from files, line-by-line
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //

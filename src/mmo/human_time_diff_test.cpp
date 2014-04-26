@@ -1,5 +1,5 @@
 #include "human_time_diff.hpp"
-//    human_time_diff.hpp - Testwuite for broken deltas
+//    human_time_diff_test.cpp - Testwuite for broken deltas
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //
