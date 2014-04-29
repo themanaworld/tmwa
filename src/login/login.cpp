@@ -1700,7 +1700,7 @@ void parse_admin(Session *s)
                     ma.lastlogin = stringish<timestamp_milliseconds_buffer>("-"_s);
                     ma.sex = sex_from_char(RFIFOB(s, 50));
                     WFIFOW(s, 0) = 0x7931;
-                    WFIFOL(s, 2) = -1;
+                    WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                     WFIFO_STRING(s, 6, ma.userid, 24);
                     if (ma.userid.size() < 4 || ma.passwd.size() < 4)
                     {
@@ -1748,7 +1748,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x7933;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 AuthData *ad = search_account(account_name);
                 if (ad)
@@ -1789,7 +1789,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x7935;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 AuthData *ad = search_account(account_name);
                 if (ad)
@@ -1817,7 +1817,7 @@ void parse_admin(Session *s)
                     return;
                 {
                     WFIFOW(s, 0) = 0x7937;
-                    WFIFOL(s, 2) = -1;
+                    WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                     AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                     int statut = RFIFOL(s, 26);
                     timestamp_seconds_buffer error_message = stringish<timestamp_seconds_buffer>(RFIFO_STRING<20>(s, 30).to_print());
@@ -1900,7 +1900,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x793b;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 const AuthData *ad = search_account(account_name);
                 if (ad)
@@ -1936,7 +1936,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x793d;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 WFIFO_STRING(s, 6, account_name, 24);
                 {
@@ -1992,7 +1992,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x793f;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 WFIFO_STRING(s, 6, account_name, 24);
                 bool reread = false;
@@ -2112,7 +2112,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x7941;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 WFIFO_STRING(s, 6, account_name, 24);
                 {
@@ -2151,7 +2151,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x7943;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 AuthData *ad = search_account(account_name);
                 if (ad)
@@ -2189,7 +2189,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x7945;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 const AuthData *ad = search_account(account_name);
                 if (ad)
@@ -2243,7 +2243,7 @@ void parse_admin(Session *s)
                     return;
                 {
                     WFIFOW(s, 0) = 0x7949;
-                    WFIFOL(s, 2) = -1;
+                    WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                     AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                     TimeT timestamp = static_cast<time_t>(RFIFOL(s, 26));
                     timestamp_seconds_buffer tmpstr = stringish<timestamp_seconds_buffer>("unlimited"_s);
@@ -2281,7 +2281,7 @@ void parse_admin(Session *s)
                     return;
                 {
                     WFIFOW(s, 0) = 0x794b;
-                    WFIFOL(s, 2) = -1;
+                    WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                     AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                     TimeT timestamp = static_cast<time_t>(RFIFOL(s, 26));
                     if (timestamp <= TimeT::now())
@@ -2335,7 +2335,7 @@ void parse_admin(Session *s)
                     return;
                 {
                     WFIFOW(s, 0) = 0x794d;
-                    WFIFOL(s, 2) = -1;
+                    WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                     AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                     AuthData *ad = search_account(account_name);
                     if (ad)
@@ -2466,7 +2466,7 @@ void parse_admin(Session *s)
                     return;
                 {
                     WFIFOW(s, 0) = 0x7951;
-                    WFIFOL(s, 2) = -1;
+                    WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                     AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                     AuthData *ad = search_account(account_name);
                     if (ad)
@@ -2556,7 +2556,7 @@ void parse_admin(Session *s)
                     return;
             {
                 WFIFOW(s, 0) = 0x7953;
-                WFIFOL(s, 2) = -1;
+                WFIFOL(s, 2) = unwrap<AccountId>(AccountId());
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
                 const AuthData *ad = search_account(account_name);
                 if (ad)

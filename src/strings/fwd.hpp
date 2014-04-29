@@ -46,7 +46,7 @@ namespace strings
     template<uint8_t len>
     class VString;
 
-    // refactor this into a function?
+    // TODO refactor this into a function?
     enum _type_that_just_has_a_name_to_fix_linkage
     { really_construct_from_a_pointer };
 
