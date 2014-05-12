@@ -21,6 +21,7 @@
 
 # include "fwd.hpp"
 
+# include "../ints/little.hpp"
 # include "../ints/wrap.hpp"
 
 # include "extract.hpp"
@@ -32,6 +33,8 @@ class CharId : public Wrapped<uint32_t> { public: CharId() : Wrapped<uint32_t>()
 // important note: slave mobs synthesize PartyId as -BlockId of master
 class PartyId : public Wrapped<uint32_t> { public: PartyId() : Wrapped<uint32_t>() {} protected: constexpr explicit PartyId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 class ItemNameId : public Wrapped<uint16_t> { public: ItemNameId() : Wrapped<uint16_t>() {} protected: constexpr explicit ItemNameId(uint16_t a) : Wrapped<uint16_t>(a) {} };
+
+class BlockId : public Wrapped<uint32_t> { public: BlockId() : Wrapped<uint32_t>() {} protected: constexpr explicit BlockId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 
 class GmLevel
 {
@@ -97,6 +100,30 @@ public:
     bool operator != (GmLevel l, GmLevel r)
     {
         return l.bits != r.bits;
+    }
+
+    friend
+    bool native_to_network(Byte *network, GmLevel native)
+    {
+        network->value = native.bits;
+        return true; // LIES. But this code is going away soon anyway
+    }
+    friend
+    bool network_to_native(GmLevel *native, Byte network)
+    {
+        native->bits = network.value;
+        return true; // LIES. But this code is going away soon anyway
+    }
+
+    friend
+    bool native_to_network(Little32 *network, GmLevel native)
+    {
+        return native_to_network(network, native.bits);
+    }
+    friend
+    bool network_to_native(GmLevel *native, Little32 network)
+    {
+        return network_to_native(&native->bits, network);
     }
 };
 

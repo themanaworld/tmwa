@@ -27,6 +27,8 @@
 
 # include <type_traits>
 
+# include "../ints/little.hpp"
+
 # include "../strings/fwd.hpp"
 # include "../strings/vstring.hpp"
 
@@ -106,6 +108,40 @@ long long& convert_for_scanf(TimeT& t)
 {
     return t.value;
 }
+
+// 2038 problem
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little32 *net, TimeT nat)
+{
+    time_t tmp = nat;
+    return native_to_network(net, static_cast<uint32_t>(tmp));
+}
+
+inline __attribute__((warn_unused_result))
+bool network_to_native(TimeT *nat, Little32 net)
+{
+    uint32_t tmp;
+    bool rv = network_to_native(&tmp, net);
+    *nat = static_cast<time_t>(tmp);
+    return rv;
+}
+
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little64 *net, TimeT nat)
+{
+    time_t tmp = nat;
+    return native_to_network(net, static_cast<uint64_t>(tmp));
+}
+
+inline __attribute__((warn_unused_result))
+bool network_to_native(TimeT *nat, Little64 net)
+{
+    uint64_t tmp;
+    bool rv = network_to_native(&tmp, net);
+    *nat = static_cast<time_t>(tmp);
+    return rv;
+}
+
 
 struct timestamp_seconds_buffer : VString<19> {};
 struct timestamp_milliseconds_buffer : VString<23> {};
