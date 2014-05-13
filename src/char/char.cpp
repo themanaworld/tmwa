@@ -56,6 +56,7 @@
 
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
+#include "../net/vomit.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"

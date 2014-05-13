@@ -39,8 +39,8 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../net/socket.hpp"
 #include "../net/timer.hpp"
+#include "../net/vomit.hpp"
 
 #include "../mmo/utils.hpp"
 

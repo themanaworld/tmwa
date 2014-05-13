@@ -41,6 +41,7 @@
 #include "../net/ip.hpp"
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
+#include "../net/vomit.hpp"
 
 #include "../mmo/md5more.hpp"
 #include "../mmo/utils.hpp"

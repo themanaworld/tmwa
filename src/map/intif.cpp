@@ -30,6 +30,7 @@
 #include "../io/cxxstdio.hpp"
 
 #include "../net/socket.hpp"
+#include "../net/vomit.hpp"
 
 #include "../mmo/mmo.hpp"
 

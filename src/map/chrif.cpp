@@ -31,6 +31,7 @@
 #include "../net/ip.hpp"
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
+#include "../net/vomit.hpp"
 
 #include "../mmo/human_time_diff.hpp"
 #include "../mmo/mmo.hpp"

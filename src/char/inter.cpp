@@ -38,7 +38,7 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
-#include "../net/socket.hpp"
+#include "../net/vomit.hpp"
 
 #include "../mmo/extract.hpp"
 #include "../mmo/mmo.hpp"
