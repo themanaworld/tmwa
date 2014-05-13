@@ -27,8 +27,9 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../generic/fwd.hpp"
+
 # include "../mmo/fwd.hpp"
-# include "../mmo/dumb_ptr.hpp"
 
 void do_init_party(void);
 struct party *party_search(PartyId party_id);

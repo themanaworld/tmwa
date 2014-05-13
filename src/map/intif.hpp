@@ -25,8 +25,11 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../generic/fwd.hpp"
+
+# include "../net/fwd.hpp"
+
 # include "../mmo/fwd.hpp"
-# include "../mmo/dumb_ptr.hpp"
 
 int intif_parse(Session *);
 

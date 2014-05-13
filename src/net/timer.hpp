@@ -1,5 +1,5 @@
-#ifndef TMWA_MMO_TIMER_HPP
-#define TMWA_MMO_TIMER_HPP
+#ifndef TMWA_NET_TIMER_HPP
+#define TMWA_NET_TIMER_HPP
 //    timer.hpp - Future event scheduler.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -47,4 +47,4 @@ tick_t file_modified(ZString name);
 /// Check if there are any events at all scheduled.
 bool has_timers();
 
-#endif // TMWA_MMO_TIMER_HPP
+#endif // TMWA_NET_TIMER_HPP

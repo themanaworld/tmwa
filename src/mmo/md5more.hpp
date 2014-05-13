@@ -27,6 +27,8 @@
 
 # include "../io/fwd.hpp"
 
+# include "../net/fwd.hpp"
+
 MD5_state MD5_from_FILE(io::ReadFile& in);
 
 // whoever wrote this fails basic understanding of

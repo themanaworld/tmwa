@@ -1,5 +1,5 @@
-#ifndef TMWA_MMO_DUMB_PTR_HPP
-#define TMWA_MMO_DUMB_PTR_HPP
+#ifndef TMWA_GENERIC_DUMB_PTR_HPP
+#define TMWA_GENERIC_DUMB_PTR_HPP
 //    dumb_ptr.hpp - temporary new/delete wrappers
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -268,4 +268,4 @@ const char *convert_for_printf(dumb_string ds)
     return ds.c_str();
 }
 
-#endif // TMWA_MMO_DUMB_PTR_HPP
+#endif // TMWA_GENERIC_DUMB_PTR_HPP

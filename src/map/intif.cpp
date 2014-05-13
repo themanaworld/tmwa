@@ -29,8 +29,9 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "../net/socket.hpp"
+
 #include "../mmo/mmo.hpp"
-#include "../mmo/socket.hpp"
 
 #include "battle.hpp"
 #include "chrif.hpp"

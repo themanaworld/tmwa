@@ -27,7 +27,8 @@
 
 # include "../generic/array.hpp"
 
-# include "../mmo/ip.hpp"
+# include "../net/ip.hpp"
+
 # include "../mmo/mmo.hpp"
 
 constexpr int MAX_MAP_SERVERS = 30;

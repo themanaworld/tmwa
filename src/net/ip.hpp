@@ -1,5 +1,5 @@
-#ifndef TMWA_MMO_IP_HPP
-#define TMWA_MMO_IP_HPP
+#ifndef TMWA_NET_IP_HPP
+#define TMWA_NET_IP_HPP
 //    ip.hpp - classes to deal with IP addresses.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -162,4 +162,4 @@ bool extract(XString str, IP4Address *iv);
 
 bool extract(XString str, IP4Mask *iv);
 
-#endif // TMWA_MMO_IP_HPP
+#endif // TMWA_NET_IP_HPP

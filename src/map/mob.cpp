@@ -38,10 +38,11 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
+#include "../net/socket.hpp"
+#include "../net/timer.hpp"
+
 #include "../mmo/config_parse.hpp"
 #include "../mmo/extract.hpp"
-#include "../mmo/socket.hpp"
-#include "../mmo/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

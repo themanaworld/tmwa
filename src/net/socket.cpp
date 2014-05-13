@@ -34,9 +34,10 @@
 
 #include "../io/cxxstdio.hpp"
 
+// TODO get rid of ordering violations
 #include "../mmo/utils.hpp"
+#include "../mmo/core.hpp"
 
-#include "core.hpp"
 #include "timer.hpp"
 
 #include "../poison.hpp"
@@ -431,6 +432,7 @@ void do_sendrecv(interval_t next_ms)
         if (!has_timers())
         {
             PRINTF("Shutting down - nothing to do\n"_fmt);
+            // TODO hoist this
             runflag = false;
         }
         return;

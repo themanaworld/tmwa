@@ -24,7 +24,7 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../mmo/dumb_ptr.hpp"
+# include "../generic/fwd.hpp"
 
 int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message);
 void tmw_GmHackMsg(ZString line);

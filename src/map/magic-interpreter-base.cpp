@@ -26,7 +26,7 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "../mmo/timer.hpp"
+#include "../net/timer.hpp"
 
 #include "magic.hpp"
 #include "magic-expr.hpp"

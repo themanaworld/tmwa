@@ -27,12 +27,12 @@
 #include "../strings/rstring.hpp"
 #include "../strings/literal.hpp"
 
+#include "../generic/dumb_ptr.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/line.hpp"
 
 #include "../sexpr/parser.hpp"
-
-#include "../mmo/dumb_ptr.hpp"
 
 #include "itemdb.hpp"
 #include "magic-expr.hpp"

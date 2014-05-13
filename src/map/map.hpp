@@ -37,10 +37,12 @@
 # include "../strings/vstring.hpp"
 
 # include "../generic/db.hpp"
+# include "../generic/dumb_ptr.hpp"
 # include "../generic/matrix.hpp"
 
-# include "../mmo/socket.hpp"
-# include "../mmo/timer.t.hpp"
+# include "../net/socket.hpp"
+# include "../net/timer.t.hpp"
+
 # include "../mmo/utils.hpp"
 
 # include "battle.t.hpp"

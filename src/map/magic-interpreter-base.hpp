@@ -24,7 +24,9 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../mmo/dumb_ptr.hpp"
+# include "../generic/fwd.hpp"
+
+# include "../mmo/fwd.hpp"
 
 extern magic_conf_t magic_conf; /* Global magic conf */
 extern env_t magic_default_env; /* Fake default environment */

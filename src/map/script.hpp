@@ -32,8 +32,7 @@
 # include "../strings/zstring.hpp"
 
 # include "../generic/db.hpp"
-
-# include "../mmo/dumb_ptr.hpp"
+# include "../generic/dumb_ptr.hpp"
 
 # include "map.t.hpp"
 

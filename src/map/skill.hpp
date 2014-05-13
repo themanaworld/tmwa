@@ -30,6 +30,7 @@
 # include "../strings/rstring.hpp"
 # include "../strings/literal.hpp"
 
+# include "../generic/fwd.hpp"
 # include "../generic/array.hpp"
 
 # include "map.hpp"

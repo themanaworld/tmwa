@@ -26,10 +26,7 @@ class MapName;
 class CharName;
 class CharPair;
 
-class Session;
-
 class HumanTimeDiff;
-class IP4Address;
 
 class AccountId;
 class CharId;
@@ -47,7 +44,5 @@ class PartyName;
 class VarName;
 class MapName;
 class CharName;
-
-class TimerData;
 
 #endif // TMWA_MMO_FWD_HPP

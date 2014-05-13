@@ -31,9 +31,11 @@
 # include "../strings/fwd.hpp"
 # include "../strings/rstring.hpp"
 
-# include "../mmo/dumb_ptr.hpp"
+# include "../generic/fwd.hpp"
+
+# include "../net/timer.t.hpp"
+
 # include "../mmo/ids.hpp"
-# include "../mmo/timer.t.hpp"
 # include "../mmo/utils.hpp"
 
 # include "map.hpp"

@@ -28,11 +28,12 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "../net/ip.hpp"
+#include "../net/socket.hpp"
+#include "../net/timer.hpp"
+
 #include "../mmo/human_time_diff.hpp"
-#include "../mmo/ip.hpp"
 #include "../mmo/mmo.hpp"
-#include "../mmo/socket.hpp"
-#include "../mmo/timer.hpp"
 #include "../mmo/utils.hpp"
 
 #include "battle.hpp"

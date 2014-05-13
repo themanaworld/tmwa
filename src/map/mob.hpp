@@ -25,10 +25,11 @@
 
 # include "mob.t.hpp"
 
-# include "../generic/random.t.hpp"
+# include "../generic/fwd.hpp"
 # include "../generic/enum.hpp"
+# include "../generic/random.t.hpp"
 
-# include "../mmo/timer.t.hpp"
+# include "../net/timer.t.hpp"
 
 # include "battle.t.hpp"
 # include "clif.t.hpp"

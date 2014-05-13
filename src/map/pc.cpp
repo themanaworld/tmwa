@@ -39,8 +39,9 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../mmo/socket.hpp"
-#include "../mmo/timer.hpp"
+#include "../net/socket.hpp"
+#include "../net/timer.hpp"
+
 #include "../mmo/utils.hpp"
 
 #include "atcommand.hpp"

@@ -54,13 +54,14 @@
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
+#include "../net/socket.hpp"
+#include "../net/timer.hpp"
+
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
 #include "../mmo/extract.hpp"
 #include "../mmo/human_time_diff.hpp"
 #include "../mmo/mmo.hpp"
-#include "../mmo/socket.hpp"
-#include "../mmo/timer.hpp"
 #include "../mmo/utils.hpp"
 #include "../mmo/version.hpp"
 

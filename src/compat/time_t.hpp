@@ -1,10 +1,8 @@
-#ifndef TMWA_CHAR_INT_STORAGE_HPP
-#define TMWA_CHAR_INT_STORAGE_HPP
-//    int_storage.hpp - Internal storage handling.
+#ifndef TMWA_COMPAT_TIMET_HPP
+#define TMWA_COMPAT_TIMET_HPP
+//    time_t.hpp - time_t with a reliable representation
 //
-//    Copyright © ????-2004 Athena Dev Teams
-//    Copyright © 2004-2011 The Mana World Development Team
-//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -23,19 +21,7 @@
 
 # include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+// TODO fix this ordering violation by promoting TimeT here
+# include "../mmo/utils.hpp"
 
-# include "../net/fwd.hpp"
-
-# include "../mmo/fwd.hpp"
-
-void inter_storage_init(void);
-int inter_storage_save(void);
-void inter_storage_delete(AccountId account_id);
-struct storage *account2storage(AccountId account_id);
-
-int inter_storage_parse_frommap(Session *ms);
-
-extern AString storage_txt;
-
-#endif // TMWA_CHAR_INT_STORAGE_HPP
+#endif // TMWA_COMPAT_TIMET_HPP

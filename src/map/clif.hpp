@@ -29,10 +29,12 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../generic/fwd.hpp"
+
+# include "../net/timer.t.hpp"
+
 # include "../mmo/fwd.hpp"
-# include "../mmo/dumb_ptr.hpp"
 # include "../mmo/mmo.hpp"
-# include "../mmo/timer.t.hpp"
 
 # include "battle.t.hpp"
 # include "map.t.hpp"

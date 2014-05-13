@@ -1,5 +1,5 @@
-#ifndef TMWA_MMO_TIMER_T_HPP
-#define TMWA_MMO_TIMER_T_HPP
+#ifndef TMWA_NET_TIMER_T_HPP
+#define TMWA_NET_TIMER_T_HPP
 //    timer.t.hpp - Future event scheduler.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -26,7 +26,7 @@
 # include <chrono>
 # include <functional>
 
-# include "dumb_ptr.hpp"
+# include "../generic/dumb_ptr.hpp"
 
 /// An implementation of the C++ "clock" concept, exposing
 /// durations in milliseconds.
@@ -85,4 +85,4 @@ public:
     bool operator !() { return !td; }
 };
 
-#endif // TMWA_MMO_TIMER_T_HPP
+#endif // TMWA_NET_TIMER_T_HPP

@@ -40,9 +40,10 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
+#include "../net/timer.hpp"
+
 #include "../mmo/config_parse.hpp"
 #include "../mmo/extract.hpp"
-#include "../mmo/timer.hpp"
 #include "../mmo/utils.hpp"
 
 #include "battle.hpp"

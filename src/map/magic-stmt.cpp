@@ -30,7 +30,7 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "../mmo/timer.hpp"
+#include "../net/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

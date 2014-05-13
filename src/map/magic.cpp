@@ -24,9 +24,9 @@
 
 #include "../strings/xstring.hpp"
 
-#include "../io/cxxstdio.hpp"
+#include "../generic/dumb_ptr.hpp"
 
-#include "../mmo/dumb_ptr.hpp"
+#include "../io/cxxstdio.hpp"
 
 #include "magic-expr.hpp"
 #include "magic-interpreter.hpp"

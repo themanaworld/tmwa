@@ -32,9 +32,10 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
+#include "../net/socket.hpp"
+
 #include "../mmo/extract.hpp"
 #include "../mmo/mmo.hpp"
-#include "../mmo/socket.hpp"
 
 #include "../poison.hpp"
 

@@ -38,10 +38,11 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 
-#include "../mmo/ip.hpp"
+#include "../net/ip.hpp"
+#include "../net/socket.hpp"
+#include "../net/timer.hpp"
+
 #include "../mmo/md5more.hpp"
-#include "../mmo/socket.hpp"
-#include "../mmo/timer.hpp"
 #include "../mmo/utils.hpp"
 #include "../mmo/version.hpp"
 

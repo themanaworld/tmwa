@@ -1,5 +1,5 @@
-#ifndef TMWA_MMO_SOCKET_HPP
-#define TMWA_MMO_SOCKET_HPP
+#ifndef TMWA_NET_SOCKET_HPP
+#define TMWA_NET_SOCKET_HPP
 //    socket.hpp - Network event system.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -31,16 +31,17 @@
 
 # include "../compat/iter.hpp"
 # include "../compat/rawmem.hpp"
+# include "../compat/time_t.hpp"
 
 # include "../strings/astring.hpp"
 # include "../strings/vstring.hpp"
 # include "../strings/xstring.hpp"
 
+# include "../generic/dumb_ptr.hpp"
+
 # include "../io/fd.hpp"
 
-# include "dumb_ptr.hpp"
 # include "ip.hpp"
-# include "utils.hpp"
 # include "timer.t.hpp"
 
 struct SessionData
@@ -421,4 +422,4 @@ void RFIFO_WFIFO_CLONE(Session *rs, Session *ws, size_t len)
             static_cast<const uint8_t *>(RFIFOP(rs, 0)), len);
 }
 
-#endif // TMWA_MMO_SOCKET_HPP
+#endif // TMWA_NET_SOCKET_HPP

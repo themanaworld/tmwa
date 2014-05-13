@@ -23,7 +23,7 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "extract.hpp"
+#include "../mmo/extract.hpp"
 
 #include "../poison.hpp"
 

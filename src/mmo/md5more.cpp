@@ -29,7 +29,8 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../mmo/ip.hpp"
+#include "../net/ip.hpp"
+
 #include "../mmo/mmo.hpp"
 
 #include "../poison.hpp"

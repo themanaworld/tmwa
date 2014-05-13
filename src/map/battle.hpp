@@ -27,8 +27,9 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../mmo/dumb_ptr.hpp"
-# include "../mmo/timer.t.hpp"
+# include "../generic/fwd.hpp"
+
+# include "../net/timer.t.hpp"
 
 # include "magic-interpreter.t.hpp"
 # include "map.t.hpp"

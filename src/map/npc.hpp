@@ -27,7 +27,9 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../mmo/timer.t.hpp"
+# include "../generic/fwd.hpp"
+
+# include "../net/timer.t.hpp"
 
 # include "map.hpp"
 

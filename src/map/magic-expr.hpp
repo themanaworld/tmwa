@@ -22,7 +22,7 @@
 
 # include "fwd.hpp"
 
-# include "../mmo/dumb_ptr.hpp"
+# include "../generic/fwd.hpp"
 
 # include "../range/fwd.hpp"
 

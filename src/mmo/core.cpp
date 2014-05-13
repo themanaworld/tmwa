@@ -32,8 +32,8 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "socket.hpp"
-#include "timer.hpp"
+#include "../net/socket.hpp"
+#include "../net/timer.hpp"
 
 #include "../poison.hpp"
 

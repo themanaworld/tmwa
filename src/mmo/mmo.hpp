@@ -32,8 +32,9 @@
 # include "../generic/array.hpp"
 # include "../generic/enum.hpp"
 
+# include "../net/timer.t.hpp"
+
 # include "ids.hpp"
-# include "timer.t.hpp"
 
 // affects CharName
 # define NAME_IGNORING_CASE 1

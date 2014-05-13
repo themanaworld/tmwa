@@ -23,8 +23,9 @@
 
 # include "fwd.hpp"
 
+# include "../generic/fwd.hpp"
+
 # include "../mmo/fwd.hpp"
-# include "../mmo/dumb_ptr.hpp"
 
 int storage_storageopen(dumb_ptr<map_session_data> sd);
 int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount);

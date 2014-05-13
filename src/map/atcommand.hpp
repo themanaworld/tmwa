@@ -25,8 +25,11 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../generic/fwd.hpp"
+
+# include "../net/fwd.hpp"
+
 # include "../mmo/fwd.hpp"
-# include "../mmo/dumb_ptr.hpp"
 
 bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
         ZString message, GmLevel gmlvl);

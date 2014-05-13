@@ -24,7 +24,7 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../mmo/dumb_ptr.hpp"
+# include "../generic/fwd.hpp"
 
 # include "map.t.hpp"
 # include "skill.t.hpp"

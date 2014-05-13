@@ -25,6 +25,8 @@
 
 # include "../strings/fwd.hpp"
 
+# include "../net/fwd.hpp"
+
 # include "../mmo/fwd.hpp"
 
 void inter_party_init(void);

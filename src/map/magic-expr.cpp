@@ -29,11 +29,10 @@
 #include "../strings/vstring.hpp"
 #include "../strings/literal.hpp"
 
+#include "../generic/dumb_ptr.hpp"
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
-
-#include "../mmo/dumb_ptr.hpp"
 
 #include "battle.hpp"
 #include "itemdb.hpp"

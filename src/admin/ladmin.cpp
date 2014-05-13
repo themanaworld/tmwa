@@ -39,12 +39,13 @@
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
+#include "../net/ip.hpp"
+#include "../net/socket.hpp"
+
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
 #include "../mmo/human_time_diff.hpp"
-#include "../mmo/ip.hpp"
 #include "../mmo/mmo.hpp"
-#include "../mmo/socket.hpp"
 #include "../mmo/utils.hpp"
 #include "../mmo/version.hpp"
 

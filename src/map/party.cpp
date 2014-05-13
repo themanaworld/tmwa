@@ -29,9 +29,10 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "../net/timer.hpp"
+
 #include "../mmo/ids.hpp"
 #include "../mmo/mmo.hpp"
-#include "../mmo/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
