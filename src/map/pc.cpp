@@ -4312,7 +4312,7 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, VarName reg, int val)
         return 0;
     }
     if (battle_config.error_log)
-        PRINTF("pc_setaccountreg2 : couldn't set %s (ACCOUNT_REG2_NUM = %d)\n"_fmt,
+        PRINTF("pc_setaccountreg2 : couldn't set %s (ACCOUNT_REG2_NUM = %zu)\n"_fmt,
              reg, ACCOUNT_REG2_NUM);
 
     return 1;

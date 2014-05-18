@@ -8,16 +8,16 @@
 #   This file is part of The Mana World (Athena server)
 #
 #   This program is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
+#   it under the terms of the GNU Affero General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
 #   (at your option) any later version.
 #
 #   This program is distributed in the hope that it will be useful,
 #   but WITHOUT ANY WARRANTY; without even the implied warranty of
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
+#   GNU Affero General Public License for more details.
 #
-#   You should have received a copy of the GNU General Public License
+#   You should have received a copy of the GNU Affero General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import glob
@@ -36,16 +36,16 @@ copyright = '''//    {filename} - {description}
 //    This file is part of The Mana World (Athena server)
 //
 //    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
+//    it under the terms of the GNU Affero General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
 //    This program is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    GNU Affero General Public License for more details.
 //
-//    You should have received a copy of the GNU General Public License
+//    You should have received a copy of the GNU Affero General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
@@ -187,25 +187,50 @@ class WrappedType(Type):
         f.write('    return rv;\n')
         f.write('}\n')
 
-class StructType(Type):
-    __slots__ = ('name', 'fields', 'size')
+class SkewLengthType(Type):
+    __slots__ = ('type', 'skew')
 
-    def __init__(self, name, fields, size):
+    def __init__(self, ty, skew):
+        self.type = ty
+        self.skew = skew
+
+    def native_tag(self):
+        return self.type.native_tag()
+
+    def network_tag(self):
+        return 'SkewedLength<%s, %d>' % (self.type.network_tag(), self.skew)
+
+    def dumpx(self):
+        # not registered properly, so the method name is wrong
+        # TODO remind myself to kill this code with fire before release
+        # not implemented properly, uses a template in the meta instead
+        # insert another comment here so that it lines up properly
+        pass
+
+class StructType(Type):
+    __slots__ = ('id', 'name', 'fields', 'size')
+
+    def __init__(self, id, name, fields, size):
+        self.id = id
         self.name = name
         self.fields = fields
         self.size = size
 
-    def dump(self, f):
-        self.dump_native(f)
-        self.dump_network(f)
-        self.dump_convert(f)
-        f.write('\n')
+    def dump_fwd(self, fwd):
+        fwd.write('struct %s;\n' % self.name)
+        fwd.write('struct Net%s;\n' % self.name)
 
     def dump_native(self, f):
         name = self.name
         f.write('struct %s\n{\n' % name)
+        if self.id is not None:
+            f.write('    using NetType = Net%s;\n' % name)
+            f.write('    static const uint16_t PACKET_ID = 0x%04x;\n\n' % self.id)
         for (o, l, n) in self.fields:
-            f.write('    %s %s;\n' % (l.native_tag(), n))
+            if n == 'magic_packet_id':
+                f.write('    %s %s = PACKET_ID;\n' % (l.native_tag(), n))
+            else:
+                f.write('    %s %s = {};\n' % (l.native_tag(), n))
         f.write('};\n')
 
     def dump_network(self, f):
@@ -328,8 +353,17 @@ class FixedPacket(object):
     def __init__(self, fixed_struct):
         self.fixed_struct = fixed_struct
 
-    def dump(self, f):
-        self.fixed_struct.dump(f)
+    def dump_fwd(self, fwd):
+        self.fixed_struct.dump_fwd(fwd)
+
+    def dump_native(self, f):
+        self.fixed_struct.dump_native(f)
+
+    def dump_network(self, f):
+        self.fixed_struct.dump_network(f)
+
+    def dump_convert(self, f):
+        self.fixed_struct.dump_convert(f)
 
 class VarPacket(object):
     __slots__ = ('head_struct', 'repeat_struct')
@@ -338,11 +372,23 @@ class VarPacket(object):
         self.head_struct = head_struct
         self.repeat_struct = repeat_struct
 
-    def dump(self, f):
-        self.head_struct.dump(f)
-        self.repeat_struct.dump(f)
+    def dump_fwd(self, fwd):
+        self.head_struct.dump_fwd(fwd)
+        self.repeat_struct.dump_fwd(fwd)
 
-def packet(name,
+    def dump_native(self, f):
+        self.head_struct.dump_native(f)
+        self.repeat_struct.dump_native(f)
+
+    def dump_network(self, f):
+        self.head_struct.dump_network(f)
+        self.repeat_struct.dump_network(f)
+
+    def dump_convert(self, f):
+        self.head_struct.dump_convert(f)
+        self.repeat_struct.dump_convert(f)
+
+def packet(id, name,
         fixed=None, fixed_size=None,
         head=None, head_size=None,
         repeat=None, repeat_size=None,
@@ -354,12 +400,12 @@ def packet(name,
     if fixed is not None:
         assert not head and not repeat
         return FixedPacket(
-                StructType('%s_Fixed' % name, fixed, fixed_size))
+                StructType(id, '%s_Fixed' % name, fixed, fixed_size))
     else:
         assert head and repeat
         return VarPacket(
-                StructType('%s_Head' % name, head, head_size),
-                StructType('%s_Repeat' % name, repeat, repeat_size))
+                StructType(id, '%s_Head' % name, head, head_size),
+                StructType(id, '%s_Repeat' % name, repeat, repeat_size))
 
 
 class Channel(object):
@@ -371,14 +417,14 @@ class Channel(object):
         self.packets = []
 
     def s(self, id, **kwargs):
-        name = 'SPacket0x%04x' % id
-        self.packets.append(packet(name, **kwargs))
+        name = 'SPacket_0x%04x' % id
+        self.packets.append(packet(id, name, **kwargs))
 
     def r(self, id, **kwargs):
-        name = 'RPacket0x%04x' % id
-        self.packets.append(packet(name, **kwargs))
+        name = 'RPacket_0x%04x' % id
+        self.packets.append(packet(id, name, **kwargs))
 
-    def dump(self, outdir):
+    def dump(self, outdir, fwd):
         server = self.server
         client = self.client
         header = '%s-%s.hpp' % (server, client)
@@ -402,7 +448,16 @@ class Channel(object):
                 f.write('// This is an internal protocol, and can be changed without notice\n')
             f.write('\n')
             for p in self.packets:
-                p.dump(f)
+                p.dump_fwd(fwd)
+            fwd.write('\n')
+            for p in self.packets:
+                p.dump_native(f)
+            f.write('\n')
+            for p in self.packets:
+                p.dump_network(f)
+            f.write('\n')
+            for p in self.packets:
+                p.dump_convert(f)
             f.write('\n')
             f.write('#endif // %s\n' % define)
 
@@ -419,6 +474,10 @@ class Channel(object):
 ident_translation = ''.join(chr(c) if chr(c).isalnum() else '_' for c in range(256))
 
 def ident(s):
+    if s == 'packet id':
+        return 'magic_packet_id'
+    if s == 'packet length':
+        return 'magic_packet_length'
     return s.translate(ident_translation)
 
 
@@ -466,9 +525,13 @@ class Context(object):
             f.write(copyright.format(filename=header, description=desc))
             f.write('\n')
             f.write('# include "%s"\n\n' % sanity)
-            f.write('// TODO put stuff here\n')
+
+            for ch in self._channels:
+                ch.dump(outdir, f)
+
             f.write('\n')
             f.write('#endif // %s\n' % define)
+
         with open(os.path.join(outdir, 'types.hpp'), 'w') as f:
             header = '%s/types.hpp' % proto2
             desc = 'Forward declarations of packet component types'
@@ -484,22 +547,22 @@ class Context(object):
                 # this is writing another file
                 inc.testcase(outdir)
 
-            f.write('template <class T>\n')
+            f.write('template<class T>\n')
             f.write('bool native_to_network(T *network, T native)\n{\n')
             f.write('    *network = native;\n')
             f.write('    return true;\n')
             f.write('}\n')
-            f.write('template <class T>\n')
+            f.write('template<class T>\n')
             f.write('bool network_to_native(T *native, T network)\n{\n')
             f.write('    *native = network;\n')
             f.write('    return true;\n')
             f.write('}\n')
 
-            f.write('template <size_t N>\n')
+            f.write('template<size_t N>\n')
             f.write('struct NetString\n{\n')
             f.write('    char data[N];\n')
             f.write('};\n')
-            f.write('template <size_t N>\n')
+            f.write('template<size_t N>\n')
             f.write('bool native_to_network(NetString<N> *network, VString<N-1> native)\n{\n')
             f.write('    // basically WBUF_STRING\n')
             f.write('    char *const begin = network->data;\n')
@@ -508,7 +571,7 @@ class Context(object):
             f.write('    std::fill(mid, end, \'\\0\');\n')
             f.write('    return true;\n')
             f.write('}\n')
-            f.write('template <size_t N>\n')
+            f.write('template<size_t N>\n')
             f.write('bool network_to_native(VString<N-1> *native, NetString<N> network)\n{\n')
             f.write('    // basically RBUF_STRING\n')
             f.write('    const char *const begin = network.data;\n')
@@ -518,11 +581,27 @@ class Context(object):
             f.write('    return true;\n')
             f.write('}\n')
             f.write('\n')
+
+            f.write('template<class T, size_t N>\n')
+            f.write('struct SkewedLength\n{\n')
+            f.write('    T data;\n')
+            f.write('};\n')
+            f.write('template<class T, size_t N, class U>\n')
+            f.write('bool native_to_network(SkewedLength<T, N> *network, U native)\n{\n')
+            f.write('    native -= N;\n')
+            f.write('    return native_to_network(&network->data, native);\n')
+            f.write('}\n')
+            f.write('template<class T, size_t N, class U>\n')
+            f.write('bool network_to_native(U *native, SkewedLength<T, N> network)\n{\n')
+            f.write('    bool rv = network_to_native(native, network.data);\n')
+            f.write('    *native += N;\n')
+            f.write('    return rv;\n')
+            f.write('}\n')
+            f.write('\n')
+
             for ty in self._types:
                 ty.dump(f)
             f.write('#endif // %s\n' % define)
-        for ch in self._channels:
-            ch.dump(outdir)
 
 
     # types
@@ -547,6 +626,7 @@ class Context(object):
         return rv
 
     def struct(self, name, body):
+        # TODO fix this
         rv = StructType(name, body)
         self._types.append(rv)
         return rv
@@ -643,12 +723,15 @@ def main():
     u32 = ctx.provided(uint32_t, Little32)
     u64 = ctx.provided(uint64_t, Little64)
 
+    sex_char = ctx.provided(SEX, NeutralType('char'))
+
     sex = ctx.enum(SEX, u8)
     species = ctx.wrap(Species, u16)
     account_id = ctx.wrap(AccountId, u32)
     char_id = ctx.wrap(CharId, u32)
     party_id = ctx.wrap(PartyId, u32)
     item_name_id = ctx.wrap(ItemNameId, u16)
+    item_name_id4 = ctx.wrap(ItemNameId, u32)
     block_id = ctx.wrap(BlockId, u32)
 
     time32 = ctx.provided(TimeT, Little32)
@@ -746,7 +829,7 @@ def main():
     login_char.r(0x2712,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, u32, 'login id1'),
             at(10, u32, 'login id2'),
             at(14, sex, 'sex'),
@@ -757,7 +840,7 @@ def main():
     login_char.s(0x2713,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, u8, 'invalid'),
             at(7, account_email, 'email'),
             at(47, time32, 'connect until'),
@@ -774,7 +857,7 @@ def main():
     login_char.r(0x2715,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_email, 'email'),
         ],
         fixed_size=46,
@@ -782,14 +865,14 @@ def main():
     login_char.r(0x2716,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
     login_char.s(0x2717,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_email, 'email'),
             at(46, time32, 'connect until'),
         ],
@@ -799,7 +882,7 @@ def main():
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
-            at(4, u32, 'account id'),
+            at(4, account_id, 'account id'),
         ],
         head_size=8,
         repeat=[at(0, u8, 'c')],
@@ -808,7 +891,7 @@ def main():
     login_char.s(0x2721,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, gm, 'gm level'),
         ],
         fixed_size=10,
@@ -816,7 +899,7 @@ def main():
     login_char.r(0x2722,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_email, 'old email'),
             at(46, account_email, 'new email'),
         ],
@@ -825,7 +908,7 @@ def main():
     login_char.s(0x2723,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, sex, 'sex'),
         ],
         fixed_size=7,
@@ -833,27 +916,25 @@ def main():
     login_char.r(0x2724,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, u32, 'status'),
         ],
         fixed_size=10,
     )
     login_char.r(0x2725,
-        head=[
+        fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, human_time_diff, 'deltas'),
         ],
-        head_size=18,
-        repeat=[at(0, u8, 'c')],
-        repeat_size=1,
+        fixed_size=18,
     )
     # evil packet, see also 0x794e
-    login_admin.r(0x2726,
+    login_admin.s(0x2726,
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'unused'),
-            at(4, u32, 'string length'),
+            at(4, SkewLengthType(u32, 8), 'magic packet length'),
         ],
         head_size=8,
         repeat=[
@@ -864,7 +945,7 @@ def main():
     login_char.r(0x2727,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
@@ -876,7 +957,7 @@ def main():
             head=[
                 at(0, u16, 'packet id'),
                 at(2, u16, 'packet length'),
-                at(4, u32, 'account id'),
+                at(4, account_id, 'account id'),
             ],
             head_size=8,
             repeat=[
@@ -888,20 +969,21 @@ def main():
     login_char.r(0x272a,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
     login_char.s(0x2730,
         fixed=[
             at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
         ],
-        fixed_size=2,
+        fixed_size=6,
     )
     login_char.s(0x2731,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, u8, 'ban not status'),
             at(7, time32, 'status or ban until'),
         ],
@@ -914,7 +996,7 @@ def main():
         ],
         head_size=4,
         repeat=[
-            at(0, u32, 'account id'),
+            at(0, account_id, 'account id'),
             at(4, gm1, 'gm level'),
         ],
         repeat_size=5,
@@ -922,7 +1004,7 @@ def main():
     login_char.r(0x2740,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_pass, 'old pass'),
             at(30, account_pass, 'new pass'),
         ],
@@ -931,7 +1013,7 @@ def main():
     login_char.s(0x2741,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, u8, 'status'),
         ],
         fixed_size=7,
@@ -960,14 +1042,12 @@ def main():
 
     # login admin
     login_admin.r(0x7920,
-        head=[
+        fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'start account id'),
-            at(6, u32, 'end account id'),
+            at(2, account_id, 'start account id'),
+            at(6, account_id, 'end account id'),
         ],
-        head_size=10,
-        repeat=[at(0, u8, 'c')],
-        repeat_size=1,
+        fixed_size=10,
     )
     login_admin.s(0x7921,
         head=[
@@ -976,7 +1056,7 @@ def main():
         ],
         head_size=4,
         repeat=[
-            at(0, u32, 'account id'),
+            at(0, account_id, 'account id'),
             at(4, gm1, 'gm level'),
             at(5, account_name, 'account name'),
             at(29, sex, 'sex'),
@@ -988,8 +1068,8 @@ def main():
     login_admin.r(0x7924,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'source item id'),
-            at(6, u32, 'dest item id'),
+            at(2, item_name_id4, 'source item id'),
+            at(6, item_name_id4, 'dest item id'),
         ],
         fixed_size=10,
     )
@@ -1004,7 +1084,7 @@ def main():
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
             at(26, account_pass, 'password'),
-            at(50, sex, 'sex'),
+            at(50, sex_char, 'sex'),
             at(51, account_email, 'email'),
         ],
         fixed_size=91,
@@ -1012,7 +1092,7 @@ def main():
     login_admin.s(0x7931,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1027,7 +1107,7 @@ def main():
     login_admin.s(0x7933,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1043,7 +1123,7 @@ def main():
     login_admin.s(0x7935,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1060,10 +1140,11 @@ def main():
     login_admin.s(0x7937,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
+            at(30, u32, 'status'),
         ],
-        fixed_size=30,
+        fixed_size=34,
     )
     login_admin.r(0x7938,
         fixed=[
@@ -1098,7 +1179,7 @@ def main():
     login_admin.s(0x793b,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1107,14 +1188,14 @@ def main():
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
-            at(26, sex, 'sex'),
+            at(26, sex_char, 'sex'),
         ],
         fixed_size=27,
     )
     login_admin.s(0x793d,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1130,7 +1211,7 @@ def main():
     login_admin.s(0x793f,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1146,7 +1227,7 @@ def main():
     login_admin.s(0x7941,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1156,7 +1237,7 @@ def main():
         head=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
-            at(26, u16, 'string length'),
+            at(26, SkewLengthType(u16, 28), 'magic packet length'),
         ],
         head_size=28,
         repeat=[
@@ -1167,7 +1248,7 @@ def main():
     login_admin.s(0x7943,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1182,7 +1263,7 @@ def main():
     login_admin.s(0x7945,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1190,14 +1271,14 @@ def main():
     login_admin.r(0x7946,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
     login_admin.s(0x7947,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
@@ -1213,7 +1294,7 @@ def main():
     login_admin.s(0x7949,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
             at(30, time32, 'valid until'),
         ],
@@ -1230,7 +1311,7 @@ def main():
     login_admin.s(0x794b,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
             at(30, time32, 'ban until'),
         ],
@@ -1247,7 +1328,7 @@ def main():
     login_admin.s(0x794d,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
             at(30, time32, 'ban until'),
         ],
@@ -1258,7 +1339,7 @@ def main():
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'unused'),
-            at(4, u32, 'string length'),
+            at(4, SkewLengthType(u32, 8), 'magic packet length'),
         ],
         head_size=8,
         repeat=[
@@ -1284,7 +1365,7 @@ def main():
     login_admin.s(0x7951,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, account_name, 'account name'),
             at(30, time32, 'valid until'),
         ],
@@ -1301,10 +1382,10 @@ def main():
     login_admin.s(0x7953,
         head=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
             at(6, gm1, 'gm level'),
             at(7, account_name, 'account name'),
-            at(31, sex, 'id'),
+            at(31, sex, 'sex'),
             at(32, u32, 'login count'),
             at(36, u32, 'state'),
             at(40, seconds, 'error message'),
@@ -1313,7 +1394,7 @@ def main():
             at(100, account_email, 'email'),
             at(140, time32, 'connect until'),
             at(144, time32, 'ban until'),
-            at(148, u16, 'string length'),
+            at(148, SkewLengthType(u16, 150), 'magic packet length'),
         ],
         head_size=150,
         repeat=[
@@ -1324,7 +1405,7 @@ def main():
     login_admin.r(0x7954,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'account id'),
+            at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )

@@ -94,4 +94,58 @@ IteratorPair<ValueIterator<T>> value_range(T b, T e)
     return {b, e};
 }
 
+
+template<class T, bool(*filter)(T), class C>
+class FilterIterator
+{
+    C *container;
+    using InnerIterator = decltype(std::begin(*container));
+    InnerIterator impl;
+public:
+    void post_adv()
+    {
+        while (impl != std::end(*container))
+        {
+            if (filter(*impl))
+                break;
+            ++impl;
+        }
+    }
+
+    FilterIterator(C *c)
+    : container(c), impl(std::begin(*c))
+    {
+        post_adv();
+    }
+
+    void operator ++()
+    {
+        ++impl;
+        post_adv();
+    }
+
+    T operator *()
+    {
+        return *impl;
+    }
+
+    friend
+    bool operator != (FilterIterator l, FilterIterator)
+    {
+        return l.impl != std::end(*l.container);
+    }
+};
+
+template<class T>
+bool is_truthy(T v)
+{
+    return v;
+}
+
+template<class T, bool(*filter)(T)=is_truthy, class C>
+IteratorPair<FilterIterator<T, filter, C>> filter_iterator(C *c)
+{
+    return {FilterIterator<T, filter, C>(c), FilterIterator<T, filter, C>(c)};
+}
+
 #endif // TMWA_COMPAT_ITER_HPP

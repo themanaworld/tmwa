@@ -7,16 +7,16 @@
 //    This file is part of The Mana World (Athena server)
 //
 //    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
+//    it under the terms of the GNU Affero General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
 //    This program is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    GNU Affero General Public License for more details.
 //
-//    You should have received a copy of the GNU General Public License
+//    You should have received a copy of the GNU Affero General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # include "fwd.hpp"
@@ -32,24 +32,24 @@
 # include "../mmo/strs.hpp"
 # include "../mmo/utils.hpp"
 # include "../mmo/version.hpp"
-template <class T>
+template<class T>
 bool native_to_network(T *network, T native)
 {
     *network = native;
     return true;
 }
-template <class T>
+template<class T>
 bool network_to_native(T *native, T network)
 {
     *native = network;
     return true;
 }
-template <size_t N>
+template<size_t N>
 struct NetString
 {
     char data[N];
 };
-template <size_t N>
+template<size_t N>
 bool native_to_network(NetString<N> *network, VString<N-1> native)
 {
     // basically WBUF_STRING
@@ -59,7 +59,7 @@ bool native_to_network(NetString<N> *network, VString<N-1> native)
     std::fill(mid, end, '\0');
     return true;
 }
-template <size_t N>
+template<size_t N>
 bool network_to_native(VString<N-1> *native, NetString<N> network)
 {
     // basically RBUF_STRING
@@ -68,6 +68,25 @@ bool network_to_native(VString<N-1> *native, NetString<N> network)
     const char *const mid = std::find(begin, end, '\0');
     *native = XString(begin, mid, nullptr);
     return true;
+}
+
+template<class T, size_t N>
+struct SkewedLength
+{
+    T data;
+};
+template<class T, size_t N, class U>
+bool native_to_network(SkewedLength<T, N> *network, U native)
+{
+    native -= N;
+    return native_to_network(&network->data, native);
+}
+template<class T, size_t N, class U>
+bool network_to_native(U *native, SkewedLength<T, N> network)
+{
+    bool rv = network_to_native(native, network.data);
+    *native += N;
+    return rv;
 }
 
 inline __attribute__((warn_unused_result))
@@ -169,6 +188,23 @@ bool network_to_native(ItemNameId *native, Little16 network)
 {
     bool rv = true;
     uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = wrap<ItemNameId>(tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little32 *network, ItemNameId native)
+{
+    bool rv = true;
+    uint32_t tmp = unwrap<ItemNameId>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(ItemNameId *native, Little32 network)
+{
+    bool rv = true;
+    uint32_t tmp;
     rv &= network_to_native(&tmp, network);
     *native = wrap<ItemNameId>(tmp);
     return rv;

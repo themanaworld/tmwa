@@ -1,4 +1,5 @@
 #include "socket.hpp"
+#include "vomit.hpp" // for remaining FIFO functions
 //    socket.cpp - Network event system.
 //
 //    Copyright © ????-2004 Athena Dev Teams

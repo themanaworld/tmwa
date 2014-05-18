@@ -145,4 +145,17 @@ SEX sex_from_char(char c)
     }
 }
 
+inline
+bool native_to_network(char *network, SEX native)
+{
+    *network = sex_to_char(native);
+    return true;
+}
+inline
+bool network_to_native(SEX *native, char network)
+{
+    *native = sex_from_char(network);
+    return true;
+}
+
 #endif // TMWA_MMO_ENUMS_HPP

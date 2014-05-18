@@ -45,7 +45,7 @@ constexpr int TRADE_MAX = 10;
 
 constexpr int GLOBAL_REG_NUM = 96;
 constexpr int ACCOUNT_REG_NUM = 16;
-constexpr int ACCOUNT_REG2_NUM = 16;
+constexpr size_t ACCOUNT_REG2_NUM = 16;
 constexpr interval_t DEFAULT_WALK_SPEED = std::chrono::milliseconds(150);
 constexpr interval_t MIN_WALK_SPEED = interval_t::zero();
 constexpr interval_t MAX_WALK_SPEED = std::chrono::seconds(1);

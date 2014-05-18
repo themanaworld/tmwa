@@ -73,7 +73,7 @@ namespace ints
     {
         if (__BYTE_ORDER == __BIG_ENDIAN)
             nat = __builtin_bswap32(nat);
-        __builtin_memcpy(net, &nat, 2);
+        __builtin_memcpy(net, &nat, 4);
         return true;
     }
     inline __attribute__((warn_unused_result))
@@ -81,7 +81,7 @@ namespace ints
     {
         if (__BYTE_ORDER == __BIG_ENDIAN)
             nat = __builtin_bswap64(nat);
-        __builtin_memcpy(net, &nat, 2);
+        __builtin_memcpy(net, &nat, 8);
         return true;
     }
 

@@ -25,6 +25,23 @@
 
 # include "socket.hpp"
 
+// these first three are really in socket.cpp
+// but here for cleanliness
+
+/// Check how much can be read
+inline
+size_t RFIFOREST(Session *s)
+{
+    return s->rdata_size - s->rdata_pos;
+}
+
+/// Done reading
+void RFIFOSKIP(Session *s, size_t len);
+
+/// Finish writing
+void WFIFOSET(Session *s, size_t len);
+
+
 template<class T>
 uint8_t *pod_addressof_m(T& structure)
 {

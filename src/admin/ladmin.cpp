@@ -2019,7 +2019,7 @@ void parse_fromlogin(Session *s)
                     {
                         AccountName userid = stringish<AccountName>(RFIFO_STRING<24>(s, i + 5));
                         VString<23> lower_userid = userid.to_lower();
-                        // what?
+                        // this is ad-hoc block streaming
                         list_first = next(wrap<AccountId>(RFIFOL(s, i)));
                         // here are checks...
                         if (list_type == 0

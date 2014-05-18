@@ -173,17 +173,4 @@ void do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
 void do_parsepacket(void);
 
-/// Check how much can be read
-inline
-size_t RFIFOREST(Session *s)
-{
-    return s->rdata_size - s->rdata_pos;
-}
-
-/// Done reading
-void RFIFOSKIP(Session *s, size_t len);
-
-/// Finish writing
-void WFIFOSET(Session *s, size_t len);
-
 #endif // TMWA_NET_SOCKET_HPP

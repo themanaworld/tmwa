@@ -102,3 +102,56 @@ TEST(iterpair, unsigned8)
     };
     EXPECT_TRUE(std::equal(pair.begin(), pair.end(), arr));
 }
+
+static
+bool is_odd_ref(int& i)
+{
+    return i % 2;
+}
+
+TEST(iterpair, filter1)
+{
+    int arr[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+
+    int expected_arr[] = {1, 3, 5, 7};
+    int *expected_it = expected_arr;
+    int *expected_end = expected_arr + 4;
+
+    for (int& i : filter_iterator<int&, is_odd_ref>(&arr))
+    {
+        EXPECT_EQ(i, *expected_it);
+        ++expected_it;
+    }
+    EXPECT_EQ(expected_it, expected_end);
+}
+
+TEST(iterpair, filter2)
+{
+    std::vector<int> vals = {0, 1, 0, 2, 0, 3, 0};
+
+    int sum = 0, count = 0;
+    for (int i : filter_iterator<int>(&vals))
+    {
+        sum += i;
+        count++;
+    }
+    EXPECT_EQ(sum, 6);
+    EXPECT_EQ(count, 3);
+}
+
+TEST(iterpair, filter3)
+{
+    int one = 1;
+    int two = 2;
+    int three = 3;
+    std::vector<int *> vals = {0, &one, 0, &two, 0, &three, 0};
+
+    int sum = 0, count = 0;
+    for (int *i : filter_iterator<int *>(&vals))
+    {
+        sum += *i;
+        count++;
+    }
+    EXPECT_EQ(sum, 6);
+    EXPECT_EQ(count, 3);
+}
