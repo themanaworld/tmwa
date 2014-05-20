@@ -5,7 +5,7 @@
 
 # gdb sticks everything in one scope.
 # This lets us enumerate what *we* added.
-initial_globals = {id(v):v for v in globals().itervalues()}
+initial_globals = {id(v):v for v in globals().values()}
 
 import re
 
@@ -32,8 +32,8 @@ def get_basic_type(type_):
 def finish():
     global finish, initial_globals, FastPrinters
 
-    final_globals = {id(v):v for v in globals().itervalues()}
-    diff = final_globals.viewkeys() - initial_globals.viewkeys() \
+    final_globals = {id(v):v for v in globals().values()}
+    diff = final_globals.keys() - initial_globals.keys() \
             - {'finish', 'initial_globals', 'FastPrinters'}
     fp = FastPrinters()
 
@@ -67,7 +67,7 @@ class FastPrinters(object):
 
     @property
     def subprinters(self):
-        return self.printers.values()
+        return list(self.printers.values())
 
     def strip_templates(self, name, __pattern=re.compile('<[^<>]*>')):
         # TODO what about '<' and '>' as non-type template parameters?
