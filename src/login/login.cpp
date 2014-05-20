@@ -53,7 +53,6 @@
 #include "../net/packets.hpp"
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
-#include "../net/vomit.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
@@ -69,6 +68,8 @@
 #include "../proto2/login-admin.hpp"
 #include "../proto2/login-char.hpp"
 #include "../proto2/login-user.hpp"
+
+#include "types.hpp"
 
 #include "../poison.hpp"
 
@@ -195,6 +196,7 @@ struct AuthFifo
 };
 static
 Array<AuthFifo, AUTH_FIFO_SIZE> auth_fifo;
+// TODO replace with auto_fifo_it
 static
 int auth_fifo_pos = 0;
 
@@ -234,19 +236,6 @@ Map<AccountId, GM_Account> gm_account_db;
 static
 pid_t pid = 0; // For forked DB writes
 
-
-namespace e
-{
-enum class VERSION_2 : uint8_t
-{
-    /// client supports updatehost
-    UPDATEHOST = 0x01,
-    /// send servers in forward order
-    SERVERORDER = 0x02,
-};
-ENUM_BITWISE_OPERATORS(VERSION_2)
-}
-using e::VERSION_2;
 
 //------------------------------
 // Writing function of logs file
@@ -729,7 +718,7 @@ auto iter_char_sessions() -> decltype(filter_iterator<Session *>(&server_session
 // Send GM accounts to all char-server
 //-----------------------------------------------------
 static
-void send_GM_accounts(void)
+void send_GM_accounts(Session *only=nullptr)
 {
     std::vector<Packet_Repeat<0x2732>> tail;
 
@@ -743,6 +732,11 @@ void send_GM_accounts(void)
             item.gm_level = GM_value;
             tail.push_back(item);
         }
+    }
+    if (only)
+    {
+        send_packet_repeatonly<0x2732, 4, 5>(only, tail);
+        return;
     }
     for (Session *ss : iter_char_sessions())
     {
@@ -2861,59 +2855,47 @@ static
 void parse_login(Session *s)
 {
     struct mmo_account account;
-    int result, j;
+    int result;
 
     IP4Address ip = s->client_ip;
-
-    while (RFIFOREST(s) >= 2)
+    RecvResult rv = RecvResult::Complete;
+    uint16_t packet_id;
+    while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
         if (display_parse_login == 1)
         {
-            if (RFIFOW(s, 0) == 0x64 || RFIFOW(s, 0) == 0x01dd)
+            if (packet_id == 0x64)
             {
-                if (RFIFOREST(s) >= ((RFIFOW(s, 0) == 0x64) ? 55 : 47))
-                {
-                    AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), account: %s.\n"_fmt,
-                            s, RFIFOW(s, 0), RFIFOREST(s),
-                            account_name);
-                }
+                // handled below to handle account name
             }
-            else if (RFIFOW(s, 0) == 0x2710)
+            else if (packet_id == 0x2710)
             {
-                if (RFIFOREST(s) >= 86)
-                {
-                    ServerName server_name = stringish<ServerName>(RFIFO_STRING<20>(s, 60));
-                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), server: %s.\n"_fmt,
-                            s, RFIFOW(s, 0), RFIFOREST(s),
-                            server_name);
-                }
+                // handled below to handle server name
             }
             else
                 PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu).\n"_fmt,
-                        s, RFIFOW(s, 0), RFIFOREST(s));
+                        s, packet_id, packet_avail(s));
         }
 
-        switch (RFIFOW(s, 0))
+        switch (packet_id)
         {
-            case 0x200:        // New alive packet: structure: 0x200 <account.userid>.24B. used to verify if client is always alive.
-                if (RFIFOREST(s) < 26)
-                    return;
-                RFIFOSKIP(s, 26);
-                break;
-
-            case 0x204:        // New alive packet: structure: 0x204 <encrypted.account.userid>.16B. (new ragexe from 22 june 2004)
-                if (RFIFOREST(s) < 18)
-                    return;
-                RFIFOSKIP(s, 18);
-                break;
-
             case 0x64:         // Ask connection of a client
-                if (RFIFOREST(s) < 55)
-                    return;
+            {
+                Packet_Fixed<0x0064> fixed;
+                rv = recv_fpacket<0x0064, 55>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
 
-                account.userid = stringish<AccountName>(RFIFO_STRING<24>(s, 6).to_print());
-                account.passwd = stringish<AccountPass>(RFIFO_STRING<24>(s, 30).to_print());
+                // formerly at top of while
+                {
+                    AccountName account_name = fixed.account_name;
+                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), account: %s.\n"_fmt,
+                            s, packet_id, packet_avail(s),
+                            account_name);
+                }
+
+                account.userid = fixed.account_name;
+                account.passwd = fixed.account_pass;
                 account.passwdenc = 0;
 
                 LOGIN_LOG("Request for connection (non encryption mode) of %s (ip: %s).\n"_fmt,
@@ -2923,18 +2905,18 @@ void parse_login(Session *s)
                 {
                     LOGIN_LOG("Connection refused: IP isn't authorised (deny/allow, ip: %s).\n"_fmt,
                             ip);
-                    WFIFOW(s, 0) = 0x6a;
-                    WFIFOB(s, 2) = 0x03;
-                    WFIFO_ZERO(s, 3, 20);
-                    WFIFOSET(s, 23);
-                    RFIFOSKIP(s, 55);
+
+                    Packet_Fixed<0x006a> fixed_6a;
+                    fixed_6a.error_code = 0x03;
+                    fixed_6a.error_message = {};
+                    send_fpacket<0x006a, 23>(s, fixed_6a);
                     break;
                 }
 
                 result = mmo_auth(&account, s);
                 if (result == -1)
                 {
-                    VERSION_2 version_2 = static_cast<VERSION_2>(RFIFOB(s, 54));
+                    VERSION_2 version_2 = fixed.version_2_flags;
                     if (!bool(version_2 & VERSION_2::UPDATEHOST)
                         || !bool(version_2 & VERSION_2::SERVERORDER))
                         result = 5; // client too old
@@ -2947,9 +2929,9 @@ void parse_login(Session *s)
                         LOGIN_LOG("Connection refused: the minimum GM level for connection is %d (account: %s, GM level: %d, ip: %s).\n"_fmt,
                                 min_level_to_connect, account.userid,
                                 gm_level, ip);
-                        WFIFOW(s, 0) = 0x81;
-                        WFIFOB(s, 2) = 1; // 01 = Server closed
-                        WFIFOSET(s, 3);
+                        Packet_Fixed<0x0081> fixed_81;
+                        fixed_81.error_code = 1; // 01 = Server closed
+                        send_fpacket<0x0081, 3>(s, fixed_81);
                     }
                     else
                     {
@@ -2977,45 +2959,43 @@ void parse_login(Session *s)
                         {
                             if (update_host)
                             {
-                                size_t host_len = update_host.size() + 1;
-                                WFIFOW(s, 0) = 0x63;
-                                WFIFOW(s, 2) = 4 + host_len;
-                                WFIFO_STRING(s, 4, update_host, host_len);
-                                WFIFOSET(s, 4 + host_len);
+                                send_packet_repeatonly<0x0063, 4, 1>(s, update_host);
                             }
                         }
 
                         // Load list of char servers into outbound packet
-                        int server_num = 0;
+                        std::vector<Packet_Repeat<0x0069>> repeat_69;
                         // if (version_2 & VERSION_2_SERVERORDER)
                         for (int i = 0; i < MAX_SERVERS; i++)
                         {
                             if (server_session[i])
                             {
+                                Packet_Repeat<0x0069> info;
                                 if (lan_ip_check(ip))
-                                    WFIFOIP(s, 47 + server_num * 32) = lan_char_ip;
+                                    info.ip = lan_char_ip;
                                 else
-                                    WFIFOIP(s, 47 + server_num * 32) = server[i].ip;
-                                WFIFOW(s, 47 + server_num * 32 + 4) = server[i].port;
-                                WFIFO_STRING(s, 47 + server_num * 32 + 6, server[i].name, 20);
-                                WFIFOW(s, 47 + server_num * 32 + 26) = server[i].users;
-                                WFIFOW(s, 47 + server_num * 32 + 28) = 0; //maintenance;
-                                WFIFOW(s, 47 + server_num * 32 + 30) = 0; //is_new;
-                                server_num++;
+                                    info.ip = server[i].ip;
+                                info.port = server[i].port;
+                                info.server_name = server[i].name;
+                                info.users = server[i].users;
+                                info.maintenance = 0; //maintenance;
+                                info.is_new = 0; //is_new;
+                                repeat_69.push_back(info);
                             }
                         }
                         // if at least 1 char-server
-                        if (server_num > 0)
+                        if (repeat_69.size())
                         {
-                            WFIFOW(s, 0) = 0x69;
-                            WFIFOW(s, 2) = 47 + 32 * server_num;
-                            WFIFOL(s, 4) = account.login_id1;
-                            WFIFOL(s, 8) = unwrap<AccountId>(account.account_id);
-                            WFIFOL(s, 12) = account.login_id2;
-                            WFIFOL(s, 16) = 0;    // in old version, that was for ip (not more used)
-                            WFIFO_STRING(s, 20, account.lastlogin, 24);    // in old version, that was for name (not more used)
-                            WFIFOB(s, 46) = static_cast<uint8_t>(account.sex);
-                            WFIFOSET(s, 47 + 32 * server_num);
+                            Packet_Head<0x0069> head_69;
+                            head_69.login_id1 = account.login_id1;
+                            head_69.account_id = account.account_id;
+                            head_69.login_id2 = account.login_id2;
+                            head_69.unused = 0;    // in old version, that was for ip (not more used)
+                            head_69.last_login_string = account.lastlogin;    // in old version, that was for name (not more used)
+                            head_69.unused2 = 0;
+                            head_69.sex = account.sex;
+                            send_vpacket<0x0069, 47, 32>(s, head_69, repeat_69);
+
                             if (auth_fifo_pos >= AUTH_FIFO_SIZE)
                                 auth_fifo_pos = 0;
                             auth_fifo[auth_fifo_pos].account_id =
@@ -3035,17 +3015,16 @@ void parse_login(Session *s)
                         {
                             LOGIN_LOG("Connection refused: there is no char-server online (account: %s, ip: %s).\n"_fmt,
                                     account.userid, ip);
-                            WFIFOW(s, 0) = 0x81;
-                            WFIFOB(s, 2) = 1; // 01 = Server closed
-                            WFIFOSET(s, 3);
+                            Packet_Fixed<0x0081> fixed_81;
+                            fixed_81.error_code = 1; // 01 = Server closed
+                            send_fpacket<0x0081, 3>(s, fixed_81);
                         }
                     }
                 }
                 else
                 {
-                    WFIFO_ZERO(s, 0, 23);
-                    WFIFOW(s, 0) = 0x6a;
-                    WFIFOB(s, 2) = result;
+                    Packet_Fixed<0x006a> fixed_6a;
+                    fixed_6a.error_code = result;
                     if (result == 6)
                     {
                         // 6 = Your are Prohibited to log in until %s
@@ -3057,31 +3036,42 @@ void parse_login(Session *s)
                                 // if account is banned, we send ban timestamp
                                 timestamp_seconds_buffer tmpstr;
                                 stamp_time(tmpstr, &ad->ban_until_time);
-                                WFIFO_STRING(s, 3, tmpstr, 20);
+                                fixed_6a.error_message = tmpstr;
                             }
                             else
                             {   // we send error message
-                                WFIFO_STRING(s, 3, ad->error_message, 20);
+                                fixed_6a.error_message = ad->error_message;
                             }
                         }
                     }
-                    WFIFOSET(s, 23);
+                    send_fpacket<0x006a, 23>(s, fixed_6a);
                 }
-                RFIFOSKIP(s, (RFIFOW(s, 0) == 0x64) ? 55 : 47);
                 break;
+            }
 
             case 0x2710:       // Connection request of a char-server
-                if (RFIFOREST(s) < 86)
-                    return;
+            {
+                Packet_Fixed<0x2710> fixed;
+                rv = recv_fpacket<0x2710, 86>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                // formerly at top of while
+                {
+                    ServerName server_name = stringish<ServerName>(fixed.server_name);
+                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), server: %s.\n"_fmt,
+                            s, packet_id, packet_avail(s),
+                            server_name);
+                }
+
                 {
                     // TODO: this is exceptionally silly. Fix it.
-                    int len;
-                    account.userid = stringish<AccountName>(RFIFO_STRING<24>(s, 2).to_print());
-                    account.passwd = stringish<AccountPass>(RFIFO_STRING<24>(s, 26).to_print());
+                    account.userid = stringish<AccountName>(fixed.account_name.to_print());
+                    account.passwd = stringish<AccountPass>(fixed.account_pass.to_print());
                     account.passwdenc = 0;
-                    ServerName server_name = stringish<ServerName>(RFIFO_STRING<20>(s, 60).to_print());
+                    ServerName server_name = stringish<ServerName>(fixed.server_name.to_print());
                     LOGIN_LOG("Connection request of the char-server '%s' @ %s:%d (ip: %s)\n"_fmt,
-                            server_name, RFIFOIP(s, 54), RFIFOW(s, 58), ip);
+                            server_name, fixed.ip, fixed.port, ip);
                     if (account.userid == userid && account.passwd == passwd)
                     {
                         // If this is the main server, and we don't already have a main server
@@ -3114,8 +3104,8 @@ void parse_login(Session *s)
                         PRINTF("Connection of the char-server '%s' accepted.\n"_fmt,
                                 server_name);
                         server[unwrap<AccountId>(account.account_id)] = mmo_char_server{};
-                        server[unwrap<AccountId>(account.account_id)].ip = RFIFOIP(s, 54);
-                        server[unwrap<AccountId>(account.account_id)].port = RFIFOW(s, 58);
+                        server[unwrap<AccountId>(account.account_id)].ip = fixed.ip;
+                        server[unwrap<AccountId>(account.account_id)].port = fixed.port;
                         server[unwrap<AccountId>(account.account_id)].name = server_name;
                         server[unwrap<AccountId>(account.account_id)].users = 0;
                         //maintenance = RFIFOW(fd, 82);
@@ -3123,24 +3113,16 @@ void parse_login(Session *s)
                         server_session[unwrap<AccountId>(account.account_id)] = s;
                         if (anti_freeze_enable)
                             server_freezeflag[unwrap<AccountId>(account.account_id)] = 5;  // Char-server anti-freeze system. Counter. 5 ok, 4...0 freezed
-                        WFIFOW(s, 0) = 0x2711;
-                        WFIFOB(s, 2) = 0;
-                        WFIFOSET(s, 3);
+
+                        Packet_Fixed<0x2711> fixed_11;
+                        fixed_11.code = 0;
+                        send_fpacket<0x2711, 3>(s, fixed_11);
+
                         s->set_parsers(SessionParsers{.func_parse= parse_fromchar, .func_delete= delete_fromchar});
                         realloc_fifo(s, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
+
                         // send GM account to char-server
-                        len = 4;
-                        WFIFOW(s, 0) = 0x2732;
-                        for (const AuthData& ad : auth_data)
-                            // send only existing accounts. We can not create a GM account when server is online.
-                            if (GmLevel GM_value = isGM(ad.account_id))
-                            {
-                                WFIFOL(s, len) = unwrap<AccountId>(ad.account_id);
-                                WFIFOB(s, len + 4) = static_cast<uint8_t>(GM_value.get_all_bits());
-                                len += 5;
-                            }
-                        WFIFOW(s, 2) = len;
-                        WFIFOSET(s, len);
+                        send_GM_accounts(s);
                         goto x2710_done;
                     }
                     {
@@ -3148,39 +3130,56 @@ void parse_login(Session *s)
                         LOGIN_LOG("Connexion of the char-server '%s' REFUSED (account: %s, pass: %s, ip: %s)\n"_fmt,
                                 server_name, account.userid,
                                 account.passwd, ip);
-                        WFIFOW(s, 0) = 0x2711;
-                        WFIFOB(s, 2) = 3;
-                        WFIFOSET(s, 3);
+                        Packet_Fixed<0x2711> fixed_11;
+                        fixed_11.code = 3;
+                        send_fpacket<0x2711, 3>(s, fixed_11);
                     }
                 }
             x2710_done:
-                RFIFOSKIP(s, 86);
+                // justification: we switching the packet parser
+                parse_fromchar(s);
                 return;
+            }
 
             case 0x7530:       // Request of the server version
+            {
+                Packet_Fixed<0x7530> fixed;
+                rv = recv_fpacket<0x7530, 2>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 LOGIN_LOG("Sending of the server version (ip: %s)\n"_fmt,
                         ip);
-                WFIFOW(s, 0) = 0x7531;
-            {
+
+                Packet_Fixed<0x7531> fixed_31;
                 Version version = CURRENT_LOGIN_SERVER_VERSION;
                 version.flags = new_account ? 1 : 0;
-                WFIFO_STRUCT(s, 2, version);
-                WFIFOSET(s, 10);
-            }
-                RFIFOSKIP(s, 2);
+                fixed_31.version = version;
+                send_fpacket<0x7531, 10>(s, fixed_31);
                 break;
+            }
 
             case 0x7532:       // Request to end connection
+            {
+                Packet_Fixed<0x7532> fixed;
+                rv = recv_fpacket<0x7532, 2>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 LOGIN_LOG("End of connection (ip: %s)\n"_fmt, ip);
                 s->set_eof();
                 return;
+            }
 
             case 0x7918:       // Request for administation login
-                if (RFIFOREST(s) < 4
-                    || RFIFOREST(s) < ((RFIFOW(s, 2) == 0) ? 28 : 20))
-                    return;
-                WFIFOW(s, 0) = 0x7919;
-                WFIFOB(s, 2) = 1;
+            {
+                Packet_Fixed<0x7918> fixed;
+                rv = recv_fpacket<0x7918, 28>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                Packet_Fixed<0x7919> fixed_19;
+                fixed_19.error = 1;
                 if (!check_ladminip(s->client_ip))
                 {
                     LOGIN_LOG("'ladmin'-login: Connection in administration mode refused: IP isn't authorised (ladmin_allow, ip: %s).\n"_fmt,
@@ -3188,10 +3187,10 @@ void parse_login(Session *s)
                 }
                 else
                 {
-                    if (RFIFOW(s, 2) == 0)
+                    if (fixed.encryption_zero == 0)
                     {
                         // non encrypted password
-                        AccountPass password = stringish<AccountPass>(RFIFO_STRING<24>(s, 4).to_print());
+                        AccountPass password = stringish<AccountPass>(fixed.account_pass.to_print());
                         // If remote administration is enabled and password sent by client matches password read from login server configuration file
                         if ((admin_state == 1)
                             && (password == admin_pass))
@@ -3199,7 +3198,7 @@ void parse_login(Session *s)
                             LOGIN_LOG("'ladmin'-login: Connection in administration mode accepted (non encrypted password: %s, ip: %s)\n"_fmt,
                                     password, ip);
                             PRINTF("Connection of a remote administration accepted (non encrypted password).\n"_fmt);
-                            WFIFOB(s, 2) = 0;
+                            fixed_19.error = 0;
                             s->set_parsers(SessionParsers{.func_parse= parse_admin, .func_delete= delete_admin});
                         }
                         else if (admin_state != 1)
@@ -3218,11 +3217,12 @@ void parse_login(Session *s)
                         }
                     }
                 }
-                WFIFOSET(s, 3);
-                RFIFOSKIP(s, (RFIFOW(s, 2) == 0) ? 28 : 20);
+                send_fpacket<0x7919, 3>(s, fixed_19);
                 break;
+            }
 
             default:
+            {
                 if (save_unknown_packets)
                 {
                     io::AppendFile logfp(login_log_unknown_packets_filename);
@@ -3235,48 +3235,16 @@ void parse_login(Session *s)
                                 timestr);
                         FPRINTF(logfp,
                                 "parse_login: connection #%d (ip: %s), packet: 0x%x (with being read: %zu).\n"_fmt,
-                                s, ip, RFIFOW(s, 0),
-                                RFIFOREST(s));
+                                s, ip, packet_id,
+                                packet_avail(s));
                         FPRINTF(logfp, "Detail (in hex):\n"_fmt);
-                        FPRINTF(logfp,
-                                "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n"_fmt);
-
-                        char tmpstr[16 + 1] {};
-
-                        int i;
-                        for (i = 0; i < RFIFOREST(s); i++)
-                        {
-                            if ((i & 15) == 0)
-                                FPRINTF(logfp, "%04X "_fmt, i);
-                            FPRINTF(logfp, "%02x "_fmt, RFIFOB(s, i));
-                            if (RFIFOB(s, i) > 0x1f)
-                                tmpstr[i % 16] = RFIFOB(s, i);
-                            else
-                                tmpstr[i % 16] = '.';
-                            if ((i - 7) % 16 == 0)  // -8 + 1
-                                FPRINTF(logfp, " "_fmt);
-                            else if ((i + 1) % 16 == 0)
-                            {
-                                FPRINTF(logfp, " %s\n"_fmt, tmpstr);
-                                std::fill(tmpstr + 0, tmpstr + 17, '\0');
-                            }
-                        }
-                        if (i % 16 != 0)
-                        {
-                            for (j = i; j % 16 != 0; j++)
-                            {
-                                FPRINTF(logfp, "   "_fmt);
-                                if ((j - 7) % 16 == 0)  // -8 + 1
-                                    FPRINTF(logfp, " "_fmt);
-                            }
-                            FPRINTF(logfp, " %s\n"_fmt, tmpstr);
-                        }
-                        FPRINTF(logfp, "\n"_fmt);
+                        packet_dump(logfp, s);
                     }
                 }
                 LOGIN_LOG("End of connection, unknown packet (ip: %s)\n"_fmt, ip);
                 s->set_eof();
                 return;
+            }
         }
     }
     return;

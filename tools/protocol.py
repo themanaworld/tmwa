@@ -361,15 +361,19 @@ class FixedPacket(object):
 
     def dump_fwd(self, fwd):
         self.fixed_struct.dump_fwd(fwd)
+        fwd.write('\n')
 
     def dump_native(self, f):
         self.fixed_struct.dump_native(f)
+        f.write('\n')
 
     def dump_network(self, f):
         self.fixed_struct.dump_network(f)
+        f.write('\n')
 
     def dump_convert(self, f):
         self.fixed_struct.dump_convert(f)
+        f.write('\n')
 
 class VarPacket(object):
     __slots__ = ('head_struct', 'repeat_struct')
@@ -381,18 +385,22 @@ class VarPacket(object):
     def dump_fwd(self, fwd):
         self.head_struct.dump_fwd(fwd)
         self.repeat_struct.dump_fwd(fwd)
+        fwd.write('\n')
 
     def dump_native(self, f):
         self.head_struct.dump_native(f)
         self.repeat_struct.dump_native(f)
+        f.write('\n')
 
     def dump_network(self, f):
         self.head_struct.dump_network(f)
         self.repeat_struct.dump_network(f)
+        f.write('\n')
 
     def dump_convert(self, f):
         self.head_struct.dump_convert(f)
         self.repeat_struct.dump_convert(f)
+        f.write('\n')
 
 def packet(id,
         fixed=None, fixed_size=None,
@@ -424,9 +432,7 @@ class Channel(object):
 
     def s(self, id, **kwargs):
         self.packets.append(packet(id, **kwargs))
-
-    def r(self, id, **kwargs):
-        self.packets.append(packet(id, **kwargs))
+    r = s
 
     def dump(self, outdir, fwd):
         server = self.server
@@ -671,6 +677,7 @@ def main():
     utils_h = ctx.include('src/mmo/utils.hpp')
     version_h = ctx.include('src/mmo/version.hpp')
 
+    login_types_h = ctx.include('src/login/types.hpp')
 
     # included types
 
@@ -725,6 +732,8 @@ def main():
     #ItemName = map_t_h.native('ItemName')
     #md5_native = md5_h.native('md5_native')
     #SaltString = md5_h.native('SaltString')
+
+    VERSION_2 = login_types_h.native('VERSION_2')
 
     # generated types
 
@@ -798,6 +807,8 @@ def main():
             ]
     )
 
+    version_2 = ctx.enum(VERSION_2, u8)
+
     # packets
 
     login_char = ctx.chan('login', 'char')
@@ -816,7 +827,68 @@ def main():
 
     any_user = ctx.chan('any', 'user')
 
-    # map user
+
+    # * user
+    login_user.r(0x0063,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[at(0, u8, 'c')],
+        repeat_size=1,
+    )
+    login_user.r(0x0064,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u32, 'unknown'),
+            at(6, account_name, 'account name'),
+            at(30, account_pass, 'account pass'),
+            at(54, version_2, 'version 2 flags'),
+        ],
+        fixed_size=55,
+    )
+
+    login_user.r(0x0069,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, u32, 'login id1'),
+            at(8, account_id, 'account id'),
+            at(12, u32, 'login id2'),
+            at(16, u32, 'unused'),
+            at(20, millis, 'last login string'),
+            at(44, u16, 'unused2'),
+            at(46, sex, 'sex'),
+        ],
+        head_size=47,
+        repeat=[
+            at(0, ip4, 'ip'),
+            at(4, u16, 'port'),
+            at(6, server_name, 'server name'),
+            at(26, u16, 'users'),
+            at(28, u16, 'maintenance'),
+            at(30, u16, 'is new'),
+        ],
+        repeat_size=32,
+    )
+    login_user.s(0x006a,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'error code'),
+            at(3, seconds, 'error message'),
+        ],
+        fixed_size=23,
+    )
+
+    login_user.s(0x0081,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'error code'),
+        ],
+        fixed_size=3,
+    )
+
     map_user.s(0x0212,
         fixed=[
             at(0, u16, 'packet id'),
@@ -835,6 +907,28 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+    )
+    login_char.r(0x2710,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_name, 'account name'),
+            at(26, account_pass, 'account pass'),
+            at(50, u32, 'unknown'),
+            at(54, ip4, 'ip'),
+            at(58, u16, 'port'),
+            at(60, server_name, 'server name'),
+            at(80, u16, 'unknown2'),
+            at(82, u16, 'maintenance'),
+            at(84, u16, 'is_new'),
+        ],
+        fixed_size=86,
+    )
+    login_char.s(0x2711,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'code'),
+        ],
+        fixed_size=3,
     )
     login_char.r(0x2712,
         fixed=[
@@ -1051,6 +1145,21 @@ def main():
     )
 
     # login admin
+    login_admin.r(0x7918,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'encryption zero'),
+            at(4, account_pass, 'account pass'),
+        ],
+        fixed_size=28,
+    )
+    login_admin.s(0x7919,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'error'),
+        ],
+        fixed_size=3,
+    )
     login_admin.r(0x7920,
         fixed=[
             at(0, u16, 'packet id'),

@@ -41,6 +41,7 @@ struct Packet_Fixed<0x0212>
     uint16_t y = {};
 };
 
+
 template<>
 struct NetPacket_Fixed<0x0212>
 {
@@ -58,6 +59,7 @@ static_assert(offsetof(NetPacket_Fixed<0x0212>, id) == 8, "offsetof(NetPacket_Fi
 static_assert(offsetof(NetPacket_Fixed<0x0212>, x) == 12, "offsetof(NetPacket_Fixed<0x0212>, x) == 12");
 static_assert(offsetof(NetPacket_Fixed<0x0212>, y) == 14, "offsetof(NetPacket_Fixed<0x0212>, y) == 14");
 static_assert(sizeof(NetPacket_Fixed<0x0212>) == 16, "sizeof(NetPacket_Fixed<0x0212>) == 16");
+
 
 inline __attribute__((warn_unused_result))
 bool native_to_network(NetPacket_Fixed<0x0212> *network, Packet_Fixed<0x0212> native)
@@ -83,5 +85,6 @@ bool network_to_native(Packet_Fixed<0x0212> *native, NetPacket_Fixed<0x0212> net
     rv &= network_to_native(&native->y, network.y);
     return rv;
 }
+
 
 #endif // TMWA_PROTO2_MAP_USER_HPP

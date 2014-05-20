@@ -228,6 +228,7 @@ RecvResult recv_vpacket(Session *s, Packet_Head<id>& head, std::vector<Packet_Re
     return rv;
 }
 
+
 // convenience for trailing strings
 
 template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
@@ -320,6 +321,38 @@ RecvResult recv_packet_repeatonly(Session *s, std::vector<Packet_Repeat<id>>& v)
 
     Packet_Head<id> head;
     return recv_vpacket<id, 4, repeatsize>(s, head, v);
+}
+
+
+// and the combination of both of the above
+
+template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
+void send_packet_repeatonly(Session *s, const XString& repeat)
+{
+    static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
+    static_assert(headsize == sizeof(NetPacket_Head<id>), "repeat headsize");
+    static_assert(headsize == 4, "repeat headsize");
+    static_assert(id == Packet_Repeat<id>::PACKET_ID, "Packet_Repeat<id>::PACKET_ID");
+    static_assert(repeatsize == sizeof(NetPacket_Repeat<id>), "sizeof(NetPacket_Repeat<id>)");
+    static_assert(repeatsize == 1, "repeatsize");
+
+    Packet_Head<id> head;
+    send_vpacket<id, 4, repeatsize>(s, head, repeat);
+}
+
+template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
+__attribute__((warn_unused_result))
+RecvResult recv_packet_repeatonly(Session *s, AString& repeat)
+{
+    static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
+    static_assert(headsize == sizeof(NetPacket_Head<id>), "repeat headsize");
+    static_assert(headsize == 4, "repeat headsize");
+    static_assert(id == Packet_Repeat<id>::PACKET_ID, "Packet_Repeat<id>::PACKET_ID");
+    static_assert(repeatsize == sizeof(NetPacket_Repeat<id>), "sizeof(NetPacket_Repeat<id>)");
+    static_assert(repeatsize == 1, "repeatsize");
+
+    Packet_Head<id> head;
+    return recv_vpacket<id, 4, repeatsize>(s, head, repeat);
 }
 
 #endif // TMWA_NET_PACKETS_HPP

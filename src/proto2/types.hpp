@@ -32,6 +32,7 @@
 # include "../mmo/strs.hpp"
 # include "../mmo/utils.hpp"
 # include "../mmo/version.hpp"
+# include "../login/types.hpp"
 template<class T>
 bool native_to_network(T *network, T native)
 {
@@ -297,4 +298,22 @@ bool network_to_native(Version *native, NetVersion network)
     return rv;
 }
 
+inline __attribute__((warn_unused_result))
+bool native_to_network(Byte *network, VERSION_2 native)
+{
+    bool rv = true;
+    uint8_t tmp = static_cast<uint8_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(VERSION_2 *native, Byte network)
+{
+    bool rv = true;
+    uint8_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<VERSION_2>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
 #endif // TMWA_PROTO2_TYPES_HPP
