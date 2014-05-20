@@ -731,14 +731,14 @@ auto iter_char_sessions() -> decltype(filter_iterator<Session *>(&server_session
 static
 void send_GM_accounts(void)
 {
-    std::vector<SPacket_0x2732_Repeat> tail;
+    std::vector<Packet_Repeat<0x2732>> tail;
 
     for (const AuthData& ad : auth_data)
     {
         // send only existing accounts. We can not create a GM account when server is online.
         if (GmLevel GM_value = isGM(ad.account_id))
         {
-            SPacket_0x2732_Repeat item;
+            Packet_Repeat<0x2732> item;
             item.account_id = ad.account_id;
             item.gm_level = GM_value;
             tail.push_back(item);
@@ -1001,7 +1001,7 @@ void parse_fromchar(Session *s)
                 // request from map-server via char-server to reload GM accounts (by Yor).
             case 0x2709:
             {
-                RPacket_0x2709_Fixed fixed;
+                Packet_Fixed<0x2709> fixed;
                 rv = recv_fpacket<0x2709, 2>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1016,7 +1016,7 @@ void parse_fromchar(Session *s)
 
             case 0x2712:       // request from char-server to authentify an account
             {
-                RPacket_0x2712_Fixed fixed;
+                Packet_Fixed<0x2712> fixed;
                 rv = recv_fpacket<0x2712, 19>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1041,22 +1041,22 @@ void parse_fromchar(Session *s)
                             {
                                 if (ad.account_id == acc)
                                 {
-                                    SPacket_0x2729_Head head_29;
+                                    Packet_Head<0x2729> head_29;
                                     head_29.account_id = acc;
-                                    std::vector<SPacket_0x2729_Repeat> repeat_29;
+                                    std::vector<Packet_Repeat<0x2729>> repeat_29;
                                     int j;
                                     for (j = 0;
                                          j < ad.account_reg2_num;
                                          j++)
                                     {
-                                        SPacket_0x2729_Repeat item;
+                                        Packet_Repeat<0x2729> item;
                                         item.name = ad.account_reg2[j].str;
                                         item.value = ad.account_reg2[j].value;
                                         repeat_29.push_back(item);
                                     }
                                     send_vpacket<0x2729, 8, 36>(s, head_29, repeat_29);
 
-                                    SPacket_0x2713_Fixed fixed_13;
+                                    Packet_Fixed<0x2713> fixed_13;
                                     fixed_13.account_id = acc;
                                     fixed_13.invalid = 0;
                                     fixed_13.email = ad.email;
@@ -1075,7 +1075,7 @@ void parse_fromchar(Session *s)
                         LOGIN_LOG("Char-server '%s': authentification of the account %d REFUSED (ip: %s).\n"_fmt,
                                 server[id].name, acc, ip);
 
-                        SPacket_0x2713_Fixed fixed_13;
+                        Packet_Fixed<0x2713> fixed_13;
                         fixed_13.account_id = acc;
                         fixed_13.invalid = 1;
                         // fixed_13.email
@@ -1089,7 +1089,7 @@ void parse_fromchar(Session *s)
 
             case 0x2714:
             {
-                RPacket_0x2714_Fixed fixed;
+                Packet_Fixed<0x2714> fixed;
                 rv = recv_fpacket<0x2714, 6>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1103,7 +1103,7 @@ void parse_fromchar(Session *s)
                 // we receive a e-mail creation of an account with a default e-mail (no answer)
             case 0x2715:
             {
-                RPacket_0x2715_Fixed fixed;
+                Packet_Fixed<0x2715> fixed;
                 rv = recv_fpacket<0x2715, 46>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1135,7 +1135,7 @@ void parse_fromchar(Session *s)
                 // We receive an e-mail/limited time request, because a player comes back from a map-server to the char-server
             case 0x2716:
             {
-                RPacket_0x2716_Fixed fixed;
+                Packet_Fixed<0x2716> fixed;
                 rv = recv_fpacket<0x2716, 6>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1148,7 +1148,7 @@ void parse_fromchar(Session *s)
                         LOGIN_LOG("Char-server '%s': e-mail of the account %d found (ip: %s).\n"_fmt,
                                 server[id].name, account_id, ip);
 
-                        SPacket_0x2717_Fixed fixed_17;
+                        Packet_Fixed<0x2717> fixed_17;
                         fixed_17.account_id = account_id;
                         fixed_17.email = ad.email;
                         fixed_17.connect_until = ad.connect_until_time;
@@ -1167,7 +1167,7 @@ void parse_fromchar(Session *s)
 
             case 0x2720:       // To become GM request
             {
-                RPacket_0x2720_Head head;
+                Packet_Head<0x2720> head;
                 AString repeat;
                 rv = recv_vpacket<0x2720, 8, 1>(s, head, repeat);
                 if (rv != RecvResult::Complete)
@@ -1176,7 +1176,7 @@ void parse_fromchar(Session *s)
                 {
                     AccountId acc = head.account_id;
 
-                    SPacket_0x2721_Fixed fixed_21;
+                    Packet_Fixed<0x2721> fixed_21;
                     fixed_21.account_id = acc;
                     fixed_21.gm_level = GmLevel();
 
@@ -1255,7 +1255,7 @@ void parse_fromchar(Session *s)
                 // Map server send information to change an email of an account via char-server
             case 0x2722:       // 0x2722 <account_id>.L <actual_e-mail>.40B <new_e-mail>.40B
             {
-                RPacket_0x2722_Fixed fixed;
+                Packet_Fixed<0x2722> fixed;
                 rv = recv_fpacket<0x2722, 86>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1305,7 +1305,7 @@ void parse_fromchar(Session *s)
                 // Receiving of map-server via char-server a status change resquest (by Yor)
             case 0x2724:
             {
-                RPacket_0x2724_Fixed fixed;
+                Packet_Fixed<0x2724> fixed;
                 rv = recv_fpacket<0x2724, 10>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1324,7 +1324,7 @@ void parse_fromchar(Session *s)
                                         ip);
                                 if (statut != 0)
                                 {
-                                    SPacket_0x2731_Fixed fixed_31;
+                                    Packet_Fixed<0x2731> fixed_31;
                                     fixed_31.account_id = acc;
                                     fixed_31.ban_not_status = 0;
                                     fixed_31.status_or_ban_until = static_cast<time_t>(statut);
@@ -1359,7 +1359,7 @@ void parse_fromchar(Session *s)
 
             case 0x2725:       // Receiving of map-server via char-server a ban resquest (by Yor)
             {
-                RPacket_0x2725_Fixed fixed;
+                Packet_Fixed<0x2725> fixed;
                 rv = recv_fpacket<0x2725, 18>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1402,7 +1402,7 @@ void parse_fromchar(Session *s)
                                                 timestamp,
                                                 tmpstr,
                                                 ip);
-                                        SPacket_0x2731_Fixed fixed_31;
+                                        Packet_Fixed<0x2731> fixed_31;
                                         fixed_31.account_id = ad.account_id;
                                         fixed_31.ban_not_status = 1;
                                         fixed_31.status_or_ban_until = timestamp;
@@ -1450,7 +1450,7 @@ void parse_fromchar(Session *s)
 
             case 0x2727:       // Change of sex (sex is reversed)
             {
-                RPacket_0x2727_Fixed fixed;
+                Packet_Fixed<0x2727> fixed;
                 rv = recv_fpacket<0x2727, 6>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1478,7 +1478,7 @@ void parse_fromchar(Session *s)
                                 }
                                 ad.sex = sex;
 
-                                SPacket_0x2723_Fixed fixed_23;
+                                Packet_Fixed<0x2723> fixed_23;
                                 fixed_23.account_id = acc;
                                 fixed_23.sex = sex;
 
@@ -1500,8 +1500,8 @@ void parse_fromchar(Session *s)
 
             case 0x2728:       // We receive account_reg2 from a char-server, and we send them to other char-servers.
             {
-                RPacket_0x2728_Head head;
-                std::vector<RPacket_0x2728_Repeat> repeat;
+                Packet_Head<0x2728> head;
+                std::vector<Packet_Repeat<0x2728>> repeat;
                 rv = recv_vpacket<0x2728, 8, 36>(s, head, repeat);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1524,8 +1524,8 @@ void parse_fromchar(Session *s)
                             ad.account_reg2_num = count;
 
                             // Sending information towards the other char-servers.
-                            SPacket_0x2729_Head head_29;
-                            std::vector<SPacket_0x2729_Repeat> repeat_29(repeat.size());
+                            Packet_Head<0x2729> head_29;
+                            std::vector<Packet_Repeat<0x2729>> repeat_29(repeat.size());
                             head_29.account_id = head.account_id;
                             for (size_t j = 0; j < count; ++j)
                             {
@@ -1551,7 +1551,7 @@ void parse_fromchar(Session *s)
 
             case 0x272a:       // Receiving of map-server via char-server a unban resquest (by Yor)
             {
-                RPacket_0x272a_Fixed fixed;
+                Packet_Fixed<0x272a> fixed;
                 rv = recv_fpacket<0x272a, 6>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1587,7 +1587,7 @@ void parse_fromchar(Session *s)
                 // request from char-server to change account password
             case 0x2740:       // 0x2740 <account_id>.L <actual_password>.24B <new_password>.24B
             {
-                RPacket_0x2740_Fixed fixed;
+                Packet_Fixed<0x2740> fixed;
                 rv = recv_fpacket<0x2740, 54>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1627,7 +1627,7 @@ void parse_fromchar(Session *s)
                         }
                     }
                 x2740_out:
-                    SPacket_0x2741_Fixed fixed_41;
+                    Packet_Fixed<0x2741> fixed_41;
                     fixed_41.account_id = acc;
                     fixed_41.status = status;
                     send_fpacket<0x2741, 7>(s, fixed_41);
@@ -1684,7 +1684,7 @@ void parse_admin(Session *s)
         {
             case 0x7530:       // Request of the server version
             {
-                RPacket_0x7530_Fixed fixed;
+                Packet_Fixed<0x7530> fixed;
                 rv = recv_fpacket<0x7530, 2>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1692,7 +1692,7 @@ void parse_admin(Session *s)
                 LOGIN_LOG("'ladmin': Sending of the server version (ip: %s)\n"_fmt,
                         ip);
 
-                SPacket_0x7531_Fixed fixed_31;
+                Packet_Fixed<0x7531> fixed_31;
                 fixed_31.version = CURRENT_LOGIN_SERVER_VERSION;
                 send_fpacket<0x7531, 10>(s, fixed_31);
                 break;
@@ -1700,7 +1700,7 @@ void parse_admin(Session *s)
 
             case 0x7532:       // Request of end of connection
             {
-                RPacket_0x7532_Fixed fixed;
+                Packet_Fixed<0x7532> fixed;
                 rv = recv_fpacket<0x7532, 2>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1713,7 +1713,7 @@ void parse_admin(Session *s)
 
             case 0x7920:       // Request of an accounts list
             {
-                RPacket_0x7920_Fixed fixed;
+                Packet_Fixed<0x7920> fixed;
                 rv = recv_fpacket<0x7920, 10>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1728,14 +1728,14 @@ void parse_admin(Session *s)
                             st, ed, ip);
 
                     // Sending accounts information
-                    std::vector<SPacket_0x7921_Repeat> repeat_21;
+                    std::vector<Packet_Repeat<0x7921>> repeat_21;
 
                     for (const AuthData& ad : auth_data)
                     {
                         AccountId account_id = ad.account_id;
                         if (!(account_id < st) && !(ed < account_id))
                         {
-                            SPacket_0x7921_Repeat info;
+                            Packet_Repeat<0x7921> info;
                             info.account_id = account_id;
                             info.gm_level = isGM(account_id);
                             info.account_name = ad.userid;
@@ -1755,7 +1755,7 @@ void parse_admin(Session *s)
 
             case 0x7924:
             {                   // [Fate] Itemfrob package: change item IDs
-                RPacket_0x7924_Fixed fixed;
+                Packet_Fixed<0x7924> fixed;
                 rv = recv_fpacket<0x7924, 10>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1765,14 +1765,14 @@ void parse_admin(Session *s)
                     send_fpacket<0x7924, 10>(ss, fixed);
                 }
 
-                SPacket_0x7925_Fixed fixed_25;
+                Packet_Fixed<0x7925> fixed_25;
                 send_fpacket<0x7925, 2>(s, fixed_25);
                 break;
             }
 
             case 0x7930:       // Request for an account creation
             {
-                RPacket_0x7930_Fixed fixed;
+                Packet_Fixed<0x7930> fixed;
                 rv = recv_fpacket<0x7930, 91>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
@@ -1785,7 +1785,7 @@ void parse_admin(Session *s)
                     ma.lastlogin = stringish<timestamp_milliseconds_buffer>("-"_s);
                     ma.sex = fixed.sex;
 
-                    SPacket_0x7931_Fixed fixed_31;
+                    Packet_Fixed<0x7931> fixed_31;
                     fixed_31.account_id = AccountId();
                     fixed_31.account_name = ma.userid;
                     if (ma.userid.size() < 4 || ma.passwd.size() < 4)
@@ -1831,19 +1831,19 @@ void parse_admin(Session *s)
 
             case 0x7932:       // Request for an account deletion
             {
-                RPacket_0x7932_Fixed fixed;
+                Packet_Fixed<0x7932> fixed;
                 rv = recv_fpacket<0x7932, 26>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x7933_Fixed fixed_33;
+                Packet_Fixed<0x7933> fixed_33;
                 fixed_33.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 AuthData *ad = search_account(account_name);
                 if (ad)
                 {
                     // Char-server is notified of deletion (for characters deletion).
-                    SPacket_0x2730_Fixed fixed_30;
+                    Packet_Fixed<0x2730> fixed_30;
                     fixed_30.account_id = ad->account_id;
 
                     for (Session *ss : iter_char_sessions())
@@ -1878,12 +1878,12 @@ void parse_admin(Session *s)
 
             case 0x7934:       // Request to change a password
             {
-                RPacket_0x7934_Fixed fixed;
+                Packet_Fixed<0x7934> fixed;
                 rv = recv_fpacket<0x7934, 50>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x7935_Fixed fixed_35;
+                Packet_Fixed<0x7935> fixed_35;
                 fixed_35.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 AuthData *ad = search_account(account_name);
@@ -1908,13 +1908,13 @@ void parse_admin(Session *s)
 
             case 0x7936:       // Request to modify a state
             {
-                RPacket_0x7936_Fixed fixed;
+                Packet_Fixed<0x7936> fixed;
                 rv = recv_fpacket<0x7936, 50>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
                 {
-                    SPacket_0x7937_Fixed fixed_37;
+                    Packet_Fixed<0x7937> fixed_37;
                     fixed_37.account_id = AccountId();
                     AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                     int statut = fixed.status;
@@ -1944,7 +1944,7 @@ void parse_admin(Session *s)
                                         ad->userid, statut, ip);
                             if (ad->state == 0)
                             {
-                                SPacket_0x2731_Fixed fixed_31;
+                                Packet_Fixed<0x2731> fixed_31;
                                 fixed_31.account_id = ad->account_id;
                                 fixed_31.ban_not_status = 0;
                                 fixed_31.status_or_ban_until = static_cast<time_t>(statut);
@@ -1977,18 +1977,18 @@ void parse_admin(Session *s)
 
             case 0x7938:       // Request for servers list and # of online players
             {
-                RPacket_0x7938_Fixed fixed;
+                Packet_Fixed<0x7938> fixed;
                 rv = recv_fpacket<0x7938, 2>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
                 LOGIN_LOG("'ladmin': Sending of servers list (ip: %s)\n"_fmt, ip);
-                std::vector<SPacket_0x7939_Repeat> repeat_39;
+                std::vector<Packet_Repeat<0x7939>> repeat_39;
                 for (int i = 0; i < MAX_SERVERS; i++)
                 {
                     if (server_session[i])
                     {
-                        SPacket_0x7939_Repeat info;
+                        Packet_Repeat<0x7939> info;
                         info.ip = server[i].ip;
                         info.port = server[i].port;
                         info.name = server[i].name;
@@ -2004,12 +2004,12 @@ void parse_admin(Session *s)
 
             case 0x793a:       // Request to password check
             {
-                RPacket_0x793a_Fixed fixed;
+                Packet_Fixed<0x793a> fixed;
                 rv = recv_fpacket<0x793a, 50>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x793b_Fixed fixed_3b;
+                Packet_Fixed<0x793b> fixed_3b;
                 fixed_3b.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 const AuthData *ad = search_account(account_name);
@@ -2042,12 +2042,12 @@ void parse_admin(Session *s)
 
             case 0x793c:       // Request to modify sex
             {
-                RPacket_0x793c_Fixed fixed;
+                Packet_Fixed<0x793c> fixed;
                 rv = recv_fpacket<0x793c, 27>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x793d_Fixed fixed_3d;
+                Packet_Fixed<0x793d> fixed_3d;
                 fixed_3d.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 fixed_3d.account_name = account_name;
@@ -2079,7 +2079,7 @@ void parse_admin(Session *s)
                                         ad->userid, sex_to_char(sex), ip);
 
                                 // send to all char-server the change
-                                SPacket_0x2723_Fixed fixed_23;
+                                Packet_Fixed<0x2723> fixed_23;
                                 fixed_23.account_id = ad->account_id;
                                 fixed_23.sex = ad->sex;
 
@@ -2107,12 +2107,12 @@ void parse_admin(Session *s)
 
             case 0x793e:       // Request to modify GM level
             {
-                RPacket_0x793e_Fixed fixed;
+                Packet_Fixed<0x793e> fixed;
                 rv = recv_fpacket<0x793e, 27>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x793f_Fixed fixed_3f;
+                Packet_Fixed<0x793f> fixed_3f;
                 fixed_3f.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 fixed_3f.account_name = account_name;
@@ -2229,12 +2229,12 @@ void parse_admin(Session *s)
 
             case 0x7940:       // Request to modify e-mail
             {
-                RPacket_0x7940_Fixed fixed;
+                Packet_Fixed<0x7940> fixed;
                 rv = recv_fpacket<0x7940, 66>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x7941_Fixed fixed_41;
+                Packet_Fixed<0x7941> fixed_41;
                 fixed_41.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 fixed_41.account_name = account_name;
@@ -2269,13 +2269,13 @@ void parse_admin(Session *s)
 
             case 0x7942:       // Request to modify memo field
             {
-                RPacket_0x7942_Head head;
+                Packet_Head<0x7942> head;
                 AString repeat;
                 rv = recv_vpacket<0x7942, 28, 1>(s, head, repeat);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x7943_Fixed fixed_43;
+                Packet_Fixed<0x7943> fixed_43;
                 fixed_43.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(head.account_name.to_print());
                 AuthData *ad = search_account(account_name);
@@ -2309,12 +2309,12 @@ void parse_admin(Session *s)
 
             case 0x7944:       // Request to found an account id
             {
-                RPacket_0x7944_Fixed fixed;
+                Packet_Fixed<0x7944> fixed;
                 rv = recv_fpacket<0x7944, 26>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x7945_Fixed fixed_45;
+                Packet_Fixed<0x7945> fixed_45;
                 fixed_45.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 const AuthData *ad = search_account(account_name);
@@ -2338,13 +2338,13 @@ void parse_admin(Session *s)
 
             case 0x7946:       // Request to found an account name
             {
-                RPacket_0x7946_Fixed fixed;
+                Packet_Fixed<0x7946> fixed;
                 rv = recv_fpacket<0x7946, 6>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
                 AccountId account_id = fixed.account_id;
-                SPacket_0x7947_Fixed fixed_47;
+                Packet_Fixed<0x7947> fixed_47;
                 fixed_47.account_id = account_id;
                 fixed_47.account_name = {};
                 for (const AuthData& ad : auth_data)
@@ -2367,12 +2367,12 @@ void parse_admin(Session *s)
 
             case 0x7948:       // Request to change the validity limit (timestamp) (absolute value)
             {
-                RPacket_0x7948_Fixed fixed;
+                Packet_Fixed<0x7948> fixed;
                 rv = recv_fpacket<0x7948, 30>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x7949_Fixed fixed_49;
+                Packet_Fixed<0x7949> fixed_49;
                 {
                     fixed_49.account_id = AccountId();
                     AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
@@ -2409,12 +2409,12 @@ void parse_admin(Session *s)
 
             case 0x794a:       // Request to change the final date of a banishment (timestamp) (absolute value)
             {
-                RPacket_0x794a_Fixed fixed;
+                Packet_Fixed<0x794a> fixed;
                 rv = recv_fpacket<0x794a, 30>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x794b_Fixed fixed_4b;
+                Packet_Fixed<0x794b> fixed_4b;
                 {
                     fixed_4b.account_id = AccountId();
                     AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
@@ -2437,7 +2437,7 @@ void parse_admin(Session *s)
                         {
                             if (timestamp)
                             {
-                                SPacket_0x2731_Fixed fixed_31;
+                                Packet_Fixed<0x2731> fixed_31;
                                 fixed_31.account_id = ad->account_id;
                                 fixed_31.ban_not_status = 1;
                                 fixed_31.status_or_ban_until = timestamp;
@@ -2473,12 +2473,12 @@ void parse_admin(Session *s)
 
             case 0x794c:       // Request to change the final date of a banishment (timestamp) (relative change)
             {
-                RPacket_0x794c_Fixed fixed;
+                Packet_Fixed<0x794c> fixed;
                 rv = recv_fpacket<0x794c, 38>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x794d_Fixed fixed_4d;
+                Packet_Fixed<0x794d> fixed_4d;
                 {
                     fixed_4d.account_id = AccountId();
                     AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
@@ -2522,7 +2522,7 @@ void parse_admin(Session *s)
                             {
                                 if (timestamp)
                                 {
-                                    SPacket_0x2731_Fixed fixed_31;
+                                    Packet_Fixed<0x2731> fixed_31;
                                     fixed_31.account_id = ad->account_id;
                                     fixed_31.ban_not_status = 1;
                                     fixed_31.status_or_ban_until = timestamp;
@@ -2572,13 +2572,13 @@ void parse_admin(Session *s)
 
             case 0x794e:       // Request to send a broadcast message
             {
-                RPacket_0x794e_Head head;
+                Packet_Head<0x794e> head;
                 AString repeat;
                 rv = recv_vpacket<0x794e, 8, 1>(s, head, repeat);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x794f_Fixed fixed_4f;
+                Packet_Fixed<0x794f> fixed_4f;
                 fixed_4f.error = -1;
                 if (!repeat)
                 {
@@ -2604,7 +2604,7 @@ void parse_admin(Session *s)
                                 message, ip);
 
                         // send same message to all char-servers (no answer)
-                        SPacket_0x2726_Head head_26;
+                        Packet_Head<0x2726> head_26;
                         head_26.unused = head.unused;
 
                         for (Session *ss : iter_char_sessions())
@@ -2620,12 +2620,12 @@ void parse_admin(Session *s)
 
             case 0x7950:       // Request to change the validity limite (timestamp) (relative change)
             {
-                RPacket_0x7950_Fixed fixed;
+                Packet_Fixed<0x7950> fixed;
                 rv = recv_fpacket<0x7950, 38>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x7951_Fixed fixed_51;
+                Packet_Fixed<0x7951> fixed_51;
                 {
                     fixed_51.account_id = AccountId();
                     AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
@@ -2713,12 +2713,12 @@ void parse_admin(Session *s)
 
             case 0x7952:       // Request about informations of an account (by account name)
             {
-                RPacket_0x7952_Fixed fixed;
+                Packet_Fixed<0x7952> fixed;
                 rv = recv_fpacket<0x7952, 26>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                SPacket_0x7953_Head head_53;
+                Packet_Head<0x7953> head_53;
                 head_53.account_id = AccountId();
                 AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 const AuthData *ad = search_account(account_name);
@@ -2756,13 +2756,13 @@ void parse_admin(Session *s)
 
             case 0x7954:       // Request about information of an account (by account id)
             {
-                RPacket_0x7954_Fixed fixed;
+                Packet_Fixed<0x7954> fixed;
                 rv = recv_fpacket<0x7954, 6>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
                 AccountId account_id = fixed.account_id;
-                SPacket_0x7953_Head head_53;
+                Packet_Head<0x7953> head_53;
                 head_53.account_id = account_id;
                 head_53.account_name = AccountName();
                 for (const AuthData& ad : auth_data)
@@ -2799,7 +2799,7 @@ void parse_admin(Session *s)
 
             case 0x7955:       // Request to reload GM file (no answer)
             {
-                RPacket_0x7955_Fixed fixed;
+                Packet_Fixed<0x7955> fixed;
                 rv = recv_fpacket<0x7955, 2>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;

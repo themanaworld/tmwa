@@ -27,11 +27,12 @@
 
 // This is a public protocol, and changes require client cooperation
 
-struct SPacket_0x0212_Fixed
+template<>
+struct Packet_Fixed<0x0212>
 {
-    using NetType = NetSPacket_0x0212_Fixed;
     static const uint16_t PACKET_ID = 0x0212;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     BlockId npc_id = {};
     uint16_t command = {};
@@ -40,7 +41,8 @@ struct SPacket_0x0212_Fixed
     uint16_t y = {};
 };
 
-struct NetSPacket_0x0212_Fixed
+template<>
+struct NetPacket_Fixed<0x0212>
 {
     Little16 magic_packet_id;
     Little32 npc_id;
@@ -49,16 +51,16 @@ struct NetSPacket_0x0212_Fixed
     Little16 x;
     Little16 y;
 };
-static_assert(offsetof(NetSPacket_0x0212_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x0212_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x0212_Fixed, npc_id) == 2, "offsetof(NetSPacket_0x0212_Fixed, npc_id) == 2");
-static_assert(offsetof(NetSPacket_0x0212_Fixed, command) == 6, "offsetof(NetSPacket_0x0212_Fixed, command) == 6");
-static_assert(offsetof(NetSPacket_0x0212_Fixed, id) == 8, "offsetof(NetSPacket_0x0212_Fixed, id) == 8");
-static_assert(offsetof(NetSPacket_0x0212_Fixed, x) == 12, "offsetof(NetSPacket_0x0212_Fixed, x) == 12");
-static_assert(offsetof(NetSPacket_0x0212_Fixed, y) == 14, "offsetof(NetSPacket_0x0212_Fixed, y) == 14");
-static_assert(sizeof(NetSPacket_0x0212_Fixed) == 16, "sizeof(NetSPacket_0x0212_Fixed) == 16");
+static_assert(offsetof(NetPacket_Fixed<0x0212>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x0212>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x0212>, npc_id) == 2, "offsetof(NetPacket_Fixed<0x0212>, npc_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x0212>, command) == 6, "offsetof(NetPacket_Fixed<0x0212>, command) == 6");
+static_assert(offsetof(NetPacket_Fixed<0x0212>, id) == 8, "offsetof(NetPacket_Fixed<0x0212>, id) == 8");
+static_assert(offsetof(NetPacket_Fixed<0x0212>, x) == 12, "offsetof(NetPacket_Fixed<0x0212>, x) == 12");
+static_assert(offsetof(NetPacket_Fixed<0x0212>, y) == 14, "offsetof(NetPacket_Fixed<0x0212>, y) == 14");
+static_assert(sizeof(NetPacket_Fixed<0x0212>) == 16, "sizeof(NetPacket_Fixed<0x0212>) == 16");
 
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x0212_Fixed *network, SPacket_0x0212_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x0212> *network, Packet_Fixed<0x0212> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -70,7 +72,7 @@ bool native_to_network(NetSPacket_0x0212_Fixed *network, SPacket_0x0212_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x0212_Fixed *native, NetSPacket_0x0212_Fixed network)
+bool network_to_native(Packet_Fixed<0x0212> *native, NetPacket_Fixed<0x0212> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);

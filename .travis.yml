@@ -53,7 +53,7 @@ script:
   - make -R -k -j2 test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
 
 ## Do something after the main test script
-after_script:
+#after_script:
   - make -R -k -j2 format
   - git --git-dir=../.git --work-tree=.. diff --exit-code
   - make -R -k -j2 dist

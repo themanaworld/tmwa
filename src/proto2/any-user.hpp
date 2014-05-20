@@ -27,66 +27,72 @@
 
 // This is a public protocol, and changes require client cooperation
 
-struct RPacket_0x7530_Fixed
+template<>
+struct Packet_Fixed<0x7530>
 {
-    using NetType = NetRPacket_0x7530_Fixed;
     static const uint16_t PACKET_ID = 0x7530;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
 };
-struct SPacket_0x7531_Fixed
+template<>
+struct Packet_Fixed<0x7531>
 {
-    using NetType = NetSPacket_0x7531_Fixed;
     static const uint16_t PACKET_ID = 0x7531;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     Version version = {};
 };
-struct RPacket_0x7532_Fixed
+template<>
+struct Packet_Fixed<0x7532>
 {
-    using NetType = NetRPacket_0x7532_Fixed;
     static const uint16_t PACKET_ID = 0x7532;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
 };
 
-struct NetRPacket_0x7530_Fixed
+template<>
+struct NetPacket_Fixed<0x7530>
 {
     Little16 magic_packet_id;
 };
-static_assert(offsetof(NetRPacket_0x7530_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x7530_Fixed, magic_packet_id) == 0");
-static_assert(sizeof(NetRPacket_0x7530_Fixed) == 2, "sizeof(NetRPacket_0x7530_Fixed) == 2");
-struct NetSPacket_0x7531_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x7530>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x7530>, magic_packet_id) == 0");
+static_assert(sizeof(NetPacket_Fixed<0x7530>) == 2, "sizeof(NetPacket_Fixed<0x7530>) == 2");
+template<>
+struct NetPacket_Fixed<0x7531>
 {
     Little16 magic_packet_id;
     NetVersion version;
 };
-static_assert(offsetof(NetSPacket_0x7531_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x7531_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x7531_Fixed, version) == 2, "offsetof(NetSPacket_0x7531_Fixed, version) == 2");
-static_assert(sizeof(NetSPacket_0x7531_Fixed) == 10, "sizeof(NetSPacket_0x7531_Fixed) == 10");
-struct NetRPacket_0x7532_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x7531>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x7531>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x7531>, version) == 2, "offsetof(NetPacket_Fixed<0x7531>, version) == 2");
+static_assert(sizeof(NetPacket_Fixed<0x7531>) == 10, "sizeof(NetPacket_Fixed<0x7531>) == 10");
+template<>
+struct NetPacket_Fixed<0x7532>
 {
     Little16 magic_packet_id;
 };
-static_assert(offsetof(NetRPacket_0x7532_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x7532_Fixed, magic_packet_id) == 0");
-static_assert(sizeof(NetRPacket_0x7532_Fixed) == 2, "sizeof(NetRPacket_0x7532_Fixed) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x7532>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x7532>, magic_packet_id) == 0");
+static_assert(sizeof(NetPacket_Fixed<0x7532>) == 2, "sizeof(NetPacket_Fixed<0x7532>) == 2");
 
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x7530_Fixed *network, RPacket_0x7530_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x7530> *network, Packet_Fixed<0x7530> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x7530_Fixed *native, NetRPacket_0x7530_Fixed network)
+bool network_to_native(Packet_Fixed<0x7530> *native, NetPacket_Fixed<0x7530> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x7531_Fixed *network, SPacket_0x7531_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x7531> *network, Packet_Fixed<0x7531> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -94,7 +100,7 @@ bool native_to_network(NetSPacket_0x7531_Fixed *network, SPacket_0x7531_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x7531_Fixed *native, NetSPacket_0x7531_Fixed network)
+bool network_to_native(Packet_Fixed<0x7531> *native, NetPacket_Fixed<0x7531> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -102,14 +108,14 @@ bool network_to_native(SPacket_0x7531_Fixed *native, NetSPacket_0x7531_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x7532_Fixed *network, RPacket_0x7532_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x7532> *network, Packet_Fixed<0x7532> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x7532_Fixed *native, NetRPacket_0x7532_Fixed network)
+bool network_to_native(Packet_Fixed<0x7532> *native, NetPacket_Fixed<0x7532> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);

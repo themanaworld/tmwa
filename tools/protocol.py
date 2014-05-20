@@ -21,6 +21,7 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import glob
+import itertools
 import os
 from posixpath import relpath
 
@@ -217,16 +218,20 @@ class StructType(Type):
         self.size = size
 
     def dump_fwd(self, fwd):
+        fwd.write('template<>\n')
         fwd.write('struct %s;\n' % self.name)
+        fwd.write('template<>\n')
         fwd.write('struct Net%s;\n' % self.name)
 
     def dump_native(self, f):
         name = self.name
+        f.write('template<>\n')
         f.write('struct %s\n{\n' % name)
         if self.id is not None:
-            f.write('    using NetType = Net%s;\n' % name)
             f.write('    static const uint16_t PACKET_ID = 0x%04x;\n\n' % self.id)
         for (o, l, n) in self.fields:
+            if n in ('magic_packet_id', 'magic_packet_length'):
+                f.write('    // TODO remove this\n')
             if n == 'magic_packet_id':
                 f.write('    %s %s = PACKET_ID;\n' % (l.native_tag(), n))
             else:
@@ -235,6 +240,7 @@ class StructType(Type):
 
     def dump_network(self, f):
         name = 'Net%s' % self.name
+        f.write('template<>\n')
         f.write('struct %s\n{\n' % name)
         for (o, l, n) in self.fields:
             f.write('    %s %s;\n' % (l.network_tag(), n))
@@ -388,7 +394,7 @@ class VarPacket(object):
         self.head_struct.dump_convert(f)
         self.repeat_struct.dump_convert(f)
 
-def packet(id, name,
+def packet(id,
         fixed=None, fixed_size=None,
         head=None, head_size=None,
         repeat=None, repeat_size=None,
@@ -400,12 +406,12 @@ def packet(id, name,
     if fixed is not None:
         assert not head and not repeat
         return FixedPacket(
-                StructType(id, '%s_Fixed' % name, fixed, fixed_size))
+                StructType(id, 'Packet_Fixed<0x%04x>' % id, fixed, fixed_size))
     else:
         assert head and repeat
         return VarPacket(
-                StructType(id, '%s_Head' % name, head, head_size),
-                StructType(id, '%s_Repeat' % name, repeat, repeat_size))
+                StructType(id, 'Packet_Head<0x%04x>' % id, head, head_size),
+                StructType(id, 'Packet_Repeat<0x%04x>' % id, repeat, repeat_size))
 
 
 class Channel(object):
@@ -417,12 +423,10 @@ class Channel(object):
         self.packets = []
 
     def s(self, id, **kwargs):
-        name = 'SPacket_0x%04x' % id
-        self.packets.append(packet(id, name, **kwargs))
+        self.packets.append(packet(id, **kwargs))
 
     def r(self, id, **kwargs):
-        name = 'RPacket_0x%04x' % id
-        self.packets.append(packet(id, name, **kwargs))
+        self.packets.append(packet(id, **kwargs))
 
     def dump(self, outdir, fwd):
         server = self.server
@@ -525,6 +529,12 @@ class Context(object):
             f.write(copyright.format(filename=header, description=desc))
             f.write('\n')
             f.write('# include "%s"\n\n' % sanity)
+            f.write('# include <cstdint>\n\n')
+            for b in ['Fixed', 'Head', 'Repeat']:
+                c = 'Packet_' + b
+                f.write('template<uint16_t PACKET_ID> class %s;\n' % c)
+                f.write('template<uint16_t PACKET_ID> class Net%s;\n' % c)
+            f.write('\n')
 
             for ch in self._channels:
                 ch.dump(outdir, f)

@@ -27,18 +27,20 @@
 
 // This is an internal protocol, and can be changed without notice
 
-struct RPacket_0x2709_Fixed
+template<>
+struct Packet_Fixed<0x2709>
 {
-    using NetType = NetRPacket_0x2709_Fixed;
     static const uint16_t PACKET_ID = 0x2709;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
 };
-struct RPacket_0x2712_Fixed
+template<>
+struct Packet_Fixed<0x2712>
 {
-    using NetType = NetRPacket_0x2712_Fixed;
     static const uint16_t PACKET_ID = 0x2712;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     uint32_t login_id1 = {};
@@ -46,225 +48,251 @@ struct RPacket_0x2712_Fixed
     SEX sex = {};
     IP4Address ip = {};
 };
-struct SPacket_0x2713_Fixed
+template<>
+struct Packet_Fixed<0x2713>
 {
-    using NetType = NetSPacket_0x2713_Fixed;
     static const uint16_t PACKET_ID = 0x2713;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     uint8_t invalid = {};
     AccountEmail email = {};
     TimeT connect_until = {};
 };
-struct RPacket_0x2714_Fixed
+template<>
+struct Packet_Fixed<0x2714>
 {
-    using NetType = NetRPacket_0x2714_Fixed;
     static const uint16_t PACKET_ID = 0x2714;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     uint32_t users = {};
 };
-struct RPacket_0x2715_Fixed
+template<>
+struct Packet_Fixed<0x2715>
 {
-    using NetType = NetRPacket_0x2715_Fixed;
     static const uint16_t PACKET_ID = 0x2715;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     AccountEmail email = {};
 };
-struct RPacket_0x2716_Fixed
+template<>
+struct Packet_Fixed<0x2716>
 {
-    using NetType = NetRPacket_0x2716_Fixed;
     static const uint16_t PACKET_ID = 0x2716;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
 };
-struct SPacket_0x2717_Fixed
+template<>
+struct Packet_Fixed<0x2717>
 {
-    using NetType = NetSPacket_0x2717_Fixed;
     static const uint16_t PACKET_ID = 0x2717;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     AccountEmail email = {};
     TimeT connect_until = {};
 };
-struct RPacket_0x2720_Head
+template<>
+struct Packet_Head<0x2720>
 {
-    using NetType = NetRPacket_0x2720_Head;
     static const uint16_t PACKET_ID = 0x2720;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
+    // TODO remove this
     uint16_t magic_packet_length = {};
     AccountId account_id = {};
 };
-struct RPacket_0x2720_Repeat
+template<>
+struct Packet_Repeat<0x2720>
 {
-    using NetType = NetRPacket_0x2720_Repeat;
     static const uint16_t PACKET_ID = 0x2720;
 
     uint8_t c = {};
 };
-struct SPacket_0x2721_Fixed
+template<>
+struct Packet_Fixed<0x2721>
 {
-    using NetType = NetSPacket_0x2721_Fixed;
     static const uint16_t PACKET_ID = 0x2721;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     GmLevel gm_level = {};
 };
-struct RPacket_0x2722_Fixed
+template<>
+struct Packet_Fixed<0x2722>
 {
-    using NetType = NetRPacket_0x2722_Fixed;
     static const uint16_t PACKET_ID = 0x2722;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     AccountEmail old_email = {};
     AccountEmail new_email = {};
 };
-struct SPacket_0x2723_Fixed
+template<>
+struct Packet_Fixed<0x2723>
 {
-    using NetType = NetSPacket_0x2723_Fixed;
     static const uint16_t PACKET_ID = 0x2723;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     SEX sex = {};
 };
-struct RPacket_0x2724_Fixed
+template<>
+struct Packet_Fixed<0x2724>
 {
-    using NetType = NetRPacket_0x2724_Fixed;
     static const uint16_t PACKET_ID = 0x2724;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     uint32_t status = {};
 };
-struct RPacket_0x2725_Fixed
+template<>
+struct Packet_Fixed<0x2725>
 {
-    using NetType = NetRPacket_0x2725_Fixed;
     static const uint16_t PACKET_ID = 0x2725;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     HumanTimeDiff deltas = {};
 };
-struct RPacket_0x2727_Fixed
+template<>
+struct Packet_Fixed<0x2727>
 {
-    using NetType = NetRPacket_0x2727_Fixed;
     static const uint16_t PACKET_ID = 0x2727;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
 };
-struct RPacket_0x2728_Head
+template<>
+struct Packet_Head<0x2728>
 {
-    using NetType = NetRPacket_0x2728_Head;
     static const uint16_t PACKET_ID = 0x2728;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
+    // TODO remove this
     uint16_t magic_packet_length = {};
     AccountId account_id = {};
 };
-struct RPacket_0x2728_Repeat
+template<>
+struct Packet_Repeat<0x2728>
 {
-    using NetType = NetRPacket_0x2728_Repeat;
     static const uint16_t PACKET_ID = 0x2728;
 
     VarName name = {};
     uint32_t value = {};
 };
-struct SPacket_0x2729_Head
+template<>
+struct Packet_Head<0x2729>
 {
-    using NetType = NetSPacket_0x2729_Head;
     static const uint16_t PACKET_ID = 0x2729;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
+    // TODO remove this
     uint16_t magic_packet_length = {};
     AccountId account_id = {};
 };
-struct SPacket_0x2729_Repeat
+template<>
+struct Packet_Repeat<0x2729>
 {
-    using NetType = NetSPacket_0x2729_Repeat;
     static const uint16_t PACKET_ID = 0x2729;
 
     VarName name = {};
     uint32_t value = {};
 };
-struct RPacket_0x272a_Fixed
+template<>
+struct Packet_Fixed<0x272a>
 {
-    using NetType = NetRPacket_0x272a_Fixed;
     static const uint16_t PACKET_ID = 0x272a;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
 };
-struct SPacket_0x2730_Fixed
+template<>
+struct Packet_Fixed<0x2730>
 {
-    using NetType = NetSPacket_0x2730_Fixed;
     static const uint16_t PACKET_ID = 0x2730;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
 };
-struct SPacket_0x2731_Fixed
+template<>
+struct Packet_Fixed<0x2731>
 {
-    using NetType = NetSPacket_0x2731_Fixed;
     static const uint16_t PACKET_ID = 0x2731;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     uint8_t ban_not_status = {};
     TimeT status_or_ban_until = {};
 };
-struct SPacket_0x2732_Head
+template<>
+struct Packet_Head<0x2732>
 {
-    using NetType = NetSPacket_0x2732_Head;
     static const uint16_t PACKET_ID = 0x2732;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
+    // TODO remove this
     uint16_t magic_packet_length = {};
 };
-struct SPacket_0x2732_Repeat
+template<>
+struct Packet_Repeat<0x2732>
 {
-    using NetType = NetSPacket_0x2732_Repeat;
     static const uint16_t PACKET_ID = 0x2732;
 
     AccountId account_id = {};
     GmLevel gm_level = {};
 };
-struct RPacket_0x2740_Fixed
+template<>
+struct Packet_Fixed<0x2740>
 {
-    using NetType = NetRPacket_0x2740_Fixed;
     static const uint16_t PACKET_ID = 0x2740;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     AccountPass old_pass = {};
     AccountPass new_pass = {};
 };
-struct SPacket_0x2741_Fixed
+template<>
+struct Packet_Fixed<0x2741>
 {
-    using NetType = NetSPacket_0x2741_Fixed;
     static const uint16_t PACKET_ID = 0x2741;
 
+    // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
     uint8_t status = {};
 };
 
-struct NetRPacket_0x2709_Fixed
+template<>
+struct NetPacket_Fixed<0x2709>
 {
     Little16 magic_packet_id;
 };
-static_assert(offsetof(NetRPacket_0x2709_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2709_Fixed, magic_packet_id) == 0");
-static_assert(sizeof(NetRPacket_0x2709_Fixed) == 2, "sizeof(NetRPacket_0x2709_Fixed) == 2");
-struct NetRPacket_0x2712_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2709>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2709>, magic_packet_id) == 0");
+static_assert(sizeof(NetPacket_Fixed<0x2709>) == 2, "sizeof(NetPacket_Fixed<0x2709>) == 2");
+template<>
+struct NetPacket_Fixed<0x2712>
 {
     Little16 magic_packet_id;
     Little32 account_id;
@@ -273,14 +301,15 @@ struct NetRPacket_0x2712_Fixed
     Byte sex;
     IP4Address ip;
 };
-static_assert(offsetof(NetRPacket_0x2712_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2712_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2712_Fixed, account_id) == 2, "offsetof(NetRPacket_0x2712_Fixed, account_id) == 2");
-static_assert(offsetof(NetRPacket_0x2712_Fixed, login_id1) == 6, "offsetof(NetRPacket_0x2712_Fixed, login_id1) == 6");
-static_assert(offsetof(NetRPacket_0x2712_Fixed, login_id2) == 10, "offsetof(NetRPacket_0x2712_Fixed, login_id2) == 10");
-static_assert(offsetof(NetRPacket_0x2712_Fixed, sex) == 14, "offsetof(NetRPacket_0x2712_Fixed, sex) == 14");
-static_assert(offsetof(NetRPacket_0x2712_Fixed, ip) == 15, "offsetof(NetRPacket_0x2712_Fixed, ip) == 15");
-static_assert(sizeof(NetRPacket_0x2712_Fixed) == 19, "sizeof(NetRPacket_0x2712_Fixed) == 19");
-struct NetSPacket_0x2713_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2712>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2712>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2712>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2712>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2712>, login_id1) == 6, "offsetof(NetPacket_Fixed<0x2712>, login_id1) == 6");
+static_assert(offsetof(NetPacket_Fixed<0x2712>, login_id2) == 10, "offsetof(NetPacket_Fixed<0x2712>, login_id2) == 10");
+static_assert(offsetof(NetPacket_Fixed<0x2712>, sex) == 14, "offsetof(NetPacket_Fixed<0x2712>, sex) == 14");
+static_assert(offsetof(NetPacket_Fixed<0x2712>, ip) == 15, "offsetof(NetPacket_Fixed<0x2712>, ip) == 15");
+static_assert(sizeof(NetPacket_Fixed<0x2712>) == 19, "sizeof(NetPacket_Fixed<0x2712>) == 19");
+template<>
+struct NetPacket_Fixed<0x2713>
 {
     Little16 magic_packet_id;
     Little32 account_id;
@@ -288,245 +317,268 @@ struct NetSPacket_0x2713_Fixed
     NetString<sizeof(AccountEmail)> email;
     Little32 connect_until;
 };
-static_assert(offsetof(NetSPacket_0x2713_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x2713_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2713_Fixed, account_id) == 2, "offsetof(NetSPacket_0x2713_Fixed, account_id) == 2");
-static_assert(offsetof(NetSPacket_0x2713_Fixed, invalid) == 6, "offsetof(NetSPacket_0x2713_Fixed, invalid) == 6");
-static_assert(offsetof(NetSPacket_0x2713_Fixed, email) == 7, "offsetof(NetSPacket_0x2713_Fixed, email) == 7");
-static_assert(offsetof(NetSPacket_0x2713_Fixed, connect_until) == 47, "offsetof(NetSPacket_0x2713_Fixed, connect_until) == 47");
-static_assert(sizeof(NetSPacket_0x2713_Fixed) == 51, "sizeof(NetSPacket_0x2713_Fixed) == 51");
-struct NetRPacket_0x2714_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2713>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2713>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2713>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2713>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2713>, invalid) == 6, "offsetof(NetPacket_Fixed<0x2713>, invalid) == 6");
+static_assert(offsetof(NetPacket_Fixed<0x2713>, email) == 7, "offsetof(NetPacket_Fixed<0x2713>, email) == 7");
+static_assert(offsetof(NetPacket_Fixed<0x2713>, connect_until) == 47, "offsetof(NetPacket_Fixed<0x2713>, connect_until) == 47");
+static_assert(sizeof(NetPacket_Fixed<0x2713>) == 51, "sizeof(NetPacket_Fixed<0x2713>) == 51");
+template<>
+struct NetPacket_Fixed<0x2714>
 {
     Little16 magic_packet_id;
     Little32 users;
 };
-static_assert(offsetof(NetRPacket_0x2714_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2714_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2714_Fixed, users) == 2, "offsetof(NetRPacket_0x2714_Fixed, users) == 2");
-static_assert(sizeof(NetRPacket_0x2714_Fixed) == 6, "sizeof(NetRPacket_0x2714_Fixed) == 6");
-struct NetRPacket_0x2715_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2714>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2714>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2714>, users) == 2, "offsetof(NetPacket_Fixed<0x2714>, users) == 2");
+static_assert(sizeof(NetPacket_Fixed<0x2714>) == 6, "sizeof(NetPacket_Fixed<0x2714>) == 6");
+template<>
+struct NetPacket_Fixed<0x2715>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     NetString<sizeof(AccountEmail)> email;
 };
-static_assert(offsetof(NetRPacket_0x2715_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2715_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2715_Fixed, account_id) == 2, "offsetof(NetRPacket_0x2715_Fixed, account_id) == 2");
-static_assert(offsetof(NetRPacket_0x2715_Fixed, email) == 6, "offsetof(NetRPacket_0x2715_Fixed, email) == 6");
-static_assert(sizeof(NetRPacket_0x2715_Fixed) == 46, "sizeof(NetRPacket_0x2715_Fixed) == 46");
-struct NetRPacket_0x2716_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2715>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2715>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2715>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2715>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2715>, email) == 6, "offsetof(NetPacket_Fixed<0x2715>, email) == 6");
+static_assert(sizeof(NetPacket_Fixed<0x2715>) == 46, "sizeof(NetPacket_Fixed<0x2715>) == 46");
+template<>
+struct NetPacket_Fixed<0x2716>
 {
     Little16 magic_packet_id;
     Little32 account_id;
 };
-static_assert(offsetof(NetRPacket_0x2716_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2716_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2716_Fixed, account_id) == 2, "offsetof(NetRPacket_0x2716_Fixed, account_id) == 2");
-static_assert(sizeof(NetRPacket_0x2716_Fixed) == 6, "sizeof(NetRPacket_0x2716_Fixed) == 6");
-struct NetSPacket_0x2717_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2716>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2716>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2716>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2716>, account_id) == 2");
+static_assert(sizeof(NetPacket_Fixed<0x2716>) == 6, "sizeof(NetPacket_Fixed<0x2716>) == 6");
+template<>
+struct NetPacket_Fixed<0x2717>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     NetString<sizeof(AccountEmail)> email;
     Little32 connect_until;
 };
-static_assert(offsetof(NetSPacket_0x2717_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x2717_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2717_Fixed, account_id) == 2, "offsetof(NetSPacket_0x2717_Fixed, account_id) == 2");
-static_assert(offsetof(NetSPacket_0x2717_Fixed, email) == 6, "offsetof(NetSPacket_0x2717_Fixed, email) == 6");
-static_assert(offsetof(NetSPacket_0x2717_Fixed, connect_until) == 46, "offsetof(NetSPacket_0x2717_Fixed, connect_until) == 46");
-static_assert(sizeof(NetSPacket_0x2717_Fixed) == 50, "sizeof(NetSPacket_0x2717_Fixed) == 50");
-struct NetRPacket_0x2720_Head
+static_assert(offsetof(NetPacket_Fixed<0x2717>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2717>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2717>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2717>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2717>, email) == 6, "offsetof(NetPacket_Fixed<0x2717>, email) == 6");
+static_assert(offsetof(NetPacket_Fixed<0x2717>, connect_until) == 46, "offsetof(NetPacket_Fixed<0x2717>, connect_until) == 46");
+static_assert(sizeof(NetPacket_Fixed<0x2717>) == 50, "sizeof(NetPacket_Fixed<0x2717>) == 50");
+template<>
+struct NetPacket_Head<0x2720>
 {
     Little16 magic_packet_id;
     Little16 magic_packet_length;
     Little32 account_id;
 };
-static_assert(offsetof(NetRPacket_0x2720_Head, magic_packet_id) == 0, "offsetof(NetRPacket_0x2720_Head, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2720_Head, magic_packet_length) == 2, "offsetof(NetRPacket_0x2720_Head, magic_packet_length) == 2");
-static_assert(offsetof(NetRPacket_0x2720_Head, account_id) == 4, "offsetof(NetRPacket_0x2720_Head, account_id) == 4");
-static_assert(sizeof(NetRPacket_0x2720_Head) == 8, "sizeof(NetRPacket_0x2720_Head) == 8");
-struct NetRPacket_0x2720_Repeat
+static_assert(offsetof(NetPacket_Head<0x2720>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x2720>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Head<0x2720>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2720>, magic_packet_length) == 2");
+static_assert(offsetof(NetPacket_Head<0x2720>, account_id) == 4, "offsetof(NetPacket_Head<0x2720>, account_id) == 4");
+static_assert(sizeof(NetPacket_Head<0x2720>) == 8, "sizeof(NetPacket_Head<0x2720>) == 8");
+template<>
+struct NetPacket_Repeat<0x2720>
 {
     Byte c;
 };
-static_assert(offsetof(NetRPacket_0x2720_Repeat, c) == 0, "offsetof(NetRPacket_0x2720_Repeat, c) == 0");
-static_assert(sizeof(NetRPacket_0x2720_Repeat) == 1, "sizeof(NetRPacket_0x2720_Repeat) == 1");
-struct NetSPacket_0x2721_Fixed
+static_assert(offsetof(NetPacket_Repeat<0x2720>, c) == 0, "offsetof(NetPacket_Repeat<0x2720>, c) == 0");
+static_assert(sizeof(NetPacket_Repeat<0x2720>) == 1, "sizeof(NetPacket_Repeat<0x2720>) == 1");
+template<>
+struct NetPacket_Fixed<0x2721>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     Little32 gm_level;
 };
-static_assert(offsetof(NetSPacket_0x2721_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x2721_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2721_Fixed, account_id) == 2, "offsetof(NetSPacket_0x2721_Fixed, account_id) == 2");
-static_assert(offsetof(NetSPacket_0x2721_Fixed, gm_level) == 6, "offsetof(NetSPacket_0x2721_Fixed, gm_level) == 6");
-static_assert(sizeof(NetSPacket_0x2721_Fixed) == 10, "sizeof(NetSPacket_0x2721_Fixed) == 10");
-struct NetRPacket_0x2722_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2721>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2721>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2721>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2721>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2721>, gm_level) == 6, "offsetof(NetPacket_Fixed<0x2721>, gm_level) == 6");
+static_assert(sizeof(NetPacket_Fixed<0x2721>) == 10, "sizeof(NetPacket_Fixed<0x2721>) == 10");
+template<>
+struct NetPacket_Fixed<0x2722>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     NetString<sizeof(AccountEmail)> old_email;
     NetString<sizeof(AccountEmail)> new_email;
 };
-static_assert(offsetof(NetRPacket_0x2722_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2722_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2722_Fixed, account_id) == 2, "offsetof(NetRPacket_0x2722_Fixed, account_id) == 2");
-static_assert(offsetof(NetRPacket_0x2722_Fixed, old_email) == 6, "offsetof(NetRPacket_0x2722_Fixed, old_email) == 6");
-static_assert(offsetof(NetRPacket_0x2722_Fixed, new_email) == 46, "offsetof(NetRPacket_0x2722_Fixed, new_email) == 46");
-static_assert(sizeof(NetRPacket_0x2722_Fixed) == 86, "sizeof(NetRPacket_0x2722_Fixed) == 86");
-struct NetSPacket_0x2723_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2722>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2722>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2722>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2722>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2722>, old_email) == 6, "offsetof(NetPacket_Fixed<0x2722>, old_email) == 6");
+static_assert(offsetof(NetPacket_Fixed<0x2722>, new_email) == 46, "offsetof(NetPacket_Fixed<0x2722>, new_email) == 46");
+static_assert(sizeof(NetPacket_Fixed<0x2722>) == 86, "sizeof(NetPacket_Fixed<0x2722>) == 86");
+template<>
+struct NetPacket_Fixed<0x2723>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     Byte sex;
 };
-static_assert(offsetof(NetSPacket_0x2723_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x2723_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2723_Fixed, account_id) == 2, "offsetof(NetSPacket_0x2723_Fixed, account_id) == 2");
-static_assert(offsetof(NetSPacket_0x2723_Fixed, sex) == 6, "offsetof(NetSPacket_0x2723_Fixed, sex) == 6");
-static_assert(sizeof(NetSPacket_0x2723_Fixed) == 7, "sizeof(NetSPacket_0x2723_Fixed) == 7");
-struct NetRPacket_0x2724_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2723>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2723>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2723>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2723>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2723>, sex) == 6, "offsetof(NetPacket_Fixed<0x2723>, sex) == 6");
+static_assert(sizeof(NetPacket_Fixed<0x2723>) == 7, "sizeof(NetPacket_Fixed<0x2723>) == 7");
+template<>
+struct NetPacket_Fixed<0x2724>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     Little32 status;
 };
-static_assert(offsetof(NetRPacket_0x2724_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2724_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2724_Fixed, account_id) == 2, "offsetof(NetRPacket_0x2724_Fixed, account_id) == 2");
-static_assert(offsetof(NetRPacket_0x2724_Fixed, status) == 6, "offsetof(NetRPacket_0x2724_Fixed, status) == 6");
-static_assert(sizeof(NetRPacket_0x2724_Fixed) == 10, "sizeof(NetRPacket_0x2724_Fixed) == 10");
-struct NetRPacket_0x2725_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2724>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2724>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2724>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2724>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2724>, status) == 6, "offsetof(NetPacket_Fixed<0x2724>, status) == 6");
+static_assert(sizeof(NetPacket_Fixed<0x2724>) == 10, "sizeof(NetPacket_Fixed<0x2724>) == 10");
+template<>
+struct NetPacket_Fixed<0x2725>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     NetHumanTimeDiff deltas;
 };
-static_assert(offsetof(NetRPacket_0x2725_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2725_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2725_Fixed, account_id) == 2, "offsetof(NetRPacket_0x2725_Fixed, account_id) == 2");
-static_assert(offsetof(NetRPacket_0x2725_Fixed, deltas) == 6, "offsetof(NetRPacket_0x2725_Fixed, deltas) == 6");
-static_assert(sizeof(NetRPacket_0x2725_Fixed) == 18, "sizeof(NetRPacket_0x2725_Fixed) == 18");
-struct NetRPacket_0x2727_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2725>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2725>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2725>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2725>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2725>, deltas) == 6, "offsetof(NetPacket_Fixed<0x2725>, deltas) == 6");
+static_assert(sizeof(NetPacket_Fixed<0x2725>) == 18, "sizeof(NetPacket_Fixed<0x2725>) == 18");
+template<>
+struct NetPacket_Fixed<0x2727>
 {
     Little16 magic_packet_id;
     Little32 account_id;
 };
-static_assert(offsetof(NetRPacket_0x2727_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2727_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2727_Fixed, account_id) == 2, "offsetof(NetRPacket_0x2727_Fixed, account_id) == 2");
-static_assert(sizeof(NetRPacket_0x2727_Fixed) == 6, "sizeof(NetRPacket_0x2727_Fixed) == 6");
-struct NetRPacket_0x2728_Head
-{
-    Little16 magic_packet_id;
-    Little16 magic_packet_length;
-    Little32 account_id;
-};
-static_assert(offsetof(NetRPacket_0x2728_Head, magic_packet_id) == 0, "offsetof(NetRPacket_0x2728_Head, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2728_Head, magic_packet_length) == 2, "offsetof(NetRPacket_0x2728_Head, magic_packet_length) == 2");
-static_assert(offsetof(NetRPacket_0x2728_Head, account_id) == 4, "offsetof(NetRPacket_0x2728_Head, account_id) == 4");
-static_assert(sizeof(NetRPacket_0x2728_Head) == 8, "sizeof(NetRPacket_0x2728_Head) == 8");
-struct NetRPacket_0x2728_Repeat
-{
-    NetString<sizeof(VarName)> name;
-    Little32 value;
-};
-static_assert(offsetof(NetRPacket_0x2728_Repeat, name) == 0, "offsetof(NetRPacket_0x2728_Repeat, name) == 0");
-static_assert(offsetof(NetRPacket_0x2728_Repeat, value) == 32, "offsetof(NetRPacket_0x2728_Repeat, value) == 32");
-static_assert(sizeof(NetRPacket_0x2728_Repeat) == 36, "sizeof(NetRPacket_0x2728_Repeat) == 36");
-struct NetSPacket_0x2729_Head
+static_assert(offsetof(NetPacket_Fixed<0x2727>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2727>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2727>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2727>, account_id) == 2");
+static_assert(sizeof(NetPacket_Fixed<0x2727>) == 6, "sizeof(NetPacket_Fixed<0x2727>) == 6");
+template<>
+struct NetPacket_Head<0x2728>
 {
     Little16 magic_packet_id;
     Little16 magic_packet_length;
     Little32 account_id;
 };
-static_assert(offsetof(NetSPacket_0x2729_Head, magic_packet_id) == 0, "offsetof(NetSPacket_0x2729_Head, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2729_Head, magic_packet_length) == 2, "offsetof(NetSPacket_0x2729_Head, magic_packet_length) == 2");
-static_assert(offsetof(NetSPacket_0x2729_Head, account_id) == 4, "offsetof(NetSPacket_0x2729_Head, account_id) == 4");
-static_assert(sizeof(NetSPacket_0x2729_Head) == 8, "sizeof(NetSPacket_0x2729_Head) == 8");
-struct NetSPacket_0x2729_Repeat
+static_assert(offsetof(NetPacket_Head<0x2728>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x2728>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Head<0x2728>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2728>, magic_packet_length) == 2");
+static_assert(offsetof(NetPacket_Head<0x2728>, account_id) == 4, "offsetof(NetPacket_Head<0x2728>, account_id) == 4");
+static_assert(sizeof(NetPacket_Head<0x2728>) == 8, "sizeof(NetPacket_Head<0x2728>) == 8");
+template<>
+struct NetPacket_Repeat<0x2728>
 {
     NetString<sizeof(VarName)> name;
     Little32 value;
 };
-static_assert(offsetof(NetSPacket_0x2729_Repeat, name) == 0, "offsetof(NetSPacket_0x2729_Repeat, name) == 0");
-static_assert(offsetof(NetSPacket_0x2729_Repeat, value) == 32, "offsetof(NetSPacket_0x2729_Repeat, value) == 32");
-static_assert(sizeof(NetSPacket_0x2729_Repeat) == 36, "sizeof(NetSPacket_0x2729_Repeat) == 36");
-struct NetRPacket_0x272a_Fixed
+static_assert(offsetof(NetPacket_Repeat<0x2728>, name) == 0, "offsetof(NetPacket_Repeat<0x2728>, name) == 0");
+static_assert(offsetof(NetPacket_Repeat<0x2728>, value) == 32, "offsetof(NetPacket_Repeat<0x2728>, value) == 32");
+static_assert(sizeof(NetPacket_Repeat<0x2728>) == 36, "sizeof(NetPacket_Repeat<0x2728>) == 36");
+template<>
+struct NetPacket_Head<0x2729>
+{
+    Little16 magic_packet_id;
+    Little16 magic_packet_length;
+    Little32 account_id;
+};
+static_assert(offsetof(NetPacket_Head<0x2729>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x2729>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Head<0x2729>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2729>, magic_packet_length) == 2");
+static_assert(offsetof(NetPacket_Head<0x2729>, account_id) == 4, "offsetof(NetPacket_Head<0x2729>, account_id) == 4");
+static_assert(sizeof(NetPacket_Head<0x2729>) == 8, "sizeof(NetPacket_Head<0x2729>) == 8");
+template<>
+struct NetPacket_Repeat<0x2729>
+{
+    NetString<sizeof(VarName)> name;
+    Little32 value;
+};
+static_assert(offsetof(NetPacket_Repeat<0x2729>, name) == 0, "offsetof(NetPacket_Repeat<0x2729>, name) == 0");
+static_assert(offsetof(NetPacket_Repeat<0x2729>, value) == 32, "offsetof(NetPacket_Repeat<0x2729>, value) == 32");
+static_assert(sizeof(NetPacket_Repeat<0x2729>) == 36, "sizeof(NetPacket_Repeat<0x2729>) == 36");
+template<>
+struct NetPacket_Fixed<0x272a>
 {
     Little16 magic_packet_id;
     Little32 account_id;
 };
-static_assert(offsetof(NetRPacket_0x272a_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x272a_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x272a_Fixed, account_id) == 2, "offsetof(NetRPacket_0x272a_Fixed, account_id) == 2");
-static_assert(sizeof(NetRPacket_0x272a_Fixed) == 6, "sizeof(NetRPacket_0x272a_Fixed) == 6");
-struct NetSPacket_0x2730_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x272a>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x272a>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x272a>, account_id) == 2, "offsetof(NetPacket_Fixed<0x272a>, account_id) == 2");
+static_assert(sizeof(NetPacket_Fixed<0x272a>) == 6, "sizeof(NetPacket_Fixed<0x272a>) == 6");
+template<>
+struct NetPacket_Fixed<0x2730>
 {
     Little16 magic_packet_id;
     Little32 account_id;
 };
-static_assert(offsetof(NetSPacket_0x2730_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x2730_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2730_Fixed, account_id) == 2, "offsetof(NetSPacket_0x2730_Fixed, account_id) == 2");
-static_assert(sizeof(NetSPacket_0x2730_Fixed) == 6, "sizeof(NetSPacket_0x2730_Fixed) == 6");
-struct NetSPacket_0x2731_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2730>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2730>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2730>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2730>, account_id) == 2");
+static_assert(sizeof(NetPacket_Fixed<0x2730>) == 6, "sizeof(NetPacket_Fixed<0x2730>) == 6");
+template<>
+struct NetPacket_Fixed<0x2731>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     Byte ban_not_status;
     Little32 status_or_ban_until;
 };
-static_assert(offsetof(NetSPacket_0x2731_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x2731_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2731_Fixed, account_id) == 2, "offsetof(NetSPacket_0x2731_Fixed, account_id) == 2");
-static_assert(offsetof(NetSPacket_0x2731_Fixed, ban_not_status) == 6, "offsetof(NetSPacket_0x2731_Fixed, ban_not_status) == 6");
-static_assert(offsetof(NetSPacket_0x2731_Fixed, status_or_ban_until) == 7, "offsetof(NetSPacket_0x2731_Fixed, status_or_ban_until) == 7");
-static_assert(sizeof(NetSPacket_0x2731_Fixed) == 11, "sizeof(NetSPacket_0x2731_Fixed) == 11");
-struct NetSPacket_0x2732_Head
+static_assert(offsetof(NetPacket_Fixed<0x2731>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2731>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2731>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2731>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2731>, ban_not_status) == 6, "offsetof(NetPacket_Fixed<0x2731>, ban_not_status) == 6");
+static_assert(offsetof(NetPacket_Fixed<0x2731>, status_or_ban_until) == 7, "offsetof(NetPacket_Fixed<0x2731>, status_or_ban_until) == 7");
+static_assert(sizeof(NetPacket_Fixed<0x2731>) == 11, "sizeof(NetPacket_Fixed<0x2731>) == 11");
+template<>
+struct NetPacket_Head<0x2732>
 {
     Little16 magic_packet_id;
     Little16 magic_packet_length;
 };
-static_assert(offsetof(NetSPacket_0x2732_Head, magic_packet_id) == 0, "offsetof(NetSPacket_0x2732_Head, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2732_Head, magic_packet_length) == 2, "offsetof(NetSPacket_0x2732_Head, magic_packet_length) == 2");
-static_assert(sizeof(NetSPacket_0x2732_Head) == 4, "sizeof(NetSPacket_0x2732_Head) == 4");
-struct NetSPacket_0x2732_Repeat
+static_assert(offsetof(NetPacket_Head<0x2732>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x2732>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Head<0x2732>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2732>, magic_packet_length) == 2");
+static_assert(sizeof(NetPacket_Head<0x2732>) == 4, "sizeof(NetPacket_Head<0x2732>) == 4");
+template<>
+struct NetPacket_Repeat<0x2732>
 {
     Little32 account_id;
     Byte gm_level;
 };
-static_assert(offsetof(NetSPacket_0x2732_Repeat, account_id) == 0, "offsetof(NetSPacket_0x2732_Repeat, account_id) == 0");
-static_assert(offsetof(NetSPacket_0x2732_Repeat, gm_level) == 4, "offsetof(NetSPacket_0x2732_Repeat, gm_level) == 4");
-static_assert(sizeof(NetSPacket_0x2732_Repeat) == 5, "sizeof(NetSPacket_0x2732_Repeat) == 5");
-struct NetRPacket_0x2740_Fixed
+static_assert(offsetof(NetPacket_Repeat<0x2732>, account_id) == 0, "offsetof(NetPacket_Repeat<0x2732>, account_id) == 0");
+static_assert(offsetof(NetPacket_Repeat<0x2732>, gm_level) == 4, "offsetof(NetPacket_Repeat<0x2732>, gm_level) == 4");
+static_assert(sizeof(NetPacket_Repeat<0x2732>) == 5, "sizeof(NetPacket_Repeat<0x2732>) == 5");
+template<>
+struct NetPacket_Fixed<0x2740>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     NetString<sizeof(AccountPass)> old_pass;
     NetString<sizeof(AccountPass)> new_pass;
 };
-static_assert(offsetof(NetRPacket_0x2740_Fixed, magic_packet_id) == 0, "offsetof(NetRPacket_0x2740_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetRPacket_0x2740_Fixed, account_id) == 2, "offsetof(NetRPacket_0x2740_Fixed, account_id) == 2");
-static_assert(offsetof(NetRPacket_0x2740_Fixed, old_pass) == 6, "offsetof(NetRPacket_0x2740_Fixed, old_pass) == 6");
-static_assert(offsetof(NetRPacket_0x2740_Fixed, new_pass) == 30, "offsetof(NetRPacket_0x2740_Fixed, new_pass) == 30");
-static_assert(sizeof(NetRPacket_0x2740_Fixed) == 54, "sizeof(NetRPacket_0x2740_Fixed) == 54");
-struct NetSPacket_0x2741_Fixed
+static_assert(offsetof(NetPacket_Fixed<0x2740>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2740>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2740>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2740>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2740>, old_pass) == 6, "offsetof(NetPacket_Fixed<0x2740>, old_pass) == 6");
+static_assert(offsetof(NetPacket_Fixed<0x2740>, new_pass) == 30, "offsetof(NetPacket_Fixed<0x2740>, new_pass) == 30");
+static_assert(sizeof(NetPacket_Fixed<0x2740>) == 54, "sizeof(NetPacket_Fixed<0x2740>) == 54");
+template<>
+struct NetPacket_Fixed<0x2741>
 {
     Little16 magic_packet_id;
     Little32 account_id;
     Byte status;
 };
-static_assert(offsetof(NetSPacket_0x2741_Fixed, magic_packet_id) == 0, "offsetof(NetSPacket_0x2741_Fixed, magic_packet_id) == 0");
-static_assert(offsetof(NetSPacket_0x2741_Fixed, account_id) == 2, "offsetof(NetSPacket_0x2741_Fixed, account_id) == 2");
-static_assert(offsetof(NetSPacket_0x2741_Fixed, status) == 6, "offsetof(NetSPacket_0x2741_Fixed, status) == 6");
-static_assert(sizeof(NetSPacket_0x2741_Fixed) == 7, "sizeof(NetSPacket_0x2741_Fixed) == 7");
+static_assert(offsetof(NetPacket_Fixed<0x2741>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2741>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Fixed<0x2741>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2741>, account_id) == 2");
+static_assert(offsetof(NetPacket_Fixed<0x2741>, status) == 6, "offsetof(NetPacket_Fixed<0x2741>, status) == 6");
+static_assert(sizeof(NetPacket_Fixed<0x2741>) == 7, "sizeof(NetPacket_Fixed<0x2741>) == 7");
 
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2709_Fixed *network, RPacket_0x2709_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2709> *network, Packet_Fixed<0x2709> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2709_Fixed *native, NetRPacket_0x2709_Fixed network)
+bool network_to_native(Packet_Fixed<0x2709> *native, NetPacket_Fixed<0x2709> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2712_Fixed *network, RPacket_0x2712_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2712> *network, Packet_Fixed<0x2712> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -538,7 +590,7 @@ bool native_to_network(NetRPacket_0x2712_Fixed *network, RPacket_0x2712_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2712_Fixed *native, NetRPacket_0x2712_Fixed network)
+bool network_to_native(Packet_Fixed<0x2712> *native, NetPacket_Fixed<0x2712> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -550,7 +602,7 @@ bool network_to_native(RPacket_0x2712_Fixed *native, NetRPacket_0x2712_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2713_Fixed *network, SPacket_0x2713_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2713> *network, Packet_Fixed<0x2713> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -561,7 +613,7 @@ bool native_to_network(NetSPacket_0x2713_Fixed *network, SPacket_0x2713_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2713_Fixed *native, NetSPacket_0x2713_Fixed network)
+bool network_to_native(Packet_Fixed<0x2713> *native, NetPacket_Fixed<0x2713> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -572,7 +624,7 @@ bool network_to_native(SPacket_0x2713_Fixed *native, NetSPacket_0x2713_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2714_Fixed *network, RPacket_0x2714_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2714> *network, Packet_Fixed<0x2714> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -580,7 +632,7 @@ bool native_to_network(NetRPacket_0x2714_Fixed *network, RPacket_0x2714_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2714_Fixed *native, NetRPacket_0x2714_Fixed network)
+bool network_to_native(Packet_Fixed<0x2714> *native, NetPacket_Fixed<0x2714> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -588,7 +640,7 @@ bool network_to_native(RPacket_0x2714_Fixed *native, NetRPacket_0x2714_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2715_Fixed *network, RPacket_0x2715_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2715> *network, Packet_Fixed<0x2715> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -597,7 +649,7 @@ bool native_to_network(NetRPacket_0x2715_Fixed *network, RPacket_0x2715_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2715_Fixed *native, NetRPacket_0x2715_Fixed network)
+bool network_to_native(Packet_Fixed<0x2715> *native, NetPacket_Fixed<0x2715> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -606,7 +658,7 @@ bool network_to_native(RPacket_0x2715_Fixed *native, NetRPacket_0x2715_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2716_Fixed *network, RPacket_0x2716_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2716> *network, Packet_Fixed<0x2716> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -614,7 +666,7 @@ bool native_to_network(NetRPacket_0x2716_Fixed *network, RPacket_0x2716_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2716_Fixed *native, NetRPacket_0x2716_Fixed network)
+bool network_to_native(Packet_Fixed<0x2716> *native, NetPacket_Fixed<0x2716> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -622,7 +674,7 @@ bool network_to_native(RPacket_0x2716_Fixed *native, NetRPacket_0x2716_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2717_Fixed *network, SPacket_0x2717_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2717> *network, Packet_Fixed<0x2717> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -632,7 +684,7 @@ bool native_to_network(NetSPacket_0x2717_Fixed *network, SPacket_0x2717_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2717_Fixed *native, NetSPacket_0x2717_Fixed network)
+bool network_to_native(Packet_Fixed<0x2717> *native, NetPacket_Fixed<0x2717> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -642,7 +694,7 @@ bool network_to_native(SPacket_0x2717_Fixed *native, NetSPacket_0x2717_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2720_Head *network, RPacket_0x2720_Head native)
+bool native_to_network(NetPacket_Head<0x2720> *network, Packet_Head<0x2720> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -651,7 +703,7 @@ bool native_to_network(NetRPacket_0x2720_Head *network, RPacket_0x2720_Head nati
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2720_Head *native, NetRPacket_0x2720_Head network)
+bool network_to_native(Packet_Head<0x2720> *native, NetPacket_Head<0x2720> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -660,21 +712,21 @@ bool network_to_native(RPacket_0x2720_Head *native, NetRPacket_0x2720_Head netwo
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2720_Repeat *network, RPacket_0x2720_Repeat native)
+bool native_to_network(NetPacket_Repeat<0x2720> *network, Packet_Repeat<0x2720> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->c, native.c);
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2720_Repeat *native, NetRPacket_0x2720_Repeat network)
+bool network_to_native(Packet_Repeat<0x2720> *native, NetPacket_Repeat<0x2720> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->c, network.c);
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2721_Fixed *network, SPacket_0x2721_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2721> *network, Packet_Fixed<0x2721> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -683,7 +735,7 @@ bool native_to_network(NetSPacket_0x2721_Fixed *network, SPacket_0x2721_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2721_Fixed *native, NetSPacket_0x2721_Fixed network)
+bool network_to_native(Packet_Fixed<0x2721> *native, NetPacket_Fixed<0x2721> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -692,7 +744,7 @@ bool network_to_native(SPacket_0x2721_Fixed *native, NetSPacket_0x2721_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2722_Fixed *network, RPacket_0x2722_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2722> *network, Packet_Fixed<0x2722> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -702,7 +754,7 @@ bool native_to_network(NetRPacket_0x2722_Fixed *network, RPacket_0x2722_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2722_Fixed *native, NetRPacket_0x2722_Fixed network)
+bool network_to_native(Packet_Fixed<0x2722> *native, NetPacket_Fixed<0x2722> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -712,7 +764,7 @@ bool network_to_native(RPacket_0x2722_Fixed *native, NetRPacket_0x2722_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2723_Fixed *network, SPacket_0x2723_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2723> *network, Packet_Fixed<0x2723> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -721,7 +773,7 @@ bool native_to_network(NetSPacket_0x2723_Fixed *network, SPacket_0x2723_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2723_Fixed *native, NetSPacket_0x2723_Fixed network)
+bool network_to_native(Packet_Fixed<0x2723> *native, NetPacket_Fixed<0x2723> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -730,7 +782,7 @@ bool network_to_native(SPacket_0x2723_Fixed *native, NetSPacket_0x2723_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2724_Fixed *network, RPacket_0x2724_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2724> *network, Packet_Fixed<0x2724> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -739,7 +791,7 @@ bool native_to_network(NetRPacket_0x2724_Fixed *network, RPacket_0x2724_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2724_Fixed *native, NetRPacket_0x2724_Fixed network)
+bool network_to_native(Packet_Fixed<0x2724> *native, NetPacket_Fixed<0x2724> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -748,7 +800,7 @@ bool network_to_native(RPacket_0x2724_Fixed *native, NetRPacket_0x2724_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2725_Fixed *network, RPacket_0x2725_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2725> *network, Packet_Fixed<0x2725> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -757,7 +809,7 @@ bool native_to_network(NetRPacket_0x2725_Fixed *network, RPacket_0x2725_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2725_Fixed *native, NetRPacket_0x2725_Fixed network)
+bool network_to_native(Packet_Fixed<0x2725> *native, NetPacket_Fixed<0x2725> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -766,7 +818,7 @@ bool network_to_native(RPacket_0x2725_Fixed *native, NetRPacket_0x2725_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2727_Fixed *network, RPacket_0x2727_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2727> *network, Packet_Fixed<0x2727> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -774,7 +826,7 @@ bool native_to_network(NetRPacket_0x2727_Fixed *network, RPacket_0x2727_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2727_Fixed *native, NetRPacket_0x2727_Fixed network)
+bool network_to_native(Packet_Fixed<0x2727> *native, NetPacket_Fixed<0x2727> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -782,41 +834,7 @@ bool network_to_native(RPacket_0x2727_Fixed *native, NetRPacket_0x2727_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2728_Head *network, RPacket_0x2728_Head native)
-{
-    bool rv = true;
-    rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
-    rv &= native_to_network(&network->magic_packet_length, native.magic_packet_length);
-    rv &= native_to_network(&network->account_id, native.account_id);
-    return rv;
-}
-inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2728_Head *native, NetRPacket_0x2728_Head network)
-{
-    bool rv = true;
-    rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
-    rv &= network_to_native(&native->magic_packet_length, network.magic_packet_length);
-    rv &= network_to_native(&native->account_id, network.account_id);
-    return rv;
-}
-inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2728_Repeat *network, RPacket_0x2728_Repeat native)
-{
-    bool rv = true;
-    rv &= native_to_network(&network->name, native.name);
-    rv &= native_to_network(&network->value, native.value);
-    return rv;
-}
-inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2728_Repeat *native, NetRPacket_0x2728_Repeat network)
-{
-    bool rv = true;
-    rv &= network_to_native(&native->name, network.name);
-    rv &= network_to_native(&native->value, network.value);
-    return rv;
-}
-inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2729_Head *network, SPacket_0x2729_Head native)
+bool native_to_network(NetPacket_Head<0x2728> *network, Packet_Head<0x2728> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -825,7 +843,7 @@ bool native_to_network(NetSPacket_0x2729_Head *network, SPacket_0x2729_Head nati
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2729_Head *native, NetSPacket_0x2729_Head network)
+bool network_to_native(Packet_Head<0x2728> *native, NetPacket_Head<0x2728> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -834,7 +852,7 @@ bool network_to_native(SPacket_0x2729_Head *native, NetSPacket_0x2729_Head netwo
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2729_Repeat *network, SPacket_0x2729_Repeat native)
+bool native_to_network(NetPacket_Repeat<0x2728> *network, Packet_Repeat<0x2728> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->name, native.name);
@@ -842,7 +860,7 @@ bool native_to_network(NetSPacket_0x2729_Repeat *network, SPacket_0x2729_Repeat 
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2729_Repeat *native, NetSPacket_0x2729_Repeat network)
+bool network_to_native(Packet_Repeat<0x2728> *native, NetPacket_Repeat<0x2728> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->name, network.name);
@@ -850,7 +868,41 @@ bool network_to_native(SPacket_0x2729_Repeat *native, NetSPacket_0x2729_Repeat n
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x272a_Fixed *network, RPacket_0x272a_Fixed native)
+bool native_to_network(NetPacket_Head<0x2729> *network, Packet_Head<0x2729> native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
+    rv &= native_to_network(&network->magic_packet_length, native.magic_packet_length);
+    rv &= native_to_network(&network->account_id, native.account_id);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Packet_Head<0x2729> *native, NetPacket_Head<0x2729> network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
+    rv &= network_to_native(&native->magic_packet_length, network.magic_packet_length);
+    rv &= network_to_native(&native->account_id, network.account_id);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetPacket_Repeat<0x2729> *network, Packet_Repeat<0x2729> native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->name, native.name);
+    rv &= native_to_network(&network->value, native.value);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Packet_Repeat<0x2729> *native, NetPacket_Repeat<0x2729> network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->name, network.name);
+    rv &= network_to_native(&native->value, network.value);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetPacket_Fixed<0x272a> *network, Packet_Fixed<0x272a> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -858,7 +910,7 @@ bool native_to_network(NetRPacket_0x272a_Fixed *network, RPacket_0x272a_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x272a_Fixed *native, NetRPacket_0x272a_Fixed network)
+bool network_to_native(Packet_Fixed<0x272a> *native, NetPacket_Fixed<0x272a> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -866,7 +918,7 @@ bool network_to_native(RPacket_0x272a_Fixed *native, NetRPacket_0x272a_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2730_Fixed *network, SPacket_0x2730_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2730> *network, Packet_Fixed<0x2730> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -874,7 +926,7 @@ bool native_to_network(NetSPacket_0x2730_Fixed *network, SPacket_0x2730_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2730_Fixed *native, NetSPacket_0x2730_Fixed network)
+bool network_to_native(Packet_Fixed<0x2730> *native, NetPacket_Fixed<0x2730> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -882,7 +934,7 @@ bool network_to_native(SPacket_0x2730_Fixed *native, NetSPacket_0x2730_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2731_Fixed *network, SPacket_0x2731_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2731> *network, Packet_Fixed<0x2731> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -892,7 +944,7 @@ bool native_to_network(NetSPacket_0x2731_Fixed *network, SPacket_0x2731_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2731_Fixed *native, NetSPacket_0x2731_Fixed network)
+bool network_to_native(Packet_Fixed<0x2731> *native, NetPacket_Fixed<0x2731> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -902,7 +954,7 @@ bool network_to_native(SPacket_0x2731_Fixed *native, NetSPacket_0x2731_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2732_Head *network, SPacket_0x2732_Head native)
+bool native_to_network(NetPacket_Head<0x2732> *network, Packet_Head<0x2732> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -910,7 +962,7 @@ bool native_to_network(NetSPacket_0x2732_Head *network, SPacket_0x2732_Head nati
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2732_Head *native, NetSPacket_0x2732_Head network)
+bool network_to_native(Packet_Head<0x2732> *native, NetPacket_Head<0x2732> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -918,7 +970,7 @@ bool network_to_native(SPacket_0x2732_Head *native, NetSPacket_0x2732_Head netwo
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2732_Repeat *network, SPacket_0x2732_Repeat native)
+bool native_to_network(NetPacket_Repeat<0x2732> *network, Packet_Repeat<0x2732> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->account_id, native.account_id);
@@ -926,7 +978,7 @@ bool native_to_network(NetSPacket_0x2732_Repeat *network, SPacket_0x2732_Repeat 
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2732_Repeat *native, NetSPacket_0x2732_Repeat network)
+bool network_to_native(Packet_Repeat<0x2732> *native, NetPacket_Repeat<0x2732> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->account_id, network.account_id);
@@ -934,7 +986,7 @@ bool network_to_native(SPacket_0x2732_Repeat *native, NetSPacket_0x2732_Repeat n
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetRPacket_0x2740_Fixed *network, RPacket_0x2740_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2740> *network, Packet_Fixed<0x2740> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -944,7 +996,7 @@ bool native_to_network(NetRPacket_0x2740_Fixed *network, RPacket_0x2740_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(RPacket_0x2740_Fixed *native, NetRPacket_0x2740_Fixed network)
+bool network_to_native(Packet_Fixed<0x2740> *native, NetPacket_Fixed<0x2740> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
@@ -954,7 +1006,7 @@ bool network_to_native(RPacket_0x2740_Fixed *native, NetRPacket_0x2740_Fixed net
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool native_to_network(NetSPacket_0x2741_Fixed *network, SPacket_0x2741_Fixed native)
+bool native_to_network(NetPacket_Fixed<0x2741> *network, Packet_Fixed<0x2741> native)
 {
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
@@ -963,7 +1015,7 @@ bool native_to_network(NetSPacket_0x2741_Fixed *network, SPacket_0x2741_Fixed na
     return rv;
 }
 inline __attribute__((warn_unused_result))
-bool network_to_native(SPacket_0x2741_Fixed *native, NetSPacket_0x2741_Fixed network)
+bool network_to_native(Packet_Fixed<0x2741> *native, NetPacket_Fixed<0x2741> network)
 {
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
