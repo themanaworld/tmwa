@@ -1918,7 +1918,7 @@ void parse_admin(Session *s)
                     fixed_37.account_id = AccountId();
                     AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                     int statut = fixed.status;
-                    timestamp_seconds_buffer error_message = stringish<timestamp_seconds_buffer>(error_message.to_print());
+                    timestamp_seconds_buffer error_message = stringish<timestamp_seconds_buffer>(fixed.error_message.to_print());
                     if (statut != 7 || !error_message)
                     {
                         // 7: // 6 = Your are Prohibited to log in until %s
@@ -2316,7 +2316,7 @@ void parse_admin(Session *s)
 
                 SPacket_0x7945_Fixed fixed_45;
                 fixed_45.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(account_name.to_print());
+                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                 const AuthData *ad = search_account(account_name);
                 if (ad)
                 {

@@ -33,6 +33,14 @@
 
 namespace ints
 {
+    // gcc doesn't always provide a builtin for this,
+    // but it *does* optimize hand-written ones
+    constexpr
+    uint16_t bswap16(uint16_t v)
+    {
+        return v >> 8 | v << 8;
+    }
+
     // TODO hoist this to byte.hpp and also implement big.hpp
     struct Byte
     {
@@ -64,7 +72,7 @@ namespace ints
     bool native_to_network(Little16 *net, uint16_t nat)
     {
         if (__BYTE_ORDER == __BIG_ENDIAN)
-            nat = __builtin_bswap16(nat);
+            nat = bswap16(nat);
         __builtin_memcpy(net, &nat, 2);
         return true;
     }
@@ -97,7 +105,7 @@ namespace ints
         uint16_t tmp;
         __builtin_memcpy(&tmp, &net, 2);
         if (__BYTE_ORDER == __BIG_ENDIAN)
-            tmp = __builtin_bswap16(tmp);
+            tmp = bswap16(tmp);
         *nat = tmp;
         return true;
     }
