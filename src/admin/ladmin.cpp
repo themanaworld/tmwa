@@ -40,7 +40,10 @@
 #include "../io/write.hpp"
 
 #include "../net/ip.hpp"
-#include "../net/vomit.hpp"
+#include "../net/packets.hpp"
+
+#include "../proto2/any-user.hpp"
+#include "../proto2/login-admin.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
@@ -728,12 +731,12 @@ void addaccount(ZString param, int emailflag)
 
     LADMIN_LOG("Request to login-server to create an account.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7930;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFO_STRING(login_session, 26, password, 24);
-    WFIFOB(login_session, 50) = sex;
-    WFIFO_STRING(login_session, 51, email, 40);
-    WFIFOSET(login_session, 91);
+    Packet_Fixed<0x7930> fixed_30;
+    fixed_30.account_name = name;
+    fixed_30.password = password;
+    fixed_30.sex = sex_from_char(sex);
+    fixed_30.email = email;
+    send_fpacket<0x7930, 91>(login_session, fixed_30);
     bytes_to_read = 1;
 }
 
@@ -778,10 +781,10 @@ void banaddaccount(ZString param)
 
     LADMIN_LOG("Request to login-server to modify a ban date/time.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x794c;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFO_STRUCT(login_session, 26, modif);
-    WFIFOSET(login_session, 38);
+    Packet_Fixed<0x794c> fixed_4c;
+    fixed_4c.account_name = name;
+    fixed_4c.ban_add = modif;
+    send_fpacket<0x794c, 38>(login_session, fixed_4c);
     bytes_to_read = 1;
 }
 
@@ -887,10 +890,10 @@ void bansetaccountsub(AccountName name, XString date, XString time_)
 
     LADMIN_LOG("Request to login-server to set a ban.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x794a;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOL(login_session, 26) = static_cast<time_t>(ban_until_time);
-    WFIFOSET(login_session, 30);
+    Packet_Fixed<0x794a> fixed_4a;
+    fixed_4a.account_name = name;
+    fixed_4a.ban_until = ban_until_time;
+    send_fpacket<0x794a, 30>(login_session, fixed_4a);
     bytes_to_read = 1;
 }
 
@@ -1000,10 +1003,10 @@ void checkaccount(ZString param)
 
     LADMIN_LOG("Request to login-server to check a password.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x793a;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFO_STRING(login_session, 26, password, 24);
-    WFIFOSET(login_session, 50);
+    Packet_Fixed<0x793a> fixed_3a;
+    fixed_3a.account_name = name;
+    fixed_3a.password = password;
+    send_fpacket<0x793a, 50>(login_session, fixed_3a);
     bytes_to_read = 1;
 }
 
@@ -1050,9 +1053,9 @@ void delaccount(ZString param)
 
     LADMIN_LOG("Request to login-server to delete an acount.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7932;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOSET(login_session, 26);
+    Packet_Fixed<0x7932> fixed_32;
+    fixed_32.account_name = name;
+    send_fpacket<0x7932, 26>(login_session, fixed_32);
     bytes_to_read = 1;
 }
 
@@ -1087,10 +1090,10 @@ void changeemail(ZString param)
 
     LADMIN_LOG("Request to login-server to change an email.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7940;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFO_STRING(login_session, 26, email, 40);
-    WFIFOSET(login_session, 66);
+    Packet_Fixed<0x7940> fixed_40;
+    fixed_40.account_name = name;
+    fixed_40.email = email;
+    send_fpacket<0x7940, 66>(login_session, fixed_40);
     bytes_to_read = 1;
 }
 
@@ -1102,8 +1105,8 @@ void getlogincount(void)
 {
     LADMIN_LOG("Request to login-server to obtain the # of online players.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7938;
-    WFIFOSET(login_session, 2);
+    Packet_Fixed<0x7938> fixed_38;
+    send_fpacket<0x7938, 2>(login_session, fixed_38);
     bytes_to_read = 1;
 }
 
@@ -1114,7 +1117,7 @@ static
 void changegmlevel(ZString param)
 {
     AccountName name;
-    int GM_level = 0;
+    GmLevel GM_level;
 
     if (!qsplit(param, &name, &GM_level))
     {
@@ -1127,21 +1130,12 @@ void changegmlevel(ZString param)
     if (!name.is_print())
         return;
 
-    if (GM_level < 0 || GM_level > 99)
-    {
-        PRINTF("Illegal GM level [%d]. Please input a value from 0 to 99.\n"_fmt,
-             GM_level);
-        LADMIN_LOG("Illegal GM level [%d]. The value can be from 0 to 99.\n"_fmt,
-              GM_level);
-        return;
-    }
-
     LADMIN_LOG("Request to login-server to change a GM level.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x793e;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOB(login_session, 26) = GM_level;
-    WFIFOSET(login_session, 27);
+    Packet_Fixed<0x793e> fixed_3e;
+    fixed_3e.account_name = name;
+    fixed_3e.gm_level = GM_level;
+    send_fpacket<0x793e, 27>(login_session, fixed_3e);
     bytes_to_read = 1;
 }
 
@@ -1168,9 +1162,9 @@ void idaccount(ZString param)
 
     LADMIN_LOG("Request to login-server to know an account id.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7944;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOSET(login_session, 26);
+    Packet_Fixed<0x7944> fixed_44;
+    fixed_44.account_name = name;
+    send_fpacket<0x7944, 26>(login_session, fixed_44);
     bytes_to_read = 1;
 }
 
@@ -1182,9 +1176,9 @@ void infoaccount(AccountId account_id)
 {
     LADMIN_LOG("Request to login-server to obtain information about an account (by its id).\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7954;
-    WFIFOL(login_session, 2) = unwrap<AccountId>(account_id);
-    WFIFOSET(login_session, 6);
+    Packet_Fixed<0x7954> fixed_54;
+    fixed_54.account_id = account_id;
+    send_fpacket<0x7954, 6>(login_session, fixed_54);
     bytes_to_read = 1;
 }
 
@@ -1204,12 +1198,9 @@ void sendbroadcast(ZString message)
         return;
     }
 
-    WFIFOW(login_session, 0) = 0x794e;
-    WFIFOW(login_session, 2) = 0;
-    size_t len = message.size() + 1;
-    WFIFOL(login_session, 4) = len;
-    WFIFO_STRING(login_session, 8, message, len);
-    WFIFOSET(login_session, 8 + len);
+    Packet_Head<0x794e> head_4e;
+    head_4e.unused = 0;
+    send_vpacket<0x794e, 8, 1>(login_session, head_4e, message);
     bytes_to_read = 1;
 }
 
@@ -1254,10 +1245,10 @@ void listaccount(ZString param, int type)
     LADMIN_LOG("Request to login-server to obtain the list of accounts from %d to %d.\n"_fmt,
           list_first, list_last);
 
-    WFIFOW(login_session, 0) = 0x7920;
-    WFIFOL(login_session, 2) = unwrap<AccountId>(list_first);
-    WFIFOL(login_session, 6) = unwrap<AccountId>(list_last);
-    WFIFOSET(login_session, 10);
+    Packet_Fixed<0x7920> fixed_20;
+    fixed_20.start_account_id = list_first;
+    fixed_20.end_account_id = list_last;
+    send_fpacket<0x7920, 10>(login_session, fixed_20);
     bytes_to_read = 1;
 
     //          0123456789 01 01234567890123456789012301234 012345 0123456789012345678901234567
@@ -1280,10 +1271,10 @@ int itemfrob(ZString param)
         return 1;
     }
 
-    WFIFOW(login_session, 0) = 0x7924;
-    WFIFOL(login_session, 2) = unwrap<ItemNameId>(source_id);
-    WFIFOL(login_session, 6) = unwrap<ItemNameId>(dest_id);
-    WFIFOSET(login_session, 10);
+    Packet_Fixed<0x7924> fixed_24;
+    fixed_24.source_item_id = source_id;
+    fixed_24.dest_item_id = dest_id;
+    send_fpacket<0x7924, 10>(login_session, fixed_24);
     bytes_to_read = 1;          // all logging is done to the three main servers
 
     return 0;
@@ -1310,7 +1301,6 @@ void changememo(ZString param)
         return;
 
     size_t len = memo.size();
-    size_t len1 = len + 1;
     if (len > 254)
     {
         PRINTF("Memo is too long (%zu characters).\n"_fmt, len);
@@ -1322,11 +1312,9 @@ void changememo(ZString param)
 
     LADMIN_LOG("Request to login-server to change a memo.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7942;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOW(login_session, 26) = len1;
-    WFIFO_STRING(login_session, 28, memo, len);
-    WFIFOSET(login_session, 28 + len1);
+    Packet_Head<0x7942> head_42;
+    head_42.account_name = name;
+    send_vpacket<0x7942, 28, 1>(login_session, head_42, memo);
     bytes_to_read = 1;
 }
 
@@ -1338,9 +1326,9 @@ void nameaccount(AccountId id)
 {
     LADMIN_LOG("Request to login-server to know an account name.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7946;
-    WFIFOL(login_session, 2) = unwrap<AccountId>(id);
-    WFIFOSET(login_session, 6);
+    Packet_Fixed<0x7946> fixed_46;
+    fixed_46.account_id = id;
+    send_fpacket<0x7946, 6>(login_session, fixed_46);
     bytes_to_read = 1;
 }
 
@@ -1372,10 +1360,10 @@ void changepasswd(ZString param)
 
     LADMIN_LOG("Request to login-server to change a password.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7934;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFO_STRING(login_session, 26, password, 24);
-    WFIFOSET(login_session, 50);
+    Packet_Fixed<0x7934> fixed_34;
+    fixed_34.account_name = name;
+    fixed_34.password = password;
+    send_fpacket<0x7934, 50>(login_session, fixed_34);
     bytes_to_read = 1;
 }
 
@@ -1386,8 +1374,8 @@ void changepasswd(ZString param)
 static
 void reloadGM(ZString params)
 {
-    WFIFOW(login_session, 0) = 0x7955;
-    WFIFOSET(login_session, 2);
+    Packet_Fixed<0x7955> fixed_55;
+    send_fpacket<0x7955, 2>(login_session, fixed_55);
     bytes_to_read = 0;
 
     LADMIN_LOG("Request to reload the GM configuration file sended.\n"_fmt);
@@ -1429,10 +1417,10 @@ void changesex(ZString param)
 
     LADMIN_LOG("Request to login-server to change a sex.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x793c;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOB(login_session, 26) = sex;
-    WFIFOSET(login_session, 27);
+    Packet_Fixed<0x793c> fixed_3c;
+    fixed_3c.account_name = name;
+    fixed_3c.sex = sex_from_char(sex);
+    send_fpacket<0x793c, 27>(login_session, fixed_3c);
     bytes_to_read = 1;
 }
 
@@ -1485,11 +1473,11 @@ void changestatesub(AccountName name, int state, XString error_message)
 
     LADMIN_LOG("Request to login-server to change a state.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7936;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOL(login_session, 26) = state;
-    WFIFO_STRING(login_session, 30, error_message, 20);
-    WFIFOSET(login_session, 50);
+    Packet_Fixed<0x7936> fixed_36;
+    fixed_36.account_name = name;
+    fixed_36.status = state;
+    fixed_36.error_message = stringish<timestamp_seconds_buffer>(error_message);
+    send_fpacket<0x7936, 50>(login_session, fixed_36);
     bytes_to_read = 1;
 }
 
@@ -1604,10 +1592,10 @@ void timeaddaccount(ZString param)
 
     LADMIN_LOG("Request to login-server to modify a time limit.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7950;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFO_STRUCT(login_session, 26, modif);
-    WFIFOSET(login_session, 38);
+    Packet_Fixed<0x7950> fixed_50;
+    fixed_50.account_name = name;
+    fixed_50.valid_add = modif;
+    send_fpacket<0x7950, 38>(login_session, fixed_50);
     bytes_to_read = 1;
 }
 
@@ -1727,10 +1715,10 @@ void timesetaccount(ZString param)
 
     LADMIN_LOG("Request to login-server to set a time limit.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7948;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOL(login_session, 26) = static_cast<time_t>(connect_until_time);
-    WFIFOSET(login_session, 30);
+    Packet_Fixed<0x7948> fixed_48;
+    fixed_48.account_name = name;
+    fixed_48.valid_until = connect_until_time;
+    send_fpacket<0x7948, 30>(login_session, fixed_48);
     bytes_to_read = 1;
 }
 
@@ -1756,9 +1744,9 @@ void whoaccount(ZString param)
 
     LADMIN_LOG("Request to login-server to obtain information about an account (by its name).\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7952;
-    WFIFO_STRING(login_session, 2, name, 24);
-    WFIFOSET(login_session, 26);
+    Packet_Fixed<0x7952> fixed_52;
+    fixed_52.account_name = name;
+    send_fpacket<0x7952, 26>(login_session, fixed_52);
     bytes_to_read = 1;
 }
 
@@ -1770,8 +1758,8 @@ void checkloginversion(void)
 {
     LADMIN_LOG("Request to login-server to obtain its version.\n"_fmt);
 
-    WFIFOW(login_session, 0) = 0x7530;
-    WFIFOSET(login_session, 2);
+    Packet_Fixed<0x7530> fixed_30;
+    send_fpacket<0x7530, 2>(login_session, fixed_30);
     bytes_to_read = 1;
 }
 
@@ -1940,14 +1928,20 @@ void prompt(void)
 static
 void parse_fromlogin(Session *s)
 {
-    while (RFIFOREST(s) >= 2)
+    RecvResult rv = RecvResult::Complete;
+    uint16_t packet_id;
+    while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
-        switch (RFIFOW(s, 0))
+        switch (packet_id)
         {
             case 0x7919:       // answer of a connection request
-                if (RFIFOREST(s) < 3)
-                    return;
-                if (RFIFOB(s, 2) != 0)
+            {
+                Packet_Fixed<0x7919> fixed;
+                rv = recv_fpacket<0x7919, 3>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (fixed.error != 0)
                 {
                     PRINTF("Error at login:\n"_fmt);
                     PRINTF(" - incorrect password,\n"_fmt);
@@ -1966,37 +1960,50 @@ void parse_fromlogin(Session *s)
                     //bytes_to_read = 1; // unchanged
                     checkloginversion();
                 }
-                RFIFOSKIP(s, 3);
                 break;
+            }
 
             case 0x7531:       // Displaying of the version of the login-server
-                if (RFIFOREST(s) < 10)
-                    return;
             {
+                Packet_Fixed<0x7531> fixed;
+                rv = recv_fpacket<0x7531, 10>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 Iprintf("  Login-Server [%s:%d]\n"_fmt,
                         login_ip, login_port);
-                Version version;
-                RFIFO_STRUCT(login_session, 2, version);
+                Version version = fixed.version;
                 Iprintf("  tmwA version %hhu.%hhu.%hhu (dev? %hhu) (flags %hhx) (which %hhx) (vend %hu)\n"_fmt,
                         version.major, version.minor, version.patch,
                         version.devel,
 
                         version.flags, version.which,
                         version.vend);
-            }
                 bytes_to_read = 0;
-                RFIFOSKIP(s, 10);
                 break;
+            }
 
             case 0x7925:       // Itemfrob-OK
-                RFIFOSKIP(s, 2);
+            {
+                Packet_Fixed<0x7925> fixed;
+                rv = recv_fpacket<0x7925, 2>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 bytes_to_read = 0;
                 break;
+            }
 
             case 0x7921:       // Displaying of the list of accounts
-                if (RFIFOREST(s) < 4 || RFIFOREST(s) < RFIFOW(s, 2))
-                    return;
-                if (RFIFOW(s, 2) < 5)
+            {
+                std::vector<Packet_Repeat<0x7921>> repeat;
+                rv = recv_packet_repeatonly<0x7921, 4, 38>(s, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                // the admin client resends the request with a shrunken
+                // range until an empty reply is given
+                if (repeat.empty())
                 {
                     LADMIN_LOG("  Receiving of a void accounts list.\n"_fmt);
                     if (list_count == 0)
@@ -2013,35 +2020,35 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    int i;
                     LADMIN_LOG("  Receiving of a accounts list.\n"_fmt);
-                    for (i = 4; i < RFIFOW(s, 2); i += 38)
+                    for (const Packet_Repeat<0x7921>& info : repeat)
                     {
-                        AccountName userid = stringish<AccountName>(RFIFO_STRING<24>(s, i + 5));
+                        AccountName userid = info.account_name;
                         VString<23> lower_userid = userid.to_lower();
                         // this is ad-hoc block streaming
-                        list_first = next(wrap<AccountId>(RFIFOL(s, i)));
+                        // (with a global variable)
+                        list_first = next(info.account_id);
                         // here are checks...
                         if (list_type == 0
-                            || (list_type == 1 && RFIFOB(s, i + 4) > 0)
+                            || (list_type == 1 && info.gm_level)
                             || (list_type == 2 && lower_userid.contains_seq(parameters))
-                            || (list_type == 3 && RFIFOL(s, i + 34) != 0)
-                            || (list_type == 4 && RFIFOL(s, i + 34) == 0))
+                            || (list_type == 3 && info.status != 0)
+                            || (list_type == 4 && info.status == 0))
                         {
-                            PRINTF("%10d "_fmt, RFIFOL(s, i));
-                            if (RFIFOB(s, i + 4) == 0)
+                            PRINTF("%10d "_fmt, info.account_id);
+                            if (!info.gm_level)
                                 PRINTF("   "_fmt);
                             else
-                                PRINTF("%2d "_fmt, RFIFOB(s, i + 4));
+                                PRINTF("%2d "_fmt, info.gm_level);
                             PRINTF("%-24s"_fmt, userid);
-                            if (RFIFOB(s, i + 29) == 0)
+                            if (info.sex == SEX::FEMALE)
                                 PRINTF("%-5s "_fmt, "Femal"_s);
-                            else if (RFIFOB(s, i + 29) == 1)
+                            else if (info.sex == SEX::MALE)
                                 PRINTF("%-5s "_fmt, "Male"_s);
                             else
                                 PRINTF("%-5s "_fmt, "Servr"_s);
-                            PRINTF("%6d "_fmt, RFIFOL(s, i + 30));
-                            switch (RFIFOL(s, i + 34))
+                            PRINTF("%6d "_fmt, info.login_count);
+                            switch (info.status)
                             {
                                 case 0:
                                     PRINTF("%-27s\n"_fmt, "Account OK"_s);
@@ -2086,21 +2093,24 @@ void parse_fromlogin(Session *s)
                     // asking of the following acounts
                     LADMIN_LOG("Request to login-server to obtain the list of accounts from %d to %d (complement).\n"_fmt,
                           list_first, list_last);
-                    WFIFOW(login_session, 0) = 0x7920;
-                    WFIFOL(login_session, 2) = unwrap<AccountId>(list_first);
-                    WFIFOL(login_session, 6) = unwrap<AccountId>(list_last);
-                    WFIFOSET(login_session, 10);
+                    Packet_Fixed<0x7920> fixed_20;
+                    fixed_20.start_account_id = list_first;
+                    fixed_20.end_account_id = list_last;
+                    send_fpacket<0x7920, 10>(login_session, fixed_20);
                     bytes_to_read = 1;
                 }
-                RFIFOSKIP(s, RFIFOW(s, 2));
                 break;
+            }
 
             case 0x7931:       // Answer of login-server about an account creation
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId accid = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x7931> fixed;
+                rv = recv_fpacket<0x7931, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId accid = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!accid)
                 {
                     PRINTF("Account [%s] creation failed. Same account already exists.\n"_fmt,
@@ -2116,16 +2126,18 @@ void parse_fromlogin(Session *s)
                             name, accid);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x7933:       // Answer of login-server about an account deletion
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId accid = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x7933> fixed;
+                rv = recv_fpacket<0x7933, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId accid = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!accid)
                 {
                     PRINTF("Account [%s] deletion failed. Account doesn't exist.\n"_fmt,
@@ -2141,16 +2153,18 @@ void parse_fromlogin(Session *s)
                             name, accid);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x7935:       // answer of the change of an account password
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId accid = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x7935> fixed;
+                rv = recv_fpacket<0x7935, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId accid = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!accid)
                 {
                     PRINTF("Account [%s] password changing failed.\n"_fmt,
@@ -2168,17 +2182,19 @@ void parse_fromlogin(Session *s)
                             name, accid);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x7937:       // answer of the change of an account state
-                if (RFIFOREST(s) < 34)
-                    return;
             {
-                AccountId accid = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                int state = RFIFOL(s, 30);
+                Packet_Fixed<0x7937> fixed;
+                rv = recv_fpacket<0x7937, 34>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId accid = fixed.account_id;
+                AccountName name = fixed.account_name;
+                int state = fixed.status;
                 if (!accid)
                 {
                     PRINTF("Account [%s] state changing failed. Account doesn't exist.\n"_fmt,
@@ -2234,18 +2250,21 @@ void parse_fromlogin(Session *s)
                     LADMIN_LOG("%s\n"_fmt, tmpstr_);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 34);
                 break;
+            }
 
             case 0x7939:       // answer of the number of online players
-                if (RFIFOREST(s) < 4 || RFIFOREST(s) < RFIFOW(s, 2))
-                    return;
+            {
+                std::vector<Packet_Repeat<0x7939>> repeat;
+                rv = recv_packet_repeatonly<0x7939, 4, 32>(s, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
                     // Get length of the received packet
                     LADMIN_LOG("  Receiving of the number of online players.\n"_fmt);
                     // Read information of the servers
-                    if (RFIFOW(s, 2) < 5)
+                    if (repeat.empty())
                     {
                         PRINTF("  No server is connected to the login-server.\n"_fmt);
                     }
@@ -2253,24 +2272,31 @@ void parse_fromlogin(Session *s)
                     {
                         PRINTF("  Number of online players (server: number).\n"_fmt);
                         // Displaying of result
-                        for (int i = 4; i < RFIFOW(s, 2); i += 32)
+                        for (const Packet_Repeat<0x7939>& info : repeat)
                         {
-                            ServerName name = stringish<ServerName>(RFIFO_STRING<20>(s, i + 6));
+                            // info.ip
+                            // info.port
+                            ServerName name = info.name;
                             PRINTF("    %-20s : %5d\n"_fmt, name,
-                                    RFIFOW(s, i + 26));
+                                    info.users);
+                            // info.maintenance
+                            // info.is_new
                         }
                     }
                 }
                 bytes_to_read = 0;
-                RFIFOSKIP(s, RFIFOW(s, 2));
                 break;
+            }
 
             case 0x793b:       // answer of the check of a password
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x793b> fixed;
+                rv = recv_fpacket<0x793b, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("The account [%s] doesn't exist or the password is incorrect.\n"_fmt,
@@ -2286,16 +2312,18 @@ void parse_fromlogin(Session *s)
                             name, account_id);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x793d:       // answer of the change of an account sex
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x793d> fixed;
+                rv = recv_fpacket<0x793d, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("Account [%s] sex changing failed.\n"_fmt,
@@ -2313,16 +2341,18 @@ void parse_fromlogin(Session *s)
                             name, account_id);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x793f:       // answer of the change of an account GM level
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x793f> fixed;
+                rv = recv_fpacket<0x793f, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("Account [%s] GM level changing failed.\n"_fmt,
@@ -2341,16 +2371,18 @@ void parse_fromlogin(Session *s)
                             name, account_id);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x7941:       // answer of the change of an account email
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x7941> fixed;
+                rv = recv_fpacket<0x7941, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("Account [%s] e-mail changing failed.\n"_fmt,
@@ -2368,16 +2400,18 @@ void parse_fromlogin(Session *s)
                             name, account_id);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x7943:       // answer of the change of an account memo
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x7943> fixed;
+                rv = recv_fpacket<0x7943, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("Account [%s] memo changing failed. Account doesn't exist.\n"_fmt,
@@ -2393,16 +2427,18 @@ void parse_fromlogin(Session *s)
                             name, account_id);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x7945:       // answer of an account id search
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x7945> fixed;
+                rv = recv_fpacket<0x7945, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("Unable to find the account [%s] id. Account doesn't exist.\n"_fmt,
@@ -2418,16 +2454,18 @@ void parse_fromlogin(Session *s)
                             name, account_id);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x7947:       // answer of an account name search
-                if (RFIFOREST(s) < 30)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x7947> fixed;
+                rv = recv_fpacket<0x7947, 30>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!name)
                 {
                     PRINTF("Unable to find the account [%d] name. Account doesn't exist.\n"_fmt,
@@ -2443,17 +2481,19 @@ void parse_fromlogin(Session *s)
                             account_id, name);
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 30);
                 break;
+            }
 
             case 0x7949:       // answer of an account validity limit set
-                if (RFIFOREST(s) < 34)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
-                if (RFIFOL(s, 2) == -1)
+                Packet_Fixed<0x7949> fixed;
+                rv = recv_fpacket<0x7949, 34>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
+                if (!account_id)
                 {
                     PRINTF("Account [%s] validity limit changing failed. Account doesn't exist.\n"_fmt,
                             name);
@@ -2462,7 +2502,7 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    TimeT timestamp = static_cast<time_t>(RFIFOL(s, 30));
+                    TimeT timestamp = fixed.valid_until;
                     if (!timestamp)
                     {
                         PRINTF("Validity Limit of the account [%s][id: %d] successfully changed to [unlimited].\n"_fmt,
@@ -2482,16 +2522,18 @@ void parse_fromlogin(Session *s)
                     }
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 34);
                 break;
+            }
 
             case 0x794b:       // answer of an account ban set
-                if (RFIFOREST(s) < 34)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x794b> fixed;
+                rv = recv_fpacket<0x794b, 34>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("Account [%s] final date of banishment changing failed. Account doesn't exist.\n"_fmt,
@@ -2501,7 +2543,7 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    TimeT timestamp = static_cast<time_t>(RFIFOL(s, 30));
+                    TimeT timestamp = fixed.ban_until;
                     if (!timestamp)
                     {
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n"_fmt,
@@ -2514,23 +2556,25 @@ void parse_fromlogin(Session *s)
                         timestamp_seconds_buffer tmpstr;
                         stamp_time(tmpstr, &timestamp);
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n"_fmt,
-                                name, RFIFOL(s, 2), tmpstr);
+                                name, account_id, tmpstr);
                         LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n"_fmt,
-                                name, RFIFOL(s, 2),
+                                name, account_id,
                                 tmpstr);
                     }
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 34);
                 break;
+            }
 
             case 0x794d:       // answer of an account ban date/time changing
-                if (RFIFOREST(s) < 34)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x794d> fixed;
+                rv = recv_fpacket<0x794d, 34>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("Account [%s] final date of banishment changing failed. Account doesn't exist.\n"_fmt,
@@ -2540,7 +2584,7 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    TimeT timestamp = static_cast<time_t>(RFIFOL(s, 30));
+                    TimeT timestamp = fixed.ban_until;
                     if (!timestamp)
                     {
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n"_fmt,
@@ -2561,14 +2605,17 @@ void parse_fromlogin(Session *s)
                     }
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 34);
                 break;
+            }
 
             case 0x794f:       // answer of a broadcast
-                if (RFIFOREST(s) < 4)
-                    return;
-                if (RFIFOW(s, 2) == static_cast<uint16_t>(-1))
+            {
+                Packet_Fixed<0x794f> fixed;
+                rv = recv_fpacket<0x794f, 4>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (fixed.error == static_cast<uint16_t>(-1))
                 {
                     PRINTF("Message sending failed. No online char-server.\n"_fmt);
                     LADMIN_LOG("Message sending failed. No online char-server.\n"_fmt);
@@ -2579,15 +2626,18 @@ void parse_fromlogin(Session *s)
                     LADMIN_LOG("Message successfully sended to login-server.\n"_fmt);
                 }
                 bytes_to_read = 0;
-                RFIFOSKIP(s, 4);
                 break;
+            }
 
             case 0x7951:       // answer of an account validity limit changing
-                if (RFIFOREST(s) < 34)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-                AccountName name = stringish<AccountName>(RFIFO_STRING<24>(s, 6));
+                Packet_Fixed<0x7951> fixed;
+                rv = recv_fpacket<0x7951, 34>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                AccountName name = fixed.account_name;
                 if (!account_id)
                 {
                     PRINTF("Account [%s] validity limit changing failed. Account doesn't exist.\n"_fmt,
@@ -2597,7 +2647,7 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    TimeT timestamp = static_cast<time_t>(RFIFOL(s, 30));
+                    TimeT timestamp = fixed.valid_until;
                     if (!timestamp)
                     {
                         PRINTF("Validity limit of the account [%s][id: %d] unchanged.\n"_fmt,
@@ -2620,29 +2670,32 @@ void parse_fromlogin(Session *s)
                     }
                 }
                 bytes_to_read = 0;
-            }
-                RFIFOSKIP(s, 34);
                 break;
+            }
 
             case 0x7953:       // answer of a request about informations of an account (by account name/id)
-                if (RFIFOREST(s) < 150
-                    || RFIFOREST(s) < (150 + RFIFOW(s, 148)))
-                    return;
+            {
+                Packet_Head<0x7953> head;
+                AString repeat;
+                rv = recv_vpacket<0x7953, 150, 1>(s, head, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
+                    AccountId account_id = head.account_id;
                     // TODO fix size (there's a lot of other stuff wrong with this packet too
-                    GmLevel gm = GmLevel::from(static_cast<uint32_t>(RFIFOB(s, 6)));
-                    AccountName userid = stringish<AccountName>(RFIFO_STRING<24>(s, 7));
-                    SEX sex = static_cast<SEX>(RFIFOB(s, 31));
-                    int connections = RFIFOL(s, 32);
-                    int state = RFIFOL(s, 36);
-                    timestamp_seconds_buffer error_message = stringish<timestamp_seconds_buffer>(RFIFO_STRING<20>(s, 40));
-                    timestamp_milliseconds_buffer lastlogin = stringish<timestamp_milliseconds_buffer>(RFIFO_STRING<24>(s, 60));
-                    VString<15> last_ip_ = RFIFO_STRING<16>(s, 84);
-                    AccountEmail email = stringish<AccountEmail>(RFIFO_STRING<40>(s, 100));
-                    TimeT connect_until_time = static_cast<time_t>(RFIFOL(s, 140));
-                    TimeT ban_until_time = static_cast<time_t>(RFIFOL(s, 144));
-                    AString memo = RFIFO_STRING(s, 150, RFIFOW(s, 148));
+                    GmLevel gm = head.gm_level;
+                    AccountName userid = head.account_name;
+                    SEX sex = head.sex;
+                    int connections = head.login_count;
+                    int state = head.state;
+                    timestamp_seconds_buffer error_message = head.error_message;
+                    timestamp_milliseconds_buffer lastlogin = head.last_login_string;
+                    VString<15> last_ip_ = head.ip_string;
+                    AccountEmail email = head.email;
+                    TimeT connect_until_time = head.connect_until;
+                    TimeT ban_until_time = head.ban_until;
+                    AString& memo = repeat;
                     if (!account_id)
                     {
                         PRINTF("Unabled to find the account [%s]. Account doesn't exist.\n"_fmt,
@@ -2749,19 +2802,25 @@ void parse_fromlogin(Session *s)
                     }
                 }
                 bytes_to_read = 0;
-                RFIFOSKIP(s, 150 + RFIFOW(s, 148));
                 break;
+            }
 
             default:
+            {
                 PRINTF("Remote administration has been disconnected (unknown packet).\n"_fmt);
                 LADMIN_LOG("'End of connection, unknown packet.\n"_fmt);
                 s->set_eof();
                 return;
+            }
         }
     }
 
+    // The following was almost certainly wrong and only worked because
+    // localhost is a fast enough network to never split byte 1 vs byte 2
+
     // if we don't wait new packets, do the prompt
-    prompt();
+    if (bytes_to_read == 0)
+        prompt();
 }
 
 //------------------------------------
@@ -2779,10 +2838,10 @@ int Connect_login_server(void)
         return 0;
 
     {
-        WFIFOW(login_session, 0) = 0x7918;  // Request for administation login
-        WFIFOW(login_session, 2) = 0;   // no encrypted
-        WFIFO_STRING(login_session, 4, admin_pass, 24);
-        WFIFOSET(login_session, 28);
+        Packet_Fixed<0x7918> fixed_18;
+        fixed_18.encryption_zero = 0;
+        fixed_18.account_pass = admin_pass;
+        send_fpacket<0x7918, 28>(login_session, fixed_18);
         bytes_to_read = 1;
 
         Iprintf("Sending of the password...\n"_fmt);
