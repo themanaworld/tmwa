@@ -598,7 +598,7 @@ void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
 
                 default:
                     FPRINTF(stderr,
-                             "Error: Trying to compute area of NE/SE/NW/SW-facing bar"_fmt);
+                            "Error: Trying to compute area of NE/SE/NW/SW-facing bar"_fmt);
                     *x = tx;
                     *y = ty;
                     *width = *height = 1;
@@ -1581,8 +1581,8 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         if (!ty_key)
         {
             FPRINTF(stderr,
-                     "[magic-eval]:  L%d:%d: Too many arguments (%zu) to %s `%s'\n"_fmt,
-                     line, column, args.size(), opname, funname);
+                    "[magic-eval]:  L%d:%d: Too many arguments (%zu) to %s `%s'\n"_fmt,
+                    line, column, args.size(), opname, funname);
             return 1;
         }
 
@@ -1595,8 +1595,8 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         if (ty == TYPE::UNDEF)
         {
             FPRINTF(stderr,
-                     "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' undefined\n"_fmt,
-                     line, column, i + 1, opname, funname);
+                    "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' undefined\n"_fmt,
+                    line, column, i + 1, opname, funname);
             return 1;
         }
 
@@ -1627,9 +1627,9 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         {                       /* Coercion failed? */
             if (ty != TYPE::FAIL)
                 FPRINTF(stderr,
-                         "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' of incorrect type (%d)\n"_fmt,
-                         line, column, i + 1, opname, funname,
-                         ty);
+                        "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' of incorrect type (%d)\n"_fmt,
+                        line, column, i + 1, opname, funname,
+                        ty);
             return 1;
         }
     }
@@ -1721,8 +1721,8 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
             else
             {
                 FPRINTF(stderr,
-                         "[magic] Attempt to access field %s on non-spell\n"_fmt,
-                         env->base_env->varv[id].name);
+                        "[magic] Attempt to access field %s on non-spell\n"_fmt,
+                        env->base_env->varv[id].name);
                 dest->ty = TYPE::FAIL;
             }
             break;
@@ -1730,8 +1730,8 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
 
         default:
             FPRINTF(stderr,
-                     "[magic] INTERNAL ERROR: Unknown expression type %d\n"_fmt,
-                     expr->ty);
+                    "[magic] INTERNAL ERROR: Unknown expression type %d\n"_fmt,
+                    expr->ty);
             break;
     }
 }

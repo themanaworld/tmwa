@@ -425,7 +425,7 @@ void chrif_changeemail(AccountId id, AccountEmail actual_email,
 {
     if (battle_config.etc_log)
         PRINTF("chrif_changeemail: account: %d, actual_email: '%s', new_email: '%s'.\n"_fmt,
-             id, actual_email, new_email);
+                id, actual_email, new_email);
 
     WFIFOW(char_session, 0) = 0x2b0c;
     WFIFOL(char_session, 2) = unwrap<AccountId>(id);

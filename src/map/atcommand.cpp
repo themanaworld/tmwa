@@ -2154,7 +2154,7 @@ ATCE atcommand_character_stats(Session *s, dumb_ptr<map_session_data>,
         AString output;
         output = STRPRINTF("'%s' stats:"_fmt, pl_sd->status_key.name);
         clif_displaymessage(s, output);
-        output = STRPRINTF("Base Level - %d"_fmt, pl_sd->status.base_level),
+        output = STRPRINTF("Base Level - %d"_fmt, pl_sd->status.base_level);
         clif_displaymessage(s, output);
         output = STRPRINTF("Job - Novice/Human (level %d)"_fmt, pl_sd->status.job_level);
         clif_displaymessage(s, output);
@@ -2220,14 +2220,14 @@ ATCE atcommand_character_stats_all(Session *s, dumb_ptr<map_session_data>,
                     pl_sd->status.sp, pl_sd->status.max_sp);
             clif_displaymessage(s, output);
             output = STRPRINTF("STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d | Zeny: %d %s"_fmt,
-                     pl_sd->status.attrs[ATTR::STR],
-                     pl_sd->status.attrs[ATTR::AGI],
-                     pl_sd->status.attrs[ATTR::VIT],
-                     pl_sd->status.attrs[ATTR::INT],
-                     pl_sd->status.attrs[ATTR::DEX],
-                     pl_sd->status.attrs[ATTR::LUK],
-                     pl_sd->status.zeny,
-                     gmlevel);
+                    pl_sd->status.attrs[ATTR::STR],
+                    pl_sd->status.attrs[ATTR::AGI],
+                    pl_sd->status.attrs[ATTR::VIT],
+                    pl_sd->status.attrs[ATTR::INT],
+                    pl_sd->status.attrs[ATTR::DEX],
+                    pl_sd->status.attrs[ATTR::LUK],
+                    pl_sd->status.zeny,
+                    gmlevel);
             clif_displaymessage(s, output);
             clif_displaymessage(s, "--------"_s);
             count++;
@@ -3478,26 +3478,26 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
     clif_displaymessage(s, output);
     clif_displaymessage(s, "------ Map Flags ------"_s);
     output = STRPRINTF("Player vs Player: %s | No Party: %s"_fmt,
-             (m_id->flag.get(MapFlag::PVP)) ? "True"_s : "False"_s,
-             (m_id->flag.get(MapFlag::PVP_NOPARTY)) ? "True"_s : "False"_s);
+            (m_id->flag.get(MapFlag::PVP)) ? "True"_s : "False"_s,
+            (m_id->flag.get(MapFlag::PVP_NOPARTY)) ? "True"_s : "False"_s);
     clif_displaymessage(s, output);
     output = STRPRINTF("No Penalty: %s"_fmt,
-             (m_id->flag.get(MapFlag::NOPENALTY)) ? "True"_s : "False"_s);
+            (m_id->flag.get(MapFlag::NOPENALTY)) ? "True"_s : "False"_s);
     clif_displaymessage(s, output);
     output = STRPRINTF("No Return: %s"_fmt,
-             (m_id->flag.get(MapFlag::NORETURN)) ? "True"_s : "False"_s);
+            (m_id->flag.get(MapFlag::NORETURN)) ? "True"_s : "False"_s);
     clif_displaymessage(s, output);
     output = STRPRINTF("No Save: %s"_fmt,
-             (m_id->flag.get(MapFlag::NOSAVE)) ? "True"_s : "False"_s);
+            (m_id->flag.get(MapFlag::NOSAVE)) ? "True"_s : "False"_s);
     clif_displaymessage(s, output);
     output = STRPRINTF("Re Save: %s"_fmt,
-             (m_id->flag.get(MapFlag::RESAVE)) ? "True"_s : "False"_s);
+            (m_id->flag.get(MapFlag::RESAVE)) ? "True"_s : "False"_s);
     clif_displaymessage(s, output);
     output = STRPRINTF("No Teleport: %s"_fmt,
-             (m_id->flag.get(MapFlag::NOTELEPORT)) ? "True"_s : "False"_s);
+            (m_id->flag.get(MapFlag::NOTELEPORT)) ? "True"_s : "False"_s);
     clif_displaymessage(s, output);
     output = STRPRINTF("No Monster Teleport: %s"_fmt,
-             (m_id->flag.get(MapFlag::MONSTER_NOTELEPORT)) ? "True"_s : "False"_s);
+            (m_id->flag.get(MapFlag::MONSTER_NOTELEPORT)) ? "True"_s : "False"_s);
     clif_displaymessage(s, output);
 
     switch (list)
@@ -3925,10 +3925,10 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                     AString output;
                     if (true)
                         output = STRPRINTF("%d %s (%s, id: %d) %s"_fmt,
-                                 pl_sd->status.inventory[i].amount,
-                                 item_data->name, item_data->jname,
-                                 pl_sd->status.inventory[i].nameid,
-                                 AString(equipstr));
+                                pl_sd->status.inventory[i].amount,
+                                item_data->name, item_data->jname,
+                                pl_sd->status.inventory[i].nameid,
+                                AString(equipstr));
                     clif_displaymessage(s, output);
 
                     // snip cards
@@ -3999,9 +3999,9 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                         AString output;
                         if (true)
                             output = STRPRINTF("%d %s (%s, id: %d)"_fmt,
-                                     stor->storage_[i].amount,
-                                     item_data->name, item_data->jname,
-                                     stor->storage_[i].nameid);
+                                    stor->storage_[i].amount,
+                                    item_data->name, item_data->jname,
+                                    stor->storage_[i].nameid);
                         clif_displaymessage(s, output);
                     }
                 }

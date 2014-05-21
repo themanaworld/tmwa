@@ -35,7 +35,7 @@ void skill_pool_register(SkillID id)
     if (skill_pool_skills_size + 1 >= MAX_POOL_SKILLS)
     {
         FPRINTF(stderr,
-                 "Too many pool skills! Increase MAX_POOL_SKILLS and recompile."_fmt);
+                "Too many pool skills! Increase MAX_POOL_SKILLS and recompile."_fmt);
         return;
     }
 

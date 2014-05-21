@@ -511,7 +511,7 @@ int mmo_char_init(void)
         PRINTF("Characters file not found: %s.\n"_fmt, char_txt);
         CHAR_LOG("Characters file not found: %s.\n"_fmt, char_txt);
         CHAR_LOG("Id for the next created character: %d.\n"_fmt,
-                  char_id_count);
+                char_id_count);
         return 0;
     }
 
@@ -630,7 +630,7 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     if (!name.to__actual().is_print())
     {
         CHAR_LOG("Make new char error (control char received in the name): (connection #%d, account: %d).\n"_fmt,
-             s, sd->account_id);
+                s, sd->account_id);
         return nullptr;
     }
 
@@ -638,7 +638,7 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     if (name.to__actual() != name.to__actual().strip())
     {
         CHAR_LOG("Make new char error (leading/trailing whitespace): (connection #%d, account: %d, name: '%s'.\n"_fmt,
-               s, sd->account_id, name);
+                s, sd->account_id, name);
         return nullptr;
     }
 
@@ -646,7 +646,7 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     if (name.to__actual().size() < 4)
     {
         CHAR_LOG("Make new char error (character name too small): (connection #%d, account: %d, name: '%s').\n"_fmt,
-             s, sd->account_id, name);
+                s, sd->account_id, name);
         return nullptr;
     }
 
@@ -681,10 +681,10 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
         hair_color >= 12)
     {
         CHAR_LOG("Make new char error (invalid values): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n"_fmt,
-             s, sd->account_id, slot, name,
-             stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-             stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
-             hair_style, hair_color);
+                s, sd->account_id, slot, name,
+                stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
+                stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                hair_style, hair_color);
         return nullptr;
     }
 
@@ -694,10 +694,10 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
         if (stats[i] < 1 || stats[i] > 9)
         {
             CHAR_LOG("Make new char error (invalid stat value: not between 1 to 9): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n"_fmt,
-                 s, sd->account_id, slot, name,
-                 stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-                 stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
-                 hair_style, hair_color);
+                    s, sd->account_id, slot, name,
+                    stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
+                    stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                    hair_style, hair_color);
             return nullptr;
         }
     }
@@ -707,20 +707,20 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
         if (cd.key.name == name)
         {
             CHAR_LOG("Make new char error (name already exists): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n"_fmt,
-                 s, sd->account_id, slot, name, cd.key.name,
-                 stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-                 stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
-                 hair_style, hair_color);
+                    s, sd->account_id, slot, name, cd.key.name,
+                    stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
+                    stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                    hair_style, hair_color);
             return nullptr;
         }
         if (cd.key.account_id == sd->account_id
             && cd.key.char_num == slot)
         {
             CHAR_LOG("Make new char error (slot already used): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n"_fmt,
-                 s, sd->account_id, slot, name, cd.key.name,
-                 stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-                 stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
-                 hair_style, hair_color);
+                    s, sd->account_id, slot, name, cd.key.name,
+                    stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
+                    stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                    hair_style, hair_color);
             return nullptr;
         }
     }
@@ -728,20 +728,20 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     if (wisp_server_name == name)
     {
         CHAR_LOG("Make new char error (name used is wisp name for server): (connection #%d, account: %d) slot %d, name: %s (actual name whisper server: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n"_fmt,
-             s, sd->account_id, slot, name, wisp_server_name,
-             stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-             stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
-             hair_style, hair_color);
+                s, sd->account_id, slot, name, wisp_server_name,
+                stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
+                stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                hair_style, hair_color);
         return nullptr;
     }
 
     IP4Address ip = s->client_ip;
 
     CHAR_LOG("Creation of New Character: (connection #%d, account: %d) slot %d, character Name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d. [%s]\n"_fmt,
-         s, sd->account_id, slot, name,
-         stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-         stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
-         hair_style, hair_color, ip);
+            s, sd->account_id, slot, name,
+            stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
+            stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+            hair_style, hair_color, ip);
 
     CharPair cp;
     CharKey& ck = cp.key;
@@ -812,11 +812,11 @@ void create_online_files(void)
             FPRINTF(fp2, "  <META http-equiv=\"Refresh\" content=\"%d\">\n"_fmt, online_refresh_html); // update on client explorer every x seconds
             FPRINTF(fp2, "  <HEAD>\n"_fmt);
             FPRINTF(fp2, "    <TITLE>Online Players on %s</TITLE>\n"_fmt,
-                     server_name);
+                    server_name);
             FPRINTF(fp2, "  </HEAD>\n"_fmt);
             FPRINTF(fp2, "  <BODY>\n"_fmt);
             FPRINTF(fp2, "    <H3>Online Players on %s (%s):</H3>\n"_fmt,
-                     server_name, timetemp);
+                    server_name, timetemp);
             FPRINTF(fp, "Online Players on %s (%s):\n"_fmt, server_name, timetemp);
             FPRINTF(fp, "\n"_fmt);
 
@@ -1421,8 +1421,8 @@ void parse_tologin(Session *ls)
 #undef FIX
                     if (changes)
                         CHAR_LOG("itemfrob(%d -> %d):  `%s'(%d, account %d): changed %d times\n"_fmt,
-                             source_id, dest_id, k->name, k->char_id,
-                             k->account_id, changes);
+                                source_id, dest_id, k->name, k->char_id,
+                                k->account_id, changes);
 
                 }
 
@@ -1514,9 +1514,9 @@ void parse_tologin(Session *ls)
                         gm_accounts.push_back({wrap<AccountId>(RFIFOL(ls, i)), GmLevel::from(static_cast<uint32_t>(RFIFOB(ls, i + 4)))});
                     }
                     PRINTF("From login-server: receiving of %zu GM accounts information.\n"_fmt,
-                         gm_accounts.size());
+                            gm_accounts.size());
                     CHAR_LOG("From login-server: receiving of %zu GM accounts information.\n"_fmt,
-                         gm_accounts.size());
+                            gm_accounts.size());
                     create_online_files(); // update online players files (perhaps some online players change of GM level)
                     // send new gm acccounts level to map-servers
                     RFIFO_BUF_CLONE(ls, buf, len);
@@ -1576,9 +1576,9 @@ void map_anti_freeze_system(TimerData *, tick_t)
             if (server_freezeflag[i]-- < 1)
             {                   // Map-server anti-freeze system. Counter. 5 ok, 4...0 freezed
                 PRINTF("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n"_fmt,
-                     i);
+                        i);
                 CHAR_LOG("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n"_fmt,
-                     i);
+                        i);
                 server_session[i]->set_eof();
             }
         }
@@ -1627,11 +1627,11 @@ void parse_frommap(Session *ms)
                 }
                 {
                     PRINTF("Map-Server %d connected: %d maps, from IP %s port %d.\n"_fmt,
-                         id, j, server[id].ip, server[id].port);
+                            id, j, server[id].ip, server[id].port);
                     PRINTF("Map-server %d loading complete.\n"_fmt, id);
                     CHAR_LOG("Map-Server %d connected: %d maps, from IP %s port %d. Map-server %d loading complete.\n"_fmt,
-                         id, j, server[id].ip,
-                         server[id].port, id);
+                            id, j, server[id].ip,
+                            server[id].port, id);
                 }
                 WFIFOW(ms, 0) = 0x2afb;
                 WFIFOB(ms, 2) = 0;
@@ -1643,7 +1643,7 @@ void parse_frommap(Session *ms)
                     {
                         PRINTF("WARNING: Map-Server %d have NO map.\n"_fmt, id);
                         CHAR_LOG("WARNING: Map-Server %d have NO map.\n"_fmt,
-                                  id);
+                                id);
                         // Transmitting maps information to the other map-servers
                     }
                     else
@@ -1724,8 +1724,8 @@ void parse_frommap(Session *ms)
                         cd->sex = afi.sex;
                         WFIFOW(ms, 16) = afi.packet_tmw_version;
                         FPRINTF(stderr,
-                                 "From queue index %zd: recalling packet version %d\n"_fmt,
-                                 (&afi - &auth_fifo.front()), afi.packet_tmw_version);
+                                "From queue index %zd: recalling packet version %d\n"_fmt,
+                                (&afi - &auth_fifo.front()), afi.packet_tmw_version);
                         WFIFO_STRUCT(ms, 18, *ck);
                         WFIFO_STRUCT(ms, 18 + sizeof(*ck), *cd);
                         WFIFOSET(ms, WFIFOW(ms, 2));
@@ -2083,7 +2083,7 @@ void parse_frommap(Session *ms)
             }
                 // inter server処理でもない場合は切断
                 PRINTF("char: unknown packet 0x%04x (%zu bytes to read in buffer)! (from map).\n"_fmt,
-                     RFIFOW(ms, 0), RFIFOREST(ms));
+                        RFIFOW(ms, 0), RFIFOREST(ms));
                 ms->set_eof();
                 return;
         }
@@ -2140,8 +2140,8 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             CharData *cd = cp->data.get();
 
             CHAR_LOG("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]\n"_fmt,
-                 sd->account_id, rfifob_2,
-                 ck->name, ip);
+                    sd->account_id, rfifob_2,
+                    ck->name, ip);
             // searching map server
             int i = search_mapserver(cd->last_point.map_);
             // if map is not found, we check major cities
@@ -2157,7 +2157,7 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
                         i = j;
                         cd->last_point.map_ = server[j].maps[0];
                         PRINTF("Map-server #%d found with a map: '%s'.\n"_fmt,
-                             j, server[j].maps[0]);
+                                j, server[j].maps[0]);
                         // coordonates are unknown
                         break;
                     }
@@ -2174,8 +2174,8 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             WFIFOL(s, 2) = unwrap<CharId>(ck->char_id);
             WFIFO_STRING(s, 6, cd->last_point.map_, 16);
             PRINTF("Character selection '%s' (account: %d, slot: %d) [%s]\n"_fmt,
-                 ck->name,
-                 sd->account_id, ck->char_num, ip);
+                    ck->name,
+                    sd->account_id, ck->char_num, ip);
             PRINTF("--Send IP of map-server. "_fmt);
             if (lan_ip_check(ip))
                 WFIFOIP(s, 22) = lan_map_ip;
@@ -2955,10 +2955,10 @@ int do_init(Slice<ZString> argv)
     }
 
     CHAR_LOG("The char-server is ready (Server is listening on the port %d).\n"_fmt,
-              char_port);
+            char_port);
 
     PRINTF("The char-server is " SGR_BOLD SGR_GREEN "ready" SGR_RESET " (Server is listening on the port %d).\n\n"_fmt,
-         char_port);
+            char_port);
 
     return 0;
 }

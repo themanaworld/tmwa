@@ -188,7 +188,7 @@ dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
 
         default:
             FPRINTF(stderr, "Unexpected spellarg type %d\n"_fmt,
-                     spell->spellarg_ty);
+                    spell->spellarg_ty);
     }
 
     set_env_entity(VAR_CASTER, caster);
@@ -519,8 +519,8 @@ void spell_bind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocat
         {
             int *i = NULL;
             FPRINTF(stderr,
-                     "[magic] INTERNAL ERROR: Attempt to re-bind spell invocation `%s'\n"_fmt,
-                     invocation->spell->name);
+                    "[magic] INTERNAL ERROR: Attempt to re-bind spell invocation `%s'\n"_fmt,
+                    invocation->spell->name);
             *i = 1;
             return;
         }

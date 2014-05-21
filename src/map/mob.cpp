@@ -1720,7 +1720,7 @@ int mob_randomwalk(dumb_ptr<mob_data> md, tick_t tick)
                 {
                     if (battle_config.error_log == 1)
                         PRINTF("MOB cant move. random spawn %d, mob_class = %d\n"_fmt,
-                             md->bl_id, md->mob_class);
+                                md->bl_id, md->mob_class);
                     md->move_fail_count = 0;
                     mob_spawn(md->bl_id);
                 }
@@ -2425,9 +2425,9 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             if (master_bl && master_bl->bl_type == BL::PC)
             {
                 MAP_LOG_PC(master_bl->is_player(),
-                            "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d"_fmt,
-                            md2->bl_id, md2->mob_class, md->bl_id, md->mob_class,
-                            damage);
+                        "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d"_fmt,
+                        md2->bl_id, md2->mob_class, md->bl_id, md->mob_class,
+                        damage);
             }
 
             nullpo_ret(md2);
@@ -3220,8 +3220,8 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
 
     if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d, mob_class = %d\n"_fmt,
-             skill_x, skill_y, skill_id, skill_lv,
-             static_cast<uint32_t>(casttime.count()), md->mob_class);
+                skill_x, skill_y, skill_id, skill_lv,
+                static_cast<uint32_t>(casttime.count()), md->mob_class);
 
     if (casttime <= interval_t::zero())
         // A skill without a cast time wont be cancelled.

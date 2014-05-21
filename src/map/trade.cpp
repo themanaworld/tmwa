@@ -349,8 +349,8 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
     if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
     {
         MAP_LOG_PC(sd, " TRADECOMMIT WITH %d GIVE %d GET %d"_fmt,
-                    target_sd->status_key.char_id, sd->deal_zeny,
-                    target_sd->deal_zeny);
+                target_sd->status_key.char_id, sd->deal_zeny,
+                target_sd->deal_zeny);
         if ((sd->deal_locked >= 1) && (target_sd->deal_locked >= 1))
         {                       // both have pressed 'ok'
             if (sd->deal_locked < 2)

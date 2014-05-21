@@ -351,7 +351,7 @@ int op_instaheal(dumb_ptr<env_t> env, Slice<val_t> args)
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
         dumb_ptr<map_session_data> subject_pc = subject->is_player();
         MAP_LOG_PC(caster_pc, "SPELLHEAL-INSTA PC%d FOR %d"_fmt,
-                    subject_pc->status_key.char_id, ARGINT(1));
+                subject_pc->status_key.char_id, ARGINT(1));
     }
 
     battle_heal(caster, subject, ARGINT(1), ARGINT(2), 0);
@@ -825,8 +825,8 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
             dumb_ptr<mob_data> mob = target->is_mob();
 
             MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
-                        mob->bl_id, mob->mob_class, damage_caused,
-                        get_invocation_name(env));
+                    mob->bl_id, mob->mob_class, damage_caused,
+                    get_invocation_name(env));
         }
     }
     battle_damage(caster, target, damage_caused, mp_damage);
@@ -1004,8 +1004,8 @@ void spell_effect_report_termination(BlockId invocation_id, BlockId bl_id,
         dumb_ptr<block_list> entity = map_id2bl(bl_id);
         if (entity->bl_type == BL::PC)
             FPRINTF(stderr,
-                     "[magic] INTERNAL ERROR: spell-effect-report-termination:  tried to terminate on unexpected bl %d, sc %d\n"_fmt,
-                     bl_id, sc_id);
+                    "[magic] INTERNAL ERROR: spell-effect-report-termination:  tried to terminate on unexpected bl %d, sc %d\n"_fmt,
+                    bl_id, sc_id);
         return;
     }
 
@@ -1089,8 +1089,8 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
 
             default:
                 FPRINTF(stderr,
-                         "[magic] INTERNAL ERROR: While executing spell `%s':  stack corruption\n"_fmt,
-                         invocation_->spell->name);
+                        "[magic] INTERNAL ERROR: While executing spell `%s':  stack corruption\n"_fmt,
+                        invocation_->spell->name);
                 return NULL;
         }
     }
@@ -1105,8 +1105,8 @@ cont_activation_record_t *add_stack_entry(dumb_ptr<invocation> invocation_,
     if (invocation_->stack_size >= MAX_STACK_SIZE)
     {
         FPRINTF(stderr,
-                 "[magic] Execution stack size exceeded in spell `%s'; truncating effect\n"_fmt,
-                 invocation_->spell->name);
+                "[magic] Execution stack size exceeded in spell `%s'; truncating effect\n"_fmt,
+                invocation_->spell->name);
         invocation_->stack_size--;
         return NULL;
     }
@@ -1221,8 +1221,8 @@ dumb_ptr<effect_t> run_foreach(dumb_ptr<invocation> invocation,
     {
         magic_clear_var(&area);
         FPRINTF(stderr,
-                 "[magic] Error in spell `%s':  FOREACH loop over non-area\n"_fmt,
-                 invocation->spell->name);
+                "[magic] Error in spell `%s':  FOREACH loop over non-area\n"_fmt,
+                invocation->spell->name);
         return return_location;
     }
     else
@@ -1271,8 +1271,8 @@ dumb_ptr<effect_t> run_for (dumb_ptr<invocation> invocation,
         magic_clear_var(&start);
         magic_clear_var(&stop);
         FPRINTF(stderr,
-                 "[magic] Error in spell `%s':  FOR loop start or stop point is not an integer\n"_fmt,
-                 invocation->spell->name);
+                "[magic] Error in spell `%s':  FOR loop start or stop point is not an integer\n"_fmt,
+                invocation->spell->name);
         return return_location;
     }
 
@@ -1396,7 +1396,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
 #ifdef DEBUG
     FPRINTF(stderr, "Resuming execution:  invocation of `%s'\n"_fmt,
-             invocation_->spell->name);
+            invocation_->spell->name);
     print_cfg(1, invocation_->current_effect);
 #endif
     while (invocation_->current_effect)
@@ -1535,8 +1535,8 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
             default:
                 FPRINTF(stderr,
-                         "[magic] INTERNAL ERROR: Unknown effect %d\n"_fmt,
-                         e->ty);
+                        "[magic] INTERNAL ERROR: Unknown effect %d\n"_fmt,
+                        e->ty);
         }
 
         if (!next)

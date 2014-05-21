@@ -2040,7 +2040,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 
             wd.damage -= reduction;
             MAP_LOG_PC(target->is_player(),
-                        "MAGIC-ABSORB-DMG %d"_fmt, reduction);
+                    "MAGIC-ABSORB-DMG %d"_fmt, reduction);
         }
 
         {
@@ -2065,26 +2065,26 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                 weapon = sd->inventory_data[weapon_index]->nameid;
 
             MAP_LOG("PC%d %s:%d,%d WPNDMG %s%d %d FOR %d WPN %d"_fmt,
-                     sd->status_key.char_id, src->bl_m->name_, src->bl_x, src->bl_y,
-                     (target->bl_type == BL::PC) ? "PC"_s : "MOB"_s,
-                     (target->bl_type == BL::PC)
-                     ? unwrap<CharId>(target->is_player()->status_key.char_id)
-                     : unwrap<BlockId>(target->bl_id),
-                     battle_get_class(target),
-                     wd.damage + wd.damage2, weapon);
+                    sd->status_key.char_id, src->bl_m->name_, src->bl_x, src->bl_y,
+                    (target->bl_type == BL::PC) ? "PC"_s : "MOB"_s,
+                    (target->bl_type == BL::PC)
+                    ? unwrap<CharId>(target->is_player()->status_key.char_id)
+                    : unwrap<BlockId>(target->bl_id),
+                    battle_get_class(target),
+                    wd.damage + wd.damage2, weapon);
         }
 
         if (target->bl_type == BL::PC)
         {
             dumb_ptr<map_session_data> sd2 = target->is_player();
             MAP_LOG("PC%d %s:%d,%d WPNINJURY %s%d %d FOR %d"_fmt,
-                     sd2->status_key.char_id, target->bl_m->name_, target->bl_x, target->bl_y,
-                     (src->bl_type == BL::PC) ? "PC"_s : "MOB"_s,
-                     (src->bl_type == BL::PC)
-                     ? unwrap<CharId>(src->is_player()->status_key.char_id)
-                     : unwrap<BlockId>(src->bl_id),
-                     battle_get_class(src),
-                     wd.damage + wd.damage2);
+                    sd2->status_key.char_id, target->bl_m->name_, target->bl_x, target->bl_y,
+                    (src->bl_type == BL::PC) ? "PC"_s : "MOB"_s,
+                    (src->bl_type == BL::PC)
+                    ? unwrap<CharId>(src->is_player()->status_key.char_id)
+                    : unwrap<BlockId>(src->bl_id),
+                    battle_get_class(src),
+                    wd.damage + wd.damage2);
         }
 
         battle_damage(src, target, (wd.damage + wd.damage2), 0);

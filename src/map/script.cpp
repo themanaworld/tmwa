@@ -1888,7 +1888,7 @@ void builtin_getelementofarray(ScriptState *st)
         if (i > 255 || i < 0)
         {
             PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n"_fmt,
-                 i);
+                    i);
             push_int(st->stack, ByteCode::INT, 0);
         }
         else

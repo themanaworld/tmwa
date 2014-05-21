@@ -778,7 +778,7 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
     if (pc_isGM(sd))
     {
         PRINTF("Connection accepted: character '%s' (account: %d; GM level %d).\n"_fmt,
-             sd->status_key.name, sd->status_key.account_id, pc_isGM(sd));
+                sd->status_key.name, sd->status_key.account_id, pc_isGM(sd));
         clif_updatestatus(sd, SP::GM);
     }
     else
@@ -3405,8 +3405,8 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         if (src->bl_type == BL::PC)
         {
             MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d"_fmt,
-                        src->is_player()->status_key.char_id,
-                        damage);
+                    src->is_player()->status_key.char_id,
+                    damage);
         }
         else
         {
@@ -4313,7 +4313,7 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, VarName reg, int val)
     }
     if (battle_config.error_log)
         PRINTF("pc_setaccountreg2 : couldn't set %s (ACCOUNT_REG2_NUM = %zu)\n"_fmt,
-             reg, ACCOUNT_REG2_NUM);
+                reg, ACCOUNT_REG2_NUM);
 
     return 1;
 }

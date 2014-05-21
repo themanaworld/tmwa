@@ -3392,7 +3392,7 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
         clif_authfail_fd(s, 2);   // same id
         clif_authfail_fd(old_sd->sess, 2);   // same id
         PRINTF("clif_parse_WantToConnection: Double connection for account %d (sessions: #%d (new) and #%d (old)).\n"_fmt,
-             account_id, s, old_sd->sess);
+                account_id, s, old_sd->sess);
     }
     else
     {
@@ -5465,7 +5465,7 @@ void clif_parse(Session *s)
                                 now, sd->bl_id);
 
                     FPRINTF(fp,
-                             "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F"_fmt);
+                            "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F"_fmt);
                     for (i = 0; i < packet_len; i++)
                     {
                         if ((i & 15) == 0)

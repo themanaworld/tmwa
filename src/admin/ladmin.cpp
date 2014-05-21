@@ -623,7 +623,7 @@ void display_help(ZString param)
     {
         if (command)
             PRINTF("Unknown command [%s] for help. Displaying of all commands.\n"_fmt,
-                 AString(command));
+                    AString(command));
         PRINTF(" help/?                          -- Display this help\n"_fmt);
         PRINTF(" help/? [command]                -- Display the help of the command\n"_fmt);
         PRINTF(" add <account_name> <sex> <password>  -- Create an account with default email\n"_fmt);
@@ -848,7 +848,7 @@ void bansetaccountsub(AccountName name, XString date, XString time_)
              && day > 30) || (month == 1 && day > 29))
         {
             PRINTF("Please give a correct value for a day of this month (%d).\n"_fmt,
-                 month);
+                    month);
             LADMIN_LOG("Invalid day for this month ('banset' or 'ban' command).\n"_fmt);
             return;
         }
@@ -1243,7 +1243,7 @@ void listaccount(ZString param, int type)
     }
 
     LADMIN_LOG("Request to login-server to obtain the list of accounts from %d to %d.\n"_fmt,
-          list_first, list_last);
+            list_first, list_last);
 
     Packet_Fixed<0x7920> fixed_20;
     fixed_20.start_account_id = list_first;
@@ -1306,7 +1306,7 @@ void changememo(ZString param)
         PRINTF("Memo is too long (%zu characters).\n"_fmt, len);
         PRINTF("Please input a memo of 254 bytes at the maximum.\n"_fmt);
         LADMIN_LOG("Email is too long (%zu characters). Please input a memo of 254 bytes at the maximum.\n"_fmt,
-              len);
+                len);
         return;
     }
 
@@ -1674,7 +1674,7 @@ void timesetaccount(ZString param)
              && day > 30) ||(month == 1 && day > 29))
         {
             PRINTF("Please give a correct value for a day of this month (%d).\n"_fmt,
-                 month);
+                    month);
             LADMIN_LOG("Invalid day for this month ('timeset' command).\n"_fmt);
             return;
         }
@@ -2092,7 +2092,7 @@ void parse_fromlogin(Session *s)
                     }
                     // asking of the following acounts
                     LADMIN_LOG("Request to login-server to obtain the list of accounts from %d to %d (complement).\n"_fmt,
-                          list_first, list_last);
+                            list_first, list_last);
                     Packet_Fixed<0x7920> fixed_20;
                     fixed_20.start_account_id = list_first;
                     fixed_20.end_account_id = list_last;
@@ -2756,7 +2756,7 @@ void parse_fromlogin(Session *s)
                                 break;
                             case 7:
                                 PRINTF(" Statut: 7 [You are Prohibited to log in until %s]\n"_fmt,
-                                     error_message);
+                                        error_message);
                                 break;
                             case 8:
                                 PRINTF(" Statut: 8 [Server is jammed due to over populated]\n"_fmt);

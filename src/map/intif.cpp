@@ -282,9 +282,9 @@ int intif_parse_WisMessage(Session *s)
     if (battle_config.etc_log)
     {
         PRINTF("intif_parse_wismessage: id: %d, from: %s, to: %s\n"_fmt,
-             RFIFOL(s, 4),
-             from,
-             to);
+                RFIFOL(s, 4),
+                from,
+                to);
     }
     sd = map_nick2sd(to); // Searching destination player
     if (sd != NULL && sd->status_key.name == to)
@@ -389,14 +389,14 @@ int intif_parse_LoadStorage(Session *s)
     {                           // Already open.. lets ignore this update
         if (battle_config.error_log)
             PRINTF("intif_parse_LoadStorage: storage received for a client already open (User %d:%d)\n"_fmt,
-                 sd->status_key.account_id, sd->status_key.char_id);
+                    sd->status_key.account_id, sd->status_key.char_id);
         return 1;
     }
     if (stor->dirty)
     {                           // Already have storage, and it has been modified and not saved yet! Exploit! [Skotlex]
         if (battle_config.error_log)
             PRINTF("intif_parse_LoadStorage: received storage for an already modified non-saved storage! (User %d:%d)\n"_fmt,
-                 sd->status_key.account_id, sd->status_key.char_id);
+                    sd->status_key.account_id, sd->status_key.char_id);
         return 1;
     }
 

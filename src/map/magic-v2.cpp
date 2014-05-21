@@ -74,8 +74,8 @@ namespace magic_v2
         if (zid != id)
         {
             FPRINTF(stderr,
-                "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n"_fmt,
-                name, zid, id);
+                    "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n"_fmt,
+                    name, zid, id);
         }
         return zid == id;
     }
@@ -278,7 +278,7 @@ namespace magic_v2
         if (op->signature.size() != argv.size())
         {
             span.error(STRPRINTF("Incorrect number of arguments to operation '%s': Expected %zu, found %zu"_fmt,
-                    name, op->signature.size(), argv.size()));
+                        name, op->signature.size(), argv.size()));
             return false;
         }
 
@@ -314,7 +314,7 @@ namespace magic_v2
         if (fun->signature.size() != argv.size())
         {
             span.error(STRPRINTF("Incorrect number of arguments to function '%s': Expected %zu, found %zu"_fmt,
-                    name, fun->signature.size(), argv.size()));
+                        name, fun->signature.size(), argv.size()));
             return false;
         }
         expr = magic_new_expr(EXPR::FUNAPP);
