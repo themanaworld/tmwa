@@ -2491,7 +2491,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     {
         struct DmgLogParty
         {
-            struct party *p;
+            PartyPair p;
             int base_exp, job_exp;
         };
         std::vector<DmgLogParty> ptv;
@@ -2532,7 +2532,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
             int base_exp, job_exp, flag = 1;
             double per;
-            struct party *p;
+            PartyPair p;
 
             // [Fate] The above is the old formula.  We do a more involved computation below.
             // [o11c] Look in git history for old code, you idiot!
@@ -2578,13 +2578,13 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 std::vector<DmgLogParty>::iterator it = std::find_if(ptv.begin(), ptv.end(),
                         [pid](const DmgLogParty& dlp)
                         {
-                            return dlp.p->party_id == pid;
+                            return dlp.p.party_id == pid;
                         }
                 );
                 if (it == ptv.end())
                 {
                     p = party_search(pid);
-                    if (p != NULL && p->exp != 0)
+                    if (p && p->exp != 0)
                     {
                         DmgLogParty pn {};
                         pn.p = p;

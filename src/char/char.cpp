@@ -54,9 +54,15 @@
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
+#include "../net/packets.hpp"
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
-#include "../net/vomit.hpp"
+
+#include "../proto2/any-user.hpp"
+#include "../proto2/login-admin.hpp"
+#include "../proto2/login-char.hpp"
+#include "../proto2/char-map.hpp"
+#include "../proto2/char-user.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
@@ -193,6 +199,14 @@ TimeT update_online;           // to update online files when we receiving infor
 
 static
 pid_t pid = 0;                  // For forked DB writes
+
+
+auto iter_map_sessions() -> decltype(filter_iterator<Session *>(std::declval<Array<Session *, MAX_MAP_SERVERS> *>()))
+{
+    return filter_iterator<Session *>(&server_session);
+}
+
+
 
 static
 void create_online_files(void);
@@ -621,7 +635,7 @@ void mmo_char_sync_timer(TimerData *, tick_t)
 // Function to create a new character
 //-----------------------------------
 static
-CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], uint8_t slot, uint16_t hair_color, uint16_t hair_style)
+CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t slot, uint16_t hair_color, uint16_t hair_style)
 {
     // ugh
     char_session_data *sd = static_cast<char_session_data *>(s->session_data.get());
@@ -674,16 +688,17 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
             }
     }                           // else, all letters/symbols are authorised (except control char removed before)
 
+    // TODO this comment is obsolete
     // this is why it needs to be unsigned
-    if (stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5] != 5 * 6 ||   // stats
+    if (stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk != 5 * 6 ||   // stats
         slot >= 9 ||
         hair_style >= 20 ||
         hair_color >= 12)
     {
         CHAR_LOG("Make new char error (invalid values): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n"_fmt,
                 s, sd->account_id, slot, name,
-                stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-                stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
+                stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                 hair_style, hair_color);
         return nullptr;
     }
@@ -691,12 +706,13 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     // check individual stat value
     for (int i = 0; i < 6; i++)
     {
-        if (stats[i] < 1 || stats[i] > 9)
+        uint8_t statsi = reinterpret_cast<const uint8_t *>(&stats)[i];
+        if (statsi < 1 || statsi > 9)
         {
             CHAR_LOG("Make new char error (invalid stat value: not between 1 to 9): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n"_fmt,
                     s, sd->account_id, slot, name,
-                    stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-                    stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                    stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
+                    stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                     hair_style, hair_color);
             return nullptr;
         }
@@ -708,8 +724,8 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
         {
             CHAR_LOG("Make new char error (name already exists): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n"_fmt,
                     s, sd->account_id, slot, name, cd.key.name,
-                    stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-                    stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                    stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
+                    stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                     hair_style, hair_color);
             return nullptr;
         }
@@ -718,8 +734,8 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
         {
             CHAR_LOG("Make new char error (slot already used): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n"_fmt,
                     s, sd->account_id, slot, name, cd.key.name,
-                    stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-                    stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                    stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
+                    stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                     hair_style, hair_color);
             return nullptr;
         }
@@ -729,8 +745,8 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     {
         CHAR_LOG("Make new char error (name used is wisp name for server): (connection #%d, account: %d) slot %d, name: %s (actual name whisper server: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n"_fmt,
                 s, sd->account_id, slot, name, wisp_server_name,
-                stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-                stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+                stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
+                stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                 hair_style, hair_color);
         return nullptr;
     }
@@ -739,8 +755,8 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
 
     CHAR_LOG("Creation of New Character: (connection #%d, account: %d) slot %d, character Name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d. [%s]\n"_fmt,
             s, sd->account_id, slot, name,
-            stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
-            stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
+            stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
+            stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
             hair_style, hair_color, ip);
 
     CharPair cp;
@@ -757,12 +773,12 @@ CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], ui
     cd.base_exp = 0;
     cd.job_exp = 0;
     cd.zeny = 0;
-    cd.attrs[ATTR::STR] = stats[0];
-    cd.attrs[ATTR::AGI] = stats[1];
-    cd.attrs[ATTR::VIT] = stats[2];
-    cd.attrs[ATTR::INT] = stats[3];
-    cd.attrs[ATTR::DEX] = stats[4];
-    cd.attrs[ATTR::LUK] = stats[5];
+    cd.attrs[ATTR::STR] = stats.str;
+    cd.attrs[ATTR::AGI] = stats.agi;
+    cd.attrs[ATTR::VIT] = stats.vit;
+    cd.attrs[ATTR::INT] = stats.int_;
+    cd.attrs[ATTR::DEX] = stats.dex;
+    cd.attrs[ATTR::LUK] = stats.luk;
     cd.max_hp = 40 * (100 + cd.attrs[ATTR::VIT]) / 100;
     cd.max_sp = 11 * (100 + cd.attrs[ATTR::INT]) / 100;
     cd.hp = cd.max_hp;
@@ -963,66 +979,69 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
         }
     }
 
-    const int offset = 24;
-    WFIFO_ZERO(s, 0, offset + found_num * 106);
-    WFIFOW(s, 0) = 0x6b;
-    WFIFOW(s, 2) = offset + found_num * 106;
+    Packet_Head<0x006b> head_6b;
+    std::vector<Packet_Repeat<0x006b>> repeat_6b;
+
+    head_6b.unused = {};
 
     for (int i = 0; i < found_num; i++)
     {
         const CharPair *cp = found_char[i];
-        int j = offset + (i * 106);
 
         const CharKey *k = &cp->key;
         const CharData *p = cp->data.get();
 
-        WFIFOL(s, j) = unwrap<CharId>(k->char_id);
-        WFIFOL(s, j + 4) = p->base_exp;
-        WFIFOL(s, j + 8) = p->zeny;
-        WFIFOL(s, j + 12) = p->job_exp;
-        WFIFOL(s, j + 16) = p->job_level;
+        Packet_Repeat<0x006b> info;
+        CharSelect& sel = info.char_select;
 
-        WFIFOW(s, j + 20) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::SHOES));
-        WFIFOW(s, j + 22) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::GLOVES));
-        WFIFOW(s, j + 24) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::CAPE));
-        WFIFOW(s, j + 26) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::MISC1));
-        WFIFOL(s, j + 28) = static_cast<uint16_t>(p->option);
+        sel.char_id = k->char_id;
+        sel.base_exp = p->base_exp;
+        sel.zeny = p->zeny;
+        sel.job_exp = p->job_exp;
+        sel.job_level = p->job_level;
 
-        WFIFOL(s, j + 32) = p->karma;
-        WFIFOL(s, j + 36) = p->manner;
+        sel.shoes = find_equip_view(cp, EPOS::SHOES);
+        sel.gloves = find_equip_view(cp, EPOS::GLOVES);
+        sel.cape = find_equip_view(cp, EPOS::CAPE);
+        sel.misc1 = find_equip_view(cp, EPOS::MISC1);
+        sel.option = p->option;
 
-        WFIFOW(s, j + 40) = p->status_point;
-        WFIFOW(s, j + 42) = std::min(p->hp, 0x7fff);
-        WFIFOW(s, j + 44) = std::min(p->max_hp, 0x7fff);
-        WFIFOW(s, j + 46) = std::min(p->sp, 0x7fff);
-        WFIFOW(s, j + 48) = std::min(p->max_sp, 0x7fff);
-        WFIFOW(s, j + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // p->speed;
-        WFIFOW(s, j + 52) = unwrap<Species>(p->species);
-        WFIFOW(s, j + 54) = p->hair;
-//      WFIFOW(s,j+56) = p->weapon; // dont send weapon since TMW does not support it
-        WFIFOW(s, j + 56) = 0;
-        WFIFOW(s, j + 58) = p->base_level;
-        WFIFOW(s, j + 60) = p->skill_point;
-        WFIFOW(s, j + 62) = unwrap<ItemNameId>(p->head_bottom);
-        WFIFOW(s, j + 64) = unwrap<ItemNameId>(p->shield);
-        WFIFOW(s, j + 66) = unwrap<ItemNameId>(p->head_top);
-        WFIFOW(s, j + 68) = unwrap<ItemNameId>(p->head_mid);
-        WFIFOW(s, j + 70) = p->hair_color;
-        WFIFOW(s, j + 72) = unwrap<ItemNameId>(find_equip_view(cp, EPOS::MISC2));
-//      WFIFOW(s,j+72) = p->clothes_color;
+        sel.karma = p->karma;
+        sel.manner = p->manner;
 
-        WFIFO_STRING(s, j + 74, k->name.to__actual(), 24);
+        sel.status_point = p->status_point;
+        sel.hp = std::min(p->hp, 0x7fff);
+        sel.max_hp = std::min(p->max_hp, 0x7fff);
+        sel.sp = std::min(p->sp, 0x7fff);
+        sel.max_sp = std::min(p->max_sp, 0x7fff);
+        sel.speed = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // p->speed;
+        sel.species = p->species;
+        sel.hair_style = p->hair;
+        sel.weapon = 0; // p->weapon; // dont send weapon since TMW does not support it
+        sel.base_level = p->base_level;
+        sel.skill_point = p->skill_point;
+        sel.head_bottom = p->head_bottom;
+        sel.shield = p->shield;
+        sel.head_top = p->head_top;
+        sel.head_mid = p->head_mid;
+        sel.hair_color = p->hair_color;
+        sel.misc2 = find_equip_view(cp, EPOS::MISC2); // = p->clothes_color;
 
-        WFIFOB(s, j + 98) = saturate<uint8_t>(p->attrs[ATTR::STR]);
-        WFIFOB(s, j + 99) = saturate<uint8_t>(p->attrs[ATTR::AGI]);
-        WFIFOB(s, j + 100) = saturate<uint8_t>(p->attrs[ATTR::VIT]);
-        WFIFOB(s, j + 101) = saturate<uint8_t>(p->attrs[ATTR::INT]);
-        WFIFOB(s, j + 102) = saturate<uint8_t>(p->attrs[ATTR::DEX]);
-        WFIFOB(s, j + 103) = saturate<uint8_t>(p->attrs[ATTR::LUK]);
-        WFIFOB(s, j + 104) = k->char_num;
+        sel.char_name = k->name;
+
+        sel.stats.str = saturate<uint8_t>(p->attrs[ATTR::STR]);
+        sel.stats.agi = saturate<uint8_t>(p->attrs[ATTR::AGI]);
+        sel.stats.vit = saturate<uint8_t>(p->attrs[ATTR::VIT]);
+        sel.stats.int_ = saturate<uint8_t>(p->attrs[ATTR::INT]);
+        sel.stats.dex = saturate<uint8_t>(p->attrs[ATTR::DEX]);
+        sel.stats.luk = saturate<uint8_t>(p->attrs[ATTR::LUK]);
+        sel.char_num = k->char_num;
+        sel.unused = 0;
+
+        repeat_6b.push_back(info);
     }
 
-    WFIFOSET(s, WFIFOW(s, 2));
+    send_vpacket<0x006b, 24, 106>(s, head_6b, repeat_6b);
 
     return 0;
 }
@@ -1052,8 +1071,6 @@ int set_account_reg2(AccountId acc, Slice<global_reg> reg)
 static
 int char_divorce(CharPair *cp)
 {
-    uint8_t buf[10];
-
     if (cp == NULL)
         return 0;
 
@@ -1062,24 +1079,31 @@ int char_divorce(CharPair *cp)
 
     if (!cs->partner_id)
     {
-        WBUFW(buf, 0) = 0x2b12;
-        WBUFL(buf, 2) = unwrap<CharId>(ck->char_id);
+        Packet_Fixed<0x2b12> fixed_12;
+        fixed_12.char_id = ck->char_id;
         // partner id 0 means failure
-        WBUFL(buf, 6) = unwrap<CharId>(cs->partner_id);
-        mapif_sendall(buf, 10);
+        fixed_12.partner_id = cs->partner_id;
+        for (Session *ss : iter_map_sessions())
+        {
+            send_fpacket<0x2b12, 10>(ss, fixed_12);
+        }
         return 0;
     }
 
-    WBUFW(buf, 0) = 0x2b12;
-    WBUFL(buf, 2) = unwrap<CharId>(ck->char_id);
+    Packet_Fixed<0x2b12> fixed_12;
+    fixed_12.char_id = ck->char_id;
 
     for (CharPair& cd : char_keys)
     {
         if (cd.key.char_id == cs->partner_id
             && cd.data->partner_id == ck->char_id)
         {
-            WBUFL(buf, 6) = unwrap<CharId>(cs->partner_id);
-            mapif_sendall(buf, 10);
+            fixed_12.partner_id = cs->partner_id;
+            for (Session *ss : iter_map_sessions())
+            {
+                send_fpacket<0x2b12, 10>(ss, fixed_12);
+            }
+
             cs->partner_id = CharId();
             cd.data->partner_id = CharId();
             return 0;
@@ -1088,17 +1112,24 @@ int char_divorce(CharPair *cp)
         // Don't worry about this, as the map server should verify itself that the other doesn't have us as a partner, and so won't mess with their marriage
         else if (cd.key.char_id == cs->partner_id)
         {
-            WBUFL(buf, 6) = unwrap<CharId>(cs->partner_id);
-            mapif_sendall(buf, 10);
+            fixed_12.partner_id = cs->partner_id;
+            for (Session *ss : iter_map_sessions())
+            {
+                send_fpacket<0x2b12, 10>(ss, fixed_12);
+            }
+
             cs->partner_id = CharId();
             return 0;
         }
     }
 
     // Our partner wasn't found, so just clear our marriage
-    WBUFL(buf, 6) = unwrap<CharId>(cs->partner_id);
+    fixed_12.partner_id = cs->partner_id;
     cs->partner_id = CharId();
-    mapif_sendall(buf, 10);
+    for (Session *ss : iter_map_sessions())
+    {
+        send_fpacket<0x2b12, 10>(ss, fixed_12);
+    }
 
     return 0;
 }
@@ -1143,10 +1174,12 @@ int char_delete(CharPair *cp)
 
     // Force the character (and all on the same account) to leave all map servers
     {
-        unsigned char buf[6];
-        WBUFW(buf, 0) = 0x2afe;
-        WBUFL(buf, 2) = unwrap<AccountId>(ck->account_id);
-        mapif_sendall(buf, 6);
+        Packet_Fixed<0x2afe> fixed_fe;
+        fixed_fe.account_id = ck->account_id;
+        for (Session *ss : iter_map_sessions())
+        {
+            send_fpacket<0x2afe, 6>(ss, fixed_fe);
+        }
     }
 
     return 0;
@@ -1165,14 +1198,20 @@ void parse_tologin(Session *ls)
 
     char_session_data *sd = static_cast<char_session_data *>(ls->session_data.get());
 
-    while (RFIFOREST(ls) >= 2)
+    RecvResult rv = RecvResult::Complete;
+    uint16_t packet_id;
+    while (rv == RecvResult::Complete && packet_peek_id(ls, &packet_id))
     {
-        switch (RFIFOW(ls, 0))
+        switch (packet_id)
         {
             case 0x2711:
-                if (RFIFOREST(ls) < 3)
-                    return;
-                if (RFIFOB(ls, 2))
+            {
+                Packet_Fixed<0x2711> fixed;
+                rv = recv_fpacket<0x2711, 3>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (fixed.code)
                 {
                     PRINTF("Can not connect to login-server.\n"_fmt);
                     PRINTF("The server communication passwords (default s1/p1) is probably invalid.\n"_fmt);
@@ -1187,62 +1226,72 @@ void parse_tologin(Session *ls)
                     // if no map-server already connected, display a message...
                     int i;
                     for (i = 0; i < MAX_MAP_SERVERS; i++)
+                    {
                         if (server_session[i] && server[i].maps[0])   // if map-server online and at least 1 map
                             break;
+                    }
                     if (i == MAX_MAP_SERVERS)
                         PRINTF("Awaiting maps from map-server.\n"_fmt);
                 }
-                RFIFOSKIP(ls, 3);
                 break;
+            }
 
             case 0x2713:
-                if (RFIFOREST(ls) < 51)
-                    return;
+            {
+                Packet_Fixed<0x2713> fixed;
+                rv = recv_fpacket<0x2713, 51>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 for (io::FD i : iter_fds())
                 {
-                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
+                    AccountId acc = fixed.account_id;
                     Session *s2 = get_session(i);
                     if (!s2)
                         continue;
                     sd = static_cast<char_session_data *>(s2->session_data.get());
                     if (sd && sd->account_id == acc)
                     {
-                        if (RFIFOB(ls, 6) != 0)
+                        if (fixed.invalid != 0)
                         {
-                            WFIFOW(s2, 0) = 0x6c;
-                            WFIFOB(s2, 2) = 0x42;
-                            WFIFOSET(s2, 3);
+                            Packet_Fixed<0x006c> fixed_6c;
+                            fixed_6c.code = 0x42;
+                            send_fpacket<0x006c, 3>(s2, fixed_6c);
                         }
                         else if (max_connect_user == 0
                                  || count_users() < max_connect_user)
                         {
-                            sd->email = stringish<AccountEmail>(RFIFO_STRING<40>(ls, 7));
+                            sd->email = stringish<AccountEmail>(fixed.email);
                             if (!e_mail_check(sd->email))
                                 sd->email = DEFAULT_EMAIL;
-                            sd->connect_until_time = static_cast<time_t>(RFIFOL(ls, 47));
+                            sd->connect_until_time = fixed.connect_until;
                             // send characters to player
                             mmo_char_send006b(s2, sd);
                         }
                         else
                         {
                             // refuse connection: too much online players
-                            WFIFOW(s2, 0) = 0x6c;
-                            WFIFOB(s2, 2) = 0;
-                            WFIFOSET(s2, 3);
+                            Packet_Fixed<0x006c> fixed_6c;
+                            fixed_6c.code = 0;
+                            send_fpacket<0x006c, 3>(s2, fixed_6c);
                         }
                         break;
                     }
                 }
-                RFIFOSKIP(ls, 51);
                 break;
+            }
 
                 // Receiving of an e-mail/time limit from the login-server (answer of a request because a player comes back from map-server to char-server) by [Yor]
             case 0x2717:
-                if (RFIFOREST(ls) < 50)
-                    return;
+            {
+                Packet_Fixed<0x2717> fixed;
+                rv = recv_fpacket<0x2717, 50>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 for (io::FD i : iter_fds())
                 {
-                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
+                    AccountId acc = fixed.account_id;
                     Session *s2 = get_session(i);
                     if (!s2)
                         continue;
@@ -1251,40 +1300,49 @@ void parse_tologin(Session *ls)
                     {
                         if (sd->account_id == acc)
                         {
-                            sd->email = stringish<AccountEmail>(RFIFO_STRING<40>(ls, 6));
+                            sd->email = fixed.email;
                             if (!e_mail_check(sd->email))
                                 sd->email = DEFAULT_EMAIL;
-                            sd->connect_until_time = static_cast<time_t>(RFIFOL(ls, 46));
+                            sd->connect_until_time = fixed.connect_until;
                             break;
                         }
                     }
                 }
-                RFIFOSKIP(ls, 50);
                 break;
+            }
 
             case 0x2721:       // gm reply
-                if (RFIFOREST(ls) < 10)
-                    return;
+            {
+                Packet_Fixed<0x2721> fixed;
+                rv = recv_fpacket<0x2721, 10>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
-                    GmLevel gml = GmLevel::from(RFIFOL(ls, 2));
-                    unsigned char buf[10];
-                    WBUFW(buf, 0) = 0x2b0b;
-                    WBUFL(buf, 2) = unwrap<AccountId>(acc);
-                    WBUFL(buf, 6) = gml.get_all_bits();
-                    mapif_sendall(buf, 10);
+                    AccountId acc = fixed.account_id;
+                    GmLevel gml = fixed.gm_level;
+
+                    Packet_Fixed<0x2b0b> fixed_2b;
+                    fixed_2b.account_id = acc;
+                    fixed_2b.gm_level = gml;
+                    for (Session *ss : iter_map_sessions())
+                    {
+                        send_fpacket<0x2b0b, 10>(ss, fixed_2b);
+                    }
                 }
-                RFIFOSKIP(ls, 10);
                 break;
+            }
 
             case 0x2723:       // changesex reply (modified by [Yor])
-                if (RFIFOREST(ls) < 7)
-                    return;
+            {
+                Packet_Fixed<0x2723> fixed;
+                rv = recv_fpacket<0x2723, 7>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    unsigned char buf[7];
-                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
-                    SEX sex = static_cast<SEX>(RFIFOB(ls, 6));
-                    RFIFOSKIP(ls, 7);
+                    AccountId acc = fixed.account_id;
+                    SEX sex = fixed.sex;
                     if (acc)
                     {
                         for (CharPair& cp : char_keys)
@@ -1312,18 +1370,26 @@ void parse_tologin(Session *ls)
                         // disconnect player if online on char-server
                         disconnect_player(acc);
                     }
-                    WBUFW(buf, 0) = 0x2b0d;
-                    WBUFL(buf, 2) = unwrap<AccountId>(acc);
-                    WBUFB(buf, 6) = static_cast<uint8_t>(sex);
-                    mapif_sendall(buf, 7);
+                    Packet_Fixed<0x2b0d> fixed_0d;
+                    fixed_0d.account_id = acc;
+                    fixed_0d.sex = sex;
+                    for (Session *ss : iter_map_sessions())
+                    {
+                        send_fpacket<0x2b0d, 7>(ss, fixed_0d);
+                    }
                 }
                 break;
+            }
 
             case 0x2726:       // Request to send a broadcast message (no answer)
-                if (RFIFOREST(ls) < 8
-                    || RFIFOREST(ls) < (8 + RFIFOL(ls, 4)))
-                    return;
-                if (RFIFOL(ls, 4) < 1)
+            {
+                Packet_Head<0x2726> head;
+                AString repeat;
+                rv = recv_vpacket<0x2726, 8, 1>(ls, head, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (!repeat)
                     CHAR_LOG("Receiving a message for broadcast, but message is void.\n"_fmt);
                 else
                 {
@@ -1336,8 +1402,7 @@ void parse_tologin(Session *ls)
                         CHAR_LOG("'ladmin': Receiving a message for broadcast, but no map-server is online.\n"_fmt);
                     else
                     {
-                        size_t len = RFIFOL(ls, 4);
-                        AString message = RFIFO_STRING(ls, 8, len).to_print().lstrip();
+                        AString message = repeat.to_print().lstrip();
                         // if message is only composed of spaces
                         if (!message)
                             CHAR_LOG("Receiving a message for broadcast, but message is only a lot of spaces.\n"_fmt);
@@ -1347,62 +1412,81 @@ void parse_tologin(Session *ls)
                             CHAR_LOG("'ladmin': Receiving a message for broadcast (message (in yellow): %s)\n"_fmt,
                                     message);
                             // send broadcast to all map-servers
-                            uint8_t buf[4 + len];
-                            WBUFW(buf, 0) = 0x3800;
-                            WBUFW(buf, 2) = 4 + len;
-                            WBUF_STRING(buf, 4, message, len);
-                            mapif_sendall(buf, WBUFW(buf, 2));
+                            for (Session *ss : iter_map_sessions())
+                            {
+                                send_packet_repeatonly<0x3800, 4, 1>(ss, message);
+                            }
                         }
                     }
                 }
-                RFIFOSKIP(ls, 8 + RFIFOL(ls, 4));
                 break;
+            }
 
                 // account_reg2変更通知
             case 0x2729:
-                if (RFIFOREST(ls) < 4 || RFIFOREST(ls) < RFIFOW(ls, 2))
-                    return;
+            {
+                Packet_Head<0x2729> head;
+                std::vector<Packet_Repeat<0x2729>> repeat;
+                rv = recv_vpacket<0x2729, 8, 36>(ls, head, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
                     Array<struct global_reg, ACCOUNT_REG2_NUM> reg;
-                    int j, p;
-                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 4));
-                    for (p = 8, j = 0;
-                         p < RFIFOW(ls, 2) && j < ACCOUNT_REG2_NUM;
-                         p += 36, j++)
+                    int j = 0;
+                    AccountId acc = head.account_id;
+                    for (const auto& info : repeat)
                     {
-                        reg[j].str = stringish<VarName>(RFIFO_STRING<32>(ls, p));
-                        reg[j].value = RFIFOL(ls, p + 32);
+                        reg[j].str = info.name;
+                        reg[j].value = info.value;
+                        ++j;
+                        if (j == ACCOUNT_REG2_NUM)
+                            break;
                     }
                     set_account_reg2(acc, Slice<struct global_reg>(reg.begin(), j));
 
-                    size_t len = RFIFOW(ls, 2);
-                    uint8_t buf[len];
-                    RFIFO_BUF_CLONE(ls, buf, len);
-                    WBUFW(buf, 0) = 0x2b11;
-                    mapif_sendall(buf, len);
+                    Packet_Head<0x2b11> head_11;
+                    head_11.account_id = head.account_id;
+                    std::vector<Packet_Repeat<0x2b11>> repeat_11(repeat.size());
+                    for (size_t k = 0; k < repeat.size(); ++k)
+                    {
+                        repeat_11[k].name = repeat[k].name;
+                        repeat_11[k].value = repeat[k].value;
+                    }
+                    for (Session *ss : iter_map_sessions())
+                    {
+                        send_vpacket<0x2b11, 8, 36>(ss, head_11, repeat_11);
+                    }
                 }
-                RFIFOSKIP(ls, RFIFOW(ls, 2));
                 break;
+            }
 
             case 0x7924:
             {                   // [Fate] Itemfrob package: forwarded from login-server
-                if (RFIFOREST(ls) < 10)
-                    return;
-                ItemNameId source_id = wrap<ItemNameId>(RFIFOL(ls, 2));
-                ItemNameId dest_id = wrap<ItemNameId>(RFIFOL(ls, 6));
-                unsigned char buf[10];
+                Packet_Fixed<0x7924> fixed;
+                rv = recv_fpacket<0x7924, 10>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
 
-                WBUFW(buf, 0) = 0x2afa;
-                WBUFL(buf, 2) = unwrap<ItemNameId>(source_id);
-                WBUFL(buf, 6) = unwrap<ItemNameId>(dest_id);
+                ItemNameId source_id = fixed.source_item_id;
+                ItemNameId dest_id = fixed.dest_item_id;
 
-                mapif_sendall(buf, 10);    // forward package to map servers
+                Packet_Fixed<0x2afa> fixed_fa;
+                fixed_fa.source_item_id = source_id;
+                fixed_fa.dest_item_id = dest_id;
+
+                // forward package to map servers
+                for (Session *ss : iter_map_sessions())
+                {
+                    send_fpacket<0x2afa, 10>(ss, fixed_fa);
+                }
+
                 for (CharPair& cp : char_keys)
                 {
                     CharKey *k = &cp.key;
                     CharData& cd = *cp.data.get();
                     CharData *c = &cd;
-                    struct storage *s = account2storage(k->account_id);
+                    Storage *s = account2storage(k->account_id);
                     int changes = 0;
                     int j;
 #define FIX(v) if (v == source_id) {v = dest_id; ++changes; }
@@ -1428,16 +1512,18 @@ void parse_tologin(Session *ls)
 
                 mmo_char_sync();
                 inter_storage_save();
-                RFIFOSKIP(ls, 10);
                 break;
             }
 
                 // Account deletion notification (from login-server)
             case 0x2730:
-                if (RFIFOREST(ls) < 6)
-                    return;
             {
-                AccountId aid = wrap<AccountId>(RFIFOL(ls, 2));
+                Packet_Fixed<0x2730> fixed;
+                rv = recv_fpacket<0x2730, 6>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId aid = fixed.account_id;
 
                 // Deletion of all characters of the account
 //#warning "This comment is a lie, but it's still true."
@@ -1468,50 +1554,57 @@ void parse_tologin(Session *ls)
                 inter_storage_delete(aid);
                 // send to all map-servers to disconnect the player
                 {
-                    unsigned char buf[6];
-                    WBUFW(buf, 0) = 0x2b13;
-                    WBUFL(buf, 2) = unwrap<AccountId>(aid);
-                    mapif_sendall(buf, 6);
+                    Packet_Fixed<0x2b13> fixed_13;
+                    fixed_13.account_id = aid;
+                    for (Session *ss : iter_map_sessions())
+                    {
+                        send_fpacket<0x2b13, 6>(ss, fixed_13);
+                    }
                 }
                 // disconnect player if online on char-server
                 disconnect_player(aid);
-            }
-                RFIFOSKIP(ls, 6);
                 break;
+            }
 
                 // State change of account/ban notification (from login-server) by [Yor]
             case 0x2731:
-                if (RFIFOREST(ls) < 11)
-                    return;
             {
-                AccountId aid = wrap<AccountId>(RFIFOL(ls, 2));
+                Packet_Fixed<0x2731> fixed;
+                rv = recv_fpacket<0x2731, 11>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId aid = fixed.account_id;
                 // send to all map-servers to disconnect the player
                 {
-                    unsigned char buf[11];
-                    WBUFW(buf, 0) = 0x2b14;
-                    WBUFL(buf, 2) = unwrap<AccountId>(aid);
-                    WBUFB(buf, 6) = RFIFOB(ls, 6);    // 0: change of statut, 1: ban
-                    WBUFL(buf, 7) = RFIFOL(ls, 7);    // status or final date of a banishment
-                    mapif_sendall(buf, 11);
+                    Packet_Fixed<0x2b14> fixed_14;
+                    fixed_14.account_id = aid;
+                    fixed_14.ban_not_status = fixed.ban_not_status; // 0: change of statut, 1: ban
+                    fixed_14.status_or_ban_until = fixed.status_or_ban_until; // status or final date of a banishment
+                    for (Session *ss : iter_map_sessions())
+                    {
+                        send_fpacket<0x2b14, 11>(ss, fixed_14);
+                    }
                 }
                 // disconnect player if online on char-server
                 disconnect_player(aid);
-            }
-                RFIFOSKIP(ls, 11);
                 break;
+            }
 
                 // Receiving GM acounts info from login-server (by [Yor])
             case 0x2732:
-                if (RFIFOREST(ls) < 4 || RFIFOREST(ls) < RFIFOW(ls, 2))
-                    return;
+            {
+                std::vector<Packet_Repeat<0x2732>> repeat;
+                rv = recv_packet_repeatonly<0x2732, 4, 5>(ls, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    size_t len = RFIFOW(ls, 2);
-                    uint8_t buf[len];
-                    gm_accounts.clear();
-                    gm_accounts.reserve((len - 4) / 5);
-                    for (int i = 4; i < len; i += 5)
+                    gm_accounts.resize(repeat.size());
+                    for (size_t k = 0; k < repeat.size(); ++k)
                     {
-                        gm_accounts.push_back({wrap<AccountId>(RFIFOL(ls, i)), GmLevel::from(static_cast<uint32_t>(RFIFOB(ls, i + 4)))});
+                        gm_accounts[k].account_id = repeat[k].account_id;
+                        gm_accounts[k].level = repeat[k].gm_level;
                     }
                     PRINTF("From login-server: receiving of %zu GM accounts information.\n"_fmt,
                             gm_accounts.size());
@@ -1519,19 +1612,30 @@ void parse_tologin(Session *ls)
                             gm_accounts.size());
                     create_online_files(); // update online players files (perhaps some online players change of GM level)
                     // send new gm acccounts level to map-servers
-                    RFIFO_BUF_CLONE(ls, buf, len);
-                    WBUFW(buf, 0) = 0x2b15;
-                    mapif_sendall(buf, len);
+                    std::vector<Packet_Repeat<0x2b15>> repeat_15(repeat.size());
+                    for (size_t k = 0; k < repeat.size(); ++k)
+                    {
+                        repeat_15[k].account_id = repeat[k].account_id;
+                        repeat_15[k].gm_level = repeat[k].gm_level;
+                    }
+                    for (Session *ss : iter_map_sessions())
+                    {
+                        send_packet_repeatonly<0x2b15, 4, 5>(ss, repeat_15);
+                    }
                 }
-                RFIFOSKIP(ls, RFIFOW(ls, 2));
                 break;
+            }
 
             case 0x2741:       // change password reply
-                if (RFIFOREST(ls) < 7)
-                    return;
+            {
+                Packet_Fixed<0x2741> fixed;
+                rv = recv_fpacket<0x2741, 7>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    AccountId acc = wrap<AccountId>(RFIFOL(ls, 2));
-                    int status = RFIFOB(ls, 6);
+                    AccountId acc = fixed.account_id;
+                    int status = fixed.status;
 
                     for (io::FD i : iter_fds())
                     {
@@ -1543,20 +1647,22 @@ void parse_tologin(Session *ls)
                         {
                             if (sd->account_id == acc)
                             {
-                                WFIFOW(s2, 0) = 0x62;
-                                WFIFOB(s2, 2) = status;
-                                WFIFOSET(s2, 3);
+                                Packet_Fixed<0x0062> fixed_62;
+                                fixed_62.status = status;
+                                send_fpacket<0x0062, 3>(s2, fixed_62);
                                 break;
                             }
                         }
                     }
                 }
-                RFIFOSKIP(ls, 7);
                 break;
+            }
 
             default:
+            {
                 ls->set_eof();
                 return;
+            }
         }
     }
 }
@@ -1598,47 +1704,60 @@ void parse_frommap(Session *ms)
         return;
     }
 
-    while (RFIFOREST(ms) >= 2)
+    RecvResult rv = RecvResult::Complete;
+    uint16_t packet_id;
+    while (rv == RecvResult::Complete && packet_peek_id(ms, &packet_id))
     {
-        switch (RFIFOW(ms, 0))
+        switch (packet_id)
         {
                 // request from map-server to reload GM accounts. Transmission to login-server (by Yor)
             case 0x2af7:
+            {
+                Packet_Fixed<0x2af7> fixed;
+                rv = recv_fpacket<0x2af7, 2>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 if (login_session)
                 {               // don't send request if no login-server
-                    WFIFOW(login_session, 0) = 0x2709;
-                    WFIFOSET(login_session, 2);
+                    Packet_Fixed<0x2709> fixed_09;
+                    send_fpacket<0x2709, 2>(login_session, fixed_09);
                 }
-                RFIFOSKIP(ms, 2);
                 break;
+            }
 
                 // Receiving map names list from the map-server
             case 0x2afa:
-                if (RFIFOREST(ms) < 4 || RFIFOREST(ms) < RFIFOW(ms, 2))
-                    return;
             {
+                std::vector<Packet_Repeat<0x2afa>> repeat;
+                rv = recv_packet_repeatonly<0x2afa, 4, 16>(ms, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 for (MapName &foo : server[id].maps)
                     foo = MapName();
-                int j = 0;
-                for (int i = 4; i < RFIFOW(ms, 2); i += 16)
+
+                for (size_t j = 0; j < repeat.size(); ++j)
                 {
-                    server[id].maps[j] = RFIFO_STRING<16>(ms, i);
-                    j++;
+                    server[id].maps[j] = repeat[j].map_name;
                 }
+                const size_t j = repeat.size();
+
                 {
-                    PRINTF("Map-Server %d connected: %d maps, from IP %s port %d.\n"_fmt,
+                    PRINTF("Map-Server %d connected: %zu maps, from IP %s port %d.\n"_fmt,
                             id, j, server[id].ip, server[id].port);
                     PRINTF("Map-server %d loading complete.\n"_fmt, id);
-                    CHAR_LOG("Map-Server %d connected: %d maps, from IP %s port %d. Map-server %d loading complete.\n"_fmt,
+                    CHAR_LOG("Map-Server %d connected: %zu maps, from IP %s port %d. Map-server %d loading complete.\n"_fmt,
                             id, j, server[id].ip,
                             server[id].port, id);
                 }
-                WFIFOW(ms, 0) = 0x2afb;
-                WFIFOB(ms, 2) = 0;
-                WFIFO_STRING(ms, 3, wisp_server_name.to__actual(), 24);
-                WFIFOSET(ms, 27);
+
+                Packet_Fixed<0x2afb> fixed_fb;
+                fixed_fb.unknown = 0;
+                fixed_fb.whisper_name = wisp_server_name;
+                send_fpacket<0x2afb, 27>(ms, fixed_fb);
+
                 {
-                    unsigned char buf[16384];
                     if (j == 0)
                     {
                         PRINTF("WARNING: Map-Server %d have NO map.\n"_fmt, id);
@@ -1648,49 +1767,62 @@ void parse_frommap(Session *ms)
                     }
                     else
                     {
-                        WBUFW(buf, 0) = 0x2b04;
-                        WBUFW(buf, 2) = j * 16 + 10;
-                        WBUFIP(buf, 4) = server[id].ip;
-                        WBUFW(buf, 8) = server[id].port;
-                        // server[id].maps[i] = RFIFO_STRING(fd, 4 + i * 16)
+                        Packet_Head<0x2b04> head_04;
+                        head_04.ip = server[id].ip;
+                        head_04.port = server[id].port;
+                        std::vector<Packet_Repeat<0x2b04>> repeat_04(j);
                         for (int i = 0; i < j; ++i)
-                            WBUF_STRING(buf, 10, server[id].maps[i], 16);
-                        mapif_sendallwos(ms, buf, WBUFW(buf, 2));
+                        {
+                            repeat_04[i].map_name = server[id].maps[i];
+                        }
+                        for (Session *ss : iter_map_sessions())
+                        {
+                            if (ss == ms)
+                                continue;
+                            send_vpacket<0x2b04, 10, 16>(ss, head_04, repeat_04);
+                        }
                     }
                     // Transmitting the maps of the other map-servers to the new map-server
                     for (int x = 0; x < MAX_MAP_SERVERS; x++)
                     {
                         if (server_session[x] && x != id)
                         {
-                            WFIFOW(ms, 0) = 0x2b04;
-                            WFIFOIP(ms, 4) = server[x].ip;
-                            WFIFOW(ms, 8) = server[x].port;
-                            j = 0;
+                            Packet_Head<0x2b04> head_04;
+                            head_04.ip = server[x].ip;
+                            head_04.port = server[x].port;
+                            std::vector<Packet_Repeat<0x2b04>> repeat_04;
                             for (int i = 0; i < MAX_MAP_PER_SERVER; i++)
-                                if (server[x].maps[i])
-                                    WFIFO_STRING(ms, 10 + (j++) * 16, server[x].maps[i], 16);
-                            if (j > 0)
                             {
-                                WFIFOW(ms, 2) = j * 16 + 10;
-                                WFIFOSET(ms, WFIFOW(ms, 2));
+                                if (server[x].maps[i])
+                                {
+                                    Packet_Repeat<0x2b04> info;
+                                    info.map_name = server[x].maps[i];
+                                    repeat_04.push_back(info);
+                                }
+                            }
+                            if (repeat.size())
+                            {
+                                send_vpacket<0x2b04, 10, 16>(ms, head_04, repeat_04);
                             }
                         }
                     }
                 }
-            }
-                RFIFOSKIP(ms, RFIFOW(ms, 2));
                 break;
+            }
 
                 // 認証要求
             case 0x2afc:
-                if (RFIFOREST(ms) < 22)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(ms, 2));
-                CharId char_id = wrap<CharId>(RFIFOL(ms, 6));
-                int login_id1 = RFIFOL(ms, 10);
-                int login_id2 = RFIFOL(ms, 14);
-                IP4Address ip = RFIFOIP(ms, 18);
+                Packet_Fixed<0x2afc> fixed;
+                rv = recv_fpacket<0x2afc, 22>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                CharId char_id = fixed.char_id;
+                int login_id1 = fixed.login_id1;
+                int login_id2 = fixed.login_id2;
+                IP4Address ip = fixed.ip;
                 for (AuthFifoEntry& afi : auth_fifo)
                 {
                     if (afi.account_id == account_id &&
@@ -1716,39 +1848,43 @@ void parse_frommap(Session *ms)
                         CharData *cd = cp->data.get();
 
                         afi.delflag = 1;
-                        WFIFOW(ms, 0) = 0x2afd;
-                        WFIFOW(ms, 2) = 18 + sizeof(*ck) + sizeof(*cd);
-                        WFIFOL(ms, 4) = unwrap<AccountId>(account_id);
-                        WFIFOL(ms, 8) = afi.login_id2;
-                        WFIFOL(ms, 12) = static_cast<time_t>(afi.connect_until_time);
+                        Packet_Payload<0x2afd> payload_fd; // not file descriptor
+                        payload_fd.account_id = account_id;
+                        payload_fd.login_id2 = afi.login_id2;
+                        payload_fd.connect_until = afi.connect_until_time;
                         cd->sex = afi.sex;
-                        WFIFOW(ms, 16) = afi.packet_tmw_version;
+                        payload_fd.packet_tmw_version = afi.packet_tmw_version;
                         FPRINTF(stderr,
                                 "From queue index %zd: recalling packet version %d\n"_fmt,
                                 (&afi - &auth_fifo.front()), afi.packet_tmw_version);
-                        WFIFO_STRUCT(ms, 18, *ck);
-                        WFIFO_STRUCT(ms, 18 + sizeof(*ck), *cd);
-                        WFIFOSET(ms, WFIFOW(ms, 2));
+                        payload_fd.char_key = *ck;
+                        payload_fd.char_data = *cd;
+                        send_ppacket<0x2afd>(ms, payload_fd);
                         goto x2afc_out;
                     }
                 }
                 {
-                    WFIFOW(ms, 0) = 0x2afe;
-                    WFIFOL(ms, 2) = unwrap<AccountId>(account_id);
-                    WFIFOSET(ms, 6);
+                    Packet_Fixed<0x2afe> fixed_fe;
+                    fixed_fe.account_id = account_id;
+                    send_fpacket<0x2afe, 6>(ms, fixed_fe);
                     PRINTF("auth_fifo search error! account %d not authentified.\n"_fmt,
                             account_id);
                 }
-            }
             x2afc_out:
-                RFIFOSKIP(ms, 22);
                 break;
+            }
 
                 // MAPサーバー上のユーザー数受信
             case 0x2aff:
-                if (RFIFOREST(ms) < 6 || RFIFOREST(ms) < RFIFOW(ms, 2))
-                    return;
-                server[id].users = RFIFOW(ms, 4);
+            {
+                Packet_Head<0x2aff> head;
+                std::vector<Packet_Repeat<0x2aff>> repeat;
+                rv = recv_vpacket<0x2aff, 6, 4>(ms, head, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                server[id].users = head.users;
+                assert (head.users == repeat.size());
                 if (anti_freeze_enable)
                     server_freezeflag[id] = 5;  // Map anti-freeze system. Counter. 5 ok, 4...0 freezed
                 // remove all previously online players of the server
@@ -1761,7 +1897,7 @@ void parse_frommap(Session *ms)
                 // add online players in the list by [Yor]
                 for (int i = 0; i < server[id].users; i++)
                 {
-                    CharId char_id = wrap<CharId>(RFIFOL(ms, 6 + i * 4));
+                    CharId char_id = repeat[i].char_id;
                     for (const CharPair& cd : char_keys)
                     {
                         if (cd.key.char_id == char_id)
@@ -1779,313 +1915,370 @@ void parse_frommap(Session *ms)
                     // only every 8 sec. (normally, 1 server send users every 5 sec.) Don't update every time, because that takes time, but only every 2 connection.
                     // it set to 8 sec because is more than 5 (sec) and if we have more than 1 map-server, informations can be received in shifted.
                 }
-                RFIFOSKIP(ms, RFIFOW(ms, 2));
                 break;
+            }
 
                 // キャラデータ保存
             case 0x2b01:
-                if (RFIFOREST(ms) < 4 || RFIFOREST(ms) < RFIFOW(ms, 2))
-                    return;
             {
-                AccountId aid = wrap<AccountId>(RFIFOL(ms, 4));
-                CharId cid = wrap<CharId>(RFIFOL(ms, 8));
+                Packet_Payload<0x2b01> payload;
+                rv = recv_ppacket<0x2b01>(ms, payload);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId aid = payload.account_id;
+                CharId cid = payload.char_id;
                 for (CharPair& cd : char_keys)
                 {
                     if (cd.key.account_id == aid &&
                         cd.key.char_id == cid)
                     {
-                        RFIFO_STRUCT(ms, 12, cd.key);
-                        RFIFO_STRUCT(ms, 12 + sizeof(cd.key), *cd.data);
+                        cd.key = payload.char_key;
+                        *cd.data = payload.char_data;
                         break;
                     }
                 }
-            }
-                RFIFOSKIP(ms, RFIFOW(ms, 2));
                 break;
+            }
 
                 // キャラセレ要求
             case 0x2b02:
-                if (RFIFOREST(ms) < 18)
-                    return;
             {
-                AccountId account_id = wrap<AccountId>(RFIFOL(ms, 2));
+                Packet_Fixed<0x2b02> fixed;
+                rv = recv_fpacket<0x2b02, 18>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
                 if (auth_fifo_iter == auth_fifo.end())
                     auth_fifo_iter = auth_fifo.begin();
                 auth_fifo_iter->account_id = account_id;
                 auth_fifo_iter->char_id = CharId();
-                auth_fifo_iter->login_id1 = RFIFOL(ms, 6);
-                auth_fifo_iter->login_id2 = RFIFOL(ms, 10);
+                auth_fifo_iter->login_id1 = fixed.login_id1;
+                auth_fifo_iter->login_id2 = fixed.login_id2;
                 auth_fifo_iter->delflag = 2;
                 auth_fifo_iter->connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
-                auth_fifo_iter->ip = RFIFOIP(ms, 14);
+                auth_fifo_iter->ip = fixed.ip;
                 auth_fifo_iter++;
-                WFIFOW(ms, 0) = 0x2b03;
-                WFIFOL(ms, 2) = unwrap<AccountId>(account_id);
-                WFIFOB(ms, 6) = 0;
-                WFIFOSET(ms, 7);
-            }
-                RFIFOSKIP(ms, 18);
+
+                Packet_Fixed<0x2b03> fixed_03;
+                fixed_03.account_id = account_id;
+                fixed_03.unknown = 0;
+                send_fpacket<0x2b03, 7>(ms, fixed_03);
                 break;
+            }
 
                 // マップサーバー間移動要求
             case 0x2b05:
-                if (RFIFOREST(ms) < 49)
-                    return;
+            {
+                Packet_Fixed<0x2b05> fixed;
+                rv = recv_fpacket<0x2b05, 49>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 if (auth_fifo_iter == auth_fifo.end())
                     auth_fifo_iter = auth_fifo.begin();
 
-                RFIFO_WFIFO_CLONE(ms, ms, 44);
-                // overwrite
-                WFIFOW(ms, 0) = 0x2b06;
-                auth_fifo_iter->account_id = wrap<AccountId>(RFIFOL(ms, 2));
-                auth_fifo_iter->char_id = wrap<CharId>(RFIFOL(ms, 14));
-                auth_fifo_iter->login_id1 = RFIFOL(ms, 6);
-                auth_fifo_iter->login_id2 = RFIFOL(ms, 10);
+                Packet_Fixed<0x2b06> fixed_06;
+                fixed_06.account_id = fixed.account_id;
+                //fixed_06.error = fixed.login_id1;
+                //fixed_06.unknown = fixed.login_id2;
+                fixed_06.char_id = fixed.char_id;
+                fixed_06.map_name = fixed.map_name;
+                fixed_06.x = fixed.x;
+                fixed_06.y = fixed.y;
+                fixed_06.map_ip = fixed.map_ip;
+                fixed_06.map_port = fixed.map_port;
+
+                auth_fifo_iter->account_id = fixed.account_id;
+                auth_fifo_iter->login_id1 = fixed.login_id1;
+                auth_fifo_iter->login_id2 = fixed.login_id2;
+                auth_fifo_iter->char_id = fixed.char_id;
                 auth_fifo_iter->delflag = 0;
-                auth_fifo_iter->sex = static_cast<SEX>(RFIFOB(ms, 44));
+                auth_fifo_iter->sex = fixed.sex;
                 auth_fifo_iter->connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
-                auth_fifo_iter->ip = RFIFOIP(ms, 45);
+                auth_fifo_iter->ip = fixed.client_ip;
 
                 // default, if not found in the loop
-                WFIFOW(ms, 6) = 1;
+                fixed_06.error = 1;
                 for (const CharPair& cd : char_keys)
                 {
-                    AccountId aid = wrap<AccountId>(RFIFOL(ms, 2));
-                    CharId cid = wrap<CharId>(RFIFOL(ms, 14));
+                    AccountId aid = fixed.account_id;
+                    CharId cid = fixed.char_id;
                     if (cd.key.account_id == aid &&
                         cd.key.char_id == cid)
                     {
                         auth_fifo_iter++;
-                        WFIFOL(ms, 6) = 0;
+                        fixed_06.error = 0;
                         break;
                     }
                 }
-                WFIFOSET(ms, 44);
-                RFIFOSKIP(ms, 49);
+                send_fpacket<0x2b06, 44>(ms, fixed_06);
                 break;
+            }
 
                 // it is a request to become GM
             case 0x2b0a:
-                if (RFIFOREST(ms) < 4 || RFIFOREST(ms) < RFIFOW(ms, 2))
-                    return;
             {
-                int account_id = RFIFOL(ms, 4);
+                Packet_Head<0x2b0a> head;
+                AString repeat;
+                rv = recv_vpacket<0x2b0a, 8, 1>(ms, head, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = head.account_id;
                 if (login_session)
                 {               // don't send request if no login-server
-                    size_t len = RFIFOW(ms, 2);
-                    RFIFO_WFIFO_CLONE(ms, login_session, len);
-                    WFIFOW(login_session, 0) = 0x2720;
-                    WFIFOSET(login_session, len);
+                    Packet_Head<0x2720> head_20;
+                    head_20.account_id = account_id;
+                    AString& repeat_20 = repeat;
+                    send_vpacket<0x2720, 8, 1>(ms, head_20, repeat_20);
                 }
                 else
                 {
-                    WFIFOW(ms, 0) = 0x2b0b;
-                    WFIFOL(ms, 2) = account_id;
-                    WFIFOL(ms, 6) = 0;
-                    WFIFOSET(ms, 10);
+                    Packet_Fixed<0x2b0b> fixed_0b;
+                    fixed_0b.account_id = account_id;
+                    fixed_0b.gm_level = GmLevel();
+                    send_fpacket<0x2b0b, 10>(ms, fixed_0b);
                 }
-            }
-                RFIFOSKIP(ms, RFIFOW(ms, 2));
                 break;
+            }
 
                 // Map server send information to change an email of an account -> login-server
             case 0x2b0c:
-                if (RFIFOREST(ms) < 86)
-                    return;
+            {
+                Packet_Fixed<0x2b0c> fixed;
+                rv = recv_fpacket<0x2b0c, 86>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 if (login_session)
                 {               // don't send request if no login-server
-                    RFIFO_WFIFO_CLONE(ms, login_session, 86); // 0x2722 <account_id>.L <actual_e-mail>.40B <new_e-mail>.40B
-                    WFIFOW(login_session, 0) = 0x2722;
-                    WFIFOSET(login_session, 86);
+                    Packet_Fixed<0x2722> fixed_22;
+                    fixed_22.account_id = fixed.account_id;
+                    fixed_22.old_email = fixed.old_email;
+                    fixed_22.new_email = fixed.new_email;
+                    send_fpacket<0x2722, 86>(login_session, fixed_22);
                 }
-                RFIFOSKIP(ms, 86);
                 break;
+            }
 
                 // Map server ask char-server about a character name to do some operations (all operations are transmitted to login-server)
             case 0x2b0e:
-                if (RFIFOREST(ms) < 44)
-                    return;
+            {
+                Packet_Fixed<0x2b0e> fixed;
+                rv = recv_fpacket<0x2b0e, 44>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    AccountId acc = wrap<AccountId>(RFIFOL(ms, 2));  // account_id of who ask (-1 if nobody)
-                    CharName character_name = stringish<CharName>(RFIFO_STRING<24>(ms, 6));
-                    int operation = RFIFOW(ms, 30);
+                    AccountId acc = fixed.account_id;
+                    CharName character_name = fixed.char_name;
+                    int operation = fixed.operation;
                     // prepare answer
-                    WFIFOW(ms, 0) = 0x2b0f;    // answer
-                    WFIFOL(ms, 2) = unwrap<AccountId>(acc);   // who want do operation
-                    WFIFOW(ms, 30) = operation;  // type of operation: 1-block, 2-ban, 3-unblock, 4-unban, 5-changesex
+                    Packet_Fixed<0x2b0f> fixed_0f;
+                    fixed_0f.account_id = acc;
+                    fixed_0f.operation = operation;
                     // search character
                     const CharPair *cd = search_character(character_name);
+                    // TODO invert the below logic to shrink this code
+                    // Current logic:
+                    // 1. if no character, return error 1
+                    // 2. else if gm level too low, return error 2
+                    // 3. else if login server offline, return error 3
+                    // 4. else return error 0 and maybe do other stuff
                     if (cd)
                     {
                         const CharKey *ck = &cd->key;
-                        WFIFO_STRING(ms, 6, ck->name.to__actual(), 24); // put correct name if found
-                        WFIFOW(ms, 32) = 0;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
-                        switch (RFIFOW(ms, 30))
+                        fixed_0f.char_name = ck->name;
+                        fixed_0f.error = 0;
+                        switch (operation)
                         {
                             case 1:    // block
+                            {
                                 if (!acc
                                     || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
-                                        WFIFOW(login_session, 0) = 0x2724;
-                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
-                                        WFIFOL(login_session, 6) = 5;   // status of the account
-                                        WFIFOSET(login_session, 10);
+                                        Packet_Fixed<0x2724> fixed_24;
+                                        fixed_24.account_id = ck->account_id;
+                                        fixed_24.status = 5;
+                                        send_fpacket<0x2724, 10>(login_session, fixed_24);
                                     }
                                     else
-                                        WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                        fixed_0f.error = 3;
                                 }
                                 else
-                                    WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                    fixed_0f.error = 2;
                                 break;
+                            }
                             case 2:    // ban
+                            {
                                 if (!acc
                                     || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
-                                        WFIFOW(login_session, 0) = 0x2725;
-                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
-                                        HumanTimeDiff ban_change;
-                                        RFIFO_STRUCT(ms, 32, ban_change);
-                                        WFIFO_STRUCT(login_session, 6, ban_change);
-                                        WFIFOSET(login_session, 18);
+                                        Packet_Fixed<0x2725> fixed_25;
+                                        fixed_25.account_id = ck->account_id;
+                                        HumanTimeDiff ban_change = fixed.ban_add;
+                                        fixed_25.ban_add = ban_change;
+                                        send_fpacket<0x2725, 18>(login_session, fixed_25);
                                     }
                                     else
-                                        WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                        fixed_0f.error = 3;
                                 }
                                 else
-                                    WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                    fixed_0f.error = 2;
                                 break;
+                            }
                             case 3:    // unblock
+                            {
                                 if (!acc
                                     || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
-                                        WFIFOW(login_session, 0) = 0x2724;
-                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
-                                        WFIFOL(login_session, 6) = 0;   // status of the account
-                                        WFIFOSET(login_session, 10);
+                                        Packet_Fixed<0x2724> fixed_24;
+                                        fixed_24.account_id = ck->account_id;
+                                        fixed_24.status = 0;
+                                        send_fpacket<0x2724, 10>(login_session, fixed_24);
                                     }
                                     else
-                                        WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                        fixed_0f.error = 3;
                                 }
                                 else
-                                    WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                    fixed_0f.error = 2;
                                 break;
+                            }
                             case 4:    // unban
+                            {
                                 if (!acc
                                     || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
-                                        WFIFOW(login_session, 0) = 0x272a;
-                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
-                                        WFIFOSET(login_session, 6);
+                                        Packet_Fixed<0x272a> fixed_2a;
+                                        fixed_2a.account_id = ck->account_id;
+                                        send_fpacket<0x272a, 6>(login_session, fixed_2a);
                                     }
                                     else
-                                        WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                        fixed_0f.error = 3;
                                 }
                                 else
-                                    WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                    fixed_0f.error = 2;
                                 break;
+                            }
                             case 5:    // changesex
+                            {
                                 if (!acc
                                     || isGM(acc).overwhelms(isGM(ck->account_id)))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
-                                        WFIFOW(login_session, 0) = 0x2727;
-                                        WFIFOL(login_session, 2) = unwrap<AccountId>(ck->account_id);  // account value
-                                        WFIFOSET(login_session, 6);
+                                        Packet_Fixed<0x2727> fixed_27;
+                                        fixed_27.account_id = ck->account_id;
+                                        send_fpacket<0x2727, 6>(login_session, fixed_27);
                                     }
                                     else
-                                        WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                        fixed_0f.error = 3;
                                 }
                                 else
-                                    WFIFOW(ms, 32) = 2;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                                    fixed_0f.error = 2;
                                 break;
+                            }
                         }
                     }
                     else
                     {
                         // character name not found
-                        WFIFO_STRING(ms, 6, character_name.to__actual(), 24);
-                        WFIFOW(ms, 32) = 1;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
+                        fixed_0f.char_name = character_name;
+                        fixed_0f.error = 1;
                     }
                     // send answer if a player ask, not if the server ask
                     if (acc)
                     {
-                        WFIFOSET(ms, 34);
+                        send_fpacket<0x2b0f, 34>(ms, fixed_0f);
                     }
-                    RFIFOSKIP(ms, 44);
                     break;
                 }
-
-//      case 0x2b0f: not more used (available for futur usage)
+            }
 
                 // account_reg保存要求
             case 0x2b10:
-                if (RFIFOREST(ms) < 4 || RFIFOREST(ms) < RFIFOW(ms, 2))
-                    return;
+            {
+                Packet_Head<0x2b10> head;
+                std::vector<Packet_Repeat<0x2b10>> repeat;
+                rv = recv_vpacket<0x2b10, 8, 36>(ms, head, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
                     Array<struct global_reg, ACCOUNT_REG2_NUM> reg;
-                    int p, j;
-                    AccountId acc = wrap<AccountId>(RFIFOL(ms, 4));
-                    for (p = 8, j = 0;
-                         p < RFIFOW(ms, 2) && j < ACCOUNT_REG2_NUM;
-                         p += 36, j++)
+                    AccountId acc = head.account_id;
+                    auto jlim = std::min(repeat.size(), ACCOUNT_REG2_NUM);
+                    for (size_t j = 0; j < jlim; ++j)
                     {
-                        reg[j].str = stringish<VarName>(RFIFO_STRING<32>(ms, p));
-                        reg[j].value = RFIFOL(ms, p + 32);
+                        reg[j].str = repeat[j].name;
+                        reg[j].value = repeat[j].value;
                     }
-                    set_account_reg2(acc, Slice<struct global_reg>(reg.begin(), j));
+                    set_account_reg2(acc, Slice<struct global_reg>(reg.begin(), jlim));
                     // loginサーバーへ送る
                     if (login_session)
                     {
                         // don't send request if no login-server
-                        RFIFO_WFIFO_CLONE(ms, login_session, RFIFOW(ms, 2));
-                        WFIFOW(login_session, 0) = 0x2728;
-                        WFIFOSET(login_session, WFIFOW(login_session, 2));
+                        Packet_Head<0x2728> head_28;
+                        std::vector<Packet_Repeat<0x2728>> repeat_28(repeat.size());
+                        for (size_t j = 0; j < repeat.size(); ++j)
+                        {
+                            repeat_28[j].name = repeat[j].name;
+                            repeat_28[j].value = repeat[j].value;
+                        }
+                        send_vpacket<0x2728, 8, 36>(login_session, head_28, repeat_28);
                     }
-                    RFIFOSKIP(ms, RFIFOW(ms, 2));
                     break;
                 }
+            }
 
                 // Map server is requesting a divorce
             case 0x2b16:
-                if (RFIFOREST(ms) < 4)
-                    return;
+            {
+                Packet_Fixed<0x2b16> fixed;
+                rv = recv_fpacket<0x2b16, 6>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    CharId cid = wrap<CharId>(RFIFOL(ms, 2));
+                    CharId cid = fixed.char_id;
                     for (CharPair& cd : char_keys)
+                    {
                         if (cd.key.char_id == cid)
                         {
                             char_divorce(&cd);
                             break;
                         }
+                    }
 
-                    RFIFOSKIP(ms, 6);
                     break;
 
                 }
+            }
 
             default:
                 // inter server処理に渡す
             {
-                int r = inter_parse_frommap(ms);
-                if (r == 1)     // 処理できた
+                RecvResult r = inter_parse_frommap(ms, packet_id);
+                if (r == RecvResult::Complete)
                     break;
-                if (r == 2)     // パケット長が足りない
+                if (r == RecvResult::Incomplete)
                     return;
-            }
                 // inter server処理でもない場合は切断
                 PRINTF("char: unknown packet 0x%04x (%zu bytes to read in buffer)! (from map).\n"_fmt,
-                        RFIFOW(ms, 0), RFIFOREST(ms));
+                        packet_id, packet_avail(ms));
                 ms->set_eof();
                 return;
+            }
         }
     }
 }
@@ -2164,25 +2357,27 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
                 // if no map-server is connected, we send: server closed
                 if (j == MAX_MAP_SERVERS)
                 {
-                    WFIFOW(s, 0) = 0x81;
-                    WFIFOB(s, 2) = 1; // 01 = Server closed
-                    WFIFOSET(s, 3);
+                    Packet_Fixed<0x0081> fixed_81;
+                    fixed_81.error_code = 1;
+                    send_fpacket<0x0081, 3>(s, fixed_81);
                     return;
                 }
             }
-            WFIFOW(s, 0) = 0x71;
-            WFIFOL(s, 2) = unwrap<CharId>(ck->char_id);
-            WFIFO_STRING(s, 6, cd->last_point.map_, 16);
+
+            Packet_Fixed<0x0071> fixed_71;
+            fixed_71.char_id = ck->char_id;
+            fixed_71.map_name = cd->last_point.map_;
             PRINTF("Character selection '%s' (account: %d, slot: %d) [%s]\n"_fmt,
                     ck->name,
                     sd->account_id, ck->char_num, ip);
             PRINTF("--Send IP of map-server. "_fmt);
             if (lan_ip_check(ip))
-                WFIFOIP(s, 22) = lan_map_ip;
+                fixed_71.ip = lan_map_ip;
             else
-                WFIFOIP(s, 22) = server[i].ip;
-            WFIFOW(s, 26) = server[i].port;
-            WFIFOSET(s, 28);
+                fixed_71.ip = server[i].ip;
+            fixed_71.port = server[i].port;
+            send_fpacket<0x0071, 28>(s, fixed_71);
+
             if (auth_fifo_iter == auth_fifo.end())
                 auth_fifo_iter = auth_fifo.begin();
             auth_fifo_iter->account_id = sd->account_id;
@@ -2216,36 +2411,40 @@ void parse_char(Session *s)
 
     char_session_data *sd = static_cast<char_session_data *>(s->session_data.get());
 
-    while (RFIFOREST(s) >= 2)
+    RecvResult rv = RecvResult::Complete;
+    uint16_t packet_id;
+    while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
-        switch (RFIFOW(s, 0))
+        switch (packet_id)
         {
-            case 0x20b:        //20040622暗号化ragexe対応
-                if (RFIFOREST(s) < 19)
-                    return;
-                RFIFOSKIP(s, 19);
-                break;
-
             case 0x61:         // change password request
-                if (RFIFOREST(s) < 50)
-                    return;
+            {
+                Packet_Fixed<0x0061> fixed;
+                rv = recv_fpacket<0x0061, 50>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    WFIFOW(login_session, 0) = 0x2740;
-                    WFIFOL(login_session, 2) = unwrap<AccountId>(sd->account_id);
-                    AccountPass old_pass = stringish<AccountPass>(RFIFO_STRING<24>(s, 2));
-                    WFIFO_STRING(login_session, 6, old_pass, 24);
-                    AccountPass new_pass = stringish<AccountPass>(RFIFO_STRING<24>(s, 26));
-                    WFIFO_STRING(login_session, 30, new_pass, 24);
-                    WFIFOSET(login_session, 54);
+                    Packet_Fixed<0x2740> fixed_40;
+                    fixed_40.account_id = sd->account_id;
+                    AccountPass old_pass = fixed.old_pass;
+                    fixed_40.old_pass = old_pass;
+                    AccountPass new_pass = fixed.new_pass;
+                    fixed_40.new_pass = new_pass;
+                    send_fpacket<0x2740, 54>(login_session, fixed_40);
                 }
-                RFIFOSKIP(s, 50);
                 break;
+            }
 
             case 0x65:         // 接続要求
-                if (RFIFOREST(s) < 17)
-                    return;
+            {
+                Packet_Fixed<0x0065> fixed;
+                rv = recv_fpacket<0x0065, 17>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 {
-                    AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
+                    AccountId account_id = fixed.account_id;
                     GmLevel GM_value = isGM(account_id);
                     if (GM_value)
                         PRINTF("Account Logged On; Account ID: %d (GM level %d).\n"_fmt,
@@ -2261,13 +2460,19 @@ void parse_char(Session *s)
                         sd->connect_until_time = TimeT(); // unknow or illimited (not displaying on map-server)
                     }
                     sd->account_id = account_id;
-                    sd->login_id1 = RFIFOL(s, 6);
-                    sd->login_id2 = RFIFOL(s, 10);
-                    sd->packet_tmw_version = RFIFOW(s, 14);
-                    sd->sex = static_cast<SEX>(RFIFOB(s, 16));
+                    sd->login_id1 = fixed.login_id1;
+                    sd->login_id2 = fixed.login_id2;
+                    sd->packet_tmw_version = fixed.packet_tmw_version;
+                    sd->sex = fixed.sex;
                     // send back account_id
-                    WFIFOL(s, 0) = unwrap<AccountId>(account_id);
-                    WFIFOSET(s, 4);
+                    // TODO put this into a proper packet
+                    Little32 account_id_net;
+                    if (!native_to_network(&account_id_net, account_id)
+                            || !packet_send(s, reinterpret_cast<const Byte *>(&account_id_net), 4))
+                    {
+                        s->set_eof();
+                        return;
+                    }
                     // search authentification
                     for (AuthFifoEntry& afi : auth_fifo)
                     {
@@ -2285,9 +2490,9 @@ void parse_char(Session *s)
                                 if (login_session)
                                 {   // don't send request if no login-server
                                     // request to login-server to obtain e-mail/time limit
-                                    WFIFOW(login_session, 0) = 0x2716;
-                                    WFIFOL(login_session, 2) = unwrap<AccountId>(sd->account_id);
-                                    WFIFOSET(login_session, 6);
+                                    Packet_Fixed<0x2716> fixed_16;
+                                    fixed_16.account_id = sd->account_id;
+                                    send_fpacket<0x2716, 6>(login_session, fixed_16);
                                 }
                                 // Record client version
                                 afi.packet_tmw_version =
@@ -2298,9 +2503,9 @@ void parse_char(Session *s)
                             else
                             {
                                 // refuse connection (over populated)
-                                WFIFOW(s, 0) = 0x6c;
-                                WFIFOB(s, 2) = 0;
-                                WFIFOSET(s, 3);
+                                Packet_Fixed<0x006c> fixed_6c;
+                                fixed_6c.code = 0;
+                                send_fpacket<0x006c, 3>(s, fixed_6c);
                             }
                             goto x65_out;
                         }
@@ -2310,111 +2515,144 @@ void parse_char(Session *s)
                         if (login_session)
                         {
                             // don't send request if no login-server
-                            WFIFOW(login_session, 0) = 0x2712;  // ask login-server to authentify an account
-                            WFIFOL(login_session, 2) = unwrap<AccountId>(sd->account_id);
-                            WFIFOL(login_session, 6) = sd->login_id1;
-                            WFIFOL(login_session, 10) = sd->login_id2;  // relate to the versions higher than 18
-                            WFIFOB(login_session, 14) = static_cast<uint8_t>(sd->sex);
-                            WFIFOIP(login_session, 15) = s->client_ip;
-                            WFIFOSET(login_session, 19);
+                            Packet_Fixed<0x2712> fixed_12;
+                            fixed_12.account_id = sd->account_id;
+                            fixed_12.login_id1 = sd->login_id1;
+                            fixed_12.login_id2 = sd->login_id2;  // relate to the versions higher than 18
+                            fixed_12.sex = sd->sex;
+                            fixed_12.ip = s->client_ip;
+                            send_fpacket<0x2712, 19>(login_session, fixed_12);
                         }
                         else
                         {       // if no login-server, we must refuse connection
-                            WFIFOW(s, 0) = 0x6c;
-                            WFIFOB(s, 2) = 0;
-                            WFIFOSET(s, 3);
+                            Packet_Fixed<0x006c> fixed_6c;
+                            fixed_6c.code = 0;
+                            send_fpacket<0x006c, 3>(s, fixed_6c);
                         }
                     }
                 }
             x65_out:
-                RFIFOSKIP(s, 17);
                 break;
+            }
 
             case 0x66:         // キャラ選択
-                if (!sd || RFIFOREST(s) < 3)
+            {
+                Packet_Fixed<0x0066> fixed;
+                rv = recv_fpacket<0x0066, 3>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (!sd)
+                {
+                    s->set_eof();
                     return;
-                handle_x0066(s, sd, RFIFOB(s, 2), ip);
-                RFIFOSKIP(s, 3);
+                }
+                handle_x0066(s, sd, fixed.code, ip);
                 break;
+            }
 
             case 0x67:         // 作成
-                if (!sd || RFIFOREST(s) < 37)
-                    return;
             {
-                CharName name = stringish<CharName>(RFIFO_STRING<24>(s, 2));
-                uint8_t stats[6];
-                for (int i = 0; i < 6; ++i)
-                    stats[i] = RFIFOB(s, 26 + i);
-                uint8_t slot = RFIFOB(s, 32);
-                uint16_t hair_color = RFIFOW(s, 33);
-                uint16_t hair_style = RFIFOW(s, 35);
+                Packet_Fixed<0x0067> fixed;
+                rv = recv_fpacket<0x0067, 37>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (!sd)
+                {
+                    s->set_eof();
+                    return;
+                }
+                CharName name = fixed.char_name;
+                Stats6 stats = fixed.stats;
+                uint8_t slot = fixed.slot;
+                uint16_t hair_color = fixed.hair_color;
+                uint16_t hair_style = fixed.hair_style;
                 const CharPair *cp = make_new_char(s, name, stats, slot, hair_color, hair_style);
                 if (!cp)
                 {
-                    WFIFOW(s, 0) = 0x6e;
-                    WFIFOB(s, 2) = 0x00;
-                    WFIFOSET(s, 3);
-                    RFIFOSKIP(s, 37);
+                    Packet_Fixed<0x006e> fixed_6e;
+                    fixed_6e.code = 0x00;
+                    send_fpacket<0x006e, 3>(s, fixed_6e);
                     break;
                 }
                 const CharKey *ck = &cp->key;
                 const CharData *cd = cp->data.get();
 
-                WFIFOW(s, 0) = 0x6d;
-                WFIFO_ZERO(s, 2, 106);
+                Packet_Fixed<0x006d> fixed_6d;
 
-                WFIFOL(s, 2) = unwrap<CharId>(ck->char_id);
-                WFIFOL(s, 2 + 4) = cd->base_exp;
-                WFIFOL(s, 2 + 8) = cd->zeny;
-                WFIFOL(s, 2 + 12) = cd->job_exp;
-                WFIFOL(s, 2 + 16) = cd->job_level;
+                fixed_6d.char_select.char_id = ck->char_id;
+                fixed_6d.char_select.base_exp = cd->base_exp;
+                fixed_6d.char_select.zeny = cd->zeny;
+                fixed_6d.char_select.job_exp = cd->job_exp;
+                fixed_6d.char_select.job_level = cd->job_level;
 
-                WFIFOL(s, 2 + 28) = cd->karma;
-                WFIFOL(s, 2 + 32) = cd->manner;
+                fixed_6d.char_select.shoes = ItemNameId();
+                fixed_6d.char_select.gloves = ItemNameId();
+                fixed_6d.char_select.cape = ItemNameId();
+                fixed_6d.char_select.misc1 = ItemNameId();
+                fixed_6d.char_select.option = Option();
+                fixed_6d.char_select.unused = 0;
 
-                WFIFOW(s, 2 + 40) = 0x30;
-                WFIFOW(s, 2 + 42) = saturate<int16_t>(cd->hp);
-                WFIFOW(s, 2 + 44) = saturate<int16_t>(cd->max_hp);
-                WFIFOW(s, 2 + 46) = saturate<int16_t>(cd->sp);
-                WFIFOW(s, 2 + 48) = saturate<int16_t>(cd->max_sp);
-                WFIFOW(s, 2 + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // cd->speed;
-                WFIFOW(s, 2 + 52) = unwrap<Species>(cd->species);
-                WFIFOW(s, 2 + 54) = cd->hair;
+                // this was buggy until the protocol became generated
+                // but the client ignores it anyway
+                fixed_6d.char_select.karma = cd->karma;
+                fixed_6d.char_select.manner = cd->manner;
 
-                WFIFOW(s, 2 + 58) = cd->base_level;
-                WFIFOW(s, 2 + 60) = cd->skill_point;
+                fixed_6d.char_select.status_point = 0x30;
+                fixed_6d.char_select.hp = saturate<int16_t>(cd->hp);
+                fixed_6d.char_select.max_hp = saturate<int16_t>(cd->max_hp);
+                fixed_6d.char_select.sp = saturate<int16_t>(cd->sp);
+                fixed_6d.char_select.max_sp = saturate<int16_t>(cd->max_sp);
+                fixed_6d.char_select.speed = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // cd->speed;
+                fixed_6d.char_select.species = cd->species;
+                fixed_6d.char_select.hair_style = cd->hair;
+                fixed_6d.char_select.weapon = 0;
 
-                WFIFOW(s, 2 + 64) = unwrap<ItemNameId>(cd->shield);
-                WFIFOW(s, 2 + 66) = unwrap<ItemNameId>(cd->head_top);
-                WFIFOW(s, 2 + 68) = unwrap<ItemNameId>(cd->head_mid);
-                WFIFOW(s, 2 + 70) = cd->hair_color;
+                fixed_6d.char_select.base_level = cd->base_level;
+                fixed_6d.char_select.skill_point = cd->skill_point;
 
-                WFIFO_STRING(s, 2 + 74, ck->name.to__actual(), 24);
+                fixed_6d.char_select.head_bottom = ItemNameId();
+                fixed_6d.char_select.shield = cd->shield;
+                fixed_6d.char_select.head_top = cd->head_top;
+                fixed_6d.char_select.head_mid = cd->head_mid;
+                fixed_6d.char_select.hair_color = cd->hair_color;
+                fixed_6d.char_select.misc2 = ItemNameId();
 
-                WFIFOB(s, 2 + 98) = saturate<uint8_t>(cd->attrs[ATTR::STR]);
-                WFIFOB(s, 2 + 99) = saturate<uint8_t>(cd->attrs[ATTR::AGI]);
-                WFIFOB(s, 2 + 100) = saturate<uint8_t>(cd->attrs[ATTR::VIT]);
-                WFIFOB(s, 2 + 101) = saturate<uint8_t>(cd->attrs[ATTR::INT]);
-                WFIFOB(s, 2 + 102) = saturate<uint8_t>(cd->attrs[ATTR::DEX]);
-                WFIFOB(s, 2 + 103) = saturate<uint8_t>(cd->attrs[ATTR::LUK]);
-                WFIFOB(s, 2 + 104) = ck->char_num;
+                fixed_6d.char_select.char_name = ck->name;
 
-                WFIFOSET(s, 108);
-            }
-                RFIFOSKIP(s, 37);
+                fixed_6d.char_select.stats.str = saturate<uint8_t>(cd->attrs[ATTR::STR]);
+                fixed_6d.char_select.stats.agi = saturate<uint8_t>(cd->attrs[ATTR::AGI]);
+                fixed_6d.char_select.stats.vit = saturate<uint8_t>(cd->attrs[ATTR::VIT]);
+                fixed_6d.char_select.stats.int_ = saturate<uint8_t>(cd->attrs[ATTR::INT]);
+                fixed_6d.char_select.stats.dex = saturate<uint8_t>(cd->attrs[ATTR::DEX]);
+                fixed_6d.char_select.stats.luk = saturate<uint8_t>(cd->attrs[ATTR::LUK]);
+                fixed_6d.char_select.char_num = ck->char_num;
+                fixed_6d.char_select.unused2 = 0;
+
+                send_fpacket<0x006d, 108>(s, fixed_6d);
                 break;
+            }
 
             case 0x68:         // delete char //Yor's Fix
-                if (!sd || RFIFOREST(s) < 46)
-                    return;
             {
-                AccountEmail email = stringish<AccountEmail>(RFIFO_STRING<40>(s, 6));
+                Packet_Fixed<0x0068> fixed;
+                rv = recv_fpacket<0x0068, 46>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (!sd)
+                {
+                    s->set_eof();
+                    return;
+                }
+                AccountEmail email = fixed.email;
                 if (!e_mail_check(email))
                     email = DEFAULT_EMAIL;
 
                 {
                     {
-                        CharId cid = wrap<CharId>(RFIFOL(s, 2));
+                        CharId cid = fixed.char_id;
                         CharPair *cs = nullptr;
                         for (CharPair& cd : char_keys)
                         {
@@ -2435,93 +2673,100 @@ void parse_char(Session *s)
                             }
 
                             char_keys.pop_back();
-                            WFIFOW(s, 0) = 0x6f;
-                            WFIFOSET(s, 2);
+                            Packet_Fixed<0x006f> fixed_6f;
+                            send_fpacket<0x006f, 2>(s, fixed_6f);
                             goto x68_out;
                         }
                     }
 
                     {
-                        WFIFOW(s, 0) = 0x70;
-                        WFIFOB(s, 2) = 0;
-                        WFIFOSET(s, 3);
+                        Packet_Fixed<0x0070> fixed_70;
+                        fixed_70.code = 0;
+                        send_fpacket<0x0070, 3>(s, fixed_70);
                     }
                 }
-            }
             x68_out:
-                RFIFOSKIP(s, 46);
                 break;
+            }
 
             case 0x2af8:       // マップサーバーログイン
-                if (RFIFOREST(s) < 60)
-                    return;
             {
+                Packet_Fixed<0x2af8> fixed;
+                rv = recv_fpacket<0x2af8, 60>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 int i;
-                WFIFOW(s, 0) = 0x2af9;
+                Packet_Fixed<0x2af9> fixed_f9;
                 for (i = 0; i < MAX_MAP_SERVERS; i++)
                 {
                     if (!server_session[i])
                         break;
                 }
-                AccountName userid_ = stringish<AccountName>(RFIFO_STRING<24>(s, 2));
-                AccountPass passwd_ = stringish<AccountPass>(RFIFO_STRING<24>(s, 26));
+                AccountName userid_ = fixed.account_name;
+                AccountPass passwd_ = fixed.account_pass;
                 if (i == MAX_MAP_SERVERS || userid_ != userid
                     || passwd_ != passwd)
                 {
-                    WFIFOB(s, 2) = 3;
-                    WFIFOSET(s, 3);
-                    RFIFOSKIP(s, 60);
+                    fixed_f9.code = 3;
+                    send_fpacket<0x2af9, 3>(s, fixed_f9);
                 }
                 else
                 {
-                    int len;
-                    WFIFOB(s, 2) = 0;
+                    fixed_f9.code = 0;
                     s->set_parsers(SessionParsers{.func_parse= parse_frommap, .func_delete= delete_frommap});
                     server_session[i] = s;
                     if (anti_freeze_enable)
                         server_freezeflag[i] = 5;   // Map anti-freeze system. Counter. 5 ok, 4...0 freezed
-                    // ignore RFIFOL(fd, 50)
-                    server[i].ip = RFIFOIP(s, 54);
-                    server[i].port = RFIFOW(s, 58);
+                    // ignore fixed.unknown
+                    server[i].ip = fixed.ip;
+                    server[i].port = fixed.port;
                     server[i].users = 0;
                     for (MapName& mapi : server[i].maps)
                         mapi = MapName();
-                    WFIFOSET(s, 3);
-                    RFIFOSKIP(s, 60);
+                    send_fpacket<0x2af9, 3>(s, fixed_f9);
                     realloc_fifo(s, FIFOSIZE_SERVERLINK,
                                   FIFOSIZE_SERVERLINK);
                     // send gm acccounts level to map-servers
-                    len = 4;
-                    WFIFOW(s, 0) = 0x2b15;
+                    std::vector<Packet_Repeat<0x2b15>> repeat_15(gm_accounts.size());
+                    auto it = repeat_15.begin();
                     for (const GM_Account& gma : gm_accounts)
                     {
-                        WFIFOL(s, len) = unwrap<AccountId>(gma.account_id);
-                        WFIFOB(s, len + 4) = gma.level.get_all_bits();
-                        len += 5;
+                        it->account_id = gma.account_id;
+                        it->gm_level = gma.level;
+                        ++it;
                     }
-                    WFIFOW(s, 2) = len;
-                    WFIFOSET(s, len);
+                    send_packet_repeatonly<0x2b15, 4, 5>(s, repeat_15);
+                    // justification: we switched the session parsers
+                    parse_frommap(s);
                     return;
                 }
+                break;
             }
-                break;
-
-            case 0x187:        // Alive信号？
-                if (RFIFOREST(s) < 6)
-                    return;
-                RFIFOSKIP(s, 6);
-                break;
 
             case 0x7530:       // Athena情報所得
-                WFIFOW(s, 0) = 0x7531;
-                WFIFO_STRUCT(s, 2, CURRENT_CHAR_SERVER_VERSION);
-                WFIFOSET(s, 10);
-                RFIFOSKIP(s, 2);
-                return;
+            {
+                Packet_Fixed<0x7530> fixed;
+                rv = recv_fpacket<0x7530, 2>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                Packet_Fixed<0x7531> fixed_31;
+                fixed_31.version = CURRENT_CHAR_SERVER_VERSION;
+                send_fpacket<0x7531, 10>(s, fixed_31);
+                break;
+            }
 
             case 0x7532:       // 接続の切断(defaultと処理は一緒だが明示的にするため)
+            {
+                Packet_Fixed<0x7532> fixed;
+                rv = recv_fpacket<0x7532, 2>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 s->set_eof();
                 return;
+            }
 
             default:
                 s->set_eof();
@@ -2530,81 +2775,25 @@ void parse_char(Session *s)
     }
 }
 
-// 全てのMAPサーバーにデータ送信（送信したmap鯖の数を返す）
-int mapif_sendall(const uint8_t *buf, unsigned int len)
-{
-    int i, c;
-
-    c = 0;
-    for (i = 0; i < MAX_MAP_SERVERS; i++)
-    {
-        Session *s = server_session[i];
-        if (s)
-        {
-            WFIFO_BUF_CLONE(s, buf, len);
-            WFIFOSET(s, len);
-            c++;
-        }
-    }
-    return c;
-}
-
-// 自分以外の全てのMAPサーバーにデータ送信（送信したmap鯖の数を返す）
-int mapif_sendallwos(Session *ss, const uint8_t *buf, unsigned int len)
-{
-    int i, c;
-
-    c = 0;
-    for (i = 0; i < MAX_MAP_SERVERS; i++)
-    {
-        Session *s = server_session[i];
-        if (s && s != ss)
-        {
-            WFIFO_BUF_CLONE(s, buf, len);
-            WFIFOSET(s, len);
-            c++;
-        }
-    }
-    return c;
-}
-
-// MAPサーバーにデータ送信（map鯖生存確認有り）
-int mapif_send(Session *s, const uint8_t *buf, unsigned int len)
-{
-    int i;
-
-    if (s)
-    {
-        for (i = 0; i < MAX_MAP_SERVERS; i++)
-        {
-            if (s == server_session[i])
-            {
-                WFIFO_BUF_CLONE(s, buf, len);
-                WFIFOSET(s, len);
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
 static
 void send_users_tologin(TimerData *, tick_t)
 {
     int users = count_users();
-    uint8_t buf[16];
 
     if (login_session)
     {
         // send number of user to login server
-        WFIFOW(login_session, 0) = 0x2714;
-        WFIFOL(login_session, 2) = users;
-        WFIFOSET(login_session, 6);
+        Packet_Fixed<0x2714> fixed_14;
+        fixed_14.users = users;
+        send_fpacket<0x2714, 6>(login_session, fixed_14);
     }
     // send number of players to all map-servers
-    WBUFW(buf, 0) = 0x2b00;
-    WBUFL(buf, 2) = users;
-    mapif_sendall(buf, 6);
+    Packet_Fixed<0x2b00> fixed_00;
+    fixed_00.users = users;
+    for (Session *ss : iter_map_sessions())
+    {
+        send_fpacket<0x2b00, 6>(ss, fixed_00);
+    }
 }
 
 static
@@ -2618,18 +2807,18 @@ void check_connect_login_server(TimerData *, tick_t)
         if (!login_session)
             return;
         realloc_fifo(login_session, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
-        WFIFOW(login_session, 0) = 0x2710;
-        WFIFO_ZERO(login_session, 2, 24);
-        WFIFO_STRING(login_session, 2, userid, 24);
-        WFIFO_STRING(login_session, 26, passwd, 24);
-        WFIFOL(login_session, 50) = 0;
-        WFIFOIP(login_session, 54) = char_ip;
-        WFIFOL(login_session, 58) = char_port;
-        WFIFO_STRING(login_session, 60, server_name, 20);
-        WFIFOW(login_session, 80) = 0;
-        WFIFOW(login_session, 82) = 0; //char_maintenance;
-        WFIFOW(login_session, 84) = 0; //char_new;
-        WFIFOSET(login_session, 86);
+
+        Packet_Fixed<0x2710> fixed_10;
+        fixed_10.account_name = userid;
+        fixed_10.account_pass = passwd;
+        fixed_10.unknown = 0;
+        fixed_10.ip = char_ip;
+        fixed_10.port = char_port;
+        fixed_10.server_name = server_name;
+        fixed_10.unknown2 = 0;
+        fixed_10.maintenance = 0;
+        fixed_10.is_new = 0;
+        send_fpacket<0x2710, 86>(login_session, fixed_10);
     }
 }
 

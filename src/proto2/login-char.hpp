@@ -27,6 +27,9 @@
 
 // This is an internal protocol, and can be changed without notice
 
+// this is only needed for the payload packet right now, and that needs to die
+#pragma pack(push, 1)
+
 template<>
 struct Packet_Fixed<0x2709>
 {
@@ -206,7 +209,7 @@ struct Packet_Fixed<0x2725>
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
     AccountId account_id = {};
-    HumanTimeDiff deltas = {};
+    HumanTimeDiff ban_add = {};
 };
 
 template<>
@@ -532,11 +535,11 @@ struct NetPacket_Fixed<0x2725>
 {
     Little16 magic_packet_id;
     Little32 account_id;
-    NetHumanTimeDiff deltas;
+    NetHumanTimeDiff ban_add;
 };
 static_assert(offsetof(NetPacket_Fixed<0x2725>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2725>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x2725>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2725>, account_id) == 2");
-static_assert(offsetof(NetPacket_Fixed<0x2725>, deltas) == 6, "offsetof(NetPacket_Fixed<0x2725>, deltas) == 6");
+static_assert(offsetof(NetPacket_Fixed<0x2725>, ban_add) == 6, "offsetof(NetPacket_Fixed<0x2725>, ban_add) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x2725>) == 18, "sizeof(NetPacket_Fixed<0x2725>) == 18");
 
 template<>
@@ -975,7 +978,7 @@ bool native_to_network(NetPacket_Fixed<0x2725> *network, Packet_Fixed<0x2725> na
     bool rv = true;
     rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
     rv &= native_to_network(&network->account_id, native.account_id);
-    rv &= native_to_network(&network->deltas, native.deltas);
+    rv &= native_to_network(&network->ban_add, native.ban_add);
     return rv;
 }
 inline __attribute__((warn_unused_result))
@@ -984,7 +987,7 @@ bool network_to_native(Packet_Fixed<0x2725> *native, NetPacket_Fixed<0x2725> net
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
     rv &= network_to_native(&native->account_id, network.account_id);
-    rv &= network_to_native(&native->deltas, network.deltas);
+    rv &= network_to_native(&native->ban_add, network.ban_add);
     return rv;
 }
 
@@ -1203,5 +1206,7 @@ bool network_to_native(Packet_Fixed<0x2741> *native, NetPacket_Fixed<0x2741> net
     return rv;
 }
 
+
+#pragma pack(pop)
 
 #endif // TMWA_PROTO2_LOGIN_CHAR_HPP

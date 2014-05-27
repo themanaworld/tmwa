@@ -322,7 +322,7 @@ void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
 static
 int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type)
 {
-    struct party *p = NULL;
+    PartyPair p;
     int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
 
     if (type != SendWho::ALL_CLIENT)
@@ -463,7 +463,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                     dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
                     if (sd && sd->state.auth)
                     {
-                        if (sd->partyspy == p->party_id)
+                        if (sd->partyspy == p.party_id)
                         {
                             if (clif_parse_func_table[RBUFW(buf, 0)].len)
                             {
@@ -1526,7 +1526,7 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
  * カプラさんに預けてある消耗品&収集品リスト
  *------------------------------------------
  */
-int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor)
+int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
 {
     nullpo_ret(sd);
     nullpo_ret(stor);
@@ -1569,7 +1569,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor)
  * カプラさんに預けてある装備リスト
  *------------------------------------------
  */
-int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
+int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
 {
     nullpo_ret(sd);
     nullpo_ret(stor);
@@ -2235,7 +2235,7 @@ int clif_tradecompleted(dumb_ptr<map_session_data> sd, int fail)
  *------------------------------------------
  */
 int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
-                              struct storage *stor)
+                              Storage *stor)
 {
     nullpo_ret(sd);
     nullpo_ret(stor);
@@ -2253,7 +2253,7 @@ int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
  * カプラ倉庫にアイテムを追加する
  *------------------------------------------
  */
-int clif_storageitemadded(dumb_ptr<map_session_data> sd, struct storage *stor,
+int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
                            int index, int amount)
 {
     nullpo_ret(sd);
@@ -2969,7 +2969,7 @@ int clif_party_created(dumb_ptr<map_session_data> sd, int flag)
  * パーティ情報送信
  *------------------------------------------
  */
-int clif_party_info(struct party *p, Session *s)
+int clif_party_info(PartyPair p, Session *s)
 {
     unsigned char buf[1024];
     int i, c;
@@ -3019,7 +3019,7 @@ int clif_party_info(struct party *p, Session *s)
 void clif_party_invite(dumb_ptr<map_session_data> sd,
                        dumb_ptr<map_session_data> tsd)
 {
-    struct party *p;
+    PartyPair p;
 
     nullpo_retv(sd);
     nullpo_retv(tsd);
@@ -3067,7 +3067,7 @@ void clif_party_inviteack(dumb_ptr<map_session_data> sd, CharName nick, int flag
  *        0x100=一人にのみ送信
  *------------------------------------------
  */
-void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
+void clif_party_option(PartyPair p, dumb_ptr<map_session_data> sd, int flag)
 {
     unsigned char buf[16];
 
@@ -3098,7 +3098,7 @@ void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
  * パーティ脱退（脱退前に呼ぶこと）
  *------------------------------------------
  */
-void clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
+void clif_party_leaved(PartyPair p, dumb_ptr<map_session_data> sd,
         AccountId account_id, CharName name, int flag)
 {
     unsigned char buf[64];
@@ -3134,7 +3134,7 @@ void clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
  * パーティメッセージ送信
  *------------------------------------------
  */
-void clif_party_message(struct party *p, AccountId account_id, XString mes)
+void clif_party_message(PartyPair p, AccountId account_id, XString mes)
 {
     // always set, but clang is not smart enough
     dumb_ptr<map_session_data> sd = nullptr;
@@ -3164,7 +3164,7 @@ void clif_party_message(struct party *p, AccountId account_id, XString mes)
  * パーティ座標通知
  *------------------------------------------
  */
-int clif_party_xy(struct party *, dumb_ptr<map_session_data> sd)
+int clif_party_xy(PartyPair , dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[16];
 
@@ -3182,7 +3182,7 @@ int clif_party_xy(struct party *, dumb_ptr<map_session_data> sd)
  * パーティHP通知
  *------------------------------------------
  */
-int clif_party_hp(struct party *, dumb_ptr<map_session_data> sd)
+int clif_party_hp(PartyPair , dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[16];
 
@@ -3625,13 +3625,13 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
                 WFIFO_STRING(s, 6, ssd->status_key.name.to__actual(), 24);
             WFIFOSET(s, clif_parse_func_table[0x95].len);
 
-            struct party *p = NULL;
+            PartyPair p;
 
             PartyName party_name;
 
             int send = 0;
 
-            if (ssd->status.party_id && (p = party_search(ssd->status.party_id)) != NULL)
+            if (ssd->status.party_id && (p = party_search(ssd->status.party_id)))
             {
                 party_name = p->name;
                 send = 1;

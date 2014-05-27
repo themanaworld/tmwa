@@ -2224,7 +2224,7 @@ void builtin_getcharid(ScriptState *st)
 static
 dumb_string builtin_getpartyname_sub(PartyId party_id)
 {
-    struct party *p = party_search(party_id);
+    PartyPair p = party_search(party_id);
 
     if (p)
         return dumb_string::copys(p->name);

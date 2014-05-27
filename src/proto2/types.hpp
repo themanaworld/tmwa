@@ -29,6 +29,7 @@
 # include "../mmo/enums.hpp"
 # include "../mmo/human_time_diff.hpp"
 # include "../mmo/ids.hpp"
+# include "../mmo/mmo.hpp"
 # include "../mmo/strs.hpp"
 # include "../mmo/utils.hpp"
 # include "../mmo/version.hpp"
@@ -71,6 +72,38 @@ bool network_to_native(VString<N-1> *native, NetString<N> network)
     return true;
 }
 
+inline
+bool native_to_network(NetString<24> *network, CharName native)
+{
+    VString<23> tmp = native.to__actual();
+    bool rv = native_to_network(network, tmp);
+    return rv;
+}
+inline
+bool network_to_native(CharName *native, NetString<24> network)
+{
+    VString<23> tmp;
+    bool rv = network_to_native(&tmp, network);
+    *native = stringish<CharName>(tmp);
+    return rv;
+}
+
+inline
+bool native_to_network(NetString<16> *network, MapName native)
+{
+    XString tmp = native;
+    bool rv = native_to_network(network, VString<15>(tmp));
+    return rv;
+}
+inline
+bool network_to_native(MapName *native, NetString<16> network)
+{
+    VString<15> tmp;
+    bool rv = network_to_native(&tmp, network);
+    *native = stringish<MapName>(tmp);
+    return rv;
+}
+
 template<class T, size_t N>
 struct SkewedLength
 {
@@ -105,6 +138,24 @@ bool network_to_native(SEX *native, Byte network)
     uint8_t tmp;
     rv &= network_to_native(&tmp, network);
     *native = static_cast<SEX>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, Option native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Option *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<Option>(tmp);
     // TODO this is what really should be doing a checked cast
     return rv;
 }
@@ -316,4 +367,244 @@ bool network_to_native(VERSION_2 *native, Byte network)
     // TODO this is what really should be doing a checked cast
     return rv;
 }
+struct Stats6
+{
+    uint8_t str = {};
+    uint8_t agi = {};
+    uint8_t vit = {};
+    uint8_t int_ = {};
+    uint8_t dex = {};
+    uint8_t luk = {};
+};
+struct NetStats6
+{
+    Byte str;
+    Byte agi;
+    Byte vit;
+    Byte int_;
+    Byte dex;
+    Byte luk;
+};
+static_assert(offsetof(NetStats6, str) == 0, "offsetof(NetStats6, str) == 0");
+static_assert(offsetof(NetStats6, agi) == 1, "offsetof(NetStats6, agi) == 1");
+static_assert(offsetof(NetStats6, vit) == 2, "offsetof(NetStats6, vit) == 2");
+static_assert(offsetof(NetStats6, int_) == 3, "offsetof(NetStats6, int_) == 3");
+static_assert(offsetof(NetStats6, dex) == 4, "offsetof(NetStats6, dex) == 4");
+static_assert(offsetof(NetStats6, luk) == 5, "offsetof(NetStats6, luk) == 5");
+static_assert(sizeof(NetStats6) == 6, "sizeof(NetStats6) == 6");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetStats6 *network, Stats6 native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->str, native.str);
+    rv &= native_to_network(&network->agi, native.agi);
+    rv &= native_to_network(&network->vit, native.vit);
+    rv &= native_to_network(&network->int_, native.int_);
+    rv &= native_to_network(&network->dex, native.dex);
+    rv &= native_to_network(&network->luk, native.luk);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Stats6 *native, NetStats6 network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->str, network.str);
+    rv &= network_to_native(&native->agi, network.agi);
+    rv &= network_to_native(&native->vit, network.vit);
+    rv &= network_to_native(&native->int_, network.int_);
+    rv &= network_to_native(&native->dex, network.dex);
+    rv &= network_to_native(&native->luk, network.luk);
+    return rv;
+}
+
+struct CharSelect
+{
+    CharId char_id = {};
+    uint32_t base_exp = {};
+    uint32_t zeny = {};
+    uint32_t job_exp = {};
+    uint32_t job_level = {};
+    ItemNameId shoes = {};
+    ItemNameId gloves = {};
+    ItemNameId cape = {};
+    ItemNameId misc1 = {};
+    Option option = {};
+    uint16_t unused = {};
+    uint32_t karma = {};
+    uint32_t manner = {};
+    uint16_t status_point = {};
+    uint16_t hp = {};
+    uint16_t max_hp = {};
+    uint16_t sp = {};
+    uint16_t max_sp = {};
+    uint16_t speed = {};
+    Species species = {};
+    uint16_t hair_style = {};
+    uint16_t weapon = {};
+    uint16_t base_level = {};
+    uint16_t skill_point = {};
+    ItemNameId head_bottom = {};
+    ItemNameId shield = {};
+    ItemNameId head_top = {};
+    ItemNameId head_mid = {};
+    uint16_t hair_color = {};
+    ItemNameId misc2 = {};
+    CharName char_name = {};
+    Stats6 stats = {};
+    uint8_t char_num = {};
+    uint8_t unused2 = {};
+};
+struct NetCharSelect
+{
+    Little32 char_id;
+    Little32 base_exp;
+    Little32 zeny;
+    Little32 job_exp;
+    Little32 job_level;
+    Little16 shoes;
+    Little16 gloves;
+    Little16 cape;
+    Little16 misc1;
+    Little16 option;
+    Little16 unused;
+    Little32 karma;
+    Little32 manner;
+    Little16 status_point;
+    Little16 hp;
+    Little16 max_hp;
+    Little16 sp;
+    Little16 max_sp;
+    Little16 speed;
+    Little16 species;
+    Little16 hair_style;
+    Little16 weapon;
+    Little16 base_level;
+    Little16 skill_point;
+    Little16 head_bottom;
+    Little16 shield;
+    Little16 head_top;
+    Little16 head_mid;
+    Little16 hair_color;
+    Little16 misc2;
+    NetString<sizeof(CharName)> char_name;
+    NetStats6 stats;
+    Byte char_num;
+    Byte unused2;
+};
+static_assert(offsetof(NetCharSelect, char_id) == 0, "offsetof(NetCharSelect, char_id) == 0");
+static_assert(offsetof(NetCharSelect, base_exp) == 4, "offsetof(NetCharSelect, base_exp) == 4");
+static_assert(offsetof(NetCharSelect, zeny) == 8, "offsetof(NetCharSelect, zeny) == 8");
+static_assert(offsetof(NetCharSelect, job_exp) == 12, "offsetof(NetCharSelect, job_exp) == 12");
+static_assert(offsetof(NetCharSelect, job_level) == 16, "offsetof(NetCharSelect, job_level) == 16");
+static_assert(offsetof(NetCharSelect, shoes) == 20, "offsetof(NetCharSelect, shoes) == 20");
+static_assert(offsetof(NetCharSelect, gloves) == 22, "offsetof(NetCharSelect, gloves) == 22");
+static_assert(offsetof(NetCharSelect, cape) == 24, "offsetof(NetCharSelect, cape) == 24");
+static_assert(offsetof(NetCharSelect, misc1) == 26, "offsetof(NetCharSelect, misc1) == 26");
+static_assert(offsetof(NetCharSelect, option) == 28, "offsetof(NetCharSelect, option) == 28");
+static_assert(offsetof(NetCharSelect, unused) == 30, "offsetof(NetCharSelect, unused) == 30");
+static_assert(offsetof(NetCharSelect, karma) == 32, "offsetof(NetCharSelect, karma) == 32");
+static_assert(offsetof(NetCharSelect, manner) == 36, "offsetof(NetCharSelect, manner) == 36");
+static_assert(offsetof(NetCharSelect, status_point) == 40, "offsetof(NetCharSelect, status_point) == 40");
+static_assert(offsetof(NetCharSelect, hp) == 42, "offsetof(NetCharSelect, hp) == 42");
+static_assert(offsetof(NetCharSelect, max_hp) == 44, "offsetof(NetCharSelect, max_hp) == 44");
+static_assert(offsetof(NetCharSelect, sp) == 46, "offsetof(NetCharSelect, sp) == 46");
+static_assert(offsetof(NetCharSelect, max_sp) == 48, "offsetof(NetCharSelect, max_sp) == 48");
+static_assert(offsetof(NetCharSelect, speed) == 50, "offsetof(NetCharSelect, speed) == 50");
+static_assert(offsetof(NetCharSelect, species) == 52, "offsetof(NetCharSelect, species) == 52");
+static_assert(offsetof(NetCharSelect, hair_style) == 54, "offsetof(NetCharSelect, hair_style) == 54");
+static_assert(offsetof(NetCharSelect, weapon) == 56, "offsetof(NetCharSelect, weapon) == 56");
+static_assert(offsetof(NetCharSelect, base_level) == 58, "offsetof(NetCharSelect, base_level) == 58");
+static_assert(offsetof(NetCharSelect, skill_point) == 60, "offsetof(NetCharSelect, skill_point) == 60");
+static_assert(offsetof(NetCharSelect, head_bottom) == 62, "offsetof(NetCharSelect, head_bottom) == 62");
+static_assert(offsetof(NetCharSelect, shield) == 64, "offsetof(NetCharSelect, shield) == 64");
+static_assert(offsetof(NetCharSelect, head_top) == 66, "offsetof(NetCharSelect, head_top) == 66");
+static_assert(offsetof(NetCharSelect, head_mid) == 68, "offsetof(NetCharSelect, head_mid) == 68");
+static_assert(offsetof(NetCharSelect, hair_color) == 70, "offsetof(NetCharSelect, hair_color) == 70");
+static_assert(offsetof(NetCharSelect, misc2) == 72, "offsetof(NetCharSelect, misc2) == 72");
+static_assert(offsetof(NetCharSelect, char_name) == 74, "offsetof(NetCharSelect, char_name) == 74");
+static_assert(offsetof(NetCharSelect, stats) == 98, "offsetof(NetCharSelect, stats) == 98");
+static_assert(offsetof(NetCharSelect, char_num) == 104, "offsetof(NetCharSelect, char_num) == 104");
+static_assert(offsetof(NetCharSelect, unused2) == 105, "offsetof(NetCharSelect, unused2) == 105");
+static_assert(sizeof(NetCharSelect) == 106, "sizeof(NetCharSelect) == 106");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetCharSelect *network, CharSelect native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->char_id, native.char_id);
+    rv &= native_to_network(&network->base_exp, native.base_exp);
+    rv &= native_to_network(&network->zeny, native.zeny);
+    rv &= native_to_network(&network->job_exp, native.job_exp);
+    rv &= native_to_network(&network->job_level, native.job_level);
+    rv &= native_to_network(&network->shoes, native.shoes);
+    rv &= native_to_network(&network->gloves, native.gloves);
+    rv &= native_to_network(&network->cape, native.cape);
+    rv &= native_to_network(&network->misc1, native.misc1);
+    rv &= native_to_network(&network->option, native.option);
+    rv &= native_to_network(&network->unused, native.unused);
+    rv &= native_to_network(&network->karma, native.karma);
+    rv &= native_to_network(&network->manner, native.manner);
+    rv &= native_to_network(&network->status_point, native.status_point);
+    rv &= native_to_network(&network->hp, native.hp);
+    rv &= native_to_network(&network->max_hp, native.max_hp);
+    rv &= native_to_network(&network->sp, native.sp);
+    rv &= native_to_network(&network->max_sp, native.max_sp);
+    rv &= native_to_network(&network->speed, native.speed);
+    rv &= native_to_network(&network->species, native.species);
+    rv &= native_to_network(&network->hair_style, native.hair_style);
+    rv &= native_to_network(&network->weapon, native.weapon);
+    rv &= native_to_network(&network->base_level, native.base_level);
+    rv &= native_to_network(&network->skill_point, native.skill_point);
+    rv &= native_to_network(&network->head_bottom, native.head_bottom);
+    rv &= native_to_network(&network->shield, native.shield);
+    rv &= native_to_network(&network->head_top, native.head_top);
+    rv &= native_to_network(&network->head_mid, native.head_mid);
+    rv &= native_to_network(&network->hair_color, native.hair_color);
+    rv &= native_to_network(&network->misc2, native.misc2);
+    rv &= native_to_network(&network->char_name, native.char_name);
+    rv &= native_to_network(&network->stats, native.stats);
+    rv &= native_to_network(&network->char_num, native.char_num);
+    rv &= native_to_network(&network->unused2, native.unused2);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(CharSelect *native, NetCharSelect network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->char_id, network.char_id);
+    rv &= network_to_native(&native->base_exp, network.base_exp);
+    rv &= network_to_native(&native->zeny, network.zeny);
+    rv &= network_to_native(&native->job_exp, network.job_exp);
+    rv &= network_to_native(&native->job_level, network.job_level);
+    rv &= network_to_native(&native->shoes, network.shoes);
+    rv &= network_to_native(&native->gloves, network.gloves);
+    rv &= network_to_native(&native->cape, network.cape);
+    rv &= network_to_native(&native->misc1, network.misc1);
+    rv &= network_to_native(&native->option, network.option);
+    rv &= network_to_native(&native->unused, network.unused);
+    rv &= network_to_native(&native->karma, network.karma);
+    rv &= network_to_native(&native->manner, network.manner);
+    rv &= network_to_native(&native->status_point, network.status_point);
+    rv &= network_to_native(&native->hp, network.hp);
+    rv &= network_to_native(&native->max_hp, network.max_hp);
+    rv &= network_to_native(&native->sp, network.sp);
+    rv &= network_to_native(&native->max_sp, network.max_sp);
+    rv &= network_to_native(&native->speed, network.speed);
+    rv &= network_to_native(&native->species, network.species);
+    rv &= network_to_native(&native->hair_style, network.hair_style);
+    rv &= network_to_native(&native->weapon, network.weapon);
+    rv &= network_to_native(&native->base_level, network.base_level);
+    rv &= network_to_native(&native->skill_point, network.skill_point);
+    rv &= network_to_native(&native->head_bottom, network.head_bottom);
+    rv &= network_to_native(&native->shield, network.shield);
+    rv &= network_to_native(&native->head_top, network.head_top);
+    rv &= network_to_native(&native->head_mid, network.head_mid);
+    rv &= network_to_native(&native->hair_color, network.hair_color);
+    rv &= network_to_native(&native->misc2, network.misc2);
+    rv &= network_to_native(&native->char_name, network.char_name);
+    rv &= network_to_native(&native->stats, network.stats);
+    rv &= network_to_native(&native->char_num, network.char_num);
+    rv &= network_to_native(&native->unused2, network.unused2);
+    return rv;
+}
+
 #endif // TMWA_PROTO2_TYPES_HPP

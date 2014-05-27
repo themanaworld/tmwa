@@ -45,4 +45,21 @@ class VarName;
 class MapName;
 class CharName;
 
+# if 0
+class item;
+class point;
+class skill_value;
+class global_reg;
+class CharKey;
+class CharData;
+class CharPair;
+# endif
+class Storage;
+# if 0
+class GM_Account;
+class party_member;
+# endif
+class PartyMost;
+class PartyPair;
+
 #endif // TMWA_MMO_FWD_HPP

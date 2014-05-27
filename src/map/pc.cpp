@@ -648,7 +648,7 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
 {
     dumb_ptr<map_session_data> sd = NULL;
 
-    struct party *p;
+    PartyPair p;
     tick_t tick = gettick();
 
     sd = map_id2sd(account_to_block(id));
@@ -754,7 +754,7 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
 
     // パーティ、ギルドデータの要求
     if (sd->status.party_id
-        && (p = party_search(sd->status.party_id)) == NULL)
+        && !(p = party_search(sd->status.party_id)))
         party_request_info(sd->status.party_id);
 
     // pvpの設定
@@ -2096,7 +2096,7 @@ int pc_dropitem(dumb_ptr<map_session_data> sd, int n, int amount)
 static
 int can_pick_item_up_from(dumb_ptr<map_session_data> self, BlockId other_id)
 {
-    struct party *p = party_search(self->status.party_id);
+    PartyPair p = party_search(self->status.party_id);
 
     /* From ourselves or from no-one? */
     if (!self || self->bl_id == other_id || !other_id)
@@ -2503,8 +2503,8 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
 
         if (sd->status.party_id)
         {                       // パーティのＨＰ情報通知検査
-            struct party *p = party_search(sd->status.party_id);
-            if (p != NULL)
+            PartyPair p = party_search(sd->status.party_id);
+            if (p)
             {
                 int p_flag = 0;
                 map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &p_flag),
@@ -2677,8 +2677,8 @@ int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
 
     if (sd->status.party_id)
     {                           // パーティのＨＰ情報通知検査
-        struct party *p = party_search(sd->status.party_id);
-        if (p != NULL)
+        PartyPair p = party_search(sd->status.party_id);
+        if (p)
         {
             int flag = 0;
             map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &flag),
@@ -3432,8 +3432,8 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
 
         if (sd->status.party_id)
         {                       // on-the-fly party hp updates [Valaris]
-            struct party *p = party_search(sd->status.party_id);
-            if (p != NULL)
+            PartyPair p = party_search(sd->status.party_id);
+            if (p)
                 clif_party_hp(p, sd);
         }                       // end addition [Valaris]
 
@@ -3799,8 +3799,8 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
 
     if (sd->status.party_id)
     {                           // on-the-fly party hp updates [Valaris]
-        struct party *p = party_search(sd->status.party_id);
-        if (p != NULL)
+        PartyPair p = party_search(sd->status.party_id);
+        if (p)
             clif_party_hp(p, sd);
     }                           // end addition [Valaris]
 
@@ -4244,7 +4244,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
         return 0;
     }
     if (battle_config.error_log)
-        PRINTF("pc_setaccountreg : couldn't set %s (ACCOUNT_REG_NUM = %d)\n"_fmt,
+        PRINTF("pc_setaccountreg : couldn't set %s (ACCOUNT_REG_NUM = %zu)\n"_fmt,
                 reg, ACCOUNT_REG_NUM);
 
     return 1;

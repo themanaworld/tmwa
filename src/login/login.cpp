@@ -1372,7 +1372,7 @@ void parse_fromchar(Session *s)
                             else
                                 timestamp = ad.ban_until_time;
                             struct tm tmtime = timestamp;
-                            HumanTimeDiff ban_diff = fixed.deltas;
+                            HumanTimeDiff ban_diff = fixed.ban_add;
                             tmtime.tm_year += ban_diff.year;
                             tmtime.tm_mon += ban_diff.month;
                             tmtime.tm_mday += ban_diff.day;

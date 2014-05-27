@@ -117,12 +117,12 @@ int clif_tradecancelled(dumb_ptr<map_session_data> sd);
 int clif_tradecompleted(dumb_ptr<map_session_data> sd, int fail);
 
 // storage
-int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor);
+int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor);
 int clif_storageequiplist(dumb_ptr<map_session_data> sd,
-        struct storage *stor);
+        Storage *stor);
 int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
-        struct storage *stor);
-int clif_storageitemadded(dumb_ptr<map_session_data> sd, struct storage *stor,
+        Storage *stor);
+int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
         int index, int amount);
 int clif_storageitemremoved(dumb_ptr<map_session_data> sd, int index,
         int amount);
@@ -161,17 +161,17 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl);
 
 // party
 int clif_party_created(dumb_ptr<map_session_data> sd, int flag);
-int clif_party_info(struct party *p, Session *s);
+int clif_party_info(PartyPair p, Session *s);
 void clif_party_invite(dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> tsd);
 void clif_party_inviteack(dumb_ptr<map_session_data> sd, CharName nick, int flag);
-void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd,
+void clif_party_option(PartyPair p, dumb_ptr<map_session_data> sd,
         int flag);
-void clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
+void clif_party_leaved(PartyPair p, dumb_ptr<map_session_data> sd,
         AccountId account_id, CharName name, int flag);
-void clif_party_message(struct party *p, AccountId account_id, XString mes);
-int clif_party_xy(struct party *p, dumb_ptr<map_session_data> sd);
-int clif_party_hp(struct party *p, dumb_ptr<map_session_data> sd);
+void clif_party_message(PartyPair p, AccountId account_id, XString mes);
+int clif_party_xy(PartyPair p, dumb_ptr<map_session_data> sd);
+int clif_party_hp(PartyPair p, dumb_ptr<map_session_data> sd);
 
 // atcommand
 void clif_displaymessage(Session *s, XString mes);

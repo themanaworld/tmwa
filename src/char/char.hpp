@@ -45,9 +45,7 @@ const CharPair *search_character(CharName character_name);
 const CharPair *search_character_id(CharId char_id);
 Session *server_for(const CharPair *mcs);
 
-int mapif_sendall(const uint8_t *buf, unsigned int len);
-int mapif_sendallwos(Session *s, const uint8_t *buf, unsigned int len);
-int mapif_send(Session *s, const uint8_t *buf, unsigned int len);
+auto iter_map_sessions() -> decltype(filter_iterator<Session *>(std::declval<Array<Session *, MAX_MAP_SERVERS> *>()));
 
 void char_log(XString line);
 

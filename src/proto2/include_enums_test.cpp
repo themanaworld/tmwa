@@ -21,3 +21,4 @@
 #include "../poison.hpp"
 
 using Test_SEX = SEX;
+using Test_Option = Option;

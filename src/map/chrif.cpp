@@ -268,6 +268,7 @@ int chrif_changemapserverack(Session *s)
     if (sd == NULL || sd->status_key.char_id != wrap<CharId>(RFIFOL(s, 14)))
         return -1;
 
+    // I am fairly certain that this is not possible
     if (RFIFOL(s, 6) == 1)
     {
         if (battle_config.error_log)
@@ -956,7 +957,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameI
         case BL::PC:
         {
             dumb_ptr<map_session_data> pc = bl->is_player();
-            struct storage *stor = account2storage2(pc->status_key.account_id);
+            Storage *stor = account2storage2(pc->status_key.account_id);
             int j;
 
             for (j = 0; j < MAX_INVENTORY; j++)

@@ -808,7 +808,7 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    struct party *p;
+    PartyPair p;
 
     VString<23> match_text = message;
     match_text = match_text.to_lower();
@@ -925,7 +925,7 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    struct party *p;
+    PartyPair p;
 
     map_local *map_id;
     {
@@ -990,7 +990,7 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    struct party *p;
+    PartyPair p;
 
     VString<23> match_text = message;
     match_text = match_text.to_lower();
@@ -1144,7 +1144,7 @@ static
 ATCE atcommand_storage(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    struct storage *stor;
+    Storage *stor;
 
     if (sd->state.storage_open)
     {
@@ -3393,7 +3393,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     PartyName party_name;
-    struct party *p;
+    PartyPair p;
     int count;
 
     if (!extract(message, &party_name) || !party_name)
@@ -3407,9 +3407,9 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::PERM;
     }
 
-    if ((p = party_searchname(party_name)) != NULL ||
+    if ((p = party_searchname(party_name)) ||
             // name first to avoid error when name begin with a number
-        (p = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))))) != NULL)
+        (p = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))))))
     {
         count = 0;
         for (io::FD i : iter_fds())
@@ -3420,7 +3420,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
             dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth
                 && sd->status_key.account_id != pl_sd->status_key.account_id
-                && pl_sd->status.party_id == p->party_id)
+                && pl_sd->status.party_id == p.party_id)
             {
                 if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
                     && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
@@ -3589,12 +3589,12 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
     if (!extract(message, &party_name))
         return ATCE::USAGE;
 
-    struct party *p;
-    if ((p = party_searchname(party_name)) != NULL ||
+    PartyPair p;
+    if ((p = party_searchname(party_name)) ||
             // name first to avoid error when name begin with a number
-        (p = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))))) != NULL)
+        (p = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))))))
     {
-        if (sd->partyspy == p->party_id)
+        if (sd->partyspy == p.party_id)
         {
             sd->partyspy = PartyId();
             AString output = STRPRINTF("No longer spying on the %s party."_fmt, p->name);
@@ -3602,7 +3602,7 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
         }
         else
         {
-            sd->partyspy = p->party_id;
+            sd->partyspy = p.party_id;
             AString output = STRPRINTF("Spying on the %s party."_fmt, p->name);
             clif_displaymessage(s, output);
         }
@@ -3963,7 +3963,7 @@ static
 ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    struct storage *stor;
+    Storage *stor;
     struct item_data *item_data = NULL;
     int i, count, counter;
     CharName character;

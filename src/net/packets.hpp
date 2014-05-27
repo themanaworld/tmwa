@@ -79,10 +79,30 @@ SendResult net_send_fpacket(Session *s, const NetPacket_Fixed<id>& fixed)
 
 template<uint16_t id>
 __attribute__((warn_unused_result))
+SendResult net_send_ppacket(Session *s, const NetPacket_Payload<id>& payload)
+{
+    bool ok = packet_send(s, reinterpret_cast<const Byte *>(&payload), sizeof(NetPacket_Payload<id>));
+    return ok ? SendResult::Success : SendResult::Fail;
+}
+
+template<uint16_t id>
+__attribute__((warn_unused_result))
 SendResult net_send_vpacket(Session *s, const NetPacket_Head<id>& head, const std::vector<NetPacket_Repeat<id>>& repeat)
 {
     bool ok = packet_send(s, reinterpret_cast<const Byte *>(&head), sizeof(NetPacket_Head<id>));
     ok &= packet_send(s, reinterpret_cast<const Byte *>(repeat.data()), repeat.size() * sizeof(NetPacket_Repeat<id>));
+    return ok ? SendResult::Success : SendResult::Fail;
+}
+
+template<uint16_t id>
+__attribute__((warn_unused_result))
+SendResult net_send_opacket(Session *s, const NetPacket_Head<id>& head, bool has_opt, const NetPacket_Option<id>& opt)
+{
+    bool ok = packet_send(s, reinterpret_cast<const Byte *>(&head), sizeof(NetPacket_Head<id>));
+    if (has_opt)
+    {
+        ok &= packet_send(s, reinterpret_cast<const Byte *>(&opt), sizeof(NetPacket_Option<id>));
+    }
     return ok ? SendResult::Success : SendResult::Fail;
 }
 
@@ -94,6 +114,19 @@ RecvResult net_recv_fpacket(Session *s, NetPacket_Fixed<id>& fixed)
     if (ok)
     {
         packet_discard(s, sizeof(NetPacket_Fixed<id>));
+        return RecvResult::Complete;
+    }
+    return RecvResult::Incomplete;
+}
+
+template<uint16_t id>
+__attribute__((warn_unused_result))
+RecvResult net_recv_ppacket(Session *s, NetPacket_Payload<id>& payload)
+{
+    bool ok = packet_fetch(s, 0, reinterpret_cast<Byte *>(&payload), sizeof(NetPacket_Payload<id>));
+    if (ok)
+    {
+        packet_discard(s, sizeof(NetPacket_Payload<id>));
         return RecvResult::Complete;
     }
     return RecvResult::Incomplete;
@@ -127,6 +160,37 @@ RecvResult net_recv_vpacket(Session *s, NetPacket_Head<id>& head, std::vector<Ne
     return RecvResult::Incomplete;
 }
 
+template<uint16_t id>
+__attribute__((warn_unused_result))
+RecvResult net_recv_opacket(Session *s, NetPacket_Head<id>& head, bool *has_opt, NetPacket_Option<id>& opt)
+{
+    bool ok = packet_fetch(s, 0, reinterpret_cast<Byte *>(&head), sizeof(NetPacket_Head<id>));
+    if (ok)
+    {
+        Packet_Head<id> nat;
+        if (!network_to_native(&nat, head))
+            return RecvResult::Error;
+        if (packet_avail(s) < nat.magic_packet_length)
+            return RecvResult::Incomplete;
+        if (nat.magic_packet_length < sizeof(NetPacket_Head<id>))
+            return RecvResult::Error;
+        size_t bytes_repeat = nat.magic_packet_length - sizeof(NetPacket_Head<id>);
+        if (bytes_repeat % sizeof(NetPacket_Repeat<id>))
+            return RecvResult::Error;
+        size_t has_opt_pls = bytes_repeat / sizeof(NetPacket_Option<id>);
+        if (has_opt_pls > 1)
+            return RecvResult::Error;
+        *has_opt = has_opt_pls;
+        if (!*has_opt || packet_fetch(s, sizeof(NetPacket_Head<id>), reinterpret_cast<Byte *>(&opt), sizeof(NetPacket_Option<id>)))
+        {
+            packet_discard(s, nat.magic_packet_length);
+            return RecvResult::Complete;
+        }
+        return RecvResult::Incomplete;
+    }
+    return RecvResult::Incomplete;
+}
+
 
 template<uint16_t id, uint16_t size>
 void send_fpacket(Session *s, const Packet_Fixed<id>& fixed)
@@ -141,6 +205,23 @@ void send_fpacket(Session *s, const Packet_Fixed<id>& fixed)
         return;
     }
     SendResult rv = net_send_fpacket(s, net_fixed);
+    if (rv != SendResult::Success)
+        s->set_eof();
+}
+
+template<uint16_t id>
+void send_ppacket(Session *s, Packet_Payload<id>& payload)
+{
+    static_assert(id == Packet_Payload<id>::PACKET_ID, "Packet_Payload<id>::PACKET_ID");
+
+    NetPacket_Payload<id> net_payload;
+    payload.magic_packet_length = sizeof(NetPacket_Payload<id>);
+    if (!native_to_network(&net_payload, payload))
+    {
+        s->set_eof();
+        return;
+    }
+    SendResult rv = net_send_ppacket(s, net_payload);
     if (rv != SendResult::Success)
         s->set_eof();
 }
@@ -183,6 +264,43 @@ void send_vpacket(Session *s, Packet_Head<id>& head, const std::vector<Packet_Re
         s->set_eof();
 }
 
+template<uint16_t id, uint16_t headsize, uint16_t optsize>
+void send_opacket(Session *s, Packet_Head<id>& head, bool has_opt, const Packet_Option<id>& opt)
+{
+    static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
+    static_assert(headsize == sizeof(NetPacket_Head<id>), "sizeof(NetPacket_Head<id>)");
+    static_assert(id == Packet_Option<id>::PACKET_ID, "Packet_Option<id>::PACKET_ID");
+    static_assert(optsize == sizeof(NetPacket_Option<id>), "sizeof(NetPacket_Option<id>)");
+
+    NetPacket_Head<id> net_head;
+    // since these are already allocated, can't overflow address space
+    size_t total_size = sizeof(NetPacket_Head<id>) + has_opt * sizeof(NetPacket_Option<id>);
+    // truncates
+    head.magic_packet_length = total_size;
+    if (head.magic_packet_length != total_size)
+    {
+        s->set_eof();
+        return;
+    }
+    NetPacket_Option<id> net_opt;
+    if (!native_to_network(&net_head, head))
+    {
+        s->set_eof();
+        return;
+    }
+    if (has_opt)
+    {
+        if (!native_to_network(&net_opt, opt))
+        {
+            s->set_eof();
+            return;
+        }
+    }
+    SendResult rv = net_send_opacket(s, net_head, has_opt, net_opt);
+    if (rv != SendResult::Success)
+        s->set_eof();
+}
+
 template<uint16_t id, uint16_t size>
 __attribute__((warn_unused_result))
 RecvResult recv_fpacket(Session *s, Packet_Fixed<id>& fixed)
@@ -192,10 +310,29 @@ RecvResult recv_fpacket(Session *s, Packet_Fixed<id>& fixed)
 
     NetPacket_Fixed<id> net_fixed;
     RecvResult rv = net_recv_fpacket(s, net_fixed);
-    assert (fixed.magic_packet_id == Packet_Fixed<id>::PACKET_ID);
     if (rv == RecvResult::Complete)
     {
         if (!network_to_native(&fixed, net_fixed))
+            return RecvResult::Error;
+        assert (fixed.magic_packet_id == Packet_Fixed<id>::PACKET_ID);
+    }
+    return rv;
+}
+
+template<uint16_t id>
+__attribute__((warn_unused_result))
+RecvResult recv_ppacket(Session *s, Packet_Payload<id>& payload)
+{
+    static_assert(id == Packet_Payload<id>::PACKET_ID, "Packet_Payload<id>::PACKET_ID");
+
+    NetPacket_Payload<id> net_payload;
+    RecvResult rv = net_recv_ppacket(s, net_payload);
+    if (rv == RecvResult::Complete)
+    {
+        if (!network_to_native(&payload, net_payload))
+            return RecvResult::Error;
+        assert (payload.magic_packet_id == Packet_Payload<id>::PACKET_ID);
+        if (payload.magic_packet_length != sizeof(net_payload))
             return RecvResult::Error;
     }
     return rv;
@@ -213,15 +350,43 @@ RecvResult recv_vpacket(Session *s, Packet_Head<id>& head, std::vector<Packet_Re
     NetPacket_Head<id> net_head;
     std::vector<NetPacket_Repeat<id>> net_repeat;
     RecvResult rv = net_recv_vpacket(s, net_head, net_repeat);
-    assert (head.magic_packet_id == Packet_Head<id>::PACKET_ID);
     if (rv == RecvResult::Complete)
     {
         if (!network_to_native(&head, net_head))
             return RecvResult::Error;
+        assert (head.magic_packet_id == Packet_Head<id>::PACKET_ID);
+
         repeat.resize(net_repeat.size());
         for (size_t i = 0; i < net_repeat.size(); ++i)
         {
             if (!network_to_native(&repeat[i], net_repeat[i]))
+                return RecvResult::Error;
+        }
+    }
+    return rv;
+}
+
+template<uint16_t id, uint16_t headsize, uint16_t optsize>
+__attribute__((warn_unused_result))
+RecvResult recv_opacket(Session *s, Packet_Head<id>& head, bool *has_opt, Packet_Option<id>& opt)
+{
+    static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
+    static_assert(headsize == sizeof(NetPacket_Head<id>), "NetPacket_Head<id>");
+    static_assert(id == Packet_Option<id>::PACKET_ID, "Packet_Option<id>::PACKET_ID");
+    static_assert(optsize == sizeof(NetPacket_Option<id>), "NetPacket_Option<id>");
+
+    NetPacket_Head<id> net_head;
+    NetPacket_Option<id> net_opt;
+    RecvResult rv = net_recv_opacket(s, net_head, has_opt, net_opt);
+    if (rv == RecvResult::Complete)
+    {
+        if (!network_to_native(&head, net_head))
+            return RecvResult::Error;
+        assert (head.magic_packet_id == Packet_Head<id>::PACKET_ID);
+
+        if (*has_opt)
+        {
+            if (!network_to_native(&opt, net_opt))
                 return RecvResult::Error;
         }
     }

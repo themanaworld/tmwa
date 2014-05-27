@@ -115,6 +115,22 @@ public:
         return true; // LIES. But this code is going away soon anyway
     }
 
+    // TODO kill this code too
+    friend
+    bool native_to_network(Little16 *network, GmLevel native)
+    {
+        uint16_t tmp = native.bits;
+        return native_to_network(network, tmp);
+    }
+    friend
+    bool network_to_native(GmLevel *native, Little16 network)
+    {
+        uint16_t tmp;
+        bool rv = network_to_native(&tmp, network);
+        native->bits = tmp;
+        return rv;
+    }
+
     friend
     bool native_to_network(Little32 *network, GmLevel native)
     {

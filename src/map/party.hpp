@@ -32,8 +32,8 @@
 # include "../mmo/fwd.hpp"
 
 void do_init_party(void);
-struct party *party_search(PartyId party_id);
-struct party *party_searchname(PartyName str);
+PartyPair party_search(PartyId party_id);
+PartyPair party_searchname(PartyName str);
 
 int party_create(dumb_ptr<map_session_data> sd, PartyName name);
 void party_created(AccountId account_id, int fail, PartyId party_id, PartyName name);
@@ -46,7 +46,7 @@ int party_member_leaved(PartyId party_id, AccountId account_id, CharName name);
 int party_reply_invite(dumb_ptr<map_session_data> sd, AccountId account_id,
         int flag);
 int party_recv_noinfo(PartyId party_id);
-int party_recv_info(const struct party *sp);
+int party_recv_info(const PartyPair sp);
 void party_recv_movemap(PartyId party_id, AccountId account_id, MapName map,
         int online, int lv);
 int party_broken(PartyId party_id);
@@ -60,10 +60,10 @@ int party_send_logout(dumb_ptr<map_session_data> sd);
 void party_send_message(dumb_ptr<map_session_data> sd, XString mes);
 void party_recv_message(PartyId party_id, AccountId account_id, XString mes);
 
-void party_send_xy_clear(struct party *p);
+void party_send_xy_clear(PartyPair p);
 void party_send_hp_check(dumb_ptr<block_list> bl, PartyId party_id, int *flag);
 
-int party_exp_share(struct party *p, map_local *map, int base_exp, int job_exp);
+int party_exp_share(PartyPair p, map_local *map, int base_exp, int job_exp);
 
 void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<map_session_data> sd, int type);

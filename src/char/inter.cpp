@@ -38,7 +38,9 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
-#include "../net/vomit.hpp"
+#include "../net/packets.hpp"
+
+#include "../proto2/char-map.hpp"
 
 #include "../mmo/extract.hpp"
 #include "../mmo/mmo.hpp"
@@ -54,28 +56,14 @@ AString accreg_txt = "save/accreg.txt"_s;
 
 struct accreg
 {
-    int account_id, reg_num;
+    AccountId account_id;
+    int reg_num;
     Array<struct global_reg, ACCOUNT_REG_NUM> reg;
 };
 static
-Map<int, struct accreg> accreg_db;
+Map<AccountId, struct accreg> accreg_db;
 
 int party_share_level = 10;
-
-// 受信パケット長リスト
-static
-int inter_recv_packet_length[] =
-{
-    -1, -1, 7, -1, -1, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    6, -1, 0, 0, 0, 0, 0, 0, 10, -1, 0, 0, 0, 0, 0, 0,
-    72, 6, 52, 14, 10, 29, 6, -1, 34, 0, 0, 0, 0, 0, 0, 0,
-    -1, 6, -1, 0, 55, 19, 6, -1, 14, -1, -1, -1, 14, 19, 186, -1,
-    5, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    48, 14, -1, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
 
 //--------------------------------------------------------
 
@@ -101,7 +89,7 @@ bool extract(XString str, struct accreg *reg)
                     &reg->account_id,
                     vrec<' '>(&vars))))
         return false;
-    if (reg->account_id <= 0)
+    if (!reg->account_id)
         return false;
 
     if (vars.size() > ACCOUNT_REG_NUM)
@@ -218,14 +206,10 @@ void inter_init2()
 static
 void mapif_GMmessage(XString mes)
 {
-    size_t str_len = mes.size() + 1;
-    size_t msg_len = str_len + 4;
-    uint8_t buf[msg_len];
-
-    WBUFW(buf, 0) = 0x3800;
-    WBUFW(buf, 2) = msg_len;
-    WBUF_STRING(buf, 4, mes, str_len);
-    mapif_sendall(buf, msg_len);
+    for (Session *ss : iter_map_sessions())
+    {
+        send_packet_repeatonly<0x3800, 4, 1>(ss, mes);
+    }
 }
 
 // Wisp/page transmission to correct map-server
@@ -235,103 +219,105 @@ void mapif_wis_message(Session *tms, CharName src, CharName dst, XString msg)
     const CharPair *mcs = search_character(src);
     assert (mcs);
 
-    size_t str_size = msg.size() + 1;
-    uint8_t buf[56 + str_size];
-
-    WBUFW(buf, 0) = 0x3801;
-    WBUFW(buf, 2) = 56 + str_size;
-    WBUFL(buf, 4) = unwrap<CharId>(mcs->key.char_id); // formerly, whisper ID
-    WBUF_STRING(buf, 8, src.to__actual(), 24);
-    WBUF_STRING(buf, 32, dst.to__actual(), 24);
-    WBUF_STRING(buf, 56, msg, str_size);
-    mapif_send(tms, buf, WBUFW(buf, 2));
+    Packet_Head<0x3801> head_01;
+    head_01.whisper_id = mcs->key.char_id;
+    head_01.src_char_name = src;
+    head_01.dst_char_name = dst;
+    send_vpacket<0x3801, 56, 1>(tms, head_01, msg);
 }
 
 // Wisp/page transmission result to map-server
 static
 void mapif_wis_end(Session *sms, CharName sender, int flag)
 {
-    uint8_t buf[27];
-
-    WBUFW(buf, 0) = 0x3802;
-    WBUF_STRING(buf, 2, sender.to__actual(), 24);
-    WBUFB(buf, 26) = flag;     // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-    mapif_send(sms, buf, 27);
+    Packet_Fixed<0x3802> fixed_02;
+    fixed_02.sender_char_name = sender;
+    fixed_02.flag = flag;     // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+    send_fpacket<0x3802, 27>(sms, fixed_02);
 }
 
 // アカウント変数送信
 static
-void mapif_account_reg(Session *s)
+void mapif_account_reg(Session *s, AccountId account_id, const std::vector<Packet_Repeat<0x3004>>& repeat)
 {
-    size_t len = RFIFOW(s, 2);
-    uint8_t buf[len];
-    RFIFO_BUF_CLONE(s, buf, len);
-    WBUFW(buf, 0) = 0x3804;
-    mapif_sendallwos(s, buf, WBUFW(buf, 2));
+    Packet_Head<0x3804> head_04;
+    head_04.account_id = account_id;
+    std::vector<Packet_Repeat<0x3804>> repeat_04(repeat.size());
+    for (size_t i = 0; i < repeat.size(); ++i)
+    {
+        repeat_04[i].name = repeat[i].name;
+        repeat_04[i].value = repeat[i].value;
+    }
+
+    for (Session *ss : iter_map_sessions())
+    {
+        if (ss == s)
+            continue;
+        send_vpacket<0x3804, 8, 36>(ss, head_04, repeat_04);
+    }
 }
 
 // アカウント変数要求返信
 static
-void mapif_account_reg_reply(Session *s, int account_id)
+void mapif_account_reg_reply(Session *s, AccountId account_id)
 {
     struct accreg *reg = accreg_db.search(account_id);
 
-    WFIFOW(s, 0) = 0x3804;
-    WFIFOL(s, 4) = account_id;
-    if (reg == NULL)
+    Packet_Head<0x3804> head_04;
+    head_04.account_id = account_id;
+    std::vector<Packet_Repeat<0x3804>> repeat_04;
+    if (reg)
     {
-        WFIFOW(s, 2) = 8;
-    }
-    else
-    {
+        repeat_04.resize(reg->reg_num);
         assert (reg->reg_num < ACCOUNT_REG_NUM);
-        int j, p;
-        for (j = 0, p = 8; j < reg->reg_num; j++, p += 36)
+        for (size_t j = 0; j < reg->reg_num; ++j)
         {
-            WFIFO_STRING(s, p, reg->reg[j].str, 32);
-            WFIFOL(s, p + 32) = reg->reg[j].value;
+            repeat_04[j].name = reg->reg[j].str;
+            repeat_04[j].value = reg->reg[j].value;
         }
-        WFIFOW(s, 2) = p;
     }
-    WFIFOSET(s, WFIFOW(s, 2));
+    send_vpacket<0x3804, 8, 36>(s, head_04, repeat_04);
 }
 
 //--------------------------------------------------------
 // received packets from map-server
 
 // GMメッセージ送信
-static
-void mapif_parse_GMmessage(Session *s)
+static __attribute__((warn_unused_result))
+RecvResult mapif_parse_GMmessage(Session *s)
 {
-    size_t msg_len = RFIFOW(s, 2);
-    size_t str_len = msg_len - 4;
-    AString buf = RFIFO_STRING(s, 4, str_len);
+    AString repeat;
+    RecvResult rv = recv_packet_repeatonly<0x3000, 4, 1>(s, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
 
+    AString& buf = repeat;
     mapif_GMmessage(buf);
+
+    return rv;
 }
 
 // Wisp/page request to send
-static
-void mapif_parse_WisRequest(Session *sms)
+static __attribute__((warn_unused_result))
+RecvResult mapif_parse_WisRequest(Session *sms)
 {
-    if (RFIFOW(sms, 2) - 52 <= 0)
-    {                           // normaly, impossible, but who knows...
-        PRINTF("inter: Wis message doesn't exist.\n"_fmt);
-        return;
-    }
+    Packet_Head<0x3001> head;
+    AString repeat;
+    RecvResult rv = recv_vpacket<0x3001, 52, 1>(sms, head, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    CharName from = stringish<CharName>(RFIFO_STRING<24>(sms, 4));
-    CharName to = stringish<CharName>(RFIFO_STRING<24>(sms, 28));
+    CharName from = head.from_char_name;
+    CharName to = head.to_char_name;
 
     // search if character exists before to ask all map-servers
     const CharPair *mcs = search_character(to);
     if (!mcs)
     {
-        uint8_t buf[27];
-        WBUFW(buf, 0) = 0x3802;
-        WBUF_STRING(buf, 2, from.to__actual(), 24);
-        WBUFB(buf, 26) = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-        mapif_send(sms, buf, 27);
+        Packet_Fixed<0x3802> fixed_02;
+        fixed_02.sender_char_name = from;
+        fixed_02.flag = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+        send_fpacket<0x3802, 27>(sms, fixed_02);
         // Character exists. So, ask all map-servers
     }
     else
@@ -341,17 +327,15 @@ void mapif_parse_WisRequest(Session *sms)
         // if source is destination, don't ask other servers.
         if (from == to)
         {
-            uint8_t buf[27];
-            WBUFW(buf, 0) = 0x3802;
-            WBUF_STRING(buf, 2, from.to__actual(), 24);
-            WBUFB(buf, 26) = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-            mapif_send(sms, buf, 27);
+            Packet_Fixed<0x3802> fixed_02;
+            fixed_02.sender_char_name = from;
+            fixed_02.flag = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+            send_fpacket<0x3802, 27>(sms, fixed_02);
         }
         else
         {
-            size_t len = RFIFOW(sms, 2) - 52;
             Session *tms = server_for(mcs); // for to
-            AString msg = RFIFO_STRING(sms, 52, len);
+            AString& msg = repeat;
             if (tms)
             {
                 mapif_wis_message(tms, from, to, msg);
@@ -362,69 +346,99 @@ void mapif_parse_WisRequest(Session *sms)
             }
         }
     }
+
+    return rv;
 }
 
 // Wisp/page transmission result
-static
-int mapif_parse_WisReply(Session *tms)
+static __attribute__((warn_unused_result))
+RecvResult mapif_parse_WisReply(Session *tms)
 {
-    CharId id = wrap<CharId>(RFIFOL(tms, 2));
-    uint8_t flag = RFIFOB(tms, 6);
+    Packet_Fixed<0x3002> fixed;
+    RecvResult rv = recv_fpacket<0x3002, 7>(tms, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    CharId id = fixed.char_id;
+    uint8_t flag = fixed.flag;
 
     const CharPair *smcs = search_character_id(id);
     CharName from = smcs->key.name;
     Session *sms = server_for(smcs);
+
     {
         mapif_wis_end(sms, from, flag);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
     }
 
-    return 0;
+    return rv;
 }
 
 // Received wisp message from map-server for ALL gm (just copy the message and resends it to ALL map-servers)
-static
-void mapif_parse_WisToGM(Session *s)
+static __attribute__((warn_unused_result))
+RecvResult mapif_parse_WisToGM(Session *s)
 {
-    size_t len = RFIFOW(s, 2);
-    uint8_t buf[len];
-    // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
+    Packet_Head<0x3003> head;
+    AString repeat;
+    RecvResult rv = recv_vpacket<0x3003, 30, 1>(s, head, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    RFIFO_BUF_CLONE(s, buf, len);
-    WBUFW(buf, 0) = 0x3803;
-    mapif_sendall(buf, len);
+    Packet_Head<0x3803> head_03;
+    head_03.char_name = head.char_name;
+    head_03.min_gm_level = head.min_gm_level;
+    for (Session *ss : iter_map_sessions())
+    {
+        send_vpacket<0x3803, 30, 1>(ss, head_03, repeat);
+    }
+
+    return rv;
 }
 
 // アカウント変数保存要求
-static
-void mapif_parse_AccReg(Session *s)
+static __attribute__((warn_unused_result))
+RecvResult mapif_parse_AccReg(Session *s)
 {
-    int j, p;
-    struct accreg *reg = accreg_db.search(RFIFOL(s, 4));
+    Packet_Head<0x3004> head;
+    std::vector<Packet_Repeat<0x3004>> repeat;
+    RecvResult rv = recv_vpacket<0x3004, 8, 36>(s, head, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    struct accreg *reg = accreg_db.search(head.account_id);
 
     if (reg == NULL)
     {
-        int account_id = RFIFOL(s, 4);
+        AccountId account_id = head.account_id;
         reg = accreg_db.init(account_id);
         reg->account_id = account_id;
     }
 
-    for (j = 0, p = 8; j < ACCOUNT_REG_NUM && p < RFIFOW(s, 2);
-         j++, p += 36)
+    size_t jlim = std::min(repeat.size(), ACCOUNT_REG_NUM);
+    for (size_t j = 0; j < jlim; ++j)
     {
-        reg->reg[j].str = stringish<VarName>(RFIFO_STRING<32>(s, p));
-        reg->reg[j].value = RFIFOL(s, p + 32);
+        reg->reg[j].str = repeat[j].name;
+        reg->reg[j].value = repeat[j].value;
     }
-    reg->reg_num = j;
+    reg->reg_num = jlim;
 
     // 他のMAPサーバーに送信
-    mapif_account_reg(s);
+    mapif_account_reg(s, head.account_id, repeat);
+
+    return rv;
 }
 
 // アカウント変数送信要求
-static
-void mapif_parse_AccRegRequest(Session *s)
+static __attribute__((warn_unused_result))
+RecvResult mapif_parse_AccRegRequest(Session *s)
 {
-    mapif_account_reg_reply(s, RFIFOL(s, 2));
+    Packet_Fixed<0x3005> fixed;
+    RecvResult rv = recv_fpacket<0x3005, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    mapif_account_reg_reply(s, fixed.account_id);
+
+    return rv;
 }
 
 //--------------------------------------------------------
@@ -432,70 +446,41 @@ void mapif_parse_AccRegRequest(Session *s)
 // map server からの通信（１パケットのみ解析すること）
 // エラーなら0(false)、処理できたなら1、
 // パケット長が足りなければ2をかえさなければならない
-int inter_parse_frommap(Session *ms)
+RecvResult inter_parse_frommap(Session *ms, uint16_t packet_id)
 {
-    int cmd = RFIFOW(ms, 0);
-    int len = 0;
+    int cmd = packet_id;
 
-    // inter鯖管轄かを調べる
-    if (cmd < 0x3000
-        || cmd >=
-        0x3000 +
-        (sizeof(inter_recv_packet_length) /
-         sizeof(inter_recv_packet_length[0])))
-        return 0;
-
-    // パケット長を調べる
-    if ((len =
-         inter_check_length(ms,
-                             inter_recv_packet_length[cmd - 0x3000])) == 0)
-        return 2;
+    RecvResult rv;
 
     switch (cmd)
     {
         case 0x3000:
-            mapif_parse_GMmessage(ms);
+            rv = mapif_parse_GMmessage(ms);
             break;
         case 0x3001:
-            mapif_parse_WisRequest(ms);
+            rv = mapif_parse_WisRequest(ms);
             break;
         case 0x3002:
-            mapif_parse_WisReply(ms);
+            rv = mapif_parse_WisReply(ms);
             break;
         case 0x3003:
-            mapif_parse_WisToGM(ms);
+            rv = mapif_parse_WisToGM(ms);
             break;
         case 0x3004:
-            mapif_parse_AccReg(ms);
+            rv = mapif_parse_AccReg(ms);
             break;
         case 0x3005:
-            mapif_parse_AccRegRequest(ms);
+            rv = mapif_parse_AccRegRequest(ms);
             break;
         default:
-            if (inter_party_parse_frommap(ms))
-                break;
-            if (inter_storage_parse_frommap(ms))
-                break;
-            return 0;
-    }
-    RFIFOSKIP(ms, len);
-
-    return 1;
-}
-
-// RFIFOのパケット長確認
-// 必要パケット長があればパケット長、まだ足りなければ0
-int inter_check_length(Session *s, int length)
-{
-    if (length == -1)
-    {                           // 可変パケット長
-        if (RFIFOREST(s) < 4) // パケット長が未着
-            return 0;
-        length = RFIFOW(s, 2);
+            rv = inter_party_parse_frommap(ms, packet_id);
+            if (rv != RecvResult::Error)
+                return rv;
+            rv = inter_storage_parse_frommap(ms, packet_id);
+            if (rv != RecvResult::Error)
+                return rv;
+            return RecvResult::Error;
     }
 
-    if (RFIFOREST(s) < length)    // パケットが未着
-        return 0;
-
-    return length;
+    return rv;
 }

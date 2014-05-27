@@ -33,7 +33,9 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
-#include "../net/vomit.hpp"
+#include "../net/packets.hpp"
+
+#include "../proto2/char-map.hpp"
 
 #include "../mmo/extract.hpp"
 #include "../mmo/ids.hpp"
@@ -47,27 +49,27 @@
 AString party_txt = "save/party.txt"_s;
 
 static
-Map<PartyId, struct party> party_db;
+Map<PartyId, PartyMost> party_db;
 static
 PartyId party_newid = wrap<PartyId>(100_u32);
 
 static
 void mapif_party_broken(PartyId party_id, int flag);
 static
-int party_check_empty(struct party *p);
+int party_check_empty(PartyPair p);
 static
 void mapif_parse_PartyLeave(Session *s, PartyId party_id, AccountId account_id);
 
 // パーティデータの文字列への変換
 static
-AString inter_party_tostr(struct party *p)
+AString inter_party_tostr(PartyPair p)
 {
     MString str;
     str += STRPRINTF(
             "%d\t"
             "%s\t"
             "%d,%d\t"_fmt,
-            p->party_id,
+            p.party_id,
             p->name,
             p->exp, p->item);
     for (int i = 0; i < MAX_PARTY; i++)
@@ -86,9 +88,9 @@ AString inter_party_tostr(struct party *p)
 }
 
 static
-bool extract(XString str, party *p)
+bool extract(XString str, PartyPair *pp)
 {
-    *p = party();
+    PartyPair& p = *pp;
 
     // not compatible with the normal extract()ors since it has
     // a variable-size element that uses the same separator
@@ -97,7 +99,7 @@ bool extract(XString str, party *p)
         return false;
     auto begin = bits.begin();
     auto end = bits.end();
-    if (begin == end || !extract(*begin, &p->party_id))
+    if (begin == end || !extract(*begin, &p.party_id))
         return false;
     ++begin;
     if (begin == end || !extract(*begin, &p->name))
@@ -125,7 +127,7 @@ bool extract(XString str, party *p)
 }
 
 static
-void party_check_deleted_init(struct party *p)
+void party_check_deleted_init(PartyPair p)
 {
     for (int i = 0; i < MAX_PARTY; i++)
     {
@@ -136,10 +138,10 @@ void party_check_deleted_init(struct party *p)
         {
             CHAR_LOG("WARNING: deleting obsolete party member %d %s of %d %s\n"_fmt,
                     p->member[i].account_id, p->member[i].name,
-                    p->party_id, p->name);
+                    p.party_id, p->name);
             PRINTF("WARNING: deleting obsolete party member %d %s of %d %s\n"_fmt,
                     p->member[i].account_id, p->member[i].name,
-                    p->party_id, p->name);
+                    p.party_id, p->name);
             p->member[i] = party_member{};
         }
     }
@@ -165,14 +167,16 @@ void inter_party_init(void)
             continue;
         }
 
-        struct party p {};
-        if (extract(line, &p) && p.party_id)
+        PartyMost pm;
+        PartyPair pp;
+        pp.party_most = &pm;
+        if (extract(line, &pp) && pp.party_id)
         {
-            if (party_newid < next(p.party_id))
-                party_newid = next(p.party_id);
-            party_check_deleted_init(&p);
-            party_db.insert(p.party_id, p);
-            party_check_empty(&p);
+            if (party_newid < next(pp.party_id))
+                party_newid = next(pp.party_id);
+            party_check_deleted_init(pp);
+            party_db.insert(pp.party_id, pm);
+            party_check_empty(pp);
         }
         else
         {
@@ -185,7 +189,7 @@ void inter_party_init(void)
 
 // パーティーデータのセーブ用
 static
-void inter_party_save_sub(struct party *data, io::WriteFile& fp)
+void inter_party_save_sub(PartyPair data, io::WriteFile& fp)
 {
     AString line = inter_party_tostr(data);
     fp.put_line(line);
@@ -202,14 +206,19 @@ int inter_party_save(void)
         return 1;
     }
     for (auto& pair : party_db)
-        inter_party_save_sub(&pair.second, fp);
+    {
+        PartyPair tmp;
+        tmp.party_id = pair.first;
+        tmp.party_most = &pair.second;
+        inter_party_save_sub(tmp, fp);
+    }
 
     return 0;
 }
 
 // パーティ名検索用
 static
-void search_partyname_sub(struct party *p, PartyName str, struct party **dst)
+void search_partyname_sub(PartyPair p, PartyName str, PartyPair *dst)
 {
     if (p->name == str)
         *dst = p;
@@ -217,18 +226,23 @@ void search_partyname_sub(struct party *p, PartyName str, struct party **dst)
 
 // パーティ名検索
 static
-struct party *search_partyname(PartyName str)
+PartyPair search_partyname(PartyName str)
 {
-    struct party *p = NULL;
+    PartyPair p;
     for (auto& pair : party_db)
-        search_partyname_sub(&pair.second, str, &p);
+    {
+        PartyPair tmp;
+        tmp.party_id = pair.first;
+        tmp.party_most = &pair.second;
+        search_partyname_sub(tmp, str, &p);
+    }
 
     return p;
 }
 
 // EXP公平分配できるかチェック
 static
-int party_check_exp_share(struct party *p)
+int party_check_exp_share(PartyPair p)
 {
     int i;
     int maxlv = 0, minlv = 0x7fffffff;
@@ -249,7 +263,7 @@ int party_check_exp_share(struct party *p)
 }
 
 // パーティが空かどうかチェック
-int party_check_empty(struct party *p)
+int party_check_empty(PartyPair p)
 {
     int i;
 
@@ -261,20 +275,20 @@ int party_check_empty(struct party *p)
         }
     }
     // 誰もいないので解散
-    mapif_party_broken(p->party_id, 0);
-    party_db.erase(p->party_id);
+    mapif_party_broken(p.party_id, 0);
+    party_db.erase(p.party_id);
 
     return 1;
 }
 
 // キャラの競合がないかチェック用
 static
-void party_check_conflict_sub(struct party *p,
+void party_check_conflict_sub(PartyPair p,
         PartyId party_id, AccountId account_id, CharName nick)
 {
     int i;
 
-    if (p->party_id == party_id)    // 本来の所属なので問題なし
+    if (p.party_id == party_id)    // 本来の所属なので問題なし
         return;
 
     for (i = 0; i < MAX_PARTY; i++)
@@ -284,8 +298,8 @@ void party_check_conflict_sub(struct party *p,
         {
             // 別のパーティに偽の所属データがあるので脱退
             PRINTF("int_party: party conflict! %d %d %d\n"_fmt, account_id,
-                    party_id, p->party_id);
-            mapif_parse_PartyLeave(nullptr, p->party_id, account_id);
+                    party_id, p.party_id);
+            mapif_parse_PartyLeave(nullptr, p.party_id, account_id);
         }
     }
 }
@@ -295,8 +309,13 @@ static
 void party_check_conflict(PartyId party_id, AccountId account_id, CharName nick)
 {
     for (auto& pair : party_db)
-        party_check_conflict_sub(&pair.second,
+    {
+        PartyPair tmp;
+        tmp.party_id = pair.first;
+        tmp.party_most = &pair.second;
+        party_check_conflict_sub(tmp,
                 party_id, account_id, nick);
+    }
 }
 
 //-------------------------------------------------------------------
@@ -304,81 +323,92 @@ void party_check_conflict(PartyId party_id, AccountId account_id, CharName nick)
 
 // パーティ作成可否
 static
-void mapif_party_created(Session *s, AccountId account_id, struct party *p)
+void mapif_party_created(Session *s, AccountId account_id, PartyPair p)
 {
-    WFIFOW(s, 0) = 0x3820;
-    WFIFOL(s, 2) = unwrap<AccountId>(account_id);
-    if (p != NULL)
+    Packet_Fixed<0x3820> fixed_20;
+    fixed_20.account_id = account_id;
+    if (p)
     {
-        WFIFOB(s, 6) = 0;
-        WFIFOL(s, 7) = unwrap<PartyId>(p->party_id);
-        WFIFO_STRING(s, 11, p->name, 24);
-        PRINTF("int_party: created! %d %s\n"_fmt, p->party_id, p->name);
+        fixed_20.error = 0;
+        fixed_20.party_id = p.party_id;
+        fixed_20.party_name = p->name;
+        PRINTF("int_party: created! %d %s\n"_fmt, p.party_id, p->name);
     }
     else
     {
-        WFIFOB(s, 6) = 1;
-        WFIFOL(s, 7) = 0;
-        WFIFO_STRING(s, 11, "error"_s, 24);
+        fixed_20.error = 1;
+        fixed_20.party_id = PartyId();
+        fixed_20.party_name = stringish<PartyName>("error"_s);
     }
-    WFIFOSET(s, 35);
+    send_fpacket<0x3820, 35>(s, fixed_20);
 }
 
 // パーティ情報見つからず
 static
 void mapif_party_noinfo(Session *s, PartyId party_id)
 {
-    WFIFOW(s, 0) = 0x3821;
-    WFIFOW(s, 2) = 8;
-    WFIFOL(s, 4) = unwrap<PartyId>(party_id);
-    WFIFOSET(s, 8);
+    Packet_Head<0x3821> head_21;
+    Packet_Option<0x3821> option_21;
+    head_21.party_id = party_id;
+    send_opacket<0x3821, 8, sizeof(NetPacket_Option<0x3821>)>(s, head_21, false, option_21);
     PRINTF("int_party: info not found %d\n"_fmt, party_id);
 }
 
 // パーティ情報まとめ送り
 static
-void mapif_party_info(Session *s, struct party *p)
+void mapif_party_info(Session *s, PartyPair p)
 {
-    unsigned char buf[4 + sizeof(struct party)];
-
-    WBUFW(buf, 0) = 0x3821;
-    WBUF_STRUCT(buf, 4, *p);
-    WBUFW(buf, 2) = 4 + sizeof(struct party);
+    Packet_Head<0x3821> head_21;
+    head_21.party_id = p.party_id;
+    Packet_Option<0x3821> option_21;
+    option_21.party_most = *p.party_most;
     if (!s)
-        mapif_sendall(buf, WBUFW(buf, 2));
+    {
+        for (Session *ss : iter_map_sessions())
+        {
+            send_opacket<0x3821, 8, sizeof(NetPacket_Option<0x3821>)>(ss, head_21, true, option_21);
+        }
+    }
     else
-        mapif_send(s, buf, WBUFW(buf, 2));
+    {
+        send_opacket<0x3821, 8, sizeof(NetPacket_Option<0x3821>)>(s, head_21, true, option_21);
+    }
 }
 
 // パーティメンバ追加可否
 static
 void mapif_party_memberadded(Session *s, PartyId party_id, AccountId account_id, int flag)
 {
-    WFIFOW(s, 0) = 0x3822;
-    WFIFOL(s, 2) = unwrap<PartyId>(party_id);
-    WFIFOL(s, 6) = unwrap<AccountId>(account_id);
-    WFIFOB(s, 10) = flag;
-    WFIFOSET(s, 11);
+    Packet_Fixed<0x3822> fixed_22;
+    fixed_22.party_id = party_id;
+    fixed_22.account_id = account_id;
+    fixed_22.flag = flag;
+    send_fpacket<0x3822, 11>(s, fixed_22);
 }
 
 // パーティ設定変更通知
 static
-void mapif_party_optionchanged(Session *s, struct party *p, AccountId account_id,
+void mapif_party_optionchanged(Session *s, PartyPair p, AccountId account_id,
                                int flag)
 {
-    unsigned char buf[15];
-
-    WBUFW(buf, 0) = 0x3823;
-    WBUFL(buf, 2) = unwrap<PartyId>(p->party_id);
-    WBUFL(buf, 6) = unwrap<AccountId>(account_id);
-    WBUFW(buf, 10) = p->exp;
-    WBUFW(buf, 12) = p->item;
-    WBUFB(buf, 14) = flag;
+    Packet_Fixed<0x3823> fixed_23;
+    fixed_23.party_id = p.party_id;
+    fixed_23.account_id = account_id;
+    fixed_23.exp = p->exp;
+    fixed_23.item = p->item;
+    fixed_23.flag = flag;
     if (flag == 0)
-        mapif_sendall(buf, 15);
+    {
+        for (Session *ss : iter_map_sessions())
+        {
+            send_fpacket<0x3823, 15>(ss, fixed_23);
+        }
+    }
     else
-        mapif_send(s, buf, 15);
-    PRINTF("int_party: option changed %d %d %d %d %d\n"_fmt, p->party_id,
+    {
+        send_fpacket<0x3823, 15>(s, fixed_23);
+    }
+    PRINTF("int_party: option changed %d %d %d %d %d\n"_fmt, p.party_id,
             account_id, p->exp, p->item, flag);
 }
 
@@ -386,40 +416,47 @@ void mapif_party_optionchanged(Session *s, struct party *p, AccountId account_id
 static
 void mapif_party_leaved(PartyId party_id, AccountId account_id, CharName name)
 {
-    unsigned char buf[34];
+    Packet_Fixed<0x3824> fixed_24;
+    fixed_24.party_id = party_id;
+    fixed_24.account_id = account_id;
+    fixed_24.char_name = name;
+    for (Session *ss : iter_map_sessions())
+    {
+        send_fpacket<0x3824, 34>(ss, fixed_24);
+    }
 
-    WBUFW(buf, 0) = 0x3824;
-    WBUFL(buf, 2) = unwrap<PartyId>(party_id);
-    WBUFL(buf, 6) = unwrap<AccountId>(account_id);
-    WBUF_STRING(buf, 10, name.to__actual(), 24);
-    mapif_sendall(buf, 34);
     PRINTF("int_party: party leaved %d %d %s\n"_fmt, party_id, account_id, name);
 }
 
 // パーティマップ更新通知
 static
-void mapif_party_membermoved(struct party *p, int idx)
+void mapif_party_membermoved(PartyPair p, int idx)
 {
     assert (idx < MAX_PARTY);
-    unsigned char buf[29];
 
-    WBUFW(buf, 0) = 0x3825;
-    WBUFL(buf, 2) = unwrap<PartyId>(p->party_id);
-    WBUFL(buf, 6) = unwrap<AccountId>(p->member[idx].account_id);
-    WBUF_STRING(buf, 10, p->member[idx].map, 16);
-    WBUFB(buf, 26) = p->member[idx].online;
-    WBUFW(buf, 27) = p->member[idx].lv;
-    mapif_sendall(buf, 29);
+    Packet_Fixed<0x3825> fixed_25;
+    fixed_25.party_id = p.party_id;
+    fixed_25.account_id = p->member[idx].account_id;
+    fixed_25.map_name = p->member[idx].map;
+    fixed_25.online = p->member[idx].online;
+    fixed_25.level = p->member[idx].lv;
+    for (Session *ss : iter_map_sessions())
+    {
+        send_fpacket<0x3825, 29>(ss, fixed_25);
+    }
 }
 
 // パーティ解散通知
 void mapif_party_broken(PartyId party_id, int flag)
 {
-    unsigned char buf[7];
-    WBUFW(buf, 0) = 0x3826;
-    WBUFL(buf, 2) = unwrap<PartyId>(party_id);
-    WBUFB(buf, 6) = flag;
-    mapif_sendall(buf, 7);
+    Packet_Fixed<0x3826> fixed_26;
+    fixed_26.party_id = party_id;
+    fixed_26.flag = flag;
+    for (Session *ss : iter_map_sessions())
+    {
+        send_fpacket<0x3826, 7>(ss, fixed_26);
+    }
+
     PRINTF("int_party: broken %d\n"_fmt, party_id);
     CHAR_LOG("int_party: broken %d\n"_fmt, party_id);
 }
@@ -428,15 +465,14 @@ void mapif_party_broken(PartyId party_id, int flag)
 static
 void mapif_party_message(PartyId party_id, AccountId account_id, XString mes)
 {
-    size_t len = mes.size() + 1;
-    unsigned char buf[len + 12];
-
-    WBUFW(buf, 0) = 0x3827;
-    WBUFW(buf, 2) = len + 12;
-    WBUFL(buf, 4) = unwrap<PartyId>(party_id);
-    WBUFL(buf, 8) = unwrap<AccountId>(account_id);
-    WBUF_STRING(buf, 12, mes, len);
-    mapif_sendall(buf, len + 12);
+    Packet_Head<0x3827> head_27;
+    XString repeat_27 = mes;
+    head_27.party_id = party_id;
+    head_27.account_id = account_id;
+    for (Session *ss : iter_map_sessions())
+    {
+        send_vpacket<0x3827, 12, 1>(ss, head_27, repeat_27);
+    }
 }
 
 //-------------------------------------------------------------------
@@ -451,20 +487,22 @@ void mapif_parse_CreateParty(Session *s, AccountId account_id, PartyName name, C
         if (!name.is_print())
         {
             PRINTF("int_party: illegal party name [%s]\n"_fmt, name);
-            mapif_party_created(s, account_id, NULL);
+            mapif_party_created(s, account_id, PartyPair());
             return;
         }
     }
 
-    if (search_partyname(name) != NULL)
+    if (search_partyname(name))
     {
         PRINTF("int_party: same name party exists [%s]\n"_fmt, name);
-        mapif_party_created(s, account_id, NULL);
+        mapif_party_created(s, account_id, PartyPair());
         return;
     }
-    struct party p {};
+    PartyMost p {};
+    PartyPair pp;
+    pp.party_most = &p;
     party_newid = next(party_newid);
-    p.party_id = party_newid;
+    pp.party_id = party_newid;
     p.name = name;
     p.exp = 0;
     p.item = 0;
@@ -475,18 +513,19 @@ void mapif_parse_CreateParty(Session *s, AccountId account_id, PartyName name, C
     p.member[0].online = 1;
     p.member[0].lv = lv;
 
-    party_db.insert(p.party_id, p);
+    party_db.insert(pp.party_id, p);
 
-    mapif_party_created(s, account_id, &p);
-    mapif_party_info(s, &p);
+    mapif_party_created(s, account_id, pp);
+    mapif_party_info(s, pp);
 }
 
 // パーティ情報要求
 static
 void mapif_parse_PartyInfo(Session *s, PartyId party_id)
 {
-    struct party *p = party_db.search(party_id);
-    if (p != NULL)
+    PartyPair p;
+    p.party_most = party_db.search(party_id);
+    if (p)
         mapif_party_info(s, p);
     else
         mapif_party_noinfo(s, party_id);
@@ -497,8 +536,9 @@ static
 void mapif_parse_PartyAddMember(Session *s, PartyId party_id, AccountId account_id,
         CharName nick, MapName map, int lv)
 {
-    struct party *p = party_db.search(party_id);
-    if (p == NULL)
+    PartyPair p;
+    p.party_most = party_db.search(party_id);
+    if (!p)
     {
         mapif_party_memberadded(s, party_id, account_id, 1);
         return;
@@ -537,8 +577,9 @@ static
 void mapif_parse_PartyChangeOption(Session *s, PartyId party_id, AccountId account_id,
         int exp, int item)
 {
-    struct party *p = party_db.search(party_id);
-    if (p == NULL)
+    PartyPair p;
+    p.party_most = party_db.search(party_id);
+    if (!p)
         return;
 
     p->exp = exp;
@@ -557,7 +598,8 @@ void mapif_parse_PartyChangeOption(Session *s, PartyId party_id, AccountId accou
 // パーティ脱退要求
 void mapif_parse_PartyLeave(Session *, PartyId party_id, AccountId account_id)
 {
-    struct party *p = party_db.search(party_id);
+    PartyPair p;
+    p.party_most = party_db.search(party_id);
     if (!p)
         return;
     for (int i = 0; i < MAX_PARTY; i++)
@@ -578,8 +620,9 @@ static
 void mapif_parse_PartyChangeMap(Session *s, PartyId party_id, AccountId account_id,
         MapName map, int online, int lv)
 {
-    struct party *p = party_db.search(party_id);
-    if (p == NULL)
+    PartyPair p;
+    p.party_most = party_db.search(party_id);
+    if (!p)
         return;
 
     for (int i = 0; i < MAX_PARTY; i++)
@@ -608,8 +651,9 @@ void mapif_parse_PartyChangeMap(Session *s, PartyId party_id, AccountId account_
 static
 void mapif_parse_BreakParty(Session *, PartyId party_id)
 {
-    struct party *p = party_db.search(party_id);
-    if (p == NULL)
+    PartyPair p;
+    p.party_most = party_db.search(party_id);
+    if (!p)
         return;
 
     party_db.erase(party_id);
@@ -635,117 +679,163 @@ void mapif_parse_PartyCheck(Session *, PartyId party_id, AccountId account_id, C
 // ・パケット長データはinter.cにセットしておくこと
 // ・パケット長チェックや、RFIFOSKIPは呼び出し元で行われるので行ってはならない
 // ・エラーなら0(false)、そうでないなら1(true)をかえさなければならない
-int inter_party_parse_frommap(Session *ms)
+RecvResult inter_party_parse_frommap(Session *ms, uint16_t packet_id)
 {
-    switch (RFIFOW(ms, 0))
+    RecvResult rv = RecvResult::Error;
+    switch (packet_id)
     {
         case 0x3020:
         {
-            AccountId account = wrap<AccountId>(RFIFOL(ms, 2));
-            PartyName name = stringish<PartyName>(RFIFO_STRING<24>(ms, 6));
-            CharName nick = stringish<CharName>(RFIFO_STRING<24>(ms, 30));
-            MapName map = RFIFO_STRING<16>(ms, 54);
-            uint16_t lv = RFIFOW(ms, 70);
+            Packet_Fixed<0x3020> fixed;
+            rv = recv_fpacket<0x3020, 72>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            AccountId account = fixed.account_id;
+            PartyName name = fixed.party_name;
+            CharName nick = fixed.char_name;
+            MapName map = fixed.map_name;
+            uint16_t lv = fixed.level;
             mapif_parse_CreateParty(ms,
                     account,
                     name,
                     nick,
                     map,
                     lv);
-        }
             break;
+        }
         case 0x3021:
         {
-            PartyId party_id = wrap<PartyId>(RFIFOL(ms, 2));
+            Packet_Fixed<0x3021> fixed;
+            rv = recv_fpacket<0x3021, 6>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = fixed.party_id;
             mapif_parse_PartyInfo(ms, party_id);
-        }
             break;
+        }
         case 0x3022:
         {
-            PartyId party_id = wrap<PartyId>(RFIFOL(ms, 2));
-            AccountId account_id = wrap<AccountId>(RFIFOL(ms, 6));
-            CharName nick = stringish<CharName>(RFIFO_STRING<24>(ms, 10));
-            MapName map = RFIFO_STRING<16>(ms, 34);
-            uint16_t lv = RFIFOW(ms, 50);
+            Packet_Fixed<0x3022> fixed;
+            rv = recv_fpacket<0x3022, 52>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = fixed.party_id;
+            AccountId account_id = fixed.account_id;
+            CharName nick = fixed.char_name;
+            MapName map = fixed.map_name;
+            uint16_t lv = fixed.level;
             mapif_parse_PartyAddMember(ms,
                     party_id,
                     account_id,
                     nick,
                     map,
                     lv);
-        }
             break;
+        }
         case 0x3023:
         {
-            PartyId party_id = wrap<PartyId>(RFIFOL(ms, 2));
-            AccountId account_id = wrap<AccountId>(RFIFOL(ms, 6));
-            uint16_t exp = RFIFOW(ms, 10);
-            uint16_t item = RFIFOW(ms, 12);
+            Packet_Fixed<0x3023> fixed;
+            rv = recv_fpacket<0x3023, 14>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = fixed.party_id;
+            AccountId account_id = fixed.account_id;
+            uint16_t exp = fixed.exp;
+            uint16_t item = fixed.item;
             mapif_parse_PartyChangeOption(ms,
                     party_id,
                     account_id,
                     exp,
                     item);
-        }
             break;
+        }
         case 0x3024:
         {
-            PartyId party_id = wrap<PartyId>(RFIFOL(ms, 2));
-            AccountId account_id = wrap<AccountId>(RFIFOL(ms, 6));
+            Packet_Fixed<0x3024> fixed;
+            rv = recv_fpacket<0x3024, 10>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = fixed.party_id;
+            AccountId account_id = fixed.account_id;
             mapif_parse_PartyLeave(ms,
                     party_id,
                     account_id);
-        }
             break;
+        }
         case 0x3025:
         {
-            PartyId party_id = wrap<PartyId>(RFIFOL(ms, 2));
-            AccountId account_id = wrap<AccountId>(RFIFOL(ms, 6));
-            MapName map = RFIFO_STRING<16>(ms, 10);
-            uint8_t online = RFIFOB(ms, 26);
-            uint16_t lv = RFIFOW(ms, 27);
+            Packet_Fixed<0x3025> fixed;
+            rv = recv_fpacket<0x3025, 29>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = fixed.party_id;
+            AccountId account_id = fixed.account_id;
+            MapName map = fixed.map_name;
+            uint8_t online = fixed.online;
+            uint16_t lv = fixed.level;
             mapif_parse_PartyChangeMap(ms,
                     party_id,
                     account_id,
                     map,
                     online,
                     lv);
-        }
             break;
+        }
         case 0x3026:
         {
-            PartyId party_id = wrap<PartyId>(RFIFOL(ms, 2));
+            Packet_Fixed<0x3026> fixed;
+            rv = recv_fpacket<0x3026, 6>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = fixed.party_id;
             mapif_parse_BreakParty(ms, party_id);
-        }
             break;
+        }
         case 0x3027:
         {
-            size_t len = RFIFOW(ms, 2) - 12;
-            PartyId party_id = wrap<PartyId>(RFIFOL(ms, 4));
-            AccountId account_id = wrap<AccountId>(RFIFOL(ms, 8));
-            AString mes = RFIFO_STRING(ms, 12, len);
+            Packet_Head<0x3027> head;
+            AString repeat;
+            rv = recv_vpacket<0x3027, 12, 1>(ms, head, repeat);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = head.party_id;
+            AccountId account_id = head.account_id;
+            AString& mes = repeat;
             mapif_parse_PartyMessage(ms,
                     party_id,
                     account_id,
                     mes);
-        }
             break;
+        }
         case 0x3028:
         {
-            PartyId party_id = wrap<PartyId>(RFIFOL(ms, 2));
-            AccountId account_id = wrap<AccountId>(RFIFOL(ms, 6));
-            CharName nick = stringish<CharName>(RFIFO_STRING<24>(ms, 10));
+            Packet_Fixed<0x3028> fixed;
+            rv = recv_fpacket<0x3028, 34>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = fixed.party_id;
+            AccountId account_id = fixed.account_id;
+            CharName nick = fixed.char_name;
             mapif_parse_PartyCheck(ms,
                     party_id,
                     account_id,
                     nick);
-        }
             break;
+        }
         default:
-            return 0;
+            return RecvResult::Error;
     }
 
-    return 1;
+    return rv;
 }
 
 // サーバーから脱退要求（キャラ削除用）

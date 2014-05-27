@@ -37,16 +37,16 @@
 #include "../poison.hpp"
 
 static
-Map<AccountId, struct storage> storage_db;
+Map<AccountId, Storage> storage_db;
 
 void do_final_storage(void)
 {
     storage_db.clear();
 }
 
-struct storage *account2storage(AccountId account_id)
+Storage *account2storage(AccountId account_id)
 {
-    struct storage *stor = storage_db.search(account_id);
+    Storage *stor = storage_db.search(account_id);
     if (stor == NULL)
     {
         stor = storage_db.init(account_id);
@@ -56,7 +56,7 @@ struct storage *account2storage(AccountId account_id)
 }
 
 // Just to ask storage, without creation
-struct storage *account2storage2(AccountId account_id)
+Storage *account2storage2(AccountId account_id)
 {
     return storage_db.search(account_id);
 }
@@ -78,7 +78,7 @@ int storage_storageopen(dumb_ptr<map_session_data> sd)
     if (sd->state.storage_open)
         return 1;               //Already open?
 
-    struct storage *stor = storage_db.search(sd->status_key.account_id);
+    Storage *stor = storage_db.search(sd->status_key.account_id);
     if (stor == NULL)
     {                           //Request storage.
         intif_request_storage(sd->status_key.account_id);
@@ -101,7 +101,7 @@ int storage_storageopen(dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-int storage_additem(dumb_ptr<map_session_data> sd, struct storage *stor,
+int storage_additem(dumb_ptr<map_session_data> sd, Storage *stor,
                             struct item *item_data, int amount)
 {
     struct item_data *data;
@@ -147,7 +147,7 @@ int storage_additem(dumb_ptr<map_session_data> sd, struct storage *stor,
  *------------------------------------------
  */
 static
-int storage_delitem(dumb_ptr<map_session_data> sd, struct storage *stor,
+int storage_delitem(dumb_ptr<map_session_data> sd, Storage *stor,
                             int n, int amount)
 {
 
@@ -173,7 +173,7 @@ int storage_delitem(dumb_ptr<map_session_data> sd, struct storage *stor,
  */
 int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount)
 {
-    struct storage *stor;
+    Storage *stor;
 
     nullpo_ret(sd);
     stor = account2storage2(sd->status_key.account_id);
@@ -208,7 +208,7 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount)
  */
 int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount)
 {
-    struct storage *stor;
+    Storage *stor;
     PickupFail flag;
 
     nullpo_ret(sd);
@@ -238,7 +238,7 @@ int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount)
  */
 int storage_storageclose(dumb_ptr<map_session_data> sd)
 {
-    struct storage *stor;
+    Storage *stor;
 
     nullpo_ret(sd);
     stor = account2storage2(sd->status_key.account_id);
@@ -270,7 +270,7 @@ int storage_storageclose(dumb_ptr<map_session_data> sd)
  */
 int storage_storage_quit(dumb_ptr<map_session_data> sd)
 {
-    struct storage *stor;
+    Storage *stor;
 
     nullpo_ret(sd);
 
@@ -287,7 +287,7 @@ int storage_storage_quit(dumb_ptr<map_session_data> sd)
 
 int storage_storage_save(AccountId account_id, int final)
 {
-    struct storage *stor;
+    Storage *stor;
 
     stor = account2storage2(account_id);
     if (!stor)
@@ -315,7 +315,7 @@ int storage_storage_save(AccountId account_id, int final)
 //Ack from Char-server indicating the storage was saved. [Skotlex]
 int storage_storage_saved(AccountId account_id)
 {
-    struct storage *stor = account2storage2(account_id);
+    Storage *stor = account2storage2(account_id);
 
     if (stor)
     {

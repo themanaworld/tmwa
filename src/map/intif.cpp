@@ -157,11 +157,11 @@ void intif_request_storage(AccountId account_id)
 }
 
 // 倉庫データ送信
-void intif_send_storage(struct storage *stor)
+void intif_send_storage(Storage *stor)
 {
     nullpo_retv(stor);
     WFIFOW(char_session, 0) = 0x3011;
-    WFIFOW(char_session, 2) = sizeof(struct storage) + 8;
+    WFIFOW(char_session, 2) = sizeof(Storage) + 8;
     WFIFOL(char_session, 4) = unwrap<AccountId>(stor->account_id);
     WFIFO_STRUCT(char_session, 8, *stor);
     WFIFOSET(char_session, WFIFOW(char_session, 2));
@@ -373,7 +373,7 @@ int intif_parse_AccountReg(Session *s)
 static
 int intif_parse_LoadStorage(Session *s)
 {
-    struct storage *stor;
+    Storage *stor;
     dumb_ptr<map_session_data> sd;
 
     sd = map_id2sd(account_to_block(wrap<AccountId>(RFIFOL(s, 4))));
@@ -400,11 +400,11 @@ int intif_parse_LoadStorage(Session *s)
         return 1;
     }
 
-    if (RFIFOW(s, 2) - 8 != sizeof(struct storage))
+    if (RFIFOW(s, 2) - 8 != sizeof(Storage))
     {
         if (battle_config.error_log)
             PRINTF("intif_parse_LoadStorage: data size error %d %zu\n"_fmt,
-                    RFIFOW(s, 2) - 8, sizeof(struct storage));
+                    RFIFOW(s, 2) - 8, sizeof(Storage));
         return 1;
     }
     if (battle_config.save_log)
@@ -455,16 +455,21 @@ void intif_parse_PartyInfo(Session *s)
         return;
     }
 
-    if (RFIFOW(s, 2) != sizeof(struct party) + 4)
+    if (RFIFOW(s, 2) != sizeof(PartyMost) + 8)
     {
         if (battle_config.error_log)
             PRINTF("intif: party info : data size error %d %d %zu\n"_fmt,
                     RFIFOL(s, 4), RFIFOW(s, 2),
-                    sizeof(struct party) + 4);
+                    sizeof(PartyMost) + 8);
     }
-    party p {};
-    RFIFO_STRUCT(s, 4, p);
-    party_recv_info(&p);
+    PartyId pi;
+    PartyMost pm;
+    RFIFO_STRUCT(s, 4, pi);
+    RFIFO_STRUCT(s, 8, pm);
+    PartyPair pp;
+    pp.party_id = pi;
+    pp.party_most = &pm;
+    party_recv_info(pp);
 }
 
 // パーティ追加通知

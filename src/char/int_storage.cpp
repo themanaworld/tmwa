@@ -32,7 +32,9 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
-#include "../net/vomit.hpp"
+#include "../net/packets.hpp"
+
+#include "../proto2/char-map.hpp"
 
 #include "../mmo/extract.hpp"
 #include "../mmo/mmo.hpp"
@@ -44,11 +46,11 @@
 AString storage_txt = "save/storage.txt"_s;
 
 static
-Map<AccountId, struct storage> storage_db;
+Map<AccountId, Storage> storage_db;
 
 // 倉庫データを文字列に変換
 static
-AString storage_tostr(struct storage *p)
+AString storage_tostr(Storage *p)
 {
     MString str;
     str += STRPRINTF(
@@ -85,7 +87,7 @@ AString storage_tostr(struct storage *p)
 
 // 文字列を倉庫データに変換
 static
-bool extract(XString str, struct storage *p)
+bool extract(XString str, Storage *p)
 {
     std::vector<struct item> storage_items;
     if (!extract(str,
@@ -109,9 +111,9 @@ bool extract(XString str, struct storage *p)
 }
 
 // アカウントから倉庫データインデックスを得る（新規倉庫追加可能）
-struct storage *account2storage(AccountId account_id)
+Storage *account2storage(AccountId account_id)
 {
-    struct storage *s = storage_db.search(account_id);
+    Storage *s = storage_db.search(account_id);
     if (s == NULL)
     {
         s = storage_db.init(account_id);
@@ -136,7 +138,7 @@ void inter_storage_init(void)
     AString line;
     while (in.getline(line))
     {
-        struct storage s {};
+        Storage s {};
         if (extract(line, &s))
         {
             storage_db.insert(s.account_id, s);
@@ -151,7 +153,7 @@ void inter_storage_init(void)
 }
 
 static
-void inter_storage_save_sub(struct storage *data, io::WriteFile& fp)
+void inter_storage_save_sub(Storage *data, io::WriteFile& fp)
 {
     AString line = storage_tostr(data);
     if (line)
@@ -188,53 +190,60 @@ void inter_storage_delete(AccountId account_id)
 static
 void mapif_load_storage(Session *ss, AccountId account_id)
 {
-    struct storage *st = account2storage(account_id);
-    WFIFOW(ss, 0) = 0x3810;
-    WFIFOW(ss, 2) = sizeof(struct storage) + 8;
-    WFIFOL(ss, 4) = unwrap<AccountId>(account_id);
-    WFIFO_STRUCT(ss, 8, *st);
-    WFIFOSET(ss, WFIFOW(ss, 2));
+    Storage *st = account2storage(account_id);
+    Packet_Payload<0x3810> payload_10;
+    payload_10.account_id = account_id;
+    payload_10.storage = *st;
+    send_ppacket<0x3810>(ss, payload_10);
 }
 
 // 倉庫データ保存完了送信
 static
 void mapif_save_storage_ack(Session *ss, AccountId account_id)
 {
-    WFIFOW(ss, 0) = 0x3811;
-    WFIFOL(ss, 2) = unwrap<AccountId>(account_id);
-    WFIFOB(ss, 6) = 0;
-    WFIFOSET(ss, 7);
+    Packet_Fixed<0x3811> fixed_11;
+    fixed_11.account_id = account_id;
+    fixed_11.unknown = 0;
+    send_fpacket<0x3811, 7>(ss, fixed_11);
 }
 
 //---------------------------------------------------------
 // map serverからの通信
 
 // 倉庫データ要求受信
-static
-void mapif_parse_LoadStorage(Session *ss)
+static __attribute__((warn_unused_result))
+RecvResult mapif_parse_LoadStorage(Session *ss)
 {
-    AccountId account_id = wrap<AccountId>(RFIFOL(ss, 2));
+    Packet_Fixed<0x3010> fixed;
+    RecvResult rv = recv_fpacket<0x3010, 6>(ss, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    AccountId account_id = fixed.account_id;
     mapif_load_storage(ss, account_id);
+
+    return rv;
 }
 
 // 倉庫データ受信＆保存
-static
-void mapif_parse_SaveStorage(Session *ss)
+static __attribute__((warn_unused_result))
+RecvResult mapif_parse_SaveStorage(Session *ss)
 {
-    struct storage *st;
-    AccountId account_id = wrap<AccountId>(RFIFOL(ss, 4));
-    int len = RFIFOW(ss, 2);
-    if (sizeof(struct storage) != len - 8)
-    {
-        PRINTF("inter storage: data size error %zu %d\n"_fmt,
-                sizeof(struct storage), len - 8);
-    }
-    else
+    Packet_Payload<0x3011> payload;
+    RecvResult rv = recv_ppacket<0x3011>(ss, payload);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    Storage *st;
+    AccountId account_id = payload.account_id;
+
     {
         st = account2storage(account_id);
-        RFIFO_STRUCT(ss, 8, *st);
+        *st = payload.storage;
         mapif_save_storage_ack(ss, account_id);
     }
+
+    return rv;
 }
 
 // map server からの通信
@@ -242,18 +251,19 @@ void mapif_parse_SaveStorage(Session *ss)
 // ・パケット長データはinter.cにセットしておくこと
 // ・パケット長チェックや、RFIFOSKIPは呼び出し元で行われるので行ってはならない
 // ・エラーなら0(false)、そうでないなら1(true)をかえさなければならない
-int inter_storage_parse_frommap(Session *ms)
+RecvResult inter_storage_parse_frommap(Session *ms, uint16_t packet_id)
 {
-    switch (RFIFOW(ms, 0))
+    RecvResult rv;
+    switch (packet_id)
     {
         case 0x3010:
-            mapif_parse_LoadStorage(ms);
+            rv = mapif_parse_LoadStorage(ms);
             break;
         case 0x3011:
-            mapif_parse_SaveStorage(ms);
+            rv = mapif_parse_SaveStorage(ms);
             break;
         default:
-            return 0;
+            return RecvResult::Error;
     }
-    return 1;
+    return rv;
 }

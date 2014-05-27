@@ -44,7 +44,7 @@ constexpr int MAX_ZENY = 1000000000;     // 1G zeny
 constexpr int TRADE_MAX = 10;
 
 constexpr int GLOBAL_REG_NUM = 96;
-constexpr int ACCOUNT_REG_NUM = 16;
+constexpr size_t ACCOUNT_REG_NUM = 16;
 constexpr size_t ACCOUNT_REG2_NUM = 16;
 constexpr interval_t DEFAULT_WALK_SPEED = std::chrono::milliseconds(150);
 constexpr interval_t MIN_WALK_SPEED = interval_t::zero();
@@ -147,7 +147,7 @@ struct CharPair
     {}
 };
 
-struct storage
+struct Storage
 {
     bool dirty;
     AccountId account_id;
@@ -171,13 +171,23 @@ struct party_member
     struct map_session_data *sd;
 };
 
-struct party
+struct PartyMost
 {
-    PartyId party_id;
     PartyName name;
     int exp;
     int item;
     Array<struct party_member, MAX_PARTY> member;
+};
+
+struct PartyPair
+{
+    PartyId party_id = {};
+    PartyMost *party_most = {};
+
+    explicit
+    operator bool() const { return party_most; }
+    bool operator !() const { return !party_most; }
+    PartyMost *operator->() const { return party_most; }
 };
 
 #endif // TMWA_MMO_MMO_HPP

@@ -28,6 +28,9 @@ from posixpath import relpath
 # The following code should be relatively easy to understand, but please
 # keep your sanity fastened and your arms and legs inside at all times.
 
+# important note: all numbers in this file will make a lot more sense in
+# decimal, but they're written in hex.
+
 generated = '// This is a generated file, edit %s instead\n' % __file__
 
 copyright = '''//    {filename} - {description}
@@ -217,15 +220,30 @@ class StructType(Type):
         self.fields = fields
         self.size = size
 
+    def native_tag(self):
+        return self.name
+
+    def network_tag(self):
+        return 'Net' + self.name
+
+    def dump(self, f):
+        self.dump_native(f)
+        self.dump_network(f)
+        self.dump_convert(f)
+        f.write('\n')
+
     def dump_fwd(self, fwd):
-        fwd.write('template<>\n')
+        if self.id is not None:
+            fwd.write('template<>\n')
         fwd.write('struct %s;\n' % self.name)
-        fwd.write('template<>\n')
+        if self.id is not None:
+            fwd.write('template<>\n')
         fwd.write('struct Net%s;\n' % self.name)
 
     def dump_native(self, f):
         name = self.name
-        f.write('template<>\n')
+        if self.id is not None:
+            f.write('template<>\n')
         f.write('struct %s\n{\n' % name)
         if self.id is not None:
             f.write('    static const uint16_t PACKET_ID = 0x%04x;\n\n' % self.id)
@@ -240,7 +258,8 @@ class StructType(Type):
 
     def dump_network(self, f):
         name = 'Net%s' % self.name
-        f.write('template<>\n')
+        if self.id is not None:
+            f.write('template<>\n')
         f.write('struct %s\n{\n' % name)
         for (o, l, n) in self.fields:
             f.write('    %s %s;\n' % (l.network_tag(), n))
@@ -404,22 +423,36 @@ class VarPacket(object):
 
 def packet(id,
         fixed=None, fixed_size=None,
+        payload=None, payload_size=None,
         head=None, head_size=None,
         repeat=None, repeat_size=None,
+        option=None, option_size=None,
 ):
     assert (fixed is None) <= (fixed_size is None)
+    assert (payload is None) <= (payload_size is None)
     assert (head is None) <= (head_size is None)
     assert (repeat is None) <= (repeat_size is None)
+    assert (option is None) <= (option_size is None)
 
     if fixed is not None:
-        assert not head and not repeat
+        assert not head and not repeat and not option and not payload
         return FixedPacket(
                 StructType(id, 'Packet_Fixed<0x%04x>' % id, fixed, fixed_size))
+    elif payload is not None:
+        assert not head and not repeat and not option
+        return FixedPacket(
+                StructType(id, 'Packet_Payload<0x%04x>' % id, payload, payload_size))
     else:
-        assert head and repeat
-        return VarPacket(
-                StructType(id, 'Packet_Head<0x%04x>' % id, head, head_size),
-                StructType(id, 'Packet_Repeat<0x%04x>' % id, repeat, repeat_size))
+        assert head
+        if option:
+            return VarPacket(
+                    StructType(id, 'Packet_Head<0x%04x>' % id, head, head_size),
+                    StructType(id, 'Packet_Option<0x%04x>' % id, option, option_size))
+        else:
+            assert repeat
+            return VarPacket(
+                    StructType(id, 'Packet_Head<0x%04x>' % id, head, head_size),
+                    StructType(id, 'Packet_Repeat<0x%04x>' % id, repeat, repeat_size))
 
 
 class Channel(object):
@@ -457,6 +490,9 @@ class Channel(object):
             else:
                 f.write('// This is an internal protocol, and can be changed without notice\n')
             f.write('\n')
+            f.write('// this is only needed for the payload packet right now, and that needs to die\n')
+            f.write('#pragma pack(push, 1)\n')
+            f.write('\n')
             for p in self.packets:
                 p.dump_fwd(fwd)
             fwd.write('\n')
@@ -468,6 +504,8 @@ class Channel(object):
             f.write('\n')
             for p in self.packets:
                 p.dump_convert(f)
+            f.write('\n')
+            f.write('#pragma pack(pop)\n')
             f.write('\n')
             f.write('#endif // %s\n' % define)
 
@@ -536,7 +574,7 @@ class Context(object):
             f.write('\n')
             f.write('# include "%s"\n\n' % sanity)
             f.write('# include <cstdint>\n\n')
-            for b in ['Fixed', 'Head', 'Repeat']:
+            for b in ['Fixed', 'Payload', 'Head', 'Repeat', 'Option']:
                 c = 'Packet_' + b
                 f.write('template<uint16_t PACKET_ID> class %s;\n' % c)
                 f.write('template<uint16_t PACKET_ID> class Net%s;\n' % c)
@@ -597,6 +635,34 @@ class Context(object):
             f.write('    return true;\n')
             f.write('}\n')
             f.write('\n')
+            f.write('inline\n')
+            f.write('bool native_to_network(NetString<24> *network, CharName native)\n{\n')
+            f.write('    VString<23> tmp = native.to__actual();\n')
+            f.write('    bool rv = native_to_network(network, tmp);\n')
+            f.write('    return rv;\n')
+            f.write('}\n')
+            f.write('inline\n')
+            f.write('bool network_to_native(CharName *native, NetString<24> network)\n{\n')
+            f.write('    VString<23> tmp;\n')
+            f.write('    bool rv = network_to_native(&tmp, network);\n')
+            f.write('    *native = stringish<CharName>(tmp);\n')
+            f.write('    return rv;\n')
+            f.write('}\n')
+            f.write('\n')
+            f.write('inline\n')
+            f.write('bool native_to_network(NetString<16> *network, MapName native)\n{\n')
+            f.write('    XString tmp = native;\n')
+            f.write('    bool rv = native_to_network(network, VString<15>(tmp));\n')
+            f.write('    return rv;\n')
+            f.write('}\n')
+            f.write('inline\n')
+            f.write('bool network_to_native(MapName *native, NetString<16> network)\n{\n')
+            f.write('    VString<15> tmp;\n')
+            f.write('    bool rv = network_to_native(&tmp, network);\n')
+            f.write('    *native = stringish<MapName>(tmp);\n')
+            f.write('    return rv;\n')
+            f.write('}\n')
+            f.write('\n')
 
             f.write('template<class T, size_t N>\n')
             f.write('struct SkewedLength\n{\n')
@@ -641,9 +707,8 @@ class Context(object):
         self._types.append(rv)
         return rv
 
-    def struct(self, name, body):
-        # TODO fix this
-        rv = StructType(name, body)
+    def struct(self, name, body, size):
+        rv = StructType(None, name, body, size)
         self._types.append(rv)
         return rv
 
@@ -673,6 +738,7 @@ def main():
     enums_h = ctx.include('src/mmo/enums.hpp')
     human_time_diff_h = ctx.include('src/mmo/human_time_diff.hpp')
     ids_h = ctx.include('src/mmo/ids.hpp')
+    mmo_h = ctx.include('src/mmo/mmo.hpp')
     strs_h = ctx.include('src/mmo/strs.hpp')
     utils_h = ctx.include('src/mmo/utils.hpp')
     version_h = ctx.include('src/mmo/version.hpp')
@@ -692,6 +758,7 @@ def main():
     Little64 = endians_h.network('Little64')
 
     SEX = enums_h.native('SEX')
+    Option = enums_h.native('Option')
 
     Species = ids_h.native('Species')
     AccountId = ids_h.native('AccountId')
@@ -724,8 +791,10 @@ def main():
     #AccountCrypt = strs_h.native('AccountCrypt')
     AccountEmail = strs_h.native('AccountEmail')
     ServerName = strs_h.native('ServerName')
-    #PartyName = strs_h.native('PartyName')
+    PartyName = strs_h.native('PartyName')
     VarName = strs_h.native('VarName')
+    CharName = strs_h.native('CharName')
+    MapName = strs_h.native('MapName')
     #MobName = map_t_h.native('MobName')
     #NpcName = map_t_h.native('NpcName')
     #ScriptLabel = map_t_h.native('ScriptLabel')
@@ -734,6 +803,12 @@ def main():
     #SaltString = md5_h.native('SaltString')
 
     VERSION_2 = login_types_h.native('VERSION_2')
+
+    # TODO: fix LIES
+    char_key = mmo_h.neutral('CharKey')
+    char_data = mmo_h.neutral('CharData')
+    party_most = mmo_h.neutral('PartyMost')
+    storage = mmo_h.neutral('Storage')
 
     # generated types
 
@@ -745,6 +820,8 @@ def main():
     sex_char = ctx.provided(SEX, NeutralType('char'))
 
     sex = ctx.enum(SEX, u8)
+    option = ctx.enum(Option, u16)
+
     species = ctx.wrap(Species, u16)
     account_id = ctx.wrap(AccountId, u32)
     char_id = ctx.wrap(CharId, u32)
@@ -757,6 +834,7 @@ def main():
     time64 = ctx.provided(TimeT, Little64)
 
     gm1 = ctx.provided(GmLevel, Byte)
+    gm2 = ctx.provided(GmLevel, Little16)
     gm = ctx.provided(GmLevel, Little32)
 
     str16 = ctx.string(VString16)
@@ -772,8 +850,10 @@ def main():
     #account_crypt = ctx.string(AccountCrypt)
     account_email = ctx.string(AccountEmail)
     server_name = ctx.string(ServerName)
-    #party_name = ctx.string(PartyName)
+    party_name = ctx.string(PartyName)
     var_name = ctx.string(VarName)
+    char_name = ctx.string(CharName)
+    map_name = ctx.string(MapName)
     #mob_name = ctx.string(MobName)
     #npc_name = ctx.string(NpcName)
     #script_label = ctx.string(ScriptLabel)
@@ -809,7 +889,69 @@ def main():
 
     version_2 = ctx.enum(VERSION_2, u8)
 
+    stats6 = ctx.struct(
+            'Stats6',
+            [
+                at(0, u8, 'str'),
+                at(1, u8, 'agi'),
+                at(2, u8, 'vit'),
+                at(3, u8, 'int_'),
+                at(4, u8, 'dex'),
+                at(5, u8, 'luk'),
+            ],
+            size=6,
+    )
+    char_select = ctx.struct(
+            'CharSelect',
+            [
+                at(0, char_id, 'char id'),
+                at(4, u32, 'base exp'),
+                at(8, u32, 'zeny'),
+                at(12, u32, 'job exp'),
+                at(16, u32, 'job level'),
+
+                at(20, item_name_id, 'shoes'),
+                at(22, item_name_id, 'gloves'),
+                at(24, item_name_id, 'cape'),
+                at(26, item_name_id, 'misc1'),
+                at(28, option, 'option'),
+                at(30, u16, 'unused'),
+
+                at(32, u32, 'karma'),
+                at(36, u32, 'manner'),
+
+                at(40, u16, 'status point'),
+                at(42, u16, 'hp'),
+                at(44, u16, 'max hp'),
+                at(46, u16, 'sp'),
+                at(48, u16, 'max sp'),
+                at(50, u16, 'speed'),
+                at(52, species, 'species'),
+                at(54, u16, 'hair_style'),
+                at(56, u16, 'weapon'),
+                at(58, u16, 'base level'),
+                at(60, u16, 'skill point'),
+                at(62, item_name_id, 'head bottom'),
+                at(64, item_name_id, 'shield'),
+                at(66, item_name_id, 'head top'),
+                at(68, item_name_id, 'head mid'),
+                at(70, u16, 'hair color'),
+                at(72, item_name_id, 'misc2'),
+
+                at(74, char_name, 'char name'),
+
+                at(98, stats6, 'stats'),
+                at(104, u8, 'char num'),
+                at(105, u8, 'unused2'),
+            ],
+            size=106,
+    )
+
     # packets
+
+    # this is a somewhat simplistic view. For packets that get forwarded,
+    # it may be worth pretending something like admin->char, map->login ...
+    # that does break the tree format though
 
     login_char = ctx.chan('login', 'char')
     login_admin = ctx.chan('login', 'admin')
@@ -829,6 +971,21 @@ def main():
 
 
     # * user
+    char_user.r(0x0061,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_pass, 'old pass'),
+            at(26, account_pass, 'new pass'),
+        ],
+        fixed_size=50,
+    )
+    char_user.s(0x0062,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'status'),
+        ],
+        fixed_size=3,
+    )
     login_user.r(0x0063,
         head=[
             at(0, u16, 'packet id'),
@@ -847,6 +1004,43 @@ def main():
             at(54, version_2, 'version 2 flags'),
         ],
         fixed_size=55,
+    )
+    char_user.r(0x0065,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'login id1'),
+            at(10, u32, 'login id2'),
+            at(14, u16, 'packet tmw version'),
+            at(16, sex, 'sex'),
+        ],
+        fixed_size=17,
+    )
+    char_user.r(0x0066,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'code'),
+        ],
+        fixed_size=3,
+    )
+    char_user.r(0x0067,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_name, 'char name'),
+            at(26, stats6, 'stats'),
+            at(32, u8, 'slot'),
+            at(33, u16, 'hair color'),
+            at(35, u16, 'hair style'),
+        ],
+        fixed_size=37,
+    )
+    char_user.r(0x0068,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_id, 'char id'),
+            at(6, account_email, 'email'),
+        ],
+        fixed_size=46,
     )
 
     login_user.r(0x0069,
@@ -880,8 +1074,64 @@ def main():
         ],
         fixed_size=23,
     )
+    char_user.s(0x006b,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, str20, 'unused'),
+        ],
+        head_size=24,
+        repeat=[
+            at(0, char_select, 'char select'),
+        ],
+        repeat_size=106,
+    )
+    char_user.s(0x006c,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'code'),
+        ],
+        fixed_size=3,
+    )
+    char_user.s(0x006d,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_select, 'char select'),
+        ],
+        fixed_size=108,
+    )
+    char_user.s(0x006e,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'code'),
+        ],
+        fixed_size=3,
+    )
+    char_user.s(0x006f,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    char_user.s(0x0070,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'code'),
+        ],
+        fixed_size=3,
+    )
+    char_user.s(0x0071,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_id, 'char id'),
+            at(6, map_name, 'map name'),
+            at(22, ip4, 'ip'),
+            at(26, u16, 'port'),
+        ],
+        fixed_size=28,
+    )
 
-    login_user.s(0x0081,
+    any_user.s(0x0081,
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'error code'),
@@ -982,6 +1232,7 @@ def main():
         ],
         fixed_size=50,
     )
+    # 0x2b0a
     login_char.r(0x2720,
         head=[
             at(0, u16, 'packet id'),
@@ -1000,6 +1251,7 @@ def main():
         ],
         fixed_size=10,
     )
+    # 0x2b0c
     login_char.r(0x2722,
         fixed=[
             at(0, u16, 'packet id'),
@@ -1029,7 +1281,7 @@ def main():
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
-            at(6, human_time_diff, 'deltas'),
+            at(6, human_time_diff, 'ban add'),
         ],
         fixed_size=18,
     )
@@ -1053,6 +1305,7 @@ def main():
         ],
         fixed_size=6,
     )
+    # 0x2b10, 0x2b11
     for (id, cat) in [
         (0x2728, login_char.r),
         (0x2729, login_char.s),
@@ -1121,6 +1374,636 @@ def main():
             at(6, u8, 'status'),
         ],
         fixed_size=7,
+    )
+
+    # char map
+    char_map.r(0x2af7,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    char_map.r(0x2af8,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_name, 'account name'),
+            at(26, account_pass, 'account pass'),
+            at(50, u32, 'unused'),
+            at(54, ip4, 'ip'),
+            at(58, u16, 'port'),
+        ],
+        fixed_size=60,
+    )
+    char_map.s(0x2af9,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'code'),
+        ],
+        fixed_size=3,
+    )
+    # wtf duplicate v
+    char_map.r(0x2afa,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, map_name, 'map name'),
+        ],
+        repeat_size=16,
+    )
+    # wtf duplicate ^
+    char_map.s(0x2afa,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, item_name_id4, 'source item id'),
+            at(6, item_name_id4, 'dest item id'),
+        ],
+        fixed_size=10,
+    )
+    char_map.s(0x2afb,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'unknown'),
+            at(3, char_name, 'whisper name'),
+        ],
+        fixed_size=27,
+    )
+    char_map.r(0x2afc,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_id, 'char id'),
+            at(10, u32, 'login id1'),
+            at(14, u32, 'login id2'),
+            at(18, ip4, 'ip'),
+        ],
+        fixed_size=22,
+    )
+    char_map.s(0x2afd,
+        payload=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+            at(8, u32, 'login id2'),
+            at(12, time32, 'connect until'),
+            at(16, u16, 'packet tmw version'),
+            at(18, char_key, 'char key'),
+            at(None, char_data, 'char data'),
+        ],
+        payload_size=None,
+    )
+    char_map.s(0x2afe,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+        ],
+        fixed_size=6,
+    )
+    char_map.r(0x2aff,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, u16, 'users'),
+        ],
+        head_size=6,
+        repeat=[
+            at(0, char_id, 'char id'),
+        ],
+        repeat_size=4,
+    )
+    char_map.s(0x2b00,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u32, 'users'),
+        ],
+        fixed_size=6,
+    )
+    char_map.r(0x2b01,
+        payload=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+            at(8, char_id, 'char id'),
+            at(12, char_key, 'char key'),
+            at(None, char_data, 'char data'),
+        ],
+        payload_size=None,
+    )
+    char_map.r(0x2b02,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'login id1'),
+            at(10, u32, 'login id2'),
+            at(14, ip4, 'ip'),
+        ],
+        fixed_size=18,
+    )
+    char_map.s(0x2b03,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u8, 'unknown'),
+        ],
+        fixed_size=7,
+    )
+    char_map.s(0x2b04,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, ip4, 'ip'),
+            at(8, u16, 'port'),
+        ],
+        head_size=10,
+        repeat=[
+            at(0, map_name, 'map name'),
+        ],
+        repeat_size=16,
+    )
+    char_map.r(0x2b05,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'login id1'),
+            at(10, u32, 'login id2'),
+            at(14, char_id, 'char id'),
+            at(18, map_name, 'map name'),
+            at(34, u16, 'x'),
+            at(36, u16, 'y'),
+            at(38, ip4, 'map_ip'),
+            at(42, u16, 'map_port'),
+            at(44, sex, 'sex'),
+            at(45, ip4, 'client_ip'),
+        ],
+        fixed_size=49,
+    )
+    char_map.s(0x2b06,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'error'),
+            at(10, u32, 'unknown'),
+            at(14, char_id, 'char id'),
+            at(18, map_name, 'map name'),
+            at(34, u16, 'x'),
+            at(36, u16, 'y'),
+            at(38, ip4, 'map_ip'),
+            at(42, u16, 'map_port'),
+        ],
+        fixed_size=44,
+    )
+    # 0x2720
+    char_map.r(0x2b0a,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[at(0, u8, 'c')],
+        repeat_size=1,
+    )
+    char_map.s(0x2b0b,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, gm, 'gm level'),
+        ],
+        fixed_size=10,
+    )
+    # 0x2722
+    char_map.r(0x2b0c,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, account_email, 'old email'),
+            at(46, account_email, 'new email'),
+        ],
+        fixed_size=86,
+    )
+    char_map.s(0x2b0d,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, sex, 'sex'),
+        ],
+        fixed_size=7,
+    )
+    char_map.r(0x2b0e,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_name, 'char name'),
+            at(30, u16, 'operation'),
+            at(32, human_time_diff, 'ban add'),
+        ],
+        fixed_size=44,
+    )
+    char_map.r(0x2b0f,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_name, 'char name'),
+            at(30, u16, 'operation'),
+            at(32, u16, 'error'),
+        ],
+        fixed_size=34,
+    )
+    # 0x2728, 0x2729
+    for (id, cat) in [
+        (0x2b10, char_map.r),
+        (0x2b11, char_map.s),
+    ]:
+        cat(id,
+            head=[
+                at(0, u16, 'packet id'),
+                at(2, u16, 'packet length'),
+                at(4, account_id, 'account id'),
+            ],
+            head_size=8,
+            repeat=[
+                at(0, var_name, 'name'),
+                at(32, u32, 'value'),
+            ],
+            repeat_size=36,
+        )
+    char_map.s(0x2b12,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_id, 'char id'),
+            at(6, char_id, 'partner id'),
+        ],
+        fixed_size=10,
+    )
+    char_map.s(0x2b13,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+        ],
+        fixed_size=6,
+    )
+    char_map.s(0x2b14,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u8, 'ban not status'),
+            at(7, time32, 'status or ban until'),
+        ],
+        fixed_size=11,
+    )
+    char_map.s(0x2b15,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, account_id, 'account id'),
+            at(4, gm1, 'gm level'),
+        ],
+        repeat_size=5,
+    )
+    char_map.r(0x2b16,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_id, 'char id'),
+        ],
+        fixed_size=6,
+    )
+
+    char_map.r(0x3000,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    char_map.r(0x3001,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, char_name, 'from char name'),
+            at(28, char_name, 'to char name'),
+        ],
+        head_size=52,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    char_map.r(0x3002,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_id, 'char id'),
+            at(6, u8, 'flag'),
+        ],
+        fixed_size=7,
+    )
+    # 0x3803
+    char_map.r(0x3003,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, char_name, 'char name'),
+            at(28, gm2, 'min gm level'),
+        ],
+        head_size=30,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    # 0x3804
+    char_map.r(0x3004,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, var_name, 'name'),
+            at(32, u32, 'value'),
+        ],
+        repeat_size=36,
+    )
+    char_map.r(0x3005,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+        ],
+        fixed_size=6,
+    )
+    char_map.r(0x3010,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+        ],
+        fixed_size=6,
+    )
+    char_map.r(0x3011,
+        payload=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+            at(8, storage, 'storage'),
+        ],
+        payload_size=None,
+    )
+    char_map.r(0x3020,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, party_name, 'party name'),
+            at(30, char_name, 'char name'),
+            at(54, map_name, 'map name'),
+            at(70, u16, 'level'),
+        ],
+        fixed_size=72,
+    )
+    char_map.r(0x3021,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+        ],
+        fixed_size=6,
+    )
+    char_map.r(0x3022,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, char_name, 'char name'),
+            at(34, map_name, 'map name'),
+            at(50, u16, 'level'),
+        ],
+        fixed_size=52,
+    )
+    char_map.r(0x3023,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, u16, 'exp'),
+            at(12, u16, 'item'),
+        ],
+        fixed_size=14,
+    )
+    char_map.r(0x3024,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+        ],
+        fixed_size=10,
+    )
+    char_map.r(0x3025,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, map_name, 'map name'),
+            at(26, u8, 'online'),
+            at(27, u16, 'level'),
+        ],
+        fixed_size=29,
+    )
+    char_map.r(0x3026,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+        ],
+        fixed_size=6,
+    )
+    char_map.r(0x3027,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, party_id, 'party id'),
+            at(8, account_id, 'account id'),
+        ],
+        head_size=12,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    char_map.r(0x3028,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, char_name, 'char name'),
+        ],
+        fixed_size=34,
+    )
+
+    char_map.s(0x3800,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    char_map.s(0x3801,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, char_id, 'whisper id'),
+            at(8, char_name, 'src char name'),
+            at(32, char_name, 'dst char name'),
+        ],
+        head_size=56,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    char_map.s(0x3802,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_name, 'sender char name'),
+            at(26, u8, 'flag'),
+        ],
+        fixed_size=27,
+    )
+    # 0x3003
+    char_map.s(0x3803,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, char_name, 'char name'),
+            at(28, gm2, 'min gm level'),
+        ],
+        head_size=30,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    # 0x3004
+    char_map.s(0x3804,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, var_name, 'name'),
+            at(32, u32, 'value'),
+        ],
+        repeat_size=36,
+    )
+    char_map.s(0x3810,
+        payload=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+            at(8, storage, 'storage'),
+        ],
+        payload_size=None,
+    )
+    char_map.s(0x3811,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u8, 'unknown'),
+        ],
+        fixed_size=7,
+    )
+    char_map.s(0x3820,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u8, 'error'),
+            at(7, party_id, 'party id'),
+            at(11, party_name, 'party name'),
+        ],
+        fixed_size=35,
+    )
+    char_map.s(0x3821,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, party_id, 'party id'),
+        ],
+        head_size=8,
+        option=[
+            at(0, party_most, 'party most'),
+        ],
+        option_size=None,
+    )
+    char_map.s(0x3822,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, u8, 'flag'),
+        ],
+        fixed_size=11,
+    )
+    char_map.s(0x3823,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, u16, 'exp'),
+            at(12, u16, 'item'),
+            at(14, u8, 'flag'),
+        ],
+        fixed_size=15,
+    )
+    char_map.s(0x3824,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, char_name, 'char name'),
+        ],
+        fixed_size=34,
+    )
+    char_map.s(0x3825,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, map_name, 'map name'),
+            at(26, u8, 'online'),
+            at(27, u16, 'level'),
+        ],
+        fixed_size=29,
+    )
+    char_map.s(0x3826,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, u8, 'flag'),
+        ],
+        fixed_size=7,
+    )
+    char_map.s(0x3827,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, party_id, 'party id'),
+            at(8, account_id, 'account id'),
+        ],
+        head_size=12,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
     )
 
     # any client

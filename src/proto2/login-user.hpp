@@ -27,6 +27,9 @@
 
 // This is a public protocol, and changes require client cooperation
 
+// this is only needed for the payload packet right now, and that needs to die
+#pragma pack(push, 1)
+
 template<>
 struct Packet_Head<0x0063>
 {
@@ -97,16 +100,6 @@ struct Packet_Fixed<0x006a>
     uint16_t magic_packet_id = PACKET_ID;
     uint8_t error_code = {};
     timestamp_seconds_buffer error_message = {};
-};
-
-template<>
-struct Packet_Fixed<0x0081>
-{
-    static const uint16_t PACKET_ID = 0x0081;
-
-    // TODO remove this
-    uint16_t magic_packet_id = PACKET_ID;
-    uint8_t error_code = {};
 };
 
 
@@ -195,16 +188,6 @@ static_assert(offsetof(NetPacket_Fixed<0x006a>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x006a>, error_code) == 2, "offsetof(NetPacket_Fixed<0x006a>, error_code) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x006a>, error_message) == 3, "offsetof(NetPacket_Fixed<0x006a>, error_message) == 3");
 static_assert(sizeof(NetPacket_Fixed<0x006a>) == 23, "sizeof(NetPacket_Fixed<0x006a>) == 23");
-
-template<>
-struct NetPacket_Fixed<0x0081>
-{
-    Little16 magic_packet_id;
-    Byte error_code;
-};
-static_assert(offsetof(NetPacket_Fixed<0x0081>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x0081>, magic_packet_id) == 0");
-static_assert(offsetof(NetPacket_Fixed<0x0081>, error_code) == 2, "offsetof(NetPacket_Fixed<0x0081>, error_code) == 2");
-static_assert(sizeof(NetPacket_Fixed<0x0081>) == 3, "sizeof(NetPacket_Fixed<0x0081>) == 3");
 
 
 inline __attribute__((warn_unused_result))
@@ -335,22 +318,7 @@ bool network_to_native(Packet_Fixed<0x006a> *native, NetPacket_Fixed<0x006a> net
     return rv;
 }
 
-inline __attribute__((warn_unused_result))
-bool native_to_network(NetPacket_Fixed<0x0081> *network, Packet_Fixed<0x0081> native)
-{
-    bool rv = true;
-    rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
-    rv &= native_to_network(&network->error_code, native.error_code);
-    return rv;
-}
-inline __attribute__((warn_unused_result))
-bool network_to_native(Packet_Fixed<0x0081> *native, NetPacket_Fixed<0x0081> network)
-{
-    bool rv = true;
-    rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
-    rv &= network_to_native(&native->error_code, network.error_code);
-    return rv;
-}
 
+#pragma pack(pop)
 
 #endif // TMWA_PROTO2_LOGIN_USER_HPP
