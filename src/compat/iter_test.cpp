@@ -117,7 +117,7 @@ TEST(iterpair, filter1)
     int *expected_it = expected_arr;
     int *expected_end = expected_arr + 4;
 
-    for (int& i : filter_iterator<int&, is_odd_ref>(&arr))
+    for (int& i : filter_iterator<int&>(&arr, is_odd_ref))
     {
         EXPECT_EQ(i, *expected_it);
         ++expected_it;
