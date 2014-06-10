@@ -26,6 +26,7 @@
 # include "../ints/little.hpp"
 # include "../strings/vstring.hpp"
 # include "../net/ip.hpp"
+# include "../net/timer.t.hpp"
 # include "../mmo/enums.hpp"
 # include "../mmo/human_time_diff.hpp"
 # include "../mmo/ids.hpp"
@@ -33,7 +34,9 @@
 # include "../mmo/strs.hpp"
 # include "../mmo/utils.hpp"
 # include "../mmo/version.hpp"
-# include "../login/types.hpp"
+# include "../login/login.t.hpp"
+# include "../map/clif.t.hpp"
+# include "../map/skill.t.hpp"
 template<class T>
 bool native_to_network(T *network, T native)
 {
@@ -124,6 +127,240 @@ bool network_to_native(U *native, SkewedLength<T, N> network)
 }
 
 inline __attribute__((warn_unused_result))
+bool native_to_network(Byte *network, DIR native)
+{
+    bool rv = true;
+    uint8_t tmp = static_cast<uint8_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(DIR *native, Byte network)
+{
+    bool rv = true;
+    uint8_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<DIR>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Byte *network, BeingRemoveWhy native)
+{
+    bool rv = true;
+    uint8_t tmp = static_cast<uint8_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(BeingRemoveWhy *native, Byte network)
+{
+    bool rv = true;
+    uint8_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<BeingRemoveWhy>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, Opt1 native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Opt1 *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<Opt1>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, Opt2 native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Opt2 *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<Opt2>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, Opt3 native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Opt3 *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<Opt3>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Byte *network, ItemType native)
+{
+    bool rv = true;
+    uint8_t tmp = static_cast<uint8_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(ItemType *native, Byte network)
+{
+    bool rv = true;
+    uint8_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<ItemType>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Byte *network, PickupFail native)
+{
+    bool rv = true;
+    uint8_t tmp = static_cast<uint8_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(PickupFail *native, Byte network)
+{
+    bool rv = true;
+    uint8_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<PickupFail>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Byte *network, DamageType native)
+{
+    bool rv = true;
+    uint8_t tmp = static_cast<uint8_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(DamageType *native, Byte network)
+{
+    bool rv = true;
+    uint8_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<DamageType>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, SP native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(SP *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<SP>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Byte *network, LOOK native)
+{
+    bool rv = true;
+    uint8_t tmp = static_cast<uint8_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(LOOK *native, Byte network)
+{
+    bool rv = true;
+    uint8_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<LOOK>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, SkillID native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(SkillID *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<SkillID>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, StatusChange native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(StatusChange *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<StatusChange>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, SkillFlags native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(SkillFlags *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<SkillFlags>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
 bool native_to_network(Byte *network, SEX native)
 {
     bool rv = true;
@@ -156,6 +393,24 @@ bool network_to_native(Option *native, Little16 network)
     uint16_t tmp;
     rv &= network_to_native(&tmp, network);
     *native = static_cast<Option>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, EPOS native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(EPOS *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<EPOS>(tmp);
     // TODO this is what really should be doing a checked cast
     return rv;
 }
@@ -392,6 +647,7 @@ static_assert(offsetof(NetStats6, int_) == 3, "offsetof(NetStats6, int_) == 3");
 static_assert(offsetof(NetStats6, dex) == 4, "offsetof(NetStats6, dex) == 4");
 static_assert(offsetof(NetStats6, luk) == 5, "offsetof(NetStats6, luk) == 5");
 static_assert(sizeof(NetStats6) == 6, "sizeof(NetStats6) == 6");
+static_assert(alignof(NetStats6) == 1, "alignof(NetStats6) == 1");
 inline __attribute__((warn_unused_result))
 bool native_to_network(NetStats6 *network, Stats6 native)
 {
@@ -526,6 +782,7 @@ static_assert(offsetof(NetCharSelect, stats) == 98, "offsetof(NetCharSelect, sta
 static_assert(offsetof(NetCharSelect, char_num) == 104, "offsetof(NetCharSelect, char_num) == 104");
 static_assert(offsetof(NetCharSelect, unused2) == 105, "offsetof(NetCharSelect, unused2) == 105");
 static_assert(sizeof(NetCharSelect) == 106, "sizeof(NetCharSelect) == 106");
+static_assert(alignof(NetCharSelect) == 1, "alignof(NetCharSelect) == 1");
 inline __attribute__((warn_unused_result))
 bool native_to_network(NetCharSelect *network, CharSelect native)
 {
@@ -604,6 +861,67 @@ bool network_to_native(CharSelect *native, NetCharSelect network)
     rv &= network_to_native(&native->stats, network.stats);
     rv &= network_to_native(&native->char_num, network.char_num);
     rv &= network_to_native(&native->unused2, network.unused2);
+    return rv;
+}
+
+struct SkillInfo
+{
+    SkillID skill_id = {};
+    uint16_t type_or_inf = {};
+    SkillFlags flags = {};
+    uint16_t level = {};
+    uint16_t sp = {};
+    uint16_t range = {};
+    VString<23> unused = {};
+    uint8_t can_raise = {};
+};
+struct NetSkillInfo
+{
+    Little16 skill_id;
+    Little16 type_or_inf;
+    Little16 flags;
+    Little16 level;
+    Little16 sp;
+    Little16 range;
+    NetString<sizeof(VString<23>)> unused;
+    Byte can_raise;
+};
+static_assert(offsetof(NetSkillInfo, skill_id) == 0, "offsetof(NetSkillInfo, skill_id) == 0");
+static_assert(offsetof(NetSkillInfo, type_or_inf) == 2, "offsetof(NetSkillInfo, type_or_inf) == 2");
+static_assert(offsetof(NetSkillInfo, flags) == 4, "offsetof(NetSkillInfo, flags) == 4");
+static_assert(offsetof(NetSkillInfo, level) == 6, "offsetof(NetSkillInfo, level) == 6");
+static_assert(offsetof(NetSkillInfo, sp) == 8, "offsetof(NetSkillInfo, sp) == 8");
+static_assert(offsetof(NetSkillInfo, range) == 10, "offsetof(NetSkillInfo, range) == 10");
+static_assert(offsetof(NetSkillInfo, unused) == 12, "offsetof(NetSkillInfo, unused) == 12");
+static_assert(offsetof(NetSkillInfo, can_raise) == 36, "offsetof(NetSkillInfo, can_raise) == 36");
+static_assert(sizeof(NetSkillInfo) == 37, "sizeof(NetSkillInfo) == 37");
+static_assert(alignof(NetSkillInfo) == 1, "alignof(NetSkillInfo) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetSkillInfo *network, SkillInfo native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->skill_id, native.skill_id);
+    rv &= native_to_network(&network->type_or_inf, native.type_or_inf);
+    rv &= native_to_network(&network->flags, native.flags);
+    rv &= native_to_network(&network->level, native.level);
+    rv &= native_to_network(&network->sp, native.sp);
+    rv &= native_to_network(&network->range, native.range);
+    rv &= native_to_network(&network->unused, native.unused);
+    rv &= native_to_network(&network->can_raise, native.can_raise);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(SkillInfo *native, NetSkillInfo network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->skill_id, network.skill_id);
+    rv &= network_to_native(&native->type_or_inf, network.type_or_inf);
+    rv &= network_to_native(&native->flags, network.flags);
+    rv &= network_to_native(&native->level, network.level);
+    rv &= network_to_native(&native->sp, network.sp);
+    rv &= network_to_native(&native->range, network.range);
+    rv &= network_to_native(&native->unused, network.unused);
+    rv &= network_to_native(&native->can_raise, network.can_raise);
     return rv;
 }
 

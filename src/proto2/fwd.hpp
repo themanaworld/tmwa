@@ -904,6 +904,790 @@ struct NetPacket_Fixed<0x0071>;
 
 
 template<>
+struct Packet_Fixed<0x0072>;
+template<>
+struct NetPacket_Fixed<0x0072>;
+
+template<>
+struct Packet_Fixed<0x0073>;
+template<>
+struct NetPacket_Fixed<0x0073>;
+
+template<>
+struct Packet_Fixed<0x0078>;
+template<>
+struct NetPacket_Fixed<0x0078>;
+
+template<>
+struct Packet_Fixed<0x007b>;
+template<>
+struct NetPacket_Fixed<0x007b>;
+
+template<>
+struct Packet_Fixed<0x007c>;
+template<>
+struct NetPacket_Fixed<0x007c>;
+
+template<>
+struct Packet_Fixed<0x007d>;
+template<>
+struct NetPacket_Fixed<0x007d>;
+
+template<>
+struct Packet_Fixed<0x007e>;
+template<>
+struct NetPacket_Fixed<0x007e>;
+
+template<>
+struct Packet_Fixed<0x007f>;
+template<>
+struct NetPacket_Fixed<0x007f>;
+
+template<>
+struct Packet_Fixed<0x0080>;
+template<>
+struct NetPacket_Fixed<0x0080>;
+
+template<>
+struct Packet_Fixed<0x0085>;
+template<>
+struct NetPacket_Fixed<0x0085>;
+
+template<>
+struct Packet_Fixed<0x0087>;
+template<>
+struct NetPacket_Fixed<0x0087>;
+
+template<>
+struct Packet_Fixed<0x0088>;
+template<>
+struct NetPacket_Fixed<0x0088>;
+
+template<>
+struct Packet_Fixed<0x0089>;
+template<>
+struct NetPacket_Fixed<0x0089>;
+
+template<>
+struct Packet_Fixed<0x008a>;
+template<>
+struct NetPacket_Fixed<0x008a>;
+
+template<>
+struct Packet_Head<0x008c>;
+template<>
+struct NetPacket_Head<0x008c>;
+template<>
+struct Packet_Repeat<0x008c>;
+template<>
+struct NetPacket_Repeat<0x008c>;
+
+template<>
+struct Packet_Head<0x008d>;
+template<>
+struct NetPacket_Head<0x008d>;
+template<>
+struct Packet_Repeat<0x008d>;
+template<>
+struct NetPacket_Repeat<0x008d>;
+
+template<>
+struct Packet_Head<0x008e>;
+template<>
+struct NetPacket_Head<0x008e>;
+template<>
+struct Packet_Repeat<0x008e>;
+template<>
+struct NetPacket_Repeat<0x008e>;
+
+template<>
+struct Packet_Fixed<0x0090>;
+template<>
+struct NetPacket_Fixed<0x0090>;
+
+template<>
+struct Packet_Fixed<0x0091>;
+template<>
+struct NetPacket_Fixed<0x0091>;
+
+template<>
+struct Packet_Fixed<0x0092>;
+template<>
+struct NetPacket_Fixed<0x0092>;
+
+template<>
+struct Packet_Fixed<0x0094>;
+template<>
+struct NetPacket_Fixed<0x0094>;
+
+template<>
+struct Packet_Fixed<0x0095>;
+template<>
+struct NetPacket_Fixed<0x0095>;
+
+template<>
+struct Packet_Head<0x0096>;
+template<>
+struct NetPacket_Head<0x0096>;
+template<>
+struct Packet_Repeat<0x0096>;
+template<>
+struct NetPacket_Repeat<0x0096>;
+
+template<>
+struct Packet_Head<0x0097>;
+template<>
+struct NetPacket_Head<0x0097>;
+template<>
+struct Packet_Repeat<0x0097>;
+template<>
+struct NetPacket_Repeat<0x0097>;
+
+template<>
+struct Packet_Fixed<0x0098>;
+template<>
+struct NetPacket_Fixed<0x0098>;
+
+template<>
+struct Packet_Head<0x009a>;
+template<>
+struct NetPacket_Head<0x009a>;
+template<>
+struct Packet_Repeat<0x009a>;
+template<>
+struct NetPacket_Repeat<0x009a>;
+
+template<>
+struct Packet_Fixed<0x009b>;
+template<>
+struct NetPacket_Fixed<0x009b>;
+
+template<>
+struct Packet_Fixed<0x009c>;
+template<>
+struct NetPacket_Fixed<0x009c>;
+
+template<>
+struct Packet_Fixed<0x009d>;
+template<>
+struct NetPacket_Fixed<0x009d>;
+
+template<>
+struct Packet_Fixed<0x009e>;
+template<>
+struct NetPacket_Fixed<0x009e>;
+
+template<>
+struct Packet_Fixed<0x009f>;
+template<>
+struct NetPacket_Fixed<0x009f>;
+
+template<>
+struct Packet_Fixed<0x00a0>;
+template<>
+struct NetPacket_Fixed<0x00a0>;
+
+template<>
+struct Packet_Fixed<0x00a1>;
+template<>
+struct NetPacket_Fixed<0x00a1>;
+
+template<>
+struct Packet_Fixed<0x00a2>;
+template<>
+struct NetPacket_Fixed<0x00a2>;
+
+template<>
+struct Packet_Head<0x00a4>;
+template<>
+struct NetPacket_Head<0x00a4>;
+template<>
+struct Packet_Repeat<0x00a4>;
+template<>
+struct NetPacket_Repeat<0x00a4>;
+
+template<>
+struct Packet_Head<0x00a6>;
+template<>
+struct NetPacket_Head<0x00a6>;
+template<>
+struct Packet_Repeat<0x00a6>;
+template<>
+struct NetPacket_Repeat<0x00a6>;
+
+template<>
+struct Packet_Fixed<0x00a7>;
+template<>
+struct NetPacket_Fixed<0x00a7>;
+
+template<>
+struct Packet_Fixed<0x00a8>;
+template<>
+struct NetPacket_Fixed<0x00a8>;
+
+template<>
+struct Packet_Fixed<0x00a9>;
+template<>
+struct NetPacket_Fixed<0x00a9>;
+
+template<>
+struct Packet_Fixed<0x00aa>;
+template<>
+struct NetPacket_Fixed<0x00aa>;
+
+template<>
+struct Packet_Fixed<0x00ab>;
+template<>
+struct NetPacket_Fixed<0x00ab>;
+
+template<>
+struct Packet_Fixed<0x00ac>;
+template<>
+struct NetPacket_Fixed<0x00ac>;
+
+template<>
+struct Packet_Fixed<0x00af>;
+template<>
+struct NetPacket_Fixed<0x00af>;
+
+template<>
+struct Packet_Fixed<0x00b0>;
+template<>
+struct NetPacket_Fixed<0x00b0>;
+
+template<>
+struct Packet_Fixed<0x00b1>;
+template<>
+struct NetPacket_Fixed<0x00b1>;
+
+template<>
+struct Packet_Fixed<0x00b2>;
+template<>
+struct NetPacket_Fixed<0x00b2>;
+
+template<>
+struct Packet_Fixed<0x00b3>;
+template<>
+struct NetPacket_Fixed<0x00b3>;
+
+template<>
+struct Packet_Head<0x00b4>;
+template<>
+struct NetPacket_Head<0x00b4>;
+template<>
+struct Packet_Repeat<0x00b4>;
+template<>
+struct NetPacket_Repeat<0x00b4>;
+
+template<>
+struct Packet_Fixed<0x00b5>;
+template<>
+struct NetPacket_Fixed<0x00b5>;
+
+template<>
+struct Packet_Fixed<0x00b6>;
+template<>
+struct NetPacket_Fixed<0x00b6>;
+
+template<>
+struct Packet_Head<0x00b7>;
+template<>
+struct NetPacket_Head<0x00b7>;
+template<>
+struct Packet_Repeat<0x00b7>;
+template<>
+struct NetPacket_Repeat<0x00b7>;
+
+template<>
+struct Packet_Fixed<0x00b8>;
+template<>
+struct NetPacket_Fixed<0x00b8>;
+
+template<>
+struct Packet_Fixed<0x00b9>;
+template<>
+struct NetPacket_Fixed<0x00b9>;
+
+template<>
+struct Packet_Fixed<0x00bb>;
+template<>
+struct NetPacket_Fixed<0x00bb>;
+
+template<>
+struct Packet_Fixed<0x00bc>;
+template<>
+struct NetPacket_Fixed<0x00bc>;
+
+template<>
+struct Packet_Fixed<0x00bd>;
+template<>
+struct NetPacket_Fixed<0x00bd>;
+
+template<>
+struct Packet_Fixed<0x00be>;
+template<>
+struct NetPacket_Fixed<0x00be>;
+
+template<>
+struct Packet_Fixed<0x00bf>;
+template<>
+struct NetPacket_Fixed<0x00bf>;
+
+template<>
+struct Packet_Fixed<0x00c0>;
+template<>
+struct NetPacket_Fixed<0x00c0>;
+
+template<>
+struct Packet_Fixed<0x00c1>;
+template<>
+struct NetPacket_Fixed<0x00c1>;
+
+template<>
+struct Packet_Fixed<0x00c2>;
+template<>
+struct NetPacket_Fixed<0x00c2>;
+
+template<>
+struct Packet_Fixed<0x00c4>;
+template<>
+struct NetPacket_Fixed<0x00c4>;
+
+template<>
+struct Packet_Fixed<0x00c5>;
+template<>
+struct NetPacket_Fixed<0x00c5>;
+
+template<>
+struct Packet_Head<0x00c6>;
+template<>
+struct NetPacket_Head<0x00c6>;
+template<>
+struct Packet_Repeat<0x00c6>;
+template<>
+struct NetPacket_Repeat<0x00c6>;
+
+template<>
+struct Packet_Head<0x00c7>;
+template<>
+struct NetPacket_Head<0x00c7>;
+template<>
+struct Packet_Repeat<0x00c7>;
+template<>
+struct NetPacket_Repeat<0x00c7>;
+
+template<>
+struct Packet_Head<0x00c8>;
+template<>
+struct NetPacket_Head<0x00c8>;
+template<>
+struct Packet_Repeat<0x00c8>;
+template<>
+struct NetPacket_Repeat<0x00c8>;
+
+template<>
+struct Packet_Head<0x00c9>;
+template<>
+struct NetPacket_Head<0x00c9>;
+template<>
+struct Packet_Repeat<0x00c9>;
+template<>
+struct NetPacket_Repeat<0x00c9>;
+
+template<>
+struct Packet_Fixed<0x00ca>;
+template<>
+struct NetPacket_Fixed<0x00ca>;
+
+template<>
+struct Packet_Fixed<0x00cb>;
+template<>
+struct NetPacket_Fixed<0x00cb>;
+
+template<>
+struct Packet_Fixed<0x00cd>;
+template<>
+struct NetPacket_Fixed<0x00cd>;
+
+template<>
+struct Packet_Fixed<0x00e4>;
+template<>
+struct NetPacket_Fixed<0x00e4>;
+
+template<>
+struct Packet_Fixed<0x00e5>;
+template<>
+struct NetPacket_Fixed<0x00e5>;
+
+template<>
+struct Packet_Fixed<0x00e6>;
+template<>
+struct NetPacket_Fixed<0x00e6>;
+
+template<>
+struct Packet_Fixed<0x00e7>;
+template<>
+struct NetPacket_Fixed<0x00e7>;
+
+template<>
+struct Packet_Fixed<0x00e8>;
+template<>
+struct NetPacket_Fixed<0x00e8>;
+
+template<>
+struct Packet_Fixed<0x00e9>;
+template<>
+struct NetPacket_Fixed<0x00e9>;
+
+template<>
+struct Packet_Fixed<0x00eb>;
+template<>
+struct NetPacket_Fixed<0x00eb>;
+
+template<>
+struct Packet_Fixed<0x00ec>;
+template<>
+struct NetPacket_Fixed<0x00ec>;
+
+template<>
+struct Packet_Fixed<0x00ed>;
+template<>
+struct NetPacket_Fixed<0x00ed>;
+
+template<>
+struct Packet_Fixed<0x00ee>;
+template<>
+struct NetPacket_Fixed<0x00ee>;
+
+template<>
+struct Packet_Fixed<0x00ef>;
+template<>
+struct NetPacket_Fixed<0x00ef>;
+
+template<>
+struct Packet_Fixed<0x00f0>;
+template<>
+struct NetPacket_Fixed<0x00f0>;
+
+template<>
+struct Packet_Fixed<0x00f2>;
+template<>
+struct NetPacket_Fixed<0x00f2>;
+
+template<>
+struct Packet_Fixed<0x00f3>;
+template<>
+struct NetPacket_Fixed<0x00f3>;
+
+template<>
+struct Packet_Fixed<0x00f4>;
+template<>
+struct NetPacket_Fixed<0x00f4>;
+
+template<>
+struct Packet_Fixed<0x00f5>;
+template<>
+struct NetPacket_Fixed<0x00f5>;
+
+template<>
+struct Packet_Fixed<0x00f6>;
+template<>
+struct NetPacket_Fixed<0x00f6>;
+
+template<>
+struct Packet_Fixed<0x00f7>;
+template<>
+struct NetPacket_Fixed<0x00f7>;
+
+template<>
+struct Packet_Fixed<0x00f8>;
+template<>
+struct NetPacket_Fixed<0x00f8>;
+
+template<>
+struct Packet_Fixed<0x00f9>;
+template<>
+struct NetPacket_Fixed<0x00f9>;
+
+template<>
+struct Packet_Fixed<0x00fa>;
+template<>
+struct NetPacket_Fixed<0x00fa>;
+
+template<>
+struct Packet_Head<0x00fb>;
+template<>
+struct NetPacket_Head<0x00fb>;
+template<>
+struct Packet_Repeat<0x00fb>;
+template<>
+struct NetPacket_Repeat<0x00fb>;
+
+template<>
+struct Packet_Fixed<0x00fc>;
+template<>
+struct NetPacket_Fixed<0x00fc>;
+
+template<>
+struct Packet_Fixed<0x00fd>;
+template<>
+struct NetPacket_Fixed<0x00fd>;
+
+template<>
+struct Packet_Fixed<0x00fe>;
+template<>
+struct NetPacket_Fixed<0x00fe>;
+
+template<>
+struct Packet_Fixed<0x00ff>;
+template<>
+struct NetPacket_Fixed<0x00ff>;
+
+template<>
+struct Packet_Fixed<0x0100>;
+template<>
+struct NetPacket_Fixed<0x0100>;
+
+template<>
+struct Packet_Fixed<0x0101>;
+template<>
+struct NetPacket_Fixed<0x0101>;
+
+template<>
+struct Packet_Fixed<0x0102>;
+template<>
+struct NetPacket_Fixed<0x0102>;
+
+template<>
+struct Packet_Fixed<0x0103>;
+template<>
+struct NetPacket_Fixed<0x0103>;
+
+template<>
+struct Packet_Fixed<0x0105>;
+template<>
+struct NetPacket_Fixed<0x0105>;
+
+template<>
+struct Packet_Fixed<0x0106>;
+template<>
+struct NetPacket_Fixed<0x0106>;
+
+template<>
+struct Packet_Fixed<0x0107>;
+template<>
+struct NetPacket_Fixed<0x0107>;
+
+template<>
+struct Packet_Head<0x0108>;
+template<>
+struct NetPacket_Head<0x0108>;
+template<>
+struct Packet_Repeat<0x0108>;
+template<>
+struct NetPacket_Repeat<0x0108>;
+
+template<>
+struct Packet_Head<0x0109>;
+template<>
+struct NetPacket_Head<0x0109>;
+template<>
+struct Packet_Repeat<0x0109>;
+template<>
+struct NetPacket_Repeat<0x0109>;
+
+template<>
+struct Packet_Fixed<0x010c>;
+template<>
+struct NetPacket_Fixed<0x010c>;
+
+template<>
+struct Packet_Fixed<0x010e>;
+template<>
+struct NetPacket_Fixed<0x010e>;
+
+template<>
+struct Packet_Head<0x010f>;
+template<>
+struct NetPacket_Head<0x010f>;
+template<>
+struct Packet_Repeat<0x010f>;
+template<>
+struct NetPacket_Repeat<0x010f>;
+
+template<>
+struct Packet_Fixed<0x0110>;
+template<>
+struct NetPacket_Fixed<0x0110>;
+
+template<>
+struct Packet_Fixed<0x0112>;
+template<>
+struct NetPacket_Fixed<0x0112>;
+
+template<>
+struct Packet_Fixed<0x0118>;
+template<>
+struct NetPacket_Fixed<0x0118>;
+
+template<>
+struct Packet_Fixed<0x0119>;
+template<>
+struct NetPacket_Fixed<0x0119>;
+
+template<>
+struct Packet_Fixed<0x0139>;
+template<>
+struct NetPacket_Fixed<0x0139>;
+
+template<>
+struct Packet_Fixed<0x013a>;
+template<>
+struct NetPacket_Fixed<0x013a>;
+
+template<>
+struct Packet_Fixed<0x013b>;
+template<>
+struct NetPacket_Fixed<0x013b>;
+
+template<>
+struct Packet_Fixed<0x013c>;
+template<>
+struct NetPacket_Fixed<0x013c>;
+
+template<>
+struct Packet_Fixed<0x0141>;
+template<>
+struct NetPacket_Fixed<0x0141>;
+
+template<>
+struct Packet_Fixed<0x0142>;
+template<>
+struct NetPacket_Fixed<0x0142>;
+
+template<>
+struct Packet_Fixed<0x0143>;
+template<>
+struct NetPacket_Fixed<0x0143>;
+
+template<>
+struct Packet_Fixed<0x0146>;
+template<>
+struct NetPacket_Fixed<0x0146>;
+
+template<>
+struct Packet_Fixed<0x0147>;
+template<>
+struct NetPacket_Fixed<0x0147>;
+
+template<>
+struct Packet_Fixed<0x0148>;
+template<>
+struct NetPacket_Fixed<0x0148>;
+
+template<>
+struct Packet_Fixed<0x014d>;
+template<>
+struct NetPacket_Fixed<0x014d>;
+
+template<>
+struct Packet_Fixed<0x018a>;
+template<>
+struct NetPacket_Fixed<0x018a>;
+
+template<>
+struct Packet_Fixed<0x018b>;
+template<>
+struct NetPacket_Fixed<0x018b>;
+
+template<>
+struct Packet_Fixed<0x0195>;
+template<>
+struct NetPacket_Fixed<0x0195>;
+
+template<>
+struct Packet_Fixed<0x0196>;
+template<>
+struct NetPacket_Fixed<0x0196>;
+
+template<>
+struct Packet_Fixed<0x019b>;
+template<>
+struct NetPacket_Fixed<0x019b>;
+
+template<>
+struct Packet_Fixed<0x01b1>;
+template<>
+struct NetPacket_Fixed<0x01b1>;
+
+template<>
+struct Packet_Fixed<0x01c8>;
+template<>
+struct NetPacket_Fixed<0x01c8>;
+
+template<>
+struct Packet_Fixed<0x01d4>;
+template<>
+struct NetPacket_Fixed<0x01d4>;
+
+template<>
+struct Packet_Head<0x01d5>;
+template<>
+struct NetPacket_Head<0x01d5>;
+template<>
+struct Packet_Repeat<0x01d5>;
+template<>
+struct NetPacket_Repeat<0x01d5>;
+
+template<>
+struct Packet_Fixed<0x01d7>;
+template<>
+struct NetPacket_Fixed<0x01d7>;
+
+template<>
+struct Packet_Fixed<0x01d8>;
+template<>
+struct NetPacket_Fixed<0x01d8>;
+
+template<>
+struct Packet_Fixed<0x01d9>;
+template<>
+struct NetPacket_Fixed<0x01d9>;
+
+template<>
+struct Packet_Fixed<0x01da>;
+template<>
+struct NetPacket_Fixed<0x01da>;
+
+template<>
+struct Packet_Fixed<0x01de>;
+template<>
+struct NetPacket_Fixed<0x01de>;
+
+template<>
+struct Packet_Head<0x01ee>;
+template<>
+struct NetPacket_Head<0x01ee>;
+template<>
+struct Packet_Repeat<0x01ee>;
+template<>
+struct NetPacket_Repeat<0x01ee>;
+
+template<>
+struct Packet_Head<0x01f0>;
+template<>
+struct NetPacket_Head<0x01f0>;
+template<>
+struct Packet_Repeat<0x01f0>;
+template<>
+struct NetPacket_Repeat<0x01f0>;
+
+template<>
+struct Packet_Fixed<0x020c>;
+template<>
+struct NetPacket_Fixed<0x020c>;
+
+template<>
 struct Packet_Fixed<0x0212>;
 template<>
 struct NetPacket_Fixed<0x0212>;
@@ -928,6 +1712,11 @@ template<>
 struct Packet_Fixed<0x7532>;
 template<>
 struct NetPacket_Fixed<0x7532>;
+
+template<>
+struct Packet_Payload<0x8000>;
+template<>
+struct NetPacket_Payload<0x8000>;
 
 
 

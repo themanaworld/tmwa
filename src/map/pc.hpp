@@ -78,7 +78,7 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
         ATK target_lv);
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
 void pc_makesavestatus(dumb_ptr<map_session_data>);
-int pc_setnewpc(dumb_ptr<map_session_data>, AccountId, CharId, int, tick_t, SEX);
+int pc_setnewpc(dumb_ptr<map_session_data>, AccountId, CharId, int, uint32_t /*tick_t*/, SEX);
 int pc_authok(AccountId, int, TimeT, short tmw_version, const CharKey *, const CharData *);
 int pc_authfail(AccountId accid);
 

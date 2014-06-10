@@ -47,7 +47,7 @@
 #include "../poison.hpp"
 
 /* used for local spell effects */
-constexpr int INVISIBLE_NPC = 127;
+constexpr Species INVISIBLE_NPC = wrap<Species>(127);
 
 //#define DEBUG
 
@@ -153,7 +153,7 @@ void spell_free_invocation(dumb_ptr<invocation> invocation_)
 
 static
 void char_set_weapon_icon(dumb_ptr<map_session_data> subject, int count,
-        StatusChange icon, int look)
+        StatusChange icon, ItemNameId look)
 {
     const StatusChange old_icon = subject->attack_spell_icon_override;
 
@@ -166,7 +166,7 @@ void char_set_weapon_icon(dumb_ptr<map_session_data> subject, int count,
     clif_fixpcpos(subject);
     if (count)
     {
-        clif_changelook(subject, LOOK::WEAPON, look);
+        clif_changelook(subject, LOOK::WEAPON, unwrap<ItemNameId>(look));
         if (icon != StatusChange::ZERO)
             clif_status_change(subject, icon, 1);
     }
@@ -213,7 +213,7 @@ void magic_stop_completely(dumb_ptr<map_session_data> c)
         if (attack_spell)
             spell_free_invocation(attack_spell);
         c->attack_spell_override = BlockId();
-        char_set_weapon_icon(c, 0, StatusChange::ZERO, 0);
+        char_set_weapon_icon(c, 0, StatusChange::ZERO, ItemNameId());
         char_set_attack_info(c, interval_t::zero(), 0);
     }
 }
@@ -445,7 +445,7 @@ int op_messenger_npc(dumb_ptr<env_t>, Slice<val_t> args)
 
     NpcName npcname = stringish<NpcName>(ARGSTR(2));
     npc = npc_spawn_text(loc->m, loc->x, loc->y,
-            ARGINT(1), npcname, ARGSTR(3));
+            wrap<Species>(static_cast<uint16_t>(ARGINT(1))), npcname, ARGSTR(3));
 
     Timer(gettick() + static_cast<interval_t>(ARGINT(4)),
             std::bind(timer_callback_kill_npc, ph::_1, ph::_2,
@@ -587,7 +587,7 @@ int op_override_attack(dumb_ptr<env_t> env, Slice<val_t> args)
     interval_t attack_delay = static_cast<interval_t>(ARGINT(2));
     int attack_range = ARGINT(3);
     StatusChange icon = StatusChange(ARGINT(4));
-    int look = ARGINT(5);
+    ItemNameId look = wrap<ItemNameId>(static_cast<uint16_t>(ARGINT(5)));
     int stopattack = ARGINT(6);
     dumb_ptr<map_session_data> subject;
 
@@ -1623,7 +1623,7 @@ int spell_attack(BlockId caster_id, BlockId target_id)
     else if (!invocation_ || caster->attack_spell_charges <= 0)
     {
         caster->attack_spell_override = BlockId();
-        char_set_weapon_icon(caster, 0, StatusChange::ZERO, 0);
+        char_set_weapon_icon(caster, 0, StatusChange::ZERO, ItemNameId());
         char_set_attack_info(caster, interval_t::zero(), 0);
 
         if (stop_attack)

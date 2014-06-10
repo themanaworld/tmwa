@@ -46,6 +46,8 @@
 #include "../mmo/extract.hpp"
 #include "../mmo/utils.hpp"
 
+#include "../proto2/map-user.hpp"
+
 #include "battle.hpp"
 #include "clif.hpp"
 #include "itemdb.hpp"
@@ -642,7 +644,7 @@ int npc_checknear(dumb_ptr<map_session_data> sd, BlockId id)
     if (nd->bl_type != BL::NPC)
         return 1;
 
-    if (nd->npc_class < 0)          // イベント系は常にOK
+    if (nd->npc_class == NEGATIVE_SPECIES)
         return 0;
 
     // エリア判定
@@ -778,15 +780,14 @@ int npc_buysellsel(dumb_ptr<map_session_data> sd, BlockId id, int type)
  *------------------------------------------
  */
 // TODO enumify return type
-int npc_buylist(dumb_ptr<map_session_data> sd, int n,
-        const uint16_t *item_list)
+int npc_buylist(dumb_ptr<map_session_data> sd,
+        const std::vector<Packet_Repeat<0x00c8>>& item_list)
 {
     dumb_ptr<npc_data> nd;
     double z;
     int i, j, w, itemamount = 0, new_stacks = 0;
 
     nullpo_retr(3, sd);
-    nullpo_retr(3, item_list);
 
     if (npc_checknear(sd, sd->npc_shopid))
         return 3;
@@ -795,11 +796,10 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
     if (nd->npc_subtype != NpcSubtype::SHOP)
         return 3;
 
-    for (i = 0, w = 0, z = 0; i < n; i++)
+    for (i = 0, w = 0, z = 0; i < item_list.size(); i++)
     {
-        // TODO this *really needs to be made into a struct
-        const uint16_t& item_l_count = item_list[i * 2];
-        const ItemNameId& item_l_id = wrap<ItemNameId>(item_list[i * 2 + 1]);
+        const uint16_t& item_l_count = item_list[i].count;
+        const ItemNameId& item_l_id = item_list[i].name_id;
 
         for (j = 0; j < nd->is_shop()->shop_items.size(); j++)
         {
@@ -840,10 +840,10 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
 
     pc_payzeny(sd, static_cast<int>(z));
 
-    for (i = 0; i < n; i++)
+    for (i = 0; i < item_list.size(); i++)
     {
-        const uint16_t& item_l_count = item_list[i * 2];
-        const ItemNameId& item_l_id = wrap<ItemNameId>(item_list[i * 2 + 1]);
+        const uint16_t& item_l_count = item_list[i].count;
+        const ItemNameId& item_l_id = item_list[i].name_id;
 
         struct item_data *item_data;
         if ((item_data = itemdb_exists(item_l_id)) != NULL)
@@ -878,38 +878,37 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
  *
  *------------------------------------------
  */
-int npc_selllist(dumb_ptr<map_session_data> sd, int n,
-        const uint16_t *item_list)
+int npc_selllist(dumb_ptr<map_session_data> sd,
+        const std::vector<Packet_Repeat<0x00c9>>& item_list)
 {
     double z;
     int i, itemamount = 0;
 
     nullpo_retr(1, sd);
-    nullpo_retr(1, item_list);
 
     if (npc_checknear(sd, sd->npc_shopid))
         return 1;
-    for (i = 0, z = 0; i < n; i++)
+    for (i = 0, z = 0; i < item_list.size(); i++)
     {
-        if (item_list[i * 2] - 2 < 0 || item_list[i * 2] - 2 >= MAX_INVENTORY)
+        if (item_list[i].ioff2 - 2 < 0 || item_list[i].ioff2 - 2 >= MAX_INVENTORY)
             return 1;
-        ItemNameId nameid = sd->status.inventory[item_list[i * 2] - 2].nameid;
+        ItemNameId nameid = sd->status.inventory[item_list[i].ioff2 - 2].nameid;
         if (!nameid ||
-            sd->status.inventory[item_list[i * 2] - 2].amount < item_list[i * 2 + 1])
+            sd->status.inventory[item_list[i].ioff2 - 2].amount < item_list[i].count)
             return 1;
         if (sd->trade_partner)
             return 2;           // cant sell while trading
-        z += static_cast<double>(itemdb_value_sell(nameid)) * item_list[i * 2 + 1];
-        itemamount += item_list[i * 2 + 1];
+        z += static_cast<double>(itemdb_value_sell(nameid)) * item_list[i].count;
+        itemamount += item_list[i].count;
     }
 
     if (z > MAX_ZENY)
         z = MAX_ZENY;
     pc_getzeny(sd, static_cast<int>(z));
-    for (i = 0; i < n; i++)
+    for (i = 0; i < item_list.size(); i++)
     {
-        int item_id = item_list[i * 2] - 2;
-        pc_delitem(sd, item_id, item_list[i * 2 + 1], 0);
+        int item_id = item_list[i].ioff2 - 2;
+        pc_delitem(sd, item_id, item_list[i].count, 0);
     }
 
     return 0;
@@ -1116,7 +1115,7 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
     MapName mapname;
     dumb_ptr<npc_data_shop> nd;
     ZString::iterator w4comma;
-    int npc_class;
+    Species npc_class;
 
     int dir_; // TODO use enum directly in extract
     if (!extract(w1, record<','>(&mapname, &x, &y, &dir_))
@@ -1198,7 +1197,8 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     int x, y;
     DIR dir = DIR::S;
     map_local *m;
-    int xs = 0, ys = 0, npc_class = 0;   // [Valaris] thanks to fov
+    int xs = 0, ys = 0;   // [Valaris] thanks to fov
+    Species npc_class;
     MapName mapname;
     std::unique_ptr<const ScriptBuffer> script = NULL;
     dumb_ptr<npc_data_script> nd;
@@ -1279,7 +1279,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         if (ys >= 0)
             ys = ys * 2 + 1;
 
-        if (npc_class >= 0)
+        if (npc_class != NEGATIVE_SPECIES)
         {
 
             for (int i = 0; i < ys; i++)
@@ -1303,12 +1303,13 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     }
     else
     {
-        npc_class = atoi(w4.c_str());
+        if (!extract(w4, &npc_class))
+            abort();
         nd->scr.xs = 0;
         nd->scr.ys = 0;
     }
 
-    if (npc_class < 0 && m != nullptr)
+    if (npc_class == NEGATIVE_SPECIES && m != nullptr)
     {
         evflag = 1;
     }
@@ -1318,6 +1319,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         assert(false && "feature removed"_s);
         abort();
     }
+
     {
         nd->name = w3;
     }
@@ -1596,7 +1598,7 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
 }
 
 dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
-        int npc_class, NpcName name, AString message)
+        Species npc_class, NpcName name, AString message)
 {
     dumb_ptr<npc_data_message> retval;
     retval.new_();

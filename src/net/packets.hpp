@@ -27,10 +27,15 @@
 
 # include "../io/fwd.hpp"
 
-// ordering violation, should invert
+// TODO ordering violation, should invert
 # include "../proto2/fwd.hpp"
 
 # include "socket.hpp"
+
+struct Buffer
+{
+    std::vector<Byte> bytes;
+};
 
 enum class RecvResult
 {
@@ -67,6 +72,14 @@ bool packet_peek_id(Session *s, uint16_t *packet_id)
         }
     }
     return okay;
+}
+
+inline
+void send_buffer(Session *s, const Buffer& buffer)
+{
+    bool ok = !buffer.bytes.empty() && packet_send(s, buffer.bytes.data(), buffer.bytes.size());
+    if (!ok)
+        s->set_eof();
 }
 
 template<uint16_t id>
@@ -193,112 +206,146 @@ RecvResult net_recv_opacket(Session *s, NetPacket_Head<id>& head, bool *has_opt,
 
 
 template<uint16_t id, uint16_t size>
-void send_fpacket(Session *s, const Packet_Fixed<id>& fixed)
+Buffer create_fpacket(const Packet_Fixed<id>& fixed)
 {
     static_assert(id == Packet_Fixed<id>::PACKET_ID, "Packet_Fixed<id>::PACKET_ID");
     static_assert(size == sizeof(NetPacket_Fixed<id>), "sizeof(NetPacket_Fixed<id>)");
 
-    NetPacket_Fixed<id> net_fixed;
+    Buffer buf;
+    buf.bytes.resize(sizeof(NetPacket_Fixed<id>));
+    auto& net_fixed = reinterpret_cast<NetPacket_Fixed<id>&>(
+            *(buf.bytes.begin() + 0));
     if (!native_to_network(&net_fixed, fixed))
     {
-        s->set_eof();
-        return;
+        return Buffer();
     }
-    SendResult rv = net_send_fpacket(s, net_fixed);
-    if (rv != SendResult::Success)
-        s->set_eof();
+    return buf;
 }
 
 template<uint16_t id>
-void send_ppacket(Session *s, Packet_Payload<id>& payload)
+Buffer create_ppacket(Packet_Payload<id>& payload)
 {
     static_assert(id == Packet_Payload<id>::PACKET_ID, "Packet_Payload<id>::PACKET_ID");
 
-    NetPacket_Payload<id> net_payload;
-    payload.magic_packet_length = sizeof(NetPacket_Payload<id>);
+    if (id != 0x8000)
+        payload.magic_packet_length = sizeof(NetPacket_Payload<id>);
+
+    Buffer buf;
+    buf.bytes.resize(sizeof(NetPacket_Payload<id>));
+    auto& net_payload = reinterpret_cast<NetPacket_Payload<id>&>(
+            *(buf.bytes.begin() + 0));
     if (!native_to_network(&net_payload, payload))
     {
-        s->set_eof();
-        return;
+        return Buffer();
     }
-    SendResult rv = net_send_ppacket(s, net_payload);
-    if (rv != SendResult::Success)
-        s->set_eof();
+    return buf;
 }
 
 template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
-void send_vpacket(Session *s, Packet_Head<id>& head, const std::vector<Packet_Repeat<id>>& repeat)
+Buffer create_vpacket(Packet_Head<id>& head, const std::vector<Packet_Repeat<id>>& repeat)
 {
     static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
     static_assert(headsize == sizeof(NetPacket_Head<id>), "sizeof(NetPacket_Head<id>)");
     static_assert(id == Packet_Repeat<id>::PACKET_ID, "Packet_Repeat<id>::PACKET_ID");
     static_assert(repeatsize == sizeof(NetPacket_Repeat<id>), "sizeof(NetPacket_Repeat<id>)");
 
-    NetPacket_Head<id> net_head;
     // since these are already allocated, can't overflow address space
     size_t total_size = sizeof(NetPacket_Head<id>) + repeat.size() * sizeof(NetPacket_Repeat<id>);
     // truncates
     head.magic_packet_length = total_size;
     if (head.magic_packet_length != total_size)
     {
-        s->set_eof();
-        return;
+        return Buffer();
     }
-    // TODO potentially avoid the allocation
-    std::vector<NetPacket_Repeat<id>> net_repeat(repeat.size());
+
+    Buffer buf;
+    buf.bytes.resize(total_size);
+    auto& net_head = reinterpret_cast<NetPacket_Head<id>&>(
+            *(buf.bytes.begin() + 0));
     if (!native_to_network(&net_head, head))
     {
-        s->set_eof();
-        return;
+        return Buffer();
     }
     for (size_t i = 0; i < repeat.size(); ++i)
     {
-        if (!native_to_network(&net_repeat[i], repeat[i]))
+        auto& net_repeat_i = reinterpret_cast<NetPacket_Repeat<id>&>(
+                *(buf.bytes.begin()
+                    + sizeof(NetPacket_Head<id>)
+                    + i * sizeof(NetPacket_Repeat<id>)));
+        if (!native_to_network(&net_repeat_i, repeat[i]))
         {
-            s->set_eof();
-            return;
+            return Buffer();
         }
     }
-    SendResult rv = net_send_vpacket(s, net_head, net_repeat);
-    if (rv != SendResult::Success)
-        s->set_eof();
+    return buf;
 }
 
 template<uint16_t id, uint16_t headsize, uint16_t optsize>
-void send_opacket(Session *s, Packet_Head<id>& head, bool has_opt, const Packet_Option<id>& opt)
+Buffer create_opacket(Packet_Head<id>& head, bool has_opt, const Packet_Option<id>& opt)
 {
     static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
     static_assert(headsize == sizeof(NetPacket_Head<id>), "sizeof(NetPacket_Head<id>)");
     static_assert(id == Packet_Option<id>::PACKET_ID, "Packet_Option<id>::PACKET_ID");
     static_assert(optsize == sizeof(NetPacket_Option<id>), "sizeof(NetPacket_Option<id>)");
 
-    NetPacket_Head<id> net_head;
     // since these are already allocated, can't overflow address space
     size_t total_size = sizeof(NetPacket_Head<id>) + has_opt * sizeof(NetPacket_Option<id>);
     // truncates
     head.magic_packet_length = total_size;
     if (head.magic_packet_length != total_size)
     {
-        s->set_eof();
-        return;
+        return Buffer();
     }
-    NetPacket_Option<id> net_opt;
+
+    Buffer buf;
+    buf.bytes.resize(total_size);
+
+    auto& net_head = reinterpret_cast<NetPacket_Head<id>&>(
+            *(buf.bytes.begin() + 0));
     if (!native_to_network(&net_head, head))
     {
-        s->set_eof();
-        return;
+        return Buffer();
     }
     if (has_opt)
     {
+        auto& net_opt = reinterpret_cast<NetPacket_Option<id>&>(
+                *(buf.bytes.begin()
+                    + sizeof(NetPacket_Head<id>)));
         if (!native_to_network(&net_opt, opt))
         {
-            s->set_eof();
-            return;
+            return Buffer();
         }
     }
-    SendResult rv = net_send_opacket(s, net_head, has_opt, net_opt);
-    if (rv != SendResult::Success)
-        s->set_eof();
+
+    return buf;
+}
+
+template<uint16_t id, uint16_t size>
+void send_fpacket(Session *s, const Packet_Fixed<id>& fixed)
+{
+    Buffer pkt = create_fpacket<id, size>(fixed);
+    send_buffer(s, pkt);
+}
+
+template<uint16_t id>
+void send_ppacket(Session *s, Packet_Payload<id>& payload)
+{
+    Buffer pkt = create_ppacket<id>(payload);
+    send_buffer(s, pkt);
+}
+
+template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
+void send_vpacket(Session *s, Packet_Head<id>& head, const std::vector<Packet_Repeat<id>>& repeat)
+{
+    Buffer pkt = create_vpacket<id, headsize, repeatsize>(head, repeat);
+    send_buffer(s, pkt);
+}
+
+template<uint16_t id, uint16_t headsize, uint16_t optsize>
+void send_opacket(Session *s, Packet_Head<id>& head, bool has_opt, const Packet_Option<id>& opt)
+{
+    Buffer pkt = create_opacket<id, headsize, optsize>(head, has_opt, opt);
+    send_buffer(s, pkt);
 }
 
 template<uint16_t id, uint16_t size>
@@ -332,6 +379,14 @@ RecvResult recv_ppacket(Session *s, Packet_Payload<id>& payload)
         if (!network_to_native(&payload, net_payload))
             return RecvResult::Error;
         assert (payload.magic_packet_id == Packet_Payload<id>::PACKET_ID);
+        if (id == 0x8000)
+        {
+            // 0x8000 is special
+            if (packet_avail(s) < payload.magic_packet_length)
+                return RecvResult::Incomplete;
+            payload.magic_packet_length = 4;
+            return RecvResult::Complete;
+        }
         if (payload.magic_packet_length != sizeof(net_payload))
             return RecvResult::Error;
     }
@@ -397,7 +452,7 @@ RecvResult recv_opacket(Session *s, Packet_Head<id>& head, bool *has_opt, Packet
 // convenience for trailing strings
 
 template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
-void send_vpacket(Session *s, Packet_Head<id>& head, const XString& repeat)
+Buffer create_vpacket(Packet_Head<id>& head, const XString& repeat)
 {
     static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
     static_assert(headsize == sizeof(NetPacket_Head<id>), "NetPacket_Head<id>");
@@ -405,30 +460,44 @@ void send_vpacket(Session *s, Packet_Head<id>& head, const XString& repeat)
     static_assert(repeatsize == sizeof(NetPacket_Repeat<id>), "NetPacket_Repeat<id>");
     static_assert(repeatsize == 1, "repeatsize");
 
-    NetPacket_Head<id> net_head;
     // since it's already allocated, it can't overflow address space
     size_t total_length = sizeof(NetPacket_Head<id>) + (repeat.size() + 1) * sizeof(NetPacket_Repeat<id>);
     head.magic_packet_length = total_length;
     if (head.magic_packet_length != total_length)
     {
-        s->set_eof();
-        return;
+        return Buffer();
     }
-    // TODO potentially avoid the allocation
+
+    Buffer buf;
+    buf.bytes.resize(total_length);
+    auto& net_head = reinterpret_cast<NetPacket_Head<id>&>(
+            *(buf.bytes.begin() + 0));
     std::vector<NetPacket_Repeat<id>> net_repeat(repeat.size() + 1);
     if (!native_to_network(&net_head, head))
     {
-        s->set_eof();
-        return;
+        return Buffer();
     }
     for (size_t i = 0; i < repeat.size(); ++i)
     {
-        net_repeat[i].c = Byte{static_cast<uint8_t>(repeat[i])};
+        auto& net_repeat_i = reinterpret_cast<NetPacket_Repeat<id>&>(
+                *(buf.bytes.begin()
+                    + sizeof(NetPacket_Head<id>)
+                    + i));
+        net_repeat_i.c = Byte{static_cast<uint8_t>(repeat[i])};
     }
-    net_repeat[repeat.size()].c = Byte{static_cast<uint8_t>('\0')};
-    SendResult rv = net_send_vpacket(s, net_head, net_repeat);
-    if (rv != SendResult::Success)
-        s->set_eof();
+    auto& net_repeat_repeat_size = reinterpret_cast<NetPacket_Repeat<id>&>(
+            *(buf.bytes.begin()
+                + sizeof(NetPacket_Head<id>)
+                + repeat.size()));
+    net_repeat_repeat_size.c = Byte{static_cast<uint8_t>('\0')};
+    return buf;
+}
+
+template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
+void send_vpacket(Session *s, Packet_Head<id>& head, const XString& repeat)
+{
+    Buffer pkt = create_vpacket<id, headsize, repeatsize>(head, repeat);
+    send_buffer(s, pkt);
 }
 
 template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
@@ -462,6 +531,19 @@ RecvResult recv_vpacket(Session *s, Packet_Head<id>& head, AString& repeat)
 // if there is nothing in the head but the id and length, use the below
 
 template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
+Buffer create_packet_repeatonly(const std::vector<Packet_Repeat<id>>& v)
+{
+    static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
+    static_assert(headsize == sizeof(NetPacket_Head<id>), "repeat headsize");
+    static_assert(headsize == 4, "repeat headsize");
+    static_assert(id == Packet_Repeat<id>::PACKET_ID, "Packet_Repeat<id>::PACKET_ID");
+    static_assert(repeatsize == sizeof(NetPacket_Repeat<id>), "sizeof(NetPacket_Repeat<id>)");
+
+    Packet_Head<id> head;
+    return create_vpacket<id, 4, repeatsize>(head, v);
+}
+
+template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
 void send_packet_repeatonly(Session *s, const std::vector<Packet_Repeat<id>>& v)
 {
     static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
@@ -490,6 +572,20 @@ RecvResult recv_packet_repeatonly(Session *s, std::vector<Packet_Repeat<id>>& v)
 
 
 // and the combination of both of the above
+
+template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
+Buffer create_packet_repeatonly(const XString& repeat)
+{
+    static_assert(id == Packet_Head<id>::PACKET_ID, "Packet_Head<id>::PACKET_ID");
+    static_assert(headsize == sizeof(NetPacket_Head<id>), "repeat headsize");
+    static_assert(headsize == 4, "repeat headsize");
+    static_assert(id == Packet_Repeat<id>::PACKET_ID, "Packet_Repeat<id>::PACKET_ID");
+    static_assert(repeatsize == sizeof(NetPacket_Repeat<id>), "sizeof(NetPacket_Repeat<id>)");
+    static_assert(repeatsize == 1, "repeatsize");
+
+    Packet_Head<id> head;
+    return create_vpacket<id, 4, repeatsize>(head, repeat);
+}
 
 template<uint16_t id, uint16_t headsize, uint16_t repeatsize>
 void send_packet_repeatonly(Session *s, const XString& repeat)

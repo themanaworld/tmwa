@@ -39,9 +39,13 @@
 #include "../io/write.hpp"
 
 #include "../net/ip.hpp"
+#include "../net/packets.hpp"
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
-#include "../net/vomit.hpp"
+
+#include "../proto2/any-user.hpp"
+#include "../proto2/char-map.hpp"
+#include "../proto2/map-user.hpp"
 
 #include "../mmo/md5more.hpp"
 #include "../mmo/utils.hpp"
@@ -65,8 +69,6 @@
 
 #include "../poison.hpp"
 
-#define DUMP_UNKNOWN_PACKET     1
-
 constexpr int EMOTE_IGNORED = 0x0e;
 
 // functions list. Rate is how many milliseconds are required between
@@ -74,20 +76,20 @@ constexpr int EMOTE_IGNORED = 0x0e;
 // map.h must be the same length as this table. rate 0 is default
 // rate -1 is unlimited
 
-typedef void (*clif_func)(Session *s, dumb_ptr<map_session_data> sd);
+typedef RecvResult (*clif_func)(Session *s, dumb_ptr<map_session_data> sd);
 struct func_table
 {
     interval_t rate;
-    int len;
+    uint16_t len_unused;
     clif_func func;
 
     // ctor exists because interval_t must be explicit
-    func_table(int r, int l, clif_func f)
-    : rate(r), len(l), func(f)
+    func_table(int r, uint16_t l, clif_func f)
+    : rate(r), len_unused(l), func(f)
     {}
 };
 
-constexpr int VAR = -1;
+constexpr uint16_t VAR = 1;
 
 extern // not really - defined below
 func_table clif_parse_func_table[0x0220];
@@ -109,36 +111,6 @@ enum class SendWho
     PARTY_AREA_WOS,
     SELF,
 };
-
-inline
-void WBUFPOS(uint8_t *p, size_t pos, uint16_t x, uint16_t y)
-{
-    p += pos;
-    p[0] = x >> 2;
-    p[1] = (x << 6) | ((y >> 4) & 0x3f);
-    p[2] = y << 4;
-}
-inline
-void WBUFPOS2(uint8_t *p, size_t pos, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
-{
-    p += pos;
-    p[0] = x0 >> 2;
-    p[1] = (x0 << 6) | ((y0 >> 4) & 0x3f);
-    p[2] = (y0 << 4) | ((x1 >> 6) & 0x0f);
-    p[3] = (x1 << 2) | ((y1 >> 8) & 0x03);
-    p[4] = y1;
-}
-
-inline
-void WFIFOPOS(Session *s, size_t pos, uint16_t x, uint16_t y)
-{
-    WBUFPOS(static_cast<uint8_t *>(WFIFOP(s, pos)), 0, x, y);
-}
-inline
-void WFIFOPOS2(Session *s, size_t pos, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
-{
-    WBUFPOS2(static_cast<uint8_t *>(WFIFOP(s, pos)), 0, x0, y0, x1, y1);
-}
 
 static
 IP4Address map_ip;
@@ -268,14 +240,14 @@ enum class ChatType
 };
 
 static
-AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type);
+AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString buf);
 
 /*==========================================
  * clif_sendでSendWho::AREA*指定時用
  *------------------------------------------
  */
 static
-void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
+void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
         dumb_ptr<block_list> src_bl, SendWho type)
 {
     nullpo_retv(bl);
@@ -305,11 +277,8 @@ void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
     if (sd->sess != NULL)
     {
         {
-            if (clif_parse_func_table[RBUFW(buf, 0)].len)
             {
-                // packet must exist
-                WFIFO_BUF_CLONE(sd->sess, buf, len);
-                WFIFOSET(sd->sess, len);
+                send_buffer(sd->sess, buf);
             }
         }
     }
@@ -320,7 +289,7 @@ void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
  *------------------------------------------
  */
 static
-int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type)
+int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
 {
     PartyPair p;
     int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
@@ -363,11 +332,8 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                 dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
                 if (sd && sd->state.auth)
                 {
-                    if (clif_parse_func_table[RBUFW(buf, 0)].len)
                     {
-                        // packet must exist
-                        WFIFO_BUF_CLONE(s, buf, len);
-                        WFIFOSET(s, len);
+                        send_buffer(s, buf);
                     }
                 }
             }
@@ -381,25 +347,22 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                 dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
                 if (sd && sd->state.auth && sd->bl_m == bl->bl_m)
                 {
-                    if (clif_parse_func_table[RBUFW(buf, 0)].len)
                     {
-                        // packet must exist
-                        WFIFO_BUF_CLONE(s, buf, len);
-                        WFIFOSET(s, len);
+                        send_buffer(s, buf);
                     }
                 }
             }
             break;
         case SendWho::AREA:
         case SendWho::AREA_WOS:
-            map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, type),
+            map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, type),
                     bl->bl_m,
                     bl->bl_x - AREA_SIZE, bl->bl_y - AREA_SIZE,
                     bl->bl_x + AREA_SIZE, bl->bl_y + AREA_SIZE,
                     BL::PC);
             break;
         case SendWho::AREA_CHAT_WOC:
-            map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, SendWho::AREA_CHAT_WOC),
+            map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, SendWho::AREA_CHAT_WOC),
                     bl->bl_m,
                     bl->bl_x - (AREA_SIZE), bl->bl_y - (AREA_SIZE),
                     bl->bl_x + (AREA_SIZE), bl->bl_y + (AREA_SIZE),
@@ -447,11 +410,8 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                             (sd->bl_x < x0 || sd->bl_y < y0 ||
                              sd->bl_x > x1 || sd->bl_y > y1))
                             continue;
-                        if (clif_parse_func_table[RBUFW(buf, 0)].len)
                         {
-                            // packet must exist
-                            WFIFO_BUF_CLONE(sd->sess, buf, len);
-                            WFIFOSET(sd->sess, len);
+                            send_buffer(sd->sess, buf);
                         }
                     }
                 }
@@ -465,11 +425,8 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                     {
                         if (sd->partyspy == p.party_id)
                         {
-                            if (clif_parse_func_table[RBUFW(buf, 0)].len)
                             {
-                                // packet must exist
-                                WFIFO_BUF_CLONE(sd->sess, buf, len);
-                                WFIFOSET(sd->sess, len);
+                                send_buffer(sd->sess, buf);
                             }
                         }
                     }
@@ -479,11 +436,9 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
         case SendWho::SELF:
         {
             dumb_ptr<map_session_data> sd = bl->is_player();
-            if (clif_parse_func_table[RBUFW(buf, 0)].len)
+
             {
-                // packet must exist
-                WFIFO_BUF_CLONE(sd->sess, buf, len);
-                WFIFOSET(sd->sess, len);
+                send_buffer(sd->sess, buf);
             }
         }
             break;
@@ -516,12 +471,12 @@ int clif_authok(dumb_ptr<map_session_data> sd)
 
     Session *s = sd->sess;
 
-    WFIFOW(s, 0) = 0x73;
-    WFIFOL(s, 2) = gettick().time_since_epoch().count();
-    WFIFOPOS(s, 6, sd->bl_x, sd->bl_y);
-    WFIFOB(s, 9) = 5;
-    WFIFOB(s, 10) = 5;
-    WFIFOSET(s, clif_parse_func_table[0x73].len);
+    Packet_Fixed<0x0073> fixed_73;
+    fixed_73.tick = gettick();
+    fixed_73.pos = Position1{static_cast<uint16_t>(sd->bl_x), static_cast<uint16_t>(sd->bl_y), DIR::S};
+    fixed_73.five1 = 5;
+    fixed_73.five2 = 5;
+    send_fpacket<0x0073, 11>(s, fixed_73);
 
     return 0;
 }
@@ -535,9 +490,9 @@ int clif_authfail_fd(Session *s, int type)
     if (!s)
         return 0;
 
-    WFIFOW(s, 0) = 0x81;
-    WFIFOL(s, 2) = type;
-    WFIFOSET(s, clif_parse_func_table[0x81].len);
+    Packet_Fixed<0x0081> fixed_81;
+    fixed_81.error_code = type;
+    send_fpacket<0x0081, 3>(s, fixed_81);
 
     clif_setwaitclose(s);
 
@@ -559,9 +514,9 @@ int clif_charselectok(BlockId id)
         return 1;
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xb3;
-    WFIFOB(s, 2) = 1;
-    WFIFOSET(s, clif_parse_func_table[0xb3].len);
+    Packet_Fixed<0x00b3> fixed_b3;
+    fixed_b3.one = 1;
+    send_fpacket<0x00b3, 3>(s, fixed_b3);
 
     return 0;
 }
@@ -571,22 +526,21 @@ int clif_charselectok(BlockId id)
  *------------------------------------------
  */
 static
-int clif_set009e(dumb_ptr<flooritem_data> fitem, uint8_t *buf)
+void clif_set009e(dumb_ptr<flooritem_data> fitem, Buffer& buf)
 {
-    nullpo_ret(fitem);
+    nullpo_retv(fitem);
 
-    //009e <ID>.l <name ID>.w <identify flag>.B <X>.w <Y>.w <subX>.B <subY>.B <amount>.w
-    WBUFW(buf, 0) = 0x9e;
-    WBUFL(buf, 2) = unwrap<BlockId>(fitem->bl_id);
-    WBUFW(buf, 6) = unwrap<ItemNameId>(fitem->item_data.nameid);
-    WBUFB(buf, 8) = 1; //identify;
-    WBUFW(buf, 9) = fitem->bl_x;
-    WBUFW(buf, 11) = fitem->bl_y;
-    WBUFB(buf, 13) = fitem->subx;
-    WBUFB(buf, 14) = fitem->suby;
-    WBUFW(buf, 15) = fitem->item_data.amount;
+    Packet_Fixed<0x009e> fixed_9e;
+    fixed_9e.block_id = fitem->bl_id;
+    fixed_9e.name_id = fitem->item_data.nameid;
+    fixed_9e.identify = 1;
+    fixed_9e.x = fitem->bl_x;
+    fixed_9e.y = fitem->bl_y;
+    fixed_9e.subx = fitem->subx;
+    fixed_9e.suby = fitem->suby;
+    fixed_9e.amount = fitem->item_data.amount;
 
-    return clif_parse_func_table[0x9e].len;
+    buf = create_fpacket<0x009e, 17>(fixed_9e);
 }
 
 /*==========================================
@@ -595,14 +549,14 @@ int clif_set009e(dumb_ptr<flooritem_data> fitem, uint8_t *buf)
  */
 int clif_dropflooritem(dumb_ptr<flooritem_data> fitem)
 {
-    uint8_t buf[64];
-
     nullpo_ret(fitem);
 
     if (!fitem->item_data.nameid)
         return 0;
+
+    Buffer buf;
     clif_set009e(fitem, buf);
-    clif_send(buf, clif_parse_func_table[0x9e].len, fitem, SendWho::AREA);
+    clif_send(buf, fitem, SendWho::AREA);
 
     return 0;
 }
@@ -613,21 +567,19 @@ int clif_dropflooritem(dumb_ptr<flooritem_data> fitem)
  */
 int clif_clearflooritem(dumb_ptr<flooritem_data> fitem, Session *s)
 {
-    unsigned char buf[16];
-
     nullpo_ret(fitem);
 
-    WBUFW(buf, 0) = 0xa1;
-    WBUFL(buf, 2) = unwrap<BlockId>(fitem->bl_id);
+    Packet_Fixed<0x00a1> fixed_a1;
+    fixed_a1.block_id = fitem->bl_id;
 
     if (!s)
     {
-        clif_send(buf, clif_parse_func_table[0xa1].len, fitem, SendWho::AREA);
+        Buffer buf = create_fpacket<0x00a1, 6>(fixed_a1);
+        clif_send(buf, fitem, SendWho::AREA);
     }
     else
     {
-        WFIFO_BUF_CLONE(s, buf, 6);
-        WFIFOSET(s, clif_parse_func_table[0xa1].len);
+        send_fpacket<0x00a1, 6>(s, fixed_a1);
     }
 
     return 0;
@@ -639,21 +591,21 @@ int clif_clearflooritem(dumb_ptr<flooritem_data> fitem, Session *s)
  */
 int clif_clearchar(dumb_ptr<block_list> bl, BeingRemoveWhy type)
 {
-    unsigned char buf[16];
-
     nullpo_ret(bl);
 
-    WBUFW(buf, 0) = 0x80;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
+    Packet_Fixed<0x0080> fixed_80;
+    fixed_80.block_id = bl->bl_id;
+    Buffer buf = create_fpacket<0x0080, 7>(fixed_80);
+
     if (type == BeingRemoveWhy::DISGUISE)
     {
-        WBUFB(buf, 6) = static_cast<uint8_t>(BeingRemoveWhy::GONE);
-        clif_send(buf, clif_parse_func_table[0x80].len, bl, SendWho::AREA);
+        fixed_80.type = BeingRemoveWhy::GONE;
+        clif_send(buf, bl, SendWho::AREA);
     }
     else
     {
-        WBUFB(buf, 6) = static_cast<uint8_t>(type);
-        clif_send(buf, clif_parse_func_table[0x80].len, bl,
+        fixed_80.type = type;
+        clif_send(buf, bl,
                    type == BeingRemoveWhy::DEAD ? SendWho::AREA : SendWho::AREA_WOS);
     }
 
@@ -697,10 +649,10 @@ int clif_clearchar_delay(tick_t tick,
  */
 void clif_clearchar_id(BlockId id, BeingRemoveWhy type, Session *s)
 {
-    WFIFOW(s, 0) = 0x80;
-    WFIFOL(s, 2) = unwrap<BlockId>(id);
-    WFIFOB(s, 6) = static_cast<uint8_t>(type);
-    WFIFOSET(s, clif_parse_func_table[0x80].len);
+    Packet_Fixed<0x0080> fixed_80;
+    fixed_80.block_id = id;
+    fixed_80.type = type;
+    send_fpacket<0x0080, 7>(s, fixed_80);
 }
 
 /*==========================================
@@ -708,59 +660,111 @@ void clif_clearchar_id(BlockId id, BeingRemoveWhy type, Session *s)
  *------------------------------------------
  */
 static
-int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
+void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
 {
-    nullpo_ret(sd);
+    nullpo_retv(sd);
 
-    WBUFW(buf, 0) = 0x1d8;
-    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
-    WBUFW(buf, 6) = static_cast<uint16_t>(sd->speed.count());
-    WBUFW(buf, 8) = static_cast<uint16_t>(sd->opt1);
-    WBUFW(buf, 10) = static_cast<uint16_t>(sd->opt2);
-    WBUFW(buf, 12) = static_cast<uint16_t>(sd->status.option);
-    WBUFW(buf, 14) = unwrap<Species>(sd->status.species);
-    WBUFW(buf, 16) = sd->status.hair;
+    Packet_Fixed<0x01d8> fixed_1d8;
+    fixed_1d8.block_id = sd->bl_id;
+    fixed_1d8.speed = sd->speed;
+    fixed_1d8.opt1 = sd->opt1;
+    fixed_1d8.opt2 = sd->opt2;
+    fixed_1d8.option = sd->status.option;
+    fixed_1d8.species = sd->status.species;
+    fixed_1d8.hair_style = sd->status.hair;
 
     int widx = sd->equip_index_maybe[EQUIP::WEAPON];
     int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
     if (sd->attack_spell_override)
-        WBUFW(buf, 18) = sd->attack_spell_look_override;
+        fixed_1d8.weapon = sd->attack_spell_look_override;
     else
     {
         if (widx >= 0 && sd->inventory_data[widx])
         {
-            WBUFW(buf, 18) = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
+            fixed_1d8.weapon = sd->status.inventory[widx].nameid;
         }
         else
-            WBUFW(buf, 18) = unwrap<ItemNameId>(ItemNameId());
+            fixed_1d8.weapon = ItemNameId();
     }
     if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
     {
-        WBUFW(buf, 20) = unwrap<ItemNameId>(sd->status.inventory[sidx].nameid);
+        fixed_1d8.shield = sd->status.inventory[sidx].nameid;
     }
     else
-        WBUFW(buf, 20) = unwrap<ItemNameId>(ItemNameId());
-    WBUFW(buf, 22) = unwrap<ItemNameId>(sd->status.head_bottom);
-    WBUFW(buf, 24) = unwrap<ItemNameId>(sd->status.head_top);
-    WBUFW(buf, 26) = unwrap<ItemNameId>(sd->status.head_mid);
-    WBUFW(buf, 28) = sd->status.hair_color;
-    WBUFW(buf, 30) = sd->status.clothes_color;
-    WBUFW(buf, 32) = static_cast<uint8_t>(sd->head_dir);
-    WBUFL(buf, 34) = 0 /*guild_id*/;
-    WBUFW(buf, 38) = 0 /*guild_emblem_id*/;
-    WBUFW(buf, 40) = sd->status.manner;
-    WBUFW(buf, 42) = static_cast<uint16_t>(sd->opt3);
-    WBUFB(buf, 44) = sd->status.karma;
-    WBUFB(buf, 45) = static_cast<uint8_t>(sd->sex);
-    WBUFPOS(buf, 46, sd->bl_x, sd->bl_y);
-    // work around ICE in gcc 4.6
-    uint8_t dir = static_cast<uint8_t>(sd->dir);
-    WBUFB(buf, 48) |= dir;
-    WBUFW(buf, 49) = pc_isGM(sd).get_public_word();
-    WBUFB(buf, 51) = sd->state.dead_sit;
-    WBUFW(buf, 52) = 0;
+        fixed_1d8.shield = ItemNameId();
+    fixed_1d8.head_bottom = sd->status.head_bottom;
+    fixed_1d8.head_top = sd->status.head_top;
+    fixed_1d8.head_mid = sd->status.head_mid;
+    fixed_1d8.hair_color = sd->status.hair_color;
+    fixed_1d8.clothes_color = sd->status.clothes_color;
+    fixed_1d8.head_dir = sd->head_dir;
+    fixed_1d8.guild_id = 0;
+    fixed_1d8.guild_emblem_id = 0;
+    fixed_1d8.manner = sd->status.manner;
+    fixed_1d8.opt3 = sd->opt3;
+    fixed_1d8.karma = sd->status.karma;
+    fixed_1d8.sex = sd->sex;
+    fixed_1d8.pos.x = sd->bl_x;
+    fixed_1d8.pos.y = sd->bl_y;
+    fixed_1d8.pos.dir = sd->dir;
+    fixed_1d8.gm_bits = pc_isGM(sd).get_public_word();
+    fixed_1d8.dead_sit = sd->state.dead_sit;
+    fixed_1d8.unused = 0;
 
-    return clif_parse_func_table[0x1d8].len;
+    buf = create_fpacket<0x01d8, 54>(fixed_1d8);
+}
+static
+void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
+{
+    nullpo_retv(sd);
+
+    Packet_Fixed<0x01d9> fixed_1d8; // LIES
+    fixed_1d8.block_id = sd->bl_id;
+    fixed_1d8.speed = sd->speed;
+    fixed_1d8.opt1 = sd->opt1;
+    fixed_1d8.opt2 = sd->opt2;
+    fixed_1d8.option = sd->status.option;
+    fixed_1d8.species = sd->status.species;
+    fixed_1d8.hair_style = sd->status.hair;
+
+    int widx = sd->equip_index_maybe[EQUIP::WEAPON];
+    int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
+    if (sd->attack_spell_override)
+        fixed_1d8.weapon = sd->attack_spell_look_override;
+    else
+    {
+        if (widx >= 0 && sd->inventory_data[widx])
+        {
+            fixed_1d8.weapon = sd->status.inventory[widx].nameid;
+        }
+        else
+            fixed_1d8.weapon = ItemNameId();
+    }
+    if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
+    {
+        fixed_1d8.shield = sd->status.inventory[sidx].nameid;
+    }
+    else
+        fixed_1d8.shield = ItemNameId();
+    fixed_1d8.head_bottom = sd->status.head_bottom;
+    fixed_1d8.head_top = sd->status.head_top;
+    fixed_1d8.head_mid = sd->status.head_mid;
+    fixed_1d8.hair_color = sd->status.hair_color;
+    fixed_1d8.clothes_color = sd->status.clothes_color;
+    fixed_1d8.head_dir = sd->head_dir;
+    fixed_1d8.guild_id = 0;
+    fixed_1d8.guild_emblem_id = 0;
+    fixed_1d8.manner = sd->status.manner;
+    fixed_1d8.opt3 = sd->opt3;
+    fixed_1d8.karma = sd->status.karma;
+    fixed_1d8.sex = sd->sex;
+    fixed_1d8.pos.x = sd->bl_x;
+    fixed_1d8.pos.y = sd->bl_y;
+    fixed_1d8.pos.dir = sd->dir;
+    fixed_1d8.gm_bits = pc_isGM(sd).get_public_word();
+    fixed_1d8.unused = 0;
+
+    buf = create_fpacket<0x01d9, 53>(fixed_1d8);
 }
 
 /*==========================================
@@ -768,51 +772,54 @@ int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
  *------------------------------------------
  */
 static
-int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
+void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
 {
-    nullpo_ret(sd);
+    nullpo_retv(sd);
 
-    WBUFW(buf, 0) = 0x1da;
-    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
-    WBUFW(buf, 6) = static_cast<uint16_t>(sd->speed.count());
-    WBUFW(buf, 8) = static_cast<uint16_t>(sd->opt1);
-    WBUFW(buf, 10) = static_cast<uint16_t>(sd->opt2);
-    WBUFW(buf, 12) = static_cast<uint16_t>(sd->status.option);
-    WBUFW(buf, 14) = unwrap<Species>(sd->status.species);
-    WBUFW(buf, 16) = sd->status.hair;
+    Packet_Fixed<0x01da> fixed_1da;
+    fixed_1da.block_id = sd->bl_id;
+    fixed_1da.speed = sd->speed;
+    fixed_1da.opt1 = sd->opt1;
+    fixed_1da.opt2 = sd->opt2;
+    fixed_1da.option = sd->status.option;
+    fixed_1da.species = sd->status.species;
+    fixed_1da.hair_style = sd->status.hair;
     int widx = sd->equip_index_maybe[EQUIP::WEAPON];
     int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
     if (widx >= 0 && sd->inventory_data[widx])
     {
-        WBUFW(buf, 18) = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
+        fixed_1da.weapon = sd->status.inventory[widx].nameid;
     }
     else
-        WBUFW(buf, 18) = unwrap<ItemNameId>(ItemNameId());
+        fixed_1da.weapon = ItemNameId();
     if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
     {
-        WBUFW(buf, 20) = unwrap<ItemNameId>(sd->status.inventory[sidx].nameid);
+        fixed_1da.shield = sd->status.inventory[sidx].nameid;
     }
     else
-        WBUFW(buf, 20) = unwrap<ItemNameId>(ItemNameId());
-    WBUFW(buf, 22) = unwrap<ItemNameId>(sd->status.head_bottom);
-    WBUFL(buf, 24) = gettick().time_since_epoch().count();
-    WBUFW(buf, 28) = unwrap<ItemNameId>(sd->status.head_top);
-    WBUFW(buf, 30) = unwrap<ItemNameId>(sd->status.head_mid);
-    WBUFW(buf, 32) = sd->status.hair_color;
-    WBUFW(buf, 34) = sd->status.clothes_color;
-    WBUFW(buf, 36) = static_cast<uint8_t>(sd->head_dir);
-    WBUFL(buf, 38) = 0/*guild_id*/;
-    WBUFW(buf, 42) = 0/*guild_emblem_id*/;
-    WBUFW(buf, 44) = sd->status.manner;
-    WBUFW(buf, 46) = static_cast<uint16_t>(sd->opt3);
-    WBUFB(buf, 48) = sd->status.karma;
-    WBUFB(buf, 49) = static_cast<uint8_t>(sd->sex);
-    WBUFPOS2(buf, 50, sd->bl_x, sd->bl_y, sd->to_x, sd->to_y);
-    WBUFW(buf, 55) = pc_isGM(sd).get_public_word();
-    WBUFB(buf, 57) = 5;
-    WBUFW(buf, 58) = 0;
+        fixed_1da.shield = ItemNameId();
+    fixed_1da.head_bottom = sd->status.head_bottom;
+    fixed_1da.tick = gettick();
+    fixed_1da.head_top = sd->status.head_top;
+    fixed_1da.head_mid = sd->status.head_mid;
+    fixed_1da.hair_color = sd->status.hair_color;
+    fixed_1da.clothes_color = sd->status.clothes_color;
+    fixed_1da.head_dir = sd->head_dir;
+    fixed_1da.guild_id = 0;
+    fixed_1da.guild_emblem_id = 0;
+    fixed_1da.manner = sd->status.manner;
+    fixed_1da.opt3 = sd->opt3;
+    fixed_1da.karma = sd->status.karma;
+    fixed_1da.sex = sd->sex;
+    fixed_1da.pos2.x0 = sd->bl_x;
+    fixed_1da.pos2.y0 = sd->bl_y;
+    fixed_1da.pos2.x1 = sd->to_x;
+    fixed_1da.pos2.y1 = sd->to_y;
+    fixed_1da.gm_bits = pc_isGM(sd).get_public_word();
+    fixed_1da.five = 5;
+    fixed_1da.unused = 0;
 
-    return clif_parse_func_table[0x1da].len;
+    buf = create_fpacket<0x01da, 60>(fixed_1da);
 }
 
 /*==========================================
@@ -820,30 +827,27 @@ int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
  *------------------------------------------
  */
 static
-int clif_mob0078(dumb_ptr<mob_data> md, unsigned char *buf)
+void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
 {
-    really_memset0(buf, clif_parse_func_table[0x78].len);
+    nullpo_retv(md);
 
-    nullpo_ret(md);
-
-    WBUFW(buf, 0) = 0x78;
-    WBUFL(buf, 2) = unwrap<BlockId>(md->bl_id);
-    WBUFW(buf, 6) = static_cast<uint16_t>(battle_get_speed(md).count());
-    WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
-    WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
-    WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
-    WBUFW(buf, 14) = unwrap<Species>(md->mob_class);
+    Packet_Fixed<0x0078> fixed_78;
+    fixed_78.block_id = md->bl_id;
+    fixed_78.speed = battle_get_speed(md);
+    fixed_78.opt1 = md->opt1;
+    fixed_78.opt2 = md->opt2;
+    fixed_78.option = md->option;
+    fixed_78.species = md->mob_class;
     // snip: stuff do do with disguise as a PC
-    WBUFPOS(buf, 46, md->bl_x, md->bl_y);
-    // work around ICE in gcc 4.6
-    uint8_t dir = static_cast<uint8_t>(md->dir);
-    WBUFB(buf, 48) |= dir;
-    WBUFB(buf, 49) = 5;
-    WBUFB(buf, 50) = 5;
+    fixed_78.pos.x = md->bl_x;
+    fixed_78.pos.y = md->bl_y;
+    fixed_78.pos.dir = md->dir;
+    fixed_78.five1 = 5;
+    fixed_78.five2 = 5;
     int level = battle_get_lv(md);
-    WBUFW(buf, 52) = (level > battle_config.max_lv) ? battle_config.max_lv : level;
+    fixed_78.level = (level > battle_config.max_lv) ? battle_config.max_lv : level;
 
-    return clif_parse_func_table[0x78].len;
+    buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
 /*==========================================
@@ -851,29 +855,30 @@ int clif_mob0078(dumb_ptr<mob_data> md, unsigned char *buf)
  *------------------------------------------
  */
 static
-int clif_mob007b(dumb_ptr<mob_data> md, unsigned char *buf)
+void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
 {
-    really_memset0(buf, clif_parse_func_table[0x7b].len);
+    nullpo_retv(md);
 
-    nullpo_ret(md);
-
-    WBUFW(buf, 0) = 0x7b;
-    WBUFL(buf, 2) = unwrap<BlockId>(md->bl_id);
-    WBUFW(buf, 6) = static_cast<uint16_t>(battle_get_speed(md).count());
-    WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
-    WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
-    WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
-    WBUFW(buf, 14) = unwrap<Species>(md->mob_class);
+    Packet_Fixed<0x007b> fixed_7b;
+    fixed_7b.block_id = md->bl_id;
+    fixed_7b.speed = battle_get_speed(md);
+    fixed_7b.opt1 = md->opt1;
+    fixed_7b.opt2 = md->opt2;
+    fixed_7b.option = md->option;
+    fixed_7b.mob_class = md->mob_class;
     // snip: stuff for monsters disguised as PCs
-    WBUFL(buf, 22) = gettick().time_since_epoch().count();
+    fixed_7b.tick_and_maybe_part_of_guild_emblem = gettick();
 
-    WBUFPOS2(buf, 50, md->bl_x, md->bl_y, md->to_x, md->to_y);
-    WBUFB(buf, 56) = 5;
-    WBUFB(buf, 57) = 5;
+    fixed_7b.pos2.x0 = md->bl_x;
+    fixed_7b.pos2.y0 = md->bl_y;
+    fixed_7b.pos2.x1 = md->to_x;
+    fixed_7b.pos2.y1 = md->to_y;
+    fixed_7b.five1 = 5;
+    fixed_7b.five2 = 5;
     int level = battle_get_lv(md);
-    WBUFW(buf, 58) = (level > battle_config.max_lv) ? battle_config.max_lv : level;
+    fixed_7b.level = (level > battle_config.max_lv) ? battle_config.max_lv : level;
 
-    return clif_parse_func_table[0x7b].len;
+    buf = create_fpacket<0x007b, 60>(fixed_7b);
 }
 
 /*==========================================
@@ -881,24 +886,23 @@ int clif_mob007b(dumb_ptr<mob_data> md, unsigned char *buf)
  *------------------------------------------
  */
 static
-int clif_npc0078(dumb_ptr<npc_data> nd, unsigned char *buf)
+void clif_npc0078(dumb_ptr<npc_data> nd, Buffer& buf)
 {
-    nullpo_ret(nd);
+    nullpo_retv(nd);
 
-    really_memset0(buf, clif_parse_func_table[0x78].len);
+    Packet_Fixed<0x0078> fixed_78;
+    fixed_78.block_id = nd->bl_id;
+    fixed_78.speed = nd->speed;
+    fixed_78.species = nd->npc_class;
+    fixed_78.pos.x = nd->bl_x;
+    fixed_78.pos.y = nd->bl_y;
+    fixed_78.pos.dir = nd->dir;
+    fixed_78.five1 = 5;
+    fixed_78.five2 = 5;
+    fixed_78.zero = 0;
+    fixed_78.level = 0;
 
-    WBUFW(buf, 0) = 0x78;
-    WBUFL(buf, 2) = unwrap<BlockId>(nd->bl_id);
-    WBUFW(buf, 6) = static_cast<uint16_t>(nd->speed.count());
-    WBUFW(buf, 14) = nd->npc_class;
-    WBUFPOS(buf, 46, nd->bl_x, nd->bl_y);
-    // work around ICE in gcc 4.6
-    uint8_t dir = static_cast<uint8_t>(nd->dir);
-    WBUFB(buf, 48) |= dir;
-    WBUFB(buf, 49) = 5;
-    WBUFB(buf, 50) = 5;
-
-    return clif_parse_func_table[0x78].len;
+    buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
 /* These indices are derived from equip_pos in pc.c and some guesswork */
@@ -927,15 +931,12 @@ earray<EQUIP, LOOK, LOOK::COUNT> equip_points //=
  */
 int clif_spawnpc(dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[128];
-
     nullpo_ret(sd);
 
-    clif_set0078(sd, buf);
+    Buffer buf;
+    clif_set0078_alt_1d9(sd, buf);
 
-    WBUFW(buf, 0) = 0x1d9;
-    WBUFW(buf, 51) = 0;
-    clif_send(buf, clif_parse_func_table[0x1d9].len, sd, SendWho::AREA_WOS);
+    clif_send(buf, sd, SendWho::AREA_WOS);
 
     if (sd->bl_m->flag.get(MapFlag::SNOW))
         clif_specialeffect(sd, 162, 1);
@@ -959,26 +960,23 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
  */
 int clif_spawnnpc(dumb_ptr<npc_data> nd)
 {
-    unsigned char buf[64];
-    int len;
-
     nullpo_ret(nd);
 
-    if (nd->npc_class < 0 || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
+    if (nd->npc_class == NEGATIVE_SPECIES || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
 
-    really_memset0(buf, clif_parse_func_table[0x7c].len);
+    Packet_Fixed<0x007c> fixed_7c;
+    fixed_7c.block_id = nd->bl_id;
+    fixed_7c.speed = nd->speed;
+    fixed_7c.species = nd->npc_class;
+    fixed_7c.pos.x = nd->bl_x;
+    fixed_7c.pos.y = nd->bl_y;
 
-    WBUFW(buf, 0) = 0x7c;
-    WBUFL(buf, 2) = unwrap<BlockId>(nd->bl_id);
-    WBUFW(buf, 6) = static_cast<uint16_t>(nd->speed.count());
-    WBUFW(buf, 20) = nd->npc_class;
-    WBUFPOS(buf, 36, nd->bl_x, nd->bl_y);
+    Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
+    clif_send(buf, nd, SendWho::AREA);
 
-    clif_send(buf, clif_parse_func_table[0x7c].len, nd, SendWho::AREA);
-
-    len = clif_npc0078(nd, buf);
-    clif_send(buf, len, nd, SendWho::AREA);
+    clif_npc0078(nd, buf);
+    clif_send(buf, nd, SendWho::AREA);
 
     return 0;
 }
@@ -992,29 +990,34 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
     if (!s)
         return 0;
 
-    WFIFOW(s, 0) = 0x7c;
-    WFIFOL(s, 2) = unwrap<BlockId>(fake_npc_id);
-    WFIFOW(s, 6) = 0;
-    WFIFOW(s, 8) = 0;
-    WFIFOW(s, 10) = 0;
-    WFIFOW(s, 12) = 0;
-    WFIFOW(s, 20) = 127;
-    WFIFOPOS(s, 36, sd->bl_x, sd->bl_y);
-    WFIFOSET(s, clif_parse_func_table[0x7c].len);
+    Packet_Fixed<0x007c> fixed_7c;
+    fixed_7c.block_id = fake_npc_id;
+    fixed_7c.speed = interval_t();
+    fixed_7c.opt1 = Opt1::ZERO;
+    fixed_7c.opt2 = Opt2::ZERO;
+    fixed_7c.option = Option::ZERO;
+    fixed_7c.species = FAKE_NPC_CLASS;
+    fixed_7c.pos.x = sd->bl_x;
+    fixed_7c.pos.y = sd->bl_y;
+    send_fpacket<0x007c, 41>(s, fixed_7c);
 
-    WFIFOW(s, 0) = 0x78;
-    WFIFOL(s, 2) = unwrap<BlockId>(fake_npc_id);
-    WFIFOW(s, 6) = 0;
-    WFIFOW(s, 8) = 0;
-    WFIFOW(s, 10) = 0;
-    WFIFOW(s, 12) = 0;
-    WFIFOW(s, 14) = 127;      // identifies as NPC
-    WFIFOW(s, 20) = 127;
-    WFIFOPOS(s, 46, sd->bl_x, sd->bl_y);
-    WFIFOPOS(s, 36, sd->bl_x, sd->bl_y);
-    WFIFOB(s, 49) = 5;
-    WFIFOB(s, 50) = 5;
-    WFIFOSET(s, clif_parse_func_table[0x78].len);
+    Packet_Fixed<0x0078> fixed_78;
+    fixed_78.block_id = fake_npc_id;
+    fixed_78.speed = interval_t();
+    fixed_78.opt1 = Opt1::ZERO;
+    fixed_78.opt2 = Opt2::ZERO;
+    fixed_78.option = Option::ZERO;
+    fixed_78.species = FAKE_NPC_CLASS;
+    fixed_78.unused_head_bottom_or_species_again = unwrap<Species>(FAKE_NPC_CLASS);
+    fixed_78.pos.x = sd->bl_x;
+    fixed_78.pos.y = sd->bl_y;
+    fixed_78.unused_pos_again.x = sd->bl_x;
+    fixed_78.unused_pos_again.y = sd->bl_y;
+    fixed_78.five1 = 5;
+    fixed_78.five2 = 5;
+    fixed_78.zero = 0;
+    fixed_78.level = 0;
+    send_fpacket<0x0078, 54>(s, fixed_78);
 
     return 0;
 }
@@ -1025,27 +1028,25 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
  */
 int clif_spawnmob(dumb_ptr<mob_data> md)
 {
-    unsigned char buf[64];
-    int len;
-
     nullpo_ret(md);
 
     {
-        really_memset0(buf, clif_parse_func_table[0x7c].len);
-
-        WBUFW(buf, 0) = 0x7c;
-        WBUFL(buf, 2) = unwrap<BlockId>(md->bl_id);
-        WBUFW(buf, 6) = md->stats[mob_stat::SPEED];
-        WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
-        WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
-        WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
-        WBUFW(buf, 20) = unwrap<Species>(md->mob_class);
-        WBUFPOS(buf, 36, md->bl_x, md->bl_y);
-        clif_send(buf, clif_parse_func_table[0x7c].len, md, SendWho::AREA);
+        Packet_Fixed<0x007c> fixed_7c;
+        fixed_7c.block_id = md->bl_id;
+        fixed_7c.speed = interval_t(md->stats[mob_stat::SPEED]);
+        fixed_7c.opt1 = md->opt1;
+        fixed_7c.opt2 = md->opt2;
+        fixed_7c.option = md->option;
+        fixed_7c.species = md->mob_class;
+        fixed_7c.pos.x = md->bl_x;
+        fixed_7c.pos.y = md->bl_y;
+        Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
+        clif_send(buf, md, SendWho::AREA);
     }
 
-    len = clif_mob0078(md, buf);
-    clif_send(buf, len, md, SendWho::AREA);
+    Buffer buf;
+    clif_mob0078(md, buf);
+    clif_send(buf, md, SendWho::AREA);
 
     return 0;
 }
@@ -1060,9 +1061,9 @@ int clif_servertick(dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x7f;
-    WFIFOL(s, 2) = sd->server_tick.time_since_epoch().count();
-    WFIFOSET(s, clif_parse_func_table[0x7f].len);
+    Packet_Fixed<0x007f> fixed_7f;
+    fixed_7f.tick = gettick();
+    send_fpacket<0x007f, 6>(s, fixed_7f);
 
     return 0;
 }
@@ -1076,11 +1077,14 @@ int clif_walkok(dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x87;
-    WFIFOL(s, 2) = gettick().time_since_epoch().count();
-    WFIFOPOS2(s, 6, sd->bl_x, sd->bl_y, sd->to_x, sd->to_y);
-    WFIFOB(s, 11) = 0;
-    WFIFOSET(s, clif_parse_func_table[0x87].len);
+    Packet_Fixed<0x0087> fixed_87;
+    fixed_87.tick = gettick();
+    fixed_87.pos2.x0 = sd->bl_x;
+    fixed_87.pos2.y0 = sd->bl_y;
+    fixed_87.pos2.x1 = sd->to_x;
+    fixed_87.pos2.y1 = sd->to_y;
+    fixed_87.zero = 0;
+    send_fpacket<0x0087, 12>(s, fixed_87);
 
     return 0;
 }
@@ -1091,14 +1095,12 @@ int clif_walkok(dumb_ptr<map_session_data> sd)
  */
 int clif_movechar(dumb_ptr<map_session_data> sd)
 {
-    int len;
-    unsigned char buf[256];
-
     nullpo_ret(sd);
 
-    len = clif_set007b(sd, buf);
+    Buffer buf;
+    clif_set007b(sd, buf);
 
-    clif_send(buf, len, sd, SendWho::AREA_WOS);
+    clif_send(buf, sd, SendWho::AREA_WOS);
 
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
         clif_changelook(sd, LOOK::CLOTHES_COLOR,
@@ -1150,11 +1152,11 @@ void clif_changemap(dumb_ptr<map_session_data> sd, MapName mapname, int x, int y
 
     Session *s = sd->sess;
 
-    WFIFOW(s, 0) = 0x91;
-    WFIFO_STRING(s, 2, mapname, 16);
-    WFIFOW(s, 18) = x;
-    WFIFOW(s, 20) = y;
-    WFIFOSET(s, clif_parse_func_table[0x91].len);
+    Packet_Fixed<0x0091> fixed_91;
+    fixed_91.map_name = mapname;
+    fixed_91.x = x;
+    fixed_91.y = y;
+    send_fpacket<0x0091, 22>(s, fixed_91);
 }
 
 /*==========================================
@@ -1167,13 +1169,13 @@ void clif_changemapserver(dumb_ptr<map_session_data> sd,
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x92;
-    WFIFO_STRING(s, 2, mapname, 16);
-    WFIFOW(s, 18) = x;
-    WFIFOW(s, 20) = y;
-    WFIFOIP(s, 22) = ip;
-    WFIFOW(s, 26) = port;
-    WFIFOSET(s, clif_parse_func_table[0x92].len);
+    Packet_Fixed<0x0092> fixed_92;
+    fixed_92.map_name = mapname;
+    fixed_92.x = x;
+    fixed_92.y = y;
+    fixed_92.ip = ip;
+    fixed_92.port = port;
+    send_fpacket<0x0092, 28>(s, fixed_92);
 }
 
 /*==========================================
@@ -1182,16 +1184,15 @@ void clif_changemapserver(dumb_ptr<map_session_data> sd,
  */
 void clif_fixpos(dumb_ptr<block_list> bl)
 {
-    uint8_t buf[16];
-
     nullpo_retv(bl);
 
-    WBUFW(buf, 0) = 0x88;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-    WBUFW(buf, 6) = bl->bl_x;
-    WBUFW(buf, 8) = bl->bl_y;
+    Packet_Fixed<0x0088> fixed_88;
+    fixed_88.block_id = bl->bl_id;
+    fixed_88.x = bl->bl_x;
+    fixed_88.y = bl->bl_y;
 
-    clif_send(buf, clif_parse_func_table[0x88].len, bl, SendWho::AREA);
+    Buffer buf = create_fpacket<0x0088, 10>(fixed_88);
+    clif_send(buf, bl, SendWho::AREA);
 }
 
 /*==========================================
@@ -1203,9 +1204,9 @@ int clif_npcbuysell(dumb_ptr<map_session_data> sd, BlockId id)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xc4;
-    WFIFOL(s, 2) = unwrap<BlockId>(id);
-    WFIFOSET(s, clif_parse_func_table[0xc4].len);
+    Packet_Fixed<0x00c4> fixed_c4;
+    fixed_c4.block_id = id;
+    send_fpacket<0x00c4, 6>(s, fixed_c4);
 
     return 0;
 }
@@ -1223,18 +1224,17 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
     nullpo_ret(nd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xc6;
+    std::vector<Packet_Repeat<0x00c6>> repeat_c6(nd->shop_items.size());
     for (i = 0; i < nd->shop_items.size(); i++)
     {
         id = itemdb_search(nd->shop_items[i].nameid);
         val = nd->shop_items[i].value;
-        WFIFOL(s, 4 + i * 11) = val; // base price
-        WFIFOL(s, 8 + i * 11) = val; // actual price
-        WFIFOB(s, 12 + i * 11) = static_cast<uint8_t>(id->type);
-        WFIFOW(s, 13 + i * 11) = unwrap<ItemNameId>(nd->shop_items[i].nameid);
+        repeat_c6[i].base_price = val; // base price
+        repeat_c6[i].actual_price = val; // actual price
+        repeat_c6[i].type = id->type;
+        repeat_c6[i].name_id = nd->shop_items[i].nameid;
     }
-    WFIFOW(s, 2) = i * 11 + 4;
-    WFIFOSET(s, WFIFOW(s, 2));
+    send_packet_repeatonly<0x00c6, 4, 11>(s, repeat_c6);
 
     return 0;
 }
@@ -1245,12 +1245,12 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
  */
 int clif_selllist(dumb_ptr<map_session_data> sd)
 {
-    int i, c = 0, val;
+    int i, val;
 
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xc7;
+    std::vector<Packet_Repeat<0x00c7>> repeat_c7;
     for (i = 0; i < MAX_INVENTORY; i++)
     {
         if (sd->status.inventory[i].nameid && sd->inventory_data[i])
@@ -1258,14 +1258,14 @@ int clif_selllist(dumb_ptr<map_session_data> sd)
             val = sd->inventory_data[i]->value_sell;
             if (val < 0)
                 continue;
-            WFIFOW(s, 4 + c * 10) = i + 2;
-            WFIFOL(s, 6 + c * 10) = val; // base price
-            WFIFOL(s, 10 + c * 10) = val; // actual price
-            c++;
+            Packet_Repeat<0x00c7> info;
+            info.ioff2 = i + 2;
+            info.base_price = val;
+            info.actual_price = val;
+            repeat_c7.push_back(info);
         }
     }
-    WFIFOW(s, 2) = c * 10 + 4;
-    WFIFOSET(s, WFIFOW(s, 2));
+    send_packet_repeatonly<0x00c7, 4, 10>(s, repeat_c7);
 
     return 0;
 }
@@ -1280,12 +1280,9 @@ void clif_scriptmes(dumb_ptr<map_session_data> sd, BlockId npcid, XString mes)
 
     Session *s = sd->sess;
 
-    size_t len = mes.size() + 1;
-    WFIFOW(s, 0) = 0xb4;
-    WFIFOW(s, 2) = len + 8;
-    WFIFOL(s, 4) = unwrap<BlockId>(npcid);
-    WFIFO_STRING(s, 8, mes, len);
-    WFIFOSET(s, WFIFOW(s, 2));
+    Packet_Head<0x00b4> head_b4;
+    head_b4.block_id = npcid;
+    send_vpacket<0x00b4, 8, 1>(s, head_b4, mes);
 }
 
 /*==========================================
@@ -1297,9 +1294,9 @@ void clif_scriptnext(dumb_ptr<map_session_data> sd, BlockId npcid)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xb5;
-    WFIFOL(s, 2) = unwrap<BlockId>(npcid);
-    WFIFOSET(s, clif_parse_func_table[0xb5].len);
+    Packet_Fixed<0x00b5> fixed_b5;
+    fixed_b5.block_id = npcid;
+    send_fpacket<0x00b5, 6>(s, fixed_b5);
 }
 
 /*==========================================
@@ -1311,9 +1308,9 @@ void clif_scriptclose(dumb_ptr<map_session_data> sd, BlockId npcid)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xb6;
-    WFIFOL(s, 2) = unwrap<BlockId>(npcid);
-    WFIFOSET(s, clif_parse_func_table[0xb6].len);
+    Packet_Fixed<0x00b6> fixed_b6;
+    fixed_b6.block_id = npcid;
+    send_fpacket<0x00b6, 6>(s, fixed_b6);
 }
 
 /*==========================================
@@ -1325,12 +1322,9 @@ void clif_scriptmenu(dumb_ptr<map_session_data> sd, BlockId npcid, XString mes)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    size_t len = mes.size() + 1;
-    WFIFOW(s, 0) = 0xb7;
-    WFIFOW(s, 2) = len + 8;
-    WFIFOL(s, 4) = unwrap<BlockId>(npcid);
-    WFIFO_STRING(s, 8, mes, len);
-    WFIFOSET(s, WFIFOW(s, 2));
+    Packet_Head<0x00b7> head_b7;
+    head_b7.block_id = npcid;
+    send_vpacket<0x00b7, 8, 1>(s, head_b7, mes);
 }
 
 /*==========================================
@@ -1342,9 +1336,9 @@ void clif_scriptinput(dumb_ptr<map_session_data> sd, BlockId npcid)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x142;
-    WFIFOL(s, 2) = unwrap<BlockId>(npcid);
-    WFIFOSET(s, clif_parse_func_table[0x142].len);
+    Packet_Fixed<0x0142> fixed_142;
+    fixed_142.block_id = npcid;
+    send_fpacket<0x0142, 6>(s, fixed_142);
 }
 
 /*==========================================
@@ -1356,9 +1350,9 @@ void clif_scriptinputstr(dumb_ptr<map_session_data> sd, BlockId npcid)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x1d4;
-    WFIFOL(s, 2) = unwrap<BlockId>(npcid);
-    WFIFOSET(s, clif_parse_func_table[0x1d4].len);
+    Packet_Fixed<0x01d4> fixed_1d4;
+    fixed_1d4.block_id = npcid;
+    send_fpacket<0x01d4, 6>(s, fixed_1d4);
 }
 
 /*==========================================
@@ -1370,22 +1364,13 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
     nullpo_ret(sd);
 
     Session *s = sd->sess;
+    Packet_Fixed<0x00a0> fixed_a0;
     if (fail != PickupFail::OKAY)
     {
-        WFIFOW(s, 0) = 0xa0;
-        WFIFOW(s, 2) = n + 2;
-        WFIFOW(s, 4) = amount;
-        WFIFOW(s, 6) = 0;
-        WFIFOB(s, 8) = 0;
-        WFIFOB(s, 9) = 0;
-        WFIFOB(s, 10) = 0;
-        WFIFOW(s, 11) = 0;
-        WFIFOW(s, 13) = 0;
-        WFIFOW(s, 15) = 0;
-        WFIFOW(s, 17) = 0;
-        WFIFOW(s, 19) = 0;
-        WFIFOB(s, 21) = 0;
-        WFIFOB(s, 22) = static_cast<uint8_t>(fail);
+        fixed_a0.ioff2 = n + 2;
+        fixed_a0.amount = amount;
+        fixed_a0.name_id = ItemNameId();
+        fixed_a0.pickup_fail = fail;
     }
     else
     {
@@ -1393,27 +1378,26 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
             || sd->inventory_data[n] == NULL)
             return 1;
 
-        WFIFOW(s, 0) = 0xa0;
-        WFIFOW(s, 2) = n + 2;
-        WFIFOW(s, 4) = amount;
-        WFIFOW(s, 6) = unwrap<ItemNameId>(sd->status.inventory[n].nameid);
-        WFIFOB(s, 8) = 1; //identify;
-        WFIFOB(s, 9) = 0; // broken or attribute;
-        WFIFOB(s, 10) = 0; //refine;
+        fixed_a0.ioff2 = n + 2;
+        fixed_a0.amount = amount;
+        fixed_a0.name_id = sd->status.inventory[n].nameid;
+        fixed_a0.identify = 1;
+        fixed_a0.broken_or_attribute = 0;
+        fixed_a0.refine = 0;
         {
-            WFIFOW(s, 11) = 0; //card[0];
-            WFIFOW(s, 13) = 0; //card[1];
-            WFIFOW(s, 15) = 0; //card[2];
-            WFIFOW(s, 17) = 0; //card[3];
+            fixed_a0.card0 = 0;
+            fixed_a0.card1 = 0;
+            fixed_a0.card2 = 0;
+            fixed_a0.card3 = 0;
         }
-        WFIFOW(s, 19) = static_cast<uint16_t>(pc_equippoint(sd, n));
-        WFIFOB(s, 21) = static_cast<uint8_t>(sd->inventory_data[n]->type == ItemType::_7
+        fixed_a0.epos = pc_equippoint(sd, n);
+        fixed_a0.item_type = (sd->inventory_data[n]->type == ItemType::_7
             ? ItemType::WEAPON
             : sd->inventory_data[n]->type);
-        WFIFOB(s, 22) = static_cast<uint8_t>(fail);
+        fixed_a0.pickup_fail = fail;
     }
 
-    WFIFOSET(s, clif_parse_func_table[0xa0].len);
+    send_fpacket<0x00a0, 23>(s, fixed_a0);
     return 0;
 }
 
@@ -1426,11 +1410,11 @@ void clif_delitem(dumb_ptr<map_session_data> sd, int n, int amount)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xaf;
-    WFIFOW(s, 2) = n + 2;
-    WFIFOW(s, 4) = amount;
+    Packet_Fixed<0x00af> fixed_af;
+    fixed_af.ioff2 = n + 2;
+    fixed_af.amount = amount;
 
-    WFIFOSET(s, clif_parse_func_table[0xaf].len);
+    send_fpacket<0x00af, 6>(s, fixed_af);
 }
 
 /*==========================================
@@ -1441,39 +1425,38 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    int n = 0;
     int arrow = -1;
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x1ee;
+    std::vector<Packet_Repeat<0x01ee>> repeat_1ee;
     for (int i = 0; i < MAX_INVENTORY; i++)
     {
         if (!sd->status.inventory[i].nameid
             || sd->inventory_data[i] == NULL
             || itemdb_isequip2(sd->inventory_data[i]))
             continue;
-        WFIFOW(s, n * 18 + 4) = i + 2;
-        WFIFOW(s, n * 18 + 6) = unwrap<ItemNameId>(sd->status.inventory[i].nameid);
-        WFIFOB(s, n * 18 + 8) = static_cast<uint8_t>(sd->inventory_data[i]->type);
-        WFIFOB(s, n * 18 + 9) = 1; //identify;
-        WFIFOW(s, n * 18 + 10) = sd->status.inventory[i].amount;
+        Packet_Repeat<0x01ee> info;
+        info.ioff2 = i + 2;
+        info.name_id = sd->status.inventory[i].nameid;
+        info.item_type = sd->inventory_data[i]->type;
+        info.identify = 1;
+        info.amount = sd->status.inventory[i].amount;
         if (sd->inventory_data[i]->equip == EPOS::ARROW)
         {
-            WFIFOW(s, n * 18 + 12) = static_cast<uint16_t>(EPOS::ARROW);
+            info.epos = EPOS::ARROW;
             if (bool(sd->status.inventory[i].equip))
                 arrow = i;      // ついでに矢装備チェック
         }
         else
-            WFIFOW(s, n * 18 + 12) = static_cast<uint16_t>(EPOS::ZERO);
-        WFIFOW(s, n * 18 + 14) = 0; //card[0];
-        WFIFOW(s, n * 18 + 16) = 0; //card[1];
-        WFIFOW(s, n * 18 + 18) = 0; //card[2];
-        WFIFOW(s, n * 18 + 20) = 0; //card[3];
-        n++;
+            info.epos = EPOS::ZERO;
+        info.card0 = 0;
+        info.card1 = 0;
+        info.card2 = 0;
+        info.card3 = 0;
+        repeat_1ee.push_back(info);
     }
-    if (n)
+    if (!repeat_1ee.empty())
     {
-        WFIFOW(s, 2) = 4 + n * 18;
-        WFIFOSET(s, WFIFOW(s, 2));
+        send_packet_repeatonly<0x01ee, 4, 18>(s, repeat_1ee);
     }
     if (arrow >= 0)
         clif_arrowequip(sd, arrow);
@@ -1488,37 +1471,36 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xa4;
-    int n = 0;
+    std::vector<Packet_Repeat<0x00a4>> repeat_a4;
     for (int i = 0; i < MAX_INVENTORY; i++)
     {
         if (!sd->status.inventory[i].nameid
             || sd->inventory_data[i] == NULL
             || !itemdb_isequip2(sd->inventory_data[i]))
             continue;
-        WFIFOW(s, n * 20 + 4) = i + 2;
-        WFIFOW(s, n * 20 + 6) = unwrap<ItemNameId>(sd->status.inventory[i].nameid);
-        WFIFOB(s, n * 20 + 8) = static_cast<uint8_t>(
+        Packet_Repeat<0x00a4> info;
+        info.ioff2 = i + 2;
+        info.name_id = sd->status.inventory[i].nameid;
+        info.item_type = (
                 sd->inventory_data[i]->type == ItemType::_7
                 ? ItemType::WEAPON
                 : sd->inventory_data[i]->type);
-        WFIFOB(s, n * 20 + 9) = 0; //identify;
-        WFIFOW(s, n * 20 + 10) = static_cast<uint16_t>(pc_equippoint(sd, i));
-        WFIFOW(s, n * 20 + 12) = static_cast<uint16_t>(sd->status.inventory[i].equip);
-        WFIFOB(s, n * 20 + 14) = 0; //broken or attribute;
-        WFIFOB(s, n * 20 + 15) = 0; //refine;
+        info.identify = 0;
+        info.epos_pc = pc_equippoint(sd, i);
+        info.epos_inv = sd->status.inventory[i].equip;
+        info.broken_or_attribute = 0;
+        info.refine = 0;
         {
-            WFIFOW(s, n * 20 + 16) = 0; //card[0];
-            WFIFOW(s, n * 20 + 18) = 0; //card[1];
-            WFIFOW(s, n * 20 + 20) = 0; //card[2];
-            WFIFOW(s, n * 20 + 22) = 0; //card[3];
+            info.card0 = 0;
+            info.card1 = 0;
+            info.card2 = 0;
+            info.card3 = 0;
         }
-        n++;
+        repeat_a4.push_back(info);
     }
-    if (n)
+    if (!repeat_a4.empty())
     {
-        WFIFOW(s, 2) = 4 + n * 20;
-        WFIFOSET(s, WFIFOW(s, 2));
+        send_packet_repeatonly<0x00a4, 4, 20>(s, repeat_a4);
     }
 }
 
@@ -1532,8 +1514,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
     nullpo_ret(stor);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x1f0;
-    int n = 0;
+    std::vector<Packet_Repeat<0x01f0>> repeat_1f0;
     for (int i = 0; i < MAX_STORAGE; i++)
     {
         if (!stor->storage_[i].nameid)
@@ -1545,22 +1526,22 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
         if (itemdb_isequip2(id))
             continue;
 
-        WFIFOW(s, n * 18 + 4) = i + 1;
-        WFIFOW(s, n * 18 + 6) = unwrap<ItemNameId>(stor->storage_[i].nameid);
-        WFIFOB(s, n * 18 + 8) = static_cast<uint8_t>(id->type);
-        WFIFOB(s, n * 18 + 9) = 0; //identify;
-        WFIFOW(s, n * 18 + 10) = stor->storage_[i].amount;
-        WFIFOW(s, n * 18 + 12) = 0;
-        WFIFOW(s, n * 18 + 14) = 0; //card[0];
-        WFIFOW(s, n * 18 + 16) = 0; //card[1];
-        WFIFOW(s, n * 18 + 18) = 0; //card[2];
-        WFIFOW(s, n * 18 + 20) = 0; //card[3];
-        n++;
+        Packet_Repeat<0x01f0> info;
+        info.soff1 = i + 1;
+        info.name_id = stor->storage_[i].nameid;
+        info.item_type = id->type;
+        info.identify = 0;
+        info.amount = stor->storage_[i].amount;
+        info.epos_zero = EPOS::ZERO;
+        info.card0 = 0;
+        info.card1 = 0;
+        info.card2 = 0;
+        info.card3 = 0;
+        repeat_1f0.push_back(info);
     }
-    if (n)
+    if (!repeat_1f0.empty())
     {
-        WFIFOW(s, 2) = 4 + n * 18;
-        WFIFOSET(s, WFIFOW(s, 2));
+        send_packet_repeatonly<0x01f0, 4, 18>(s, repeat_1f0);
     }
     return 0;
 }
@@ -1575,8 +1556,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
     nullpo_ret(stor);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xa6;
-    int n = 0;
+    std::vector<Packet_Repeat<0x00a6>> repeat_a6;
     for (int i = 0; i < MAX_STORAGE; i++)
     {
         if (!stor->storage_[i].nameid)
@@ -1587,26 +1567,26 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
         nullpo_ret(id);
         if (!itemdb_isequip2(id))
             continue;
-        WFIFOW(s, n * 20 + 4) = i + 1;
-        WFIFOW(s, n * 20 + 6) = unwrap<ItemNameId>(stor->storage_[i].nameid);
-        WFIFOB(s, n * 20 + 8) = static_cast<uint8_t>(id->type);
-        WFIFOB(s, n * 20 + 9) = 0; //identify;
-        WFIFOW(s, n * 20 + 10) = static_cast<uint16_t>(id->equip);
-        WFIFOW(s, n * 20 + 12) = static_cast<uint16_t>(stor->storage_[i].equip);
-        WFIFOB(s, n * 20 + 14) = 0; //broken or attribute
-        WFIFOB(s, n * 20 + 15) = 0; //refine;
+        Packet_Repeat<0x00a6> info;
+        info.soff1 = i + 1;
+        info.name_id = stor->storage_[i].nameid;
+        info.item_type = id->type;
+        info.identify = 0;
+        info.epos_id = id->equip;
+        info.epos_stor = stor->storage_[i].equip;
+        info.broken_or_attribute = 0;
+        info.refine = 0;
         {
-            WFIFOW(s, n * 20 + 16) = 0; //card[0];
-            WFIFOW(s, n * 20 + 18) = 0; //card[1];
-            WFIFOW(s, n * 20 + 20) = 0; //card[2];
-            WFIFOW(s, n * 20 + 22) = 0; //card[3];
+            info.card0 = 0;
+            info.card1 = 0;
+            info.card2 = 0;
+            info.card3 = 0;
         }
-        n++;
+        repeat_a6.push_back(info);
     }
-    if (n)
+    if (!repeat_a6.empty())
     {
-        WFIFOW(s, 2) = 4 + n * 20;
-        WFIFOSET(s, WFIFOW(s, 2));
+        send_packet_repeatonly<0x00a6, 4, 20>(s, repeat_a6);
     }
     return 0;
 }
@@ -1618,140 +1598,183 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
  */
 int clif_updatestatus(dumb_ptr<map_session_data> sd, SP type)
 {
-    int len = 8;
-
     nullpo_ret(sd);
 
     Session *s = sd->sess;
 
-    WFIFOW(s, 0) = 0xb0;
-    WFIFOW(s, 2) = static_cast<uint16_t>(type);
-    switch (type)
     {
-            // 00b0
+        Packet_Fixed<0x00b0> fixed_b0;
+        fixed_b0.sp_type = type;
+        switch (type)
+        {
         case SP::WEIGHT:
             pc_checkweighticon(sd);
-            // is this because pc_checkweighticon can send other packets?
-            WFIFOW(s, 0) = 0xb0;
-            WFIFOW(s, 2) = static_cast<uint16_t>(type);
-            WFIFOL(s, 4) = sd->weight;
+            fixed_b0.value = sd->weight;
             break;
         case SP::MAXWEIGHT:
-            WFIFOL(s, 4) = sd->max_weight;
+            fixed_b0.value = sd->max_weight;
             break;
         case SP::SPEED:
-            // ...
-            WFIFOL(s, 4) = static_cast<uint16_t>(sd->speed.count());
+            // 'speed' is actually delay, in milliseconds
+            fixed_b0.value = sd->speed.count();
             break;
         case SP::BASELEVEL:
-            WFIFOL(s, 4) = sd->status.base_level;
+            fixed_b0.value = sd->status.base_level;
             break;
         case SP::JOBLEVEL:
-            WFIFOL(s, 4) = 0;
+            fixed_b0.value = sd->status.job_level;
             break;
         case SP::STATUSPOINT:
-            WFIFOL(s, 4) = sd->status.status_point;
+            fixed_b0.value = sd->status.status_point;
             break;
         case SP::SKILLPOINT:
-            WFIFOL(s, 4) = sd->status.skill_point;
+            fixed_b0.value = sd->status.skill_point;
             break;
         case SP::HIT:
-            WFIFOL(s, 4) = sd->hit;
+            fixed_b0.value = sd->hit;
             break;
         case SP::FLEE1:
-            WFIFOL(s, 4) = sd->flee;
+            fixed_b0.value = sd->flee;
             break;
         case SP::FLEE2:
-            WFIFOL(s, 4) = sd->flee2 / 10;
+            fixed_b0.value = sd->flee2 / 10;
             break;
         case SP::MAXHP:
-            WFIFOL(s, 4) = sd->status.max_hp;
+            fixed_b0.value = sd->status.max_hp;
             break;
         case SP::MAXSP:
-            WFIFOL(s, 4) = sd->status.max_sp;
+            fixed_b0.value = sd->status.max_sp;
             break;
         case SP::HP:
-            WFIFOL(s, 4) = sd->status.hp;
+            fixed_b0.value = sd->status.hp;
             break;
         case SP::SP:
-            WFIFOL(s, 4) = sd->status.sp;
+            fixed_b0.value = sd->status.sp;
             break;
         case SP::ASPD:
-            WFIFOL(s, 4) = static_cast<uint16_t>(sd->aspd.count());
+            fixed_b0.value = sd->aspd.count();
             break;
         case SP::ATK1:
-            WFIFOL(s, 4) = sd->base_atk + sd->watk;
+            fixed_b0.value = sd->base_atk + sd->watk;
             break;
         case SP::DEF1:
-            WFIFOL(s, 4) = sd->def;
+            fixed_b0.value = sd->def;
             break;
         case SP::MDEF1:
-            WFIFOL(s, 4) = sd->mdef;
+            fixed_b0.value = sd->mdef;
             break;
         case SP::ATK2:
-            WFIFOL(s, 4) = sd->watk2;
+            fixed_b0.value = sd->watk2;
             break;
         case SP::DEF2:
-            WFIFOL(s, 4) = sd->def2;
+            fixed_b0.value = sd->def2;
             break;
         case SP::MDEF2:
-            WFIFOL(s, 4) = sd->mdef2;
+            fixed_b0.value = sd->mdef2;
             break;
         case SP::CRITICAL:
-            WFIFOL(s, 4) = sd->critical / 10;
+            fixed_b0.value = sd->critical / 10;
             break;
         case SP::MATK1:
-            WFIFOL(s, 4) = sd->matk1;
+            fixed_b0.value = sd->matk1;
             break;
         case SP::MATK2:
-            WFIFOL(s, 4) = sd->matk2;
+            fixed_b0.value = sd->matk2;
+            break;
+        case SP::GM:
+            fixed_b0.value = pc_isGM(sd).get_all_bits();
             break;
 
+        default:
+            goto not_b0;
+        }
+
+        send_fpacket<0x00b0, 8>(s, fixed_b0);
+        return 0;
+    }
+not_b0:
+
+    {
+        Packet_Fixed<0x00b1> fixed_b1;
+        fixed_b1.sp_type = type;
+        switch (type)
+        {
         case SP::ZENY:
             trade_verifyzeny(sd);
-            WFIFOW(s, 0) = 0xb1;
             if (sd->status.zeny < 0)
                 sd->status.zeny = 0;
-            WFIFOL(s, 4) = sd->status.zeny;
-            break;
-        case SP::BASEEXP:
-            WFIFOW(s, 0) = 0xb1;
-            WFIFOL(s, 4) = sd->status.base_exp;
-            break;
-        case SP::JOBEXP:
-            WFIFOW(s, 0) = 0xb1;
-            WFIFOL(s, 4) = sd->status.job_exp;
-            break;
-        case SP::NEXTBASEEXP:
-            WFIFOW(s, 0) = 0xb1;
-            WFIFOL(s, 4) = pc_nextbaseexp(sd);
-            break;
-        case SP::NEXTJOBEXP:
-            WFIFOW(s, 0) = 0xb1;
-            WFIFOL(s, 4) = pc_nextjobexp(sd);
+            fixed_b1.value = sd->status.zeny;
             break;
 
-            // 00be 終了
+        case SP::BASEEXP:
+            fixed_b1.value = sd->status.base_exp;
+            break;
+        case SP::JOBEXP:
+            fixed_b1.value = sd->status.job_exp;
+            break;
+        case SP::NEXTBASEEXP:
+            fixed_b1.value = pc_nextbaseexp(sd);
+            break;
+        case SP::NEXTJOBEXP:
+            fixed_b1.value = pc_nextjobexp(sd);
+            break;
+
+        default:
+            goto not_b1;
+        }
+
+        send_fpacket<0x00b1, 8>(s, fixed_b1);
+        return 0;
+    }
+not_b1:
+
+    {
+        Packet_Fixed<0x00be> fixed_be;
+        fixed_be.sp_type = type;
+        switch (type)
+        {
         case SP::USTR:
         case SP::UAGI:
         case SP::UVIT:
         case SP::UINT:
         case SP::UDEX:
         case SP::ULUK:
-            WFIFOW(s, 0) = 0xbe;
-            WFIFOB(s, 4) = pc_need_status_point(sd, usp_to_sp(type));
-            len = 5;
+            fixed_be.value = pc_need_status_point(sd, usp_to_sp(type));
             break;
 
-            // 013a 終了
+        default:
+            goto not_be;
+        }
+
+        send_fpacket<0x00be, 5>(s, fixed_be);
+        return 0;
+    }
+not_be:
+
+    {
+        Packet_Fixed<0x013a> fixed_13a;
+        switch (type)
+        {
         case SP::ATTACKRANGE:
-            WFIFOW(s, 0) = 0x13a;
-            WFIFOW(s, 2) = (sd->attack_spell_override)
-                ? sd->attack_spell_range : sd->attackrange;
-            len = 4;
+            fixed_13a.attack_range = (sd->attack_spell_override
+                    ? sd->attack_spell_range
+                    : sd->attackrange);
             break;
 
-            // 0141 終了
+        default:
+            goto not_13a;
+        }
+
+        send_fpacket<0x013a, 4>(s, fixed_13a);
+        return 0;
+    }
+not_13a:
+
+    {
+        Packet_Fixed<0x00141> fixed_141;
+        fixed_141.sp_type = type;
+        switch (type)
+        {
         case SP::STR:
         case SP::AGI:
         case SP::VIT:
@@ -1760,27 +1783,28 @@ int clif_updatestatus(dumb_ptr<map_session_data> sd, SP type)
         case SP::LUK:
         {
             ATTR attr = sp_to_attr(type);
-            WFIFOW(s, 0) = 0x141;
-            WFIFOL(s, 2) = static_cast<uint16_t>(type);
-            WFIFOL(s, 6) = sd->status.attrs[attr];
-            WFIFOL(s, 10) = sd->paramb[attr] + sd->parame[attr];
-            len = 14;
+            fixed_141.value_status = sd->status.attrs[attr];
+            fixed_141.value_b_e = sd->paramb[attr] + sd->parame[attr];
         }
             break;
 
-        case SP::GM:
-            WFIFOL(s, 4) = pc_isGM(sd).get_all_bits();
-            break;
-
         default:
+            goto not_141;
+        }
+
+        send_fpacket<0x0141, 14>(s, fixed_141);
+        return 0;
+    }
+
+not_141:
+    {
+        {
             if (battle_config.error_log)
                 PRINTF("clif_updatestatus : make %d routine\n"_fmt,
                         type);
             return 1;
+        }
     }
-    WFIFOSET(s, len);
-
-    return 0;
 }
 
 /*==========================================
@@ -1795,7 +1819,6 @@ int clif_changelook(dumb_ptr<block_list> bl, LOOK type, int val)
 int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
                              dumb_ptr<map_session_data> dstsd)
 {
-    unsigned char buf[32];
     dumb_ptr<map_session_data> sd = NULL;
 
     nullpo_ret(bl);
@@ -1809,61 +1832,65 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
     if (sd
         && (type == LOOK::WEAPON || type == LOOK::SHIELD || type >= LOOK::SHOES))
     {
-        WBUFW(buf, 0) = 0x1d7;
-        WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
+        Packet_Fixed<0x01d7> fixed_1d7;
+        fixed_1d7.block_id = bl->bl_id;
         if (type >= LOOK::SHOES)
         {
             EQUIP equip_point = equip_points[type];
 
-            WBUFB(buf, 6) = static_cast<uint16_t>(type);
+            fixed_1d7.look_type = type;
             int idx = sd->equip_index_maybe[equip_point];
             if (idx >= 0 && sd->inventory_data[idx])
             {
-                WBUFW(buf, 7) = unwrap<ItemNameId>(sd->status.inventory[idx].nameid);
+                fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->status.inventory[idx].nameid);
             }
             else
-                WBUFW(buf, 7) = 0;
-            WBUFW(buf, 9) = 0;
+                fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(ItemNameId());
+            fixed_1d7.shield = ItemNameId();
         }
         else
         {
-            WBUFB(buf, 6) = 2;
+            fixed_1d7.look_type = LOOK::WEAPON;
             int widx = sd->equip_index_maybe[EQUIP::WEAPON];
             int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
             if (sd->attack_spell_override)
-                WBUFW(buf, 7) = sd->attack_spell_look_override;
+                fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->attack_spell_look_override);
             else
             {
                 if (widx >= 0 && sd->inventory_data[widx])
                 {
-                    WBUFW(buf, 7) = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
+                    fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
                 }
                 else
-                    WBUFW(buf, 7) = 0;
+                    fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(ItemNameId());
             }
             if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
             {
-                WBUFW(buf, 9) = unwrap<ItemNameId>(sd->status.inventory[sidx].nameid);
+                fixed_1d7.shield = sd->status.inventory[sidx].nameid;
             }
             else
-                WBUFW(buf, 9) = 0;
+                fixed_1d7.shield = ItemNameId();
         }
+
+        Buffer buf = create_fpacket<0x01d7, 11>(fixed_1d7);
         if (dstsd)
-            clif_send(buf, clif_parse_func_table[0x1d7].len, dstsd, SendWho::SELF);
+            clif_send(buf, dstsd, SendWho::SELF);
         else
-            clif_send(buf, clif_parse_func_table[0x1d7].len, bl, SendWho::AREA);
+            clif_send(buf, bl, SendWho::AREA);
     }
     else
     {
-        WBUFW(buf, 0) = 0x1d7;
-        WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-        WBUFB(buf, 6) = static_cast<uint8_t>(type);
-        WBUFW(buf, 7) = val;
-        WBUFW(buf, 9) = 0;
+        Packet_Fixed<0x01d7> fixed_1d7;
+        fixed_1d7.block_id = bl->bl_id;
+        fixed_1d7.look_type = type;
+        fixed_1d7.weapon_or_name_id_or_value = val;
+        fixed_1d7.shield = ItemNameId();
+
+        Buffer buf = create_fpacket<0x01d7, 11>(fixed_1d7);
         if (dstsd)
-            clif_send(buf, clif_parse_func_table[0x1d7].len, dstsd, SendWho::SELF);
+            clif_send(buf, dstsd, SendWho::SELF);
         else
-            clif_send(buf, clif_parse_func_table[0x1d7].len, bl, SendWho::AREA);
+            clif_send(buf, bl, SendWho::AREA);
     }
     return 0;
 }
@@ -1879,38 +1906,38 @@ int clif_initialstatus(dumb_ptr<map_session_data> sd)
 
     Session *s = sd->sess;
 
-    WFIFOW(s, 0) = 0xbd;
-    WFIFOW(s, 2) = sd->status.status_point;
+    Packet_Fixed<0x00bd> fixed_bd;
+    fixed_bd.status_point = sd->status.status_point;
 
-    WFIFOB(s, 4) = saturate<uint8_t>(sd->status.attrs[ATTR::STR]);
-    WFIFOB(s, 5) = pc_need_status_point(sd, SP::STR);
-    WFIFOB(s, 6) = saturate<uint8_t>(sd->status.attrs[ATTR::AGI]);
-    WFIFOB(s, 7) = pc_need_status_point(sd, SP::AGI);
-    WFIFOB(s, 8) = saturate<uint8_t>(sd->status.attrs[ATTR::VIT]);
-    WFIFOB(s, 9) = pc_need_status_point(sd, SP::VIT);
-    WFIFOB(s, 10) = saturate<uint8_t>(sd->status.attrs[ATTR::INT]);
-    WFIFOB(s, 11) = pc_need_status_point(sd, SP::INT);
-    WFIFOB(s, 12) = saturate<uint8_t>(sd->status.attrs[ATTR::DEX]);
-    WFIFOB(s, 13) = pc_need_status_point(sd, SP::DEX);
-    WFIFOB(s, 14) = saturate<uint8_t>(sd->status.attrs[ATTR::LUK]);
-    WFIFOB(s, 15) = pc_need_status_point(sd, SP::LUK);
+    fixed_bd.str_attr = saturate<uint8_t>(sd->status.attrs[ATTR::STR]);
+    fixed_bd.str_upd = pc_need_status_point(sd, SP::STR);
+    fixed_bd.agi_attr = saturate<uint8_t>(sd->status.attrs[ATTR::AGI]);
+    fixed_bd.agi_upd = pc_need_status_point(sd, SP::AGI);
+    fixed_bd.vit_attr = saturate<uint8_t>(sd->status.attrs[ATTR::VIT]);
+    fixed_bd.vit_upd = pc_need_status_point(sd, SP::VIT);
+    fixed_bd.int_attr = saturate<uint8_t>(sd->status.attrs[ATTR::INT]);
+    fixed_bd.int_upd = pc_need_status_point(sd, SP::INT);
+    fixed_bd.dex_attr = saturate<uint8_t>(sd->status.attrs[ATTR::DEX]);
+    fixed_bd.dex_upd = pc_need_status_point(sd, SP::DEX);
+    fixed_bd.luk_attr = saturate<uint8_t>(sd->status.attrs[ATTR::LUK]);
+    fixed_bd.luk_upd = pc_need_status_point(sd, SP::LUK);
 
-    WFIFOW(s, 16) = sd->base_atk + sd->watk;
-    WFIFOW(s, 18) = sd->watk2;    //atk bonus
-    WFIFOW(s, 20) = sd->matk1;
-    WFIFOW(s, 22) = sd->matk2;
-    WFIFOW(s, 24) = sd->def;  // def
-    WFIFOW(s, 26) = sd->def2;
-    WFIFOW(s, 28) = sd->mdef; // mdef
-    WFIFOW(s, 30) = sd->mdef2;
-    WFIFOW(s, 32) = sd->hit;
-    WFIFOW(s, 34) = sd->flee;
-    WFIFOW(s, 36) = sd->flee2 / 10;
-    WFIFOW(s, 38) = sd->critical / 10;
-    WFIFOW(s, 40) = sd->status.karma;
-    WFIFOW(s, 42) = sd->status.manner;
+    fixed_bd.atk_sum = sd->base_atk + sd->watk;
+    fixed_bd.watk2 = sd->watk2;    //atk bonus
+    fixed_bd.matk1 = sd->matk1;
+    fixed_bd.matk2 = sd->matk2;
+    fixed_bd.def = sd->def;
+    fixed_bd.def2 = sd->def2;
+    fixed_bd.mdef = sd->mdef;
+    fixed_bd.mdef2 = sd->mdef2;
+    fixed_bd.hit = sd->hit;
+    fixed_bd.flee = sd->flee;
+    fixed_bd.flee2 = sd->flee2 / 10;
+    fixed_bd.critical = sd->critical / 10;
+    fixed_bd.karma = sd->status.karma;
+    fixed_bd.manner = sd->status.manner;
 
-    WFIFOSET(s, clif_parse_func_table[0xbd].len);
+    send_fpacket<0x00bd, 44>(s, fixed_bd);
 
     clif_updatestatus(sd, SP::STR);
     clif_updatestatus(sd, SP::AGI);
@@ -1936,10 +1963,9 @@ int clif_arrowequip(dumb_ptr<map_session_data> sd, int val)
     sd->attacktarget = BlockId();
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x013c;
-    WFIFOW(s, 2) = val + 2;   //矢のアイテムID
-
-    WFIFOSET(s, clif_parse_func_table[0x013c].len);
+    Packet_Fixed<0x013c> fixed_13c;
+    fixed_13c.ioff2 = val + 2;
+    send_fpacket<0x013c, 4>(s, fixed_13c);
 
     return 0;
 }
@@ -1954,10 +1980,9 @@ int clif_arrow_fail(dumb_ptr<map_session_data> sd, int type)
 
     Session *s = sd->sess;
 
-    WFIFOW(s, 0) = 0x013b;
-    WFIFOW(s, 2) = type;
-
-    WFIFOSET(s, clif_parse_func_table[0x013b].len);
+    Packet_Fixed<0x013b> fixed_13b;
+    fixed_13b.type = type;
+    send_fpacket<0x013b, 4>(s, fixed_13b);
 
     return 0;
 }
@@ -1971,11 +1996,11 @@ int clif_statusupack(dumb_ptr<map_session_data> sd, SP type, int ok, int val)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xbc;
-    WFIFOW(s, 2) = static_cast<uint16_t>(type);
-    WFIFOB(s, 4) = ok;
-    WFIFOB(s, 5) = val;
-    WFIFOSET(s, clif_parse_func_table[0xbc].len);
+    Packet_Fixed<0x00bc> fixed_bc;
+    fixed_bc.sp_type = type;
+    fixed_bc.ok = ok;
+    fixed_bc.val = val;
+    send_fpacket<0x00bc, 6>(s, fixed_bc);
 
     return 0;
 }
@@ -1989,11 +2014,11 @@ int clif_equipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xaa;
-    WFIFOW(s, 2) = n + 2;
-    WFIFOW(s, 4) = static_cast<uint16_t>(pos);
-    WFIFOB(s, 6) = ok;
-    WFIFOSET(s, clif_parse_func_table[0xaa].len);
+    Packet_Fixed<0x00aa> fixed_aa;
+    fixed_aa.ioff2 = n + 2;
+    fixed_aa.epos = pos;
+    fixed_aa.ok = ok;
+    send_fpacket<0x00aa, 7>(s, fixed_aa);
 
     return 0;
 }
@@ -2007,11 +2032,11 @@ int clif_unequipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xac;
-    WFIFOW(s, 2) = n + 2;
-    WFIFOW(s, 4) = static_cast<uint16_t>(pos);
-    WFIFOB(s, 6) = ok;
-    WFIFOSET(s, clif_parse_func_table[0xac].len);
+    Packet_Fixed<0x00ac> fixed_ac;
+    fixed_ac.ioff2 = n + 2;
+    fixed_ac.epos = pos;
+    fixed_ac.ok = ok;
+    send_fpacket<0x00ac, 7>(s, fixed_ac);
 
     return 0;
 }
@@ -2022,15 +2047,14 @@ int clif_unequipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
  */
 int clif_misceffect(dumb_ptr<block_list> bl, int type)
 {
-    uint8_t buf[32];
-
     nullpo_ret(bl);
 
-    WBUFW(buf, 0) = 0x19b;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-    WBUFL(buf, 6) = type;
+    Packet_Fixed<0x019b> fixed_19b;
+    fixed_19b.block_id = bl->bl_id;
+    fixed_19b.type = type;
+    Buffer buf = create_fpacket<0x019b, 10>(fixed_19b);
 
-    clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::AREA);
+    clif_send(buf, bl, SendWho::AREA);
 
     return 0;
 }
@@ -2041,7 +2065,6 @@ int clif_misceffect(dumb_ptr<block_list> bl, int type)
  */
 int clif_changeoption(dumb_ptr<block_list> bl)
 {
-    uint8_t buf[32];
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
@@ -2049,14 +2072,15 @@ int clif_changeoption(dumb_ptr<block_list> bl)
     Option option = *battle_get_option(bl);
     sc_data = battle_get_sc_data(bl);
 
-    WBUFW(buf, 0) = 0x119;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-    WBUFW(buf, 6) = static_cast<uint16_t>(*battle_get_opt1(bl));
-    WBUFW(buf, 8) = static_cast<uint16_t>(*battle_get_opt2(bl));
-    WBUFW(buf, 10) = static_cast<uint16_t>(option);
-    WBUFB(buf, 12) = 0;        // ??
+    Packet_Fixed<0x0119> fixed_119;
+    fixed_119.block_id = bl->bl_id;
+    fixed_119.opt1 = *battle_get_opt1(bl);
+    fixed_119.opt2 = *battle_get_opt2(bl);
+    fixed_119.option = option;
+    fixed_119.zero = 0;
+    Buffer buf = create_fpacket<0x0119, 13>(fixed_119);
 
-    clif_send(buf, clif_parse_func_table[0x119].len, bl, SendWho::AREA);
+    clif_send(buf, bl, SendWho::AREA);
 
     return 0;
 }
@@ -2073,23 +2097,22 @@ int clif_useitemack(dumb_ptr<map_session_data> sd, int index, int amount,
     if (!ok)
     {
         Session *s = sd->sess;
-        WFIFOW(s, 0) = 0xa8;
-        WFIFOW(s, 2) = index + 2;
-        WFIFOW(s, 4) = amount;
-        WFIFOB(s, 6) = ok;
-        WFIFOSET(s, clif_parse_func_table[0xa8].len);
+        Packet_Fixed<0x00a8> fixed_a8;
+        fixed_a8.ioff2 = index + 2;
+        fixed_a8.amount = amount;
+        fixed_a8.ok = ok;
+        send_fpacket<0x00a8, 7>(s, fixed_a8);
     }
     else
     {
-        uint8_t buf[32];
-
-        WBUFW(buf, 0) = 0x1c8;
-        WBUFW(buf, 2) = index + 2;
-        WBUFW(buf, 4) = unwrap<ItemNameId>(sd->status.inventory[index].nameid);
-        WBUFL(buf, 6) = unwrap<BlockId>(sd->bl_id);
-        WBUFW(buf, 10) = amount;
-        WBUFB(buf, 12) = ok;
-        clif_send(buf, clif_parse_func_table[0x1c8].len, sd, SendWho::SELF);
+        Packet_Fixed<0x01c8> fixed_1c8;
+        fixed_1c8.ioff2 = index + 2;
+        fixed_1c8.name_id = sd->status.inventory[index].nameid;
+        fixed_1c8.block_id = sd->bl_id;
+        fixed_1c8.amount = amount;
+        fixed_1c8.ok = ok;
+        Buffer buf = create_fpacket<0x01c8, 13>(fixed_1c8);
+        clif_send(buf, sd, SendWho::SELF);
     }
 
     return 0;
@@ -2104,9 +2127,9 @@ void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xe5;
-    WFIFO_STRING(s, 2, name.to__actual(), 24);
-    WFIFOSET(s, clif_parse_func_table[0xe5].len);
+    Packet_Fixed<0x00e5> fixed_e5;
+    fixed_e5.char_name = name;
+    send_fpacket<0x00e5, 26>(s, fixed_e5);
 }
 
 /*==========================================
@@ -2118,9 +2141,9 @@ void clif_tradestart(dumb_ptr<map_session_data> sd, int type)
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xe7;
-    WFIFOB(s, 2) = type;
-    WFIFOSET(s, clif_parse_func_table[0xe7].len);
+    Packet_Fixed<0x00e7> fixed_e7;
+    fixed_e7.type = type;
+    send_fpacket<0x00e7, 3>(s, fixed_e7);
 }
 
 /*==========================================
@@ -2128,57 +2151,57 @@ void clif_tradestart(dumb_ptr<map_session_data> sd, int type)
  *------------------------------------------
  */
 void clif_tradeadditem(dumb_ptr<map_session_data> sd,
-        dumb_ptr<map_session_data> tsd, int index, int amount)
+        dumb_ptr<map_session_data> tsd, int index2, int amount)
 {
     nullpo_retv(sd);
     nullpo_retv(tsd);
 
     Session *s = tsd->sess;
-    WFIFOW(s, 0) = 0xe9;
-    WFIFOL(s, 2) = amount;
-    if (index == 0)
+    Packet_Fixed<0x00e9> fixed_e9;
+    fixed_e9.amount = amount;
+    if (index2 == 0)
     {
-        WFIFOW(s, 6) = 0;     // type id
-        WFIFOB(s, 8) = 0;     //identify flag
-        WFIFOB(s, 9) = 0;     // attribute
-        WFIFOB(s, 10) = 0;    //refine
-        WFIFOW(s, 11) = 0;    //card (4w)
-        WFIFOW(s, 13) = 0;    //card (4w)
-        WFIFOW(s, 15) = 0;    //card (4w)
-        WFIFOW(s, 17) = 0;    //card (4w)
+        fixed_e9.name_id = ItemNameId();
+        fixed_e9.identify = 0;
+        fixed_e9.broken_or_attribute = 0;
+        fixed_e9.refine = 0;
+        fixed_e9.card0 = 0;
+        fixed_e9.card1 = 0;
+        fixed_e9.card2 = 0;
+        fixed_e9.card3 = 0;
     }
     else
     {
-        index -= 2;
-        WFIFOW(s, 6) = unwrap<ItemNameId>(sd->status.inventory[index].nameid);    // type id
-        WFIFOB(s, 8) = 0; //identify;
-        WFIFOB(s, 9) = 0; //broken or attribute;
-        WFIFOB(s, 10) = 0; //refine;
+        int index0 = index2 - 2;
+        fixed_e9.name_id = sd->status.inventory[index0].nameid;
+        fixed_e9.identify = 0;
+        fixed_e9.broken_or_attribute = 0;
+        fixed_e9.refine = 0;
         {
-            WFIFOW(s, 11) = 0; //card[0];
-            WFIFOW(s, 13) = 0; //card[1];
-            WFIFOW(s, 15) = 0; //card[2];
-            WFIFOW(s, 17) = 0; //card[3];
+            fixed_e9.card0 = 0;
+            fixed_e9.card1 = 0;
+            fixed_e9.card2 = 0;
+            fixed_e9.card3 = 0;
         }
     }
-    WFIFOSET(s, clif_parse_func_table[0xe9].len);
+    send_fpacket<0x00e9, 19>(s, fixed_e9);
 }
 
 /*==========================================
  * アイテム追加成功/失敗
  *------------------------------------------
  */
-int clif_tradeitemok(dumb_ptr<map_session_data> sd, int index, int amount,
+int clif_tradeitemok(dumb_ptr<map_session_data> sd, int index2, int amount,
                       int fail)
 {
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x1b1;
-    WFIFOW(s, 2) = index;
-    WFIFOW(s, 4) = amount;
-    WFIFOB(s, 6) = fail;
-    WFIFOSET(s, clif_parse_func_table[0x1b1].len);
+    Packet_Fixed<0x01b1> fixed_1b1;
+    fixed_1b1.ioff2 = index2;
+    fixed_1b1.amount = amount;
+    fixed_1b1.fail = fail;
+    send_fpacket<0x01b1, 7>(s, fixed_1b1);
 
     return 0;
 }
@@ -2192,9 +2215,9 @@ int clif_tradedeal_lock(dumb_ptr<map_session_data> sd, int fail)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xec;
-    WFIFOB(s, 2) = fail;      // 0=you 1=the other person
-    WFIFOSET(s, clif_parse_func_table[0xec].len);
+    Packet_Fixed<0x00ec> fixed_ec;
+    fixed_ec.fail = fail;      // 0=you 1=the other person
+    send_fpacket<0x00ec, 3>(s, fixed_ec);
 
     return 0;
 }
@@ -2208,8 +2231,8 @@ int clif_tradecancelled(dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xee;
-    WFIFOSET(s, clif_parse_func_table[0xee].len);
+    Packet_Fixed<0x00ee> fixed_ee;
+    send_fpacket<0x00ee, 2>(s, fixed_ee);
 
     return 0;
 }
@@ -2223,9 +2246,9 @@ int clif_tradecompleted(dumb_ptr<map_session_data> sd, int fail)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xf0;
-    WFIFOB(s, 2) = fail;
-    WFIFOSET(s, clif_parse_func_table[0xf0].len);
+    Packet_Fixed<0x00f0> fixed_f0;
+    fixed_f0.fail = fail;
+    send_fpacket<0x00f0, 3>(s, fixed_f0);
 
     return 0;
 }
@@ -2241,10 +2264,10 @@ int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
     nullpo_ret(stor);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xf2;      // update storage amount
-    WFIFOW(s, 2) = stor->storage_amount;  //items
-    WFIFOW(s, 4) = MAX_STORAGE;   //items max
-    WFIFOSET(s, clif_parse_func_table[0xf2].len);
+    Packet_Fixed<0x00f2> fixed_f2;
+    fixed_f2.current_slots = stor->storage_amount;  //items
+    fixed_f2.max_slots = MAX_STORAGE;   //items max
+    send_fpacket<0x00f2, 6>(s, fixed_f2);
 
     return 0;
 }
@@ -2260,23 +2283,20 @@ int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
     nullpo_ret(stor);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xf4;      // Storage item added
-    WFIFOW(s, 2) = index + 1; // index
-    WFIFOL(s, 4) = amount;    // amount
-/*      if ((view = itemdb_viewid(stor->storage_[index].nameid)) > 0)
-                WFIFOW(fd,8) =view;
-        else*/
-    WFIFOW(s, 8) = unwrap<ItemNameId>(stor->storage_[index].nameid);
-    WFIFOB(s, 10) = 0; //identify;
-    WFIFOB(s, 11) = 0; //broken or attribute;
-    WFIFOB(s, 12) = 0; //refine;
+    Packet_Fixed<0x00f4> fixed_f4;
+    fixed_f4.soff1 = index + 1;
+    fixed_f4.amount = amount;
+    fixed_f4.name_id = stor->storage_[index].nameid;
+    fixed_f4.identify = 0;
+    fixed_f4.broken_or_attribute = 0;
+    fixed_f4.refine = 0;
     {
-        WFIFOW(s, 13) = 0; //card[0];
-        WFIFOW(s, 15) = 0; //card[1];
-        WFIFOW(s, 17) = 0; //card[2];
-        WFIFOW(s, 19) = 0; //card[3];
+        fixed_f4.card0 = 0;
+        fixed_f4.card1 = 0;
+        fixed_f4.card2 = 0;
+        fixed_f4.card3 = 0;
     }
-    WFIFOSET(s, clif_parse_func_table[0xf4].len);
+    send_fpacket<0x00f4, 21>(s, fixed_f4);
 
     return 0;
 }
@@ -2291,10 +2311,10 @@ int clif_storageitemremoved(dumb_ptr<map_session_data> sd, int index,
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xf6;      // Storage item removed
-    WFIFOW(s, 2) = index + 1;
-    WFIFOL(s, 4) = amount;
-    WFIFOSET(s, clif_parse_func_table[0xf6].len);
+    Packet_Fixed<0x00f6> fixed_f6;
+    fixed_f6.soff1 = index + 1;
+    fixed_f6.amount = amount;
+    send_fpacket<0x00f6, 8>(s, fixed_f6);
 
     return 0;
 }
@@ -2308,8 +2328,8 @@ int clif_storageclose(dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xf8;      // Storage Closed
-    WFIFOSET(s, clif_parse_func_table[0xf8].len);
+    Packet_Fixed<0x00f8> fixed_f8;
+    send_fpacket<0x00f8, 2>(s, fixed_f8);
 
     return 0;
 }
@@ -2332,25 +2352,22 @@ static
 void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
                           dumb_ptr<map_session_data> dstsd)
 {
-    int len;
-
     if (bool(dstsd->status.option & Option::INVISIBILITY))
         return;
 
     nullpo_retv(sd);
     nullpo_retv(dstsd);
 
-    uint8_t buf[256];
+    Buffer buf;
     if (dstsd->walktimer)
     {
-        len = clif_set007b(dstsd, buf);
+        clif_set007b(dstsd, buf);
     }
     else
     {
-        len = clif_set0078(dstsd, buf);
+        clif_set0078_main_1d8(dstsd, buf);
     }
-    WFIFO_BUF_CLONE(sd->sess, buf, len);
-    WFIFOSET(sd->sess, len);
+    send_buffer(sd->sess, buf);
 
     if (battle_config.save_clothcolor == 1 && dstsd->status.clothes_color > 0)
         clif_changelook(dstsd, LOOK::CLOTHES_COLOR,
@@ -2367,16 +2384,15 @@ void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
 static
 void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
 {
-    int len;
-
     nullpo_retv(sd);
     nullpo_retv(nd);
 
-    if (nd->npc_class < 0 || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
+    if (nd->npc_class == NEGATIVE_SPECIES || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return;
 
-    len = clif_npc0078(nd, static_cast<uint8_t *>(WFIFOP(sd->sess, 0)));
-    WFIFOSET(sd->sess, len);
+    Buffer buf;
+    clif_npc0078(nd, buf);
+    send_buffer(sd->sess, buf);
 }
 
 /*==========================================
@@ -2385,13 +2401,11 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
  */
 int clif_movemob(dumb_ptr<mob_data> md)
 {
-    unsigned char buf[256];
-    int len;
-
     nullpo_ret(md);
 
-    len = clif_mob007b(md, buf);
-    clif_send(buf, len, md, SendWho::AREA);
+    Buffer buf;
+    clif_mob007b(md, buf);
+    clif_send(buf, md, SendWho::AREA);
 
     return 0;
 }
@@ -2402,20 +2416,19 @@ int clif_movemob(dumb_ptr<mob_data> md)
  */
 int clif_fixmobpos(dumb_ptr<mob_data> md)
 {
-    unsigned char buf[256];
-    int len;
-
     nullpo_ret(md);
 
     if (md->state.state == MS::WALK)
     {
-        len = clif_mob007b(md, buf);
-        clif_send(buf, len, md, SendWho::AREA);
+        Buffer buf;
+        clif_mob007b(md, buf);
+        clif_send(buf, md, SendWho::AREA);
     }
     else
     {
-        len = clif_mob0078(md, buf);
-        clif_send(buf, len, md, SendWho::AREA);
+        Buffer buf;
+        clif_mob0078(md, buf);
+        clif_send(buf, md, SendWho::AREA);
     }
 
     return 0;
@@ -2427,20 +2440,19 @@ int clif_fixmobpos(dumb_ptr<mob_data> md)
  */
 int clif_fixpcpos(dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[256];
-    int len;
-
     nullpo_ret(sd);
 
     if (sd->walktimer)
     {
-        len = clif_set007b(sd, buf);
-        clif_send(buf, len, sd, SendWho::AREA);
+        Buffer buf;
+        clif_set007b(sd, buf);
+        clif_send(buf, sd, SendWho::AREA);
     }
     else
     {
-        len = clif_set0078(sd, buf);
-        clif_send(buf, len, sd, SendWho::AREA);
+        Buffer buf;
+        clif_set0078_main_1d8(sd, buf);
+        clif_send(buf, sd, SendWho::AREA);
     }
     clif_changelook_accessories(sd, NULL);
 
@@ -2455,7 +2467,6 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
         int div, DamageType type, int damage2)
 {
-    unsigned char buf[256];
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(src);
@@ -2463,17 +2474,18 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 
     sc_data = battle_get_sc_data(dst);
 
-    WBUFW(buf, 0) = 0x8a;
-    WBUFL(buf, 2) = unwrap<BlockId>(src->bl_id);
-    WBUFL(buf, 6) = unwrap<BlockId>(dst->bl_id);
-    WBUFL(buf, 10) = tick.time_since_epoch().count();
-    WBUFL(buf, 14) = sdelay.count();
-    WBUFL(buf, 18) = ddelay.count();
-    WBUFW(buf, 22) = (damage > 0x7fff) ? 0x7fff : damage;
-    WBUFW(buf, 24) = div;
-    WBUFB(buf, 26) = static_cast<uint8_t>(type);
-    WBUFW(buf, 27) = damage2;
-    clif_send(buf, clif_parse_func_table[0x8a].len, src, SendWho::AREA);
+    Packet_Fixed<0x008a> fixed_8a;
+    fixed_8a.src_id = src->bl_id;
+    fixed_8a.dst_id = dst->bl_id;
+    fixed_8a.tick = tick;
+    fixed_8a.sdelay = sdelay;
+    fixed_8a.ddelay = ddelay;
+    fixed_8a.damage = (damage > 0x7fff) ? 0x7fff : damage;
+    fixed_8a.div = div;
+    fixed_8a.damage_type = type;
+    fixed_8a.damage2 = damage2;
+    Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
+    clif_send(buf, src, SendWho::AREA);
 
     return 0;
 }
@@ -2485,19 +2497,20 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 static
 void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
 {
-    int len;
     nullpo_retv(sd);
     nullpo_retv(md);
 
     if (md->state.state == MS::WALK)
     {
-        len = clif_mob007b(md, static_cast<uint8_t *>(WFIFOP(sd->sess, 0)));
-        WFIFOSET(sd->sess, len);
+        Buffer buf;
+        clif_mob007b(md, buf);
+        send_buffer(sd->sess, buf);
     }
     else
     {
-        len = clif_mob0078(md, static_cast<uint8_t *>(WFIFOP(sd->sess, 0)));
-        WFIFOSET(sd->sess, len);
+        Buffer buf;
+        clif_mob0078(md, buf);
+        send_buffer(sd->sess, buf);
     }
 }
 
@@ -2513,18 +2526,16 @@ void clif_getareachar_item(dumb_ptr<map_session_data> sd,
     nullpo_retv(fitem);
 
     Session *s = sd->sess;
-    //009d <ID>.l <item ID>.w <identify flag>.B <X>.w <Y>.w <amount>.w <subX>.B <subY>.B
-    WFIFOW(s, 0) = 0x9d;
-    WFIFOL(s, 2) = unwrap<BlockId>(fitem->bl_id);
-    WFIFOW(s, 6) = unwrap<ItemNameId>(fitem->item_data.nameid);
-    WFIFOB(s, 8) = 0; //identify;
-    WFIFOW(s, 9) = fitem->bl_x;
-    WFIFOW(s, 11) = fitem->bl_y;
-    WFIFOW(s, 13) = fitem->item_data.amount;
-    WFIFOB(s, 15) = fitem->subx;
-    WFIFOB(s, 16) = fitem->suby;
-
-    WFIFOSET(s, clif_parse_func_table[0x9d].len);
+    Packet_Fixed<0x009d> fixed_9d;
+    fixed_9d.block_id = fitem->bl_id;
+    fixed_9d.name_id = fitem->item_data.nameid;
+    fixed_9d.identify = 0;
+    fixed_9d.x = fitem->bl_x;
+    fixed_9d.y = fitem->bl_y;
+    fixed_9d.amount = fitem->item_data.amount;
+    fixed_9d.subx = fitem->subx;
+    fixed_9d.suby = fitem->suby;
+    send_fpacket<0x009d, 17>(s, fixed_9d);
 }
 
 /*==========================================
@@ -2681,27 +2692,27 @@ int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
     Session *s = sd->sess;
     if (!sd->status.skill[skillid].lv)
         return 0;
-    WFIFOW(s, 0) = 0x147;
-    WFIFOW(s, 2) = static_cast<uint16_t>(skillid);
+    Packet_Fixed<0x0147> fixed_147;
+    fixed_147.info.skill_id = skillid;
     if (type < 0)
-        WFIFOW(s, 4) = skill_get_inf(skillid);
+        fixed_147.info.type_or_inf = skill_get_inf(skillid);
     else
-        WFIFOW(s, 4) = type;
-    WFIFOW(s, 6) = 0;
-    WFIFOW(s, 8) = sd->status.skill[skillid].lv;
-    WFIFOW(s, 10) = skill_get_sp(skillid, sd->status.skill[skillid].lv);
+        fixed_147.info.type_or_inf = type;
+    fixed_147.info.flags = SkillFlags::ZERO;
+    fixed_147.info.level = sd->status.skill[skillid].lv;
+    fixed_147.info.sp = skill_get_sp(skillid, sd->status.skill[skillid].lv);
     if (range < 0)
     {
         range = skill_get_range(skillid, sd->status.skill[skillid].lv);
         if (range < 0)
             range = battle_get_range(sd) - (range + 1);
-        WFIFOW(s, 12) = range;
+        fixed_147.info.range = range;
     }
     else
-        WFIFOW(s, 12) = range;
-    WFIFO_ZERO(s, 14, 24);
-    WFIFOB(s, 38) = sd->status.skill[skillid].lv < skill_get_max_raise(skillid);
-    WFIFOSET(s, clif_parse_func_table[0x147].len);
+        fixed_147.info.range = range;
+    fixed_147.info.unused = ""_s;
+    fixed_147.info.can_raise = sd->status.skill[skillid].lv < skill_get_max_raise(skillid);
+    send_fpacket<0x0147, 39>(s, fixed_147);
 
     return 0;
 }
@@ -2712,35 +2723,34 @@ int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
  */
 void clif_skillinfoblock(dumb_ptr<map_session_data> sd)
 {
-    int len = 4, range;
-
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x10f;
+    std::vector<Packet_Repeat<0x010f>> repeat_10f;
     for (SkillID i : erange(SkillID(), MAX_SKILL))
     {
         if (sd->status.skill[i].lv && sd->tmw_version >= 1)
         {
+            Packet_Repeat<0x010f> info;
             // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
-            WFIFOW(s, len) = static_cast<uint16_t>(i);
-            WFIFOW(s, len + 2) = skill_get_inf(i);
-            WFIFOW(s, len + 4) = static_cast<uint16_t>(
+            info.info.skill_id = i;
+            info.info.type_or_inf = skill_get_inf(i);
+            info.info.flags = (
                 skill_db[i].poolflags
                 | (sd->status.skill[i].flags & SkillFlags::POOL_ACTIVATED));
-            WFIFOW(s, len + 6) = sd->status.skill[i].lv;
-            WFIFOW(s, len + 8) = skill_get_sp(i, sd->status.skill[i].lv);
-            range = skill_get_range(i, sd->status.skill[i].lv);
+            info.info.level = sd->status.skill[i].lv;
+            info.info.sp = skill_get_sp(i, sd->status.skill[i].lv);
+            int range = skill_get_range(i, sd->status.skill[i].lv);
             if (range < 0)
                 range = battle_get_range(sd) - (range + 1);
-            WFIFOW(s, len + 10) = range;
-            WFIFO_ZERO(s, len + 12, 24);
-            WFIFOB(s, len + 36) = sd->status.skill[i].lv < skill_get_max_raise(i);
-            len += 37;
+            info.info.range = range;
+            info.info.unused = ""_s;
+            info.info.can_raise = sd->status.skill[i].lv < skill_get_max_raise(i);
+
+            repeat_10f.push_back(info);
         }
     }
-    WFIFOW(s, 2) = len;
-    WFIFOSET(s, len);
+    send_packet_repeatonly<0x010f, 4, 37>(s, repeat_10f);
 }
 
 /*==========================================
@@ -2749,21 +2759,19 @@ void clif_skillinfoblock(dumb_ptr<map_session_data> sd)
  */
 int clif_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
 {
-    int range;
-
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x10e;
-    WFIFOW(s, 2) = static_cast<uint16_t>(skill_num);
-    WFIFOW(s, 4) = sd->status.skill[skill_num].lv;
-    WFIFOW(s, 6) = skill_get_sp(skill_num, sd->status.skill[skill_num].lv);
-    range = skill_get_range(skill_num, sd->status.skill[skill_num].lv);
+    Packet_Fixed<0x010e> fixed_10e;
+    fixed_10e.skill_id = skill_num;
+    fixed_10e.level = sd->status.skill[skill_num].lv;
+    fixed_10e.sp = skill_get_sp(skill_num, sd->status.skill[skill_num].lv);
+    int range = skill_get_range(skill_num, sd->status.skill[skill_num].lv);
     if (range < 0)
         range = battle_get_range(sd) - (range + 1);
-    WFIFOW(s, 8) = range;
-    WFIFOB(s, 10) = sd->status.skill[skill_num].lv < skill_get_max_raise(skill_num);
-    WFIFOSET(s, clif_parse_func_table[0x10e].len);
+    fixed_10e.range = range;
+    fixed_10e.can_raise = sd->status.skill[skill_num].lv < skill_get_max_raise(skill_num);
+    send_fpacket<0x010e, 11>(s, fixed_10e);
 
     return 0;
 }
@@ -2774,14 +2782,11 @@ int clif_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
  */
 int clif_skillcastcancel(dumb_ptr<block_list> bl)
 {
-    unsigned char buf[16];
+    // packet 0x01b9 was being sent with length 0,
+    // even though there were 6 bytes involved
+    // and the client ignores it anyway
 
-    nullpo_ret(bl);
-
-    WBUFW(buf, 0) = 0x1b9;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-    clif_send(buf, clif_parse_func_table[0x1b9].len, bl, SendWho::AREA);
-
+    (void)bl;
     return 0;
 }
 
@@ -2801,13 +2806,13 @@ int clif_skill_fail(dumb_ptr<map_session_data> sd, SkillID skill_id, int type,
         return 0;
     }
 
-    WFIFOW(s, 0) = 0x110;
-    WFIFOW(s, 2) = static_cast<uint16_t>(skill_id);
-    WFIFOW(s, 4) = btype;
-    WFIFOW(s, 6) = 0;
-    WFIFOB(s, 8) = 0;
-    WFIFOB(s, 9) = type;
-    WFIFOSET(s, clif_parse_func_table[0x110].len);
+    Packet_Fixed<0x0110> fixed_110;
+    fixed_110.skill_id = skill_id;
+    fixed_110.btype = btype;
+    fixed_110.zero1 = 0;
+    fixed_110.zero2 = 0;
+    fixed_110.type = type;
+    send_fpacket<0x0110, 10>(s, fixed_110);
 
     return 0;
 }
@@ -2820,7 +2825,6 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
         int div, SkillID skill_id, int skill_lv, int type)
 {
-    unsigned char buf[64];
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(src);
@@ -2828,18 +2832,19 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 
     sc_data = battle_get_sc_data(dst);
 
-    WBUFW(buf, 0) = 0x1de;
-    WBUFW(buf, 2) = static_cast<uint16_t>(skill_id);
-    WBUFL(buf, 4) = unwrap<BlockId>(src->bl_id);
-    WBUFL(buf, 8) = unwrap<BlockId>(dst->bl_id);
-    WBUFL(buf, 12) = static_cast<uint32_t>(tick.time_since_epoch().count());
-    WBUFL(buf, 16) = static_cast<uint32_t>(sdelay.count());
-    WBUFL(buf, 20) = static_cast<uint32_t>(ddelay.count());
-    WBUFL(buf, 24) = damage;
-    WBUFW(buf, 28) = skill_lv;
-    WBUFW(buf, 30) = div;
-    WBUFB(buf, 32) = (type > 0) ? type : skill_get_hit(skill_id);
-    clif_send(buf, clif_parse_func_table[0x1de].len, src, SendWho::AREA);
+    Packet_Fixed<0x01de> fixed_1de;
+    fixed_1de.skill_id = skill_id;
+    fixed_1de.src_id = src->bl_id;
+    fixed_1de.dst_id = dst->bl_id;
+    fixed_1de.tick = tick;
+    fixed_1de.sdelay = sdelay;
+    fixed_1de.ddelay = ddelay;
+    fixed_1de.damage = damage;
+    fixed_1de.skill_level = skill_lv;
+    fixed_1de.div = div;
+    fixed_1de.type_or_hit = (type > 0) ? type : skill_get_hit(skill_id);
+    Buffer buf = create_fpacket<0x01de, 33>(fixed_1de);
+    clif_send(buf, src, SendWho::AREA);
 
     return 0;
 }
@@ -2850,15 +2855,14 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
  */
 int clif_status_change(dumb_ptr<block_list> bl, StatusChange type, int flag)
 {
-    unsigned char buf[16];
-
     nullpo_ret(bl);
 
-    WBUFW(buf, 0) = 0x0196;
-    WBUFW(buf, 2) = static_cast<uint16_t>(type);
-    WBUFL(buf, 4) = unwrap<BlockId>(bl->bl_id);
-    WBUFB(buf, 8) = flag;
-    clif_send(buf, clif_parse_func_table[0x196].len, bl, SendWho::AREA);
+    Packet_Fixed<0x0196> fixed_196;
+    fixed_196.sc_type = type;
+    fixed_196.block_id = bl->bl_id;
+    fixed_196.flag = flag;
+    Buffer buf = create_fpacket<0x0196, 9>(fixed_196);
+    clif_send(buf, bl, SendWho::AREA);
     return 0;
 }
 
@@ -2871,11 +2875,8 @@ void clif_displaymessage(Session *s, XString mes)
     if (mes)
     {
         // don't send a void message (it's not displaying on the client chat). @help can send void line.
-        WFIFOW(s, 0) = 0x8e;
-        size_t str_len = mes.size() + 1; // NUL (might not be NUL yet)
-        WFIFOW(s, 2) = 4 + str_len;
-        WFIFO_STRING(s, 4, mes, str_len);
-        WFIFOSET(s, 4 + str_len);
+        // This is untrue now ^
+        send_packet_repeatonly<0x008e, 4, 1>(s, mes);
     }
 }
 
@@ -2885,14 +2886,9 @@ void clif_displaymessage(Session *s, XString mes)
  */
 void clif_GMmessage(dumb_ptr<block_list> bl, XString mes, int flag)
 {
-    size_t str_len = mes.size() + 1;
-    unsigned char buf[str_len + 4];
-
-    WBUFW(buf, 0) = 0x9a;
-    WBUFW(buf, 2) = str_len + 4;
-    WBUF_STRING(buf, 4, mes, str_len);
+    Buffer buf = create_packet_repeatonly<0x009a, 4, 1>(mes);
     flag &= 0x07;
-    clif_send(buf, WBUFW(buf, 2), bl,
+    clif_send(buf, bl,
                (flag == 1) ? SendWho::ALL_SAMEMAP :
                (flag == 2) ? SendWho::AREA :
                (flag == 3) ? SendWho::SELF :
@@ -2905,15 +2901,14 @@ void clif_GMmessage(dumb_ptr<block_list> bl, XString mes, int flag)
  */
 void clif_resurrection(dumb_ptr<block_list> bl, int type)
 {
-    uint8_t buf[16];
-
     nullpo_retv(bl);
 
-    WBUFW(buf, 0) = 0x148;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-    WBUFW(buf, 6) = type;
+    Packet_Fixed<0x0148> fixed_148;
+    fixed_148.block_id = bl->bl_id;
+    fixed_148.type = type;
+    Buffer buf = create_fpacket<0x0148, 8>(fixed_148);
 
-    clif_send(buf, clif_parse_func_table[0x148].len, bl,
+    clif_send(buf, bl,
             type == 1 ? SendWho::AREA : SendWho::AREA_WOS);
 }
 
@@ -2923,12 +2918,9 @@ void clif_resurrection(dumb_ptr<block_list> bl, int type)
  */
 void clif_wis_message(Session *s, CharName nick, XString mes)   // R 0097 <len>.w <nick>.24B <message>.?B
 {
-    size_t mes_len = mes.size() + 1;
-    WFIFOW(s, 0) = 0x97;
-    WFIFOW(s, 2) = mes_len + 24 + 4;
-    WFIFO_STRING(s, 4, nick.to__actual(), 24);
-    WFIFO_STRING(s, 28, mes, mes_len);
-    WFIFOSET(s, WFIFOW(s, 2));
+    Packet_Head<0x0097> head_97;
+    head_97.char_name = nick;
+    send_vpacket<0x0097, 28, 1>(s, head_97, mes);
 }
 
 /*==========================================
@@ -2937,9 +2929,9 @@ void clif_wis_message(Session *s, CharName nick, XString mes)   // R 0097 <len>.
  */
 void clif_wis_end(Session *s, int flag) // R 0098 <type>.B: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
 {
-    WFIFOW(s, 0) = 0x98;
-    WFIFOW(s, 2) = flag;
-    WFIFOSET(s, clif_parse_func_table[0x98].len);
+    Packet_Fixed<0x0098> fixed_98;
+    fixed_98.flag = flag;
+    send_fpacket<0x0098, 3>(s, fixed_98);
 }
 
 /*==========================================
@@ -2959,9 +2951,9 @@ int clif_party_created(dumb_ptr<map_session_data> sd, int flag)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xfa;
-    WFIFOB(s, 2) = flag;
-    WFIFOSET(s, clif_parse_func_table[0xfa].len);
+    Packet_Fixed<0x00fa> fixed_fa;
+    fixed_fa.flag = flag;
+    send_fpacket<0x00fa, 3>(s, fixed_fa);
     return 0;
 }
 
@@ -2971,41 +2963,43 @@ int clif_party_created(dumb_ptr<map_session_data> sd, int flag)
  */
 int clif_party_info(PartyPair p, Session *s)
 {
-    unsigned char buf[1024];
-    int i, c;
+    int i;
     dumb_ptr<map_session_data> sd = NULL;
 
     nullpo_ret(p);
 
-    WBUFW(buf, 0) = 0xfb;
-    WBUF_STRING(buf, 4, p->name, 24);
-    for (i = c = 0; i < MAX_PARTY; i++)
+    Packet_Head<0x00fb> head_fb;
+    std::vector<Packet_Repeat<0x00fb>> repeat_fb;
+    head_fb.party_name = p->name;
+    for (i = 0; i < MAX_PARTY; i++)
     {
         struct party_member *m = &p->member[i];
         if (m->account_id)
         {
+            Packet_Repeat<0x00fb> info;
             if (sd == NULL)
                 sd = dumb_ptr<map_session_data>(m->sd);
-            WBUFL(buf, 28 + c * 46) = unwrap<AccountId>(m->account_id);
-            WBUF_STRING(buf, 28 + c * 46 + 4, m->name.to__actual(), 24);
-            WBUF_STRING(buf, 28 + c * 46 + 28, m->map, 16);
-            WBUFB(buf, 28 + c * 46 + 44) = (m->leader) ? 0 : 1;
-            WBUFB(buf, 28 + c * 46 + 45) = (m->online) ? 0 : 1;
-            c++;
+
+            info.account_id = m->account_id;
+            info.char_name = m->name;
+            info.map_name = m->map;
+            info.leader = (m->leader) ? 0 : 1;
+            info.online = (m->online) ? 0 : 1;
+            repeat_fb.push_back(info);
         }
     }
-    size_t len = 28 + c * 46;
-    WBUFW(buf, 2) = len;
     if (s)
     {
         // If set, send only to fd.
-        WFIFO_BUF_CLONE(s, buf, len);
-        WFIFOSET(s, len);
+        send_vpacket<0x00fb, 28, 46>(s, head_fb, repeat_fb);
         return 9;
     }
     // else, send it to all the party, if they exist.
     if (sd != NULL)
-        clif_send(buf, len, sd, SendWho::PARTY);
+    {
+        Buffer buf = create_vpacket<0x00fb, 28, 46>(head_fb, repeat_fb);
+        clif_send(buf, sd, SendWho::PARTY);
+    }
     return 0;
 }
 
@@ -3029,10 +3023,10 @@ void clif_party_invite(dumb_ptr<map_session_data> sd,
     if (!(p = party_search(sd->status.party_id)))
         return;
 
-    WFIFOW(s, 0) = 0xfe;
-    WFIFOL(s, 2) = unwrap<AccountId>(sd->status_key.account_id);
-    WFIFO_STRING(s, 6, p->name, 24);
-    WFIFOSET(s, clif_parse_func_table[0xfe].len);
+    Packet_Fixed<0x00fe> fixed_fe;
+    fixed_fe.account_id = sd->status_key.account_id;
+    fixed_fe.party_name = p->name;
+    send_fpacket<0x00fe, 30>(s, fixed_fe);
 }
 
 /*==========================================
@@ -3054,10 +3048,10 @@ void clif_party_inviteack(dumb_ptr<map_session_data> sd, CharName nick, int flag
     nullpo_retv(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xfd;
-    WFIFO_STRING(s, 2, nick.to__actual(), 24);
-    WFIFOB(s, 26) = flag;
-    WFIFOSET(s, clif_parse_func_table[0xfd].len);
+    Packet_Fixed<0x00fd> fixed_fd;
+    fixed_fd.char_name = nick;
+    fixed_fd.flag = flag;
+    send_fpacket<0x00fd, 27>(s, fixed_fd);
 }
 
 /*==========================================
@@ -3069,8 +3063,6 @@ void clif_party_inviteack(dumb_ptr<map_session_data> sd, CharName nick, int flag
  */
 void clif_party_option(PartyPair p, dumb_ptr<map_session_data> sd, int flag)
 {
-    unsigned char buf[16];
-
     nullpo_retv(p);
 
     if (sd == NULL && flag == 0)
@@ -3082,15 +3074,17 @@ void clif_party_option(PartyPair p, dumb_ptr<map_session_data> sd, int flag)
     }
     if (sd == NULL)
         return;
-    WBUFW(buf, 0) = 0x101;
-    WBUFW(buf, 2) = ((flag & 0x01) ? 2 : p->exp);
-    WBUFW(buf, 4) = ((flag & 0x10) ? 2 : p->item);
+    Packet_Fixed<0x0101> fixed_101;
+    fixed_101.exp = ((flag & 0x01) ? 2 : p->exp);
+    fixed_101.item = ((flag & 0x10) ? 2 : p->item);
     if (flag == 0)
-        clif_send(buf, clif_parse_func_table[0x101].len, sd, SendWho::PARTY);
+    {
+        Buffer buf = create_fpacket<0x0101, 6>(fixed_101);
+        clif_send(buf, sd, SendWho::PARTY);
+    }
     else
     {
-        WFIFO_BUF_CLONE(sd->sess, buf, clif_parse_func_table[0x101].len);
-        WFIFOSET(sd->sess, clif_parse_func_table[0x101].len);
+        send_fpacket<0x0101, 6>(sd->sess, fixed_101);
     }
 }
 
@@ -3101,15 +3095,14 @@ void clif_party_option(PartyPair p, dumb_ptr<map_session_data> sd, int flag)
 void clif_party_leaved(PartyPair p, dumb_ptr<map_session_data> sd,
         AccountId account_id, CharName name, int flag)
 {
-    unsigned char buf[64];
     int i;
 
     nullpo_retv(p);
 
-    WBUFW(buf, 0) = 0x105;
-    WBUFL(buf, 2) = unwrap<AccountId>(account_id);
-    WBUF_STRING(buf, 6, name.to__actual(), 24);
-    WBUFB(buf, 30) = flag & 0x0f;
+    Packet_Fixed<0x0105> fixed_105;
+    fixed_105.account_id = account_id;
+    fixed_105.char_name = name;
+    fixed_105.flag = flag & 0x0f;
 
     if ((flag & 0xf0) == 0)
     {
@@ -3121,12 +3114,14 @@ void clif_party_leaved(PartyPair p, dumb_ptr<map_session_data> sd,
                     break;
             }
         if (sd != NULL)
-            clif_send(buf, clif_parse_func_table[0x105].len, sd, SendWho::PARTY);
+        {
+            Buffer buf = create_fpacket<0x0105, 31>(fixed_105);
+            clif_send(buf, sd, SendWho::PARTY);
+        }
     }
     else if (sd != NULL)
     {
-        WFIFO_BUF_CLONE(sd->sess, buf, clif_parse_func_table[0x105].len);
-        WFIFOSET(sd->sess, clif_parse_func_table[0x105].len);
+        send_fpacket<0x0105, 31>(sd->sess, fixed_105);
     }
 }
 
@@ -3150,13 +3145,10 @@ void clif_party_message(PartyPair p, AccountId account_id, XString mes)
     }
     if (sd != NULL)
     {
-        size_t len = mes.size() + 1;
-        unsigned char buf[len + 8];
-        WBUFW(buf, 0) = 0x109;
-        WBUFW(buf, 2) = len + 8;
-        WBUFL(buf, 4) = unwrap<AccountId>(account_id);
-        WBUF_STRING(buf, 8, mes, len);
-        clif_send(buf, len + 8, sd, SendWho::PARTY);
+        Packet_Head<0x0109> head_109;
+        head_109.account_id = account_id;
+        Buffer buf = create_vpacket<0x0109, 8, 1>(head_109, mes);
+        clif_send(buf, sd, SendWho::PARTY);
     }
 }
 
@@ -3166,15 +3158,14 @@ void clif_party_message(PartyPair p, AccountId account_id, XString mes)
  */
 int clif_party_xy(PartyPair , dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[16];
-
     nullpo_ret(sd);
 
-    WBUFW(buf, 0) = 0x107;
-    WBUFL(buf, 2) = unwrap<AccountId>(sd->status_key.account_id);
-    WBUFW(buf, 6) = sd->bl_x;
-    WBUFW(buf, 8) = sd->bl_y;
-    clif_send(buf, clif_parse_func_table[0x107].len, sd, SendWho::PARTY_SAMEMAP_WOS);
+    Packet_Fixed<0x0107> fixed_107;
+    fixed_107.account_id = sd->status_key.account_id;
+    fixed_107.x = sd->bl_x;
+    fixed_107.y = sd->bl_y;
+    Buffer buf = create_fpacket<0x0107, 10>(fixed_107);
+    clif_send(buf, sd, SendWho::PARTY_SAMEMAP_WOS);
     return 0;
 }
 
@@ -3184,16 +3175,15 @@ int clif_party_xy(PartyPair , dumb_ptr<map_session_data> sd)
  */
 int clif_party_hp(PartyPair , dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[16];
-
     nullpo_ret(sd);
 
-    WBUFW(buf, 0) = 0x106;
-    WBUFL(buf, 2) = unwrap<AccountId>(sd->status_key.account_id);
-    WBUFW(buf, 6) = (sd->status.hp > 0x7fff) ? 0x7fff : sd->status.hp;
-    WBUFW(buf, 8) =
+    Packet_Fixed<0x0106> fixed_106;
+    fixed_106.account_id = sd->status_key.account_id;
+    fixed_106.hp = (sd->status.hp > 0x7fff) ? 0x7fff : sd->status.hp;
+    fixed_106.max_hp =
         (sd->status.max_hp > 0x7fff) ? 0x7fff : sd->status.max_hp;
-    clif_send(buf, clif_parse_func_table[0x106].len, sd, SendWho::PARTY_AREA_WOS);
+    Buffer buf = create_fpacket<0x0106, 10>(fixed_106);
+    clif_send(buf, sd, SendWho::PARTY_AREA_WOS);
     return 0;
 }
 
@@ -3207,14 +3197,14 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
     nullpo_ret(bl);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0x139;
-    WFIFOL(s, 2) = unwrap<BlockId>(bl->bl_id);
-    WFIFOW(s, 6) = bl->bl_x;
-    WFIFOW(s, 8) = bl->bl_y;
-    WFIFOW(s, 10) = sd->bl_x;
-    WFIFOW(s, 12) = sd->bl_y;
-    WFIFOW(s, 14) = sd->attackrange;
-    WFIFOSET(s, clif_parse_func_table[0x139].len);
+    Packet_Fixed<0x0139> fixed_139;
+    fixed_139.block_id = bl->bl_id;
+    fixed_139.bl_x = bl->bl_x;
+    fixed_139.bl_y = bl->bl_y;
+    fixed_139.sd_x = sd->bl_x;
+    fixed_139.sd_y = sd->bl_y;
+    fixed_139.range = sd->attackrange;
+    send_fpacket<0x0139, 16>(s, fixed_139);
     return 0;
 }
 
@@ -3224,13 +3214,12 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
  */
 int clif_mvp_effect(dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[16];
-
     nullpo_ret(sd);
 
-    WBUFW(buf, 0) = 0x10c;
-    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
-    clif_send(buf, clif_parse_func_table[0x10c].len, sd, SendWho::AREA);
+    Packet_Fixed<0x010c> fixed_10c;
+    fixed_10c.block_id = sd->bl_id;
+    Buffer buf = create_fpacket<0x010c, 6>(fixed_10c);
+    clif_send(buf, sd, SendWho::AREA);
     return 0;
 }
 
@@ -3240,22 +3229,19 @@ int clif_mvp_effect(dumb_ptr<map_session_data> sd)
  */
 void clif_emotion(dumb_ptr<block_list> bl, int type)
 {
-    unsigned char buf[8];
-
     nullpo_retv(bl);
 
-    WBUFW(buf, 0) = 0xc0;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-    WBUFB(buf, 6) = type;
-    clif_send(buf, clif_parse_func_table[0xc0].len, bl, SendWho::AREA);
+    Packet_Fixed<0x00c0> fixed_c0;
+    fixed_c0.block_id = bl->bl_id;
+    fixed_c0.type = type;
+    Buffer buf = create_fpacket<0x00c0, 7>(fixed_c0);
+    clif_send(buf, bl, SendWho::AREA);
 }
 
 static
 void clif_emotion_towards(dumb_ptr<block_list> bl,
                                   dumb_ptr<block_list> target, int type)
 {
-    unsigned char buf[8];
-    int len = clif_parse_func_table[0xc0].len;
     dumb_ptr<map_session_data> sd = target->is_player();
 
     nullpo_retv(bl);
@@ -3264,12 +3250,11 @@ void clif_emotion_towards(dumb_ptr<block_list> bl,
     if (target->bl_type != BL::PC)
         return;
 
-    WBUFW(buf, 0) = 0xc0;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-    WBUFB(buf, 6) = type;
+    Packet_Fixed<0x00c0> fixed_c0;
+    fixed_c0.block_id = bl->bl_id;
+    fixed_c0.type = type;
 
-    WFIFO_BUF_CLONE(sd->sess, buf, len);
-    WFIFOSET(sd->sess, len);
+    send_fpacket<0x00c0, 7>(sd->sess, fixed_c0);
 }
 
 /*==========================================
@@ -3278,14 +3263,13 @@ void clif_emotion_towards(dumb_ptr<block_list> bl,
  */
 void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[64];
-
     nullpo_retv(sd);
 
-    WBUFW(buf, 0) = 0x8a;
-    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
-    WBUFB(buf, 26) = 2;
-    clif_send(buf, clif_parse_func_table[0x8a].len, sd, SendWho::AREA);
+    Packet_Fixed<0x008a> fixed_8a;
+    fixed_8a.src_id = sd->bl_id;
+    fixed_8a.damage_type = DamageType::SIT;
+    Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
+    clif_send(buf, sd, SendWho::AREA);
 }
 
 /*==========================================
@@ -3298,14 +3282,14 @@ int clif_GM_kickack(dumb_ptr<map_session_data> sd, AccountId id)
     nullpo_ret(sd);
 
     Session *s = sd->sess;
-    WFIFOW(s, 0) = 0xcd;
-    WFIFOL(s, 2) = unwrap<AccountId>(id);
-    WFIFOSET(s, clif_parse_func_table[0xcd].len);
+    Packet_Fixed<0x00cd> fixed_cd;
+    fixed_cd.account_id = id;
+    send_fpacket<0x00cd, 6>(s, fixed_cd);
     return 0;
 }
 
 static
-void clif_parse_QuitGame(Session *s, dumb_ptr<map_session_data> sd);
+void clif_do_quit_game(Session *s, dumb_ptr<map_session_data> sd);
 
 int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
                   int type)
@@ -3316,7 +3300,7 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
         clif_GM_kickack(sd, tsd->status_key.account_id);
     tsd->opt1 = Opt1::ZERO;
     tsd->opt2 = Opt2::ZERO;
-    clif_parse_QuitGame(tsd->sess, tsd);
+    clif_do_quit_game(tsd->sess, tsd);
 
     return 0;
 }
@@ -3324,15 +3308,12 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
 // displaying special effects (npcs, weather, etc) [Valaris]
 int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
 {
-    unsigned char buf[24];
-
     nullpo_ret(bl);
 
-    WBUF_ZERO(buf, 0, clif_parse_func_table[0x19b].len);
-
-    WBUFW(buf, 0) = 0x19b;
-    WBUFL(buf, 2) = unwrap<BlockId>(bl->bl_id);
-    WBUFL(buf, 6) = type;
+    Packet_Fixed<0x019b> fixed_19b;
+    fixed_19b.block_id = bl->bl_id;
+    fixed_19b.type = type;
+    Buffer buf = create_fpacket<0x019b, 10>(fixed_19b);
 
     if (flag == 2)
     {
@@ -3347,9 +3328,9 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
         }
     }
     else if (flag == 1)
-        clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::SELF);
+        clif_send(buf, bl, SendWho::SELF);
     else if (!flag)
-        clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::AREA);
+        clif_send(buf, bl, SendWho::AREA);
 
     return 0;
 
@@ -3364,7 +3345,7 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
  *------------------------------------------
  */
 static
-void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
 {
     AccountId account_id;            // account_id in the packet
 
@@ -3372,18 +3353,22 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
     {
         if (battle_config.error_log)
             PRINTF("clif_parse_WantToConnection : invalid request?\n"_fmt);
-        return;
+        return RecvResult::Error;
     }
 
-    if (RFIFOW(s, 0) == 0x72)
+    Packet_Fixed<0x0072> fixed;
+    RecvResult rv = recv_fpacket<0x0072, 19>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     {
-        account_id = wrap<AccountId>(RFIFOL(s, 2));
+        account_id = fixed.account_id;
     }
-    else
-        return;                 // Not the auth packet
 
-    WFIFOL(s, 0) = unwrap<AccountId>(account_id);
-    WFIFOSET(s, 4);
+    // formerly: account id
+    Packet_Payload<0x8000> special;
+    special.magic_packet_length = 4;
+    send_ppacket<0x8000>(s, special);
 
     // if same account already connected, we disconnect the 2 sessions
     dumb_ptr<map_session_data> old_sd = map_id2sd(account_to_block(account_id));
@@ -3400,16 +3385,16 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
         s->session_data.reset(sd.operator->());
         sd->sess = s;
 
-        pc_setnewpc(sd, account_id, wrap<CharId>(RFIFOL(s, 6)), RFIFOL(s, 10),
-                tick_t(static_cast<interval_t>(RFIFOL(s, 14))),
-                static_cast<SEX>(RFIFOB(s, 18)));
+        pc_setnewpc(sd, account_id, fixed.char_id, fixed.login_id1,
+                fixed.client_tick,
+                fixed.sex);
 
         map_addiddb(sd);
 
         chrif_authreq(sd);
     }
 
-    return;
+    return RecvResult::Complete;
 }
 
 /*==========================================
@@ -3418,12 +3403,15 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_LoadEndAck(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
-
     if (sd->bl_prev != NULL)
-        return;
+        return RecvResult::Error;
+
+    Packet_Fixed<0x007d> fixed;
+    RecvResult rv = recv_fpacket<0x007d, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
     // 接続ok時
     //clif_authok();
@@ -3505,6 +3493,8 @@ void clif_parse_LoadEndAck(Session *, dumb_ptr<map_session_data> sd)
 
     if (!sd->state.seen_motd)
         pc_show_motd(sd);
+
+    return rv;
 }
 
 /*==========================================
@@ -3512,13 +3502,18 @@ void clif_parse_LoadEndAck(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_TickSend(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_TickSend(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x007e> fixed;
+    RecvResult rv = recv_fpacket<0x007e, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    sd->client_tick = tick_t(static_cast<interval_t>(RFIFOL(s, 2)));
-    sd->server_tick = gettick();
+    uint32_t client_tick = fixed.client_tick;
+    (void)client_tick;
     clif_servertick(sd);
+
+    return rv;
 }
 
 /*==========================================
@@ -3526,55 +3521,68 @@ void clif_parse_TickSend(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_WalkToXY(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_WalkToXY(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int x, y;
-
-    nullpo_retv(sd);
+    Packet_Fixed<0x0085> fixed;
+    RecvResult rv = recv_fpacket<0x0085, 5>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
-        return;
+        return rv;
     }
 
     if (sd->npc_id || sd->state.storage_open)
-        return;
+        return rv;
 
     if (sd->canmove_tick > gettick())
-        return;
+        return rv;
 
     // ステータス異常やハイディング中(トンネルドライブ無)で動けない
     if (bool(sd->opt1) && sd->opt1 != (Opt1::_stone6))
-        return;
+        return rv;
 
     if (sd->invincible_timer)
         pc_delinvincibletimer(sd);
 
     pc_stopattack(sd);
 
-    x = RFIFOB(s, 2) * 4 + (RFIFOB(s, 3) >> 6);
-    y = ((RFIFOB(s, 3) & 0x3f) << 4) + (RFIFOB(s, 4) >> 4);
+    int x = fixed.pos.x;
+    int y = fixed.pos.y;
     pc_walktoxy(sd, x, y);
 
+    return rv;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-void clif_parse_QuitGame(Session *s, dumb_ptr<map_session_data> sd)
+static
+RecvResult clif_parse_QuitGame(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x018a> fixed;
+    RecvResult rv = recv_fpacket<0x018a, 4>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    clif_do_quit_game(s, sd);
+    return rv;
+}
+
+void clif_do_quit_game(Session *s, dumb_ptr<map_session_data> sd)
+{
+
     tick_t tick = gettick();
 
-    nullpo_retv(sd);
-
-    WFIFOW(s, 0) = 0x18b;
+    Packet_Fixed<0x018b> fixed_18b;
     if ((!pc_isdead(sd) && (sd->opt1 != Opt1::ZERO || sd->opt2 != Opt2::ZERO))
         || (tick < sd->canact_tick))
     {
-        WFIFOW(s, 2) = 1;
-        WFIFOSET(s, clif_parse_func_table[0x18b].len);
+        fixed_18b.okay = 1;
+        send_fpacket<0x018b, 4>(s, fixed_18b);
         return;
     }
 
@@ -3583,14 +3591,13 @@ void clif_parse_QuitGame(Session *s, dumb_ptr<map_session_data> sd)
         || tick >= sd->canlog_tick + std::chrono::seconds(10))
     {
         clif_setwaitclose(s);
-        WFIFOW(s, 2) = 0;
+        fixed_18b.okay = 0;
     }
     else
     {
-        WFIFOW(s, 2) = 1;
+        fixed_18b.okay = 1;
     }
-    WFIFOSET(s, clif_parse_func_table[0x18b].len);
-
+    send_fpacket<0x018b, 4>(s, fixed_18b);
 }
 
 /*==========================================
@@ -3598,18 +3605,23 @@ void clif_parse_QuitGame(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x0094> fixed;
+    RecvResult rv = recv_fpacket<0x0094, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     dumb_ptr<block_list> bl;
     BlockId account_id;
 
-    account_id = wrap<BlockId>(RFIFOL(s, 2));
+    account_id = fixed.block_id;
     bl = map_id2bl(account_id);
     if (bl == NULL)
-        return;
+        return rv;
 
-    WFIFOW(s, 0) = 0x95;
-    WFIFOL(s, 2) = unwrap<BlockId>(account_id);
+    Packet_Fixed<0x0095> fixed_95;
+    fixed_95.block_id = account_id;
 
     switch (bl->bl_type)
     {
@@ -3617,13 +3629,13 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
         {
             dumb_ptr<map_session_data> ssd = bl->is_player();
 
-            nullpo_retv(ssd);
+            nullpo_retr(rv, ssd);
 
             if (ssd->state.shroud_active)
-                WFIFO_STRING(s, 6, ""_s, 24);
+                fixed_95.char_name = CharName();
             else
-                WFIFO_STRING(s, 6, ssd->status_key.name.to__actual(), 24);
-            WFIFOSET(s, clif_parse_func_table[0x95].len);
+                fixed_95.char_name = ssd->status_key.name;
+            send_fpacket<0x0095, 30>(s, fixed_95);
 
             PartyPair p;
 
@@ -3639,30 +3651,28 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
 
             if (send)
             {
-                WFIFOW(s, 0) = 0x195;
-                WFIFOL(s, 2) = unwrap<BlockId>(account_id);
-                WFIFO_STRING(s, 6, party_name, 24);
-                WFIFO_STRING(s, 30, ""_s, 24);
-                WFIFO_STRING(s, 54, ""_s, 24);
-                WFIFO_STRING(s, 78, ""_s, 24); // We send this value twice because the client expects it
-                WFIFOSET(s, clif_parse_func_table[0x195].len);
-
+                Packet_Fixed<0x0195> fixed_195;
+                fixed_195.block_id = account_id;
+                fixed_195.party_name = party_name;
+                fixed_195.guild_name = ""_s;
+                fixed_195.guild_pos = ""_s;
+                fixed_195.guild_pos = ""_s; // We send this value twice because the client expects it
+                send_fpacket<0x0195, 102>(s, fixed_195);
             }
 
             if (pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.hack_info_GM_level))))
             {
                 IP4Address ip = ssd->get_ip();
-                WFIFOW(s, 0) = 0x20C;
+                Packet_Fixed<0x020c> fixed_20c;
 
                 // Mask the IP using the char-server password
                 if (battle_config.mask_ip_gms)
                     ip = MD5_ip(ip);
 
-                WFIFOL(s, 2) = unwrap<BlockId>(account_id);
-                WFIFOIP(s, 6) = ip;
-                WFIFOSET(s, clif_parse_func_table[0x20C].len);
+                fixed_20c.block_id = account_id;
+                fixed_20c.ip = ip;
+                send_fpacket<0x020c, 10>(s, fixed_20c);
              }
-
         }
             break;
         case BL::NPC:
@@ -3670,18 +3680,18 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
             NpcName name = bl->is_npc()->name;
             // [fate] elim hashed out/invisible names for the client
             auto it = std::find(name.begin(), name.end(), '#');
-            WFIFO_STRING(s, 6, name.xislice_h(it), 24);
-            WFIFOSET(s, clif_parse_func_table[0x95].len);
+            fixed_95.char_name = stringish<CharName>(name.xislice_h(it));
+            send_fpacket<0x0095, 30>(s, fixed_95);
         }
             break;
         case BL::MOB:
         {
             dumb_ptr<mob_data> md = bl->is_mob();
 
-            nullpo_retv(md);
+            nullpo_retr(rv, md);
 
-            WFIFO_STRING(s, 6, md->name, 24);
-            WFIFOSET(s, clif_parse_func_table[0x95].len);
+            fixed_95.char_name = stringish<CharName>(md->name);
+            send_fpacket<0x0095, 30>(s, fixed_95);
         }
             break;
         default:
@@ -3690,6 +3700,8 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
                         bl->bl_type, account_id);
             break;
     }
+
+    return rv;
 }
 
 /*==========================================
@@ -3700,19 +3712,22 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    AString repeat;
+    RecvResult rv = recv_packet_repeatonly<0x008c, 4, 1>(s, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    AString mbuf = clif_validate_chat(sd, ChatType::Global);
+    AString mbuf = clif_validate_chat(sd, ChatType::Global, repeat);
     if (!mbuf)
     {
         clif_displaymessage(s, "Your message could not be sent."_s);
-        return;
+        return rv;
     }
 
     if (is_atcommand(s, sd, mbuf, GmLevel()))
-        return;
+        return rv;
 
     if (!magic_message(sd, mbuf))
     {
@@ -3720,43 +3735,37 @@ void clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         if (tmw_CheckChatSpam(sd, mbuf))
         {
             clif_displaymessage(s, "Your message could not be sent."_s);
-            return;
+            return rv;
         }
 
         /* It's not a spell/magic message, so send the message to others. */
-        size_t mbuf_size = mbuf.size() + 1;
-        uint8_t sendbuf[mbuf_size + 8];
-        WBUFW(sendbuf, 0) = 0x8d;
-        WBUFW(sendbuf, 2) = mbuf_size + 8;   /* Header(2) + length(2) + ID(4). */
-        WBUFL(sendbuf, 4) = unwrap<BlockId>(sd->bl_id);
-        WBUF_STRING(sendbuf, 8, mbuf, mbuf_size);
+        Packet_Head<0x008d> head_8d;
+        head_8d.block_id = sd->bl_id;
+        XString repeat_8d = mbuf;
+        Buffer sendbuf = create_vpacket<0x008d, 8, 1>(head_8d, repeat_8d);
 
-        clif_send(sendbuf, mbuf_size + 8, sd, SendWho::AREA_CHAT_WOC);
+        clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC);
     }
 
     /* Send the message back to the speaker. */
-    size_t len = RFIFOW(s, 2);
-    RFIFO_WFIFO_CLONE(s, s, len);
-    WFIFOW(s, 0) = 0x8e;
-    WFIFOSET(s, len);
+    send_packet_repeatonly<0x008e, 4, 1>(s, repeat);
+
+    return rv;
 }
 
 void clif_message(dumb_ptr<block_list> bl, XString msg)
 {
     size_t msg_len = msg.size() + 1;
-    uint8_t buf[512];
-
     if (msg_len + 16 > 512)
         return;
 
     nullpo_retv(bl);
 
-    WBUFW(buf, 0) = 0x8d;
-    WBUFW(buf, 2) = msg_len + 8;
-    WBUFL(buf, 4) = unwrap<BlockId>(bl->bl_id);
-    WBUF_STRING(buf, 8, msg, msg_len);
+    Packet_Head<0x008d> head_8d;
+    head_8d.block_id = bl->bl_id;
+    Buffer buf = create_vpacket<0x008d, 8, 1>(head_8d, msg);
 
-    clif_send(buf, WBUFW(buf, 2), bl, SendWho::AREA);
+    clif_send(buf, bl, SendWho::AREA);
 }
 
 /*==========================================
@@ -3764,16 +3773,17 @@ void clif_message(dumb_ptr<block_list> bl, XString msg)
  *------------------------------------------
  */
 static
-void clif_parse_ChangeDir(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_ChangeDir(Session *s, dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[64];
+    Packet_Fixed<0x009b> fixed;
+    RecvResult rv = recv_fpacket<0x009b, 5>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    nullpo_retv(sd);
-
-    // RFIFOW(fd, 2) and WBUFW(buf, 6) are always 0
+    // RFIFOW(fd,2) and WBUFW(buf,6) are always 0
     // TODO perhaps we could use that to remove this hack?
     DIR dir;
-    uint8_t client_dir = RFIFOB(s, 4);
+    uint8_t client_dir = fixed.client_dir;
     // the client uses a diffenent direction enum ... ugh
     switch (client_dir)
     {
@@ -3786,21 +3796,22 @@ void clif_parse_ChangeDir(Session *s, dumb_ptr<map_session_data> sd)
     case 0 | 8: dir = DIR::E; break; // right
     case 1 | 8: dir = DIR::SE; break;
     default:
-        return;
+        return rv;
     }
 
     if (dir == sd->dir)
-        return;
+        return rv;
 
     pc_setdir(sd, dir);
 
-    WBUFW(buf, 0) = 0x9c;
-    WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
-    WBUFW(buf, 6) = 0;
-    WBUFB(buf, 8) = client_dir;
+    Packet_Fixed<0x009c> fixed_9c;
+    fixed_9c.block_id = sd->bl_id;
+    fixed_9c.client_dir = client_dir;
+    Buffer buf = create_fpacket<0x009c, 9>(fixed_9c);
 
-    clif_send(buf, clif_parse_func_table[0x9c].len, sd, SendWho::AREA_WOS);
+    clif_send(buf, sd, SendWho::AREA_WOS);
 
+    return rv;
 }
 
 /*==========================================
@@ -3808,23 +3819,27 @@ void clif_parse_ChangeDir(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_Emotion(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_Emotion(Session *s, dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[64];
-
-    nullpo_retv(sd);
+    Packet_Fixed<0x00bf> fixed;
+    RecvResult rv = recv_fpacket<0x00bf, 3>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_EMOTE) >= 1)
     {
-        uint8_t emote = RFIFOB(s, 2);
-        WBUFW(buf, 0) = 0xc0;
-        WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
-        WBUFB(buf, 6) = emote;
-        clif_send(buf, clif_parse_func_table[0xc0].len, sd, SendWho::AREA);
+        uint8_t emote = fixed.emote;
+        Packet_Fixed<0x00c0> fixed_c0;
+        fixed_c0.block_id = sd->bl_id;
+        fixed_c0.type = emote;
+        Buffer buf = create_fpacket<0x00c0, 7>(fixed_c0);
+        clif_send(buf, sd, SendWho::AREA);
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 1);
+
+    return rv;
 }
 
 /*==========================================
@@ -3832,11 +3847,18 @@ void clif_parse_Emotion(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_HowManyConnections(Session *s, dumb_ptr<map_session_data>)
+RecvResult clif_parse_HowManyConnections(Session *s, dumb_ptr<map_session_data>)
 {
-    WFIFOW(s, 0) = 0xc2;
-    WFIFOL(s, 2) = map_getusers();
-    WFIFOSET(s, clif_parse_func_table[0xc2].len);
+    Packet_Fixed<0x00c1> fixed;
+    RecvResult rv = recv_fpacket<0x00c1, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    Packet_Fixed<0x00c2> fixed_c2;
+    fixed_c2.users = map_getusers();
+    send_fpacket<0x00c2, 6>(s, fixed_c2);
+
+    return rv;
 }
 
 /*==========================================
@@ -3844,64 +3866,69 @@ void clif_parse_HowManyConnections(Session *s, dumb_ptr<map_session_data>)
  *------------------------------------------
  */
 static
-void clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
 {
-    unsigned char buf[64];
-    int action_type;
+    Packet_Fixed<0x0089> fixed;
+    RecvResult rv = recv_fpacket<0x0089, 7>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    DamageType action_type;
     BlockId target_id;
-
-    nullpo_retv(sd);
 
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
-        return;
+        return rv;
     }
     if (sd->npc_id
         || bool(sd->opt1)
         || sd->state.storage_open)
-        return;
+        return rv;
 
     tick_t tick = gettick();
 
     pc_stop_walking(sd, 0);
     pc_stopattack(sd);
 
-    target_id = wrap<BlockId>(RFIFOL(s, 2));
-    action_type = RFIFOB(s, 6);
+    target_id = fixed.target_id;
+    action_type = fixed.action;
 
     switch (action_type)
     {
-        case 0x00:             // once attack
-        case 0x07:             // continuous attack
+        case DamageType::NORMAL:
+        case DamageType::CONTINUOUS:
             if (bool(sd->status.option & Option::HIDE))
-                return;
+                return rv;
             if (!battle_config.skill_delay_attack_enable)
             {
                 if (tick < sd->canact_tick)
                 {
                     clif_skill_fail(sd, SkillID::ONE, 4, 0);
-                    return;
+                    return rv;
                 }
             }
             if (sd->invincible_timer)
                 pc_delinvincibletimer(sd);
             sd->attacktarget = BlockId();
-            pc_attack(sd, target_id, action_type != 0);
+            pc_attack(sd, target_id, action_type != DamageType::NORMAL);
             break;
-        case 0x02:             // sitdown
+        case DamageType::SIT:
             pc_stop_walking(sd, 1);
             pc_setsit(sd);
             clif_sitting(s, sd);
             break;
-        case 0x03:             // standup
+        case DamageType::STAND:
             pc_setstand(sd);
-            WBUFW(buf, 0) = 0x8a;
-            WBUFL(buf, 2) = unwrap<BlockId>(sd->bl_id);
-            WBUFB(buf, 26) = 3;
-            clif_send(buf, clif_parse_func_table[0x8a].len, sd, SendWho::AREA);
+            Packet_Fixed<0x008a> fixed_8a;
+            fixed_8a.src_id = sd->bl_id;
+            fixed_8a.damage_type = DamageType::STAND;
+            Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
+            clif_send(buf, sd, SendWho::AREA);
             break;
     }
+
+    return rv;
 }
 
 /*==========================================
@@ -3909,11 +3936,14 @@ void clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_Restart(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_Restart(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x00b2> fixed;
+    RecvResult rv = recv_fpacket<0x00b2, 3>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    switch (RFIFOB(s, 2))
+    switch (fixed.flag)
     {
         case 0x00:
             if (pc_isdead(sd))
@@ -3943,13 +3973,15 @@ void clif_parse_Restart(Session *s, dumb_ptr<map_session_data> sd)
             }
             else
             {
-                WFIFOW(s, 0) = 0x18b;
-                WFIFOW(s, 2) = 1;
+                Packet_Fixed<0x018b> fixed_18b;
+                fixed_18b.okay = 1;
 
-                WFIFOSET(s, clif_parse_func_table[0x018b].len);
+                send_fpacket<0x018b, 4>(s, fixed_18b);
             }
             break;
     }
+
+    return rv;
 }
 
 /*==========================================
@@ -3963,29 +3995,33 @@ void clif_parse_Restart(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Head<0x0096> head;
+    AString repeat;
+    RecvResult rv = recv_vpacket<0x0096, 28, 1>(s, head, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     dumb_ptr<map_session_data> dstsd = NULL;
 
-    nullpo_retv(sd);
-
-    AString mbuf = clif_validate_chat(sd, ChatType::Whisper);
+    AString mbuf = clif_validate_chat(sd, ChatType::Whisper, repeat);
     if (!mbuf)
     {
         clif_displaymessage(s, "Your message could not be sent."_s);
-        return;
+        return rv;
     }
 
     if (is_atcommand(s, sd, mbuf, GmLevel()))
     {
-        return;
+        return rv;
     }
 
     /* Don't send chat that results in an automatic ban. */
     if (tmw_CheckChatSpam(sd, mbuf))
     {
         clif_displaymessage(s, "Your message could not be sent."_s);
-        return;
+        return rv;
     }
 
     /*
@@ -3994,7 +4030,7 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
      * conflict (for instance, "Test" versus "test"), the char-server must
      * settle the discrepancy.
      */
-    CharName tname = stringish<CharName>(RFIFO_STRING<24>(s, 4));
+    CharName tname = head.target_name;
     if (!(dstsd = map_nick2sd(tname))
             || dstsd->status_key.name != tname)
         intif_wis_message(sd, tname, mbuf);
@@ -4018,6 +4054,8 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
             }
         }
     }
+
+    return rv;
 }
 
 /*==========================================
@@ -4025,36 +4063,41 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x009f> fixed;
+    RecvResult rv = recv_fpacket<0x009f, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     dumb_ptr<flooritem_data> fitem;
 
-    nullpo_retv(sd);
-
-    BlockId map_object_id = wrap<BlockId>(RFIFOL(s, 2));
+    BlockId map_object_id = fixed.object_id;
     fitem = map_id_is_item(map_object_id);
 
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
-        return;
+        return rv;
     }
 
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)   //会話禁止
-        return;
+        return rv;
 
     if (fitem == NULL || fitem->bl_m != sd->bl_m)
-        return;
+        return rv;
 
     if (abs(sd->bl_x - fitem->bl_x) >= 2
         || abs(sd->bl_y - fitem->bl_y) >= 2)
-        return;                 // too far away to pick up
+        return rv;                 // too far away to pick up
 
     if (sd->state.shroud_active && sd->state.shroud_disappears_on_pickup)
         magic_unshroud(sd);
 
     pc_takeitem(sd, fitem);
+
+    return rv;
 }
 
 /*==========================================
@@ -4062,33 +4105,38 @@ void clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int item_index, item_amount;
+    Packet_Fixed<0x00a2> fixed;
+    RecvResult rv = recv_fpacket<0x00a2, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    nullpo_retv(sd);
+    int item_index, item_amount;
 
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
-        return;
+        return rv;
     }
     if (sd->bl_m->flag.get(MapFlag::NO_PLAYER_DROPS))
     {
         clif_displaymessage(sd->sess, "Can't drop items here."_s);
-        return;
+        return rv;
     }
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)
     {
         clif_displaymessage(sd->sess, "Can't drop items right now."_s);
-        return;
+        return rv;
     }
 
-    item_index = RFIFOW(s, 2) - 2;
-    item_amount = RFIFOW(s, 4);
+    item_index = fixed.ioff2 - 2;
+    item_amount = fixed.amount;
 
     pc_dropitem(sd, item_index, item_amount);
+
+    return rv;
 }
 
 /*==========================================
@@ -4096,23 +4144,28 @@ void clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_UseItem(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_UseItem(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x00a7> fixed;
+    RecvResult rv = recv_fpacket<0x00a7, 8>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
-        return;
+        return rv;
     }
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)   //会話禁止
-        return;
+        return rv;
 
     if (sd->invincible_timer)
         pc_delinvincibletimer(sd);
 
-    pc_useitem(sd, RFIFOW(s, 2) - 2);
+    pc_useitem(sd, fixed.ioff2 - 2);
+
+    return rv;
 }
 
 /*==========================================
@@ -4120,30 +4173,35 @@ void clif_parse_UseItem(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int index;
+    Packet_Fixed<0x00a9> fixed;
+    RecvResult rv = recv_fpacket<0x00a9, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    nullpo_retv(sd);
+    int index;
 
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
-        return;
+        return rv;
     }
-    index = RFIFOW(s, 2) - 2;
+    index = fixed.ioff2 - 2;
     if (sd->npc_id)
-        return;
+        return rv;
 
     if (sd->inventory_data[index])
     {
-        EPOS epos = EPOS(RFIFOW(s, 4));
+        EPOS epos = fixed.epos_ignored;
         if (sd->inventory_data[index]->type == ItemType::ARROW)
             epos = EPOS::ARROW;
 
         // Note: the EPOS argument to pc_equipitem is actually ignored
         pc_equipitem(sd, index, epos);
     }
+
+    return rv;
 }
 
 /*==========================================
@@ -4151,23 +4209,28 @@ void clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_UnequipItem(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_UnequipItem(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int index;
+    Packet_Fixed<0x00ab> fixed;
+    RecvResult rv = recv_fpacket<0x00ab, 4>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    nullpo_retv(sd);
+    int index;
 
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
-        return;
+        return rv;
     }
-    index = RFIFOW(s, 2) - 2;
+    index = fixed.ioff2 - 2;
 
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)
-        return;
+        return rv;
     pc_unequipitem(sd, index, CalcStatus::NOW);
+
+    return rv;
 }
 
 /*==========================================
@@ -4175,18 +4238,23 @@ void clif_parse_UnequipItem(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x0090> fixed;
+    RecvResult rv = recv_fpacket<0x0090, 7>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
-        return;
+        return rv;
     }
     if (sd->npc_id)
-        return;
-    npc_click(sd, wrap<BlockId>(RFIFOL(s, 2)));
+        return rv;
+    npc_click(sd, fixed.block_id);
+
+    return rv;
 }
 
 /*==========================================
@@ -4194,9 +4262,16 @@ void clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcBuySellSelected(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcBuySellSelected(Session *s, dumb_ptr<map_session_data> sd)
 {
-    npc_buysellsel(sd, wrap<BlockId>(RFIFOL(s, 2)), RFIFOB(s, 6));
+    Packet_Fixed<0x00c5> fixed;
+    RecvResult rv = recv_fpacket<0x00c5, 7>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    npc_buysellsel(sd, fixed.block_id, fixed.type);
+
+    return rv;
 }
 
 /*==========================================
@@ -4204,17 +4279,20 @@ void clif_parse_NpcBuySellSelected(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcBuyListSend(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcBuyListSend(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int n = (RFIFOW(s, 2) - 4) / 4;
-    // really an array of pairs of uint16_t
-    const uint16_t *item_list = static_cast<const uint16_t *>(RFIFOP(s, 4));
+    std::vector<Packet_Repeat<0x00c8>> repeat;
+    RecvResult rv = recv_packet_repeatonly<0x00c8, 4, 4>(s, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    int fail = npc_buylist(sd, n, item_list);
+    int fail = npc_buylist(sd, repeat);
 
-    WFIFOW(s, 0) = 0xca;
-    WFIFOB(s, 2) = fail;
-    WFIFOSET(s, clif_parse_func_table[0xca].len);
+    Packet_Fixed<0x00ca> fixed_ca;
+    fixed_ca.fail = fail;
+    send_fpacket<0x00ca, 3>(s, fixed_ca);
+
+    return rv;
 }
 
 /*==========================================
@@ -4222,17 +4300,20 @@ void clif_parse_NpcBuyListSend(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcSellListSend(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcSellListSend(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int n = (RFIFOW(s, 2) - 4) / 4;
-    // really an array of pairs of uint16_t
-    const uint16_t *item_list = static_cast<const uint16_t *>(RFIFOP(s, 4));
+    std::vector<Packet_Repeat<0x00c9>> repeat;
+    RecvResult rv = recv_packet_repeatonly<0x00c9, 4, 4>(s, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    int fail = npc_selllist(sd, n, item_list);
+    int fail = npc_selllist(sd, repeat);
 
-    WFIFOW(s, 0) = 0xcb;
-    WFIFOB(s, 2) = fail;
-    WFIFOSET(s, clif_parse_func_table[0xcb].len);
+    Packet_Fixed<0x00cb> fixed_cb;
+    fixed_cb.fail = fail;
+    send_fpacket<0x00cb, 3>(s, fixed_cb);
+
+    return rv;
 }
 
 /*==========================================
@@ -4240,17 +4321,22 @@ void clif_parse_NpcSellListSend(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeRequest(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_TradeRequest(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x00e4> fixed;
+    RecvResult rv = recv_fpacket<0x00e4, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_TRADE) >= 1)
     {
-        trade_traderequest(sd, wrap<BlockId>(RFIFOL(sd->sess, 2)));
+        trade_traderequest(sd, fixed.block_id);
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 0);
+
+    return rv;
 }
 
 /*==========================================
@@ -4258,11 +4344,16 @@ void clif_parse_TradeRequest(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeAck(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_TradeAck(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x00e6> fixed;
+    RecvResult rv = recv_fpacket<0x00e6, 3>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    trade_tradeack(sd, RFIFOB(sd->sess, 2));
+    trade_tradeack(sd, fixed.type);
+
+    return rv;
 }
 
 /*==========================================
@@ -4270,11 +4361,16 @@ void clif_parse_TradeAck(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeAddItem(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_TradeAddItem(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x00e8> fixed;
+    RecvResult rv = recv_fpacket<0x00e8, 8>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    trade_tradeadditem(sd, RFIFOW(sd->sess, 2), RFIFOL(sd->sess, 4));
+    trade_tradeadditem(sd, fixed.zeny_or_ioff2, fixed.amount);
+
+    return rv;
 }
 
 /*==========================================
@@ -4282,9 +4378,16 @@ void clif_parse_TradeAddItem(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeOk(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_TradeOk(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x00eb> fixed;
+    RecvResult rv = recv_fpacket<0x00eb, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     trade_tradeok(sd);
+
+    return rv;
 }
 
 /*==========================================
@@ -4292,9 +4395,16 @@ void clif_parse_TradeOk(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeCansel(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_TradeCansel(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x00ed> fixed;
+    RecvResult rv = recv_fpacket<0x00ed, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     trade_tradecancel(sd);
+
+    return rv;
 }
 
 /*==========================================
@@ -4302,9 +4412,16 @@ void clif_parse_TradeCansel(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeCommit(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_TradeCommit(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x00ef> fixed;
+    RecvResult rv = recv_fpacket<0x00ef, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     trade_tradecommit(sd);
+
+    return rv;
 }
 
 /*==========================================
@@ -4312,9 +4429,16 @@ void clif_parse_TradeCommit(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_StopAttack(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_StopAttack(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x0118> fixed;
+    RecvResult rv = recv_fpacket<0x0118, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     pc_stopattack(sd);
+
+    return rv;
 }
 
 /*==========================================
@@ -4322,9 +4446,16 @@ void clif_parse_StopAttack(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_StatusUp(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_StatusUp(Session *s, dumb_ptr<map_session_data> sd)
 {
-    pc_statusup(sd, static_cast<SP>(RFIFOW(s, 2)));
+    Packet_Fixed<0x00bb> fixed;
+    RecvResult rv = recv_fpacket<0x00bb, 5>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    pc_statusup(sd, fixed.asp);
+
+    return rv;
 }
 
 /*==========================================
@@ -4332,9 +4463,16 @@ void clif_parse_StatusUp(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_SkillUp(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_SkillUp(Session *s, dumb_ptr<map_session_data> sd)
 {
-    pc_skillup(sd, SkillID(RFIFOW(s, 2)));
+    Packet_Fixed<0x0112> fixed;
+    RecvResult rv = recv_fpacket<0x0112, 4>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    pc_skillup(sd, fixed.skill_id);
+
+    return rv;
 }
 
 /*==========================================
@@ -4342,12 +4480,17 @@ void clif_parse_SkillUp(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcSelectMenu(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcSelectMenu(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x00b8> fixed;
+    RecvResult rv = recv_fpacket<0x00b8, 7>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    sd->npc_menu = RFIFOB(s, 6);
-    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 2)));
+    sd->npc_menu = fixed.menu_entry;
+    map_scriptcont(sd, fixed.npc_id);
+
+    return rv;
 }
 
 /*==========================================
@@ -4355,9 +4498,16 @@ void clif_parse_NpcSelectMenu(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcNextClicked(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcNextClicked(Session *s, dumb_ptr<map_session_data> sd)
 {
-    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 2)));
+    Packet_Fixed<0x00b9> fixed;
+    RecvResult rv = recv_fpacket<0x00b9, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    map_scriptcont(sd, fixed.npc_id);
+
+    return rv;
 }
 
 /*==========================================
@@ -4365,12 +4515,17 @@ void clif_parse_NpcNextClicked(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcAmountInput(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcAmountInput(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x0143> fixed;
+    RecvResult rv = recv_fpacket<0x0143, 10>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    sd->npc_amount = RFIFOL(s, 6);
-    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 2)));
+    sd->npc_amount = fixed.input_int_value;
+    map_scriptcont(sd, fixed.block_id);
+
+    return rv;
 }
 
 /*==========================================
@@ -4380,22 +4535,19 @@ void clif_parse_NpcAmountInput(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcStringInput(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcStringInput(Session *s, dumb_ptr<map_session_data> sd)
 {
-    int len;
-    nullpo_retv(sd);
+    Packet_Head<0x01d5> head;
+    AString repeat;
+    RecvResult rv = recv_vpacket<0x01d5, 8, 1>(s, head, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    len = RFIFOW(s, 2) - 8;
+    sd->npc_str = repeat;
 
-    /*
-     * If we check for equal to 0, too, we'll freeze clients that send (or
-     * claim to have sent) an "empty" message.
-     */
-    if (len < 0)
-        return;
-    sd->npc_str = RFIFO_STRING(s, 8, len);
+    map_scriptcont(sd, head.block_id);
 
-    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 4)));
+    return rv;
 }
 
 /*==========================================
@@ -4403,9 +4555,16 @@ void clif_parse_NpcStringInput(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcCloseClicked(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_NpcCloseClicked(Session *s, dumb_ptr<map_session_data> sd)
 {
-    map_scriptcont(sd, wrap<BlockId>(RFIFOL(s, 2)));
+    Packet_Fixed<0x0146> fixed;
+    RecvResult rv = recv_fpacket<0x0146, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    map_scriptcont(sd, fixed.block_id);
+
+    return rv;
 }
 
 /*==========================================
@@ -4413,21 +4572,26 @@ void clif_parse_NpcCloseClicked(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_MoveToKafra(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_MoveToKafra(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x00f3> fixed;
+    RecvResult rv = recv_fpacket<0x00f3, 8>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     int item_index, item_amount;
 
-    nullpo_retv(sd);
-
-    item_index = RFIFOW(s, 2) - 2;
-    item_amount = RFIFOL(s, 4);
+    item_index = fixed.ioff2 - 2;
+    item_amount = fixed.amount;
 
     if ((sd->npc_id && !sd->npc_flags.storage) || sd->trade_partner
         || !sd->state.storage_open)
-        return;
+        return rv;
 
     if (sd->state.storage_open)
         storage_storageadd(sd, item_index, item_amount);
+
+    return rv;
 }
 
 /*==========================================
@@ -4435,21 +4599,26 @@ void clif_parse_MoveToKafra(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_MoveFromKafra(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_MoveFromKafra(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x00f5> fixed;
+    RecvResult rv = recv_fpacket<0x00f5, 8>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     int item_index, item_amount;
 
-    nullpo_retv(sd);
-
-    item_index = RFIFOW(s, 2) - 1;
-    item_amount = RFIFOL(s, 4);
+    item_index = fixed.soff1 - 1;
+    item_amount = fixed.amount;
 
     if ((sd->npc_id && !sd->npc_flags.storage) || sd->trade_partner
         || !sd->state.storage_open)
-        return;
+        return rv;
 
     if (sd->state.storage_open)
         storage_storageget(sd, item_index, item_amount);
+
+    return rv;
 }
 
 /*==========================================
@@ -4457,12 +4626,17 @@ void clif_parse_MoveFromKafra(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_CloseKafra(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_CloseKafra(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x00f7> fixed;
+    RecvResult rv = recv_fpacket<0x00f7, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
 
     if (sd->state.storage_open)
         storage_storageclose(sd);
+
+    return rv;
 }
 
 /*==========================================
@@ -4473,16 +4647,23 @@ void clif_parse_CloseKafra(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_CreateParty(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_CreateParty(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x00f9> fixed;
+    RecvResult rv = recv_fpacket<0x00f9, 26>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_PARTY) >= 2)
     {
-        PartyName name = stringish<PartyName>(RFIFO_STRING<24>(s, 2));
+        PartyName name = fixed.party_name;
         party_create(sd, name);
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 4);
+
+    return rv;
 }
 
 /*==========================================
@@ -4493,9 +4674,16 @@ void clif_parse_CreateParty(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_PartyInvite(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_PartyInvite(Session *s, dumb_ptr<map_session_data> sd)
 {
-    party_invite(sd, wrap<AccountId>(RFIFOL(s, 2)));
+    Packet_Fixed<0x00fc> fixed;
+    RecvResult rv = recv_fpacket<0x00fc, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    party_invite(sd, fixed.account_id);
+
+    return rv;
 }
 
 /*==========================================
@@ -4506,18 +4694,25 @@ void clif_parse_PartyInvite(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_ReplyPartyInvite(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_ReplyPartyInvite(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x00ff> fixed;
+    RecvResult rv = recv_fpacket<0x00ff, 10>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_PARTY) >= 1)
     {
-        party_reply_invite(sd, wrap<AccountId>(RFIFOL(s, 2)), RFIFOL(s, 6));
+        party_reply_invite(sd, fixed.account_id, fixed.flag);
     }
     else
     {
-        party_reply_invite(sd, wrap<AccountId>(RFIFOL(s, 2)), 0);
+        party_reply_invite(sd, fixed.account_id, 0);
         clif_skill_fail(sd, SkillID::ONE, 0, 4);
     }
+
+    return rv;
 }
 
 /*==========================================
@@ -4525,9 +4720,16 @@ void clif_parse_ReplyPartyInvite(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_LeaveParty(Session *, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_LeaveParty(Session *s, dumb_ptr<map_session_data> sd)
 {
+    Packet_Fixed<0x0100> fixed;
+    RecvResult rv = recv_fpacket<0x0100, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
     party_leave(sd);
+
+    return rv;
 }
 
 /*==========================================
@@ -4535,11 +4737,18 @@ void clif_parse_LeaveParty(Session *, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_RemovePartyMember(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_RemovePartyMember(Session *s, dumb_ptr<map_session_data> sd)
 {
-    AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-    // unused RFIFO_STRING<24>(fd, 6);
+    Packet_Fixed<0x0103> fixed;
+    RecvResult rv = recv_fpacket<0x0103, 30>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    AccountId account_id = fixed.account_id;
+    // unused fixed.unusedchar_name;
     party_removemember(sd, account_id);
+
+    return rv;
 }
 
 /*==========================================
@@ -4547,9 +4756,16 @@ void clif_parse_RemovePartyMember(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_PartyChangeOption(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_PartyChangeOption(Session *s, dumb_ptr<map_session_data> sd)
 {
-    party_changeoption(sd, RFIFOW(s, 2), RFIFOW(s, 4));
+    Packet_Fixed<0x0102> fixed;
+    RecvResult rv = recv_fpacket<0x0102, 6>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    party_changeoption(sd, fixed.exp, fixed.item);
+
+    return rv;
 }
 
 /*==========================================
@@ -4561,28 +4777,33 @@ void clif_parse_PartyChangeOption(Session *s, dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-void clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
 {
-    nullpo_retv(sd);
+    AString repeat;
+    RecvResult rv = recv_packet_repeatonly<0x0108, 4, 1>(s, repeat);
+    if (rv != RecvResult::Complete)
+        return rv;
 
-    AString mbuf = clif_validate_chat(sd, ChatType::Party);
+    AString mbuf = clif_validate_chat(sd, ChatType::Party, repeat);
     if (!mbuf)
     {
         clif_displaymessage(s, "Your message could not be sent."_s);
-        return;
+        return rv;
     }
 
     if (is_atcommand(s, sd, mbuf, GmLevel()))
-        return;
+        return rv;
 
     /* Don't send chat that results in an automatic ban. */
     if (tmw_CheckChatSpam(sd, mbuf))
     {
         clif_displaymessage(s, "Your message could not be sent."_s);
-        return;
+        return rv;
     }
 
     party_send_message(sd, mbuf);
+
+    return rv;
 }
 
 func_table clif_parse_func_table[0x0220] =
@@ -5135,8 +5356,25 @@ func_table clif_parse_func_table[0x0220] =
 
 // Checks for packet flooding
 static
-int clif_check_packet_flood(Session *s, int cmd)
+uint16_t clif_check_packet_flood(Session *s, int cmd)
 {
+    uint16_t len = clif_parse_func_table[cmd].len_unused;
+    if (len == VAR)
+    {
+        Little16 netlen;
+        if (!packet_fetch(s, 2, reinterpret_cast<Byte *>(&netlen), 2))
+        {
+            return 0;
+        }
+        if (!network_to_native(&len, netlen))
+        {
+            s->set_eof();
+            return 0;
+        }
+    }
+    if (packet_avail(s) < len)
+        return 0;
+
     dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
     tick_t tick = gettick();
 
@@ -5162,25 +5400,23 @@ int clif_check_packet_flood(Session *s, int cmd)
     // ActionRequest - attacks are allowed a faster rate than sit/stand
     if (cmd == 0x89)
     {
-        int action_type = RFIFOB(s, 6);
-        if (action_type == 0x00 || action_type == 0x07)
+        DamageType damage_type;
+        Byte action_type;
+        if (!packet_fetch(s, 6, &action_type, 1))
+            return 0;
+        if (!network_to_native(&damage_type, action_type))
+        {
+            s->set_eof();
+            return 0;
+        }
+        if (damage_type == DamageType::NORMAL || damage_type == DamageType::CONTINUOUS)
             rate = std::chrono::milliseconds(20);
         else
             rate = std::chrono::seconds(1);
     }
 
-// Restore this code when mana1.0 is released
-#if 0
-    // ChangeDir - only apply limit if not walking
-    if (cmd == 0x9b)
-    {
-        // .29 clients spam this packet when walking into a blocked tile
-        if (RFIFOB(fd, 4) == sd->dir || sd->walktimer != -1)
-            return 0;
-
-        rate = 500;
-    }
-#endif
+    // Restore this code when mana1.0 is released
+    // nope, nuh-uh
 
     // They are flooding
     if (tick < sd->flood_rates[cmd] + rate)
@@ -5202,12 +5438,12 @@ int clif_check_packet_flood(Session *s, int cmd)
             if (battle_config.packet_spam_kick)
             {
                 s->set_eof();
-                return 1;
+                return len;
             }
             sd->packet_flood_in = 0;
         }
 
-        return 1;
+        return len;
     }
 
     sd->flood_rates[cmd] = tick;
@@ -5231,7 +5467,7 @@ void WARN_MALFORMED_MSG(dumb_ptr<map_session_data> sd, ZString msg)
  * @return a dynamically allocated copy of the message, or empty string upon failure
  */
 static
-AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
+AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString buf)
 {
     nullpo_retr(AString(), sd);
     /*
@@ -5242,54 +5478,8 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
         return AString();
 
     Session *s = sd->sess;
-    size_t msg_len = RFIFOW(s, 2) - 4;
     size_t name_len = sd->status_key.name.to__actual().size();
-    /*
-     * At least one character is required in all instances.
-     * Notes for length checks:
-     *
-     * For all types, header (2) + length (2) is considered empty.
-     * For type 1, the message must be longer than the maximum name length (24)
-     *      to be valid.
-     * For type 2, the message must be longer than the sender's name length
-     *      plus the length of the separator (" : ").
-     */
-    size_t min_len =
-        (type == ChatType::Whisper) ? 24
-        : (type == ChatType::Global) ? name_len + 3
-        : 0;
-
-    /* The player just sent the header (2) and length (2) words. */
-    if (!msg_len)
-    {
-        WARN_MALFORMED_MSG(sd, "no message sent"_s);
-        return AString();
-    }
-
-    /* The client sent (or claims to have sent) an empty message. */
-    if (msg_len == min_len)
-    {
-        WARN_MALFORMED_MSG(sd, "empty message"_s);
-        return AString();
-    }
-
-    /* The protocol specifies that the target must be 24 bytes long. */
-    if (type == ChatType::Whisper && msg_len < min_len)
-    {
-        /* Disallow malformed messages. */
-        clif_setwaitclose(s);
-        WARN_MALFORMED_MSG(sd, "illegal target name"_s);
-        return AString();
-    }
-
-    size_t pstart = 4;
-    size_t buf_len = msg_len;
-    if (type == ChatType::Whisper)
-    {
-        pstart += 24;
-        buf_len -= 24;
-    }
-    AString pbuf = RFIFO_STRING(s, pstart, buf_len);
+    XString pbuf = buf;
 
     /*
      * The client attempted to exceed the maximum message length.
@@ -5298,7 +5488,8 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
      * is truncated. But the previous behavior was to drop the message, so
      * we'll do that, too.
      */
-    if (buf_len >= battle_config.chat_maxline)
+    // TODO this cuts global chat short by (name_length + 3)
+    if (buf.size() >= battle_config.chat_maxline)
     {
         WARN_MALFORMED_MSG(sd, "exceeded maximum message length"_s);
         return AString();
@@ -5329,19 +5520,39 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
 static
 void clif_parse(Session *s)
 {
-    int packet_len = 0, cmd = 0;
+    // old code:
+    //  no while loop (can hang if more than one packet)
+    //  handles 0x7530 and 0x7532 specially, also 0x0072
+    //  checks packet length table
+    //  checks rate limiter
+    //  dispatches to actual function, unchecked
+    // interstitial code:
+    //  introduces while loop
+    //  checks rate limiter
+    //  dispatches to actual function
+    //   if incomplete, unchecks rate limiter
+    //   if error, close socket
+    // future code:
+    //  hoists while loop
+    //  treats all packets as variable-length, except a hard-coded list
+    //  reads packet of that length unconditionally into a buffer
+    //  does rate-limit check (hoisted?)
+    //  dispatches to actual function
+    //   if error, close socket
+
     dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
 
     if (!sd || (sd && !sd->state.auth))
     {
-        if (RFIFOREST(s) < 2)
-        {                       // too small a packet disconnect
-            s->set_eof();
-        }
-        if (RFIFOW(s, 0) != 0x72 && RFIFOW(s, 0) != 0x7530)
+        uint16_t packet_id;
+        if (!packet_peek_id(s, &packet_id))
+            return;
+
+        if (packet_id != 0x0072 && packet_id != 0x7530)
         {
             // first packet must be auth or finger
             s->set_eof();
+            return;
         }
     }
 
@@ -5350,95 +5561,84 @@ void clif_parse(Session *s)
         s->set_eof();
         return;
     }
-
-    if (RFIFOREST(s) < 2)
-        return;               // Too small (no packet number)
-
-    cmd = RFIFOW(s, 0);
-
-    // 管理用パケット処理
-    if (cmd >= 30000)
+    if (sd && sd->state.auth == 1 && sd->state.waitingdisconnect == 1)
     {
-        switch (cmd)
+        packet_discard(s, packet_avail(s));
+        return;
+    }
+
+    uint16_t packet_id;
+    RecvResult rv = RecvResult::Complete;
+    while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
+    {
+        switch (packet_id)
         {
-            case 0x7530:       // Athena情報所得
-                WFIFOW(s, 0) = 0x7531;
-                WFIFO_STRUCT(s, 2, CURRENT_MAP_SERVER_VERSION);
-                WFIFOSET(s, 10);
-                RFIFOSKIP(s, 2);
+            case 0x7530:
+            {
+                Packet_Fixed<0x7530> fixed;
+                rv = recv_fpacket<0x7530, 2>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                Packet_Fixed<0x7531> fixed_31;
+                fixed_31.version = CURRENT_MAP_SERVER_VERSION;
+                send_fpacket<0x7531, 10>(s, fixed_31);
                 break;
-            case 0x7532:       // 接続の切断
+            }
+            case 0x7532:
+            {
+                Packet_Fixed<0x7532> fixed;
+                rv = recv_fpacket<0x7532, 2>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
                 s->set_eof();
                 break;
+            }
         }
-        return;
-    }
-    else if (cmd >= 0x200)
-        return;
-
-    // パケット長を計算
-    packet_len = clif_parse_func_table[cmd].len;
-    if (packet_len == VAR)
-    {
-        if (RFIFOREST(s) < 4)
+        if (packet_id < 0x0220)
         {
-            return;           // Runt packet (variable length without a length sent)
+            if (uint16_t len = clif_check_packet_flood(s, packet_id))
+            {
+                // Packet flood: skip packet
+                packet_discard(s, len);
+                rv = RecvResult::Complete;
+            }
+            else
+            {
+                clif_func func = clif_parse_func_table[packet_id].func;
+                if (!func)
+                    goto unknown_packet;
+                rv = func(s, sd);
+            }
         }
-        packet_len = RFIFOW(s, 2);
-        if (packet_len < 4 || packet_len > 32768)
-        {
-            s->set_eof();
-            return;           // Runt packet (variable out of bounds)
-        }
+        else
+            goto unknown_packet;
     }
 
-    if (RFIFOREST(s) < packet_len)
+    if (rv == RecvResult::Error)
+        s->set_eof();
+    return;
+
+unknown_packet:
     {
-        return;               // Runt packet (sent legnth is too small)
-    }
-
-    if (sd && sd->state.auth == 1 && sd->state.waitingdisconnect == 1)
-    {                           // 切断待ちの場合パケットを処理しない
-
-    }
-    else if (clif_parse_func_table[cmd].func)
-    {
-        if (clif_check_packet_flood(s, cmd))
-        {
-            // Flood triggered. Skip packet.
-            RFIFOSKIP(sd->sess, packet_len);
-            return;
-        }
-
-        clif_parse_func_table[cmd].func(s, sd);
-    }
-    else
-    {
-        // 不明なパケット
         if (battle_config.error_log)
         {
             if (s)
-                PRINTF("\nclif_parse: session #%d, packet 0x%x, lenght %d\n"_fmt,
-                        s, cmd, packet_len);
-#ifdef DUMP_UNKNOWN_PACKET
+                PRINTF("\nclif_parse: session #%d, packet 0x%x, lenght %zu\n"_fmt,
+                        s, packet_id, packet_avail(s));
             {
-                int i;
                 ZString packet_txt = "save/packet.txt"_s;
-                PRINTF("---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F"_fmt);
-                for (i = 0; i < packet_len; i++)
-                {
-                    if ((i & 15) == 0)
-                        PRINTF("\n%04X "_fmt, i);
-                    PRINTF("%02X "_fmt, RFIFOB(s, i));
-                }
                 if (sd && sd->state.auth)
                 {
-                    PRINTF("\nAccount ID %d, character ID %d, player name %s.\n"_fmt,
+                    PRINTF("Unknown packet: Account ID %d, character ID %d, player name %s.\n"_fmt,
                             sd->status_key.account_id, sd->status_key.char_id,
                             sd->status_key.name);
                 }
                 else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
-                    PRINTF("\nAccount ID %d.\n"_fmt, sd->bl_id);
+                    PRINTF("Unkonwn packet (unauthenticated): Account ID %d.\n"_fmt, sd->bl_id);
+                else
+                    PRINTF("Unknown packet (unknown)\n"_fmt);
 
                 io::AppendFile fp(packet_txt);
                 if (!fp.is_open())
@@ -5461,24 +5661,18 @@ void clif_parse(Session *s)
                     }
                     else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
                         FPRINTF(fp,
-                                "%s\nPlayer with account ID %d sent wrong packet:\n"_fmt,
+                                "%s\nUnauthenticated player with account ID %d sent wrong packet:\n"_fmt,
                                 now, sd->bl_id);
+                    else
+                        FPRINTF(fp,
+                                "%s\nUnknown connection sent wrong packet:\n"_fmt,
+                                now);
 
-                    FPRINTF(fp,
-                            "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F"_fmt);
-                    for (i = 0; i < packet_len; i++)
-                    {
-                        if ((i & 15) == 0)
-                            FPRINTF(fp, "\n\t%04X "_fmt, i);
-                        FPRINTF(fp, "%02X "_fmt, RFIFOB(s, i));
-                    }
-                    FPRINTF(fp, "\n\n"_fmt);
+                    packet_dump(fp, s);
                 }
             }
-#endif
         }
     }
-    RFIFOSKIP(s, packet_len);
 }
 
 void do_init_clif(void)

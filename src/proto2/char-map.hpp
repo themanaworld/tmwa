@@ -28,7 +28,7 @@
 // This is an internal protocol, and can be changed without notice
 
 // this is only needed for the payload packet right now, and that needs to die
-#pragma pack(push, 1)
+# pragma pack(push, 1)
 
 template<>
 struct Packet_Fixed<0x2af7>
@@ -928,6 +928,7 @@ struct NetPacket_Fixed<0x2af7>
 };
 static_assert(offsetof(NetPacket_Fixed<0x2af7>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2af7>, magic_packet_id) == 0");
 static_assert(sizeof(NetPacket_Fixed<0x2af7>) == 2, "sizeof(NetPacket_Fixed<0x2af7>) == 2");
+static_assert(alignof(NetPacket_Fixed<0x2af7>) == 1, "alignof(NetPacket_Fixed<0x2af7>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2af8>
@@ -946,6 +947,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2af8>, unused) == 50, "offsetof(NetPack
 static_assert(offsetof(NetPacket_Fixed<0x2af8>, ip) == 54, "offsetof(NetPacket_Fixed<0x2af8>, ip) == 54");
 static_assert(offsetof(NetPacket_Fixed<0x2af8>, port) == 58, "offsetof(NetPacket_Fixed<0x2af8>, port) == 58");
 static_assert(sizeof(NetPacket_Fixed<0x2af8>) == 60, "sizeof(NetPacket_Fixed<0x2af8>) == 60");
+static_assert(alignof(NetPacket_Fixed<0x2af8>) == 1, "alignof(NetPacket_Fixed<0x2af8>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2af9>
@@ -956,6 +958,7 @@ struct NetPacket_Fixed<0x2af9>
 static_assert(offsetof(NetPacket_Fixed<0x2af9>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2af9>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x2af9>, code) == 2, "offsetof(NetPacket_Fixed<0x2af9>, code) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x2af9>) == 3, "sizeof(NetPacket_Fixed<0x2af9>) == 3");
+static_assert(alignof(NetPacket_Fixed<0x2af9>) == 1, "alignof(NetPacket_Fixed<0x2af9>) == 1");
 
 template<>
 struct NetPacket_Head<0x2afa>
@@ -966,6 +969,7 @@ struct NetPacket_Head<0x2afa>
 static_assert(offsetof(NetPacket_Head<0x2afa>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x2afa>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Head<0x2afa>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2afa>, magic_packet_length) == 2");
 static_assert(sizeof(NetPacket_Head<0x2afa>) == 4, "sizeof(NetPacket_Head<0x2afa>) == 4");
+static_assert(alignof(NetPacket_Head<0x2afa>) == 1, "alignof(NetPacket_Head<0x2afa>) == 1");
 template<>
 struct NetPacket_Repeat<0x2afa>
 {
@@ -973,6 +977,7 @@ struct NetPacket_Repeat<0x2afa>
 };
 static_assert(offsetof(NetPacket_Repeat<0x2afa>, map_name) == 0, "offsetof(NetPacket_Repeat<0x2afa>, map_name) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x2afa>) == 16, "sizeof(NetPacket_Repeat<0x2afa>) == 16");
+static_assert(alignof(NetPacket_Repeat<0x2afa>) == 1, "alignof(NetPacket_Repeat<0x2afa>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2afa>
@@ -985,6 +990,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2afa>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x2afa>, source_item_id) == 2, "offsetof(NetPacket_Fixed<0x2afa>, source_item_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x2afa>, dest_item_id) == 6, "offsetof(NetPacket_Fixed<0x2afa>, dest_item_id) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x2afa>) == 10, "sizeof(NetPacket_Fixed<0x2afa>) == 10");
+static_assert(alignof(NetPacket_Fixed<0x2afa>) == 1, "alignof(NetPacket_Fixed<0x2afa>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2afb>
@@ -997,6 +1003,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2afb>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x2afb>, unknown) == 2, "offsetof(NetPacket_Fixed<0x2afb>, unknown) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x2afb>, whisper_name) == 3, "offsetof(NetPacket_Fixed<0x2afb>, whisper_name) == 3");
 static_assert(sizeof(NetPacket_Fixed<0x2afb>) == 27, "sizeof(NetPacket_Fixed<0x2afb>) == 27");
+static_assert(alignof(NetPacket_Fixed<0x2afb>) == 1, "alignof(NetPacket_Fixed<0x2afb>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2afc>
@@ -1015,6 +1022,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2afc>, login_id1) == 10, "offsetof(NetP
 static_assert(offsetof(NetPacket_Fixed<0x2afc>, login_id2) == 14, "offsetof(NetPacket_Fixed<0x2afc>, login_id2) == 14");
 static_assert(offsetof(NetPacket_Fixed<0x2afc>, ip) == 18, "offsetof(NetPacket_Fixed<0x2afc>, ip) == 18");
 static_assert(sizeof(NetPacket_Fixed<0x2afc>) == 22, "sizeof(NetPacket_Fixed<0x2afc>) == 22");
+static_assert(alignof(NetPacket_Fixed<0x2afc>) == 1, "alignof(NetPacket_Fixed<0x2afc>) == 1");
 
 template<>
 struct NetPacket_Payload<0x2afd>
@@ -1035,6 +1043,7 @@ static_assert(offsetof(NetPacket_Payload<0x2afd>, login_id2) == 8, "offsetof(Net
 static_assert(offsetof(NetPacket_Payload<0x2afd>, connect_until) == 12, "offsetof(NetPacket_Payload<0x2afd>, connect_until) == 12");
 static_assert(offsetof(NetPacket_Payload<0x2afd>, packet_tmw_version) == 16, "offsetof(NetPacket_Payload<0x2afd>, packet_tmw_version) == 16");
 static_assert(offsetof(NetPacket_Payload<0x2afd>, char_key) == 18, "offsetof(NetPacket_Payload<0x2afd>, char_key) == 18");
+static_assert(alignof(NetPacket_Payload<0x2afd>) == 1, "alignof(NetPacket_Payload<0x2afd>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2afe>
@@ -1045,6 +1054,7 @@ struct NetPacket_Fixed<0x2afe>
 static_assert(offsetof(NetPacket_Fixed<0x2afe>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2afe>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x2afe>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2afe>, account_id) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x2afe>) == 6, "sizeof(NetPacket_Fixed<0x2afe>) == 6");
+static_assert(alignof(NetPacket_Fixed<0x2afe>) == 1, "alignof(NetPacket_Fixed<0x2afe>) == 1");
 
 template<>
 struct NetPacket_Head<0x2aff>
@@ -1057,6 +1067,7 @@ static_assert(offsetof(NetPacket_Head<0x2aff>, magic_packet_id) == 0, "offsetof(
 static_assert(offsetof(NetPacket_Head<0x2aff>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2aff>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Head<0x2aff>, users) == 4, "offsetof(NetPacket_Head<0x2aff>, users) == 4");
 static_assert(sizeof(NetPacket_Head<0x2aff>) == 6, "sizeof(NetPacket_Head<0x2aff>) == 6");
+static_assert(alignof(NetPacket_Head<0x2aff>) == 1, "alignof(NetPacket_Head<0x2aff>) == 1");
 template<>
 struct NetPacket_Repeat<0x2aff>
 {
@@ -1064,6 +1075,7 @@ struct NetPacket_Repeat<0x2aff>
 };
 static_assert(offsetof(NetPacket_Repeat<0x2aff>, char_id) == 0, "offsetof(NetPacket_Repeat<0x2aff>, char_id) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x2aff>) == 4, "sizeof(NetPacket_Repeat<0x2aff>) == 4");
+static_assert(alignof(NetPacket_Repeat<0x2aff>) == 1, "alignof(NetPacket_Repeat<0x2aff>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b00>
@@ -1074,6 +1086,7 @@ struct NetPacket_Fixed<0x2b00>
 static_assert(offsetof(NetPacket_Fixed<0x2b00>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2b00>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x2b00>, users) == 2, "offsetof(NetPacket_Fixed<0x2b00>, users) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x2b00>) == 6, "sizeof(NetPacket_Fixed<0x2b00>) == 6");
+static_assert(alignof(NetPacket_Fixed<0x2b00>) == 1, "alignof(NetPacket_Fixed<0x2b00>) == 1");
 
 template<>
 struct NetPacket_Payload<0x2b01>
@@ -1090,6 +1103,7 @@ static_assert(offsetof(NetPacket_Payload<0x2b01>, magic_packet_length) == 2, "of
 static_assert(offsetof(NetPacket_Payload<0x2b01>, account_id) == 4, "offsetof(NetPacket_Payload<0x2b01>, account_id) == 4");
 static_assert(offsetof(NetPacket_Payload<0x2b01>, char_id) == 8, "offsetof(NetPacket_Payload<0x2b01>, char_id) == 8");
 static_assert(offsetof(NetPacket_Payload<0x2b01>, char_key) == 12, "offsetof(NetPacket_Payload<0x2b01>, char_key) == 12");
+static_assert(alignof(NetPacket_Payload<0x2b01>) == 1, "alignof(NetPacket_Payload<0x2b01>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b02>
@@ -1106,6 +1120,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b02>, login_id1) == 6, "offsetof(NetPa
 static_assert(offsetof(NetPacket_Fixed<0x2b02>, login_id2) == 10, "offsetof(NetPacket_Fixed<0x2b02>, login_id2) == 10");
 static_assert(offsetof(NetPacket_Fixed<0x2b02>, ip) == 14, "offsetof(NetPacket_Fixed<0x2b02>, ip) == 14");
 static_assert(sizeof(NetPacket_Fixed<0x2b02>) == 18, "sizeof(NetPacket_Fixed<0x2b02>) == 18");
+static_assert(alignof(NetPacket_Fixed<0x2b02>) == 1, "alignof(NetPacket_Fixed<0x2b02>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b03>
@@ -1118,6 +1133,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b03>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x2b03>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2b03>, account_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x2b03>, unknown) == 6, "offsetof(NetPacket_Fixed<0x2b03>, unknown) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x2b03>) == 7, "sizeof(NetPacket_Fixed<0x2b03>) == 7");
+static_assert(alignof(NetPacket_Fixed<0x2b03>) == 1, "alignof(NetPacket_Fixed<0x2b03>) == 1");
 
 template<>
 struct NetPacket_Head<0x2b04>
@@ -1132,6 +1148,7 @@ static_assert(offsetof(NetPacket_Head<0x2b04>, magic_packet_length) == 2, "offse
 static_assert(offsetof(NetPacket_Head<0x2b04>, ip) == 4, "offsetof(NetPacket_Head<0x2b04>, ip) == 4");
 static_assert(offsetof(NetPacket_Head<0x2b04>, port) == 8, "offsetof(NetPacket_Head<0x2b04>, port) == 8");
 static_assert(sizeof(NetPacket_Head<0x2b04>) == 10, "sizeof(NetPacket_Head<0x2b04>) == 10");
+static_assert(alignof(NetPacket_Head<0x2b04>) == 1, "alignof(NetPacket_Head<0x2b04>) == 1");
 template<>
 struct NetPacket_Repeat<0x2b04>
 {
@@ -1139,6 +1156,7 @@ struct NetPacket_Repeat<0x2b04>
 };
 static_assert(offsetof(NetPacket_Repeat<0x2b04>, map_name) == 0, "offsetof(NetPacket_Repeat<0x2b04>, map_name) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x2b04>) == 16, "sizeof(NetPacket_Repeat<0x2b04>) == 16");
+static_assert(alignof(NetPacket_Repeat<0x2b04>) == 1, "alignof(NetPacket_Repeat<0x2b04>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b05>
@@ -1169,6 +1187,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b05>, map_port) == 42, "offsetof(NetPa
 static_assert(offsetof(NetPacket_Fixed<0x2b05>, sex) == 44, "offsetof(NetPacket_Fixed<0x2b05>, sex) == 44");
 static_assert(offsetof(NetPacket_Fixed<0x2b05>, client_ip) == 45, "offsetof(NetPacket_Fixed<0x2b05>, client_ip) == 45");
 static_assert(sizeof(NetPacket_Fixed<0x2b05>) == 49, "sizeof(NetPacket_Fixed<0x2b05>) == 49");
+static_assert(alignof(NetPacket_Fixed<0x2b05>) == 1, "alignof(NetPacket_Fixed<0x2b05>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b06>
@@ -1195,6 +1214,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b06>, y) == 36, "offsetof(NetPacket_Fi
 static_assert(offsetof(NetPacket_Fixed<0x2b06>, map_ip) == 38, "offsetof(NetPacket_Fixed<0x2b06>, map_ip) == 38");
 static_assert(offsetof(NetPacket_Fixed<0x2b06>, map_port) == 42, "offsetof(NetPacket_Fixed<0x2b06>, map_port) == 42");
 static_assert(sizeof(NetPacket_Fixed<0x2b06>) == 44, "sizeof(NetPacket_Fixed<0x2b06>) == 44");
+static_assert(alignof(NetPacket_Fixed<0x2b06>) == 1, "alignof(NetPacket_Fixed<0x2b06>) == 1");
 
 template<>
 struct NetPacket_Head<0x2b0a>
@@ -1207,6 +1227,7 @@ static_assert(offsetof(NetPacket_Head<0x2b0a>, magic_packet_id) == 0, "offsetof(
 static_assert(offsetof(NetPacket_Head<0x2b0a>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2b0a>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Head<0x2b0a>, account_id) == 4, "offsetof(NetPacket_Head<0x2b0a>, account_id) == 4");
 static_assert(sizeof(NetPacket_Head<0x2b0a>) == 8, "sizeof(NetPacket_Head<0x2b0a>) == 8");
+static_assert(alignof(NetPacket_Head<0x2b0a>) == 1, "alignof(NetPacket_Head<0x2b0a>) == 1");
 template<>
 struct NetPacket_Repeat<0x2b0a>
 {
@@ -1214,6 +1235,7 @@ struct NetPacket_Repeat<0x2b0a>
 };
 static_assert(offsetof(NetPacket_Repeat<0x2b0a>, c) == 0, "offsetof(NetPacket_Repeat<0x2b0a>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x2b0a>) == 1, "sizeof(NetPacket_Repeat<0x2b0a>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x2b0a>) == 1, "alignof(NetPacket_Repeat<0x2b0a>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b0b>
@@ -1226,6 +1248,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b0b>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x2b0b>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2b0b>, account_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x2b0b>, gm_level) == 6, "offsetof(NetPacket_Fixed<0x2b0b>, gm_level) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x2b0b>) == 10, "sizeof(NetPacket_Fixed<0x2b0b>) == 10");
+static_assert(alignof(NetPacket_Fixed<0x2b0b>) == 1, "alignof(NetPacket_Fixed<0x2b0b>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b0c>
@@ -1240,6 +1263,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b0c>, account_id) == 2, "offsetof(NetP
 static_assert(offsetof(NetPacket_Fixed<0x2b0c>, old_email) == 6, "offsetof(NetPacket_Fixed<0x2b0c>, old_email) == 6");
 static_assert(offsetof(NetPacket_Fixed<0x2b0c>, new_email) == 46, "offsetof(NetPacket_Fixed<0x2b0c>, new_email) == 46");
 static_assert(sizeof(NetPacket_Fixed<0x2b0c>) == 86, "sizeof(NetPacket_Fixed<0x2b0c>) == 86");
+static_assert(alignof(NetPacket_Fixed<0x2b0c>) == 1, "alignof(NetPacket_Fixed<0x2b0c>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b0d>
@@ -1252,6 +1276,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b0d>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x2b0d>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2b0d>, account_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x2b0d>, sex) == 6, "offsetof(NetPacket_Fixed<0x2b0d>, sex) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x2b0d>) == 7, "sizeof(NetPacket_Fixed<0x2b0d>) == 7");
+static_assert(alignof(NetPacket_Fixed<0x2b0d>) == 1, "alignof(NetPacket_Fixed<0x2b0d>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b0e>
@@ -1268,6 +1293,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b0e>, char_name) == 6, "offsetof(NetPa
 static_assert(offsetof(NetPacket_Fixed<0x2b0e>, operation) == 30, "offsetof(NetPacket_Fixed<0x2b0e>, operation) == 30");
 static_assert(offsetof(NetPacket_Fixed<0x2b0e>, ban_add) == 32, "offsetof(NetPacket_Fixed<0x2b0e>, ban_add) == 32");
 static_assert(sizeof(NetPacket_Fixed<0x2b0e>) == 44, "sizeof(NetPacket_Fixed<0x2b0e>) == 44");
+static_assert(alignof(NetPacket_Fixed<0x2b0e>) == 1, "alignof(NetPacket_Fixed<0x2b0e>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b0f>
@@ -1284,6 +1310,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b0f>, char_name) == 6, "offsetof(NetPa
 static_assert(offsetof(NetPacket_Fixed<0x2b0f>, operation) == 30, "offsetof(NetPacket_Fixed<0x2b0f>, operation) == 30");
 static_assert(offsetof(NetPacket_Fixed<0x2b0f>, error) == 32, "offsetof(NetPacket_Fixed<0x2b0f>, error) == 32");
 static_assert(sizeof(NetPacket_Fixed<0x2b0f>) == 34, "sizeof(NetPacket_Fixed<0x2b0f>) == 34");
+static_assert(alignof(NetPacket_Fixed<0x2b0f>) == 1, "alignof(NetPacket_Fixed<0x2b0f>) == 1");
 
 template<>
 struct NetPacket_Head<0x2b10>
@@ -1296,6 +1323,7 @@ static_assert(offsetof(NetPacket_Head<0x2b10>, magic_packet_id) == 0, "offsetof(
 static_assert(offsetof(NetPacket_Head<0x2b10>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2b10>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Head<0x2b10>, account_id) == 4, "offsetof(NetPacket_Head<0x2b10>, account_id) == 4");
 static_assert(sizeof(NetPacket_Head<0x2b10>) == 8, "sizeof(NetPacket_Head<0x2b10>) == 8");
+static_assert(alignof(NetPacket_Head<0x2b10>) == 1, "alignof(NetPacket_Head<0x2b10>) == 1");
 template<>
 struct NetPacket_Repeat<0x2b10>
 {
@@ -1305,6 +1333,7 @@ struct NetPacket_Repeat<0x2b10>
 static_assert(offsetof(NetPacket_Repeat<0x2b10>, name) == 0, "offsetof(NetPacket_Repeat<0x2b10>, name) == 0");
 static_assert(offsetof(NetPacket_Repeat<0x2b10>, value) == 32, "offsetof(NetPacket_Repeat<0x2b10>, value) == 32");
 static_assert(sizeof(NetPacket_Repeat<0x2b10>) == 36, "sizeof(NetPacket_Repeat<0x2b10>) == 36");
+static_assert(alignof(NetPacket_Repeat<0x2b10>) == 1, "alignof(NetPacket_Repeat<0x2b10>) == 1");
 
 template<>
 struct NetPacket_Head<0x2b11>
@@ -1317,6 +1346,7 @@ static_assert(offsetof(NetPacket_Head<0x2b11>, magic_packet_id) == 0, "offsetof(
 static_assert(offsetof(NetPacket_Head<0x2b11>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2b11>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Head<0x2b11>, account_id) == 4, "offsetof(NetPacket_Head<0x2b11>, account_id) == 4");
 static_assert(sizeof(NetPacket_Head<0x2b11>) == 8, "sizeof(NetPacket_Head<0x2b11>) == 8");
+static_assert(alignof(NetPacket_Head<0x2b11>) == 1, "alignof(NetPacket_Head<0x2b11>) == 1");
 template<>
 struct NetPacket_Repeat<0x2b11>
 {
@@ -1326,6 +1356,7 @@ struct NetPacket_Repeat<0x2b11>
 static_assert(offsetof(NetPacket_Repeat<0x2b11>, name) == 0, "offsetof(NetPacket_Repeat<0x2b11>, name) == 0");
 static_assert(offsetof(NetPacket_Repeat<0x2b11>, value) == 32, "offsetof(NetPacket_Repeat<0x2b11>, value) == 32");
 static_assert(sizeof(NetPacket_Repeat<0x2b11>) == 36, "sizeof(NetPacket_Repeat<0x2b11>) == 36");
+static_assert(alignof(NetPacket_Repeat<0x2b11>) == 1, "alignof(NetPacket_Repeat<0x2b11>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b12>
@@ -1338,6 +1369,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b12>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x2b12>, char_id) == 2, "offsetof(NetPacket_Fixed<0x2b12>, char_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x2b12>, partner_id) == 6, "offsetof(NetPacket_Fixed<0x2b12>, partner_id) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x2b12>) == 10, "sizeof(NetPacket_Fixed<0x2b12>) == 10");
+static_assert(alignof(NetPacket_Fixed<0x2b12>) == 1, "alignof(NetPacket_Fixed<0x2b12>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b13>
@@ -1348,6 +1380,7 @@ struct NetPacket_Fixed<0x2b13>
 static_assert(offsetof(NetPacket_Fixed<0x2b13>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2b13>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x2b13>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2b13>, account_id) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x2b13>) == 6, "sizeof(NetPacket_Fixed<0x2b13>) == 6");
+static_assert(alignof(NetPacket_Fixed<0x2b13>) == 1, "alignof(NetPacket_Fixed<0x2b13>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b14>
@@ -1362,6 +1395,7 @@ static_assert(offsetof(NetPacket_Fixed<0x2b14>, account_id) == 2, "offsetof(NetP
 static_assert(offsetof(NetPacket_Fixed<0x2b14>, ban_not_status) == 6, "offsetof(NetPacket_Fixed<0x2b14>, ban_not_status) == 6");
 static_assert(offsetof(NetPacket_Fixed<0x2b14>, status_or_ban_until) == 7, "offsetof(NetPacket_Fixed<0x2b14>, status_or_ban_until) == 7");
 static_assert(sizeof(NetPacket_Fixed<0x2b14>) == 11, "sizeof(NetPacket_Fixed<0x2b14>) == 11");
+static_assert(alignof(NetPacket_Fixed<0x2b14>) == 1, "alignof(NetPacket_Fixed<0x2b14>) == 1");
 
 template<>
 struct NetPacket_Head<0x2b15>
@@ -1372,6 +1406,7 @@ struct NetPacket_Head<0x2b15>
 static_assert(offsetof(NetPacket_Head<0x2b15>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x2b15>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Head<0x2b15>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x2b15>, magic_packet_length) == 2");
 static_assert(sizeof(NetPacket_Head<0x2b15>) == 4, "sizeof(NetPacket_Head<0x2b15>) == 4");
+static_assert(alignof(NetPacket_Head<0x2b15>) == 1, "alignof(NetPacket_Head<0x2b15>) == 1");
 template<>
 struct NetPacket_Repeat<0x2b15>
 {
@@ -1381,6 +1416,7 @@ struct NetPacket_Repeat<0x2b15>
 static_assert(offsetof(NetPacket_Repeat<0x2b15>, account_id) == 0, "offsetof(NetPacket_Repeat<0x2b15>, account_id) == 0");
 static_assert(offsetof(NetPacket_Repeat<0x2b15>, gm_level) == 4, "offsetof(NetPacket_Repeat<0x2b15>, gm_level) == 4");
 static_assert(sizeof(NetPacket_Repeat<0x2b15>) == 5, "sizeof(NetPacket_Repeat<0x2b15>) == 5");
+static_assert(alignof(NetPacket_Repeat<0x2b15>) == 1, "alignof(NetPacket_Repeat<0x2b15>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2b16>
@@ -1391,6 +1427,7 @@ struct NetPacket_Fixed<0x2b16>
 static_assert(offsetof(NetPacket_Fixed<0x2b16>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2b16>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x2b16>, char_id) == 2, "offsetof(NetPacket_Fixed<0x2b16>, char_id) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x2b16>) == 6, "sizeof(NetPacket_Fixed<0x2b16>) == 6");
+static_assert(alignof(NetPacket_Fixed<0x2b16>) == 1, "alignof(NetPacket_Fixed<0x2b16>) == 1");
 
 template<>
 struct NetPacket_Head<0x3000>
@@ -1401,6 +1438,7 @@ struct NetPacket_Head<0x3000>
 static_assert(offsetof(NetPacket_Head<0x3000>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x3000>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Head<0x3000>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x3000>, magic_packet_length) == 2");
 static_assert(sizeof(NetPacket_Head<0x3000>) == 4, "sizeof(NetPacket_Head<0x3000>) == 4");
+static_assert(alignof(NetPacket_Head<0x3000>) == 1, "alignof(NetPacket_Head<0x3000>) == 1");
 template<>
 struct NetPacket_Repeat<0x3000>
 {
@@ -1408,6 +1446,7 @@ struct NetPacket_Repeat<0x3000>
 };
 static_assert(offsetof(NetPacket_Repeat<0x3000>, c) == 0, "offsetof(NetPacket_Repeat<0x3000>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x3000>) == 1, "sizeof(NetPacket_Repeat<0x3000>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x3000>) == 1, "alignof(NetPacket_Repeat<0x3000>) == 1");
 
 template<>
 struct NetPacket_Head<0x3001>
@@ -1422,6 +1461,7 @@ static_assert(offsetof(NetPacket_Head<0x3001>, magic_packet_length) == 2, "offse
 static_assert(offsetof(NetPacket_Head<0x3001>, from_char_name) == 4, "offsetof(NetPacket_Head<0x3001>, from_char_name) == 4");
 static_assert(offsetof(NetPacket_Head<0x3001>, to_char_name) == 28, "offsetof(NetPacket_Head<0x3001>, to_char_name) == 28");
 static_assert(sizeof(NetPacket_Head<0x3001>) == 52, "sizeof(NetPacket_Head<0x3001>) == 52");
+static_assert(alignof(NetPacket_Head<0x3001>) == 1, "alignof(NetPacket_Head<0x3001>) == 1");
 template<>
 struct NetPacket_Repeat<0x3001>
 {
@@ -1429,6 +1469,7 @@ struct NetPacket_Repeat<0x3001>
 };
 static_assert(offsetof(NetPacket_Repeat<0x3001>, c) == 0, "offsetof(NetPacket_Repeat<0x3001>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x3001>) == 1, "sizeof(NetPacket_Repeat<0x3001>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x3001>) == 1, "alignof(NetPacket_Repeat<0x3001>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3002>
@@ -1441,6 +1482,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3002>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x3002>, char_id) == 2, "offsetof(NetPacket_Fixed<0x3002>, char_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x3002>, flag) == 6, "offsetof(NetPacket_Fixed<0x3002>, flag) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x3002>) == 7, "sizeof(NetPacket_Fixed<0x3002>) == 7");
+static_assert(alignof(NetPacket_Fixed<0x3002>) == 1, "alignof(NetPacket_Fixed<0x3002>) == 1");
 
 template<>
 struct NetPacket_Head<0x3003>
@@ -1455,6 +1497,7 @@ static_assert(offsetof(NetPacket_Head<0x3003>, magic_packet_length) == 2, "offse
 static_assert(offsetof(NetPacket_Head<0x3003>, char_name) == 4, "offsetof(NetPacket_Head<0x3003>, char_name) == 4");
 static_assert(offsetof(NetPacket_Head<0x3003>, min_gm_level) == 28, "offsetof(NetPacket_Head<0x3003>, min_gm_level) == 28");
 static_assert(sizeof(NetPacket_Head<0x3003>) == 30, "sizeof(NetPacket_Head<0x3003>) == 30");
+static_assert(alignof(NetPacket_Head<0x3003>) == 1, "alignof(NetPacket_Head<0x3003>) == 1");
 template<>
 struct NetPacket_Repeat<0x3003>
 {
@@ -1462,6 +1505,7 @@ struct NetPacket_Repeat<0x3003>
 };
 static_assert(offsetof(NetPacket_Repeat<0x3003>, c) == 0, "offsetof(NetPacket_Repeat<0x3003>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x3003>) == 1, "sizeof(NetPacket_Repeat<0x3003>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x3003>) == 1, "alignof(NetPacket_Repeat<0x3003>) == 1");
 
 template<>
 struct NetPacket_Head<0x3004>
@@ -1474,6 +1518,7 @@ static_assert(offsetof(NetPacket_Head<0x3004>, magic_packet_id) == 0, "offsetof(
 static_assert(offsetof(NetPacket_Head<0x3004>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x3004>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Head<0x3004>, account_id) == 4, "offsetof(NetPacket_Head<0x3004>, account_id) == 4");
 static_assert(sizeof(NetPacket_Head<0x3004>) == 8, "sizeof(NetPacket_Head<0x3004>) == 8");
+static_assert(alignof(NetPacket_Head<0x3004>) == 1, "alignof(NetPacket_Head<0x3004>) == 1");
 template<>
 struct NetPacket_Repeat<0x3004>
 {
@@ -1483,6 +1528,7 @@ struct NetPacket_Repeat<0x3004>
 static_assert(offsetof(NetPacket_Repeat<0x3004>, name) == 0, "offsetof(NetPacket_Repeat<0x3004>, name) == 0");
 static_assert(offsetof(NetPacket_Repeat<0x3004>, value) == 32, "offsetof(NetPacket_Repeat<0x3004>, value) == 32");
 static_assert(sizeof(NetPacket_Repeat<0x3004>) == 36, "sizeof(NetPacket_Repeat<0x3004>) == 36");
+static_assert(alignof(NetPacket_Repeat<0x3004>) == 1, "alignof(NetPacket_Repeat<0x3004>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3005>
@@ -1493,6 +1539,7 @@ struct NetPacket_Fixed<0x3005>
 static_assert(offsetof(NetPacket_Fixed<0x3005>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x3005>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x3005>, account_id) == 2, "offsetof(NetPacket_Fixed<0x3005>, account_id) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x3005>) == 6, "sizeof(NetPacket_Fixed<0x3005>) == 6");
+static_assert(alignof(NetPacket_Fixed<0x3005>) == 1, "alignof(NetPacket_Fixed<0x3005>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3010>
@@ -1503,6 +1550,7 @@ struct NetPacket_Fixed<0x3010>
 static_assert(offsetof(NetPacket_Fixed<0x3010>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x3010>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x3010>, account_id) == 2, "offsetof(NetPacket_Fixed<0x3010>, account_id) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x3010>) == 6, "sizeof(NetPacket_Fixed<0x3010>) == 6");
+static_assert(alignof(NetPacket_Fixed<0x3010>) == 1, "alignof(NetPacket_Fixed<0x3010>) == 1");
 
 template<>
 struct NetPacket_Payload<0x3011>
@@ -1516,6 +1564,7 @@ static_assert(offsetof(NetPacket_Payload<0x3011>, magic_packet_id) == 0, "offset
 static_assert(offsetof(NetPacket_Payload<0x3011>, magic_packet_length) == 2, "offsetof(NetPacket_Payload<0x3011>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Payload<0x3011>, account_id) == 4, "offsetof(NetPacket_Payload<0x3011>, account_id) == 4");
 static_assert(offsetof(NetPacket_Payload<0x3011>, storage) == 8, "offsetof(NetPacket_Payload<0x3011>, storage) == 8");
+static_assert(alignof(NetPacket_Payload<0x3011>) == 1, "alignof(NetPacket_Payload<0x3011>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3020>
@@ -1534,6 +1583,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3020>, char_name) == 30, "offsetof(NetP
 static_assert(offsetof(NetPacket_Fixed<0x3020>, map_name) == 54, "offsetof(NetPacket_Fixed<0x3020>, map_name) == 54");
 static_assert(offsetof(NetPacket_Fixed<0x3020>, level) == 70, "offsetof(NetPacket_Fixed<0x3020>, level) == 70");
 static_assert(sizeof(NetPacket_Fixed<0x3020>) == 72, "sizeof(NetPacket_Fixed<0x3020>) == 72");
+static_assert(alignof(NetPacket_Fixed<0x3020>) == 1, "alignof(NetPacket_Fixed<0x3020>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3021>
@@ -1544,6 +1594,7 @@ struct NetPacket_Fixed<0x3021>
 static_assert(offsetof(NetPacket_Fixed<0x3021>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x3021>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x3021>, party_id) == 2, "offsetof(NetPacket_Fixed<0x3021>, party_id) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x3021>) == 6, "sizeof(NetPacket_Fixed<0x3021>) == 6");
+static_assert(alignof(NetPacket_Fixed<0x3021>) == 1, "alignof(NetPacket_Fixed<0x3021>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3022>
@@ -1562,6 +1613,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3022>, char_name) == 10, "offsetof(NetP
 static_assert(offsetof(NetPacket_Fixed<0x3022>, map_name) == 34, "offsetof(NetPacket_Fixed<0x3022>, map_name) == 34");
 static_assert(offsetof(NetPacket_Fixed<0x3022>, level) == 50, "offsetof(NetPacket_Fixed<0x3022>, level) == 50");
 static_assert(sizeof(NetPacket_Fixed<0x3022>) == 52, "sizeof(NetPacket_Fixed<0x3022>) == 52");
+static_assert(alignof(NetPacket_Fixed<0x3022>) == 1, "alignof(NetPacket_Fixed<0x3022>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3023>
@@ -1578,6 +1630,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3023>, account_id) == 6, "offsetof(NetP
 static_assert(offsetof(NetPacket_Fixed<0x3023>, exp) == 10, "offsetof(NetPacket_Fixed<0x3023>, exp) == 10");
 static_assert(offsetof(NetPacket_Fixed<0x3023>, item) == 12, "offsetof(NetPacket_Fixed<0x3023>, item) == 12");
 static_assert(sizeof(NetPacket_Fixed<0x3023>) == 14, "sizeof(NetPacket_Fixed<0x3023>) == 14");
+static_assert(alignof(NetPacket_Fixed<0x3023>) == 1, "alignof(NetPacket_Fixed<0x3023>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3024>
@@ -1590,6 +1643,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3024>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x3024>, party_id) == 2, "offsetof(NetPacket_Fixed<0x3024>, party_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x3024>, account_id) == 6, "offsetof(NetPacket_Fixed<0x3024>, account_id) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x3024>) == 10, "sizeof(NetPacket_Fixed<0x3024>) == 10");
+static_assert(alignof(NetPacket_Fixed<0x3024>) == 1, "alignof(NetPacket_Fixed<0x3024>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3025>
@@ -1608,6 +1662,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3025>, map_name) == 10, "offsetof(NetPa
 static_assert(offsetof(NetPacket_Fixed<0x3025>, online) == 26, "offsetof(NetPacket_Fixed<0x3025>, online) == 26");
 static_assert(offsetof(NetPacket_Fixed<0x3025>, level) == 27, "offsetof(NetPacket_Fixed<0x3025>, level) == 27");
 static_assert(sizeof(NetPacket_Fixed<0x3025>) == 29, "sizeof(NetPacket_Fixed<0x3025>) == 29");
+static_assert(alignof(NetPacket_Fixed<0x3025>) == 1, "alignof(NetPacket_Fixed<0x3025>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3026>
@@ -1618,6 +1673,7 @@ struct NetPacket_Fixed<0x3026>
 static_assert(offsetof(NetPacket_Fixed<0x3026>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x3026>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x3026>, party_id) == 2, "offsetof(NetPacket_Fixed<0x3026>, party_id) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x3026>) == 6, "sizeof(NetPacket_Fixed<0x3026>) == 6");
+static_assert(alignof(NetPacket_Fixed<0x3026>) == 1, "alignof(NetPacket_Fixed<0x3026>) == 1");
 
 template<>
 struct NetPacket_Head<0x3027>
@@ -1632,6 +1688,7 @@ static_assert(offsetof(NetPacket_Head<0x3027>, magic_packet_length) == 2, "offse
 static_assert(offsetof(NetPacket_Head<0x3027>, party_id) == 4, "offsetof(NetPacket_Head<0x3027>, party_id) == 4");
 static_assert(offsetof(NetPacket_Head<0x3027>, account_id) == 8, "offsetof(NetPacket_Head<0x3027>, account_id) == 8");
 static_assert(sizeof(NetPacket_Head<0x3027>) == 12, "sizeof(NetPacket_Head<0x3027>) == 12");
+static_assert(alignof(NetPacket_Head<0x3027>) == 1, "alignof(NetPacket_Head<0x3027>) == 1");
 template<>
 struct NetPacket_Repeat<0x3027>
 {
@@ -1639,6 +1696,7 @@ struct NetPacket_Repeat<0x3027>
 };
 static_assert(offsetof(NetPacket_Repeat<0x3027>, c) == 0, "offsetof(NetPacket_Repeat<0x3027>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x3027>) == 1, "sizeof(NetPacket_Repeat<0x3027>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x3027>) == 1, "alignof(NetPacket_Repeat<0x3027>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3028>
@@ -1653,6 +1711,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3028>, party_id) == 2, "offsetof(NetPac
 static_assert(offsetof(NetPacket_Fixed<0x3028>, account_id) == 6, "offsetof(NetPacket_Fixed<0x3028>, account_id) == 6");
 static_assert(offsetof(NetPacket_Fixed<0x3028>, char_name) == 10, "offsetof(NetPacket_Fixed<0x3028>, char_name) == 10");
 static_assert(sizeof(NetPacket_Fixed<0x3028>) == 34, "sizeof(NetPacket_Fixed<0x3028>) == 34");
+static_assert(alignof(NetPacket_Fixed<0x3028>) == 1, "alignof(NetPacket_Fixed<0x3028>) == 1");
 
 template<>
 struct NetPacket_Head<0x3800>
@@ -1663,6 +1722,7 @@ struct NetPacket_Head<0x3800>
 static_assert(offsetof(NetPacket_Head<0x3800>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x3800>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Head<0x3800>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x3800>, magic_packet_length) == 2");
 static_assert(sizeof(NetPacket_Head<0x3800>) == 4, "sizeof(NetPacket_Head<0x3800>) == 4");
+static_assert(alignof(NetPacket_Head<0x3800>) == 1, "alignof(NetPacket_Head<0x3800>) == 1");
 template<>
 struct NetPacket_Repeat<0x3800>
 {
@@ -1670,6 +1730,7 @@ struct NetPacket_Repeat<0x3800>
 };
 static_assert(offsetof(NetPacket_Repeat<0x3800>, c) == 0, "offsetof(NetPacket_Repeat<0x3800>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x3800>) == 1, "sizeof(NetPacket_Repeat<0x3800>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x3800>) == 1, "alignof(NetPacket_Repeat<0x3800>) == 1");
 
 template<>
 struct NetPacket_Head<0x3801>
@@ -1686,6 +1747,7 @@ static_assert(offsetof(NetPacket_Head<0x3801>, whisper_id) == 4, "offsetof(NetPa
 static_assert(offsetof(NetPacket_Head<0x3801>, src_char_name) == 8, "offsetof(NetPacket_Head<0x3801>, src_char_name) == 8");
 static_assert(offsetof(NetPacket_Head<0x3801>, dst_char_name) == 32, "offsetof(NetPacket_Head<0x3801>, dst_char_name) == 32");
 static_assert(sizeof(NetPacket_Head<0x3801>) == 56, "sizeof(NetPacket_Head<0x3801>) == 56");
+static_assert(alignof(NetPacket_Head<0x3801>) == 1, "alignof(NetPacket_Head<0x3801>) == 1");
 template<>
 struct NetPacket_Repeat<0x3801>
 {
@@ -1693,6 +1755,7 @@ struct NetPacket_Repeat<0x3801>
 };
 static_assert(offsetof(NetPacket_Repeat<0x3801>, c) == 0, "offsetof(NetPacket_Repeat<0x3801>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x3801>) == 1, "sizeof(NetPacket_Repeat<0x3801>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x3801>) == 1, "alignof(NetPacket_Repeat<0x3801>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3802>
@@ -1705,6 +1768,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3802>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x3802>, sender_char_name) == 2, "offsetof(NetPacket_Fixed<0x3802>, sender_char_name) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x3802>, flag) == 26, "offsetof(NetPacket_Fixed<0x3802>, flag) == 26");
 static_assert(sizeof(NetPacket_Fixed<0x3802>) == 27, "sizeof(NetPacket_Fixed<0x3802>) == 27");
+static_assert(alignof(NetPacket_Fixed<0x3802>) == 1, "alignof(NetPacket_Fixed<0x3802>) == 1");
 
 template<>
 struct NetPacket_Head<0x3803>
@@ -1719,6 +1783,7 @@ static_assert(offsetof(NetPacket_Head<0x3803>, magic_packet_length) == 2, "offse
 static_assert(offsetof(NetPacket_Head<0x3803>, char_name) == 4, "offsetof(NetPacket_Head<0x3803>, char_name) == 4");
 static_assert(offsetof(NetPacket_Head<0x3803>, min_gm_level) == 28, "offsetof(NetPacket_Head<0x3803>, min_gm_level) == 28");
 static_assert(sizeof(NetPacket_Head<0x3803>) == 30, "sizeof(NetPacket_Head<0x3803>) == 30");
+static_assert(alignof(NetPacket_Head<0x3803>) == 1, "alignof(NetPacket_Head<0x3803>) == 1");
 template<>
 struct NetPacket_Repeat<0x3803>
 {
@@ -1726,6 +1791,7 @@ struct NetPacket_Repeat<0x3803>
 };
 static_assert(offsetof(NetPacket_Repeat<0x3803>, c) == 0, "offsetof(NetPacket_Repeat<0x3803>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x3803>) == 1, "sizeof(NetPacket_Repeat<0x3803>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x3803>) == 1, "alignof(NetPacket_Repeat<0x3803>) == 1");
 
 template<>
 struct NetPacket_Head<0x3804>
@@ -1738,6 +1804,7 @@ static_assert(offsetof(NetPacket_Head<0x3804>, magic_packet_id) == 0, "offsetof(
 static_assert(offsetof(NetPacket_Head<0x3804>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x3804>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Head<0x3804>, account_id) == 4, "offsetof(NetPacket_Head<0x3804>, account_id) == 4");
 static_assert(sizeof(NetPacket_Head<0x3804>) == 8, "sizeof(NetPacket_Head<0x3804>) == 8");
+static_assert(alignof(NetPacket_Head<0x3804>) == 1, "alignof(NetPacket_Head<0x3804>) == 1");
 template<>
 struct NetPacket_Repeat<0x3804>
 {
@@ -1747,6 +1814,7 @@ struct NetPacket_Repeat<0x3804>
 static_assert(offsetof(NetPacket_Repeat<0x3804>, name) == 0, "offsetof(NetPacket_Repeat<0x3804>, name) == 0");
 static_assert(offsetof(NetPacket_Repeat<0x3804>, value) == 32, "offsetof(NetPacket_Repeat<0x3804>, value) == 32");
 static_assert(sizeof(NetPacket_Repeat<0x3804>) == 36, "sizeof(NetPacket_Repeat<0x3804>) == 36");
+static_assert(alignof(NetPacket_Repeat<0x3804>) == 1, "alignof(NetPacket_Repeat<0x3804>) == 1");
 
 template<>
 struct NetPacket_Payload<0x3810>
@@ -1760,6 +1828,7 @@ static_assert(offsetof(NetPacket_Payload<0x3810>, magic_packet_id) == 0, "offset
 static_assert(offsetof(NetPacket_Payload<0x3810>, magic_packet_length) == 2, "offsetof(NetPacket_Payload<0x3810>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Payload<0x3810>, account_id) == 4, "offsetof(NetPacket_Payload<0x3810>, account_id) == 4");
 static_assert(offsetof(NetPacket_Payload<0x3810>, storage) == 8, "offsetof(NetPacket_Payload<0x3810>, storage) == 8");
+static_assert(alignof(NetPacket_Payload<0x3810>) == 1, "alignof(NetPacket_Payload<0x3810>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3811>
@@ -1772,6 +1841,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3811>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x3811>, account_id) == 2, "offsetof(NetPacket_Fixed<0x3811>, account_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x3811>, unknown) == 6, "offsetof(NetPacket_Fixed<0x3811>, unknown) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x3811>) == 7, "sizeof(NetPacket_Fixed<0x3811>) == 7");
+static_assert(alignof(NetPacket_Fixed<0x3811>) == 1, "alignof(NetPacket_Fixed<0x3811>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3820>
@@ -1788,6 +1858,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3820>, error) == 6, "offsetof(NetPacket
 static_assert(offsetof(NetPacket_Fixed<0x3820>, party_id) == 7, "offsetof(NetPacket_Fixed<0x3820>, party_id) == 7");
 static_assert(offsetof(NetPacket_Fixed<0x3820>, party_name) == 11, "offsetof(NetPacket_Fixed<0x3820>, party_name) == 11");
 static_assert(sizeof(NetPacket_Fixed<0x3820>) == 35, "sizeof(NetPacket_Fixed<0x3820>) == 35");
+static_assert(alignof(NetPacket_Fixed<0x3820>) == 1, "alignof(NetPacket_Fixed<0x3820>) == 1");
 
 template<>
 struct NetPacket_Head<0x3821>
@@ -1800,12 +1871,14 @@ static_assert(offsetof(NetPacket_Head<0x3821>, magic_packet_id) == 0, "offsetof(
 static_assert(offsetof(NetPacket_Head<0x3821>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x3821>, magic_packet_length) == 2");
 static_assert(offsetof(NetPacket_Head<0x3821>, party_id) == 4, "offsetof(NetPacket_Head<0x3821>, party_id) == 4");
 static_assert(sizeof(NetPacket_Head<0x3821>) == 8, "sizeof(NetPacket_Head<0x3821>) == 8");
+static_assert(alignof(NetPacket_Head<0x3821>) == 1, "alignof(NetPacket_Head<0x3821>) == 1");
 template<>
 struct NetPacket_Option<0x3821>
 {
     PartyMost party_most;
 };
 static_assert(offsetof(NetPacket_Option<0x3821>, party_most) == 0, "offsetof(NetPacket_Option<0x3821>, party_most) == 0");
+static_assert(alignof(NetPacket_Option<0x3821>) == 1, "alignof(NetPacket_Option<0x3821>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3822>
@@ -1820,6 +1893,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3822>, party_id) == 2, "offsetof(NetPac
 static_assert(offsetof(NetPacket_Fixed<0x3822>, account_id) == 6, "offsetof(NetPacket_Fixed<0x3822>, account_id) == 6");
 static_assert(offsetof(NetPacket_Fixed<0x3822>, flag) == 10, "offsetof(NetPacket_Fixed<0x3822>, flag) == 10");
 static_assert(sizeof(NetPacket_Fixed<0x3822>) == 11, "sizeof(NetPacket_Fixed<0x3822>) == 11");
+static_assert(alignof(NetPacket_Fixed<0x3822>) == 1, "alignof(NetPacket_Fixed<0x3822>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3823>
@@ -1838,6 +1912,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3823>, exp) == 10, "offsetof(NetPacket_
 static_assert(offsetof(NetPacket_Fixed<0x3823>, item) == 12, "offsetof(NetPacket_Fixed<0x3823>, item) == 12");
 static_assert(offsetof(NetPacket_Fixed<0x3823>, flag) == 14, "offsetof(NetPacket_Fixed<0x3823>, flag) == 14");
 static_assert(sizeof(NetPacket_Fixed<0x3823>) == 15, "sizeof(NetPacket_Fixed<0x3823>) == 15");
+static_assert(alignof(NetPacket_Fixed<0x3823>) == 1, "alignof(NetPacket_Fixed<0x3823>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3824>
@@ -1852,6 +1927,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3824>, party_id) == 2, "offsetof(NetPac
 static_assert(offsetof(NetPacket_Fixed<0x3824>, account_id) == 6, "offsetof(NetPacket_Fixed<0x3824>, account_id) == 6");
 static_assert(offsetof(NetPacket_Fixed<0x3824>, char_name) == 10, "offsetof(NetPacket_Fixed<0x3824>, char_name) == 10");
 static_assert(sizeof(NetPacket_Fixed<0x3824>) == 34, "sizeof(NetPacket_Fixed<0x3824>) == 34");
+static_assert(alignof(NetPacket_Fixed<0x3824>) == 1, "alignof(NetPacket_Fixed<0x3824>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3825>
@@ -1870,6 +1946,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3825>, map_name) == 10, "offsetof(NetPa
 static_assert(offsetof(NetPacket_Fixed<0x3825>, online) == 26, "offsetof(NetPacket_Fixed<0x3825>, online) == 26");
 static_assert(offsetof(NetPacket_Fixed<0x3825>, level) == 27, "offsetof(NetPacket_Fixed<0x3825>, level) == 27");
 static_assert(sizeof(NetPacket_Fixed<0x3825>) == 29, "sizeof(NetPacket_Fixed<0x3825>) == 29");
+static_assert(alignof(NetPacket_Fixed<0x3825>) == 1, "alignof(NetPacket_Fixed<0x3825>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x3826>
@@ -1882,6 +1959,7 @@ static_assert(offsetof(NetPacket_Fixed<0x3826>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x3826>, party_id) == 2, "offsetof(NetPacket_Fixed<0x3826>, party_id) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x3826>, flag) == 6, "offsetof(NetPacket_Fixed<0x3826>, flag) == 6");
 static_assert(sizeof(NetPacket_Fixed<0x3826>) == 7, "sizeof(NetPacket_Fixed<0x3826>) == 7");
+static_assert(alignof(NetPacket_Fixed<0x3826>) == 1, "alignof(NetPacket_Fixed<0x3826>) == 1");
 
 template<>
 struct NetPacket_Head<0x3827>
@@ -1896,6 +1974,7 @@ static_assert(offsetof(NetPacket_Head<0x3827>, magic_packet_length) == 2, "offse
 static_assert(offsetof(NetPacket_Head<0x3827>, party_id) == 4, "offsetof(NetPacket_Head<0x3827>, party_id) == 4");
 static_assert(offsetof(NetPacket_Head<0x3827>, account_id) == 8, "offsetof(NetPacket_Head<0x3827>, account_id) == 8");
 static_assert(sizeof(NetPacket_Head<0x3827>) == 12, "sizeof(NetPacket_Head<0x3827>) == 12");
+static_assert(alignof(NetPacket_Head<0x3827>) == 1, "alignof(NetPacket_Head<0x3827>) == 1");
 template<>
 struct NetPacket_Repeat<0x3827>
 {
@@ -1903,6 +1982,7 @@ struct NetPacket_Repeat<0x3827>
 };
 static_assert(offsetof(NetPacket_Repeat<0x3827>, c) == 0, "offsetof(NetPacket_Repeat<0x3827>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x3827>) == 1, "sizeof(NetPacket_Repeat<0x3827>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x3827>) == 1, "alignof(NetPacket_Repeat<0x3827>) == 1");
 
 
 inline __attribute__((warn_unused_result))
@@ -3456,6 +3536,6 @@ bool network_to_native(Packet_Repeat<0x3827> *native, NetPacket_Repeat<0x3827> n
 }
 
 
-#pragma pack(pop)
+# pragma pack(pop)
 
 #endif // TMWA_PROTO2_CHAR_MAP_HPP

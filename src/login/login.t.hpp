@@ -1,6 +1,6 @@
-#ifndef TMWA_LOGIN_TYPES_HPP
-#define TMWA_LOGIN_TYPES_HPP
-//    types.hpp - externally useful types from login
+#ifndef TMWA_LOGIN_LOGIN_T_HPP
+#define TMWA_LOGIN_LOGIN_T_HPP
+//    login.t.hpp - externally useful types from login
 //
 //    Copyright © ????-2004 Athena Dev Teams
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -40,4 +40,4 @@ ENUM_BITWISE_OPERATORS(VERSION_2)
 }
 using e::VERSION_2;
 
-#endif // TMWA_LOGIN_TYPES_HPP
+#endif // TMWA_LOGIN_LOGIN_T_HPP

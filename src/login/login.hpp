@@ -21,4 +21,6 @@
 
 # include "fwd.hpp"
 
+# include "login.t.hpp"
+
 #endif // TMWA_LOGIN_LOGIN_HPP

@@ -26,15 +26,30 @@
 
 # include "extract.hpp"
 
-class Species : public Wrapped<uint16_t> { public: explicit operator bool() const = delete; bool operator !() const = delete; Species() : Wrapped<uint16_t>() {} protected: constexpr explicit Species(uint16_t a) : Wrapped<uint16_t>(a) {} };
+class Species : public Wrapped<uint16_t> { public: explicit operator bool() const = delete; bool operator !() const = delete; constexpr Species() : Wrapped<uint16_t>() {} protected: constexpr explicit Species(uint16_t a) : Wrapped<uint16_t>(a) {} };
 
-class AccountId : public Wrapped<uint32_t> { public: AccountId() : Wrapped<uint32_t>() {} protected: constexpr explicit AccountId(uint32_t a) : Wrapped<uint32_t>(a) {} };
-class CharId : public Wrapped<uint32_t> { public: CharId() : Wrapped<uint32_t>() {} protected: constexpr explicit CharId(uint32_t a) : Wrapped<uint32_t>(a) {} };
+constexpr Species NEGATIVE_SPECIES = Species();
+
+inline
+bool extract(XString str, Species *w)
+{
+    // lots of data files use this
+    if (str == "-1"_s)
+    {
+        *w = NEGATIVE_SPECIES;
+        return true;
+    }
+    return extract(str, &w->_value);
+}
+
+
+class AccountId : public Wrapped<uint32_t> { public: constexpr AccountId() : Wrapped<uint32_t>() {} protected: constexpr explicit AccountId(uint32_t a) : Wrapped<uint32_t>(a) {} };
+class CharId : public Wrapped<uint32_t> { public: constexpr CharId() : Wrapped<uint32_t>() {} protected: constexpr explicit CharId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 // important note: slave mobs synthesize PartyId as -BlockId of master
-class PartyId : public Wrapped<uint32_t> { public: PartyId() : Wrapped<uint32_t>() {} protected: constexpr explicit PartyId(uint32_t a) : Wrapped<uint32_t>(a) {} };
-class ItemNameId : public Wrapped<uint16_t> { public: ItemNameId() : Wrapped<uint16_t>() {} protected: constexpr explicit ItemNameId(uint16_t a) : Wrapped<uint16_t>(a) {} };
+class PartyId : public Wrapped<uint32_t> { public: constexpr PartyId() : Wrapped<uint32_t>() {} protected: constexpr explicit PartyId(uint32_t a) : Wrapped<uint32_t>(a) {} };
+class ItemNameId : public Wrapped<uint16_t> { public: constexpr ItemNameId() : Wrapped<uint16_t>() {} protected: constexpr explicit ItemNameId(uint16_t a) : Wrapped<uint16_t>(a) {} };
 
-class BlockId : public Wrapped<uint32_t> { public: BlockId() : Wrapped<uint32_t>() {} protected: constexpr explicit BlockId(uint32_t a) : Wrapped<uint32_t>(a) {} };
+class BlockId : public Wrapped<uint32_t> { public: constexpr BlockId() : Wrapped<uint32_t>() {} protected: constexpr explicit BlockId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 
 class GmLevel
 {

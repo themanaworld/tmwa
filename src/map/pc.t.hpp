@@ -50,18 +50,7 @@ enum class ADDITEM
 enum class CalcStatus
 {
     NOW,
-    LATER ,
-};
-
-enum class PickupFail : uint8_t
-{
-    OKAY        = 0,
-    BAD_ITEM    = 1,
-    TOO_HEAVY   = 2,
-    TOO_FAR     = 3,
-    INV_FULL    = 4,
-    STACK_FULL  = 5,
-    DROP_STEAL  = 6,
+    LATER,
 };
 
 #endif // TMWA_MAP_PC_T_HPP

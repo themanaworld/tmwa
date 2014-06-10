@@ -46,7 +46,7 @@
 # include "../mmo/utils.hpp"
 
 # include "battle.t.hpp"
-# include "magic-interpreter.t.hpp"
+# include "clif.t.hpp"
 # include "mapflag.hpp"
 # include "mob.t.hpp"
 # include "script.hpp"   // change to script.t.hpp
@@ -194,7 +194,6 @@ struct map_session_data : block_list, SessionData
     Opt2 opt2;
     Opt3 opt3;
     DIR dir, head_dir;
-    tick_t client_tick, server_tick;
     struct walkpath_data walkpath;
     Timer walktimer;
     BlockId npc_id, areanpc_id, npc_shopid;
@@ -227,7 +226,7 @@ struct map_session_data : block_list, SessionData
     // like a weapon.  Check pc_attack_timer() for details.
     // Weapon equipment slot (slot 4) item override
     StatusChange attack_spell_icon_override;
-    short attack_spell_look_override;   // Weapon `look' (attack animation) override
+    ItemNameId attack_spell_look_override;   // Weapon `look' (attack animation) override
     short attack_spell_charges; // [Fate] Remaining number of charges for the attack spell
     interval_t attack_spell_delay;   // [Fate] ms delay after spell attack
     short attack_spell_range;   // [Fate] spell range
@@ -347,9 +346,7 @@ struct npc_data : block_list
 {
     NpcSubtype npc_subtype;
     short n;
-    // TODO This *should* be a Species, but the script files give -1 for
-    // event-only which is not valid unsigned
-    short npc_class;
+    Species npc_class;
     DIR dir;
     interval_t speed;
     NpcName name;

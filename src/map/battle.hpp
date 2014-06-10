@@ -31,7 +31,7 @@
 
 # include "../net/timer.t.hpp"
 
-# include "magic-interpreter.t.hpp"
+# include "clif.t.hpp"
 # include "map.t.hpp"
 # include "skill.t.hpp"
 

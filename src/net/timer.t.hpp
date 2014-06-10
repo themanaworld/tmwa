@@ -26,6 +26,8 @@
 # include <chrono>
 # include <functional>
 
+# include "../ints/little.hpp"
+
 # include "../generic/dumb_ptr.hpp"
 
 /// An implementation of the C++ "clock" concept, exposing
@@ -48,6 +50,55 @@ typedef milli_clock::time_point tick_t;
 typedef milli_clock::duration interval_t;
 /// (to get additional arguments, use std::bind or a lambda).
 typedef std::function<void (TimerData *, tick_t)> timer_func;
+
+// 49.7 day problem
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little32 *net, tick_t nat)
+{
+    auto tmp = nat.time_since_epoch().count();
+    return native_to_network(net, static_cast<uint32_t>(tmp));
+}
+
+inline __attribute__((warn_unused_result))
+bool network_to_native(tick_t *nat, Little32 net)
+{
+    (void)nat;
+    (void)net;
+    abort();
+}
+
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little32 *net, interval_t nat)
+{
+    auto tmp = nat.count();
+    return native_to_network(net, static_cast<uint32_t>(tmp));
+}
+
+inline __attribute__((warn_unused_result))
+bool network_to_native(interval_t *nat, Little32 net)
+{
+    uint32_t tmp;
+    bool rv = network_to_native(&tmp, net);
+    *nat = interval_t(tmp);
+    return rv;
+}
+
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *net, interval_t nat)
+{
+    auto tmp = nat.count();
+    return native_to_network(net, static_cast<uint16_t>(tmp));
+}
+
+inline __attribute__((warn_unused_result))
+bool network_to_native(interval_t *nat, Little16 net)
+{
+    uint16_t tmp;
+    bool rv = network_to_native(&tmp, net);
+    *nat = interval_t(tmp);
+    return rv;
+}
+
 
 class Timer
 {

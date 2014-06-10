@@ -31,7 +31,7 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "magic-interpreter.t.hpp"
+#include "clif.t.hpp"
 #include "map.hpp"
 
 #include "../poison.hpp"

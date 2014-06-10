@@ -271,6 +271,8 @@ class StructType(Type):
         if self.size is not None:
             s = 'sizeof(%s) == %d' % (name, self.size)
             f.write('static_assert({0}, "{0}");\n'.format(s))
+        s = 'alignof(%s) == 1' % (name)
+        f.write('static_assert({0}, "{0}");\n'.format(s))
 
     def dump_convert(self, f):
         f.write('inline __attribute__((warn_unused_result))\n')
@@ -340,7 +342,7 @@ class Include(object):
     def testcase(self, outdir):
         basename = os.path.basename(self.path.strip('<">'))
         root = os.path.splitext(basename)[0]
-        filename = 'include_%s_test.cpp' % root
+        filename = 'include_%s_test.cpp' % root.replace('.', '_')
         desc = 'testsuite for protocol includes'
         poison = relpath('src/poison.hpp', outdir)
         with open(os.path.join(outdir, filename), 'w') as f:
@@ -463,9 +465,10 @@ class Channel(object):
         self.client = client
         self.packets = []
 
-    def s(self, id, **kwargs):
+    def x(self, id, **kwargs):
         self.packets.append(packet(id, **kwargs))
-    r = s
+    r = x
+    s = x
 
     def dump(self, outdir, fwd):
         server = self.server
@@ -491,7 +494,7 @@ class Channel(object):
                 f.write('// This is an internal protocol, and can be changed without notice\n')
             f.write('\n')
             f.write('// this is only needed for the payload packet right now, and that needs to die\n')
-            f.write('#pragma pack(push, 1)\n')
+            f.write('# pragma pack(push, 1)\n')
             f.write('\n')
             for p in self.packets:
                 p.dump_fwd(fwd)
@@ -505,7 +508,7 @@ class Channel(object):
             for p in self.packets:
                 p.dump_convert(f)
             f.write('\n')
-            f.write('#pragma pack(pop)\n')
+            f.write('# pragma pack(pop)\n')
             f.write('\n')
             f.write('#endif // %s\n' % define)
 
@@ -720,12 +723,12 @@ class Context(object):
 
 def main():
 
-    # setup
+    ## setup
 
     ctx = Context(outdir='src/proto2/')
 
 
-    # headers
+    ## headers
 
     cstdint = ctx.sysinclude('cstdint')
 
@@ -734,6 +737,7 @@ def main():
     vstring_h = ctx.include('src/strings/vstring.hpp')
 
     ip_h = ctx.include('src/net/ip.hpp')
+    timer_th = ctx.include('src/net/timer.t.hpp')
 
     enums_h = ctx.include('src/mmo/enums.hpp')
     human_time_diff_h = ctx.include('src/mmo/human_time_diff.hpp')
@@ -743,9 +747,12 @@ def main():
     utils_h = ctx.include('src/mmo/utils.hpp')
     version_h = ctx.include('src/mmo/version.hpp')
 
-    login_types_h = ctx.include('src/login/types.hpp')
+    login_th = ctx.include('src/login/login.t.hpp')
 
-    # included types
+    clif_th = ctx.include('src/map/clif.t.hpp')
+    skill_th = ctx.include('src/map/skill.t.hpp')
+
+    ## included types
 
     uint8_t = cstdint.native('uint8_t')
     uint16_t = cstdint.native('uint16_t')
@@ -759,6 +766,7 @@ def main():
 
     SEX = enums_h.native('SEX')
     Option = enums_h.native('Option')
+    EPOS = enums_h.native('EPOS')
 
     Species = ids_h.native('Species')
     AccountId = ids_h.native('AccountId')
@@ -802,7 +810,8 @@ def main():
     #md5_native = md5_h.native('md5_native')
     #SaltString = md5_h.native('SaltString')
 
-    VERSION_2 = login_types_h.native('VERSION_2')
+    VERSION_2 = login_th.native('VERSION_2')
+
 
     # TODO: fix LIES
     char_key = mmo_h.neutral('CharKey')
@@ -810,7 +819,30 @@ def main():
     party_most = mmo_h.neutral('PartyMost')
     storage = mmo_h.neutral('Storage')
 
-    # generated types
+
+    Position1 = clif_th.native('Position1')
+    NetPosition1 = clif_th.network('NetPosition1')
+    Position2 = clif_th.native('Position2')
+    NetPosition2 = clif_th.network('NetPosition2')
+    BeingRemoveWhy = clif_th.native('BeingRemoveWhy')
+    DIR = clif_th.native('DIR')
+    Opt1 = clif_th.native('Opt1')
+    Opt2 = clif_th.native('Opt2')
+    Opt3 = clif_th.native('Opt3')
+    ItemType = clif_th.native('ItemType')
+    PickupFail = clif_th.native('PickupFail')
+    DamageType = clif_th.native('DamageType')
+    SP = clif_th.native('SP')
+    LOOK = clif_th.native('LOOK')
+
+    SkillID = skill_th.native('SkillID')
+    StatusChange = skill_th.native('StatusChange')
+    SkillFlags = skill_th.native('SkillFlags')
+
+    tick_t = timer_th.native('tick_t')
+    interval_t = timer_th.native('interval_t')
+
+    ## generated types
 
     u8 = ctx.provided(uint8_t, Byte)
     u16 = ctx.provided(uint16_t, Little16)
@@ -819,8 +851,30 @@ def main():
 
     sex_char = ctx.provided(SEX, NeutralType('char'))
 
+    dir = ctx.enum(DIR, u8)
+    pos1 = ctx.provided(Position1, NetPosition1)
+    pos2 = ctx.provided(Position2, NetPosition2)
+    being_remove_why = ctx.enum(BeingRemoveWhy, u8)
+    opt1 = ctx.enum(Opt1, u16)
+    opt2 = ctx.enum(Opt2, u16)
+    opt3 = ctx.enum(Opt3, u16)
+    item_type = ctx.enum(ItemType, u8)
+    pickup_fail = ctx.enum(PickupFail, u8)
+    damage_type = ctx.enum(DamageType, u8)
+    sp = ctx.enum(SP, u16)
+    look = ctx.enum(LOOK, u8)
+
+    skill_id = ctx.enum(SkillID, u16)
+    status_change = ctx.enum(StatusChange, u16)
+    skill_flags = ctx.enum(SkillFlags, u16)
+
+    tick32 = ctx.provided(tick_t, Little32)
+    interval32 = ctx.provided(interval_t, Little32)
+    interval16 = ctx.provided(interval_t, Little16)
+
     sex = ctx.enum(SEX, u8)
     option = ctx.enum(Option, u16)
+    epos = ctx.enum(EPOS, u16)
 
     species = ctx.wrap(Species, u16)
     account_id = ctx.wrap(AccountId, u32)
@@ -927,7 +981,7 @@ def main():
                 at(48, u16, 'max sp'),
                 at(50, u16, 'speed'),
                 at(52, species, 'species'),
-                at(54, u16, 'hair_style'),
+                at(54, u16, 'hair style'),
                 at(56, u16, 'weapon'),
                 at(58, u16, 'base level'),
                 at(60, u16, 'skill point'),
@@ -946,8 +1000,22 @@ def main():
             ],
             size=106,
     )
+    skill_info = ctx.struct(
+            'SkillInfo',
+            [
+                at(0, skill_id, 'skill id'),
+                at(2, u16, 'type or inf'),
+                at(4, skill_flags, 'flags'),
+                at(6, u16, 'level'),
+                at(8, u16, 'sp'),
+                at(10, u16, 'range'),
+                at(12, str24, 'unused'),
+                at(36, u8, 'can raise'),
+            ],
+            size=37,
+    )
 
-    # packets
+    ## packet channels
 
     # this is a somewhat simplistic view. For packets that get forwarded,
     # it may be worth pretending something like admin->char, map->login ...
@@ -969,6 +1037,8 @@ def main():
 
     any_user = ctx.chan('any', 'user')
 
+
+    ## legacy packets
 
     # * user
     char_user.r(0x0061,
@@ -1042,7 +1112,6 @@ def main():
         ],
         fixed_size=46,
     )
-
     login_user.r(0x0069,
         head=[
             at(0, u16, 'packet id'),
@@ -1130,7 +1199,146 @@ def main():
         ],
         fixed_size=28,
     )
-
+    map_user.r(0x0072,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_id, 'char id'),
+            at(10, u32, 'login id1'),
+            at(14, u32, 'client tick'),
+            at(18, sex, 'sex'),
+        ],
+        fixed_size=19,
+    )
+    map_user.s(0x0073,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, tick32, 'tick'),
+            at(6, pos1, 'pos'),
+            at(9, u8, 'five1'),
+            at(10, u8, 'five2'),
+        ],
+        fixed_size=11,
+    )
+    map_user.s(0x0078,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, interval16, 'speed'),
+            at(8, opt1, 'opt1'),
+            at(10, opt2, 'opt2'),
+            at(12, option, 'option'),
+            at(14, species, 'species'),
+            at(16, u16, 'unused hair style'),
+            at(18, u16, 'unused weapon'),
+            at(20, u16, 'unused head bottom or species again'),
+            at(22, u16, 'unused shield or part of guild emblem'),
+            at(24, u16, 'unused head top or unused part of guild emblem'),
+            at(26, u16, 'unused head mid or part of guild id'),
+            at(28, u16, 'unused hair color or part of guild id'),
+            at(30, u16, 'unused clothes color'),
+            at(32, u16, 'unused 1'),
+            at(34, u16, 'unused 2'),
+            at(36, pos1, 'unused pos again'),
+            at(39, u8, 'unused 4b'),
+            at(40, u16, 'unused 5'),
+            at(42, u16, 'unused zero 1'),
+            at(44, u8, 'unused zero 2'),
+            at(45, u8, 'unused sex'),
+            at(46, pos1, 'pos'),
+            at(49, u8, 'five1'),
+            at(50, u8, 'five2'),
+            at(51, u8, 'zero'),
+            at(52, u16, 'level'),
+        ],
+        fixed_size=54,
+    )
+    map_user.s(0x007b,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, interval16, 'speed'),
+            at(8, opt1, 'opt1'),
+            at(10, opt2, 'opt2'),
+            at(12, option, 'option'),
+            at(14, species, 'mob class'),
+            at(16, u16, 'unused hair style'),
+            at(18, u16, 'unused weapon'),
+            at(20, u16, 'unused head bottom'),
+            at(22, tick32, 'tick and maybe part of guild emblem'),
+            at(26, u16, 'unused shield or maybe part of guild emblem'),
+            at(28, u16, 'unused head top or maybe part of guild id'),
+            at(30, u16, 'unused head mid or maybe part of guild id'),
+            at(32, u16, 'unused hair color'),
+            at(34, u16, 'unused clothes color'),
+            at(36, u16, 'unused 1'),
+            at(38, u16, 'unused 2'),
+            at(40, u16, 'unused 3'),
+            at(42, u16, 'unused 4'),
+            at(44, u16, 'unused 5'),
+            at(46, u16, 'unused zero 1'),
+            at(48, u8, 'unused zero 2'),
+            at(49, u8, 'unused sex'),
+            at(50, pos2, 'pos2'),
+            at(55, u8, 'zero'),
+            at(56, u8, 'five1'),
+            at(57, u8, 'five2'),
+            at(58, u16, 'level'),
+        ],
+        fixed_size=60,
+    )
+    map_user.s(0x007c,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, interval16, 'speed'),
+            at(8, opt1, 'opt1'),
+            at(10, opt2, 'opt2'),
+            at(12, option, 'option'),
+            at(14, u16, 'unknown 1'),
+            at(16, u16, 'unknown 2'),
+            at(18, u16, 'unknown 3'),
+            at(20, species, 'species'),
+            at(22, u16, 'unknown 4'),
+            at(24, u16, 'unknown 5'),
+            at(26, u16, 'unknown 6'),
+            at(28, u16, 'unknown 7'),
+            at(30, u16, 'unknown 8'),
+            at(32, u16, 'unknown 9'),
+            at(34, u16, 'unknown 10'),
+            at(36, pos1, 'pos'),
+            at(39, u16, 'unknown 11'),
+        ],
+        fixed_size=41,
+    )
+    map_user.r(0x007d,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.r(0x007e,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u32, 'client tick'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x007f,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, tick32, 'tick'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x0080,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, being_remove_why, 'type'),
+        ],
+        fixed_size=7,
+    )
     any_user.s(0x0081,
         fixed=[
             at(0, u16, 'packet id'),
@@ -1138,7 +1346,1311 @@ def main():
         ],
         fixed_size=3,
     )
-
+    map_user.r(0x0085,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, pos1, 'pos'),
+        ],
+        fixed_size=5,
+    )
+    map_user.s(0x0087,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, tick32, 'tick'),
+            at(6, pos2, 'pos2'),
+            at(11, u8, 'zero'),
+        ],
+        fixed_size=12,
+    )
+    map_user.s(0x0088,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u16, 'x'),
+            at(8, u16, 'y'),
+        ],
+        fixed_size=10,
+    )
+    map_user.r(0x0089,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'target id'),
+            at(6, damage_type, 'action'),
+        ],
+        fixed_size=7,
+    )
+    map_user.s(0x008a,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'src id'),
+            at(6, block_id, 'dst id'),
+            at(10, tick32, 'tick'),
+            at(14, interval32, 'sdelay'),
+            at(18, interval32, 'ddelay'),
+            at(22, u16, 'damage'),
+            at(24, u16, 'div'),
+            at(26, damage_type, 'damage type'),
+            at(27, u16, 'damage2'),
+        ],
+        fixed_size=29,
+    )
+    map_user.r(0x008c,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.s(0x008d,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, block_id, 'block id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.s(0x008e,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.r(0x0090,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u8, 'unused'),
+        ],
+        fixed_size=7,
+    )
+    map_user.s(0x0091,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, map_name, 'map name'),
+            at(18, u16, 'x'),
+            at(20, u16, 'y'),
+        ],
+        fixed_size=22,
+    )
+    map_user.s(0x0092,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, map_name, 'map name'),
+            at(18, u16, 'x'),
+            at(20, u16, 'y'),
+            at(22, ip4, 'ip'),
+            at(26, u16, 'port'),
+        ],
+        fixed_size=28,
+    )
+    map_user.r(0x0094,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x0095,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, char_name, 'char name'),
+        ],
+        fixed_size=30,
+    )
+    map_user.r(0x0096,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, char_name, 'target name'),
+        ],
+        head_size=28,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.s(0x0097,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, char_name, 'char name'),
+        ],
+        head_size=28,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.s(0x0098,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'flag'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x009a,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.r(0x009b,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'unused'),
+            at(4, u8, 'client dir'),
+        ],
+        fixed_size=5,
+    )
+    map_user.s(0x009c,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u16, 'zero'),
+            at(8, u8, 'client dir'),
+        ],
+        fixed_size=9,
+    )
+    map_user.s(0x009d,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, item_name_id, 'name id'),
+            at(8, u8, 'identify'),
+            at(9, u16, 'x'),
+            at(11, u16, 'y'),
+            at(13, u16, 'amount'),
+            at(15, u8, 'subx'),
+            at(16, u8, 'suby'),
+        ],
+        fixed_size=17,
+    )
+    map_user.s(0x009e,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, item_name_id, 'name id'),
+            at(8, u8, 'identify'),
+            at(9, u16, 'x'),
+            at(11, u16, 'y'),
+            at(13, u8, 'subx'),
+            at(14, u8, 'suby'),
+            at(15, u16, 'amount'),
+        ],
+        fixed_size=17,
+    )
+    map_user.r(0x009f,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'object id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00a0,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, u16, 'amount'),
+            at(6, item_name_id, 'name id'),
+            at(8, u8, 'identify'),
+            at(9, u8, 'broken or attribute'),
+            at(10, u8, 'refine'),
+            at(11, u16, 'card0'),
+            at(13, u16, 'card1'),
+            at(15, u16, 'card2'),
+            at(17, u16, 'card3'),
+            at(19, epos, 'epos'),
+            at(21, item_type, 'item type'),
+            at(22, pickup_fail, 'pickup fail'),
+        ],
+        fixed_size=23,
+    )
+    map_user.s(0x00a1,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x00a2,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, u16, 'amount'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00a4,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'ioff2'),
+            at(2, item_name_id, 'name id'),
+            at(4, item_type, 'item type'),
+            at(5, u8, 'identify'),
+            at(6, epos, 'epos pc'),
+            at(8, epos, 'epos inv'),
+            at(10, u8, 'broken or attribute'),
+            at(11, u8, 'refine'),
+            at(12, u16, 'card0'),
+            at(14, u16, 'card1'),
+            at(16, u16, 'card2'),
+            at(18, u16, 'card3'),
+        ],
+        repeat_size=20,
+    )
+    map_user.s(0x00a6,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'soff1'),
+            at(2, item_name_id, 'name id'),
+            at(4, item_type, 'item type'),
+            at(5, u8, 'identify'),
+            at(6, epos, 'epos id'),
+            at(8, epos, 'epos stor'),
+            at(10, u8, 'broken or attribute'),
+            at(11, u8, 'refine'),
+            at(12, u16, 'card0'),
+            at(14, u16, 'card1'),
+            at(16, u16, 'card2'),
+            at(18, u16, 'card3'),
+        ],
+        repeat_size=20,
+    )
+    map_user.r(0x00a7,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, u32, 'unused id'),
+        ],
+        fixed_size=8,
+    )
+    map_user.s(0x00a8,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, u16, 'amount'),
+            at(6, u8, 'ok'),
+        ],
+        fixed_size=7,
+    )
+    map_user.r(0x00a9,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, epos, 'epos ignored'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00aa,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, epos, 'epos'),
+            at(6, u8, 'ok'),
+        ],
+        fixed_size=7,
+    )
+    map_user.r(0x00ab,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+        ],
+        fixed_size=4,
+    )
+    map_user.s(0x00ac,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, epos, 'epos'),
+            at(6, u8, 'ok'),
+        ],
+        fixed_size=7,
+    )
+    map_user.s(0x00af,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, u16, 'amount'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00b0,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, sp, 'sp type'),
+            at(4, u32, 'value'),
+        ],
+        fixed_size=8,
+    )
+    map_user.s(0x00b1,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, sp, 'sp type'),
+            at(4, u32, 'value'),
+        ],
+        fixed_size=8,
+    )
+    map_user.r(0x00b2,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'flag'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x00b3,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'one'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x00b4,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, block_id, 'block id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.s(0x00b5,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00b6,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00b7,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, block_id, 'block id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.r(0x00b8,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'npc id'),
+            at(6, u8, 'menu entry'),
+        ],
+        fixed_size=7,
+    )
+    map_user.r(0x00b9,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'npc id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x00bb,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, sp, 'asp'),
+            at(4, u8, 'unused'),
+        ],
+        fixed_size=5,
+    )
+    map_user.s(0x00bc,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, sp, 'sp type'),
+            at(4, u8, 'ok'),
+            at(5, u8, 'val'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00bd,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'status point'),
+            at(4, u8, 'str attr'),
+            at(5, u8, 'str upd'),
+            at(6, u8, 'agi attr'),
+            at(7, u8, 'agi upd'),
+            at(8, u8, 'vit attr'),
+            at(9, u8, 'vit upd'),
+            at(10, u8, 'int attr'),
+            at(11, u8, 'int upd'),
+            at(12, u8, 'dex attr'),
+            at(13, u8, 'dex upd'),
+            at(14, u8, 'luk attr'),
+            at(15, u8, 'luk upd'),
+            at(16, u16, 'atk sum'),
+            at(18, u16, 'watk2'),
+            at(20, u16, 'matk1'),
+            at(22, u16, 'matk2'),
+            at(24, u16, 'def'),
+            at(26, u16, 'def2'),
+            at(28, u16, 'mdef'),
+            at(30, u16, 'mdef2'),
+            at(32, u16, 'hit'),
+            at(34, u16, 'flee'),
+            at(36, u16, 'flee2'),
+            at(38, u16, 'critical'),
+            at(40, u16, 'karma'),
+            at(42, u16, 'manner'),
+        ],
+        fixed_size=44,
+    )
+    map_user.s(0x00be,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, sp, 'sp type'),
+            at(4, u8, 'value'),
+        ],
+        fixed_size=5,
+    )
+    map_user.r(0x00bf,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'emote'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x00c0,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u8, 'type'),
+        ],
+        fixed_size=7,
+    )
+    map_user.r(0x00c1,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.s(0x00c2,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u32, 'users'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00c4,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x00c5,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u8, 'type'),
+        ],
+        fixed_size=7,
+    )
+    map_user.s(0x00c6,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u32, 'base price'),
+            at(4, u32, 'actual price'),
+            at(8, item_type, 'type'),
+            at(9, item_name_id, 'name id'),
+        ],
+        repeat_size=11,
+    )
+    map_user.s(0x00c7,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'ioff2'),
+            at(2, u32, 'base price'),
+            at(6, u32, 'actual price'),
+        ],
+        repeat_size=10,
+    )
+    map_user.r(0x00c8,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'count'),
+            at(2, item_name_id, 'name id'),
+        ],
+        repeat_size=4,
+    )
+    map_user.r(0x00c9,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'ioff2'),
+            at(2, u16, 'count'),
+        ],
+        repeat_size=4,
+    )
+    map_user.s(0x00ca,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'fail'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x00cb,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'fail'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x00cd,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x00e4,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00e5,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_name, 'char name'),
+        ],
+        fixed_size=26,
+    )
+    map_user.r(0x00e6,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'type'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x00e7,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'type'),
+        ],
+        fixed_size=3,
+    )
+    map_user.r(0x00e8,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'zeny or ioff2'),
+            at(4, u32, 'amount'),
+        ],
+        fixed_size=8,
+    )
+    map_user.s(0x00e9,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u32, 'amount'),
+            at(6, item_name_id, 'name id'),
+            at(8, u8, 'identify'),
+            at(9, u8, 'broken or attribute'),
+            at(10, u8, 'refine'),
+            at(11, u16, 'card0'),
+            at(13, u16, 'card1'),
+            at(15, u16, 'card2'),
+            at(17, u16, 'card3'),
+        ],
+        fixed_size=19,
+    )
+    map_user.r(0x00eb,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.s(0x00ec,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'fail'),
+        ],
+        fixed_size=3,
+    )
+    map_user.r(0x00ed,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.s(0x00ee,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.r(0x00ef,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.s(0x00f0,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'fail'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x00f2,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'current slots'),
+            at(4, u16, 'max slots'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x00f3,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, u32, 'amount'),
+        ],
+        fixed_size=8,
+    )
+    map_user.s(0x00f4,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'soff1'),
+            at(4, u32, 'amount'),
+            at(8, item_name_id, 'name id'),
+            at(10, u8, 'identify'),
+            at(11, u8, 'broken or attribute'),
+            at(12, u8, 'refine'),
+            at(13, u16, 'card0'),
+            at(15, u16, 'card1'),
+            at(17, u16, 'card2'),
+            at(19, u16, 'card3'),
+        ],
+        fixed_size=21,
+    )
+    map_user.r(0x00f5,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'soff1'),
+            at(4, u32, 'amount'),
+        ],
+        fixed_size=8,
+    )
+    map_user.s(0x00f6,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'soff1'),
+            at(4, u32, 'amount'),
+        ],
+        fixed_size=8,
+    )
+    map_user.r(0x00f7,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.s(0x00f8,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.r(0x00f9,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_name, 'party name'),
+        ],
+        fixed_size=26,
+    )
+    map_user.s(0x00fa,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'flag'),
+        ],
+        fixed_size=3,
+    )
+    map_user.s(0x00fb,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, party_name, 'party name'),
+        ],
+        head_size=28,
+        repeat=[
+            at(0, account_id, 'account id'),
+            at(4, char_name, 'char name'),
+            at(28, map_name, 'map name'),
+            at(44, u8, 'leader'),
+            at(45, u8, 'online'),
+        ],
+        repeat_size=46,
+    )
+    map_user.r(0x00fc,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x00fd,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_name, 'char name'),
+            at(26, u8, 'flag'),
+        ],
+        fixed_size=27,
+    )
+    map_user.s(0x00fe,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, party_name, 'party name'),
+        ],
+        fixed_size=30,
+    )
+    map_user.r(0x00ff,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'flag'),
+        ],
+        fixed_size=10,
+    )
+    map_user.r(0x0100,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.s(0x0101,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'exp'),
+            at(4, u16, 'item'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x0102,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'exp'),
+            at(4, u16, 'item'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x0103,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_name, 'unused char name'),
+        ],
+        fixed_size=30,
+    )
+    map_user.s(0x0105,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_name, 'char name'),
+            at(30, u8, 'flag'),
+        ],
+        fixed_size=31,
+    )
+    map_user.s(0x0106,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u16, 'hp'),
+            at(8, u16, 'max hp'),
+        ],
+        fixed_size=10,
+    )
+    map_user.s(0x0107,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u16, 'x'),
+            at(8, u16, 'y'),
+        ],
+        fixed_size=10,
+    )
+    map_user.r(0x0108,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.s(0x0109,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1
+    )
+    map_user.s(0x010c,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x010e,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, skill_id, 'skill id'),
+            at(4, u16, 'level'),
+            at(6, u16, 'sp'),
+            at(8, u16, 'range'),
+            at(10, u8, 'can raise'),
+        ],
+        fixed_size=11,
+    )
+    map_user.s(0x010f,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, skill_info, 'info'),
+        ],
+        repeat_size=37,
+    )
+    map_user.s(0x0110,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, skill_id, 'skill id'),
+            at(4, u16, 'btype'),
+            at(6, u16, 'zero1'),
+            at(8, u8, 'zero2'),
+            at(9, u8, 'type'),
+        ],
+        fixed_size=10,
+    )
+    map_user.r(0x0112,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, skill_id, 'skill id'),
+        ],
+        fixed_size=4,
+    )
+    map_user.r(0x0118,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.s(0x0119,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, opt1, 'opt1'),
+            at(8, opt2, 'opt2'),
+            at(10, option, 'option'),
+            at(12, u8, 'zero'),
+        ],
+        fixed_size=13,
+    )
+    map_user.s(0x0139,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u16, 'bl x'),
+            at(8, u16, 'bl y'),
+            at(10, u16, 'sd x'),
+            at(12, u16, 'sd y'),
+            at(14, u16, 'range'),
+        ],
+        fixed_size=16,
+    )
+    map_user.s(0x013a,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'attack range'),
+        ],
+        fixed_size=4,
+    )
+    map_user.s(0x013b,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'type'),
+        ],
+        fixed_size=4,
+    )
+    map_user.s(0x013c,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+        ],
+        fixed_size=4,
+    )
+    map_user.s(0x0141,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, sp, 'sp type'),
+            at(4, u16, 'zero'),
+            at(6, u32, 'value status'),
+            at(10, u32, 'value b e'),
+        ],
+        fixed_size=14,
+    )
+    map_user.s(0x0142,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x0143,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u32, 'input int value'),
+        ],
+        fixed_size=10,
+    )
+    map_user.r(0x0146,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.s(0x0147,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, skill_info, 'info'),
+        ],
+        fixed_size=39,
+    )
+    map_user.s(0x0148,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u16, 'type'),
+        ],
+        fixed_size=8,
+    )
+    map_user.r(0x014d,
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+    )
+    map_user.r(0x018a,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'unused'),
+        ],
+        fixed_size=4,
+    )
+    map_user.s(0x018b,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'okay'),
+        ],
+        fixed_size=4,
+    )
+    map_user.s(0x0195,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, party_name, 'party name'),
+            at(30, str24, 'guild name'),
+            at(54, str24, 'guild pos'),
+            at(78, str24, 'guild pos again'),
+        ],
+        fixed_size=102,
+    )
+    map_user.s(0x0196,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, status_change, 'sc type'),
+            at(4, block_id, 'block id'),
+            at(8, u8, 'flag'),
+        ],
+        fixed_size=9,
+    )
+    map_user.s(0x019b,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u32, 'type'),
+        ],
+        fixed_size=10,
+    )
+    map_user.s(0x01b1,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, u16, 'amount'),
+            at(6, u8, 'fail'),
+        ],
+        fixed_size=7,
+    )
+    map_user.s(0x01c8,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'ioff2'),
+            at(4, item_name_id, 'name id'),
+            at(6, block_id, 'block id'),
+            at(10, u16, 'amount'),
+            at(12, u8, 'ok'),
+        ],
+        fixed_size=13,
+    )
+    map_user.s(0x01d4,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+        ],
+        fixed_size=6,
+    )
+    map_user.r(0x01d5,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, block_id, 'block id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+    )
+    map_user.s(0x01d7,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, look, 'look type'),
+            at(7, u16, 'weapon or name id or value'),
+            at(9, item_name_id, 'shield'),
+        ],
+        fixed_size=11,
+    )
+    # very similar to, but not compatible with, 0x01d9 and 0x01da
+    map_user.s(0x01d8,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, interval16, 'speed'),
+            at(8, opt1, 'opt1'),
+            at(10, opt2, 'opt2'),
+            at(12, option, 'option'),
+            at(14, species, 'species'),
+            at(16, u16, 'hair style'),
+            at(18, item_name_id, 'weapon'),
+            at(20, item_name_id, 'shield'),
+            at(22, item_name_id, 'head bottom'),
+            at(24, item_name_id, 'head top'),
+            at(26, item_name_id, 'head mid'),
+            at(28, u16, 'hair color'),
+            at(30, u16, 'clothes color'),
+            at(32, dir, 'head dir'),
+            at(33, u8, 'unused2'),
+            at(34, u32, 'guild id'),
+            at(38, u16, 'guild emblem id'),
+            at(40, u16, 'manner'),
+            at(42, opt3, 'opt3'),
+            at(44, u8, 'karma'),
+            at(45, sex, 'sex'),
+            at(46, pos1, 'pos'),
+            at(49, u16, 'gm bits'),
+            at(51, u8, 'dead sit'),
+            at(52, u16, 'unused'),
+        ],
+        fixed_size=54,
+    )
+    # very similar to, but not compatible with, 0x01d8 and 0x01da
+    map_user.s(0x01d9,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, interval16, 'speed'),
+            at(8, opt1, 'opt1'),
+            at(10, opt2, 'opt2'),
+            at(12, option, 'option'),
+            at(14, species, 'species'),
+            at(16, u16, 'hair style'),
+            at(18, item_name_id, 'weapon'),
+            at(20, item_name_id, 'shield'),
+            at(22, item_name_id, 'head bottom'),
+            at(24, item_name_id, 'head top'),
+            at(26, item_name_id, 'head mid'),
+            at(28, u16, 'hair color'),
+            at(30, u16, 'clothes color'),
+            at(32, dir, 'head dir'),
+            at(33, u8, 'unused2'),
+            at(34, u32, 'guild id'),
+            at(38, u16, 'guild emblem id'),
+            at(40, u16, 'manner'),
+            at(42, opt3, 'opt3'),
+            at(44, u8, 'karma'),
+            at(45, sex, 'sex'),
+            at(46, pos1, 'pos'),
+            at(49, u16, 'gm bits'),
+            at(51, u16, 'unused'),
+        ],
+        fixed_size=53,
+    )
+    # very similar to, but not compatible with, 0x01d8 and 0x01d9
+    map_user.s(0x01da,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, interval16, 'speed'),
+            at(8, opt1, 'opt1'),
+            at(10, opt2, 'opt2'),
+            at(12, option, 'option'),
+            at(14, species, 'species'),
+            at(16, u16, 'hair style'),
+            at(18, item_name_id, 'weapon'),
+            at(20, item_name_id, 'shield'),
+            at(22, item_name_id, 'head bottom'),
+            at(24, tick32, 'tick'),
+            at(28, item_name_id, 'head top'),
+            at(30, item_name_id, 'head mid'),
+            at(32, u16, 'hair color'),
+            at(34, u16, 'clothes color'),
+            at(36, dir, 'head dir'),
+            at(37, u8, 'unused2'),
+            at(38, u32, 'guild id'),
+            at(42, u16, 'guild emblem id'),
+            at(44, u16, 'manner'),
+            at(46, opt3, 'opt3'),
+            at(48, u8, 'karma'),
+            at(49, sex, 'sex'),
+            at(50, pos2, 'pos2'),
+            at(55, u16, 'gm bits'),
+            at(57, u8, 'five'),
+            at(58, u16, 'unused'),
+        ],
+        fixed_size=60,
+    )
+    map_user.s(0x01de,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, skill_id, 'skill id'),
+            at(4, block_id, 'src id'),
+            at(8, block_id, 'dst id'),
+            at(12, tick32, 'tick'),
+            at(16, interval32, 'sdelay'),
+            at(20, interval32, 'ddelay'),
+            at(24, u32, 'damage'),
+            at(28, u16, 'skill level'),
+            at(30, u16, 'div'),
+            at(32, u8, 'type or hit'),
+        ],
+        fixed_size=33,
+    )
+    map_user.s(0x01ee,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'ioff2'),
+            at(2, item_name_id, 'name id'),
+            at(4, item_type, 'item type'),
+            at(5, u8, 'identify'),
+            at(6, u16, 'amount'),
+            at(8, epos, 'epos'),
+            at(10, u16, 'card0'),
+            at(12, u16, 'card1'),
+            at(14, u16, 'card2'),
+            at(16, u16, 'card3'),
+        ],
+        repeat_size=18,
+    )
+    map_user.s(0x01f0,
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'soff1'),
+            at(2, item_name_id, 'name id'),
+            at(4, item_type, 'item type'),
+            at(5, u8, 'identify'),
+            at(6, u16, 'amount'),
+            at(8, epos, 'epos zero'),
+            at(10, u16, 'card0'),
+            at(12, u16, 'card1'),
+            at(14, u16, 'card2'),
+            at(16, u16, 'card3'),
+        ],
+        repeat_size=18,
+    )
+    map_user.s(0x020c,
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, ip4, 'ip'),
+        ],
+        fixed_size=10,
+    )
     map_user.s(0x0212,
         fixed=[
             at(0, u16, 'packet id'),
@@ -1169,7 +2681,7 @@ def main():
             at(60, server_name, 'server name'),
             at(80, u16, 'unknown2'),
             at(82, u16, 'maintenance'),
-            at(84, u16, 'is_new'),
+            at(84, u16, 'is new'),
         ],
         fixed_size=86,
     )
@@ -1532,10 +3044,10 @@ def main():
             at(18, map_name, 'map name'),
             at(34, u16, 'x'),
             at(36, u16, 'y'),
-            at(38, ip4, 'map_ip'),
-            at(42, u16, 'map_port'),
+            at(38, ip4, 'map ip'),
+            at(42, u16, 'map port'),
             at(44, sex, 'sex'),
-            at(45, ip4, 'client_ip'),
+            at(45, ip4, 'client ip'),
         ],
         fixed_size=49,
     )
@@ -1549,8 +3061,8 @@ def main():
             at(18, map_name, 'map name'),
             at(34, u16, 'x'),
             at(36, u16, 'y'),
-            at(38, ip4, 'map_ip'),
-            at(42, u16, 'map_port'),
+            at(38, ip4, 'map ip'),
+            at(42, u16, 'map port'),
         ],
         fixed_size=44,
     )
@@ -2166,7 +3678,7 @@ def main():
             at(6, server_name, 'name'),
             at(26, u16, 'users'),
             at(28, u16, 'maintenance'),
-            at(30, u16, 'is_new'),
+            at(30, u16, 'is new'),
         ],
         repeat_size=32,
     )
@@ -2418,8 +3930,18 @@ def main():
         fixed_size=2,
     )
 
+    ## new-style packets
+    # general packets
+    any_user.x(0x8000,
+        payload=[
+            at(0, u16, 'packet id'),
+            # packet 0x8000 is handled specially
+            at(2, u16, 'packet length'),
+        ],
+        payload_size=4,
+    )
 
-    # teardown
+    ## teardown
     ctx.dump()
 
 if __name__ == '__main__':

@@ -28,7 +28,7 @@
 // This is a public protocol, and changes require client cooperation
 
 // this is only needed for the payload packet right now, and that needs to die
-#pragma pack(push, 1)
+# pragma pack(push, 1)
 
 template<>
 struct Packet_Head<0x0063>
@@ -112,6 +112,7 @@ struct NetPacket_Head<0x0063>
 static_assert(offsetof(NetPacket_Head<0x0063>, magic_packet_id) == 0, "offsetof(NetPacket_Head<0x0063>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Head<0x0063>, magic_packet_length) == 2, "offsetof(NetPacket_Head<0x0063>, magic_packet_length) == 2");
 static_assert(sizeof(NetPacket_Head<0x0063>) == 4, "sizeof(NetPacket_Head<0x0063>) == 4");
+static_assert(alignof(NetPacket_Head<0x0063>) == 1, "alignof(NetPacket_Head<0x0063>) == 1");
 template<>
 struct NetPacket_Repeat<0x0063>
 {
@@ -119,6 +120,7 @@ struct NetPacket_Repeat<0x0063>
 };
 static_assert(offsetof(NetPacket_Repeat<0x0063>, c) == 0, "offsetof(NetPacket_Repeat<0x0063>, c) == 0");
 static_assert(sizeof(NetPacket_Repeat<0x0063>) == 1, "sizeof(NetPacket_Repeat<0x0063>) == 1");
+static_assert(alignof(NetPacket_Repeat<0x0063>) == 1, "alignof(NetPacket_Repeat<0x0063>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x0064>
@@ -135,6 +137,7 @@ static_assert(offsetof(NetPacket_Fixed<0x0064>, account_name) == 6, "offsetof(Ne
 static_assert(offsetof(NetPacket_Fixed<0x0064>, account_pass) == 30, "offsetof(NetPacket_Fixed<0x0064>, account_pass) == 30");
 static_assert(offsetof(NetPacket_Fixed<0x0064>, version_2_flags) == 54, "offsetof(NetPacket_Fixed<0x0064>, version_2_flags) == 54");
 static_assert(sizeof(NetPacket_Fixed<0x0064>) == 55, "sizeof(NetPacket_Fixed<0x0064>) == 55");
+static_assert(alignof(NetPacket_Fixed<0x0064>) == 1, "alignof(NetPacket_Fixed<0x0064>) == 1");
 
 template<>
 struct NetPacket_Head<0x0069>
@@ -159,6 +162,7 @@ static_assert(offsetof(NetPacket_Head<0x0069>, last_login_string) == 20, "offset
 static_assert(offsetof(NetPacket_Head<0x0069>, unused2) == 44, "offsetof(NetPacket_Head<0x0069>, unused2) == 44");
 static_assert(offsetof(NetPacket_Head<0x0069>, sex) == 46, "offsetof(NetPacket_Head<0x0069>, sex) == 46");
 static_assert(sizeof(NetPacket_Head<0x0069>) == 47, "sizeof(NetPacket_Head<0x0069>) == 47");
+static_assert(alignof(NetPacket_Head<0x0069>) == 1, "alignof(NetPacket_Head<0x0069>) == 1");
 template<>
 struct NetPacket_Repeat<0x0069>
 {
@@ -176,6 +180,7 @@ static_assert(offsetof(NetPacket_Repeat<0x0069>, users) == 26, "offsetof(NetPack
 static_assert(offsetof(NetPacket_Repeat<0x0069>, maintenance) == 28, "offsetof(NetPacket_Repeat<0x0069>, maintenance) == 28");
 static_assert(offsetof(NetPacket_Repeat<0x0069>, is_new) == 30, "offsetof(NetPacket_Repeat<0x0069>, is_new) == 30");
 static_assert(sizeof(NetPacket_Repeat<0x0069>) == 32, "sizeof(NetPacket_Repeat<0x0069>) == 32");
+static_assert(alignof(NetPacket_Repeat<0x0069>) == 1, "alignof(NetPacket_Repeat<0x0069>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x006a>
@@ -188,6 +193,7 @@ static_assert(offsetof(NetPacket_Fixed<0x006a>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x006a>, error_code) == 2, "offsetof(NetPacket_Fixed<0x006a>, error_code) == 2");
 static_assert(offsetof(NetPacket_Fixed<0x006a>, error_message) == 3, "offsetof(NetPacket_Fixed<0x006a>, error_message) == 3");
 static_assert(sizeof(NetPacket_Fixed<0x006a>) == 23, "sizeof(NetPacket_Fixed<0x006a>) == 23");
+static_assert(alignof(NetPacket_Fixed<0x006a>) == 1, "alignof(NetPacket_Fixed<0x006a>) == 1");
 
 
 inline __attribute__((warn_unused_result))
@@ -319,6 +325,6 @@ bool network_to_native(Packet_Fixed<0x006a> *native, NetPacket_Fixed<0x006a> net
 }
 
 
-#pragma pack(pop)
+# pragma pack(pop)
 
 #endif // TMWA_PROTO2_LOGIN_USER_HPP

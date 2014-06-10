@@ -240,14 +240,4 @@ earray<Races, Race, Race::COUNT> race_shift //=
     Races::other,
 }};
 
-enum class DamageType : uint8_t
-{
-    NORMAL      = 0x00,
-    TAKEITEM    = 0x01,
-    RETURNED    = 0x04,
-    DOUBLED     = 0x08,
-    CRITICAL    = 0x0a,
-    FLEE2       = 0x0b,
-};
-
 #endif // TMWA_MAP_BATTLE_T_HPP

@@ -1,5 +1,5 @@
-#include "../login/types.hpp"
-//    include_types_test.cpp - testsuite for protocol includes
+#include "../login/login.t.hpp"
+//    include_login_t_test.cpp - testsuite for protocol includes
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //

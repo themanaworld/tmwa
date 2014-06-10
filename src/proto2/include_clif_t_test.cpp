@@ -1,5 +1,5 @@
-#include "../mmo/enums.hpp"
-//    include_enums_test.cpp - testsuite for protocol includes
+#include "../map/clif.t.hpp"
+//    include_clif_t_test.cpp - testsuite for protocol includes
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -20,6 +20,17 @@
 
 #include "../poison.hpp"
 
-using Test_SEX = SEX;
-using Test_Option = Option;
-using Test_EPOS = EPOS;
+using Test_Position1 = Position1;
+using Test_NetPosition1 = NetPosition1;
+using Test_Position2 = Position2;
+using Test_NetPosition2 = NetPosition2;
+using Test_BeingRemoveWhy = BeingRemoveWhy;
+using Test_DIR = DIR;
+using Test_Opt1 = Opt1;
+using Test_Opt2 = Opt2;
+using Test_Opt3 = Opt3;
+using Test_ItemType = ItemType;
+using Test_PickupFail = PickupFail;
+using Test_DamageType = DamageType;
+using Test_SP = SP;
+using Test_LOOK = LOOK;

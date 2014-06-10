@@ -472,7 +472,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char_id,
-        int login_id1, tick_t client_tick, SEX sex)
+        int login_id1, uint32_t client_tick, SEX sex)
 {
     nullpo_ret(sd);
 
@@ -485,7 +485,7 @@ int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char
     // Possible fix: char send auth before client is allowed to know my IP?
     sd->login_id1 = login_id1;
     sd->login_id2 = 0;          // at this point, we can not know the value :(
-    sd->client_tick = client_tick;
+    (void)client_tick;
     sd->sex = sex;
     sd->state.auth = 0;
     sd->bl_type = BL::PC;
@@ -912,7 +912,7 @@ void pc_set_weapon_look(dumb_ptr<map_session_data> sd)
 {
     if (sd->attack_spell_override)
         clif_changelook(sd, LOOK::WEAPON,
-                sd->attack_spell_look_override);
+                unwrap<ItemNameId>(sd->attack_spell_look_override));
     else
         clif_changelook(sd, LOOK::WEAPON,
                 static_cast<uint16_t>(sd->status.weapon));

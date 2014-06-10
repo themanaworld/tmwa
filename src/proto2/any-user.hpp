@@ -28,7 +28,7 @@
 // This is a public protocol, and changes require client cooperation
 
 // this is only needed for the payload packet right now, and that needs to die
-#pragma pack(push, 1)
+# pragma pack(push, 1)
 
 template<>
 struct Packet_Fixed<0x0081>
@@ -68,6 +68,17 @@ struct Packet_Fixed<0x7532>
     uint16_t magic_packet_id = PACKET_ID;
 };
 
+template<>
+struct Packet_Payload<0x8000>
+{
+    static const uint16_t PACKET_ID = 0x8000;
+
+    // TODO remove this
+    uint16_t magic_packet_id = PACKET_ID;
+    // TODO remove this
+    uint16_t magic_packet_length = {};
+};
+
 
 template<>
 struct NetPacket_Fixed<0x0081>
@@ -78,6 +89,7 @@ struct NetPacket_Fixed<0x0081>
 static_assert(offsetof(NetPacket_Fixed<0x0081>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x0081>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x0081>, error_code) == 2, "offsetof(NetPacket_Fixed<0x0081>, error_code) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x0081>) == 3, "sizeof(NetPacket_Fixed<0x0081>) == 3");
+static_assert(alignof(NetPacket_Fixed<0x0081>) == 1, "alignof(NetPacket_Fixed<0x0081>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x7530>
@@ -86,6 +98,7 @@ struct NetPacket_Fixed<0x7530>
 };
 static_assert(offsetof(NetPacket_Fixed<0x7530>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x7530>, magic_packet_id) == 0");
 static_assert(sizeof(NetPacket_Fixed<0x7530>) == 2, "sizeof(NetPacket_Fixed<0x7530>) == 2");
+static_assert(alignof(NetPacket_Fixed<0x7530>) == 1, "alignof(NetPacket_Fixed<0x7530>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x7531>
@@ -96,6 +109,7 @@ struct NetPacket_Fixed<0x7531>
 static_assert(offsetof(NetPacket_Fixed<0x7531>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x7531>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Fixed<0x7531>, version) == 2, "offsetof(NetPacket_Fixed<0x7531>, version) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x7531>) == 10, "sizeof(NetPacket_Fixed<0x7531>) == 10");
+static_assert(alignof(NetPacket_Fixed<0x7531>) == 1, "alignof(NetPacket_Fixed<0x7531>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x7532>
@@ -104,6 +118,18 @@ struct NetPacket_Fixed<0x7532>
 };
 static_assert(offsetof(NetPacket_Fixed<0x7532>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x7532>, magic_packet_id) == 0");
 static_assert(sizeof(NetPacket_Fixed<0x7532>) == 2, "sizeof(NetPacket_Fixed<0x7532>) == 2");
+static_assert(alignof(NetPacket_Fixed<0x7532>) == 1, "alignof(NetPacket_Fixed<0x7532>) == 1");
+
+template<>
+struct NetPacket_Payload<0x8000>
+{
+    Little16 magic_packet_id;
+    Little16 magic_packet_length;
+};
+static_assert(offsetof(NetPacket_Payload<0x8000>, magic_packet_id) == 0, "offsetof(NetPacket_Payload<0x8000>, magic_packet_id) == 0");
+static_assert(offsetof(NetPacket_Payload<0x8000>, magic_packet_length) == 2, "offsetof(NetPacket_Payload<0x8000>, magic_packet_length) == 2");
+static_assert(sizeof(NetPacket_Payload<0x8000>) == 4, "sizeof(NetPacket_Payload<0x8000>) == 4");
+static_assert(alignof(NetPacket_Payload<0x8000>) == 1, "alignof(NetPacket_Payload<0x8000>) == 1");
 
 
 inline __attribute__((warn_unused_result))
@@ -170,7 +196,24 @@ bool network_to_native(Packet_Fixed<0x7532> *native, NetPacket_Fixed<0x7532> net
     return rv;
 }
 
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetPacket_Payload<0x8000> *network, Packet_Payload<0x8000> native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
+    rv &= native_to_network(&network->magic_packet_length, native.magic_packet_length);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Packet_Payload<0x8000> *native, NetPacket_Payload<0x8000> network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
+    rv &= network_to_native(&native->magic_packet_length, network.magic_packet_length);
+    return rv;
+}
 
-#pragma pack(pop)
+
+# pragma pack(pop)
 
 #endif // TMWA_PROTO2_ANY_USER_HPP

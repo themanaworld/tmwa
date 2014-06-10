@@ -34,6 +34,9 @@
 # include "../generic/db.hpp"
 # include "../generic/dumb_ptr.hpp"
 
+# include "../mmo/ids.hpp"
+
+# include "clif.t.hpp"
 # include "map.t.hpp"
 
 enum class ByteCode : uint8_t;

@@ -1,5 +1,5 @@
-#include "../mmo/enums.hpp"
-//    include_enums_test.cpp - testsuite for protocol includes
+#include "../map/skill.t.hpp"
+//    include_skill_t_test.cpp - testsuite for protocol includes
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -20,6 +20,6 @@
 
 #include "../poison.hpp"
 
-using Test_SEX = SEX;
-using Test_Option = Option;
-using Test_EPOS = EPOS;
+using Test_SkillID = SkillID;
+using Test_StatusChange = StatusChange;
+using Test_SkillFlags = SkillFlags;

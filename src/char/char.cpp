@@ -2464,15 +2464,12 @@ void parse_char(Session *s)
                     sd->login_id2 = fixed.login_id2;
                     sd->packet_tmw_version = fixed.packet_tmw_version;
                     sd->sex = fixed.sex;
-                    // send back account_id
-                    // TODO put this into a proper packet
-                    Little32 account_id_net;
-                    if (!native_to_network(&account_id_net, account_id)
-                            || !packet_send(s, reinterpret_cast<const Byte *>(&account_id_net), 4))
-                    {
-                        s->set_eof();
-                        return;
-                    }
+
+                    // formerly: send back account_id
+                    Packet_Payload<0x8000> special;
+                    special.magic_packet_length = 4;
+                    send_ppacket<0x8000>(s, special);
+
                     // search authentification
                     for (AuthFifoEntry& afi : auth_fifo)
                     {

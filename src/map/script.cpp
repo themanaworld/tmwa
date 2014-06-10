@@ -4038,7 +4038,7 @@ void builtin_fakenpcname(ScriptState *st)
 {
     NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
     NpcName newname = stringish<NpcName>(ZString(conv_str(st, &AARGO2(3))));
-    int newsprite = conv_num(st, &AARGO2(4));
+    Species newsprite = wrap<Species>(static_cast<uint16_t>(conv_num(st, &AARGO2(4))));
     dumb_ptr<npc_data> nd = npc_name2id(name);
     if (!nd)
     {

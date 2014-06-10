@@ -31,14 +31,17 @@
 
 # include "../net/timer.t.hpp"
 
+# include "../proto2/fwd.hpp"
+
 # include "map.hpp"
 
 constexpr BlockId START_NPC_NUM = wrap<BlockId>(110000000);
 
 // TODO make these species, see npc_class in npc_data
-constexpr int WARP_CLASS = 45;
-constexpr int WARP_DEBUG_CLASS = 722;
-constexpr int INVISIBLE_CLASS = 32767;
+constexpr Species WARP_CLASS = wrap<Species>(45);
+constexpr Species FAKE_NPC_CLASS = wrap<Species>(127);
+constexpr Species WARP_DEBUG_CLASS = wrap<Species>(722);
+constexpr Species INVISIBLE_CLASS = wrap<Species>(32767);
 
 int npc_event_dequeue(dumb_ptr<map_session_data> sd);
 int npc_event(dumb_ptr<map_session_data> sd, NpcEvent npcname, int);
@@ -48,8 +51,8 @@ int npc_touch_areanpc(dumb_ptr<map_session_data>, map_local *, int, int);
 int npc_click(dumb_ptr<map_session_data>, BlockId);
 int npc_scriptcont(dumb_ptr<map_session_data>, BlockId);
 int npc_buysellsel(dumb_ptr<map_session_data>, BlockId, int);
-int npc_buylist(dumb_ptr<map_session_data>, int, const uint16_t *);
-int npc_selllist(dumb_ptr<map_session_data>, int, const uint16_t *);
+int npc_buylist(dumb_ptr<map_session_data>, const std::vector<Packet_Repeat<0x00c8>>&);
+int npc_selllist(dumb_ptr<map_session_data>, const std::vector<Packet_Repeat<0x00c9>>&);
 int npc_parse_warp(XString w1, XString, NpcName w3, XString w4);
 
 int npc_enable(NpcName name, bool flag);
@@ -63,7 +66,7 @@ BlockId npc_get_new_npc_id(void);
  * \param message The message to speak.  If message is NULL, the NPC will not do anything at all.
  */
 dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
-        int class_, NpcName name, AString message);
+        Species class_, NpcName name, AString message);
 
 /**
  * Uninstalls and frees an NPC

@@ -69,8 +69,6 @@
 #include "../proto2/login-char.hpp"
 #include "../proto2/login-user.hpp"
 
-#include "types.hpp"
-
 #include "../poison.hpp"
 
 constexpr int MAX_SERVERS = 30;

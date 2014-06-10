@@ -47,38 +47,6 @@ enum class TYPE : uint8_t
     NEGATIVE_1 = 255,
 };
 
-// Note: there is also a typedef by this name in <dirent.h>
-// but we should be fine since we never include it.
-// (in the long term we should still rename this though)
-enum class DIR : uint8_t
-{
-    S   = 0,
-    SW  = 1,
-    W   = 2,
-    NW  = 3,
-    N   = 4,
-    NE  = 5,
-    E   = 6,
-    SE  = 7,
-
-    COUNT,
-};
-
-constexpr
-earray<int, DIR, DIR::COUNT> dirx //=
-{{
-    0, -1, -1, -1, 0, 1, 1, 1,
-}}, diry //=
-{{
-    1, 1, 0, -1, -1, -1, 0, 1,
-}};
-
-constexpr
-bool dir_is_diagonal(DIR d)
-{
-    return static_cast<uint8_t>(d) & 1;
-}
-
 enum class AREA : uint8_t
 {
     LOCATION,
