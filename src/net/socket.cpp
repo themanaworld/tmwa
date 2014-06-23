@@ -1,5 +1,4 @@
 #include "socket.hpp"
-#include "vomit.hpp" // for remaining FIFO functions
 //    socket.cpp - Network event system.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -121,8 +120,8 @@ IteratorPair<ValueIterator<io::FD, IncrFD>> iter_fds()
 inline
 void RFIFOFLUSH(Session *s)
 {
-    really_memmove(&s->rdata[0], &s->rdata[s->rdata_pos], RFIFOREST(s));
-    s->rdata_size = RFIFOREST(s);
+    really_memmove(&s->rdata[0], &s->rdata[s->rdata_pos], s->rdata_size - s->rdata_pos);
+    s->rdata_size -= s->rdata_pos;
     s->rdata_pos = 0;
 }
 
@@ -401,19 +400,6 @@ void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size)
     }
 }
 
-void WFIFOSET(Session *s, size_t len)
-{
-    if (s->wdata_size + len + 16384 > s->max_wdata)
-    {
-        realloc_fifo(s, s->max_rdata, s->max_wdata << 1);
-        PRINTF("socket: %d wdata expanded to %zu bytes.\n"_fmt, s, s->max_wdata);
-    }
-    if (s->wdata_size + len + 2048 < s->max_wdata)
-        s->wdata_size += len;
-    else
-        FPRINTF(stderr, "socket: %d wdata lost !!\n"_fmt, s), abort();
-}
-
 void do_sendrecv(interval_t next_ms)
 {
     bool any = false;
@@ -497,16 +483,5 @@ void do_parsepacket(void)
         }
         /// Reclaim buffer space for what was read
         RFIFOFLUSH(s);
-    }
-}
-
-void RFIFOSKIP(Session *s, size_t len)
-{
-    s->rdata_pos += len;
-
-    if (s->rdata_size < s->rdata_pos)
-    {
-        FPRINTF(stderr, "too many skip\n"_fmt);
-        abort();
     }
 }

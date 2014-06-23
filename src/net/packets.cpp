@@ -21,32 +21,42 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 
-#include "vomit.hpp"
-
 #include "../poison.hpp"
 
 size_t packet_avail(Session *s)
 {
-    return RFIFOREST(s);
+    return s->rdata_size - s->rdata_pos;
 }
 
 bool packet_fetch(Session *s, size_t offset, Byte *data, size_t sz)
 {
-    if (RFIFOREST(s) < offset + sz)
+    if (packet_avail(s) < offset + sz)
         return false;
-    const Byte *start = reinterpret_cast<const Byte *>(RFIFOP(s, offset));
+    const Byte *start = reinterpret_cast<const Byte *>(&s->rdata[s->rdata_pos + offset]);
     const Byte *end = start + sz;
     std::copy(start, end, data);
     return true;
 }
 void packet_discard(Session *s, size_t sz)
 {
-    RFIFOSKIP(s, sz);
+    s->rdata_pos += sz;
+
+    assert (s->rdata_size >= s->rdata_pos);
 }
 bool packet_send(Session *s, const Byte *data, size_t sz)
 {
-    WFIFOSET(s, sz);
-    Byte *end = reinterpret_cast<Byte *>(WFIFOP(s, 0));
+    if (s->wdata_size + sz > s->max_wdata)
+    {
+        realloc_fifo(s, s->max_rdata, s->max_wdata << 1);
+        PRINTF("socket: %d wdata expanded to %zu bytes.\n"_fmt, s, s->max_wdata);
+    }
+    if (!s->max_wdata || !s->wdata)
+    {
+        return false;
+    }
+    s->wdata_size += sz;
+
+    Byte *end = reinterpret_cast<Byte *>(&s->wdata[s->wdata_size + 0]);
     Byte *start = end - sz;
     std::copy(data, data + sz, start);
     return true;
@@ -58,13 +68,16 @@ void packet_dump(io::WriteFile& logfp, Session *s)
             "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n"_fmt);
     char tmpstr[16 + 1] {};
     int i;
-    for (i = 0; i < RFIFOREST(s); i++)
+    for (i = 0; i < packet_avail(s); i++)
     {
         if ((i & 15) == 0)
             FPRINTF(logfp, "%04X "_fmt, i);
-        FPRINTF(logfp, "%02x "_fmt, RFIFOB(s, i));
-        if (RFIFOB(s, i) > 0x1f)
-            tmpstr[i % 16] = RFIFOB(s, i);
+        Byte rfifob_ib;
+        packet_fetch(s, i, &rfifob_ib, 1);
+        uint8_t rfifob_i = rfifob_ib.value;
+        FPRINTF(logfp, "%02x "_fmt, rfifob_i);
+        if (rfifob_i > 0x1f)
+            tmpstr[i % 16] = rfifob_i;
         else
             tmpstr[i % 16] = '.';
         if ((i - 7) % 16 == 0)  // -8 + 1

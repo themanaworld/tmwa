@@ -84,43 +84,6 @@ void send_buffer(Session *s, const Buffer& buffer)
 
 template<uint16_t id>
 __attribute__((warn_unused_result))
-SendResult net_send_fpacket(Session *s, const NetPacket_Fixed<id>& fixed)
-{
-    bool ok = packet_send(s, reinterpret_cast<const Byte *>(&fixed), sizeof(NetPacket_Fixed<id>));
-    return ok ? SendResult::Success : SendResult::Fail;
-}
-
-template<uint16_t id>
-__attribute__((warn_unused_result))
-SendResult net_send_ppacket(Session *s, const NetPacket_Payload<id>& payload)
-{
-    bool ok = packet_send(s, reinterpret_cast<const Byte *>(&payload), sizeof(NetPacket_Payload<id>));
-    return ok ? SendResult::Success : SendResult::Fail;
-}
-
-template<uint16_t id>
-__attribute__((warn_unused_result))
-SendResult net_send_vpacket(Session *s, const NetPacket_Head<id>& head, const std::vector<NetPacket_Repeat<id>>& repeat)
-{
-    bool ok = packet_send(s, reinterpret_cast<const Byte *>(&head), sizeof(NetPacket_Head<id>));
-    ok &= packet_send(s, reinterpret_cast<const Byte *>(repeat.data()), repeat.size() * sizeof(NetPacket_Repeat<id>));
-    return ok ? SendResult::Success : SendResult::Fail;
-}
-
-template<uint16_t id>
-__attribute__((warn_unused_result))
-SendResult net_send_opacket(Session *s, const NetPacket_Head<id>& head, bool has_opt, const NetPacket_Option<id>& opt)
-{
-    bool ok = packet_send(s, reinterpret_cast<const Byte *>(&head), sizeof(NetPacket_Head<id>));
-    if (has_opt)
-    {
-        ok &= packet_send(s, reinterpret_cast<const Byte *>(&opt), sizeof(NetPacket_Option<id>));
-    }
-    return ok ? SendResult::Success : SendResult::Fail;
-}
-
-template<uint16_t id>
-__attribute__((warn_unused_result))
 RecvResult net_recv_fpacket(Session *s, NetPacket_Fixed<id>& fixed)
 {
     bool ok = packet_fetch(s, 0, reinterpret_cast<Byte *>(&fixed), sizeof(NetPacket_Fixed<id>));
