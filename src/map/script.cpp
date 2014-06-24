@@ -2497,6 +2497,26 @@ void builtin_setopt2(ScriptState *st)
 }
 
 /*==========================================
+ * [meko] Sets Species
+ *------------------------------------------
+ */
+
+static
+void builtin_setspecies(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd;
+
+    Species new_species = wrap<Species>(static_cast<uint16_t>(conv_num(st, &AARGO2(2))));
+    sd = script_rid2sd(st);
+    if (new_species == sd->species)
+        return;
+    sd->species = new_species;
+    clif_changeoption(sd);
+    pc_calcstatus(sd, 0);
+
+}
+
+/*==========================================
  *      セーブポイントの保存
  *------------------------------------------
  */
