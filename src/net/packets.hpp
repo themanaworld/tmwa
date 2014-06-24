@@ -21,6 +21,8 @@
 
 # include "fwd.hpp"
 
+# include <vector>
+
 # include "../compat/cast.hpp"
 
 # include "../ints/little.hpp"

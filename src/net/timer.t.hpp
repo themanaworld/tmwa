@@ -23,6 +23,8 @@
 
 # include "fwd.hpp"
 
+# include <cstdlib>
+
 # include <chrono>
 # include <functional>
 
