@@ -2508,9 +2508,9 @@ void builtin_setspecies(ScriptState *st)
 
     Species new_species = wrap<Species>(static_cast<uint16_t>(conv_num(st, &AARGO2(2))));
     sd = script_rid2sd(st);
-    if (new_species == sd->species)
+    if (new_species == sd->status.species)
         return;
-    sd->species = new_species;
+    sd->status.species = new_species;
     clif_changeoption(sd);
     pc_calcstatus(sd, 0);
 
