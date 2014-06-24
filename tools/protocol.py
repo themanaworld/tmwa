@@ -499,7 +499,7 @@ class VarPacket(object):
         self.repeat_struct.dump_convert(f)
         f.write('\n')
 
-def packet(id,
+def packet(id, name,
         fixed=None, fixed_size=None,
         payload=None, payload_size=None,
         head=None, head_size=None,
@@ -541,8 +541,8 @@ class Channel(object):
         self.client = client
         self.packets = []
 
-    def x(self, id, **kwargs):
-        self.packets.append(packet(id, **kwargs))
+    def x(self, id, name, **kwargs):
+        self.packets.append(packet(id, name, **kwargs))
     r = x
     s = x
 
@@ -1293,7 +1293,7 @@ def main():
     ## legacy packets
 
     # * user
-    char_user.r(0x0061,
+    char_user.r(0x0061, 'change password request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_pass, 'old pass'),
@@ -1301,14 +1301,14 @@ def main():
         ],
         fixed_size=50,
     )
-    char_user.s(0x0062,
+    char_user.s(0x0062, 'change password response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'status'),
         ],
         fixed_size=3,
     )
-    login_user.r(0x0063,
+    login_user.r(0x0063, 'update host',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1317,7 +1317,7 @@ def main():
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
     )
-    login_user.r(0x0064,
+    login_user.r(0x0064, 'login request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u32, 'unknown'),
@@ -1327,7 +1327,7 @@ def main():
         ],
         fixed_size=55,
     )
-    char_user.r(0x0065,
+    char_user.r(0x0065, 'char-server connection request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -1338,14 +1338,14 @@ def main():
         ],
         fixed_size=17,
     )
-    char_user.r(0x0066,
+    char_user.r(0x0066, 'select character request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'code'),
         ],
         fixed_size=3,
     )
-    char_user.r(0x0067,
+    char_user.r(0x0067, 'create character request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_name, 'char name'),
@@ -1356,7 +1356,7 @@ def main():
         ],
         fixed_size=37,
     )
-    char_user.r(0x0068,
+    char_user.r(0x0068, 'delete character request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_id, 'char id'),
@@ -1364,7 +1364,7 @@ def main():
         ],
         fixed_size=46,
     )
-    login_user.r(0x0069,
+    login_user.r(0x0069, 'login data',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1387,7 +1387,7 @@ def main():
         ],
         repeat_size=32,
     )
-    login_user.s(0x006a,
+    login_user.s(0x006a, 'login error',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'error code'),
@@ -1395,7 +1395,7 @@ def main():
         ],
         fixed_size=23,
     )
-    char_user.s(0x006b,
+    char_user.s(0x006b, 'update character list',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1407,41 +1407,41 @@ def main():
         ],
         repeat_size=106,
     )
-    char_user.s(0x006c,
+    char_user.s(0x006c, 'login error',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'code'),
         ],
         fixed_size=3,
     )
-    char_user.s(0x006d,
+    char_user.s(0x006d, 'create character succeeded',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_select, 'char select'),
         ],
         fixed_size=108,
     )
-    char_user.s(0x006e,
+    char_user.s(0x006e, 'create character failed',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'code'),
         ],
         fixed_size=3,
     )
-    char_user.s(0x006f,
+    char_user.s(0x006f, 'delete character succeeded',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    char_user.s(0x0070,
+    char_user.s(0x0070, 'delete character failed',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'code'),
         ],
         fixed_size=3,
     )
-    char_user.s(0x0071,
+    char_user.s(0x0071, 'char-map info',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_id, 'char id'),
@@ -1451,7 +1451,7 @@ def main():
         ],
         fixed_size=28,
     )
-    map_user.r(0x0072,
+    map_user.r(0x0072, 'map server connect',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -1462,7 +1462,7 @@ def main():
         ],
         fixed_size=19,
     )
-    map_user.s(0x0073,
+    map_user.s(0x0073, 'map login succeeded',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, tick32, 'tick'),
@@ -1472,7 +1472,7 @@ def main():
         ],
         fixed_size=11,
     )
-    map_user.s(0x0078,
+    map_user.s(0x0078, 'being visibility',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1505,7 +1505,7 @@ def main():
         ],
         fixed_size=54,
     )
-    map_user.s(0x007b,
+    map_user.s(0x007b, 'being move',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1539,7 +1539,7 @@ def main():
         ],
         fixed_size=60,
     )
-    map_user.s(0x007c,
+    map_user.s(0x007c, 'being spawn',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1563,27 +1563,27 @@ def main():
         ],
         fixed_size=41,
     )
-    map_user.r(0x007d,
+    map_user.r(0x007d, 'map loaded',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.r(0x007e,
+    map_user.r(0x007e, 'client ping',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u32, 'client tick'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x007f,
+    map_user.s(0x007f, 'server ping',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, tick32, 'tick'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x0080,
+    map_user.s(0x0080, 'remove being',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1591,21 +1591,21 @@ def main():
         ],
         fixed_size=7,
     )
-    any_user.s(0x0081,
+    any_user.s(0x0081, 'connection problem',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'error code'),
         ],
         fixed_size=3,
     )
-    map_user.r(0x0085,
+    map_user.r(0x0085, 'change player destination',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, pos1, 'pos'),
         ],
         fixed_size=5,
     )
-    map_user.s(0x0087,
+    map_user.s(0x0087, 'walk response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, tick32, 'tick'),
@@ -1614,7 +1614,7 @@ def main():
         ],
         fixed_size=12,
     )
-    map_user.s(0x0088,
+    map_user.s(0x0088, 'player stop',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1623,7 +1623,7 @@ def main():
         ],
         fixed_size=10,
     )
-    map_user.r(0x0089,
+    map_user.r(0x0089, 'player action',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'target id'),
@@ -1631,7 +1631,7 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.s(0x008a,
+    map_user.s(0x008a, 'being action',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'src id'),
@@ -1646,7 +1646,7 @@ def main():
         ],
         fixed_size=29,
     )
-    map_user.r(0x008c,
+    map_user.r(0x008c, 'character chat',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1657,7 +1657,7 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.s(0x008d,
+    map_user.s(0x008d, 'being chat',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1669,7 +1669,7 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.s(0x008e,
+    map_user.s(0x008e, 'player chat',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1680,7 +1680,7 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.r(0x0090,
+    map_user.r(0x0090, 'chat to npc',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1688,7 +1688,7 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.s(0x0091,
+    map_user.s(0x0091, 'warp player',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, map_name, 'map name'),
@@ -1697,7 +1697,7 @@ def main():
         ],
         fixed_size=22,
     )
-    map_user.s(0x0092,
+    map_user.s(0x0092, 'change map server',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, map_name, 'map name'),
@@ -1708,14 +1708,14 @@ def main():
         ],
         fixed_size=28,
     )
-    map_user.r(0x0094,
+    map_user.r(0x0094, 'request being name',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x0095,
+    map_user.s(0x0095, 'being name response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1723,7 +1723,7 @@ def main():
         ],
         fixed_size=30,
     )
-    map_user.r(0x0096,
+    map_user.r(0x0096, 'send whisper',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1735,7 +1735,7 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.s(0x0097,
+    map_user.s(0x0097, 'recieve whisper',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1747,14 +1747,14 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.s(0x0098,
+    map_user.s(0x0098, 'whisper status',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'flag'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x009a,
+    map_user.s(0x009a, 'gm announcement',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1765,7 +1765,7 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.r(0x009b,
+    map_user.r(0x009b, 'change player direction',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'unused'),
@@ -1773,7 +1773,7 @@ def main():
         ],
         fixed_size=5,
     )
-    map_user.s(0x009c,
+    map_user.s(0x009c, 'being changed direction',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1782,7 +1782,7 @@ def main():
         ],
         fixed_size=9,
     )
-    map_user.s(0x009d,
+    map_user.s(0x009d, 'visible item',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1796,7 +1796,7 @@ def main():
         ],
         fixed_size=17,
     )
-    map_user.s(0x009e,
+    map_user.s(0x009e, 'dropped item',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -1810,14 +1810,14 @@ def main():
         ],
         fixed_size=17,
     )
-    map_user.r(0x009f,
+    map_user.r(0x009f, 'pickup item',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'object id'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x00a0,
+    map_user.s(0x00a0, 'add item to inventory',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -1836,14 +1836,14 @@ def main():
         ],
         fixed_size=23,
     )
-    map_user.s(0x00a1,
+    map_user.s(0x00a1, 'item removed',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.r(0x00a2,
+    map_user.r(0x00a2, 'drop an item',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -1851,7 +1851,7 @@ def main():
         ],
         fixed_size=6,
     )
-    map_user.s(0x00a4,
+    map_user.s(0x00a4, 'player equipment',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1873,7 +1873,7 @@ def main():
         ],
         repeat_size=20,
     )
-    map_user.s(0x00a6,
+    map_user.s(0x00a6, 'storage equipment',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1895,7 +1895,7 @@ def main():
         ],
         repeat_size=20,
     )
-    map_user.r(0x00a7,
+    map_user.r(0x00a7, 'use inventory item',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -1903,7 +1903,7 @@ def main():
         ],
         fixed_size=8,
     )
-    map_user.s(0x00a8,
+    map_user.s(0x00a8, 'item usage response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -1912,7 +1912,7 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.r(0x00a9,
+    map_user.r(0x00a9, 'equip an item request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -1920,7 +1920,7 @@ def main():
         ],
         fixed_size=6,
     )
-    map_user.s(0x00aa,
+    map_user.s(0x00aa, 'item equip ack',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -1929,14 +1929,14 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.r(0x00ab,
+    map_user.r(0x00ab, 'unequip an item',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
         ],
         fixed_size=4,
     )
-    map_user.s(0x00ac,
+    map_user.s(0x00ac, 'unequip item ack',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -1945,7 +1945,7 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.s(0x00af,
+    map_user.s(0x00af, 'remove item from inventory',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -1953,7 +1953,7 @@ def main():
         ],
         fixed_size=6,
     )
-    map_user.s(0x00b0,
+    map_user.s(0x00b0, 'player stat update 1',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, sp, 'sp type'),
@@ -1961,7 +1961,7 @@ def main():
         ],
         fixed_size=8,
     )
-    map_user.s(0x00b1,
+    map_user.s(0x00b1, 'player stat update 2',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, sp, 'sp type'),
@@ -1969,21 +1969,21 @@ def main():
         ],
         fixed_size=8,
     )
-    map_user.r(0x00b2,
+    map_user.r(0x00b2, 'switch or respawn the character',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'flag'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x00b3,
+    map_user.s(0x00b3, 'character switch response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'one'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x00b4,
+    map_user.s(0x00b4, 'npc message',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -1995,21 +1995,21 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.s(0x00b5,
+    map_user.s(0x00b5, 'npc message continues',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x00b6,
+    map_user.s(0x00b6, 'npc message ends',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x00b7,
+    map_user.s(0x00b7, 'npc prompts a choice',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2021,7 +2021,7 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.r(0x00b8,
+    map_user.r(0x00b8, 'send npc response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'npc id'),
@@ -2029,14 +2029,14 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.r(0x00b9,
+    map_user.r(0x00b9, 'request next npc message',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'npc id'),
         ],
         fixed_size=6,
     )
-    map_user.r(0x00bb,
+    map_user.r(0x00bb, 'request a stat update',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, sp, 'asp'),
@@ -2044,7 +2044,7 @@ def main():
         ],
         fixed_size=5,
     )
-    map_user.s(0x00bc,
+    map_user.s(0x00bc, 'player stat update 4',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, sp, 'sp type'),
@@ -2053,7 +2053,7 @@ def main():
         ],
         fixed_size=6,
     )
-    map_user.s(0x00bd,
+    map_user.s(0x00bd, 'player stat update 5',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'status point'),
@@ -2086,7 +2086,7 @@ def main():
         ],
         fixed_size=44,
     )
-    map_user.s(0x00be,
+    map_user.s(0x00be, 'player stat update 6',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, sp, 'sp type'),
@@ -2094,14 +2094,14 @@ def main():
         ],
         fixed_size=5,
     )
-    map_user.r(0x00bf,
+    map_user.r(0x00bf, 'show an emote',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'emote'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x00c0,
+    map_user.s(0x00c0, 'show the emote of a being',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2109,27 +2109,27 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.r(0x00c1,
+    map_user.r(0x00c1, 'request online users (unused)',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.s(0x00c2,
+    map_user.s(0x00c2, 'online users response (unused)',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u32, 'users'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x00c4,
+    map_user.s(0x00c4, 'npc shop choice',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.r(0x00c5,
+    map_user.r(0x00c5, 'npc shop request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2137,7 +2137,7 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.s(0x00c6,
+    map_user.s(0x00c6, 'npc buy prompt',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2151,7 +2151,7 @@ def main():
         ],
         repeat_size=11,
     )
-    map_user.s(0x00c7,
+    map_user.s(0x00c7, 'npc sell prompt',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2164,7 +2164,7 @@ def main():
         ],
         repeat_size=10,
     )
-    map_user.r(0x00c8,
+    map_user.r(0x00c8, 'npc buy request',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2176,7 +2176,7 @@ def main():
         ],
         repeat_size=4,
     )
-    map_user.r(0x00c9,
+    map_user.r(0x00c9, 'npc sell request',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2188,56 +2188,56 @@ def main():
         ],
         repeat_size=4,
     )
-    map_user.s(0x00ca,
+    map_user.s(0x00ca, 'npc buy response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'fail'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x00cb,
+    map_user.s(0x00cb, 'npc sell response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'fail'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x00cd,
+    map_user.s(0x00cd, 'kick status',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    map_user.r(0x00e4,
+    map_user.r(0x00e4, 'trade request request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x00e5,
+    map_user.s(0x00e5, 'incoming trade request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_name, 'char name'),
         ],
         fixed_size=26,
     )
-    map_user.r(0x00e6,
+    map_user.r(0x00e6, 'incoming trade request response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'type'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x00e7,
+    map_user.s(0x00e7, 'trade request response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'type'),
         ],
         fixed_size=3,
     )
-    map_user.r(0x00e8,
+    map_user.r(0x00e8, 'trade item add request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'zeny or ioff2'),
@@ -2245,7 +2245,7 @@ def main():
         ],
         fixed_size=8,
     )
-    map_user.s(0x00e9,
+    map_user.s(0x00e9, 'trade item add',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u32, 'amount'),
@@ -2260,45 +2260,45 @@ def main():
         ],
         fixed_size=19,
     )
-    map_user.r(0x00eb,
+    map_user.r(0x00eb, 'trade add complete',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.s(0x00ec,
+    map_user.s(0x00ec, 'trade ok',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'fail'),
         ],
         fixed_size=3,
     )
-    map_user.r(0x00ed,
+    map_user.r(0x00ed, 'trace cancel request',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.s(0x00ee,
+    map_user.s(0x00ee, 'trade cancel',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.r(0x00ef,
+    map_user.r(0x00ef, 'trade ok request',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.s(0x00f0,
+    map_user.s(0x00f0, 'trade complete',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'fail'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x00f2,
+    map_user.s(0x00f2, 'storage status',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'current slots'),
@@ -2306,7 +2306,7 @@ def main():
         ],
         fixed_size=6,
     )
-    map_user.r(0x00f3,
+    map_user.r(0x00f3, 'move item to storage request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -2314,7 +2314,7 @@ def main():
         ],
         fixed_size=8,
     )
-    map_user.s(0x00f4,
+    map_user.s(0x00f4, 'move item to storage',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, soff1, 'soff1'),
@@ -2330,7 +2330,7 @@ def main():
         ],
         fixed_size=21,
     )
-    map_user.r(0x00f5,
+    map_user.r(0x00f5, 'move item from storage request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, soff1, 'soff1'),
@@ -2338,7 +2338,7 @@ def main():
         ],
         fixed_size=8,
     )
-    map_user.s(0x00f6,
+    map_user.s(0x00f6, 'remove item from storage',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, soff1, 'soff1'),
@@ -2346,33 +2346,33 @@ def main():
         ],
         fixed_size=8,
     )
-    map_user.r(0x00f7,
+    map_user.r(0x00f7, 'storage close request',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.s(0x00f8,
+    map_user.s(0x00f8, 'storage closed',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.r(0x00f9,
+    map_user.r(0x00f9, 'create party request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_name, 'party name'),
         ],
         fixed_size=26,
     )
-    map_user.s(0x00fa,
+    map_user.s(0x00fa, 'create party',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'flag'),
         ],
         fixed_size=3,
     )
-    map_user.s(0x00fb,
+    map_user.s(0x00fb, 'party info',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2388,14 +2388,14 @@ def main():
         ],
         repeat_size=46,
     )
-    map_user.r(0x00fc,
+    map_user.r(0x00fc, 'party invite request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x00fd,
+    map_user.s(0x00fd, 'party invite response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_name, 'char name'),
@@ -2403,7 +2403,7 @@ def main():
         ],
         fixed_size=27,
     )
-    map_user.s(0x00fe,
+    map_user.s(0x00fe, 'party invite succeeded',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2411,7 +2411,7 @@ def main():
         ],
         fixed_size=30,
     )
-    map_user.r(0x00ff,
+    map_user.r(0x00ff, 'party join request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2419,13 +2419,13 @@ def main():
         ],
         fixed_size=10,
     )
-    map_user.r(0x0100,
+    map_user.r(0x0100, 'party leave request',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.s(0x0101,
+    map_user.s(0x0101, 'party settings',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'exp'),
@@ -2433,7 +2433,7 @@ def main():
         ],
         fixed_size=6,
     )
-    map_user.r(0x0102,
+    map_user.r(0x0102, 'party settings request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'exp'),
@@ -2441,7 +2441,7 @@ def main():
         ],
         fixed_size=6,
     )
-    map_user.r(0x0103,
+    map_user.r(0x0103, 'party kick request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2449,7 +2449,7 @@ def main():
         ],
         fixed_size=30,
     )
-    map_user.s(0x0105,
+    map_user.s(0x0105, 'party leave',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2458,7 +2458,7 @@ def main():
         ],
         fixed_size=31,
     )
-    map_user.s(0x0106,
+    map_user.s(0x0106, 'update party member hp',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2467,7 +2467,7 @@ def main():
         ],
         fixed_size=10,
     )
-    map_user.s(0x0107,
+    map_user.s(0x0107, 'update party member coords',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2476,7 +2476,7 @@ def main():
         ],
         fixed_size=10,
     )
-    map_user.r(0x0108,
+    map_user.r(0x0108, 'party message request',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2487,7 +2487,7 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.s(0x0109,
+    map_user.s(0x0109, 'party message',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2499,14 +2499,14 @@ def main():
         ],
         repeat_size=1
     )
-    map_user.s(0x010c,
+    map_user.s(0x010c, 'MVP (unused)',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x010e,
+    map_user.s(0x010e, 'raise a skill',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, skill_id, 'skill id'),
@@ -2517,7 +2517,7 @@ def main():
         ],
         fixed_size=11,
     )
-    map_user.s(0x010f,
+    map_user.s(0x010f, 'player skills',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2528,7 +2528,7 @@ def main():
         ],
         repeat_size=37,
     )
-    map_user.s(0x0110,
+    map_user.s(0x0110, 'skill failed',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, skill_id, 'skill id'),
@@ -2539,20 +2539,20 @@ def main():
         ],
         fixed_size=10,
     )
-    map_user.r(0x0112,
+    map_user.r(0x0112, 'request a skill lvl up',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, skill_id, 'skill id'),
         ],
         fixed_size=4,
     )
-    map_user.r(0x0118,
+    map_user.r(0x0118, 'stop attack request',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.s(0x0119,
+    map_user.s(0x0119, 'change player status',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2563,7 +2563,7 @@ def main():
         ],
         fixed_size=13,
     )
-    map_user.s(0x0139,
+    map_user.s(0x0139, 'move player to within attack range',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2575,28 +2575,28 @@ def main():
         ],
         fixed_size=16,
     )
-    map_user.s(0x013a,
+    map_user.s(0x013a, 'player attack range',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'attack range'),
         ],
         fixed_size=4,
     )
-    map_user.s(0x013b,
+    map_user.s(0x013b, 'player arrow message',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'type'),
         ],
         fixed_size=4,
     )
-    map_user.s(0x013c,
+    map_user.s(0x013c, 'player arrow equip',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
         ],
         fixed_size=4,
     )
-    map_user.s(0x0141,
+    map_user.s(0x0141, 'player stat update 3',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, sp, 'sp type'),
@@ -2606,14 +2606,14 @@ def main():
         ],
         fixed_size=14,
     )
-    map_user.s(0x0142,
+    map_user.s(0x0142, 'npc integer input',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.r(0x0143,
+    map_user.r(0x0143, 'npc integer response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2621,21 +2621,21 @@ def main():
         ],
         fixed_size=10,
     )
-    map_user.r(0x0146,
+    map_user.r(0x0146, 'npc close request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.s(0x0147,
+    map_user.s(0x0147, 'single skill info (unused)',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, skill_info, 'info'),
         ],
         fixed_size=39,
     )
-    map_user.s(0x0148,
+    map_user.s(0x0148, 'being resurrected',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2643,27 +2643,27 @@ def main():
         ],
         fixed_size=8,
     )
-    map_user.r(0x014d,
+    map_user.r(0x014d, 'guild check master (unused)',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    map_user.r(0x018a,
+    map_user.r(0x018a, 'client quit',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'unused'),
         ],
         fixed_size=4,
     )
-    map_user.s(0x018b,
+    map_user.s(0x018b, 'map quit response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'okay'),
         ],
         fixed_size=4,
     )
-    map_user.s(0x0195,
+    map_user.s(0x0195, 'guild party info (unused)',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2674,7 +2674,7 @@ def main():
         ],
         fixed_size=102,
     )
-    map_user.s(0x0196,
+    map_user.s(0x0196, 'being status change',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, status_change, 'sc type'),
@@ -2683,7 +2683,7 @@ def main():
         ],
         fixed_size=9,
     )
-    map_user.s(0x019b,
+    map_user.s(0x019b, 'being effect',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2691,7 +2691,7 @@ def main():
         ],
         fixed_size=10,
     )
-    map_user.s(0x01b1,
+    map_user.s(0x01b1, 'trade item add response',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -2700,7 +2700,7 @@ def main():
         ],
         fixed_size=7,
     )
-    map_user.s(0x01c8,
+    map_user.s(0x01c8, 'use inventory item succeeded',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, ioff2, 'ioff2'),
@@ -2711,14 +2711,14 @@ def main():
         ],
         fixed_size=13,
     )
-    map_user.s(0x01d4,
+    map_user.s(0x01d4, 'npc string input',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
         ],
         fixed_size=6,
     )
-    map_user.r(0x01d5,
+    map_user.r(0x01d5, 'npc string response',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2730,7 +2730,7 @@ def main():
         ],
         repeat_size=1,
     )
-    map_user.s(0x01d7,
+    map_user.s(0x01d7, 'change being appearance (unused)',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2741,7 +2741,7 @@ def main():
         fixed_size=11,
     )
     # very similar to, but not compatible with, 0x01d9 and 0x01da
-    map_user.s(0x01d8,
+    map_user.s(0x01d8, 'player update 1',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2774,7 +2774,7 @@ def main():
         fixed_size=54,
     )
     # very similar to, but not compatible with, 0x01d8 and 0x01da
-    map_user.s(0x01d9,
+    map_user.s(0x01d9, 'player update 2',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2806,7 +2806,7 @@ def main():
         fixed_size=53,
     )
     # very similar to, but not compatible with, 0x01d8 and 0x01d9
-    map_user.s(0x01da,
+    map_user.s(0x01da, 'player move',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2839,7 +2839,7 @@ def main():
         ],
         fixed_size=60,
     )
-    map_user.s(0x01de,
+    map_user.s(0x01de, 'deal skill damage',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, skill_id, 'skill id'),
@@ -2855,7 +2855,7 @@ def main():
         ],
         fixed_size=33,
     )
-    map_user.s(0x01ee,
+    map_user.s(0x01ee, 'player inventory',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2875,7 +2875,7 @@ def main():
         ],
         repeat_size=18,
     )
-    map_user.s(0x01f0,
+    map_user.s(0x01f0, 'storage item list',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -2895,7 +2895,7 @@ def main():
         ],
         repeat_size=18,
     )
-    map_user.s(0x020c,
+    map_user.s(0x020c, 'set being ip',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
@@ -2903,7 +2903,7 @@ def main():
         ],
         fixed_size=10,
     )
-    map_user.s(0x0212,
+    map_user.s(0x0212, 'npc command',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'npc id'),
@@ -2916,13 +2916,13 @@ def main():
     )
 
     # login char
-    login_char.r(0x2709,
+    login_char.r(0x2709, 'reload gm accounts request',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    login_char.r(0x2710,
+    login_char.r(0x2710, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -2937,14 +2937,14 @@ def main():
         ],
         fixed_size=86,
     )
-    login_char.s(0x2711,
+    login_char.s(0x2711, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'code'),
         ],
         fixed_size=3,
     )
-    login_char.r(0x2712,
+    login_char.r(0x2712, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2955,7 +2955,7 @@ def main():
         ],
         fixed_size=19,
     )
-    login_char.s(0x2713,
+    login_char.s(0x2713, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2965,14 +2965,14 @@ def main():
         ],
         fixed_size=51,
     )
-    login_char.r(0x2714,
+    login_char.r(0x2714, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u32, 'users'),
         ],
         fixed_size=6,
     )
-    login_char.r(0x2715,
+    login_char.r(0x2715, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2980,14 +2980,14 @@ def main():
         ],
         fixed_size=46,
     )
-    login_char.r(0x2716,
+    login_char.r(0x2716, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    login_char.s(0x2717,
+    login_char.s(0x2717, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -2997,7 +2997,7 @@ def main():
         fixed_size=50,
     )
     # 0x2b0a
-    login_char.r(0x2720,
+    login_char.r(0x2720, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3007,7 +3007,7 @@ def main():
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
     )
-    login_char.s(0x2721,
+    login_char.s(0x2721, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3016,7 +3016,7 @@ def main():
         fixed_size=10,
     )
     # 0x2b0c
-    login_char.r(0x2722,
+    login_char.r(0x2722, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3025,7 +3025,7 @@ def main():
         ],
         fixed_size=86,
     )
-    login_char.s(0x2723,
+    login_char.s(0x2723, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3033,7 +3033,7 @@ def main():
         ],
         fixed_size=7,
     )
-    login_char.r(0x2724,
+    login_char.r(0x2724, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3041,7 +3041,7 @@ def main():
         ],
         fixed_size=10,
     )
-    login_char.r(0x2725,
+    login_char.r(0x2725, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3050,7 +3050,7 @@ def main():
         fixed_size=18,
     )
     # evil packet, see also 0x794e
-    login_admin.s(0x2726,
+    login_admin.s(0x2726, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'unused'),
@@ -3062,7 +3062,7 @@ def main():
         ],
         repeat_size=1,
     )
-    login_char.r(0x2727,
+    login_char.r(0x2727, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3074,7 +3074,7 @@ def main():
         (0x2728, login_char.r),
         (0x2729, login_char.s),
     ]:
-        cat(id,
+        cat(id, '',
             head=[
                 at(0, u16, 'packet id'),
                 at(2, u16, 'packet length'),
@@ -3087,21 +3087,21 @@ def main():
             ],
             repeat_size=36,
         )
-    login_char.r(0x272a,
+    login_char.r(0x272a, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    login_char.s(0x2730,
+    login_char.s(0x2730, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    login_char.s(0x2731,
+    login_char.s(0x2731, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3110,7 +3110,7 @@ def main():
         ],
         fixed_size=11,
     )
-    login_char.s(0x2732,
+    login_char.s(0x2732, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3122,7 +3122,7 @@ def main():
         ],
         repeat_size=5,
     )
-    login_char.r(0x2740,
+    login_char.r(0x2740, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3131,7 +3131,7 @@ def main():
         ],
         fixed_size=54,
     )
-    login_char.s(0x2741,
+    login_char.s(0x2741, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3141,13 +3141,13 @@ def main():
     )
 
     # char map
-    char_map.r(0x2af7,
+    char_map.r(0x2af7, '',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    char_map.r(0x2af8,
+    char_map.r(0x2af8, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -3158,7 +3158,7 @@ def main():
         ],
         fixed_size=60,
     )
-    char_map.s(0x2af9,
+    char_map.s(0x2af9, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'code'),
@@ -3166,7 +3166,7 @@ def main():
         fixed_size=3,
     )
     # wtf duplicate v
-    char_map.r(0x2afa,
+    char_map.r(0x2afa, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3178,7 +3178,7 @@ def main():
         repeat_size=16,
     )
     # wtf duplicate ^
-    char_map.s(0x2afa,
+    char_map.s(0x2afa, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, item_name_id4, 'source item id'),
@@ -3186,7 +3186,7 @@ def main():
         ],
         fixed_size=10,
     )
-    char_map.s(0x2afb,
+    char_map.s(0x2afb, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'unknown'),
@@ -3194,7 +3194,7 @@ def main():
         ],
         fixed_size=27,
     )
-    char_map.r(0x2afc,
+    char_map.r(0x2afc, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3205,7 +3205,7 @@ def main():
         ],
         fixed_size=22,
     )
-    char_map.s(0x2afd,
+    char_map.s(0x2afd, '',
         payload=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3218,14 +3218,14 @@ def main():
         ],
         payload_size=None,
     )
-    char_map.s(0x2afe,
+    char_map.s(0x2afe, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    char_map.r(0x2aff,
+    char_map.r(0x2aff, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3237,14 +3237,14 @@ def main():
         ],
         repeat_size=4,
     )
-    char_map.s(0x2b00,
+    char_map.s(0x2b00, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u32, 'users'),
         ],
         fixed_size=6,
     )
-    char_map.r(0x2b01,
+    char_map.r(0x2b01, '',
         payload=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3255,7 +3255,7 @@ def main():
         ],
         payload_size=None,
     )
-    char_map.r(0x2b02,
+    char_map.r(0x2b02, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3265,7 +3265,7 @@ def main():
         ],
         fixed_size=18,
     )
-    char_map.s(0x2b03,
+    char_map.s(0x2b03, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3273,7 +3273,7 @@ def main():
         ],
         fixed_size=7,
     )
-    char_map.s(0x2b04,
+    char_map.s(0x2b04, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3286,7 +3286,7 @@ def main():
         ],
         repeat_size=16,
     )
-    char_map.r(0x2b05,
+    char_map.r(0x2b05, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3303,7 +3303,7 @@ def main():
         ],
         fixed_size=49,
     )
-    char_map.s(0x2b06,
+    char_map.s(0x2b06, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3319,7 +3319,7 @@ def main():
         fixed_size=44,
     )
     # 0x2720
-    char_map.r(0x2b0a,
+    char_map.r(0x2b0a, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3329,7 +3329,7 @@ def main():
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
     )
-    char_map.s(0x2b0b,
+    char_map.s(0x2b0b, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3338,7 +3338,7 @@ def main():
         fixed_size=10,
     )
     # 0x2722
-    char_map.r(0x2b0c,
+    char_map.r(0x2b0c, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3347,7 +3347,7 @@ def main():
         ],
         fixed_size=86,
     )
-    char_map.s(0x2b0d,
+    char_map.s(0x2b0d, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3355,7 +3355,7 @@ def main():
         ],
         fixed_size=7,
     )
-    char_map.r(0x2b0e,
+    char_map.r(0x2b0e, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3365,7 +3365,7 @@ def main():
         ],
         fixed_size=44,
     )
-    char_map.r(0x2b0f,
+    char_map.r(0x2b0f, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3380,7 +3380,7 @@ def main():
         (0x2b10, char_map.r),
         (0x2b11, char_map.s),
     ]:
-        cat(id,
+        cat(id, '',
             head=[
                 at(0, u16, 'packet id'),
                 at(2, u16, 'packet length'),
@@ -3393,7 +3393,7 @@ def main():
             ],
             repeat_size=36,
         )
-    char_map.s(0x2b12,
+    char_map.s(0x2b12, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_id, 'char id'),
@@ -3401,14 +3401,14 @@ def main():
         ],
         fixed_size=10,
     )
-    char_map.s(0x2b13,
+    char_map.s(0x2b13, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    char_map.s(0x2b14,
+    char_map.s(0x2b14, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3417,7 +3417,7 @@ def main():
         ],
         fixed_size=11,
     )
-    char_map.s(0x2b15,
+    char_map.s(0x2b15, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3429,7 +3429,7 @@ def main():
         ],
         repeat_size=5,
     )
-    char_map.r(0x2b16,
+    char_map.r(0x2b16, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_id, 'char id'),
@@ -3437,7 +3437,7 @@ def main():
         fixed_size=6,
     )
 
-    char_map.r(0x3000,
+    char_map.r(0x3000, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3448,7 +3448,7 @@ def main():
         ],
         repeat_size=1,
     )
-    char_map.r(0x3001,
+    char_map.r(0x3001, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3461,7 +3461,7 @@ def main():
         ],
         repeat_size=1,
     )
-    char_map.r(0x3002,
+    char_map.r(0x3002, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_id, 'char id'),
@@ -3470,7 +3470,7 @@ def main():
         fixed_size=7,
     )
     # 0x3803
-    char_map.r(0x3003,
+    char_map.r(0x3003, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3484,7 +3484,7 @@ def main():
         repeat_size=1,
     )
     # 0x3804
-    char_map.r(0x3004,
+    char_map.r(0x3004, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3497,21 +3497,21 @@ def main():
         ],
         repeat_size=36,
     )
-    char_map.r(0x3005,
+    char_map.r(0x3005, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    char_map.r(0x3010,
+    char_map.r(0x3010, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    char_map.r(0x3011,
+    char_map.r(0x3011, '',
         payload=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3520,7 +3520,7 @@ def main():
         ],
         payload_size=None,
     )
-    char_map.r(0x3020,
+    char_map.r(0x3020, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3531,14 +3531,14 @@ def main():
         ],
         fixed_size=72,
     )
-    char_map.r(0x3021,
+    char_map.r(0x3021, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
         ],
         fixed_size=6,
     )
-    char_map.r(0x3022,
+    char_map.r(0x3022, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3549,7 +3549,7 @@ def main():
         ],
         fixed_size=52,
     )
-    char_map.r(0x3023,
+    char_map.r(0x3023, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3559,7 +3559,7 @@ def main():
         ],
         fixed_size=14,
     )
-    char_map.r(0x3024,
+    char_map.r(0x3024, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3567,7 +3567,7 @@ def main():
         ],
         fixed_size=10,
     )
-    char_map.r(0x3025,
+    char_map.r(0x3025, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3578,14 +3578,14 @@ def main():
         ],
         fixed_size=29,
     )
-    char_map.r(0x3026,
+    char_map.r(0x3026, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
         ],
         fixed_size=6,
     )
-    char_map.r(0x3027,
+    char_map.r(0x3027, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3598,7 +3598,7 @@ def main():
         ],
         repeat_size=1,
     )
-    char_map.r(0x3028,
+    char_map.r(0x3028, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3608,7 +3608,7 @@ def main():
         fixed_size=34,
     )
 
-    char_map.s(0x3800,
+    char_map.s(0x3800, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3619,7 +3619,7 @@ def main():
         ],
         repeat_size=1,
     )
-    char_map.s(0x3801,
+    char_map.s(0x3801, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3633,7 +3633,7 @@ def main():
         ],
         repeat_size=1,
     )
-    char_map.s(0x3802,
+    char_map.s(0x3802, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, char_name, 'sender char name'),
@@ -3642,7 +3642,7 @@ def main():
         fixed_size=27,
     )
     # 0x3003
-    char_map.s(0x3803,
+    char_map.s(0x3803, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3656,7 +3656,7 @@ def main():
         repeat_size=1,
     )
     # 0x3004
-    char_map.s(0x3804,
+    char_map.s(0x3804, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3669,7 +3669,7 @@ def main():
         ],
         repeat_size=36,
     )
-    char_map.s(0x3810,
+    char_map.s(0x3810, '',
         payload=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3678,7 +3678,7 @@ def main():
         ],
         payload_size=None,
     )
-    char_map.s(0x3811,
+    char_map.s(0x3811, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3686,7 +3686,7 @@ def main():
         ],
         fixed_size=7,
     )
-    char_map.s(0x3820,
+    char_map.s(0x3820, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3696,7 +3696,7 @@ def main():
         ],
         fixed_size=35,
     )
-    char_map.s(0x3821,
+    char_map.s(0x3821, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3708,7 +3708,7 @@ def main():
         ],
         option_size=None,
     )
-    char_map.s(0x3822,
+    char_map.s(0x3822, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3717,7 +3717,7 @@ def main():
         ],
         fixed_size=11,
     )
-    char_map.s(0x3823,
+    char_map.s(0x3823, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3728,7 +3728,7 @@ def main():
         ],
         fixed_size=15,
     )
-    char_map.s(0x3824,
+    char_map.s(0x3824, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3737,7 +3737,7 @@ def main():
         ],
         fixed_size=34,
     )
-    char_map.s(0x3825,
+    char_map.s(0x3825, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3748,7 +3748,7 @@ def main():
         ],
         fixed_size=29,
     )
-    char_map.s(0x3826,
+    char_map.s(0x3826, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, party_id, 'party id'),
@@ -3756,7 +3756,7 @@ def main():
         ],
         fixed_size=7,
     )
-    char_map.s(0x3827,
+    char_map.s(0x3827, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3771,20 +3771,20 @@ def main():
     )
 
     # any client
-    any_user.r(0x7530,
+    any_user.r(0x7530, '',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    any_user.s(0x7531,
+    any_user.s(0x7531, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, version, 'version'),
         ],
         fixed_size=10,
     )
-    any_user.r(0x7532,
+    any_user.r(0x7532, '',
         fixed=[
             at(0, u16, 'packet id'),
         ],
@@ -3792,7 +3792,7 @@ def main():
     )
 
     # login admin
-    login_admin.r(0x7918,
+    login_admin.r(0x7918, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'encryption zero'),
@@ -3800,14 +3800,14 @@ def main():
         ],
         fixed_size=28,
     )
-    login_admin.s(0x7919,
+    login_admin.s(0x7919, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'error'),
         ],
         fixed_size=3,
     )
-    login_admin.r(0x7920,
+    login_admin.r(0x7920, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'start account id'),
@@ -3815,7 +3815,7 @@ def main():
         ],
         fixed_size=10,
     )
-    login_admin.s(0x7921,
+    login_admin.s(0x7921, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3831,7 +3831,7 @@ def main():
         ],
         repeat_size=38,
     )
-    login_admin.r(0x7924,
+    login_admin.r(0x7924, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, item_name_id4, 'source item id'),
@@ -3839,13 +3839,13 @@ def main():
         ],
         fixed_size=10,
     )
-    login_admin.s(0x7925,
+    login_admin.s(0x7925, '',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    login_admin.r(0x7930,
+    login_admin.r(0x7930, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -3855,7 +3855,7 @@ def main():
         ],
         fixed_size=91,
     )
-    login_admin.s(0x7931,
+    login_admin.s(0x7931, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3863,14 +3863,14 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x7932,
+    login_admin.r(0x7932, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
         ],
         fixed_size=26,
     )
-    login_admin.s(0x7933,
+    login_admin.s(0x7933, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3878,7 +3878,7 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x7934,
+    login_admin.r(0x7934, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -3886,7 +3886,7 @@ def main():
         ],
         fixed_size=50,
     )
-    login_admin.s(0x7935,
+    login_admin.s(0x7935, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3894,7 +3894,7 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x7936,
+    login_admin.r(0x7936, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -3903,7 +3903,7 @@ def main():
         ],
         fixed_size=50,
     )
-    login_admin.s(0x7937,
+    login_admin.s(0x7937, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3912,13 +3912,13 @@ def main():
         ],
         fixed_size=34,
     )
-    login_admin.r(0x7938,
+    login_admin.r(0x7938, '',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
     )
-    login_admin.s(0x7939,
+    login_admin.s(0x7939, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'packet length'),
@@ -3934,7 +3934,7 @@ def main():
         ],
         repeat_size=32,
     )
-    login_admin.r(0x793a,
+    login_admin.r(0x793a, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -3942,7 +3942,7 @@ def main():
         ],
         fixed_size=50,
     )
-    login_admin.s(0x793b,
+    login_admin.s(0x793b, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3950,7 +3950,7 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x793c,
+    login_admin.r(0x793c, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -3958,7 +3958,7 @@ def main():
         ],
         fixed_size=27,
     )
-    login_admin.s(0x793d,
+    login_admin.s(0x793d, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3966,7 +3966,7 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x793e,
+    login_admin.r(0x793e, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -3974,7 +3974,7 @@ def main():
         ],
         fixed_size=27,
     )
-    login_admin.s(0x793f,
+    login_admin.s(0x793f, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3982,7 +3982,7 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x7940,
+    login_admin.r(0x7940, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -3990,7 +3990,7 @@ def main():
         ],
         fixed_size=66,
     )
-    login_admin.s(0x7941,
+    login_admin.s(0x7941, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3999,7 +3999,7 @@ def main():
         fixed_size=30,
     )
     # this packet is insane
-    login_admin.r(0x7942,
+    login_admin.r(0x7942, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -4011,7 +4011,7 @@ def main():
         ],
         repeat_size=1,
     )
-    login_admin.s(0x7943,
+    login_admin.s(0x7943, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -4019,14 +4019,14 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x7944,
+    login_admin.r(0x7944, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
         ],
         fixed_size=26,
     )
-    login_admin.s(0x7945,
+    login_admin.s(0x7945, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -4034,14 +4034,14 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x7946,
+    login_admin.r(0x7946, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    login_admin.s(0x7947,
+    login_admin.s(0x7947, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -4049,7 +4049,7 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.r(0x7948,
+    login_admin.r(0x7948, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -4057,7 +4057,7 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.s(0x7949,
+    login_admin.s(0x7949, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -4066,7 +4066,7 @@ def main():
         ],
         fixed_size=34,
     )
-    login_admin.r(0x794a,
+    login_admin.r(0x794a, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -4074,7 +4074,7 @@ def main():
         ],
         fixed_size=30,
     )
-    login_admin.s(0x794b,
+    login_admin.s(0x794b, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -4083,7 +4083,7 @@ def main():
         ],
         fixed_size=34,
     )
-    login_admin.r(0x794c,
+    login_admin.r(0x794c, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -4091,7 +4091,7 @@ def main():
         ],
         fixed_size=38,
     )
-    login_admin.s(0x794d,
+    login_admin.s(0x794d, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -4101,7 +4101,7 @@ def main():
         fixed_size=34,
     )
     # evil packet (see also 0x2726)
-    login_admin.r(0x794e,
+    login_admin.r(0x794e, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, u16, 'unused'),
@@ -4113,14 +4113,14 @@ def main():
         ],
         repeat_size=1,
     )
-    login_admin.s(0x794f,
+    login_admin.s(0x794f, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u16, 'error'),
         ],
         fixed_size=4,
     )
-    login_admin.r(0x7950,
+    login_admin.r(0x7950, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -4128,7 +4128,7 @@ def main():
         ],
         fixed_size=38,
     )
-    login_admin.s(0x7951,
+    login_admin.s(0x7951, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -4137,7 +4137,7 @@ def main():
         ],
         fixed_size=34,
     )
-    login_admin.r(0x7952,
+    login_admin.r(0x7952, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_name, 'account name'),
@@ -4145,7 +4145,7 @@ def main():
         fixed_size=26,
     )
     # this packet is insane
-    login_admin.s(0x7953,
+    login_admin.s(0x7953, '',
         head=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -4168,14 +4168,14 @@ def main():
         ],
         repeat_size=1,
     )
-    login_admin.r(0x7954,
+    login_admin.r(0x7954, '',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
     )
-    login_admin.r(0x7955,
+    login_admin.r(0x7955, '',
         fixed=[
             at(0, u16, 'packet id'),
         ],
@@ -4184,7 +4184,7 @@ def main():
 
     ## new-style packets
     # general packets
-    any_user.x(0x8000,
+    any_user.x(0x8000, '',
         payload=[
             at(0, u16, 'packet id'),
             # packet 0x8000 is handled specially
