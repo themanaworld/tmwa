@@ -1351,6 +1351,8 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
         item_id = item_data->nameid;
     else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != NULL)
         item_id = item_data->nameid;
+    else
+        return ATCE::EXIST;
 
     if (item_id)
     {
