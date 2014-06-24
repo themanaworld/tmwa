@@ -3245,7 +3245,8 @@ void parse_login(Session *s)
             }
         }
     }
-    return;
+    if (rv == RecvResult::Error)
+        s->set_eof();
 }
 
 //----------------------------------

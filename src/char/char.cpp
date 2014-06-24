@@ -1188,13 +1188,7 @@ int char_delete(CharPair *cp)
 static
 void parse_tologin(Session *ls)
 {
-    // only login-server can have an access to here.
-    // so, if it isn't the login-server, we disconnect the session (fd != login_fd).
-    if (ls != login_session)
-    {
-        ls->set_eof();
-        return;
-    }
+    assert (ls == login_session);
 
     char_session_data *sd = static_cast<char_session_data *>(ls->session_data.get());
 
@@ -1665,6 +1659,8 @@ void parse_tologin(Session *ls)
             }
         }
     }
+    if (rv == RecvResult::Error)
+        ls->set_eof();
 }
 
 //--------------------------------
@@ -2281,6 +2277,8 @@ void parse_frommap(Session *ms)
             }
         }
     }
+    if (rv == RecvResult::Error)
+        ms->set_eof();
 }
 
 static
@@ -2770,6 +2768,8 @@ void parse_char(Session *s)
                 return;
         }
     }
+    if (rv == RecvResult::Error)
+        s->set_eof();
 }
 
 static

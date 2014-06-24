@@ -31,7 +31,7 @@
 
 # include "../mmo/fwd.hpp"
 
-int intif_parse(Session *);
+RecvResult intif_parse(Session *, uint16_t packet_id);
 
 void intif_GMmessage(XString mes);
 

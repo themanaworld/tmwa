@@ -40,9 +40,10 @@
 #include "../io/read.hpp"
 
 #include "../net/timer.hpp"
-#include "../net/vomit.hpp"
 
 #include "../mmo/utils.hpp"
+
+#include "../proto2/char-map.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -2852,7 +2853,7 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
 
     if (bl->bl_type == BL::NPC)
     {                           // monster npcs [Valaris]
-        npc_click(sd, wrap<BlockId>(RFIFOL(sd->sess, 2)));
+        npc_click(sd, target_id);
         return 0;
     }
 
@@ -5176,15 +5177,14 @@ void pc_autosave(TimerData *, tick_t)
     ).detach();
 }
 
-int pc_read_gm_account(Session *s)
+int pc_read_gm_account(Session *, const std::vector<Packet_Repeat<0x2b15>>& repeat)
 {
     gm_accountm.clear();
 
-    // (RFIFOW(fd, 2) - 4) / 5
-    for (int i = 4; i < RFIFOW(s, 2); i += 5)
+    for (const auto& i : repeat)
     {
-        AccountId account_id = wrap<AccountId>(RFIFOL(s, i));
-        GmLevel level = GmLevel::from(static_cast<uint32_t>(RFIFOB(s, i + 4)));
+        AccountId account_id = i.account_id;
+        GmLevel level = i.gm_level;
         gm_accountm[account_id] = level;
     }
     return gm_accountm.size();

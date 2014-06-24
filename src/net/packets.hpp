@@ -188,7 +188,7 @@ RecvResult net_recv_opacket(Session *s, NetPacket_Head<id>& head, bool *has_opt,
         if (nat.magic_packet_length < sizeof(NetPacket_Head<id>))
             return RecvResult::Error;
         size_t bytes_repeat = nat.magic_packet_length - sizeof(NetPacket_Head<id>);
-        if (bytes_repeat % sizeof(NetPacket_Repeat<id>))
+        if (bytes_repeat % sizeof(NetPacket_Option<id>))
             return RecvResult::Error;
         size_t has_opt_pls = bytes_repeat / sizeof(NetPacket_Option<id>);
         if (has_opt_pls > 1)

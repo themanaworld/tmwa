@@ -2815,6 +2815,12 @@ void parse_fromlogin(Session *s)
         }
     }
 
+    if (rv == RecvResult::Error)
+    {
+        s->set_eof();
+        return;
+    }
+
     // The following was almost certainly wrong and only worked because
     // localhost is a fast enough network to never split byte 1 vs byte 2
 

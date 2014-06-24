@@ -29,10 +29,12 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "../net/packets.hpp"
 #include "../net/socket.hpp"
-#include "../net/vomit.hpp"
 
 #include "../mmo/mmo.hpp"
+
+#include "../proto2/char-map.hpp"
 
 #include "battle.hpp"
 #include "chrif.hpp"
@@ -44,20 +46,6 @@
 
 #include "../poison.hpp"
 
-static
-const int packet_len_table[] =
-{
-    -1, -1, 27, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    -1, 7, 0, 0, 0, 0, 0, 0, -1, 11, 0, 0, 0, 0, 0, 0,
-    35, -1, 11, 15, 34, 29, 7, -1, 0, 0, 0, 0, 0, 0, 0, 0,
-    10, -1, 15, 0, 79, 19, 7, -1, 0, -1, -1, -1, 14, 67, 186, -1,
-    9, 9, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    11, -1, 7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
-
 
 //-----------------------------------------------------------------
 // inter serverへの送信
@@ -65,11 +53,7 @@ const int packet_len_table[] =
 // Message for all GMs on all map servers
 void intif_GMmessage(XString mes)
 {
-    WFIFOW(char_session, 0) = 0x3000;
-    size_t len = mes.size() + 1;
-    WFIFOW(char_session, 2) = 4 + len;
-    WFIFO_STRING(char_session, 4, mes, len);
-    WFIFOSET(char_session, WFIFOW(char_session, 2));
+    send_packet_repeatonly<0x3000, 4, 1>(char_session, mes);
 }
 
 // The transmission of Wisp/Page to inter-server (player not found on this server)
@@ -77,13 +61,10 @@ void intif_wis_message(dumb_ptr<map_session_data> sd, CharName nick, ZString mes
 {
     nullpo_retv(sd);
 
-    size_t mes_len = mes.size() + 1;
-    WFIFOW(char_session, 0) = 0x3001;
-    WFIFOW(char_session, 2) = mes_len + 52;
-    WFIFO_STRING(char_session, 4, sd->status_key.name.to__actual(), 24);
-    WFIFO_STRING(char_session, 28, nick.to__actual(), 24);
-    WFIFO_STRING(char_session, 52, mes, mes_len);
-    WFIFOSET(char_session, WFIFOW(char_session, 2));
+    Packet_Head<0x3001> head_01;
+    head_01.from_char_name = sd->status_key.name;
+    head_01.to_char_name = nick;
+    send_vpacket<0x3001, 52, 1>(char_session, head_01, mes);
 
     if (battle_config.etc_log)
         PRINTF("intif_wis_message from %s to %s)\n"_fmt,
@@ -92,12 +73,12 @@ void intif_wis_message(dumb_ptr<map_session_data> sd, CharName nick, ZString mes
 
 // The reply of Wisp/page
 static
-void intif_wis_replay(int id, int flag)
+void intif_wis_replay(CharId id, int flag)
 {
-    WFIFOW(char_session, 0) = 0x3002;
-    WFIFOL(char_session, 2) = id;
-    WFIFOB(char_session, 6) = flag;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-    WFIFOSET(char_session, 7);
+    Packet_Fixed<0x3002> fixed_02;
+    fixed_02.char_id = id;
+    fixed_02.flag = flag;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+    send_fpacket<0x3002, 7>(char_session, fixed_02);
 
     if (battle_config.etc_log)
         PRINTF("intif_wis_replay: id: %d, flag:%d\n"_fmt, id, flag);
@@ -106,13 +87,10 @@ void intif_wis_replay(int id, int flag)
 // The transmission of GM only Wisp/Page from server to inter-server
 void intif_wis_message_to_gm(CharName Wisp_name, GmLevel min_gm_level, ZString mes)
 {
-    size_t mes_len = mes.size() + 1;
-    WFIFOW(char_session, 0) = 0x3003;
-    WFIFOW(char_session, 2) = mes_len + 30;
-    WFIFO_STRING(char_session, 4, Wisp_name.to__actual(), 24);
-    WFIFOW(char_session, 28) = static_cast<uint16_t>(min_gm_level.get_all_bits());
-    WFIFO_STRING(char_session, 30, mes, mes_len);
-    WFIFOSET(char_session, WFIFOW(char_session, 2));
+    Packet_Head<0x3003> head_03;
+    head_03.char_name = Wisp_name;
+    head_03.min_gm_level = min_gm_level;
+    send_vpacket<0x3003, 30, 1>(char_session, head_03, mes);
 
     if (battle_config.etc_log)
         PRINTF("intif_wis_message_to_gm: from: '%s', min level: %d, message: '%s'.\n"_fmt,
@@ -122,20 +100,18 @@ void intif_wis_message_to_gm(CharName Wisp_name, GmLevel min_gm_level, ZString m
 // アカウント変数送信
 void intif_saveaccountreg(dumb_ptr<map_session_data> sd)
 {
-    int j, p;
-
     nullpo_retv(sd);
     assert (sd->status.account_reg_num < ACCOUNT_REG_NUM);
 
-    WFIFOW(char_session, 0) = 0x3004;
-    WFIFOL(char_session, 4) = unwrap<BlockId>(sd->bl_id);
-    for (j = 0, p = 8; j < sd->status.account_reg_num; j++, p += 36)
+    Packet_Head<0x3004> head_04;
+    head_04.account_id = block_to_account(sd->bl_id);
+    std::vector<Packet_Repeat<0x3004>> repeat_04(sd->status.account_reg_num);
+    for (size_t j = 0; j < sd->status.account_reg_num; j++)
     {
-        WFIFO_STRING(char_session, p, sd->status.account_reg[j].str, 32);
-        WFIFOL(char_session, p + 32) = sd->status.account_reg[j].value;
+        repeat_04[j].name = sd->status.account_reg[j].str;
+        repeat_04[j].value = sd->status.account_reg[j].value;
     }
-    WFIFOW(char_session, 2) = p;
-    WFIFOSET(char_session, p);
+    send_vpacket<0x3004, 8, 36>(char_session, head_04, repeat_04);
 }
 
 // アカウント変数要求
@@ -143,28 +119,27 @@ void intif_request_accountreg(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    WFIFOW(char_session, 0) = 0x3005;
-    WFIFOL(char_session, 2) = unwrap<BlockId>(sd->bl_id);
-    WFIFOSET(char_session, 6);
+    Packet_Fixed<0x3005> fixed_05;
+    fixed_05.account_id = block_to_account(sd->bl_id);
+    send_fpacket<0x3005, 6>(char_session, fixed_05);
 }
 
 // 倉庫データ要求
 void intif_request_storage(AccountId account_id)
 {
-    WFIFOW(char_session, 0) = 0x3010;
-    WFIFOL(char_session, 2) = unwrap<AccountId>(account_id);
-    WFIFOSET(char_session, 6);
+    Packet_Fixed<0x3010> fixed_10;
+    fixed_10.account_id = account_id;
+    send_fpacket<0x3010, 6>(char_session, fixed_10);
 }
 
 // 倉庫データ送信
 void intif_send_storage(Storage *stor)
 {
     nullpo_retv(stor);
-    WFIFOW(char_session, 0) = 0x3011;
-    WFIFOW(char_session, 2) = sizeof(Storage) + 8;
-    WFIFOL(char_session, 4) = unwrap<AccountId>(stor->account_id);
-    WFIFO_STRUCT(char_session, 8, *stor);
-    WFIFOSET(char_session, WFIFOW(char_session, 2));
+    Packet_Payload<0x3011> payload_11;
+    payload_11.account_id = stor->account_id;
+    payload_11.storage = *stor;
+    send_ppacket<0x3011>(char_session, payload_11);
 }
 
 // パーティ作成要求
@@ -172,21 +147,21 @@ void intif_create_party(dumb_ptr<map_session_data> sd, PartyName name)
 {
     nullpo_retv(sd);
 
-    WFIFOW(char_session, 0) = 0x3020;
-    WFIFOL(char_session, 2) = unwrap<AccountId>(sd->status_key.account_id);
-    WFIFO_STRING(char_session, 6, name, 24);
-    WFIFO_STRING(char_session, 30, sd->status_key.name.to__actual(), 24);
-    WFIFO_STRING(char_session, 54, sd->bl_m->name_, 16);
-    WFIFOW(char_session, 70) = sd->status.base_level;
-    WFIFOSET(char_session, 72);
+    Packet_Fixed<0x3020> fixed_20;
+    fixed_20.account_id = sd->status_key.account_id;
+    fixed_20.party_name = name;
+    fixed_20.char_name = sd->status_key.name;
+    fixed_20.map_name = sd->bl_m->name_;
+    fixed_20.level = sd->status.base_level;
+    send_fpacket<0x3020, 72>(char_session, fixed_20);
 }
 
 // パーティ情報要求
 void intif_request_partyinfo(PartyId party_id)
 {
-    WFIFOW(char_session, 0) = 0x3021;
-    WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
-    WFIFOSET(char_session, 6);
+    Packet_Fixed<0x3021> fixed_21;
+    fixed_21.party_id = party_id;
+    send_fpacket<0x3021, 6>(char_session, fixed_21);
 }
 
 // パーティ追加要求
@@ -196,34 +171,34 @@ void intif_party_addmember(PartyId party_id, AccountId account_id)
     sd = map_id2sd(account_to_block(account_id));
     if (sd != NULL)
     {
-        WFIFOW(char_session, 0) = 0x3022;
-        WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
-        WFIFOL(char_session, 6) = unwrap<AccountId>(account_id);
-        WFIFO_STRING(char_session, 10, sd->status_key.name.to__actual(), 24);
-        WFIFO_STRING(char_session, 34, sd->bl_m->name_, 16);
-        WFIFOW(char_session, 50) = sd->status.base_level;
-        WFIFOSET(char_session, 52);
+        Packet_Fixed<0x3022> fixed_22;
+        fixed_22.party_id = party_id;
+        fixed_22.account_id = account_id;
+        fixed_22.char_name = sd->status_key.name;
+        fixed_22.map_name = sd->bl_m->name_;
+        fixed_22.level = sd->status.base_level;
+        send_fpacket<0x3022, 52>(char_session, fixed_22);
     }
 }
 
 // パーティ設定変更
 void intif_party_changeoption(PartyId party_id, AccountId account_id, int exp, int item)
 {
-    WFIFOW(char_session, 0) = 0x3023;
-    WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
-    WFIFOL(char_session, 6) = unwrap<AccountId>(account_id);
-    WFIFOW(char_session, 10) = exp;
-    WFIFOW(char_session, 12) = item;
-    WFIFOSET(char_session, 14);
+    Packet_Fixed<0x3023> fixed_23;
+    fixed_23.party_id = party_id;
+    fixed_23.account_id = account_id;
+    fixed_23.exp = exp;
+    fixed_23.item = item;
+    send_fpacket<0x3023, 14>(char_session, fixed_23);
 }
 
 // パーティ脱退要求
 void intif_party_leave(PartyId party_id, AccountId account_id)
 {
-    WFIFOW(char_session, 0) = 0x3024;
-    WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
-    WFIFOL(char_session, 6) = unwrap<AccountId>(account_id);
-    WFIFOSET(char_session, 10);
+    Packet_Fixed<0x3024> fixed_24;
+    fixed_24.party_id = party_id;
+    fixed_24.account_id = account_id;
+    send_fpacket<0x3024, 10>(char_session, fixed_24);
 }
 
 // パーティ移動要求
@@ -231,36 +206,33 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
 {
     if (sd != NULL)
     {
-        WFIFOW(char_session, 0) = 0x3025;
-        WFIFOL(char_session, 2) = unwrap<PartyId>(sd->status.party_id);
-        WFIFOL(char_session, 6) = unwrap<AccountId>(sd->status_key.account_id);
-        WFIFO_STRING(char_session, 10, sd->bl_m->name_, 16);
-        WFIFOB(char_session, 26) = online;
-        WFIFOW(char_session, 27) = sd->status.base_level;
-        WFIFOSET(char_session, 29);
+        Packet_Fixed<0x3025> fixed_25;
+        fixed_25.party_id = sd->status.party_id;
+        fixed_25.account_id = sd->status_key.account_id;
+        fixed_25.map_name = sd->bl_m->name_;
+        fixed_25.online = online;
+        fixed_25.level = sd->status.base_level;
+        send_fpacket<0x3025, 29>(char_session, fixed_25);
     }
 }
 
 // パーティ会話送信
 void intif_party_message(PartyId party_id, AccountId account_id, XString mes)
 {
-    size_t len = mes.size() + 1;
-    WFIFOW(char_session, 0) = 0x3027;
-    WFIFOW(char_session, 2) = len + 12;
-    WFIFOL(char_session, 4) = unwrap<PartyId>(party_id);
-    WFIFOL(char_session, 8) = unwrap<AccountId>(account_id);
-    WFIFO_STRING(char_session, 12, mes, len);
-    WFIFOSET(char_session, len + 12);
+    Packet_Head<0x3027> head_27;
+    head_27.party_id = party_id;
+    head_27.account_id = account_id;
+    send_vpacket<0x3027, 12, 1>(char_session, head_27, mes);
 }
 
 // パーティ競合チェック要求
 void intif_party_checkconflict(PartyId party_id, AccountId account_id, CharName nick)
 {
-    WFIFOW(char_session, 0) = 0x3028;
-    WFIFOL(char_session, 2) = unwrap<PartyId>(party_id);
-    WFIFOL(char_session, 6) = unwrap<AccountId>(account_id);
-    WFIFO_STRING(char_session, 10, nick.to__actual(), 24);
-    WFIFOSET(char_session, 34);
+    Packet_Fixed<0x3028> fixed_28;
+    fixed_28.party_id = party_id;
+    fixed_28.account_id = account_id;
+    fixed_28.char_name = nick;
+    send_fpacket<0x3028, 34>(char_session, fixed_28);
 }
 
 //-----------------------------------------------------------------
@@ -268,21 +240,18 @@ void intif_party_checkconflict(PartyId party_id, AccountId account_id, CharName 
 
 // Wisp/Page reception
 static
-int intif_parse_WisMessage(Session *s)
+int intif_parse_WisMessage(Session *, const Packet_Head<0x3801>& head, AString& buf)
 {
     // rewritten by [Yor]
     dumb_ptr<map_session_data> sd;
 
-    CharName from = stringish<CharName>(RFIFO_STRING<24>(s, 8));
-    CharName to = stringish<CharName>(RFIFO_STRING<24>(s, 32));
-
-    size_t len = RFIFOW(s, 2) - 56;
-    AString buf = RFIFO_STRING(s, 56, len);
+    CharName from = head.src_char_name;
+    CharName to = head.dst_char_name;
 
     if (battle_config.etc_log)
     {
         PRINTF("intif_parse_wismessage: id: %d, from: %s, to: %s\n"_fmt,
-                RFIFOL(s, 4),
+                head.whisper_id,
                 from,
                 to);
     }
@@ -294,23 +263,23 @@ int intif_parse_WisMessage(Session *s)
             // if source player not found in ignore list
             {
                 clif_wis_message(sd->sess, from, buf);
-                intif_wis_replay(RFIFOL(s, 4), 0);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+                intif_wis_replay(head.whisper_id, 0);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
             }
         }
     }
     else
-        intif_wis_replay(RFIFOL(s, 4), 1);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+        intif_wis_replay(head.whisper_id, 1);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
     return 0;
 }
 
 // Wisp/page transmission result reception
 static
-int intif_parse_WisEnd(Session *s)
+int intif_parse_WisEnd(Session *, const Packet_Fixed<0x3802>& fixed)
 {
     dumb_ptr<map_session_data> sd;
 
-    CharName name = stringish<CharName>(RFIFO_STRING<24>(s, 2));
-    uint8_t flag = RFIFOB(s, 26);
+    CharName name = fixed.sender_char_name;
+    uint8_t flag = fixed.flag;
     if (battle_config.etc_log)
         // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
         PRINTF("intif_parse_wisend: player: %s, flag: %d\n"_fmt,
@@ -324,17 +293,11 @@ int intif_parse_WisEnd(Session *s)
 
 // Received wisp message from map-server via char-server for ALL gm
 static
-void mapif_parse_WisToGM(Session *s)
+void mapif_parse_WisToGM(Session *, const Packet_Head<0x3803>& head, AString& message)
 {
     // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
-    if (RFIFOW(s, 2) - 30 <= 0)
-        return;
-
-    int len = RFIFOW(s, 2) - 30;
-
-    GmLevel min_gm_level = GmLevel::from(static_cast<uint32_t>(RFIFOW(s, 28)));
-    CharName Wisp_name = stringish<CharName>(RFIFO_STRING<24>(s, 4));
-    AString message = RFIFO_STRING(s, 30, len);
+    GmLevel min_gm_level = head.min_gm_level;
+    CharName Wisp_name = head.char_name;
     // information is sended to all online GM
     for (io::FD i : iter_fds())
     {
@@ -352,39 +315,39 @@ void mapif_parse_WisToGM(Session *s)
 
 // アカウント変数通知
 static
-int intif_parse_AccountReg(Session *s)
+int intif_parse_AccountReg(Session *, const Packet_Head<0x3804>& head, const std::vector<Packet_Repeat<0x3804>>& repeat)
 {
-    int j, p;
-    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(wrap<AccountId>(RFIFOL(s, 4))));
+    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(head.account_id));
     if (sd == NULL)
         return 1;
-    for (p = 8, j = 0; p < RFIFOW(s, 2) && j < ACCOUNT_REG_NUM;
-         p += 36, j++)
+
+    size_t jlim = std::min(ACCOUNT_REG_NUM, repeat.size());
+    for (size_t j = 0; j < jlim; j++)
     {
-        sd->status.account_reg[j].str = stringish<VarName>(RFIFO_STRING<32>(s, p));
-        sd->status.account_reg[j].value = RFIFOL(s, p + 32);
+        sd->status.account_reg[j].str = repeat[j].name;
+        sd->status.account_reg[j].value = repeat[j].value;
     }
-    sd->status.account_reg_num = j;
+    sd->status.account_reg_num = jlim;
 
     return 0;
 }
 
 // 倉庫データ受信
 static
-int intif_parse_LoadStorage(Session *s)
+int intif_parse_LoadStorage(Session *, const Packet_Payload<0x3810>& payload)
 {
     Storage *stor;
     dumb_ptr<map_session_data> sd;
 
-    sd = map_id2sd(account_to_block(wrap<AccountId>(RFIFOL(s, 4))));
+    sd = map_id2sd(account_to_block(payload.account_id));
     if (sd == NULL)
     {
         if (battle_config.error_log)
             PRINTF("intif_parse_LoadStorage: user not found %d\n"_fmt,
-                    RFIFOL(s, 4));
+                    payload.account_id);
         return 1;
     }
-    stor = account2storage(wrap<AccountId>(RFIFOL(s, 4)));
+    stor = account2storage(payload.account_id);
     if (stor->storage_status == 1)
     {                           // Already open.. lets ignore this update
         if (battle_config.error_log)
@@ -400,16 +363,9 @@ int intif_parse_LoadStorage(Session *s)
         return 1;
     }
 
-    if (RFIFOW(s, 2) - 8 != sizeof(Storage))
-    {
-        if (battle_config.error_log)
-            PRINTF("intif_parse_LoadStorage: data size error %d %zu\n"_fmt,
-                    RFIFOW(s, 2) - 8, sizeof(Storage));
-        return 1;
-    }
     if (battle_config.save_log)
-        PRINTF("intif_openstorage: %d\n"_fmt, RFIFOL(s, 4));
-    RFIFO_STRUCT(s, 8, *stor);
+        PRINTF("intif_openstorage: %d\n"_fmt, payload.account_id);
+    *stor = payload.storage;
     stor->dirty = 0;
     stor->storage_status = 1;
     sd->state.storage_open = 1;
@@ -422,50 +378,41 @@ int intif_parse_LoadStorage(Session *s)
 
 // 倉庫データ送信成功
 static
-void intif_parse_SaveStorage(Session *s)
+void intif_parse_SaveStorage(Session *, const Packet_Fixed<0x3811>& fixed)
 {
     if (battle_config.save_log)
-        PRINTF("intif_savestorage: done %d %d\n"_fmt, RFIFOL(s, 2),
-                RFIFOB(s, 6));
-    storage_storage_saved(wrap<AccountId>(RFIFOL(s, 2)));
+        PRINTF("intif_savestorage: done %d %d\n"_fmt, fixed.account_id,
+                fixed.unknown);
+    storage_storage_saved(fixed.account_id);
 }
 
 // パーティ作成可否
 static
-void intif_parse_PartyCreated(Session *s)
+void intif_parse_PartyCreated(Session *, const Packet_Fixed<0x3820>& fixed)
 {
     if (battle_config.etc_log)
         PRINTF("intif: party created\n"_fmt);
-    AccountId account_id = wrap<AccountId>(RFIFOL(s, 2));
-    int fail = RFIFOB(s, 6);
-    PartyId party_id = wrap<PartyId>(RFIFOL(s, 7));
-    PartyName name = stringish<PartyName>(RFIFO_STRING<24>(s, 11));
+    AccountId account_id = fixed.account_id;
+    int fail = fixed.error;
+    PartyId party_id = fixed.party_id;
+    PartyName name = fixed.party_name;
     party_created(account_id, fail, party_id, name);
 }
 
 // パーティ情報
 static
-void intif_parse_PartyInfo(Session *s)
+void intif_parse_PartyInfo(Session *, const Packet_Head<0x3821>& head, bool has_opt, const Packet_Option<0x3821>& option)
 {
-    if (RFIFOW(s, 2) == 8)
+    if (!has_opt)
     {
         if (battle_config.error_log)
-            PRINTF("intif: party noinfo %d\n"_fmt, RFIFOL(s, 4));
-        party_recv_noinfo(wrap<PartyId>(RFIFOL(s, 4)));
+            PRINTF("intif: party noinfo %d\n"_fmt, head.party_id);
+        party_recv_noinfo(head.party_id);
         return;
     }
 
-    if (RFIFOW(s, 2) != sizeof(PartyMost) + 8)
-    {
-        if (battle_config.error_log)
-            PRINTF("intif: party info : data size error %d %d %zu\n"_fmt,
-                    RFIFOL(s, 4), RFIFOW(s, 2),
-                    sizeof(PartyMost) + 8);
-    }
-    PartyId pi;
-    PartyMost pm;
-    RFIFO_STRUCT(s, 4, pi);
-    RFIFO_STRUCT(s, 8, pm);
+    PartyId pi = head.party_id;
+    PartyMost pm = option.party_most;
     PartyPair pp;
     pp.party_id = pi;
     pp.party_most = &pm;
@@ -474,29 +421,29 @@ void intif_parse_PartyInfo(Session *s)
 
 // パーティ追加通知
 static
-void intif_parse_PartyMemberAdded(Session *s)
+void intif_parse_PartyMemberAdded(Session *, const Packet_Fixed<0x3822>& fixed)
 {
     if (battle_config.etc_log)
-        PRINTF("intif: party member added %d %d %d\n"_fmt, RFIFOL(s, 2),
-                RFIFOL(s, 6), RFIFOB(s, 10));
-    party_member_added(wrap<PartyId>(RFIFOL(s, 2)), wrap<AccountId>(RFIFOL(s, 6)), RFIFOB(s, 10));
+        PRINTF("intif: party member added %d %d %d\n"_fmt, fixed.party_id,
+                fixed.account_id, fixed.flag);
+    party_member_added(fixed.party_id, fixed.account_id, fixed.flag);
 }
 
 // パーティ設定変更通知
 static
-void intif_parse_PartyOptionChanged(Session *s)
+void intif_parse_PartyOptionChanged(Session *, const Packet_Fixed<0x3823>& fixed)
 {
-    party_optionchanged(wrap<PartyId>(RFIFOL(s, 2)), wrap<AccountId>(RFIFOL(s, 6)), RFIFOW(s, 10),
-                         RFIFOW(s, 12), RFIFOB(s, 14));
+    party_optionchanged(fixed.party_id, fixed.account_id, fixed.exp,
+            fixed.item, fixed.flag);
 }
 
 // パーティ脱退通知
 static
-void intif_parse_PartyMemberLeaved(Session *s)
+void intif_parse_PartyMemberLeaved(Session *, const Packet_Fixed<0x3824>& fixed)
 {
-    PartyId party_id = wrap<PartyId>(RFIFOL(s, 2));
-    AccountId account_id = wrap<AccountId>(RFIFOL(s, 6));
-    CharName name = stringish<CharName>(RFIFO_STRING<24>(s, 10));
+    PartyId party_id = fixed.party_id;
+    AccountId account_id = fixed.account_id;
+    CharName name = fixed.char_name;
     if (battle_config.etc_log)
         PRINTF("intif: party member leaved %d %d %s\n"_fmt,
                 party_id, account_id, name);
@@ -505,118 +452,198 @@ void intif_parse_PartyMemberLeaved(Session *s)
 
 // パーティ解散通知
 static
-void intif_parse_PartyBroken(Session *s)
+void intif_parse_PartyBroken(Session *, const Packet_Fixed<0x3826>& fixed)
 {
-    party_broken(wrap<PartyId>(RFIFOL(s, 2)));
+    party_broken(fixed.party_id);
 }
 
 // パーティ移動通知
 static
-void intif_parse_PartyMove(Session *s)
+void intif_parse_PartyMove(Session *, const Packet_Fixed<0x3825>& fixed)
 {
-    PartyId party_id = wrap<PartyId>(RFIFOL(s, 2));
-    AccountId account_id = wrap<AccountId>(RFIFOL(s, 6));
-    MapName map = stringish<MapName>(RFIFO_STRING<16>(s, 10));
-    uint8_t online = RFIFOB(s, 26);
-    uint16_t lv = RFIFOW(s, 27);
+    PartyId party_id = fixed.party_id;
+    AccountId account_id = fixed.account_id;
+    MapName map = fixed.map_name;
+    uint8_t online = fixed.online;
+    uint16_t lv = fixed.level;
     party_recv_movemap(party_id, account_id, map, online, lv);
 }
 
 // パーティメッセージ
 static
-void intif_parse_PartyMessage(Session *s)
+void intif_parse_PartyMessage(Session *, const Packet_Head<0x3827>& head, AString& buf)
 {
-    size_t len = RFIFOW(s, 2) - 12;
-    AString buf = RFIFO_STRING(s, 12, len);
-    party_recv_message(wrap<PartyId>(RFIFOL(s, 4)), wrap<AccountId>(RFIFOL(s, 8)), buf);
+    party_recv_message(head.party_id, head.account_id, buf);
 }
 
 //-----------------------------------------------------------------
 // inter serverからの通信
 // エラーがあれば0(false)を返すこと
 // パケットが処理できれば1,パケット長が足りなければ2を返すこと
-int intif_parse(Session *s)
+RecvResult intif_parse(Session *s, uint16_t packet_id)
 {
-    int packet_len;
-    int cmd = RFIFOW(s, 0);
-    // パケットのID確認
-    if (cmd < 0x3800
-        || cmd >=
-        0x3800 + (sizeof(packet_len_table) / sizeof(packet_len_table[0]))
-        || packet_len_table[cmd - 0x3800] == 0)
-    {
-        return 0;
-    }
-    // パケットの長さ確認
-    packet_len = packet_len_table[cmd - 0x3800];
-    if (packet_len == -1)
-    {
-        if (RFIFOREST(s) < 4)
-            return 2;
-        packet_len = RFIFOW(s, 2);
-    }
-    if (RFIFOREST(s) < packet_len)
-    {
-        return 2;
-    }
-    // 処理分岐
-    switch (cmd)
+    RecvResult rv;
+
+    switch (packet_id)
     {
         case 0x3800:
         {
-            AString mes = RFIFO_STRING(s, 4, packet_len - 4);
+            AString mes;
+            rv = recv_packet_repeatonly<0x3800, 4, 1>(s, mes);
+            if (rv != RecvResult::Complete)
+                return rv;
+
             clif_GMmessage(NULL, mes, 0);
+            break;
         }
-            break;
         case 0x3801:
-            intif_parse_WisMessage(s);
+        {
+            Packet_Head<0x3801> head;
+            AString repeat;
+            rv = recv_vpacket<0x3801, 56, 1>(s, head, repeat);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_WisMessage(s, head, repeat);
             break;
+        }
         case 0x3802:
-            intif_parse_WisEnd(s);
+        {
+            Packet_Fixed<0x3802> fixed;
+            rv = recv_fpacket<0x3802, 27>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_WisEnd(s, fixed);
             break;
+        }
         case 0x3803:
-            mapif_parse_WisToGM(s);
+        {
+            Packet_Head<0x3803> head;
+            AString repeat;
+            rv = recv_vpacket<0x3803, 30, 1>(s, head, repeat);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            mapif_parse_WisToGM(s, head, repeat);
             break;
+        }
         case 0x3804:
-            intif_parse_AccountReg(s);
+        {
+            Packet_Head<0x3804> head;
+            std::vector<Packet_Repeat<0x3804>> repeat;
+            rv = recv_vpacket<0x3804, 8, 36>(s, head, repeat);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_AccountReg(s, head, repeat);
             break;
+        }
         case 0x3810:
-            intif_parse_LoadStorage(s);
+        {
+            Packet_Payload<0x3810> payload;
+            rv = recv_ppacket<0x3810>(s, payload);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_LoadStorage(s, payload);
             break;
+        }
         case 0x3811:
-            intif_parse_SaveStorage(s);
+        {
+            Packet_Fixed<0x3811> fixed;
+            rv = recv_fpacket<0x3811, 7>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_SaveStorage(s, fixed);
             break;
+        }
         case 0x3820:
-            intif_parse_PartyCreated(s);
+        {
+            Packet_Fixed<0x3820> fixed;
+            rv = recv_fpacket<0x3820, 35>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyCreated(s, fixed);
             break;
+        }
         case 0x3821:
-            intif_parse_PartyInfo(s);
+        {
+            Packet_Head<0x3821> head;
+            bool has_opt;
+            Packet_Option<0x3821> option;
+            rv = recv_opacket<0x3821, 8, sizeof(NetPacket_Option<0x3821>)>(s, head, &has_opt, option);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyInfo(s, head, has_opt, option);
             break;
+        }
         case 0x3822:
-            intif_parse_PartyMemberAdded(s);
+        {
+            Packet_Fixed<0x3822> fixed;
+            rv = recv_fpacket<0x3822, 11>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyMemberAdded(s, fixed);
             break;
+        }
         case 0x3823:
-            intif_parse_PartyOptionChanged(s);
+        {
+            Packet_Fixed<0x3823> fixed;
+            rv = recv_fpacket<0x3823, 15>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyOptionChanged(s, fixed);
             break;
+        }
         case 0x3824:
-            intif_parse_PartyMemberLeaved(s);
+        {
+            Packet_Fixed<0x3824> fixed;
+            rv = recv_fpacket<0x3824, 34>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyMemberLeaved(s, fixed);
             break;
+        }
         case 0x3825:
-            intif_parse_PartyMove(s);
+        {
+            Packet_Fixed<0x3825> fixed;
+            rv = recv_fpacket<0x3825, 29>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyMove(s, fixed);
             break;
+        }
         case 0x3826:
-            intif_parse_PartyBroken(s);
+        {
+            Packet_Fixed<0x3826> fixed;
+            rv = recv_fpacket<0x3826, 7>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyBroken(s, fixed);
             break;
+        }
         case 0x3827:
-            intif_parse_PartyMessage(s);
+        {
+            Packet_Head<0x3827> head;
+            AString repeat;
+            rv = recv_vpacket<0x3827, 12, 1>(s, head, repeat);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyMessage(s, head, repeat);
             break;
+        }
         default:
-            if (battle_config.error_log)
-                PRINTF("intif_parse : unknown packet %d %x\n"_fmt, s,
-                        RFIFOW(s, 0));
-            return 0;
+            return RecvResult::Error;
     }
-    // パケット読み飛ばし
-    RFIFOSKIP(s, packet_len);
-    return 1;
+    return rv;
 }
