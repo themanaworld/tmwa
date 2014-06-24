@@ -1303,7 +1303,10 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     }
     else
     {
-        if (!extract(w4, &npc_class))
+        XString w4x = w4;
+        if (w4x.endswith(','))
+            w4x = w4x.xrslice_h(1);
+        if (!extract(w4x, &npc_class))
             abort();
         nd->scr.xs = 0;
         nd->scr.ys = 0;

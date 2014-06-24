@@ -1249,8 +1249,6 @@ void chrif_parse(Session *s)
 static
 void send_users_tochar(TimerData *, tick_t)
 {
-    int users = 0;
-
     if (!char_session)
         return;
 
@@ -1272,7 +1270,7 @@ void send_users_tochar(TimerData *, tick_t)
             repeat_ff.push_back(info);
         }
     }
-    head_ff.users = users;
+    head_ff.users = repeat_ff.size();
     send_vpacket<0x2aff, 6, 4>(char_session, head_ff, repeat_ff);
 }
 

@@ -485,7 +485,7 @@ RecvResult recv_vpacket(Session *s, Packet_Head<id>& head, AString& repeat)
             return RecvResult::Error;
         // reinterpret_cast is needed to correctly handle an empty vector
         const char *begin = sign_cast<const char *>(net_repeat.data());
-        const char *end = begin + repeat.size();
+        const char *end = begin + net_repeat.size();
         end = std::find(begin, end, '\0');
         repeat = XString(begin, end, nullptr);
     }
