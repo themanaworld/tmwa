@@ -29,6 +29,8 @@
 # include "../strings/zstring.hpp"
 # include "../strings/literal.hpp"
 
+# include "../mmo/fwd.hpp"
+
 # include "magic-interpreter.t.hpp"
 
 /*
@@ -83,7 +85,7 @@ void magic_copy_var(val_t *dest, val_t *src);
 void magic_random_location(location_t *dest, dumb_ptr<area_t> area);
 
 // ret -1: not a string, ret 1: no such item, ret 0: OK
-int magic_find_item(Slice<val_t> args, int index, struct item *item, int *stackable);
+int magic_find_item(Slice<val_t> args, int index, Item *item, int *stackable);
 
 # define GET_ARG_ITEM(index, dest, stackable)                   \
      switch (magic_find_item(args, index, &dest, &stackable))   \

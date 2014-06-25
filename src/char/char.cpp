@@ -175,7 +175,7 @@ std::chrono::milliseconds autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
 
 // Initial position (it's possible to set it in conf file)
 static
-struct point start_point = { {"001-1.gat"_s}, 273, 354 };
+Point start_point = { {"001-1.gat"_s}, 273, 354 };
 
 static
 std::vector<GM_Account> gm_accounts;
@@ -402,7 +402,7 @@ AString mmo_char_tostr(struct CharPair *cp)
 }
 
 static
-bool extract(XString str, struct point *p)
+bool extract(XString str, Point *p)
 {
     return extract(str, record<','>(&p->map_, &p->x, &p->y));
 }
@@ -437,10 +437,10 @@ bool extract(XString str, CharPair *cp)
 
     uint32_t unused_guild_id, unused_pet_id;
     XString unused_memos;
-    std::vector<struct item> inventory;
+    std::vector<Item> inventory;
     XString unused_cart;
     std::vector<struct skill_loader> skills;
-    std::vector<struct global_reg> vars;
+    std::vector<GlobalReg> vars;
     if (!extract(str,
                 record<'\t'>(
                     &k->char_id,
@@ -1010,10 +1010,10 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
         sel.manner = p->manner;
 
         sel.status_point = p->status_point;
-        sel.hp = std::min(p->hp, 0x7fff);
-        sel.max_hp = std::min(p->max_hp, 0x7fff);
-        sel.sp = std::min(p->sp, 0x7fff);
-        sel.max_sp = std::min(p->max_sp, 0x7fff);
+        sel.hp = std::min(p->hp, 0x7fffu);
+        sel.max_hp = std::min(p->max_hp, 0x7fffu);
+        sel.sp = std::min(p->sp, 0x7fffu);
+        sel.max_sp = std::min(p->max_sp, 0x7fffu);
         sel.speed = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // p->speed;
         sel.species = p->species;
         sel.hair_style = p->hair;
@@ -1047,7 +1047,7 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
 }
 
 static
-int set_account_reg2(AccountId acc, Slice<global_reg> reg)
+int set_account_reg2(AccountId acc, Slice<GlobalReg> reg)
 {
     size_t num = reg.size();
     assert (num < ACCOUNT_REG2_NUM);
@@ -1060,7 +1060,7 @@ int set_account_reg2(AccountId acc, Slice<global_reg> reg)
                 cd.data->account_reg2[i] = reg[i];
             cd.data->account_reg2_num = num;
             for (int i = num; i < ACCOUNT_REG2_NUM; ++i)
-                cd.data->account_reg2[i] = global_reg{};
+                cd.data->account_reg2[i] = GlobalReg{};
             c++;
         }
     }
@@ -1426,7 +1426,7 @@ void parse_tologin(Session *ls)
                     break;
 
                 {
-                    Array<struct global_reg, ACCOUNT_REG2_NUM> reg;
+                    Array<GlobalReg, ACCOUNT_REG2_NUM> reg;
                     int j = 0;
                     AccountId acc = head.account_id;
                     for (const auto& info : repeat)
@@ -1437,7 +1437,7 @@ void parse_tologin(Session *ls)
                         if (j == ACCOUNT_REG2_NUM)
                             break;
                     }
-                    set_account_reg2(acc, Slice<struct global_reg>(reg.begin(), j));
+                    set_account_reg2(acc, Slice<GlobalReg>(reg.begin(), j));
 
                     Packet_Head<0x2b11> head_11;
                     head_11.account_id = head.account_id;
@@ -2211,7 +2211,7 @@ void parse_frommap(Session *ms)
                     break;
 
                 {
-                    Array<struct global_reg, ACCOUNT_REG2_NUM> reg;
+                    Array<GlobalReg, ACCOUNT_REG2_NUM> reg;
                     AccountId acc = head.account_id;
                     auto jlim = std::min(repeat.size(), ACCOUNT_REG2_NUM);
                     for (size_t j = 0; j < jlim; ++j)
@@ -2219,7 +2219,7 @@ void parse_frommap(Session *ms)
                         reg[j].str = repeat[j].name;
                         reg[j].value = repeat[j].value;
                     }
-                    set_account_reg2(acc, Slice<struct global_reg>(reg.begin(), jlim));
+                    set_account_reg2(acc, Slice<GlobalReg>(reg.begin(), jlim));
                     // loginサーバーへ送る
                     if (login_session)
                     {

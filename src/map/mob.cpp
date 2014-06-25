@@ -2179,7 +2179,7 @@ struct delay_item_drop2
 {
     map_local *m;
     int x, y;
-    struct item item_data;
+    Item item_data;
     dumb_ptr<map_session_data> first_sd, second_sd, third_sd;
 };
 
@@ -2190,7 +2190,7 @@ struct delay_item_drop2
 static
 void mob_delay_item_drop(TimerData *, tick_t, struct delay_item_drop ditem)
 {
-    struct item temp_item {};
+    Item temp_item {};
     PickupFail flag;
 
     temp_item.nameid = ditem.nameid;
@@ -2644,7 +2644,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
             {
                 int i = 0;
-                for (struct item lit : md->lootitemv)
+                for (Item lit : md->lootitemv)
                 {
                     struct delay_item_drop2 ditem {};
                     ditem.item_data = lit;

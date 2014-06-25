@@ -623,7 +623,7 @@ int op_override_attack(dumb_ptr<env_t> env, Slice<val_t> args)
 static
 int op_create_item(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    struct item item;
+    Item item;
     dumb_ptr<block_list> entity = ARGENTITY(0);
     dumb_ptr<map_session_data> subject;
     int stackable;
@@ -903,7 +903,7 @@ int op_set_hair_style(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_drop_item_for (dumb_ptr<env_t>, Slice<val_t> args)
 {
-    struct item item;
+    Item item;
     int stackable;
     location_t *loc = &ARGLOCATION(0);
     int count = ARGINT(2);

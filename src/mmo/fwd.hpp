@@ -45,11 +45,13 @@ class VarName;
 class MapName;
 class CharName;
 
+class Item;
 # if 0
-class item;
-class point;
-class skill_value;
-class global_reg;
+class Point;
+class SkillValue;
+# endif
+class GlobalReg;
+# if 0
 class CharKey;
 class CharData;
 class CharPair;
@@ -57,7 +59,7 @@ class CharPair;
 class Storage;
 # if 0
 class GM_Account;
-class party_member;
+class PartyMember;
 # endif
 class PartyMost;
 class PartyPair;

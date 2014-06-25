@@ -1,5 +1,5 @@
-#include "../mmo/mmo.hpp"
-//    include_mmo_test.cpp - testsuite for protocol includes
+#include "../mmo/consts.hpp"
+//    include_consts_test.cpp - testsuite for protocol includes
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -20,7 +20,4 @@
 
 #include "../poison.hpp"
 
-using Test_CharKey = CharKey;
-using Test_CharData = CharData;
-using Test_PartyMost = PartyMost;
-using Test_Storage = Storage;
+using Test_PartyMember = PartyMember;

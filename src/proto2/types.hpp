@@ -21,22 +21,26 @@
 
 # include "fwd.hpp"
 
+# include "../generic/array.hpp"
+# include "../mmo/consts.hpp"
+
 //TODO split the includes
 # include <cstdint>
 # include "../ints/little.hpp"
 # include "../strings/vstring.hpp"
 # include "../net/ip.hpp"
 # include "../net/timer.t.hpp"
+# include "../mmo/consts.hpp"
 # include "../mmo/enums.hpp"
 # include "../mmo/human_time_diff.hpp"
 # include "../mmo/ids.hpp"
-# include "../mmo/mmo.hpp"
 # include "../mmo/strs.hpp"
 # include "../mmo/utils.hpp"
 # include "../mmo/version.hpp"
 # include "../login/login.t.hpp"
 # include "../map/clif.t.hpp"
 # include "../map/skill.t.hpp"
+
 template<class T>
 bool native_to_network(T *network, T native)
 {
@@ -49,6 +53,52 @@ bool network_to_native(T *native, T network)
     *native = network;
     return true;
 }
+template<class T, size_t N>
+struct NetArray
+{
+    T data[N];
+};
+template<class T, class U, size_t N>
+bool native_to_network(NetArray<T, N> *network, Array<U, N> native)
+{
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!native_to_network(&(*network).data[i], native[i]))
+            return false;
+    }
+    return true;
+}
+template<class T, class U, size_t N>
+bool network_to_native(Array<U, N> *native, NetArray<T, N> network)
+{
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!network_to_native(&(*native)[i], network.data[i]))
+            return false;
+    }
+    return true;
+}
+template<class T, class U, size_t N, class I>
+bool native_to_network(NetArray<T, N> *network, earray<U, I, static_cast<I>(N)> native)
+{
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!native_to_network(&(*network).data[i], native[static_cast<I>(i)]))
+            return false;
+    }
+    return true;
+}
+template<class T, class U, size_t N, class I>
+bool network_to_native(earray<U, I, static_cast<I>(N)> *native, NetArray<T, N> network)
+{
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!network_to_native(&(*native)[static_cast<I>(i)], network.data[i]))
+            return false;
+    }
+    return true;
+}
+
 template<size_t N>
 struct NetString
 {
@@ -411,6 +461,24 @@ bool network_to_native(EPOS *native, Little16 network)
     uint16_t tmp;
     rv &= network_to_native(&tmp, network);
     *native = static_cast<EPOS>(tmp);
+    // TODO this is what really should be doing a checked cast
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little16 *network, ItemLook native)
+{
+    bool rv = true;
+    uint16_t tmp = static_cast<uint16_t>(native);
+    rv &= native_to_network(network, tmp);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(ItemLook *native, Little16 network)
+{
+    bool rv = true;
+    uint16_t tmp;
+    rv &= network_to_native(&tmp, network);
+    *native = static_cast<ItemLook>(tmp);
     // TODO this is what really should be doing a checked cast
     return rv;
 }
@@ -922,6 +990,450 @@ bool network_to_native(SkillInfo *native, NetSkillInfo network)
     rv &= network_to_native(&native->range, network.range);
     rv &= network_to_native(&native->unused, network.unused);
     rv &= network_to_native(&native->can_raise, network.can_raise);
+    return rv;
+}
+
+struct Item
+{
+    ItemNameId nameid = {};
+    uint16_t amount = {};
+    EPOS equip = {};
+};
+struct NetItem
+{
+    Little16 nameid;
+    Little16 amount;
+    Little16 equip;
+};
+static_assert(alignof(NetItem) == 1, "alignof(NetItem) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetItem *network, Item native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->nameid, native.nameid);
+    rv &= native_to_network(&network->amount, native.amount);
+    rv &= native_to_network(&network->equip, native.equip);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Item *native, NetItem network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->nameid, network.nameid);
+    rv &= network_to_native(&native->amount, network.amount);
+    rv &= network_to_native(&native->equip, network.equip);
+    return rv;
+}
+
+struct Point
+{
+    MapName map_ = {};
+    uint16_t x = {};
+    uint16_t y = {};
+    Point() = default;
+    Point(MapName _map_, uint16_t _x, uint16_t _y) : map_(_map_), x(_x), y(_y) {}
+};
+struct NetPoint
+{
+    NetString<sizeof(MapName)> map_;
+    Little16 x;
+    Little16 y;
+};
+static_assert(alignof(NetPoint) == 1, "alignof(NetPoint) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetPoint *network, Point native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->map_, native.map_);
+    rv &= native_to_network(&network->x, native.x);
+    rv &= native_to_network(&network->y, native.y);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Point *native, NetPoint network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->map_, network.map_);
+    rv &= network_to_native(&native->x, network.x);
+    rv &= network_to_native(&native->y, network.y);
+    return rv;
+}
+
+struct SkillValue
+{
+    uint16_t lv = {};
+    SkillFlags flags = {};
+};
+struct NetSkillValue
+{
+    Little16 lv;
+    Little16 flags;
+};
+static_assert(alignof(NetSkillValue) == 1, "alignof(NetSkillValue) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetSkillValue *network, SkillValue native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->lv, native.lv);
+    rv &= native_to_network(&network->flags, native.flags);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(SkillValue *native, NetSkillValue network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->lv, network.lv);
+    rv &= network_to_native(&native->flags, network.flags);
+    return rv;
+}
+
+struct GlobalReg
+{
+    VarName str = {};
+    uint32_t value = {};
+};
+struct NetGlobalReg
+{
+    NetString<sizeof(VarName)> str;
+    Little32 value;
+};
+static_assert(alignof(NetGlobalReg) == 1, "alignof(NetGlobalReg) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetGlobalReg *network, GlobalReg native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->str, native.str);
+    rv &= native_to_network(&network->value, native.value);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(GlobalReg *native, NetGlobalReg network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->str, network.str);
+    rv &= network_to_native(&native->value, network.value);
+    return rv;
+}
+
+struct CharKey
+{
+    CharName name = {};
+    AccountId account_id = {};
+    CharId char_id = {};
+    uint8_t char_num = {};
+};
+struct NetCharKey
+{
+    NetString<sizeof(CharName)> name;
+    Little32 account_id;
+    Little32 char_id;
+    Byte char_num;
+};
+static_assert(alignof(NetCharKey) == 1, "alignof(NetCharKey) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetCharKey *network, CharKey native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->name, native.name);
+    rv &= native_to_network(&network->account_id, native.account_id);
+    rv &= native_to_network(&network->char_id, native.char_id);
+    rv &= native_to_network(&network->char_num, native.char_num);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(CharKey *native, NetCharKey network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->name, network.name);
+    rv &= network_to_native(&native->account_id, network.account_id);
+    rv &= network_to_native(&native->char_id, network.char_id);
+    rv &= network_to_native(&native->char_num, network.char_num);
+    return rv;
+}
+
+struct CharData
+{
+    CharId partner_id = {};
+    uint32_t base_exp = {};
+    uint32_t job_exp = {};
+    uint32_t zeny = {};
+    Species species = {};
+    uint16_t status_point = {};
+    uint16_t skill_point = {};
+    uint32_t hp = {};
+    uint32_t max_hp = {};
+    uint32_t sp = {};
+    uint32_t max_sp = {};
+    Option option = {};
+    uint16_t karma = {};
+    uint16_t manner = {};
+    uint16_t hair = {};
+    uint16_t hair_color = {};
+    uint16_t clothes_color = {};
+    PartyId party_id = {};
+    ItemLook weapon = {};
+    ItemNameId shield = {};
+    ItemNameId head_top = {};
+    ItemNameId head_mid = {};
+    ItemNameId head_bottom = {};
+    uint8_t base_level = {};
+    uint8_t job_level = {};
+    earray<uint16_t, ATTR, ATTR::COUNT> attrs = {};
+    SEX sex = {};
+    IP4Address mapip = {};
+    uint16_t mapport = {};
+    Point last_point = {};
+    Point save_point = {};
+    Array<Item, MAX_INVENTORY> inventory = {};
+    earray<SkillValue, SkillID, MAX_SKILL> skill = {};
+    uint32_t global_reg_num = {};
+    Array<GlobalReg, GLOBAL_REG_NUM> global_reg = {};
+    uint32_t account_reg_num = {};
+    Array<GlobalReg, ACCOUNT_REG_NUM> account_reg = {};
+    uint32_t account_reg2_num = {};
+    Array<GlobalReg, ACCOUNT_REG2_NUM> account_reg2 = {};
+};
+struct NetCharData
+{
+    Little32 partner_id;
+    Little32 base_exp;
+    Little32 job_exp;
+    Little32 zeny;
+    Little16 species;
+    Little16 status_point;
+    Little16 skill_point;
+    Little32 hp;
+    Little32 max_hp;
+    Little32 sp;
+    Little32 max_sp;
+    Little16 option;
+    Little16 karma;
+    Little16 manner;
+    Little16 hair;
+    Little16 hair_color;
+    Little16 clothes_color;
+    Little32 party_id;
+    Little16 weapon;
+    Little16 shield;
+    Little16 head_top;
+    Little16 head_mid;
+    Little16 head_bottom;
+    Byte base_level;
+    Byte job_level;
+    NetArray<Little16, static_cast<size_t>(ATTR::COUNT)> attrs;
+    Byte sex;
+    IP4Address mapip;
+    Little16 mapport;
+    NetPoint last_point;
+    NetPoint save_point;
+    NetArray<NetItem, MAX_INVENTORY> inventory;
+    NetArray<NetSkillValue, static_cast<size_t>(MAX_SKILL)> skill;
+    Little32 global_reg_num;
+    NetArray<NetGlobalReg, GLOBAL_REG_NUM> global_reg;
+    Little32 account_reg_num;
+    NetArray<NetGlobalReg, ACCOUNT_REG_NUM> account_reg;
+    Little32 account_reg2_num;
+    NetArray<NetGlobalReg, ACCOUNT_REG2_NUM> account_reg2;
+};
+static_assert(alignof(NetCharData) == 1, "alignof(NetCharData) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetCharData *network, CharData native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->partner_id, native.partner_id);
+    rv &= native_to_network(&network->base_exp, native.base_exp);
+    rv &= native_to_network(&network->job_exp, native.job_exp);
+    rv &= native_to_network(&network->zeny, native.zeny);
+    rv &= native_to_network(&network->species, native.species);
+    rv &= native_to_network(&network->status_point, native.status_point);
+    rv &= native_to_network(&network->skill_point, native.skill_point);
+    rv &= native_to_network(&network->hp, native.hp);
+    rv &= native_to_network(&network->max_hp, native.max_hp);
+    rv &= native_to_network(&network->sp, native.sp);
+    rv &= native_to_network(&network->max_sp, native.max_sp);
+    rv &= native_to_network(&network->option, native.option);
+    rv &= native_to_network(&network->karma, native.karma);
+    rv &= native_to_network(&network->manner, native.manner);
+    rv &= native_to_network(&network->hair, native.hair);
+    rv &= native_to_network(&network->hair_color, native.hair_color);
+    rv &= native_to_network(&network->clothes_color, native.clothes_color);
+    rv &= native_to_network(&network->party_id, native.party_id);
+    rv &= native_to_network(&network->weapon, native.weapon);
+    rv &= native_to_network(&network->shield, native.shield);
+    rv &= native_to_network(&network->head_top, native.head_top);
+    rv &= native_to_network(&network->head_mid, native.head_mid);
+    rv &= native_to_network(&network->head_bottom, native.head_bottom);
+    rv &= native_to_network(&network->base_level, native.base_level);
+    rv &= native_to_network(&network->job_level, native.job_level);
+    rv &= native_to_network(&network->attrs, native.attrs);
+    rv &= native_to_network(&network->sex, native.sex);
+    rv &= native_to_network(&network->mapip, native.mapip);
+    rv &= native_to_network(&network->mapport, native.mapport);
+    rv &= native_to_network(&network->last_point, native.last_point);
+    rv &= native_to_network(&network->save_point, native.save_point);
+    rv &= native_to_network(&network->inventory, native.inventory);
+    rv &= native_to_network(&network->skill, native.skill);
+    rv &= native_to_network(&network->global_reg_num, native.global_reg_num);
+    rv &= native_to_network(&network->global_reg, native.global_reg);
+    rv &= native_to_network(&network->account_reg_num, native.account_reg_num);
+    rv &= native_to_network(&network->account_reg, native.account_reg);
+    rv &= native_to_network(&network->account_reg2_num, native.account_reg2_num);
+    rv &= native_to_network(&network->account_reg2, native.account_reg2);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(CharData *native, NetCharData network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->partner_id, network.partner_id);
+    rv &= network_to_native(&native->base_exp, network.base_exp);
+    rv &= network_to_native(&native->job_exp, network.job_exp);
+    rv &= network_to_native(&native->zeny, network.zeny);
+    rv &= network_to_native(&native->species, network.species);
+    rv &= network_to_native(&native->status_point, network.status_point);
+    rv &= network_to_native(&native->skill_point, network.skill_point);
+    rv &= network_to_native(&native->hp, network.hp);
+    rv &= network_to_native(&native->max_hp, network.max_hp);
+    rv &= network_to_native(&native->sp, network.sp);
+    rv &= network_to_native(&native->max_sp, network.max_sp);
+    rv &= network_to_native(&native->option, network.option);
+    rv &= network_to_native(&native->karma, network.karma);
+    rv &= network_to_native(&native->manner, network.manner);
+    rv &= network_to_native(&native->hair, network.hair);
+    rv &= network_to_native(&native->hair_color, network.hair_color);
+    rv &= network_to_native(&native->clothes_color, network.clothes_color);
+    rv &= network_to_native(&native->party_id, network.party_id);
+    rv &= network_to_native(&native->weapon, network.weapon);
+    rv &= network_to_native(&native->shield, network.shield);
+    rv &= network_to_native(&native->head_top, network.head_top);
+    rv &= network_to_native(&native->head_mid, network.head_mid);
+    rv &= network_to_native(&native->head_bottom, network.head_bottom);
+    rv &= network_to_native(&native->base_level, network.base_level);
+    rv &= network_to_native(&native->job_level, network.job_level);
+    rv &= network_to_native(&native->attrs, network.attrs);
+    rv &= network_to_native(&native->sex, network.sex);
+    rv &= network_to_native(&native->mapip, network.mapip);
+    rv &= network_to_native(&native->mapport, network.mapport);
+    rv &= network_to_native(&native->last_point, network.last_point);
+    rv &= network_to_native(&native->save_point, network.save_point);
+    rv &= network_to_native(&native->inventory, network.inventory);
+    rv &= network_to_native(&native->skill, network.skill);
+    rv &= network_to_native(&native->global_reg_num, network.global_reg_num);
+    rv &= network_to_native(&native->global_reg, network.global_reg);
+    rv &= network_to_native(&native->account_reg_num, network.account_reg_num);
+    rv &= network_to_native(&native->account_reg, network.account_reg);
+    rv &= network_to_native(&native->account_reg2_num, network.account_reg2_num);
+    rv &= network_to_native(&native->account_reg2, network.account_reg2);
+    return rv;
+}
+
+struct NetPartyMember
+{
+    Little32 account_id;
+    NetString<sizeof(CharName)> name;
+    NetString<sizeof(MapName)> map;
+    Little32 leader;
+    Little32 online;
+    Little32 lv;
+};
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetPartyMember *network, PartyMember native)
+{
+    bool rv = true;
+    AccountId account_id = native.account_id; rv &= native_to_network(&network->account_id, account_id);
+    CharName name = native.name; rv &= native_to_network(&network->name, name);
+    MapName map = native.map; rv &= native_to_network(&network->map, map);
+    uint32_t leader = native.leader; rv &= native_to_network(&network->leader, leader);
+    uint32_t online = native.online; rv &= native_to_network(&network->online, online);
+    uint32_t lv = native.lv; rv &= native_to_network(&network->lv, lv);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(PartyMember *native, NetPartyMember network)
+{
+    bool rv = true;
+    AccountId account_id; rv &= network_to_native(&account_id, network.account_id); native->account_id = account_id;
+    CharName name; rv &= network_to_native(&name, network.name); native->name = name;
+    MapName map; rv &= network_to_native(&map, network.map); native->map = map;
+    uint32_t leader; rv &= network_to_native(&leader, network.leader); native->leader = leader;
+    uint32_t online; rv &= network_to_native(&online, network.online); native->online = online;
+    uint32_t lv; rv &= network_to_native(&lv, network.lv); native->lv = lv;
+    return rv;
+}
+
+struct PartyMost
+{
+    PartyName name = {};
+    uint32_t exp = {};
+    uint32_t item = {};
+    Array<PartyMember, MAX_PARTY> member = {};
+};
+struct NetPartyMost
+{
+    NetString<sizeof(PartyName)> name;
+    Little32 exp;
+    Little32 item;
+    NetArray<NetPartyMember, MAX_PARTY> member;
+};
+static_assert(alignof(NetPartyMost) == 1, "alignof(NetPartyMost) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetPartyMost *network, PartyMost native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->name, native.name);
+    rv &= native_to_network(&network->exp, native.exp);
+    rv &= native_to_network(&network->item, native.item);
+    rv &= native_to_network(&network->member, native.member);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(PartyMost *native, NetPartyMost network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->name, network.name);
+    rv &= network_to_native(&native->exp, network.exp);
+    rv &= network_to_native(&native->item, network.item);
+    rv &= network_to_native(&native->member, network.member);
+    return rv;
+}
+
+struct Storage
+{
+    bool dirty = {};
+    AccountId account_id = {};
+    uint16_t storage_status = {};
+    uint16_t storage_amount = {};
+    Array<Item, MAX_STORAGE> storage_ = {};
+};
+struct NetStorage
+{
+    bool dirty;
+    Little32 account_id;
+    Little16 storage_status;
+    Little16 storage_amount;
+    NetArray<NetItem, MAX_STORAGE> storage_;
+};
+static_assert(alignof(NetStorage) == 1, "alignof(NetStorage) == 1");
+inline __attribute__((warn_unused_result))
+bool native_to_network(NetStorage *network, Storage native)
+{
+    bool rv = true;
+    rv &= native_to_network(&network->dirty, native.dirty);
+    rv &= native_to_network(&network->account_id, native.account_id);
+    rv &= native_to_network(&network->storage_status, native.storage_status);
+    rv &= native_to_network(&network->storage_amount, native.storage_amount);
+    rv &= native_to_network(&network->storage_, native.storage_);
+    return rv;
+}
+inline __attribute__((warn_unused_result))
+bool network_to_native(Storage *native, NetStorage network)
+{
+    bool rv = true;
+    rv &= network_to_native(&native->dirty, network.dirty);
+    rv &= network_to_native(&native->account_id, network.account_id);
+    rv &= network_to_native(&native->storage_status, network.storage_status);
+    rv &= network_to_native(&native->storage_amount, network.storage_amount);
+    rv &= network_to_native(&native->storage_, network.storage_);
     return rv;
 }
 

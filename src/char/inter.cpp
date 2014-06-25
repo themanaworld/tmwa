@@ -58,7 +58,7 @@ struct accreg
 {
     AccountId account_id;
     int reg_num;
-    Array<struct global_reg, ACCOUNT_REG_NUM> reg;
+    Array<GlobalReg, ACCOUNT_REG_NUM> reg;
 };
 static
 Map<AccountId, struct accreg> accreg_db;
@@ -83,7 +83,7 @@ AString inter_accreg_tostr(struct accreg *reg)
 static
 bool extract(XString str, struct accreg *reg)
 {
-    std::vector<struct global_reg> vars;
+    std::vector<GlobalReg> vars;
     if (!extract(str,
                 record<'\t'>(
                     &reg->account_id,

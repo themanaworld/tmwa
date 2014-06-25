@@ -212,13 +212,14 @@ class SkewLengthType(Type):
         pass
 
 class StructType(Type):
-    __slots__ = ('id', 'name', 'fields', 'size')
+    __slots__ = ('id', 'name', 'fields', 'size', 'ctor')
 
-    def __init__(self, id, name, fields, size):
+    def __init__(self, id, name, fields, size, ctor=False):
         self.id = id
         self.name = name
         self.fields = fields
         self.size = size
+        self.ctor = ctor
 
     def native_tag(self):
         return self.name
@@ -254,6 +255,13 @@ class StructType(Type):
                 f.write('    %s %s = PACKET_ID;\n' % (l.native_tag(), n))
             else:
                 f.write('    %s %s = {};\n' % (l.native_tag(), n))
+        if self.ctor:
+            f.write('    %s() = default;\n' % name)
+            f.write('    %s(' % name)
+            f.write(', '.join('%s _%s' % (l.native_tag(), n) for (_, l, n) in self.fields))
+            f.write(') : ')
+            f.write(', '.join('%s(_%s)' % (n, n) for (_, _, n) in self.fields))
+            f.write(' {}\n')
         f.write('};\n')
 
     def dump_network(self, f):
@@ -330,6 +338,33 @@ class PartialStructType(Type):
         f.write('    return rv;\n')
         f.write('}\n')
         f.write('\n')
+
+class ArrayType(Type):
+    __slots__ = ('element', 'count')
+
+    def __init__(self, element, count):
+        self.element = element
+        self.count = count
+
+    def native_tag(self):
+        return 'Array<%s, %s>' % (self.element.native_tag(), self.count)
+
+    def network_tag(self):
+        return 'NetArray<%s, %s>' % (self.element.network_tag(), self.count)
+
+class EArrayType(Type):
+    __slots__ = ('element', 'index', 'count')
+
+    def __init__(self, element, index, count):
+        self.element = element
+        self.index = index
+        self.count = count
+
+    def native_tag(self):
+        return 'earray<%s, %s, %s>' % (self.element.native_tag(), self.index, self.count)
+
+    def network_tag(self):
+        return 'NetArray<%s, static_cast<size_t>(%s)>' % (self.element.network_tag(), self.count)
 
 
 class Include(object):
@@ -493,9 +528,6 @@ class Channel(object):
             else:
                 f.write('// This is an internal protocol, and can be changed without notice\n')
             f.write('\n')
-            f.write('// this is only needed for the payload packet right now, and that needs to die\n')
-            f.write('# pragma pack(push, 1)\n')
-            f.write('\n')
             for p in self.packets:
                 p.dump_fwd(fwd)
             fwd.write('\n')
@@ -507,8 +539,6 @@ class Channel(object):
             f.write('\n')
             for p in self.packets:
                 p.dump_convert(f)
-            f.write('\n')
-            f.write('# pragma pack(pop)\n')
             f.write('\n')
             f.write('#endif // %s\n' % define)
 
@@ -598,11 +628,15 @@ class Context(object):
             f.write(copyright.format(filename=header, description=desc))
             f.write('\n')
             f.write('# include "fwd.hpp"\n\n')
-            f.write('//TODO split the includes\n')
+            f.write('# include "../generic/array.hpp"\n')
+            f.write('# include "../mmo/consts.hpp"\n')
+
+            f.write('\n//TODO split the includes\n')
             for inc in self._includes:
                 f.write(inc.pp(1))
                 # this is writing another file
                 inc.testcase(outdir)
+            f.write('\n')
 
             f.write('template<class T>\n')
             f.write('bool native_to_network(T *network, T native)\n{\n')
@@ -614,6 +648,48 @@ class Context(object):
             f.write('    *native = network;\n')
             f.write('    return true;\n')
             f.write('}\n')
+
+            f.write('template<class T, size_t N>\n')
+            f.write('struct NetArray\n{\n')
+            f.write('    T data[N];\n')
+            f.write('};\n')
+            f.write('template<class T, class U, size_t N>\n')
+            f.write('bool native_to_network(NetArray<T, N> *network, Array<U, N> native)\n{\n')
+            f.write('    for (size_t i = 0; i < N; ++i)\n')
+            f.write('    {\n')
+            f.write('        if (!native_to_network(&(*network).data[i], native[i]))\n')
+            f.write('            return false;\n')
+            f.write('    }\n')
+            f.write('    return true;\n')
+            f.write('}\n')
+            f.write('template<class T, class U, size_t N>\n')
+            f.write('bool network_to_native(Array<U, N> *native, NetArray<T, N> network)\n{\n')
+            f.write('    for (size_t i = 0; i < N; ++i)\n')
+            f.write('    {\n')
+            f.write('        if (!network_to_native(&(*native)[i], network.data[i]))\n')
+            f.write('            return false;\n')
+            f.write('    }\n')
+            f.write('    return true;\n')
+            f.write('}\n')
+            f.write('template<class T, class U, size_t N, class I>\n')
+            f.write('bool native_to_network(NetArray<T, N> *network, earray<U, I, static_cast<I>(N)> native)\n{\n')
+            f.write('    for (size_t i = 0; i < N; ++i)\n')
+            f.write('    {\n')
+            f.write('        if (!native_to_network(&(*network).data[i], native[static_cast<I>(i)]))\n')
+            f.write('            return false;\n')
+            f.write('    }\n')
+            f.write('    return true;\n')
+            f.write('}\n')
+            f.write('template<class T, class U, size_t N, class I>\n')
+            f.write('bool network_to_native(earray<U, I, static_cast<I>(N)> *native, NetArray<T, N> network)\n{\n')
+            f.write('    for (size_t i = 0; i < N; ++i)\n')
+            f.write('    {\n')
+            f.write('        if (!network_to_native(&(*native)[static_cast<I>(i)], network.data[i]))\n')
+            f.write('            return false;\n')
+            f.write('    }\n')
+            f.write('    return true;\n')
+            f.write('}\n')
+            f.write('\n')
 
             f.write('template<size_t N>\n')
             f.write('struct NetString\n{\n')
@@ -710,14 +786,24 @@ class Context(object):
         self._types.append(rv)
         return rv
 
-    def struct(self, name, body, size):
-        rv = StructType(None, name, body, size)
+    def struct(self, name, body, size, ctor=False):
+        rv = StructType(None, name, body, size, ctor)
         self._types.append(rv)
         return rv
 
     def partial_struct(self, native, body):
         rv = PartialStructType(native, body)
         self._types.append(rv)
+        return rv
+
+    def array(self, element, count):
+        rv = ArrayType(element, count)
+        return rv
+
+    def earray(self, element, index, count=None):
+        if count is None:
+            count = index + '::COUNT'
+        rv = EArrayType(element, index, count)
         return rv
 
 
@@ -739,10 +825,10 @@ def main():
     ip_h = ctx.include('src/net/ip.hpp')
     timer_th = ctx.include('src/net/timer.t.hpp')
 
+    consts_h = ctx.include('src/mmo/consts.hpp')
     enums_h = ctx.include('src/mmo/enums.hpp')
     human_time_diff_h = ctx.include('src/mmo/human_time_diff.hpp')
     ids_h = ctx.include('src/mmo/ids.hpp')
-    mmo_h = ctx.include('src/mmo/mmo.hpp')
     strs_h = ctx.include('src/mmo/strs.hpp')
     utils_h = ctx.include('src/mmo/utils.hpp')
     version_h = ctx.include('src/mmo/version.hpp')
@@ -751,6 +837,10 @@ def main():
 
     clif_th = ctx.include('src/map/clif.t.hpp')
     skill_th = ctx.include('src/map/skill.t.hpp')
+
+    ## primitive types
+    char = NeutralType('char')
+    bit = NeutralType('bool')
 
     ## included types
 
@@ -767,6 +857,7 @@ def main():
     SEX = enums_h.native('SEX')
     Option = enums_h.native('Option')
     EPOS = enums_h.native('EPOS')
+    ItemLook = enums_h.native('ItemLook')
 
     Species = ids_h.native('Species')
     AccountId = ids_h.native('AccountId')
@@ -775,6 +866,8 @@ def main():
     ItemNameId = ids_h.native('ItemNameId')
     BlockId = ids_h.native('BlockId')
     GmLevel = ids_h.native('GmLevel')
+
+    party_member = consts_h.native('PartyMember')
 
     HumanTimeDiff = human_time_diff_h.native('HumanTimeDiff')
 
@@ -813,13 +906,6 @@ def main():
     VERSION_2 = login_th.native('VERSION_2')
 
 
-    # TODO: fix LIES
-    char_key = mmo_h.neutral('CharKey')
-    char_data = mmo_h.neutral('CharData')
-    party_most = mmo_h.neutral('PartyMost')
-    storage = mmo_h.neutral('Storage')
-
-
     Position1 = clif_th.native('Position1')
     NetPosition1 = clif_th.network('NetPosition1')
     Position2 = clif_th.native('Position2')
@@ -849,7 +935,7 @@ def main():
     u32 = ctx.provided(uint32_t, Little32)
     u64 = ctx.provided(uint64_t, Little64)
 
-    sex_char = ctx.provided(SEX, NeutralType('char'))
+    sex_char = ctx.provided(SEX, char)
 
     dir = ctx.enum(DIR, u8)
     pos1 = ctx.provided(Position1, NetPosition1)
@@ -875,6 +961,7 @@ def main():
     sex = ctx.enum(SEX, u8)
     option = ctx.enum(Option, u16)
     epos = ctx.enum(EPOS, u16)
+    item_look = ctx.enum(ItemLook, u16)
 
     species = ctx.wrap(Species, u16)
     account_id = ctx.wrap(AccountId, u32)
@@ -901,19 +988,12 @@ def main():
     millis = ctx.string(timestamp_milliseconds_buffer)
     account_name = ctx.string(AccountName)
     account_pass = ctx.string(AccountPass)
-    #account_crypt = ctx.string(AccountCrypt)
     account_email = ctx.string(AccountEmail)
     server_name = ctx.string(ServerName)
     party_name = ctx.string(PartyName)
     var_name = ctx.string(VarName)
     char_name = ctx.string(CharName)
     map_name = ctx.string(MapName)
-    #mob_name = ctx.string(MobName)
-    #npc_name = ctx.string(NpcName)
-    #script_label = ctx.string(ScriptLabel)
-    #item_name = ctx.string(ItemName)
-    #md5_string = ctx.string(md5_string)
-    #salt_string = ctx.string(SaltString)
 
     # this will be *so* useful when I do the party copy!
     human_time_diff = ctx.partial_struct(
@@ -1014,6 +1094,137 @@ def main():
             ],
             size=37,
     )
+
+    item = ctx.struct(
+            'Item',
+            [
+                at(None, item_name_id, 'nameid'),
+                at(None, u16, 'amount'),
+                at(None, epos, 'equip'),
+            ],
+            size=None,
+    )
+
+    point = ctx.struct(
+            'Point',
+            [
+                at(None, map_name, 'map_'),
+                at(None, u16, 'x'),
+                at(None, u16, 'y'),
+            ],
+            size=None,
+            ctor=True,
+    )
+
+    skill_value = ctx.struct(
+            'SkillValue',
+            [
+                at(None, u16, 'lv'),
+                at(None, skill_flags, 'flags'),
+            ],
+            size=None,
+    )
+
+    global_reg = ctx.struct(
+            'GlobalReg',
+            [
+                at(None, var_name, 'str'),
+                at(None, u32, 'value'),
+            ],
+            size=None,
+    )
+
+    char_key = ctx.struct(
+            'CharKey',
+            [
+                at(None, char_name, 'name'),
+                at(None, account_id, 'account id'),
+                at(None, char_id, 'char id'),
+                at(None, u8, 'char num'),
+            ],
+            size=None,
+    )
+    char_data = ctx.struct(
+            'CharData',
+            [
+                at(None, char_id, 'partner id'),
+                at(None, u32, 'base exp'),
+                at(None, u32, 'job exp'),
+                at(None, u32, 'zeny'),
+                at(None, species, 'species'),
+                at(None, u16, 'status point'),
+                at(None, u16, 'skill point'),
+                at(None, u32, 'hp'),
+                at(None, u32, 'max hp'),
+                at(None, u32, 'sp'),
+                at(None, u32, 'max sp'),
+                at(None, option, 'option'),
+                at(None, u16, 'karma'),
+                at(None, u16, 'manner'),
+                at(None, u16, 'hair'),
+                at(None, u16, 'hair color'),
+                at(None, u16, 'clothes color'),
+                at(None, party_id, 'party id'),
+                at(None, item_look, 'weapon'),
+                at(None, item_name_id, 'shield'),
+                at(None, item_name_id, 'head top'),
+                at(None, item_name_id, 'head mid'),
+                at(None, item_name_id, 'head bottom'),
+                at(None, u8, 'base level'),
+                at(None, u8, 'job level'),
+                at(None, ctx.earray(u16, 'ATTR'), 'attrs'),
+                at(None, sex, 'sex'),
+                at(None, ip4, 'mapip'),
+                at(None, u16, 'mapport'),
+                at(None, point, 'last point'),
+                at(None, point, 'save point'),
+                at(None, ctx.array(item, 'MAX_INVENTORY'), 'inventory'),
+                at(None, ctx.earray(skill_value, 'SkillID', 'MAX_SKILL'), 'skill'),
+                at(None, u32, 'global reg num'),
+                at(None, ctx.array(global_reg, 'GLOBAL_REG_NUM'), 'global reg'),
+                at(None, u32, 'account reg num'),
+                at(None, ctx.array(global_reg, 'ACCOUNT_REG_NUM'), 'account reg'),
+                at(None, u32, 'account reg2 num'),
+                at(None, ctx.array(global_reg, 'ACCOUNT_REG2_NUM'), 'account reg2'),
+            ],
+            size=None,
+    )
+
+    party_member = ctx.partial_struct(
+            party_member,
+            [
+                ('account_id', account_id),
+                ('name', char_name),
+                ('map', map_name),
+                ('leader', u32),
+                ('online', u32),
+                ('lv', u32),
+            ]
+    )
+
+    party_most = ctx.struct(
+            'PartyMost',
+            [
+                at(None, party_name, 'name'),
+                at(None, u32, 'exp'),
+                at(None, u32, 'item'),
+                at(None, ctx.array(party_member, 'MAX_PARTY'), 'member'),
+            ],
+            size=None,
+    )
+
+    storage = ctx.struct(
+            'Storage',
+            [
+                at(None, bit, 'dirty'),
+                at(None, account_id, 'account id'),
+                at(None, u16, 'storage status'),
+                at(None, u16, 'storage amount'),
+                at(None, ctx.array(item, 'MAX_STORAGE'), 'storage_'),
+            ],
+            size=None,
+    )
+
 
     ## packet channels
 

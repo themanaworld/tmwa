@@ -677,7 +677,7 @@ int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd)
     std::vector<Packet_Repeat<0x2b10>> repeat_10;
     for (size_t j = 0; j < sd->status.account_reg2_num; j++)
     {
-        struct global_reg *reg = &sd->status.account_reg2[j];
+        GlobalReg *reg = &sd->status.account_reg2[j];
         if (reg->str && reg->value != 0)
         {
             Packet_Repeat<0x2b10> info;
@@ -918,7 +918,7 @@ int chrif_reloadGMdb(void)
  */
 
 static
-void ladmin_itemfrob_fix_item(ItemNameId source, ItemNameId dest, struct item *item)
+void ladmin_itemfrob_fix_item(ItemNameId source, ItemNameId dest, Item *item)
 {
     if (item && item->nameid == source)
     {
@@ -975,7 +975,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameI
         case BL::MOB:
         {
             dumb_ptr<mob_data> mob = bl->is_mob();
-            for (struct item& itm : mob->lootitemv)
+            for (Item& itm : mob->lootitemv)
                 FIX(itm);
             break;
         }

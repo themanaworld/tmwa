@@ -214,7 +214,7 @@ struct AuthData
     IP4Address last_ip;           // save of last IP of connection
     VString<254> memo;             // a memo field
     int account_reg2_num;
-    Array<struct global_reg, ACCOUNT_REG2_NUM> account_reg2;
+    Array<GlobalReg, ACCOUNT_REG2_NUM> account_reg2;
 };
 static
 std::vector<AuthData> auth_data;
@@ -494,7 +494,7 @@ AString mmo_auth_tostr(const AuthData *p)
 static
 bool extract(XString line, AuthData *ad)
 {
-    std::vector<struct global_reg> vars;
+    std::vector<GlobalReg> vars;
     VString<1> sex;
     VString<15> ip;
     if (!extract(line,

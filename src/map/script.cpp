@@ -2041,7 +2041,7 @@ void builtin_getitem(ScriptState *st)
 
     if (nameid)
     {
-        struct item item_tmp {};
+        Item item_tmp {};
         item_tmp.nameid = nameid;
         if (HARGO2(5))    //アイテムを指定したIDに渡す
             sd = map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(5))));
@@ -2099,7 +2099,7 @@ void builtin_makeitem(ScriptState *st)
 
     if (nameid)
     {
-        struct item item_tmp {};
+        Item item_tmp {};
         item_tmp.nameid = nameid;
 
         map_addflooritem(&item_tmp, amount, m, x, y, NULL, NULL, NULL);

@@ -544,7 +544,7 @@ void party_recv_movemap(PartyId party_id, AccountId account_id, MapName mapname,
         return;
     for (i = 0; i < MAX_PARTY; i++)
     {
-        struct party_member *m = &p->member[i];
+        PartyMember *m = &p->member[i];
         if (m == NULL)
         {
             PRINTF("party_recv_movemap nullpo?\n"_fmt);
@@ -785,7 +785,7 @@ void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
 
     for (i = 0; i < MAX_PARTY; i++)
     {
-        struct party_member *m = &p->member[i];
+        PartyMember *m = &p->member[i];
         if (m->sd != NULL)
         {
             if (sd->bl_m != m->sd->bl_m)

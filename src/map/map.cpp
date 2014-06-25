@@ -697,7 +697,7 @@ std::pair<uint16_t, uint16_t> map_searchrandfreecell(map_local *m, int x, int y,
  * item_dataはamount以外をcopyする
  *------------------------------------------
  */
-BlockId map_addflooritem_any(struct item *item_data, int amount,
+BlockId map_addflooritem_any(Item *item_data, int amount,
         map_local *m, int x, int y,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal)
@@ -762,7 +762,7 @@ BlockId map_addflooritem_any(struct item *item_data, int amount,
     return fitem->bl_id;
 }
 
-BlockId map_addflooritem(struct item *item_data, int amount,
+BlockId map_addflooritem(Item *item_data, int amount,
         map_local *m, int x, int y,
         dumb_ptr<map_session_data> first_sd,
         dumb_ptr<map_session_data> second_sd,
@@ -1658,7 +1658,7 @@ void term_func(void)
     map_close_logfile();
 }
 
-int compare_item(struct item *a, struct item *b)
+int compare_item(Item *a, Item *b)
 {
     return (a->nameid == b->nameid);
 }

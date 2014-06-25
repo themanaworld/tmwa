@@ -100,7 +100,7 @@ ADDITEM pc_checkadditem(dumb_ptr<map_session_data>, ItemNameId, int);
 int pc_inventoryblank(dumb_ptr<map_session_data>);
 int pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id);
 int pc_payzeny(dumb_ptr<map_session_data>, int);
-PickupFail pc_additem(dumb_ptr<map_session_data>, struct item *, int);
+PickupFail pc_additem(dumb_ptr<map_session_data>, Item *, int);
 int pc_getzeny(dumb_ptr<map_session_data>, int);
 int pc_delitem(dumb_ptr<map_session_data>, int, int, int);
 int pc_checkitem(dumb_ptr<map_session_data>);

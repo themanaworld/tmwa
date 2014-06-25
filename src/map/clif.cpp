@@ -1701,8 +1701,6 @@ not_b0:
         {
         case SP::ZENY:
             trade_verifyzeny(sd);
-            if (sd->status.zeny < 0)
-                sd->status.zeny = 0;
             fixed_b1.value = sd->status.zeny;
             break;
 
@@ -2973,7 +2971,7 @@ int clif_party_info(PartyPair p, Session *s)
     head_fb.party_name = p->name;
     for (i = 0; i < MAX_PARTY; i++)
     {
-        struct party_member *m = &p->member[i];
+        PartyMember *m = &p->member[i];
         if (m->account_id)
         {
             Packet_Repeat<0x00fb> info;

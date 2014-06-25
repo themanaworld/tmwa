@@ -208,9 +208,9 @@ bool extract(XString str, VRecord<split, T> rec)
         && extract(str.xislice_t(s + 1), rec);
 }
 
-bool extract(XString str, struct global_reg *var);
+bool extract(XString str, GlobalReg *var);
 
-bool extract(XString str, struct item *it);
+bool extract(XString str, Item *it);
 
 bool extract(XString str, MapName *m);
 

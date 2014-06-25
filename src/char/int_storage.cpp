@@ -89,7 +89,7 @@ AString storage_tostr(Storage *p)
 static
 bool extract(XString str, Storage *p)
 {
-    std::vector<struct item> storage_items;
+    std::vector<Item> storage_items;
     if (!extract(str,
                 record<'\t'>(
                     record<','>(

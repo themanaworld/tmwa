@@ -102,7 +102,7 @@ int storage_storageopen(dumb_ptr<map_session_data> sd)
  */
 static
 int storage_additem(dumb_ptr<map_session_data> sd, Storage *stor,
-                            struct item *item_data, int amount)
+                            Item *item_data, int amount)
 {
     struct item_data *data;
     int i;
@@ -157,7 +157,7 @@ int storage_delitem(dumb_ptr<map_session_data> sd, Storage *stor,
     stor->storage_[n].amount -= amount;
     if (stor->storage_[n].amount == 0)
     {
-        stor->storage_[n] = item{};
+        stor->storage_[n] = Item{};
         stor->storage_amount--;
         clif_updatestorageamount(sd, stor);
     }

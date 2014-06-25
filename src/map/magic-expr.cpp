@@ -135,7 +135,7 @@ AString show_entity(dumb_ptr<block_list> entity)
         case BL::ITEM:
             assert (0 && "There is no way this code did what it was supposed to do!"_s);
             /* Sorry about this one... */
-            // WTF? item_data is a struct item, not a struct item_data
+            // WTF? item_data is a Item, not a struct item_data
             // return ((struct item_data *) (&entity->is_item()->item_data))->name;
             abort();
         case BL::SPELL:
@@ -796,7 +796,7 @@ int fun_hash_entity(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 }
 
 // ret -1: not a string, ret 1: no such item, ret 0: OK
-int magic_find_item(Slice<val_t> args, int index, struct item *item_, int *stackable)
+int magic_find_item(Slice<val_t> args, int index, Item *item_, int *stackable)
 {
     struct item_data *item_data;
     int must_add_sequentially;
@@ -821,7 +821,7 @@ int magic_find_item(Slice<val_t> args, int index, struct item *item_, int *stack
     if (stackable)
         *stackable = !must_add_sequentially;
 
-    *item_ = item();
+    *item_ = Item();
     item_->nameid = item_data->nameid;
 
     return 0;
@@ -832,7 +832,7 @@ int fun_count_item(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     int stackable;
-    struct item item;
+    Item item;
 
     GET_ARG_ITEM(1, item, stackable);
 
@@ -848,7 +848,7 @@ int fun_is_equipped(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     int stackable;
-    struct item item;
+    Item item;
     bool retval = false;
 
     GET_ARG_ITEM(1, item, stackable);

@@ -473,7 +473,7 @@ struct mob_data : block_list
     };
     // logically a map ...
     std::vector<DmgLogEntry> dmglogv;
-    std::vector<struct item> lootitemv;
+    std::vector<Item> lootitemv;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
@@ -524,8 +524,8 @@ struct map_local : map_abstract
     int npc_num;
     int users;
     MapFlags flag;
-    struct point save;
-    struct point resave;
+    Point save;
+    Point resave;
     Array<dumb_ptr<npc_data>, MAX_NPC_PER_MAP> npc;
 };
 
@@ -549,7 +549,7 @@ struct flooritem_data : block_list
     Timer cleartimer;
     BlockId first_get_id, second_get_id, third_get_id;
     tick_t first_get_tick, second_get_tick, third_get_tick;
-    struct item item_data;
+    Item item_data;
 };
 
 extern interval_t autosave_time;
@@ -619,11 +619,11 @@ void map_clearflooritem(BlockId id)
 {
     map_clearflooritem_timer(nullptr, tick_t(), id);
 }
-BlockId map_addflooritem_any(struct item *, int amount,
+BlockId map_addflooritem_any(Item *, int amount,
         map_local *m, int x, int y,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal);
-BlockId map_addflooritem(struct item *, int,
+BlockId map_addflooritem(Item *, int,
         map_local *, int, int,
         dumb_ptr<map_session_data>, dumb_ptr<map_session_data>,
         dumb_ptr<map_session_data>);
@@ -677,7 +677,7 @@ void map_deliddb(dumb_ptr<block_list> bl);
 void map_addnickdb(dumb_ptr<map_session_data>);
 int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id);  /* Continues a script either on a spell or on an NPC */
 dumb_ptr<map_session_data> map_nick2sd(CharName);
-int compare_item(struct item *a, struct item *b);
+int compare_item(Item *a, Item *b);
 
 dumb_ptr<map_session_data> map_get_first_session(void);
 dumb_ptr<map_session_data> map_get_last_session(void);

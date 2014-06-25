@@ -27,9 +27,6 @@
 
 // This is an internal protocol, and can be changed without notice
 
-// this is only needed for the payload packet right now, and that needs to die
-# pragma pack(push, 1)
-
 template<>
 struct Packet_Fixed<0x2709>
 {
@@ -1234,7 +1231,5 @@ bool network_to_native(Packet_Fixed<0x2741> *native, NetPacket_Fixed<0x2741> net
     return rv;
 }
 
-
-# pragma pack(pop)
 
 #endif // TMWA_PROTO2_LOGIN_CHAR_HPP

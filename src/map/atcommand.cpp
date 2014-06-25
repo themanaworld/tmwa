@@ -1366,7 +1366,7 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
         }
         for (i = 0; i < number; i += get_count)
         {
-            struct item item_tmp {};
+            Item item_tmp {};
             item_tmp.nameid = item_id;
             PickupFail flag;
             if ((flag = pc_additem(sd, &item_tmp, get_count))
@@ -1457,10 +1457,9 @@ ATCE atcommand_baselevelup(Session *s, dumb_ptr<map_session_data> sd,
         if (sd->status.status_point > 0)
         {
             for (i = 0; i > level; i--)
-                sd->status.status_point -=
-                    (sd->status.base_level + i + 14) / 4;
-            if (sd->status.status_point < 0)
-                sd->status.status_point = 0;
+                sd->status.status_point -= std::min(
+                        static_cast<int>(sd->status.status_point),
+                        (sd->status.base_level + i + 14) / 4);
             clif_updatestatus(sd, SP::STATUSPOINT);
         }
         // to add: remove status points from stats
@@ -1521,9 +1520,7 @@ ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
         clif_updatestatus(sd, SP::NEXTJOBEXP);
         if (sd->status.skill_point > 0)
         {
-            sd->status.skill_point += level;
-            if (sd->status.skill_point < 0)
-                sd->status.skill_point = 0;
+            sd->status.skill_point += std::max(level, -sd->status.skill_point);
             clif_updatestatus(sd, SP::SKILLPOINT);
         }
         // to add: remove status points from skills
@@ -2588,10 +2585,9 @@ ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
                 if (pl_sd->status.status_point > 0)
                 {
                     for (i = 0; i > level; i--)
-                        pl_sd->status.status_point -=
-                            (pl_sd->status.base_level + i + 14) / 4;
-                    if (pl_sd->status.status_point < 0)
-                        pl_sd->status.status_point = 0;
+                        pl_sd->status.status_point -= std::min(
+                                static_cast<int>(pl_sd->status.status_point),
+                                (pl_sd->status.base_level + i + 14) / 4);
                     clif_updatestatus(pl_sd, SP::STATUSPOINT);
                 }
                 // to add: remove status points from stats
@@ -2672,9 +2668,7 @@ ATCE atcommand_character_joblevel(Session *s, dumb_ptr<map_session_data> sd,
                 clif_updatestatus(pl_sd, SP::NEXTJOBEXP);
                 if (pl_sd->status.skill_point > 0)
                 {
-                    pl_sd->status.skill_point += level;
-                    if (pl_sd->status.skill_point < 0)
-                        pl_sd->status.skill_point = 0;
+                    pl_sd->status.skill_point += std::max(level, -pl_sd->status.skill_point);
                     clif_updatestatus(pl_sd, SP::SKILLPOINT);
                 }
                 // to add: remove status points from skills
@@ -3156,7 +3150,7 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
             }
 
             // Give knife and shirt
-            struct item item;
+            Item item;
             item.nameid = wrap<ItemNameId>(1201);
             pc_additem(pl_sd, &item, 1);
             item.nameid = wrap<ItemNameId>(1202);

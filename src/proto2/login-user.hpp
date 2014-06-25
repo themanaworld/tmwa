@@ -27,9 +27,6 @@
 
 // This is a public protocol, and changes require client cooperation
 
-// this is only needed for the payload packet right now, and that needs to die
-# pragma pack(push, 1)
-
 template<>
 struct Packet_Head<0x0063>
 {
@@ -324,7 +321,5 @@ bool network_to_native(Packet_Fixed<0x006a> *native, NetPacket_Fixed<0x006a> net
     return rv;
 }
 
-
-# pragma pack(pop)
 
 #endif // TMWA_PROTO2_LOGIN_USER_HPP

@@ -40,13 +40,13 @@ bool extract(XString str, AString *rv)
     return true;
 }
 
-bool extract(XString str, struct global_reg *var)
+bool extract(XString str, GlobalReg *var)
 {
     return extract(str,
             record<','>(&var->str, &var->value));
 }
 
-bool extract(XString str, struct item *it)
+bool extract(XString str, Item *it)
 {
     XString ignored;
     return extract(str,

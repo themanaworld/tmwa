@@ -27,9 +27,6 @@
 
 // This is an internal protocol, and can be changed without notice
 
-// this is only needed for the payload packet right now, and that needs to die
-# pragma pack(push, 1)
-
 template<>
 struct Packet_Fixed<0x2af7>
 {
@@ -1033,8 +1030,8 @@ struct NetPacket_Payload<0x2afd>
     Little32 login_id2;
     Little32 connect_until;
     Little16 packet_tmw_version;
-    CharKey char_key;
-    CharData char_data;
+    NetCharKey char_key;
+    NetCharData char_data;
 };
 static_assert(offsetof(NetPacket_Payload<0x2afd>, magic_packet_id) == 0, "offsetof(NetPacket_Payload<0x2afd>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Payload<0x2afd>, magic_packet_length) == 2, "offsetof(NetPacket_Payload<0x2afd>, magic_packet_length) == 2");
@@ -1095,8 +1092,8 @@ struct NetPacket_Payload<0x2b01>
     Little16 magic_packet_length;
     Little32 account_id;
     Little32 char_id;
-    CharKey char_key;
-    CharData char_data;
+    NetCharKey char_key;
+    NetCharData char_data;
 };
 static_assert(offsetof(NetPacket_Payload<0x2b01>, magic_packet_id) == 0, "offsetof(NetPacket_Payload<0x2b01>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Payload<0x2b01>, magic_packet_length) == 2, "offsetof(NetPacket_Payload<0x2b01>, magic_packet_length) == 2");
@@ -1558,7 +1555,7 @@ struct NetPacket_Payload<0x3011>
     Little16 magic_packet_id;
     Little16 magic_packet_length;
     Little32 account_id;
-    Storage storage;
+    NetStorage storage;
 };
 static_assert(offsetof(NetPacket_Payload<0x3011>, magic_packet_id) == 0, "offsetof(NetPacket_Payload<0x3011>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Payload<0x3011>, magic_packet_length) == 2, "offsetof(NetPacket_Payload<0x3011>, magic_packet_length) == 2");
@@ -1822,7 +1819,7 @@ struct NetPacket_Payload<0x3810>
     Little16 magic_packet_id;
     Little16 magic_packet_length;
     Little32 account_id;
-    Storage storage;
+    NetStorage storage;
 };
 static_assert(offsetof(NetPacket_Payload<0x3810>, magic_packet_id) == 0, "offsetof(NetPacket_Payload<0x3810>, magic_packet_id) == 0");
 static_assert(offsetof(NetPacket_Payload<0x3810>, magic_packet_length) == 2, "offsetof(NetPacket_Payload<0x3810>, magic_packet_length) == 2");
@@ -1875,7 +1872,7 @@ static_assert(alignof(NetPacket_Head<0x3821>) == 1, "alignof(NetPacket_Head<0x38
 template<>
 struct NetPacket_Option<0x3821>
 {
-    PartyMost party_most;
+    NetPartyMost party_most;
 };
 static_assert(offsetof(NetPacket_Option<0x3821>, party_most) == 0, "offsetof(NetPacket_Option<0x3821>, party_most) == 0");
 static_assert(alignof(NetPacket_Option<0x3821>) == 1, "alignof(NetPacket_Option<0x3821>) == 1");
@@ -3535,7 +3532,5 @@ bool network_to_native(Packet_Repeat<0x3827> *native, NetPacket_Repeat<0x3827> n
     return rv;
 }
 
-
-# pragma pack(pop)
 
 #endif // TMWA_PROTO2_CHAR_MAP_HPP

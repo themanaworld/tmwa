@@ -849,7 +849,7 @@ int npc_buylist(dumb_ptr<map_session_data> sd,
         if ((item_data = itemdb_exists(item_l_id)) != NULL)
         {
             int amount = item_l_count;
-            struct item item_tmp {};
+            Item item_tmp {};
 
             item_tmp.nameid = item_data->nameid;
 

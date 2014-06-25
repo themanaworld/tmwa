@@ -74,7 +74,7 @@ AString inter_party_tostr(PartyPair p)
             p->exp, p->item);
     for (int i = 0; i < MAX_PARTY; i++)
     {
-        struct party_member *m = &p->member[i];
+        PartyMember *m = &p->member[i];
         if (!m->account_id)
             continue;
         str += STRPRINTF(
@@ -111,7 +111,7 @@ bool extract(XString str, PartyPair *pp)
 
     for (int i = 0; begin != end && i < MAX_PARTY; ++i)
     {
-        struct party_member *m = &p->member[i];
+        PartyMember *m = &p->member[i];
 
         if (begin == end || !extract(*begin, record<','>(&m->account_id, &m->leader)))
             return false;
@@ -142,7 +142,7 @@ void party_check_deleted_init(PartyPair p)
             PRINTF("WARNING: deleting obsolete party member %d %s of %d %s\n"_fmt,
                     p->member[i].account_id, p->member[i].name,
                     p.party_id, p->name);
-            p->member[i] = party_member{};
+            p->member[i] = PartyMember{};
         }
     }
 }
@@ -608,7 +608,7 @@ void mapif_parse_PartyLeave(Session *, PartyId party_id, AccountId account_id)
             continue;
         mapif_party_leaved(party_id, account_id, p->member[i].name);
 
-        p->member[i] = party_member{};
+        p->member[i] = PartyMember{};
         if (party_check_empty(p) == 0)
             mapif_party_info(nullptr, p);   // まだ人がいるのでデータ送信
         return;
