@@ -295,6 +295,7 @@ void ladmin_log(XString line)
 static __attribute__((noreturn))
 void delete_fromlogin(Session *)
 {
+    login_session = nullptr;
     {
         PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n"_fmt,
                 login_ip, login_port);

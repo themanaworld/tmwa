@@ -2045,7 +2045,7 @@ void parse_frommap(Session *ms)
                     Packet_Head<0x2720> head_20;
                     head_20.account_id = account_id;
                     AString& repeat_20 = repeat;
-                    send_vpacket<0x2720, 8, 1>(ms, head_20, repeat_20);
+                    send_vpacket<0x2720, 8, 1>(login_session, head_20, repeat_20);
                 }
                 else
                 {
@@ -2414,13 +2414,11 @@ void parse_char(Session *s)
 {
     IP4Address ip = s->client_ip;
 
+    assert (s != login_session);
+
     if (!login_session)
     {
         s->set_eof();
-
-        // I sure *hope* this doesn't happen ...
-        if (s == login_session)
-            login_session = nullptr;
         return;
     }
 
@@ -2499,8 +2497,8 @@ void parse_char(Session *s)
                             if (max_connect_user == 0
                                 || count_users() < max_connect_user)
                             {
-                                if (login_session)
-                                {   // don't send request if no login-server
+                                {
+                                    // there is always a login server
                                     // request to login-server to obtain e-mail/time limit
                                     Packet_Fixed<0x2716> fixed_16;
                                     fixed_16.account_id = sd->account_id;
@@ -2524,9 +2522,8 @@ void parse_char(Session *s)
                     }
                     // authentification not found
                     {
-                        if (login_session)
                         {
-                            // don't send request if no login-server
+                            // there is always a login-server
                             Packet_Fixed<0x2712> fixed_12;
                             fixed_12.account_id = sd->account_id;
                             fixed_12.login_id1 = sd->login_id1;
@@ -2534,12 +2531,6 @@ void parse_char(Session *s)
                             fixed_12.sex = sd->sex;
                             fixed_12.ip = s->client_ip;
                             send_fpacket<0x2712, 19>(login_session, fixed_12);
-                        }
-                        else
-                        {       // if no login-server, we must refuse connection
-                            Packet_Fixed<0x006c> fixed_6c;
-                            fixed_6c.code = 0;
-                            send_fpacket<0x006c, 3>(s, fixed_6c);
                         }
                     }
                 }

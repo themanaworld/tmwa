@@ -53,6 +53,9 @@
 // Message for all GMs on all map servers
 void intif_GMmessage(XString mes)
 {
+    if (!char_session)
+        return;
+
     send_packet_repeatonly<0x3000, 4, 1>(char_session, mes);
 }
 
@@ -60,6 +63,9 @@ void intif_GMmessage(XString mes)
 void intif_wis_message(dumb_ptr<map_session_data> sd, CharName nick, ZString mes)
 {
     nullpo_retv(sd);
+
+    if (!char_session)
+        return;
 
     Packet_Head<0x3001> head_01;
     head_01.from_char_name = sd->status_key.name;
@@ -75,6 +81,9 @@ void intif_wis_message(dumb_ptr<map_session_data> sd, CharName nick, ZString mes
 static
 void intif_wis_replay(CharId id, int flag)
 {
+    if (!char_session)
+        return;
+
     Packet_Fixed<0x3002> fixed_02;
     fixed_02.char_id = id;
     fixed_02.flag = flag;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
@@ -87,6 +96,9 @@ void intif_wis_replay(CharId id, int flag)
 // The transmission of GM only Wisp/Page from server to inter-server
 void intif_wis_message_to_gm(CharName Wisp_name, GmLevel min_gm_level, ZString mes)
 {
+    if (!char_session)
+        return;
+
     Packet_Head<0x3003> head_03;
     head_03.char_name = Wisp_name;
     head_03.min_gm_level = min_gm_level;
@@ -101,6 +113,9 @@ void intif_wis_message_to_gm(CharName Wisp_name, GmLevel min_gm_level, ZString m
 void intif_saveaccountreg(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
+    if (!char_session)
+        return;
+
     assert (sd->status.account_reg_num < ACCOUNT_REG_NUM);
 
     Packet_Head<0x3004> head_04;
@@ -119,6 +134,9 @@ void intif_request_accountreg(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
+    if (!char_session)
+        return;
+
     Packet_Fixed<0x3005> fixed_05;
     fixed_05.account_id = block_to_account(sd->bl_id);
     send_fpacket<0x3005, 6>(char_session, fixed_05);
@@ -127,6 +145,9 @@ void intif_request_accountreg(dumb_ptr<map_session_data> sd)
 // 倉庫データ要求
 void intif_request_storage(AccountId account_id)
 {
+    if (!char_session)
+        return;
+
     Packet_Fixed<0x3010> fixed_10;
     fixed_10.account_id = account_id;
     send_fpacket<0x3010, 6>(char_session, fixed_10);
@@ -136,6 +157,9 @@ void intif_request_storage(AccountId account_id)
 void intif_send_storage(Storage *stor)
 {
     nullpo_retv(stor);
+    if (!char_session)
+        return;
+
     Packet_Payload<0x3011> payload_11;
     payload_11.account_id = stor->account_id;
     payload_11.storage = *stor;
@@ -146,6 +170,9 @@ void intif_send_storage(Storage *stor)
 void intif_create_party(dumb_ptr<map_session_data> sd, PartyName name)
 {
     nullpo_retv(sd);
+
+    if (!char_session)
+        return;
 
     Packet_Fixed<0x3020> fixed_20;
     fixed_20.account_id = sd->status_key.account_id;
@@ -159,6 +186,9 @@ void intif_create_party(dumb_ptr<map_session_data> sd, PartyName name)
 // パーティ情報要求
 void intif_request_partyinfo(PartyId party_id)
 {
+    if (!char_session)
+        return;
+
     Packet_Fixed<0x3021> fixed_21;
     fixed_21.party_id = party_id;
     send_fpacket<0x3021, 6>(char_session, fixed_21);
@@ -167,6 +197,9 @@ void intif_request_partyinfo(PartyId party_id)
 // パーティ追加要求
 void intif_party_addmember(PartyId party_id, AccountId account_id)
 {
+    if (!char_session)
+        return;
+
     dumb_ptr<map_session_data> sd;
     sd = map_id2sd(account_to_block(account_id));
     if (sd != NULL)
@@ -184,6 +217,9 @@ void intif_party_addmember(PartyId party_id, AccountId account_id)
 // パーティ設定変更
 void intif_party_changeoption(PartyId party_id, AccountId account_id, int exp, int item)
 {
+    if (!char_session)
+        return;
+
     Packet_Fixed<0x3023> fixed_23;
     fixed_23.party_id = party_id;
     fixed_23.account_id = account_id;
@@ -195,6 +231,9 @@ void intif_party_changeoption(PartyId party_id, AccountId account_id, int exp, i
 // パーティ脱退要求
 void intif_party_leave(PartyId party_id, AccountId account_id)
 {
+    if (!char_session)
+        return;
+
     Packet_Fixed<0x3024> fixed_24;
     fixed_24.party_id = party_id;
     fixed_24.account_id = account_id;
@@ -204,6 +243,9 @@ void intif_party_leave(PartyId party_id, AccountId account_id)
 // パーティ移動要求
 void intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
 {
+    if (!char_session)
+        return;
+
     if (sd != NULL)
     {
         Packet_Fixed<0x3025> fixed_25;
@@ -219,6 +261,9 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
 // パーティ会話送信
 void intif_party_message(PartyId party_id, AccountId account_id, XString mes)
 {
+    if (!char_session)
+        return;
+
     Packet_Head<0x3027> head_27;
     head_27.party_id = party_id;
     head_27.account_id = account_id;
@@ -228,6 +273,9 @@ void intif_party_message(PartyId party_id, AccountId account_id, XString mes)
 // パーティ競合チェック要求
 void intif_party_checkconflict(PartyId party_id, AccountId account_id, CharName nick)
 {
+    if (!char_session)
+        return;
+
     Packet_Fixed<0x3028> fixed_28;
     fixed_28.party_id = party_id;
     fixed_28.account_id = account_id;

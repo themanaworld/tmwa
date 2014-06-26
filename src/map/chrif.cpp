@@ -214,6 +214,9 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
 {
     nullpo_retr(-1, sd);
 
+    if (!char_session)
+        return -1;
+
     IP4Address s_ip;
     for (io::FD i : iter_fds())
     {
@@ -395,6 +398,9 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
  */
 void chrif_changegm(AccountId id, ZString pass)
 {
+    if (!char_session)
+        return;
+
     if (battle_config.etc_log)
         PRINTF("chrif_changegm: account: %d, password: '%s'.\n"_fmt, id, pass);
 
@@ -410,6 +416,9 @@ void chrif_changegm(AccountId id, ZString pass)
 void chrif_changeemail(AccountId id, AccountEmail actual_email,
         AccountEmail new_email)
 {
+    if (!char_session)
+        return;
+
     if (battle_config.etc_log)
         PRINTF("chrif_changeemail: account: %d, actual_email: '%s', new_email: '%s'.\n"_fmt,
                 id, actual_email, new_email);
@@ -435,6 +444,9 @@ void chrif_changeemail(AccountId id, AccountEmail actual_email,
 void chrif_char_ask_name(AccountId id, CharName character_name, short operation_type,
         HumanTimeDiff modif)
 {
+    if (!char_session)
+        return;
+
     Packet_Fixed<0x2b0e> fixed_0e;
     fixed_0e.account_id = id;   // who ask, or nobody
     fixed_0e.char_name = character_name;
@@ -673,6 +685,9 @@ int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd)
 {
     nullpo_retr(-1, sd);
 
+    if (!char_session)
+        return -1;
+
     std::vector<Packet_Repeat<0x2b10>> repeat_10;
     for (size_t j = 0; j < sd->status.account_reg2_num; j++)
     {
@@ -905,6 +920,9 @@ int chrif_recvgmaccounts(Session *s, const std::vector<Packet_Repeat<0x2b15>>& r
  */
 int chrif_reloadGMdb(void)
 {
+    if (!char_session)
+        return -1;
+
     Packet_Fixed<0x2af7> fixed_f7;
     send_fpacket<0x2af7, 2>(char_session, fixed_f7);
 
