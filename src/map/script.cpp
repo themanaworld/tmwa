@@ -1926,7 +1926,7 @@ static
 void builtin_countitem(ScriptState *st)
 {
     ItemNameId nameid;
-    int count = 0, i;
+    int count = 0;
     dumb_ptr<map_session_data> sd;
 
     struct script_data *data;
@@ -1947,7 +1947,7 @@ void builtin_countitem(ScriptState *st)
 
     if (nameid)
     {
-        for (i = 0; i < MAX_INVENTORY; i++)
+        for (IOff0 i : IOff0::iter())
         {
             if (sd->status.inventory[i].nameid == nameid)
                 count += sd->status.inventory[i].amount;
@@ -2050,7 +2050,7 @@ void builtin_getitem(ScriptState *st)
         PickupFail flag;
         if ((flag = pc_additem(sd, &item_tmp, amount)) != PickupFail::OKAY)
         {
-            clif_additem(sd, 0, 0, flag);
+            clif_additem(sd, IOff0::from(0), 0, flag);
             map_addflooritem(&item_tmp, amount,
                     sd->bl_m, sd->bl_x, sd->bl_y,
                     NULL, NULL, NULL);
@@ -2114,7 +2114,7 @@ static
 void builtin_delitem(ScriptState *st)
 {
     ItemNameId nameid;
-    int amount, i;
+    int amount;
     dumb_ptr<map_session_data> sd;
     struct script_data *data;
 
@@ -2140,7 +2140,7 @@ void builtin_delitem(ScriptState *st)
         return;
     }
 
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].nameid == nameid)
         {
@@ -2290,7 +2290,7 @@ Array<EPOS, 11> equip //=
 static
 void builtin_getequipid(ScriptState *st)
 {
-    int i, num;
+    int num;
     dumb_ptr<map_session_data> sd;
     struct item_data *item;
 
@@ -2301,8 +2301,8 @@ void builtin_getequipid(ScriptState *st)
         return;
     }
     num = conv_num(st, &AARGO2(2));
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0)
+    IOff0 i = pc_checkequip(sd, equip[num - 1]);
+    if (i.ok())
     {
         item = sd->inventory_data[i];
         if (item)
@@ -2323,7 +2323,7 @@ void builtin_getequipid(ScriptState *st)
 static
 void builtin_getequipname(ScriptState *st)
 {
-    int i, num;
+    int num;
     dumb_ptr<map_session_data> sd;
     struct item_data *item;
 
@@ -2331,8 +2331,8 @@ void builtin_getequipname(ScriptState *st)
 
     sd = script_rid2sd(st);
     num = conv_num(st, &AARGO2(2));
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0)
+    IOff0 i = pc_checkequip(sd, equip[num - 1]);
+    if (i.ok())
     {
         item = sd->inventory_data[i];
         if (item)
@@ -3522,10 +3522,10 @@ static
 void builtin_getinventorylist(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    int i, j = 0;
+    int j = 0;
     if (!sd)
         return;
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].nameid
             && sd->status.inventory[i].amount > 0)
@@ -3730,8 +3730,8 @@ void builtin_nude(ScriptState *st)
 
     for (EQUIP i : EQUIPs)
     {
-        int idx = sd->equip_index_maybe[i];
-        if (idx >= 0)
+        IOff0 idx = sd->equip_index_maybe[i];
+        if (idx.ok())
             pc_unequipitem(sd, idx, CalcStatus::LATER);
     }
     pc_calcstatus(sd, 0);
@@ -3754,8 +3754,8 @@ void builtin_unequipbyid(ScriptState *st)
 
     if (slot_id >= EQUIP() && slot_id < EQUIP::COUNT)
     {
-        int idx = sd->equip_index_maybe[slot_id];
-        if (idx >= 0)
+        IOff0 idx = sd->equip_index_maybe[slot_id];
+        if (idx.ok())
             pc_unequipitem(sd, idx, CalcStatus::LATER);
     }
 

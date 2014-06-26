@@ -890,11 +890,11 @@ int npc_selllist(dumb_ptr<map_session_data> sd,
         return 1;
     for (i = 0, z = 0; i < item_list.size(); i++)
     {
-        if (item_list[i].ioff2 - 2 < 0 || item_list[i].ioff2 - 2 >= MAX_INVENTORY)
+        if (!item_list[i].ioff2.ok())
             return 1;
-        ItemNameId nameid = sd->status.inventory[item_list[i].ioff2 - 2].nameid;
+        ItemNameId nameid = sd->status.inventory[item_list[i].ioff2.unshift()].nameid;
         if (!nameid ||
-            sd->status.inventory[item_list[i].ioff2 - 2].amount < item_list[i].count)
+            sd->status.inventory[item_list[i].ioff2.unshift()].amount < item_list[i].count)
             return 1;
         if (sd->trade_partner)
             return 2;           // cant sell while trading
@@ -907,7 +907,7 @@ int npc_selllist(dumb_ptr<map_session_data> sd,
     pc_getzeny(sd, static_cast<int>(z));
     for (i = 0; i < item_list.size(); i++)
     {
-        int item_id = item_list[i].ioff2 - 2;
+        IOff0 item_id = item_list[i].ioff2.unshift();
         pc_delitem(sd, item_id, item_list[i].count, 0);
     }
 

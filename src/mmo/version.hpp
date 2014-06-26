@@ -47,6 +47,35 @@ struct Version
     uint8_t which;
     uint16_t vend;
     // can't add vendor name yet
+
+    constexpr friend
+    bool operator < (Version l, Version r)
+    {
+        return (l.major < r.major
+                || (l.major == r.major
+                    && (l.minor < r.minor
+                        || (l.minor == r.minor
+                            && (l.patch < r.patch
+                                || (l.patch == r.patch
+                                    && (l.devel < r.devel
+                                        || (l.devel == r.devel
+                                            && l.vend < r.vend))))))));
+    }
+    constexpr friend
+    bool operator > (Version l, Version r)
+    {
+        return r < l;
+    }
+    constexpr friend
+    bool operator <= (Version l, Version r)
+    {
+        return !(r < l);
+    }
+    constexpr friend
+    bool operator >= (Version l, Version r)
+    {
+        return !(l < r);
+    }
 };
 static_assert(sizeof(Version) == 8, "this is sent over the network, can't change");
 
@@ -59,34 +88,5 @@ extern Version CURRENT_MAP_SERVER_VERSION;
 extern LString CURRENT_VERSION_STRING;
 
 bool extract(XString str, Version *vers);
-
-constexpr
-bool operator < (Version l, Version r)
-{
-    return (l.major < r.major
-            || (l.major == r.major
-                && (l.minor < r.minor
-                    || (l.minor == r.minor
-                        && (l.patch < r.patch
-                            || (l.patch == r.patch
-                                && (l.devel < r.devel
-                                    || (l.devel == r.devel
-                                        && l.vend < r.vend))))))));
-}
-constexpr
-bool operator > (Version l, Version r)
-{
-    return r < l;
-}
-constexpr
-bool operator <= (Version l, Version r)
-{
-    return !(r < l);
-}
-constexpr
-bool operator >= (Version l, Version r)
-{
-    return !(l < r);
-}
 
 #endif // TMWA_MMO_VERSION_HPP

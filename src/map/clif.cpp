@@ -673,20 +673,20 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.species = sd->status.species;
     fixed_1d8.hair_style = sd->status.hair;
 
-    int widx = sd->equip_index_maybe[EQUIP::WEAPON];
-    int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
+    IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
+    IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
     if (sd->attack_spell_override)
         fixed_1d8.weapon = sd->attack_spell_look_override;
     else
     {
-        if (widx >= 0 && sd->inventory_data[widx])
+        if (widx.ok() && sd->inventory_data[widx])
         {
             fixed_1d8.weapon = sd->status.inventory[widx].nameid;
         }
         else
             fixed_1d8.weapon = ItemNameId();
     }
-    if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
+    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx])
     {
         fixed_1d8.shield = sd->status.inventory[sidx].nameid;
     }
@@ -727,20 +727,20 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.species = sd->status.species;
     fixed_1d8.hair_style = sd->status.hair;
 
-    int widx = sd->equip_index_maybe[EQUIP::WEAPON];
-    int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
+    IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
+    IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
     if (sd->attack_spell_override)
         fixed_1d8.weapon = sd->attack_spell_look_override;
     else
     {
-        if (widx >= 0 && sd->inventory_data[widx])
+        if (widx.ok() && sd->inventory_data[widx])
         {
             fixed_1d8.weapon = sd->status.inventory[widx].nameid;
         }
         else
             fixed_1d8.weapon = ItemNameId();
     }
-    if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
+    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx])
     {
         fixed_1d8.shield = sd->status.inventory[sidx].nameid;
     }
@@ -784,15 +784,15 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1da.option = sd->status.option;
     fixed_1da.species = sd->status.species;
     fixed_1da.hair_style = sd->status.hair;
-    int widx = sd->equip_index_maybe[EQUIP::WEAPON];
-    int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
-    if (widx >= 0 && sd->inventory_data[widx])
+    IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
+    IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
+    if (widx.ok() && sd->inventory_data[widx])
     {
         fixed_1da.weapon = sd->status.inventory[widx].nameid;
     }
     else
         fixed_1da.weapon = ItemNameId();
-    if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
+    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx])
     {
         fixed_1da.shield = sd->status.inventory[sidx].nameid;
     }
@@ -1245,21 +1245,19 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
  */
 int clif_selllist(dumb_ptr<map_session_data> sd)
 {
-    int i, val;
-
     nullpo_ret(sd);
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x00c7>> repeat_c7;
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].nameid && sd->inventory_data[i])
         {
-            val = sd->inventory_data[i]->value_sell;
+            int val = sd->inventory_data[i]->value_sell;
             if (val < 0)
                 continue;
             Packet_Repeat<0x00c7> info;
-            info.ioff2 = i + 2;
+            info.ioff2 = i.shift();
             info.base_price = val;
             info.actual_price = val;
             repeat_c7.push_back(info);
@@ -1359,7 +1357,7 @@ void clif_scriptinputstr(dumb_ptr<map_session_data> sd, BlockId npcid)
  *
  *------------------------------------------
  */
-int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fail)
+int clif_additem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, PickupFail fail)
 {
     nullpo_ret(sd);
 
@@ -1367,18 +1365,18 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
     Packet_Fixed<0x00a0> fixed_a0;
     if (fail != PickupFail::OKAY)
     {
-        fixed_a0.ioff2 = n + 2;
+        fixed_a0.ioff2 = n.shift();
         fixed_a0.amount = amount;
         fixed_a0.name_id = ItemNameId();
         fixed_a0.pickup_fail = fail;
     }
     else
     {
-        if (n < 0 || n >= MAX_INVENTORY || !sd->status.inventory[n].nameid
+        if (!n.ok() || !sd->status.inventory[n].nameid
             || sd->inventory_data[n] == NULL)
             return 1;
 
-        fixed_a0.ioff2 = n + 2;
+        fixed_a0.ioff2 = n.shift();
         fixed_a0.amount = amount;
         fixed_a0.name_id = sd->status.inventory[n].nameid;
         fixed_a0.identify = 1;
@@ -1405,13 +1403,13 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
  *
  *------------------------------------------
  */
-void clif_delitem(dumb_ptr<map_session_data> sd, int n, int amount)
+void clif_delitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount)
 {
     nullpo_retv(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00af> fixed_af;
-    fixed_af.ioff2 = n + 2;
+    fixed_af.ioff2 = n.shift();
     fixed_af.amount = amount;
 
     send_fpacket<0x00af, 6>(s, fixed_af);
@@ -1425,17 +1423,17 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    int arrow = -1;
+    IOff0 arrow = IOff0::from(-1);
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x01ee>> repeat_1ee;
-    for (int i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (!sd->status.inventory[i].nameid
             || sd->inventory_data[i] == NULL
             || itemdb_isequip2(sd->inventory_data[i]))
             continue;
         Packet_Repeat<0x01ee> info;
-        info.ioff2 = i + 2;
+        info.ioff2 = i.shift();
         info.name_id = sd->status.inventory[i].nameid;
         info.item_type = sd->inventory_data[i]->type;
         info.identify = 1;
@@ -1444,7 +1442,7 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
         {
             info.epos = EPOS::ARROW;
             if (bool(sd->status.inventory[i].equip))
-                arrow = i;      // ついでに矢装備チェック
+                arrow = i;
         }
         else
             info.epos = EPOS::ZERO;
@@ -1458,7 +1456,7 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
     {
         send_packet_repeatonly<0x01ee, 4, 18>(s, repeat_1ee);
     }
-    if (arrow >= 0)
+    if (arrow.ok())
         clif_arrowequip(sd, arrow);
 }
 
@@ -1472,14 +1470,14 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x00a4>> repeat_a4;
-    for (int i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (!sd->status.inventory[i].nameid
             || sd->inventory_data[i] == NULL
             || !itemdb_isequip2(sd->inventory_data[i]))
             continue;
         Packet_Repeat<0x00a4> info;
-        info.ioff2 = i + 2;
+        info.ioff2 = i.shift();
         info.name_id = sd->status.inventory[i].nameid;
         info.item_type = (
                 sd->inventory_data[i]->type == ItemType::_7
@@ -1515,7 +1513,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x01f0>> repeat_1f0;
-    for (int i = 0; i < MAX_STORAGE; i++)
+    for (SOff0 i : SOff0::iter())
     {
         if (!stor->storage_[i].nameid)
             continue;
@@ -1527,7 +1525,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
             continue;
 
         Packet_Repeat<0x01f0> info;
-        info.soff1 = i + 1;
+        info.soff1 = i.shift();
         info.name_id = stor->storage_[i].nameid;
         info.item_type = id->type;
         info.identify = 0;
@@ -1557,7 +1555,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x00a6>> repeat_a6;
-    for (int i = 0; i < MAX_STORAGE; i++)
+    for (SOff0 i : SOff0::iter())
     {
         if (!stor->storage_[i].nameid)
             continue;
@@ -1568,7 +1566,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
         if (!itemdb_isequip2(id))
             continue;
         Packet_Repeat<0x00a6> info;
-        info.soff1 = i + 1;
+        info.soff1 = i.shift();
         info.name_id = stor->storage_[i].nameid;
         info.item_type = id->type;
         info.identify = 0;
@@ -1837,8 +1835,8 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
             EQUIP equip_point = equip_points[type];
 
             fixed_1d7.look_type = type;
-            int idx = sd->equip_index_maybe[equip_point];
-            if (idx >= 0 && sd->inventory_data[idx])
+            IOff0 idx = sd->equip_index_maybe[equip_point];
+            if (idx.ok() && sd->inventory_data[idx])
             {
                 fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->status.inventory[idx].nameid);
             }
@@ -1849,20 +1847,20 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
         else
         {
             fixed_1d7.look_type = LOOK::WEAPON;
-            int widx = sd->equip_index_maybe[EQUIP::WEAPON];
-            int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
+            IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
+            IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
             if (sd->attack_spell_override)
                 fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->attack_spell_look_override);
             else
             {
-                if (widx >= 0 && sd->inventory_data[widx])
+                if (widx.ok() && sd->inventory_data[widx])
                 {
                     fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
                 }
                 else
                     fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(ItemNameId());
             }
-            if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
+            if (sidx.ok() && sidx != widx && sd->inventory_data[sidx])
             {
                 fixed_1d7.shield = sd->status.inventory[sidx].nameid;
             }
@@ -1954,7 +1952,7 @@ int clif_initialstatus(dumb_ptr<map_session_data> sd)
  *矢装備
  *------------------------------------------
  */
-int clif_arrowequip(dumb_ptr<map_session_data> sd, int val)
+int clif_arrowequip(dumb_ptr<map_session_data> sd, IOff0 val)
 {
     nullpo_ret(sd);
 
@@ -1962,7 +1960,7 @@ int clif_arrowequip(dumb_ptr<map_session_data> sd, int val)
 
     Session *s = sd->sess;
     Packet_Fixed<0x013c> fixed_13c;
-    fixed_13c.ioff2 = val + 2;
+    fixed_13c.ioff2 = val.shift();
     send_fpacket<0x013c, 4>(s, fixed_13c);
 
     return 0;
@@ -2007,13 +2005,13 @@ int clif_statusupack(dumb_ptr<map_session_data> sd, SP type, int ok, int val)
  *
  *------------------------------------------
  */
-int clif_equipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
+int clif_equipitemack(dumb_ptr<map_session_data> sd, IOff0 n, EPOS pos, int ok)
 {
     nullpo_ret(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00aa> fixed_aa;
-    fixed_aa.ioff2 = n + 2;
+    fixed_aa.ioff2 = n.shift();
     fixed_aa.epos = pos;
     fixed_aa.ok = ok;
     send_fpacket<0x00aa, 7>(s, fixed_aa);
@@ -2025,13 +2023,13 @@ int clif_equipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
  *
  *------------------------------------------
  */
-int clif_unequipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
+int clif_unequipitemack(dumb_ptr<map_session_data> sd, IOff0 n, EPOS pos, int ok)
 {
     nullpo_ret(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00ac> fixed_ac;
-    fixed_ac.ioff2 = n + 2;
+    fixed_ac.ioff2 = n.shift();
     fixed_ac.epos = pos;
     fixed_ac.ok = ok;
     send_fpacket<0x00ac, 7>(s, fixed_ac);
@@ -2087,7 +2085,7 @@ int clif_changeoption(dumb_ptr<block_list> bl)
  *
  *------------------------------------------
  */
-int clif_useitemack(dumb_ptr<map_session_data> sd, int index, int amount,
+int clif_useitemack(dumb_ptr<map_session_data> sd, IOff0 index, int amount,
                      int ok)
 {
     nullpo_ret(sd);
@@ -2096,7 +2094,7 @@ int clif_useitemack(dumb_ptr<map_session_data> sd, int index, int amount,
     {
         Session *s = sd->sess;
         Packet_Fixed<0x00a8> fixed_a8;
-        fixed_a8.ioff2 = index + 2;
+        fixed_a8.ioff2 = index.shift();
         fixed_a8.amount = amount;
         fixed_a8.ok = ok;
         send_fpacket<0x00a8, 7>(s, fixed_a8);
@@ -2104,7 +2102,7 @@ int clif_useitemack(dumb_ptr<map_session_data> sd, int index, int amount,
     else
     {
         Packet_Fixed<0x01c8> fixed_1c8;
-        fixed_1c8.ioff2 = index + 2;
+        fixed_1c8.ioff2 = index.shift();
         fixed_1c8.name_id = sd->status.inventory[index].nameid;
         fixed_1c8.block_id = sd->bl_id;
         fixed_1c8.amount = amount;
@@ -2149,7 +2147,7 @@ void clif_tradestart(dumb_ptr<map_session_data> sd, int type)
  *------------------------------------------
  */
 void clif_tradeadditem(dumb_ptr<map_session_data> sd,
-        dumb_ptr<map_session_data> tsd, int index2, int amount)
+        dumb_ptr<map_session_data> tsd, IOff2 index2, int amount)
 {
     nullpo_retv(sd);
     nullpo_retv(tsd);
@@ -2157,7 +2155,7 @@ void clif_tradeadditem(dumb_ptr<map_session_data> sd,
     Session *s = tsd->sess;
     Packet_Fixed<0x00e9> fixed_e9;
     fixed_e9.amount = amount;
-    if (index2 == 0)
+    if (!index2.ok())
     {
         fixed_e9.name_id = ItemNameId();
         fixed_e9.identify = 0;
@@ -2170,7 +2168,7 @@ void clif_tradeadditem(dumb_ptr<map_session_data> sd,
     }
     else
     {
-        int index0 = index2 - 2;
+        IOff0 index0 = index2.unshift();
         fixed_e9.name_id = sd->status.inventory[index0].nameid;
         fixed_e9.identify = 0;
         fixed_e9.broken_or_attribute = 0;
@@ -2189,7 +2187,7 @@ void clif_tradeadditem(dumb_ptr<map_session_data> sd,
  * アイテム追加成功/失敗
  *------------------------------------------
  */
-int clif_tradeitemok(dumb_ptr<map_session_data> sd, int index2, int amount,
+int clif_tradeitemok(dumb_ptr<map_session_data> sd, IOff2 index2, int amount,
                       int fail)
 {
     nullpo_ret(sd);
@@ -2275,14 +2273,14 @@ int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
  *------------------------------------------
  */
 int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
-                           int index, int amount)
+        SOff0 index, int amount)
 {
     nullpo_ret(sd);
     nullpo_ret(stor);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f4> fixed_f4;
-    fixed_f4.soff1 = index + 1;
+    fixed_f4.soff1 = index.shift();
     fixed_f4.amount = amount;
     fixed_f4.name_id = stor->storage_[index].nameid;
     fixed_f4.identify = 0;
@@ -2303,14 +2301,14 @@ int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
  * カプラ倉庫からアイテムを取り去る
  *------------------------------------------
  */
-int clif_storageitemremoved(dumb_ptr<map_session_data> sd, int index,
+int clif_storageitemremoved(dumb_ptr<map_session_data> sd, SOff0 index,
                              int amount)
 {
     nullpo_ret(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f6> fixed_f6;
-    fixed_f6.soff1 = index + 1;
+    fixed_f6.soff1 = index.shift();
     fixed_f6.amount = amount;
     send_fpacket<0x00f6, 8>(s, fixed_f6);
 
@@ -4110,8 +4108,6 @@ RecvResult clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    int item_index, item_amount;
-
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
@@ -4129,8 +4125,10 @@ RecvResult clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
 
-    item_index = fixed.ioff2 - 2;
-    item_amount = fixed.amount;
+    if (!fixed.ioff2.ok())
+        return RecvResult::Error;
+    IOff0 item_index = fixed.ioff2.unshift();
+    int item_amount = fixed.amount;
 
     pc_dropitem(sd, item_index, item_amount);
 
@@ -4161,7 +4159,9 @@ RecvResult clif_parse_UseItem(Session *s, dumb_ptr<map_session_data> sd)
     if (sd->invincible_timer)
         pc_delinvincibletimer(sd);
 
-    pc_useitem(sd, fixed.ioff2 - 2);
+    if (!fixed.ioff2.ok())
+        return RecvResult::Error;
+    pc_useitem(sd, fixed.ioff2.unshift());
 
     return rv;
 }
@@ -4178,14 +4178,14 @@ RecvResult clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    int index;
-
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
         return rv;
     }
-    index = fixed.ioff2 - 2;
+    if (!fixed.ioff2.ok())
+        return RecvResult::Error;
+    IOff0 index = fixed.ioff2.unshift();
     if (sd->npc_id)
         return rv;
 
@@ -4214,14 +4214,14 @@ RecvResult clif_parse_UnequipItem(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    int index;
-
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
         return rv;
     }
-    index = fixed.ioff2 - 2;
+    if (!fixed.ioff2.ok())
+        return RecvResult::Error;
+    IOff0 index = fixed.ioff2.unshift();
 
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)
@@ -4366,6 +4366,8 @@ RecvResult clif_parse_TradeAddItem(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
+    if (fixed.zeny_or_ioff2.index != 0 && !fixed.zeny_or_ioff2.ok())
+        return RecvResult::Error;
     trade_tradeadditem(sd, fixed.zeny_or_ioff2, fixed.amount);
 
     return rv;
@@ -4577,10 +4579,10 @@ RecvResult clif_parse_MoveToKafra(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    int item_index, item_amount;
-
-    item_index = fixed.ioff2 - 2;
-    item_amount = fixed.amount;
+    if (!fixed.ioff2.ok())
+        return RecvResult::Error;
+    IOff0 item_index = fixed.ioff2.unshift();
+    int item_amount = fixed.amount;
 
     if ((sd->npc_id && !sd->npc_flags.storage) || sd->trade_partner
         || !sd->state.storage_open)
@@ -4604,10 +4606,10 @@ RecvResult clif_parse_MoveFromKafra(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    int item_index, item_amount;
-
-    item_index = fixed.soff1 - 1;
-    item_amount = fixed.amount;
+    if (!fixed.soff1.ok())
+        return RecvResult::Error;
+    SOff0 item_index = fixed.soff1.unshift();
+    int item_amount = fixed.amount;
 
     if ((sd->npc_id && !sd->npc_flags.storage) || sd->trade_partner
         || !sd->state.storage_open)

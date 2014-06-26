@@ -58,42 +58,22 @@ struct NetArray
 {
     T data[N];
 };
-template<class T, class U, size_t N>
-bool native_to_network(NetArray<T, N> *network, Array<U, N> native)
+template<class T, class U, class I>
+bool native_to_network(NetArray<T, I::alloc_size> *network, GenericArray<U, I> native)
 {
-    for (size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < I::alloc_size; ++i)
     {
-        if (!native_to_network(&(*network).data[i], native[i]))
+        if (!native_to_network(&(*network).data[i], native[I::offset_to_index(i)]))
             return false;
     }
     return true;
 }
-template<class T, class U, size_t N>
-bool network_to_native(Array<U, N> *native, NetArray<T, N> network)
+template<class T, class U, class I>
+bool network_to_native(GenericArray<U, I> *native, NetArray<T, I::alloc_size> network)
 {
-    for (size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < I::alloc_size; ++i)
     {
-        if (!network_to_native(&(*native)[i], network.data[i]))
-            return false;
-    }
-    return true;
-}
-template<class T, class U, size_t N, class I>
-bool native_to_network(NetArray<T, N> *network, earray<U, I, static_cast<I>(N)> native)
-{
-    for (size_t i = 0; i < N; ++i)
-    {
-        if (!native_to_network(&(*network).data[i], native[static_cast<I>(i)]))
-            return false;
-    }
-    return true;
-}
-template<class T, class U, size_t N, class I>
-bool network_to_native(earray<U, I, static_cast<I>(N)> *native, NetArray<T, N> network)
-{
-    for (size_t i = 0; i < N; ++i)
-    {
-        if (!network_to_native(&(*native)[static_cast<I>(i)], network.data[i]))
+        if (!network_to_native(&(*native)[I::offset_to_index(i)], network.data[i]))
             return false;
     }
     return true;
@@ -1184,7 +1164,7 @@ struct CharData
     uint16_t mapport = {};
     Point last_point = {};
     Point save_point = {};
-    Array<Item, MAX_INVENTORY> inventory = {};
+    GenericArray<Item, InventoryIndexing<IOff0, MAX_INVENTORY>> inventory = {};
     earray<SkillValue, SkillID, MAX_SKILL> skill = {};
     uint32_t global_reg_num = {};
     Array<GlobalReg, GLOBAL_REG_NUM> global_reg = {};
@@ -1403,7 +1383,7 @@ struct Storage
     AccountId account_id = {};
     uint16_t storage_status = {};
     uint16_t storage_amount = {};
-    Array<Item, MAX_STORAGE> storage_ = {};
+    GenericArray<Item, InventoryIndexing<SOff0, MAX_STORAGE>> storage_ = {};
 };
 struct NetStorage
 {

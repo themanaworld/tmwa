@@ -497,7 +497,7 @@ int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char
     return 0;
 }
 
-EPOS pc_equippoint(dumb_ptr<map_session_data> sd, int n)
+EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n)
 {
     nullpo_retr(EPOS::ZERO, sd);
 
@@ -514,7 +514,7 @@ int pc_setinventorydata(dumb_ptr<map_session_data> sd)
 {
     nullpo_ret(sd);
 
-    for (int i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         ItemNameId id = sd->status.inventory[i].nameid;
         sd->inventory_data[i] = itemdb_search(id);
@@ -571,9 +571,9 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     for (EQUIP i : EQUIPs)
-        sd->equip_index_maybe[i] = -1;
+        sd->equip_index_maybe[i] = IOff0::from(-1);
 
-    for (int i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (!sd->status.inventory[i].nameid)
             continue;
@@ -614,7 +614,7 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
 }
 
 static
-int pc_isequip(dumb_ptr<map_session_data> sd, int n)
+int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
 {
     struct item_data *item;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -970,7 +970,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (first & 1)
     {
         sd->weight = 0;
-        for (int i = 0; i < MAX_INVENTORY; i++)
+        for (IOff0 i : IOff0::iter())
         {
             if (!sd->status.inventory[i].nameid
                 || sd->inventory_data[i] == NULL)
@@ -1041,8 +1041,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     for (EQUIP i : EQUIPs_noarrow)
     {
-        int index = sd->equip_index_maybe[i];
-        if (index < 0)
+        IOff0 index = sd->equip_index_maybe[i];
+        if (!index.ok())
             continue;
         if (i == EQUIP::WEAPON && sd->equip_index_maybe[EQUIP::SHIELD] == index)
             continue;
@@ -1077,8 +1077,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     // 装備品によるステータス変化はここで実行
     for (EQUIP i : EQUIPs_noarrow)
     {
-        int index = sd->equip_index_maybe[i];
-        if (index < 0)
+        IOff0 index = sd->equip_index_maybe[i];
+        if (!index.ok())
             continue;
         if (i == EQUIP::WEAPON && sd->equip_index_maybe[EQUIP::SHIELD] == index)
             continue;
@@ -1153,10 +1153,10 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->watk_2 += skill_power(sd, SkillID::TMW_BRAWLING) >> 3;  // +25 for 200
     }
 
-    int aidx = sd->equip_index_maybe[EQUIP::ARROW];
-    if (aidx >= 0)
-    {                           // 矢
-        int index = aidx;
+    IOff0 aidx = sd->equip_index_maybe[EQUIP::ARROW];
+    if (aidx.ok())
+    {
+        IOff0 index = aidx;
         if (sd->inventory_data[index])
         {                       //まだ属性が入っていない
             argrec_t arg[2] =
@@ -1824,14 +1824,12 @@ int pc_skill(dumb_ptr<map_session_data> sd, SkillID id, int level, int flag)
  */
 ADDITEM pc_checkadditem(dumb_ptr<map_session_data> sd, ItemNameId nameid, int amount)
 {
-    int i;
-
     nullpo_retr(ADDITEM::ZERO, sd);
 
     if (itemdb_isequip(nameid))
         return ADDITEM::NEW;
 
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].nameid == nameid)
         {
@@ -1852,11 +1850,11 @@ ADDITEM pc_checkadditem(dumb_ptr<map_session_data> sd, ItemNameId nameid, int am
  */
 int pc_inventoryblank(dumb_ptr<map_session_data> sd)
 {
-    int i, b;
+    int b = 0;
 
     nullpo_ret(sd);
 
-    for (i = 0, b = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (!sd->status.inventory[i].nameid)
             b++;
@@ -1906,30 +1904,27 @@ int pc_getzeny(dumb_ptr<map_session_data> sd, int zeny)
  * アイテムを探して、インデックスを返す
  *------------------------------------------
  */
-int pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id)
+IOff0 pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id)
 {
-    int i;
+    nullpo_retr(IOff0::from(-1), sd);
 
-    nullpo_retr(-1, sd);
-
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].nameid == item_id &&
             (sd->status.inventory[i].amount > 0 || !item_id))
             return i;
     }
 
-    return -1;
+    return IOff0::from(-1);
 }
 
 int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
 {
-    int i;
     int count = 0;
 
     nullpo_ret(player);
 
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (player->status.inventory[i].nameid == item_id)
             count += player->status.inventory[i].amount;
@@ -1940,12 +1935,12 @@ int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
 
 int pc_remove_items(dumb_ptr<map_session_data> player, ItemNameId item_id, int count)
 {
-    int i;
-
     nullpo_ret(player);
 
-    for (i = 0; i < MAX_INVENTORY && count; i++)
+    for (IOff0 i : IOff0::iter())
     {
+        if (!count)
+            break;
         if (player->status.inventory[i].nameid == item_id)
         {
             int to_delete = count;
@@ -1973,7 +1968,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
                 int amount)
 {
     struct item_data *data;
-    int i, w;
+    int w;
 
     MAP_LOG_PC(sd, "PICKUP %d %d"_fmt, item_data->nameid, amount);
 
@@ -1986,12 +1981,13 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
     if ((w = data->weight * amount) + sd->weight > sd->max_weight)
         return PickupFail::TOO_HEAVY;
 
-    i = MAX_INVENTORY;
+    IOff0 i = IOff0::from(MAX_INVENTORY);
 
     if (!itemdb_isequip2(data))
     {
-        // 装 備品ではないので、既所有品なら個数のみ変化させる
-        for (i = 0; i < MAX_INVENTORY; i++)
+        // TODO see if there's any nicer way to preserve the foreach var
+        for (i = IOff0::from(0); i != IOff0::from(MAX_INVENTORY); ++i)
+        {
             if (sd->status.inventory[i].nameid == item_data->nameid)
             {
                 if (sd->status.inventory[i].amount + amount > MAX_AMOUNT)
@@ -2000,12 +1996,12 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
                 clif_additem(sd, i, amount, PickupFail::OKAY);
                 break;
             }
+        }
     }
-    if (i >= MAX_INVENTORY)
+    if (!i.ok())
     {
-        // 装 備品か未所有品だったので空き欄へ追加
         i = pc_search_inventory(sd, ItemNameId());
-        if (i >= 0)
+        if (i.ok())
         {
             sd->status.inventory[i] = *item_data;
 
@@ -2029,7 +2025,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
  * アイテムを減らす
  *------------------------------------------
  */
-int pc_delitem(dumb_ptr<map_session_data> sd, int n, int amount, int type)
+int pc_delitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, int type)
 {
     nullpo_retr(1, sd);
 
@@ -2062,14 +2058,14 @@ int pc_delitem(dumb_ptr<map_session_data> sd, int n, int amount, int type)
  * アイテムを落す
  *------------------------------------------
  */
-int pc_dropitem(dumb_ptr<map_session_data> sd, int n, int amount)
+int pc_dropitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount)
 {
     nullpo_retr(1, sd);
 
     if (sd->trade_partner || sd->npc_id || sd->state.storage_open)
         return 0;               // no dropping while trading/npc/storage
 
-    if (n < 0 || n >= MAX_INVENTORY)
+    if (!n.ok())
         return 0;
 
     if (amount <= 0)
@@ -2172,7 +2168,7 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
         PickupFail flag = pc_additem(sd, &fitem->item_data, fitem->item_data.amount);
         if (flag != PickupFail::OKAY)
             // 重量overで取得失敗
-            clif_additem(sd, 0, 0, flag);
+            clif_additem(sd, IOff0::from(0), 0, flag);
         else
         {
             // 取得成功
@@ -2185,12 +2181,12 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
     }
 
     /* Otherwise, we can't pick up */
-    clif_additem(sd, 0, 0, PickupFail::DROP_STEAL);
+    clif_additem(sd, IOff0::from(0), 0, PickupFail::DROP_STEAL);
     return 0;
 }
 
 static
-int pc_isUseitem(dumb_ptr<map_session_data> sd, int n)
+int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
 {
     struct item_data *item;
     ItemNameId nameid;
@@ -2217,13 +2213,13 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, int n)
  * アイテムを使う
  *------------------------------------------
  */
-int pc_useitem(dumb_ptr<map_session_data> sd, int n)
+int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 {
     int amount;
 
     nullpo_retr(1, sd);
 
-    if (n >= 0 && n < MAX_INVENTORY && sd->inventory_data[n])
+    if (n.ok() && sd->inventory_data[n])
     {
         amount = sd->status.inventory[n].amount;
         if (!sd->status.inventory[n].nameid
@@ -2716,9 +2712,9 @@ int pc_checkskill(dumb_ptr<map_session_data> sd, SkillID skill_id)
  * 装 備品のチェック
  *------------------------------------------
  */
-int pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos)
+IOff0 pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos)
 {
-    nullpo_retr(-1, sd);
+    nullpo_retr(IOff0::from(-1), sd);
 
     for (EQUIP i : EQUIPs)
     {
@@ -2726,7 +2722,7 @@ int pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos)
             return sd->equip_index_maybe[i];
     }
 
-    return -1;
+    return IOff0::from(-1);
 }
 
 /*==========================================
@@ -3314,13 +3310,13 @@ int pc_resetlvl(dumb_ptr<map_session_data> sd, int type)
     for (EQUIP i : EQUIPs)
     {
         // unequip items that can't be equipped by base 1 [Valaris]
-        short *idx = &sd->equip_index_maybe[i];
-        if (*idx >= 0)
+        IOff0 *idx = &sd->equip_index_maybe[i];
+        if ((*idx).ok())
         {
             if (!pc_isequip(sd, *idx))
             {
                 pc_unequipitem(sd, *idx, CalcStatus::LATER);
-                *idx = -1;
+                *idx = IOff0::from(-1);
             }
         }
     }
@@ -4381,7 +4377,7 @@ int pc_cleareventtimer(dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-int pc_signal_advanced_equipment_change(dumb_ptr<map_session_data> sd, int n)
+int pc_signal_advanced_equipment_change(dumb_ptr<map_session_data> sd, IOff0 n)
 {
     if (bool(sd->status.inventory[n].equip & EPOS::SHOES))
         clif_changelook(sd, LOOK::SHOES, 0);
@@ -4396,7 +4392,7 @@ int pc_signal_advanced_equipment_change(dumb_ptr<map_session_data> sd, int n)
     return 0;
 }
 
-int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
+int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
 {
     ItemNameId nameid;
     struct item_data *id;
@@ -4404,9 +4400,9 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
 
     nullpo_ret(sd);
 
-    if (n < 0 || n >= MAX_INVENTORY)
+    if (!n.ok())
     {
-        clif_equipitemack(sd, 0, EPOS::ZERO, 0);
+        clif_equipitemack(sd, IOff0::from(0), EPOS::ZERO, 0);
         return 0;
     }
 
@@ -4431,11 +4427,11 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
     {
         // アクセサリ用例外処理
         EPOS epor = EPOS::ZERO;
-        int midx = sd->equip_index_maybe[EQUIP::MISC2];
-        int cidx = sd->equip_index_maybe[EQUIP::CAPE];
-        if (midx >= 0)
+        IOff0 midx = sd->equip_index_maybe[EQUIP::MISC2];
+        IOff0 cidx = sd->equip_index_maybe[EQUIP::CAPE];
+        if (midx.ok())
             epor |= sd->status.inventory[midx].equip;
-        if (cidx >= 0)
+        if (cidx.ok())
             epor |= sd->status.inventory[cidx].equip;
         epor &= (EPOS::MISC2 | EPOS::CAPE);
         pos = (epor == EPOS::CAPE ? EPOS::MISC2 : EPOS::CAPE);
@@ -4445,8 +4441,8 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
     {
         if (bool(pos & equip_pos[i]))
         {
-            short *idx = &sd->equip_index_maybe[i];
-            if (*idx >= 0)    //Slot taken, remove item from there.
+            IOff0 *idx = &sd->equip_index_maybe[i];
+            if ((*idx).ok())    //Slot taken, remove item from there.
                 pc_unequipitem(sd, *idx, CalcStatus::LATER);
             *idx = n;
         }
@@ -4542,7 +4538,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
  * 装 備した物を外す
  *------------------------------------------
  */
-int pc_unequipitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
+int pc_unequipitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
 {
     nullpo_ret(sd);
 
@@ -4557,7 +4553,7 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
         for (EQUIP i : EQUIPs)
         {
             if (bool(sd->status.inventory[n].equip & equip_pos[i]))
-                sd->equip_index_maybe[i] = -1;
+                sd->equip_index_maybe[i] = IOff0::from(-1);
         }
         if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
         {
@@ -4605,7 +4601,7 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
     return 0;
 }
 
-int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
+int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
 {
     nullpo_retr(1, sd);
 
@@ -4617,7 +4613,7 @@ int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
         {
             //Slot taken, remove item from there.
             pc_unequipitem(sd, sd->equip_index_maybe[i], type);
-            sd->equip_index_maybe[i] = -1;
+            sd->equip_index_maybe[i] = IOff0::from(-1);
         }
     }
 
@@ -4631,28 +4627,29 @@ int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
  */
 int pc_checkitem(dumb_ptr<map_session_data> sd)
 {
-    int i, j, k, calc_flag = 0;
+    int calc_flag = 0;
 
     nullpo_ret(sd);
 
-    // 所持品空き詰め
-    for (i = j = 0; i < MAX_INVENTORY; i++)
+    IOff0 j = IOff0::from(0);
+    for (IOff0 i : IOff0::iter())
     {
         if (!(sd->status.inventory[i].nameid))
             continue;
-        if (i > j)
+        if (i != j)
         {
             sd->status.inventory[j] = sd->status.inventory[i];
             sd->inventory_data[j] = sd->inventory_data[i];
         }
-        j++;
+        ++j;
     }
-    for (k = j; k < MAX_INVENTORY; ++k)
+    for (IOff0 k = j; k != IOff0::from(MAX_INVENTORY); ++k)
+    {
         sd->status.inventory[k] = Item{};
-    for (k = j; k < MAX_INVENTORY; k++)
         sd->inventory_data[k] = NULL;
+    }
 
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (!sd->status.inventory[i].nameid)
             continue;

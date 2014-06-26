@@ -27,9 +27,11 @@
 
 # include "../mmo/fwd.hpp"
 
+# include "clif.t.hpp"
+
 int storage_storageopen(dumb_ptr<map_session_data> sd);
-int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount);
-int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount);
+int storage_storageadd(dumb_ptr<map_session_data> sd, IOff0 index, int amount);
+int storage_storageget(dumb_ptr<map_session_data> sd, SOff0 index, int amount);
 int storage_storageclose(dumb_ptr<map_session_data> sd);
 void do_final_storage(void);
 Storage *account2storage(AccountId account_id);

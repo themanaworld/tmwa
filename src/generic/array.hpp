@@ -24,18 +24,94 @@
 # include <cassert>
 # include <cstddef>
 
-template<class T, size_t n>
-struct Array
-{
-    T data[n];
-public:
-    T& operator [](size_t i) { assert (i < n); return data[i]; }
-    const T& operator [](size_t i) const { assert (i < n); return data[i]; }
+# include "oops.hpp"
 
-    T *begin() { return data + 0; }
-    T *end() { return data + n; }
-    const T *begin() const { return data + 0; }
-    const T *end() const { return data + n; }
+template<class I, I be, I en>
+struct ExclusiveIndexing
+{
+    using index_type = I;
+    constexpr static size_t index_to_offset(index_type idx)
+    { return static_cast<size_t>(idx) - static_cast<size_t>(be); }
+    constexpr static index_type offset_to_index(size_t off)
+    { return static_cast<I>(off + static_cast<size_t>(be)); }
+    constexpr static size_t alloc_size = index_to_offset(en) - index_to_offset(be);
 };
+
+template<size_t n>
+using SimpleIndexing = ExclusiveIndexing<size_t, 0, n>;
+
+template<class I, I lo, I hi>
+struct InclusiveIndexing
+{
+    using index_type = I;
+    constexpr static size_t index_to_offset(index_type idx)
+    { return static_cast<size_t>(idx) - static_cast<size_t>(lo); }
+    constexpr static index_type offset_to_index(size_t off)
+    { return static_cast<I>(off + static_cast<size_t>(lo)); }
+    constexpr static size_t alloc_size = index_to_offset(hi) - index_to_offset(lo) + 1;
+};
+
+template<class E, E n=E::COUNT>
+struct EnumIndexing : ExclusiveIndexing<E, static_cast<E>(0), n>
+{
+};
+
+template<class I, size_t limit>
+struct InventoryIndexing
+{
+    using index_type = I;
+    constexpr static size_t index_to_offset(index_type idx)
+    { return idx.get0(); }
+    constexpr static index_type offset_to_index(size_t off)
+    { return I::from(off); }
+    constexpr static size_t alloc_size = limit;
+};
+
+template<class T, class I>
+struct GenericArray
+{
+    T data[I::alloc_size];
+public:
+    T *begin()
+    { return data + 0; }
+    T *end()
+    { return data + I::alloc_size; }
+    const T *begin() const
+    { return data + 0; }
+    const T *end() const
+    { return data + I::alloc_size; }
+    size_t size() const
+    { return I::alloc_size; }
+
+    T& operator [](typename I::index_type i_)
+    {
+        size_t i = I::index_to_offset(i_);
+        ALLEGE ("index in bounds", i < size());
+        return data[i];
+    }
+    const T& operator [](typename I::index_type i_) const
+    {
+        size_t i = I::index_to_offset(i_);
+        ALLEGE ("index in bounds", i < size());
+        return data[i];
+    }
+
+    friend bool operator == (GenericArray& lhs, GenericArray& rhs)
+    {
+        for (size_t i = 0; i < I::alloc_size; ++i)
+        {
+            if (lhs.data[i] != rhs.data[i])
+                return false;
+        }
+        return true;
+    }
+    friend bool operator != (GenericArray& lhs, GenericArray& rhs)
+    {
+        return !(lhs == rhs);
+    }
+};
+
+template<class T, size_t n>
+using Array = GenericArray<T, SimpleIndexing<n>>;
 
 #endif // TMWA_GENERIC_ARRAY_HPP

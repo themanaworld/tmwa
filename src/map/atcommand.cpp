@@ -1371,7 +1371,7 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
             PickupFail flag;
             if ((flag = pc_additem(sd, &item_tmp, get_count))
                 != PickupFail::OKAY)
-                clif_additem(sd, 0, 0, flag);
+                clif_additem(sd, IOff0::from(0), 0, flag);
         }
         clif_displaymessage(s, "Item created."_s);
     }
@@ -1388,9 +1388,7 @@ static
 ATCE atcommand_itemreset(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    int i;
-
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].amount
             && sd->status.inventory[i].equip == EPOS::ZERO)
@@ -3118,7 +3116,6 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can reset a character only for lower or same GM level
-            int i;
 
             // Reset base level
             pl_sd->status.base_level = 1;
@@ -3139,7 +3136,7 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
             clif_updatestatus(pl_sd, SP::ZENY);
 
             // Clear inventory
-            for (i = 0; i < MAX_INVENTORY; i++)
+            for (IOff0 i : IOff0::iter())
             {
                 if (sd->status.inventory[i].amount)
                 {
@@ -3678,7 +3675,7 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
     XString item_name;
     int i, number = 0;
     ItemNameId item_id;
-    int item_position, count;
+    int count;
     struct item_data *item_data;
 
     if (!asplit(message, &item_name, &number, &character) || number < 1)
@@ -3697,11 +3694,11 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
             if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
             {
                 // you can kill only lower or same level
-                item_position = pc_search_inventory(pl_sd, item_id);
-                if (item_position >= 0)
+                IOff0 item_position = pc_search_inventory(pl_sd, item_id);
+                if (item_position.ok())
                 {
                     count = 0;
-                    for (i = 0; i < number && item_position >= 0; i++)
+                    for (i = 0; i < number && item_position.ok(); i++)
                     {
                         pc_delitem(pl_sd, item_position, 1, 0);
                         count++;
@@ -3849,7 +3846,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     struct item_data *item_data = NULL;
-    int i, count, counter;
+    int count, counter;
     CharName character;
 
     if (!asplit(message, &character))
@@ -3863,7 +3860,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
             // you can look items only lower or same level
             counter = 0;
             count = 0;
-            for (i = 0; i < MAX_INVENTORY; i++)
+            for (IOff0 i : IOff0::iter())
             {
                 if (pl_sd->status.inventory[i].nameid
                     && (item_data =
@@ -3961,7 +3958,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
 {
     Storage *stor;
     struct item_data *item_data = NULL;
-    int i, count, counter;
+    int count, counter;
     CharName character;
 
     if (!asplit(message, &character))
@@ -3977,7 +3974,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
             {
                 counter = 0;
                 count = 0;
-                for (i = 0; i < MAX_STORAGE; i++)
+                for (SOff0 i : SOff0::iter())
                 {
                     if (stor->storage_[i].nameid
                         && (item_data =
@@ -4188,8 +4185,7 @@ static
 ATCE atcommand_dropall(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    int i;
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].amount)
         {
@@ -4212,7 +4208,7 @@ ATCE atcommand_chardropall(Session *s, dumb_ptr<map_session_data>,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd == NULL)
         return ATCE::EXIST;
-    for (int i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (pl_sd->status.inventory[i].amount)
         {
@@ -4232,8 +4228,6 @@ static
 ATCE atcommand_storeall(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    int i;
-
     if (!sd->state.storage_open)
     {
         //Open storage.
@@ -4250,7 +4244,7 @@ ATCE atcommand_storeall(Session *s, dumb_ptr<map_session_data> sd,
                 return ATCE::EXIST;
         }
     }
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].amount)
         {
@@ -4286,7 +4280,7 @@ ATCE atcommand_charstoreall(Session *s, dumb_ptr<map_session_data> sd,
         clif_displaymessage(s, "run this command again.."_s);
         return ATCE::OKAY;
     }
-    for (int i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
     {
         if (pl_sd->status.inventory[i].amount)
         {

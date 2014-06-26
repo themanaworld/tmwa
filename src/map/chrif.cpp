@@ -625,7 +625,6 @@ void chrif_changedgm(Session *, const Packet_Fixed<0x2b0b>& fixed)
 static
 void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
 {
-    int i;
     dumb_ptr<map_session_data> sd;
 
     AccountId acc = fixed.account_id;
@@ -642,7 +641,7 @@ void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
             else if (sd->status.sex == SEX::FEMALE)
                 sd->sex = sd->status.sex = SEX::MALE;
             // to avoid any problem with equipment and invalid sex, equipment is unequiped.
-            for (i = 0; i < MAX_INVENTORY; i++)
+            for (IOff0 i : IOff0::iter())
             {
                 if (sd->status.inventory[i].nameid
                     && bool(sd->status.inventory[i].equip))
@@ -942,9 +941,8 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameI
         {
             dumb_ptr<map_session_data> pc = bl->is_player();
             Storage *stor = account2storage2(pc->status_key.account_id);
-            int j;
 
-            for (j = 0; j < MAX_INVENTORY; j++)
+            for (IOff0 j : IOff0::iter())
                 IFIX(pc->status.inventory[j].nameid);
             // cart is no longer supported
             // IFIX(pc->status.weapon);
@@ -954,10 +952,12 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameI
             IFIX(pc->status.head_bottom);
 
             if (stor)
-                for (j = 0; j < stor->storage_amount; j++)
+            {
+                for (SOff0 j : SOff0::iter())
                     FIX(stor->storage_[j]);
+            }
 
-            for (j = 0; j < MAX_INVENTORY; j++)
+            for (IOff0 j : IOff0::iter())
             {
                 struct item_data *item = pc->inventory_data[j];
                 if (item && item->nameid == source_id)

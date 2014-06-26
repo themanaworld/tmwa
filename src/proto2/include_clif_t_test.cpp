@@ -34,3 +34,5 @@ using Test_PickupFail = PickupFail;
 using Test_DamageType = DamageType;
 using Test_SP = SP;
 using Test_LOOK = LOOK;
+using Test_IOff2 = IOff2;
+using Test_SOff1 = SOff1;

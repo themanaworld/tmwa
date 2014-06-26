@@ -1327,9 +1327,9 @@ int battle_is_unarmed(dumb_ptr<block_list> bl)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
 
-        int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
-        int widx = sd->equip_index_maybe[EQUIP::WEAPON];
-        return sidx == -1 && widx == -1;
+        IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
+        IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
+        return !sidx.ok() && !widx.ok();
     }
     else
         return 0;
@@ -1449,12 +1449,12 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     atkmin = atkmin_ = dex;     //最低ATKはDEXで初期化？
     sd->state.arrow_atk = 0;    //arrow_atk初期化
 
-    int widx = sd->equip_index_maybe[EQUIP::WEAPON];
-    int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
+    IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
+    IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
 
-    if (widx >= 0 && sd->inventory_data[widx])
+    if (widx.ok() && sd->inventory_data[widx])
         atkmin = atkmin * (80 + sd->inventory_data[widx]->wlv * 20) / 100;
-    if (sidx >= 0 && sd->inventory_data[sidx])
+    if (sidx.ok() && sd->inventory_data[sidx])
         atkmin_ = atkmin_ * (80 + sd->inventory_data[sidx]->wlv * 20) / 100;
     if (sd->status.weapon == ItemLook::BOW)
     {                           //武器が弓矢の場合
@@ -2010,8 +2010,8 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         // 攻撃対象となりうるので攻撃
         if (sd && sd->status.weapon == ItemLook::BOW)
         {
-            int aidx = sd->equip_index_maybe[EQUIP::ARROW];
-            if (aidx >= 0)
+            IOff0 aidx = sd->equip_index_maybe[EQUIP::ARROW];
+            if (aidx.ok())
             {
                 if (battle_config.arrow_decrement)
                     pc_delitem(sd, aidx, 1, 0);
@@ -2058,9 +2058,9 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 
         if (src->bl_type == BL::PC)
         {
-            int weapon_index = sd->equip_index_maybe[EQUIP::WEAPON];
+            IOff0 weapon_index = sd->equip_index_maybe[EQUIP::WEAPON];
             ItemNameId weapon;
-            if (weapon_index >= 0 && sd->inventory_data[weapon_index]
+            if (weapon_index.ok() && sd->inventory_data[weapon_index]
                     && bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
                 weapon = sd->inventory_data[weapon_index]->nameid;
 

@@ -80,8 +80,8 @@ void clif_scriptmenu(dumb_ptr<map_session_data>, BlockId, XString);  //self
 void clif_scriptinput(dumb_ptr<map_session_data>, BlockId); //self
 void clif_scriptinputstr(dumb_ptr<map_session_data> sd, BlockId npcid);  // self
 
-int clif_additem(dumb_ptr<map_session_data>, int, int, PickupFail);   //self
-void clif_delitem(dumb_ptr<map_session_data>, int, int);    //self
+int clif_additem(dumb_ptr<map_session_data>, IOff0, int, PickupFail);   //self
+void clif_delitem(dumb_ptr<map_session_data>, IOff0, int);    //self
 int clif_updatestatus(dumb_ptr<map_session_data>, SP);    //self
 int clif_damage(dumb_ptr<block_list>, dumb_ptr<block_list>,
         tick_t, interval_t, interval_t,
@@ -93,14 +93,14 @@ int clif_takeitem(dumb_ptr<block_list> src, dumb_ptr<block_list> dst)
 }
 int clif_changelook(dumb_ptr<block_list>, LOOK, int);   // area
 void clif_changelook_accessories(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> dst); // area or target; list gloves, boots etc.
-int clif_arrowequip(dumb_ptr<map_session_data> sd, int val);    //self
+int clif_arrowequip(dumb_ptr<map_session_data> sd, IOff0 val);    //self
 int clif_arrow_fail(dumb_ptr<map_session_data> sd, int type);   //self
 int clif_statusupack(dumb_ptr<map_session_data>, SP, int, int);   // self
-int clif_equipitemack(dumb_ptr<map_session_data>, int, EPOS, int);  // self
-int clif_unequipitemack(dumb_ptr<map_session_data>, int, EPOS, int);    // self
+int clif_equipitemack(dumb_ptr<map_session_data>, IOff0, EPOS, int);  // self
+int clif_unequipitemack(dumb_ptr<map_session_data>, IOff0, EPOS, int);    // self
 int clif_misceffect(dumb_ptr<block_list>, int);    // area
 int clif_changeoption(dumb_ptr<block_list>);   // area
-int clif_useitemack(dumb_ptr<map_session_data>, int, int, int);    // self
+int clif_useitemack(dumb_ptr<map_session_data>, IOff0, int, int);    // self
 
 void clif_emotion(dumb_ptr<block_list> bl, int type);
 void clif_sitting(Session *, dumb_ptr<map_session_data> sd);
@@ -109,8 +109,8 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd);
 void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name);
 void clif_tradestart(dumb_ptr<map_session_data> sd, int type);
 void clif_tradeadditem(dumb_ptr<map_session_data> sd,
-        dumb_ptr<map_session_data> tsd, int index, int amount);
-int clif_tradeitemok(dumb_ptr<map_session_data> sd, int index, int amount,
+        dumb_ptr<map_session_data> tsd, IOff2 index2, int amount);
+int clif_tradeitemok(dumb_ptr<map_session_data> sd, IOff2 index, int amount,
         int fail);
 int clif_tradedeal_lock(dumb_ptr<map_session_data> sd, int fail);
 int clif_tradecancelled(dumb_ptr<map_session_data> sd);
@@ -123,8 +123,8 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd,
 int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
         Storage *stor);
 int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
-        int index, int amount);
-int clif_storageitemremoved(dumb_ptr<map_session_data> sd, int index,
+        SOff0 index, int amount);
+int clif_storageitemremoved(dumb_ptr<map_session_data> sd, SOff0 index,
         int amount);
 int clif_storageclose(dumb_ptr<map_session_data> sd);
 

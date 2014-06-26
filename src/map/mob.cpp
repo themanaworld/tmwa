@@ -2203,7 +2203,7 @@ void mob_delay_item_drop(TimerData *, tick_t, struct delay_item_drop ditem)
                 pc_additem(ditem.first_sd, &temp_item, ditem.amount))
             != PickupFail::OKAY)
         {
-            clif_additem(ditem.first_sd, 0, 0, flag);
+            clif_additem(ditem.first_sd, IOff0::from(0), 0, flag);
             map_addflooritem(&temp_item, 1,
                     ditem.m, ditem.x, ditem.y,
                     ditem.first_sd, ditem.second_sd, ditem.third_sd);
@@ -2233,7 +2233,7 @@ void mob_delay_item_drop2(TimerData *, tick_t, struct delay_item_drop2 ditem)
                             ditem.item_data.amount))
             != PickupFail::OKAY)
         {
-            clif_additem(ditem.first_sd, 0, 0, flag);
+            clif_additem(ditem.first_sd, IOff0::from(0), 0, flag);
             map_addflooritem(&ditem.item_data, ditem.item_data.amount,
                     ditem.m, ditem.x, ditem.y,
                     ditem.first_sd, ditem.second_sd, ditem.third_sd);

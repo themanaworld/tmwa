@@ -510,7 +510,7 @@ struct Packet_Fixed<0x00a0>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint16_t amount = {};
     ItemNameId name_id = {};
     uint8_t identify = {};
@@ -542,7 +542,7 @@ struct Packet_Fixed<0x00a2>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint16_t amount = {};
 };
 
@@ -561,7 +561,7 @@ struct Packet_Repeat<0x00a4>
 {
     static const uint16_t PACKET_ID = 0x00a4;
 
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     ItemNameId name_id = {};
     ItemType item_type = {};
     uint8_t identify = {};
@@ -590,7 +590,7 @@ struct Packet_Repeat<0x00a6>
 {
     static const uint16_t PACKET_ID = 0x00a6;
 
-    uint16_t soff1 = {};
+    SOff1 soff1 = {};
     ItemNameId name_id = {};
     ItemType item_type = {};
     uint8_t identify = {};
@@ -611,7 +611,7 @@ struct Packet_Fixed<0x00a7>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint32_t unused_id = {};
 };
 
@@ -622,7 +622,7 @@ struct Packet_Fixed<0x00a8>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint16_t amount = {};
     uint8_t ok = {};
 };
@@ -634,7 +634,7 @@ struct Packet_Fixed<0x00a9>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     EPOS epos_ignored = {};
 };
 
@@ -645,7 +645,7 @@ struct Packet_Fixed<0x00aa>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     EPOS epos = {};
     uint8_t ok = {};
 };
@@ -657,7 +657,7 @@ struct Packet_Fixed<0x00ab>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
 };
 
 template<>
@@ -667,7 +667,7 @@ struct Packet_Fixed<0x00ac>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     EPOS epos = {};
     uint8_t ok = {};
 };
@@ -679,7 +679,7 @@ struct Packet_Fixed<0x00af>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint16_t amount = {};
 };
 
@@ -971,7 +971,7 @@ struct Packet_Repeat<0x00c7>
 {
     static const uint16_t PACKET_ID = 0x00c7;
 
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint32_t base_price = {};
     uint32_t actual_price = {};
 };
@@ -1010,7 +1010,7 @@ struct Packet_Repeat<0x00c9>
 {
     static const uint16_t PACKET_ID = 0x00c9;
 
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint16_t count = {};
 };
 
@@ -1091,7 +1091,7 @@ struct Packet_Fixed<0x00e8>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t zeny_or_ioff2 = {};
+    IOff2 zeny_or_ioff2 = {};
     uint32_t amount = {};
 };
 
@@ -1187,7 +1187,7 @@ struct Packet_Fixed<0x00f3>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint32_t amount = {};
 };
 
@@ -1198,7 +1198,7 @@ struct Packet_Fixed<0x00f4>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t soff1 = {};
+    SOff1 soff1 = {};
     uint32_t amount = {};
     ItemNameId name_id = {};
     uint8_t identify = {};
@@ -1217,7 +1217,7 @@ struct Packet_Fixed<0x00f5>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t soff1 = {};
+    SOff1 soff1 = {};
     uint32_t amount = {};
 };
 
@@ -1228,7 +1228,7 @@ struct Packet_Fixed<0x00f6>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t soff1 = {};
+    SOff1 soff1 = {};
     uint32_t amount = {};
 };
 
@@ -1582,7 +1582,7 @@ struct Packet_Fixed<0x013c>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
 };
 
 template<>
@@ -1723,7 +1723,7 @@ struct Packet_Fixed<0x01b1>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     uint16_t amount = {};
     uint8_t fail = {};
 };
@@ -1735,7 +1735,7 @@ struct Packet_Fixed<0x01c8>
 
     // TODO remove this
     uint16_t magic_packet_id = PACKET_ID;
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     ItemNameId name_id = {};
     BlockId block_id = {};
     uint16_t amount = {};
@@ -1923,7 +1923,7 @@ struct Packet_Repeat<0x01ee>
 {
     static const uint16_t PACKET_ID = 0x01ee;
 
-    uint16_t ioff2 = {};
+    IOff2 ioff2 = {};
     ItemNameId name_id = {};
     ItemType item_type = {};
     uint8_t identify = {};
@@ -1950,7 +1950,7 @@ struct Packet_Repeat<0x01f0>
 {
     static const uint16_t PACKET_ID = 0x01f0;
 
-    uint16_t soff1 = {};
+    SOff1 soff1 = {};
     ItemNameId name_id = {};
     ItemType item_type = {};
     uint8_t identify = {};

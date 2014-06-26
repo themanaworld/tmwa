@@ -84,10 +84,10 @@ int pc_setnewpc(dumb_ptr<map_session_data>, AccountId, CharId, int, uint32_t /*t
 int pc_authok(AccountId, int, TimeT, short tmw_version, const CharKey *, const CharData *);
 int pc_authfail(AccountId accid);
 
-EPOS pc_equippoint(dumb_ptr<map_session_data> sd, int n);
+EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n);
 
 int pc_checkskill(dumb_ptr<map_session_data> sd, SkillID skill_id);
-int pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos);
+IOff0 pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos);
 
 int pc_walktoxy(dumb_ptr<map_session_data>, int, int);
 int pc_stop_walking(dumb_ptr<map_session_data>, int);
@@ -98,18 +98,18 @@ int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type);
 
 ADDITEM pc_checkadditem(dumb_ptr<map_session_data>, ItemNameId, int);
 int pc_inventoryblank(dumb_ptr<map_session_data>);
-int pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id);
+IOff0 pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id);
 int pc_payzeny(dumb_ptr<map_session_data>, int);
 PickupFail pc_additem(dumb_ptr<map_session_data>, Item *, int);
 int pc_getzeny(dumb_ptr<map_session_data>, int);
-int pc_delitem(dumb_ptr<map_session_data>, int, int, int);
+int pc_delitem(dumb_ptr<map_session_data>, IOff0, int, int);
 int pc_checkitem(dumb_ptr<map_session_data>);
 int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id);
 int pc_remove_items(dumb_ptr<map_session_data> player,
         ItemNameId item_id, int count);
 
 int pc_takeitem(dumb_ptr<map_session_data>, dumb_ptr<flooritem_data>);
-int pc_dropitem(dumb_ptr<map_session_data>, int, int);
+int pc_dropitem(dumb_ptr<map_session_data>, IOff0, int);
 
 int pc_checkweighticon(dumb_ptr<map_session_data> sd);
 
@@ -134,10 +134,10 @@ int pc_skillup(dumb_ptr<map_session_data>, SkillID);
 int pc_resetlvl(dumb_ptr<map_session_data>, int type);
 int pc_resetstate(dumb_ptr<map_session_data>);
 int pc_resetskill(dumb_ptr<map_session_data>);
-int pc_equipitem(dumb_ptr<map_session_data>, int, EPOS);
-int pc_unequipitem(dumb_ptr<map_session_data>, int, CalcStatus);
-int pc_unequipinvyitem(dumb_ptr<map_session_data>, int, CalcStatus);
-int pc_useitem(dumb_ptr<map_session_data>, int);
+int pc_equipitem(dumb_ptr<map_session_data>, IOff0, EPOS);
+int pc_unequipitem(dumb_ptr<map_session_data>, IOff0, CalcStatus);
+int pc_unequipinvyitem(dumb_ptr<map_session_data>, IOff0, CalcStatus);
+int pc_useitem(dumb_ptr<map_session_data>, IOff0);
 
 int pc_damage(dumb_ptr<block_list>, dumb_ptr<map_session_data>, int);
 int pc_heal(dumb_ptr<map_session_data>, int, int);

@@ -123,7 +123,7 @@ void trade_tradeack(dumb_ptr<map_session_data> sd, int type)
  * アイテム追加
  *------------------------------------------
  */
-void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
+void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
 {
     dumb_ptr<map_session_data> target_sd;
     struct item_data *id;
@@ -131,27 +131,26 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
     int trade_weight = 0;
     int free_ = 0;
     int c;
-    int i;
 
     nullpo_retv(sd);
 
     if (((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
         && (sd->deal_locked < 1))
     {
-        if (index < 2 || index >= MAX_INVENTORY + 2)
+        if (!index.ok())
         {
-            if (index == 0 && amount > 0 && amount <= sd->status.zeny)
+            if (index.index == 0 && amount > 0 && amount <= sd->status.zeny)
             {
                 sd->deal_zeny = amount;
-                clif_tradeadditem(sd, target_sd, 0, amount);
+                clif_tradeadditem(sd, target_sd, index, amount);
             }
         }
         // note: amount is overridden below!
-        else if (amount <= sd->status.inventory[index - 2].amount
+        else if (amount <= sd->status.inventory[index.unshift()].amount
                  && amount > 0)
         {
             // determine free slots of receiver
-            for (i = 0; i < MAX_INVENTORY; i++)
+            for (IOff0 i : IOff0::iter())
             {
                 if (!target_sd->status.inventory[i].nameid
                     && target_sd->inventory_data[i] == NULL)
@@ -163,13 +162,13 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                 {
                     // calculate trade weight
                     trade_weight +=
-                        sd->inventory_data[index - 2]->weight * amount;
+                        sd->inventory_data[index.unshift()]->weight * amount;
 
                     // determine if item is a stackable already in receivers inventory, and up free count
-                    for (i = 0; i < MAX_INVENTORY; i++)
+                    for (IOff0 i : IOff0::iter())
                     {
                         if (target_sd->status.inventory[i].nameid ==
-                            sd->status.inventory[index - 2].nameid
+                            sd->status.inventory[index.unshift()].nameid
                             && target_sd->inventory_data[i] != NULL)
                         {
                             id = target_sd->inventory_data[i];
@@ -205,7 +204,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                                 return;
                             }
                         }
-                        pc_unequipinvyitem(sd, index - 2, CalcStatus::NOW);
+                        pc_unequipinvyitem(sd, index.unshift(), CalcStatus::NOW);
                         sd->deal_item_index[trade_i] = index;
                         sd->deal_item_amount[trade_i] += amount;
                         clif_tradeitemok(sd, index, amount, 0);    //success to add item
@@ -217,15 +216,15 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                 {
                     // calculate weight for stored deal
                     trade_weight +=
-                        sd->inventory_data[sd->deal_item_index[trade_i] -
-                                           2]->weight *
+                        sd->inventory_data[sd->deal_item_index[trade_i].unshift()
+                                           ]->weight *
                         sd->deal_item_amount[trade_i];
                     // count free stackables in stored deal
-                    for (i = 0; i < MAX_INVENTORY; i++)
+                    for (IOff0 i : IOff0::iter())
                     {
                         if (target_sd->status.inventory[i].nameid ==
                             sd->status.
-                            inventory[sd->deal_item_index[trade_i] - 2].nameid
+                            inventory[sd->deal_item_index[trade_i].unshift()].nameid
                             && target_sd->inventory_data[i] != NULL)
                         {
                             id = target_sd->inventory_data[i];
@@ -260,11 +259,11 @@ void trade_tradeok(dumb_ptr<map_session_data> sd)
 
     for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
     {
-        int index = sd->deal_item_index[trade_i];
-        if (index < 2 || index >= MAX_INVENTORY + 2)
+        IOff2 index = sd->deal_item_index[trade_i];
+        if (!index.ok())
             continue;
         if (sd->deal_item_amount[trade_i] >
-            sd->status.inventory[index - 2].amount
+            sd->status.inventory[index.unshift()].amount
             || sd->deal_item_amount[trade_i] < 0)
         {
             trade_tradecancel(sd);
@@ -276,7 +275,7 @@ void trade_tradeok(dumb_ptr<map_session_data> sd)
     if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
     {
         sd->deal_locked = 1;
-        clif_tradeitemok(sd, 0, 0, 0);
+        clif_tradeitemok(sd, IOff2::from(0), 0, 0);
         clif_tradedeal_lock(sd, 0);
         clif_tradedeal_lock(target_sd, 1);
     }
@@ -299,20 +298,22 @@ void trade_tradecancel(dumb_ptr<map_session_data> sd)
         {                       //give items back (only virtual)
             if (sd->deal_item_amount[trade_i] != 0)
             {
+                assert (sd->deal_item_index[trade_i].ok());
                 clif_additem(sd,
-                        sd->deal_item_index[trade_i] - 2,
+                        sd->deal_item_index[trade_i].unshift(),
                         sd->deal_item_amount[trade_i],
                         PickupFail::OKAY);
-                sd->deal_item_index[trade_i] = 0;
+                sd->deal_item_index[trade_i] = IOff2::from(0);
                 sd->deal_item_amount[trade_i] = 0;
             }
             if (target_sd->deal_item_amount[trade_i] != 0)
             {
+                assert (target_sd->deal_item_index[trade_i].ok());
                 clif_additem(target_sd,
-                        target_sd->deal_item_index[trade_i] - 2,
+                        target_sd->deal_item_index[trade_i].unshift(),
                         target_sd->deal_item_amount[trade_i],
                         PickupFail::OKAY);
-                target_sd->deal_item_index[trade_i] = 0;
+                target_sd->deal_item_index[trade_i] = IOff2::from(0);
                 target_sd->deal_item_amount[trade_i] = 0;
             }
         }
@@ -379,7 +380,8 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                 {
                     if (sd->deal_item_amount[trade_i] != 0)
                     {
-                        int n = sd->deal_item_index[trade_i] - 2;
+                        assert (sd->deal_item_index[trade_i].ok());
+                        IOff0 n = sd->deal_item_index[trade_i].unshift();
                         PickupFail flag = pc_additem(target_sd,
                                 &sd->status.inventory[n],
                                 sd->deal_item_amount[trade_i]);
@@ -390,12 +392,13 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                             clif_additem(sd, n,
                                     sd->deal_item_amount[trade_i],
                                     PickupFail::OKAY);
-                        sd->deal_item_index[trade_i] = 0;
+                        sd->deal_item_index[trade_i] = IOff2::from(0);
                         sd->deal_item_amount[trade_i] = 0;
                     }
                     if (target_sd->deal_item_amount[trade_i] != 0)
                     {
-                        int n = target_sd->deal_item_index[trade_i] - 2;
+                        assert (target_sd->deal_item_index[trade_i].ok());
+                        IOff0 n = target_sd->deal_item_index[trade_i].unshift();
                         PickupFail flag = pc_additem(sd,
                                 &target_sd->status.inventory[n],
                                 target_sd->deal_item_amount[trade_i]);
@@ -405,10 +408,9 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                                         1);
                         else
                             clif_additem(target_sd, n,
-
                                     target_sd->deal_item_amount[trade_i],
                                     PickupFail::OKAY);
-                        target_sd->deal_item_index[trade_i] = 0;
+                        target_sd->deal_item_index[trade_i] = IOff2::from(0);
                         target_sd->deal_item_amount[trade_i] = 0;
                     }
                 }
@@ -454,7 +456,7 @@ void trade_verifyzeny(dumb_ptr<map_session_data> sd)
         if (sd->deal_zeny > sd->status.zeny)
         {
             if (sd->deal_locked < 1)
-                trade_tradeadditem(sd, 0, sd->status.zeny);    // Fix money ammount
+                trade_tradeadditem(sd, IOff2::from(0), sd->status.zeny);    // Fix money ammount
             else
                 trade_tradecancel(sd); // Or cancel the trade if we can't fix it
         }

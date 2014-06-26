@@ -105,7 +105,6 @@ int storage_additem(dumb_ptr<map_session_data> sd, Storage *stor,
                             Item *item_data, int amount)
 {
     struct item_data *data;
-    int i;
 
     if (!item_data->nameid || amount <= 0)
         return 1;
@@ -114,7 +113,7 @@ int storage_additem(dumb_ptr<map_session_data> sd, Storage *stor,
 
     if (!itemdb_isequip2(data))
     {                           //Stackable
-        for (i = 0; i < MAX_STORAGE; i++)
+        for (SOff0 i : SOff0::iter())
         {
             if (compare_item(&stor->storage_[i], item_data))
             {
@@ -128,9 +127,12 @@ int storage_additem(dumb_ptr<map_session_data> sd, Storage *stor,
         }
     }
     //Add item
-    for (i = 0; i < MAX_STORAGE && stor->storage_[i].nameid; i++);
-
-    if (i >= MAX_STORAGE)
+    SOff0 i = *std::find_if(SOff0::iter().begin(), SOff0::iter().end(),
+            [&stor](SOff0 i_)
+            {
+                return !stor->storage_[i_].nameid;
+            });
+    if (!i.ok())
         return 1;
 
     stor->storage_[i] = *item_data;
@@ -148,7 +150,7 @@ int storage_additem(dumb_ptr<map_session_data> sd, Storage *stor,
  */
 static
 int storage_delitem(dumb_ptr<map_session_data> sd, Storage *stor,
-                            int n, int amount)
+        SOff0 n, int amount)
 {
 
     if (!stor->storage_[n].nameid || stor->storage_[n].amount < amount)
@@ -171,7 +173,7 @@ int storage_delitem(dumb_ptr<map_session_data> sd, Storage *stor,
  * Add an item to the storage from the inventory.
  *------------------------------------------
  */
-int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount)
+int storage_storageadd(dumb_ptr<map_session_data> sd, IOff0 index, int amount)
 {
     Storage *stor;
 
@@ -182,7 +184,7 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount)
     if ((stor->storage_amount > MAX_STORAGE) || !stor->storage_status)
         return 0;               // storage full / storage closed
 
-    if (index < 0 || index >= MAX_INVENTORY)
+    if (!index.ok())
         return 0;
 
     if (!sd->status.inventory[index].nameid)
@@ -206,7 +208,7 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount)
  * Retrieve an item from the storage.
  *------------------------------------------
  */
-int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount)
+int storage_storageget(dumb_ptr<map_session_data> sd, SOff0 index, int amount)
 {
     Storage *stor;
     PickupFail flag;
@@ -215,7 +217,7 @@ int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount)
     stor = account2storage2(sd->status_key.account_id);
     nullpo_ret(stor);
 
-    if (index < 0 || index >= MAX_STORAGE)
+    if (!index.ok())
         return 0;
 
     if (!stor->storage_[index].nameid)
@@ -227,7 +229,7 @@ int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount)
     if ((flag = pc_additem(sd, &stor->storage_[index], amount)) == PickupFail::OKAY)
         storage_delitem(sd, stor, index, amount);
     else
-        clif_additem(sd, 0, 0, flag);
+        clif_additem(sd, IOff0::from(0), 0, flag);
 //  log_fromstorage(sd, index, 0);
     return 1;
 }

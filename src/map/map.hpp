@@ -183,8 +183,8 @@ struct map_session_data : block_list, SessionData
     unsigned char tmw_version;  // tmw client version
     CharKey status_key;
     CharData status;
-    Array<struct item_data *, MAX_INVENTORY> inventory_data;
-    earray<short, EQUIP, EQUIP::COUNT> equip_index_maybe;
+    GenericArray<struct item_data *, InventoryIndexing<IOff0, MAX_INVENTORY>> inventory_data;
+    earray<IOff0, EQUIP, EQUIP::COUNT> equip_index_maybe;
     int weight, max_weight;
     MapName mapname_;
     Session *sess; // use this, you idiots!
@@ -284,7 +284,7 @@ struct map_session_data : block_list, SessionData
     short sc_count;
 
     AccountId trade_partner;
-    Array<int, TRADE_MAX> deal_item_index;
+    Array<IOff2, TRADE_MAX> deal_item_index;
     Array<int, TRADE_MAX> deal_item_amount;
     int deal_zeny;
     short deal_locked;

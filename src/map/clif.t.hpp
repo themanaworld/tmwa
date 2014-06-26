@@ -27,8 +27,11 @@
 
 # include "../ints/little.hpp"
 
+# include "../compat/iter.hpp"
+
 # include "../generic/enum.hpp"
 
+# include "../mmo/consts.hpp"
 # include "../mmo/enums.hpp"
 
 
@@ -583,6 +586,132 @@ bool network_to_native(Position2 *native, NetPosition2 network)
     return true;
 }
 
+struct IOff2;
+struct SOff1;
 
+struct IOff0
+{
+    uint16_t index;
+
+    bool ok() const
+    { return get0() < MAX_INVENTORY; }
+    uint16_t get0() const
+    { return index; }
+    static IOff0 from(uint16_t i)
+    { return IOff0{i}; }
+    static IteratorPair<ValueIterator<IOff0>> iter()
+    { return {IOff0::from(0), IOff0::from(MAX_INVENTORY)}; };
+    friend uint16_t convert_for_printf(IOff0 i0) { return i0.index; }
+
+    IOff0& operator ++() { ++index; return *this; }
+    friend bool operator == (IOff0 l, IOff0 r) { return l.index == r.index; }
+    friend bool operator != (IOff0 l, IOff0 r) { return !(l == r); }
+    IOff2 shift() const;
+
+    IOff0() : index(0) {}
+private:
+    explicit IOff0(uint16_t i) : index(i) {}
+};
+
+struct SOff0
+{
+    uint16_t index;
+
+    bool ok() const
+    { return get0() < MAX_STORAGE; }
+    uint16_t get0() const
+    { return index; }
+    static SOff0 from(uint16_t i)
+    { return SOff0{i}; }
+    static IteratorPair<ValueIterator<SOff0>> iter()
+    { return {SOff0::from(0), SOff0::from(MAX_STORAGE)}; };
+    friend uint16_t convert_for_printf(SOff0 s0) { return s0.index; }
+
+    SOff0& operator ++() { ++index; return *this; }
+    friend bool operator == (SOff0 l, SOff0 r) { return l.index == r.index; }
+    friend bool operator != (SOff0 l, SOff0 r) { return !(l == r); }
+    SOff1 shift() const;
+
+    SOff0() : index(0) {}
+private:
+    explicit SOff0(uint16_t i) : index(i) {}
+};
+
+struct IOff2
+{
+    uint16_t index;
+
+    bool ok() const
+    { return get2() < MAX_INVENTORY; }
+    uint16_t get2() const
+    { return index - 2; }
+    static IOff2 from(uint16_t i)
+    { return IOff2{static_cast<uint16_t>(i + 2)}; }
+    static IteratorPair<ValueIterator<IOff2>> iter()
+    { return {IOff2::from(0), IOff2::from(MAX_INVENTORY)}; };
+
+    IOff2& operator ++() { ++index; return *this; }
+    friend bool operator == (IOff2 l, IOff2 r) { return l.index == r.index; }
+    friend bool operator != (IOff2 l, IOff2 r) { return !(l == r); }
+    IOff0 unshift() const
+    { return IOff0::from(get2()); }
+
+    IOff2() : index(0) {}
+private:
+    explicit IOff2(uint16_t i) : index(i) {}
+};
+
+struct SOff1
+{
+    uint16_t index;
+
+    bool ok() const
+    { return get1() < MAX_STORAGE; }
+    uint16_t get1() const
+    { return index - 1; }
+    static SOff1 from(uint16_t i)
+    { return SOff1{static_cast<uint16_t>(i + 1)}; }
+    static IteratorPair<ValueIterator<SOff1>> iter()
+    { return {SOff1::from(0), SOff1::from(MAX_STORAGE)}; };
+
+    SOff1& operator ++() { ++index; return *this; }
+    friend bool operator == (SOff1 l, SOff1 r) { return l.index == r.index; }
+    friend bool operator != (SOff1 l, SOff1 r) { return !(l == r); }
+    SOff0 unshift() const
+    { return SOff0::from(get1()); }
+
+    SOff1() : index(0) {}
+private:
+    explicit SOff1(uint16_t i) : index(i) {}
+};
+
+inline IOff2 IOff0::shift() const
+{ return IOff2::from(get0()); }
+inline SOff1 SOff0::shift() const
+{ return SOff1::from(get0()); }
+
+inline
+bool native_to_network(Little16 *network, IOff2 native)
+{
+    return native_to_network(network, native.index);
+}
+
+inline
+bool network_to_native(IOff2 *native, Little16 network)
+{
+    return network_to_native(&native->index, network);
+}
+
+inline
+bool native_to_network(Little16 *network, SOff1 native)
+{
+    return native_to_network(network, native.index);
+}
+
+inline
+bool network_to_native(SOff1 *native, Little16 network)
+{
+    return network_to_native(&native->index, network);
+}
 
 #endif // TMWA_MAP_CLIF_T_HPP

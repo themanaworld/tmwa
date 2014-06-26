@@ -359,7 +359,8 @@ AString mmo_char_tostr(struct CharPair *cp)
     // memos were here (no longer supported)
     str_p += '\t';
 
-    for (int i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
+    {
         if (p->inventory[i].nameid)
         {
             str_p += STRPRINTF("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d "_fmt,
@@ -376,26 +377,33 @@ AString mmo_char_tostr(struct CharPair *cp)
                     0 /*card[3]*/,
                     0 /*broken*/);
         }
+    }
     str_p += '\t';
 
     // cart was here (no longer supported)
     str_p += '\t';
 
     for (SkillID i : erange(SkillID(), MAX_SKILL))
+    {
         if (p->skill[i].lv)
         {
             str_p += STRPRINTF("%d,%d "_fmt,
                     i,
                     p->skill[i].lv | (static_cast<uint16_t>(p->skill[i].flags) << 16));
         }
+    }
     str_p += '\t';
 
     assert (p->global_reg_num < GLOBAL_REG_NUM);
     for (int i = 0; i < p->global_reg_num; i++)
+    {
         if (p->global_reg[i].str)
+        {
             str_p += STRPRINTF("%s,%d "_fmt,
                     p->global_reg[i].str,
                     p->global_reg[i].value);
+        }
+     }
     str_p += '\t';
 
     return AString(str_p);
@@ -953,10 +961,14 @@ static
 ItemNameId find_equip_view(const CharPair *cp, EPOS equipmask)
 {
     CharData *p = cp->data.get();
-    for (int i = 0; i < MAX_INVENTORY; i++)
+    for (IOff0 i : IOff0::iter())
+    {
         if (p->inventory[i].nameid && p->inventory[i].amount
             && bool(p->inventory[i].equip & equipmask))
+        {
             return p->inventory[i].nameid;
+        }
+    }
     return ItemNameId();
 }
 
@@ -1348,7 +1360,7 @@ void parse_tologin(Session *ls)
                                 cd.sex = sex;
 //                      auth_fifo[i].sex = sex;
                                 // to avoid any problem with equipment and invalid sex, equipment is unequiped.
-                                for (int j = 0; j < MAX_INVENTORY; j++)
+                                for (IOff0 j : IOff0::iter())
                                 {
                                     if (cd.inventory[j].nameid
                                         && bool(cd.inventory[j].equip))
@@ -1482,10 +1494,11 @@ void parse_tologin(Session *ls)
                     CharData *c = &cd;
                     Storage *s = account2storage(k->account_id);
                     int changes = 0;
-                    int j;
 #define FIX(v) if (v == source_id) {v = dest_id; ++changes; }
-                    for (j = 0; j < MAX_INVENTORY; j++)
+                    for (IOff0 j : IOff0::iter())
+                    {
                         FIX(c->inventory[j].nameid);
+                    }
                     // used to FIX cart, but it's no longer supported
                     // FIX(c->weapon);
                     FIX(c->shield);
@@ -1494,8 +1507,12 @@ void parse_tologin(Session *ls)
                     FIX(c->head_bottom);
 
                     if (s)
-                        for (j = 0; j < s->storage_amount; j++)
+                    {
+                        for (SOff0 j : SOff0::iter())
+                        {
                             FIX(s->storage_[j].nameid);
+                        }
+                    }
 #undef FIX
                     if (changes)
                         CHAR_LOG("itemfrob(%d -> %d):  `%s'(%d, account %d): changed %d times\n"_fmt,

@@ -29,62 +29,10 @@
 
 # include "../compat/iter.hpp"
 
+# include "array.hpp"
+
 template<class T, class E, E max>
-struct earray
-{
-    constexpr static
-    size_t size()
-    {
-        return static_cast<size_t>(max);
-    }
-
-    // no ctor/dtor and one public member variable for easy initialization
-    T _data[size()];
-
-    T& operator[](E v)
-    {
-        auto i = static_cast<size_t>(v);
-        assert (i < size());
-        return _data[i];
-    }
-
-    const T& operator[](E v) const
-    {
-        auto i = static_cast<size_t>(v);
-        assert (i < size());
-        return _data[i];
-    }
-
-    T *begin()
-    {
-        return _data;
-    }
-
-    T *end()
-    {
-        return _data + size();
-    }
-
-    const T *begin() const
-    {
-        return _data;
-    }
-
-    const T *end() const
-    {
-        return _data + size();
-    }
-
-    friend bool operator == (const earray& l, const earray& r)
-    {
-        return std::equal(l.begin(), l.end(), r.begin());
-    }
-
-    friend bool operator != (const earray& l, const earray& r)
-    {
-        return !(l == r);
-    }
-};
+using earray = GenericArray<T, EnumIndexing<E, max>>;
 
 template<class T, class E, E max>
 class eptr
@@ -102,7 +50,7 @@ public:
     {}
 
     eptr(earray<T, E, max>& arr)
-    : _data(arr._data)
+    : _data(arr.data)
     {}
 
     T& operator [](E v) const

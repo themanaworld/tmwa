@@ -58,7 +58,8 @@ AString storage_tostr(Storage *p)
             p->account_id, p->storage_amount);
 
     int f = 0;
-    for (int i = 0; i < MAX_STORAGE; i++)
+    for (SOff0 i : SOff0::iter())
+    {
         if (p->storage_[i].nameid && p->storage_[i].amount)
         {
             str += STRPRINTF(
@@ -77,6 +78,7 @@ AString storage_tostr(Storage *p)
             // shouldn't that include 'broken' also? Oh, well ...
             f++;
         }
+    }
 
     str += '\t';
 

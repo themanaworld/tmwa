@@ -23,6 +23,7 @@
 import glob
 import itertools
 import os
+from pipes import quote
 from posixpath import relpath
 
 # The following code should be relatively easy to understand, but please
@@ -53,6 +54,31 @@ copyright = '''//    {filename} - {description}
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
+class OpenWrite(object):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __enter__(self):
+        self.handle = open(self.filename + '.tmp', 'w')
+        return self.handle
+
+    def __exit__(self, ty, v, tb):
+        self.handle.close()
+        if ty is not None:
+            return
+        frag = '''
+        if cmp {0}.tmp {0}.old
+        then
+            echo Unchanged: {0}
+            rm {0}.tmp
+            mv {0}.old {0}
+        else
+            echo Changed: {0}
+            rm {0}.old
+            mv {0}.tmp {0}
+        fi
+        '''.format(quote(self.filename))
+        os.system(frag)
 
 class LowType(object):
     __slots__ = ()
@@ -366,6 +392,20 @@ class EArrayType(Type):
     def network_tag(self):
         return 'NetArray<%s, static_cast<size_t>(%s)>' % (self.element.network_tag(), self.count)
 
+class InvArrayType(Type):
+    __slots__ = ('element', 'index', 'count')
+
+    def __init__(self, element, index, count):
+        self.element = element
+        self.index = index
+        self.count = count
+
+    def native_tag(self):
+        return 'GenericArray<%s, InventoryIndexing<%s, %s>>' % (self.element.native_tag(), self.index, self.count)
+
+    def network_tag(self):
+        return 'NetArray<%s, %s>' % (self.element.network_tag(), self.count)
+
 
 class Include(object):
     __slots__ = ('path', '_types')
@@ -380,7 +420,7 @@ class Include(object):
         filename = 'include_%s_test.cpp' % root.replace('.', '_')
         desc = 'testsuite for protocol includes'
         poison = relpath('src/poison.hpp', outdir)
-        with open(os.path.join(outdir, filename), 'w') as f:
+        with OpenWrite(os.path.join(outdir, filename)) as f:
             f.write(self.pp(0))
             f.write(copyright.format(filename=filename, description=desc))
             f.write('\n')
@@ -511,7 +551,7 @@ class Channel(object):
         header = '%s-%s.hpp' % (server, client)
         test = '%s-%s_test.cpp' % (server, client)
         desc = 'TMWA network protocol: %s/%s' % (server, client)
-        with open(os.path.join(outdir, header), 'w') as f:
+        with OpenWrite(os.path.join(outdir, header)) as f:
             proto2 = relpath(outdir, 'src')
             define = ('TMWA_%s_%s_%s_HPP' % (proto2, server, client)).upper()
             f.write('#ifndef %s\n' % define)
@@ -542,7 +582,7 @@ class Channel(object):
             f.write('\n')
             f.write('#endif // %s\n' % define)
 
-        with open(os.path.join(outdir, test), 'w') as f:
+        with OpenWrite(os.path.join(outdir, test)) as f:
             poison = relpath('src/poison.hpp', outdir)
             f.write('#include "%s"\n' % header)
             f.write(copyright.format(filename=test, description=desc))
@@ -594,9 +634,9 @@ class Context(object):
     def dump(self):
         outdir = self.outdir
         for g in glob.glob(os.path.join(outdir, '*.[ch]pp')):
-            os.remove(g)
+            os.rename(g, g + '.old')
         proto2 = relpath(outdir, 'src')
-        with open(os.path.join(outdir, 'fwd.hpp'), 'w') as f:
+        with OpenWrite(os.path.join(outdir, 'fwd.hpp')) as f:
             header = '%s/fwd.hpp' % proto2
             desc = 'Forward declarations of network packets'
             sanity = relpath('src/sanity.hpp', outdir)
@@ -619,7 +659,7 @@ class Context(object):
             f.write('\n')
             f.write('#endif // %s\n' % define)
 
-        with open(os.path.join(outdir, 'types.hpp'), 'w') as f:
+        with OpenWrite(os.path.join(outdir, 'types.hpp')) as f:
             header = '%s/types.hpp' % proto2
             desc = 'Forward declarations of packet component types'
             define = ('TMWA_%s_TYPES_HPP' % proto2).upper()
@@ -653,38 +693,20 @@ class Context(object):
             f.write('struct NetArray\n{\n')
             f.write('    T data[N];\n')
             f.write('};\n')
-            f.write('template<class T, class U, size_t N>\n')
-            f.write('bool native_to_network(NetArray<T, N> *network, Array<U, N> native)\n{\n')
-            f.write('    for (size_t i = 0; i < N; ++i)\n')
+            f.write('template<class T, class U, class I>\n')
+            f.write('bool native_to_network(NetArray<T, I::alloc_size> *network, GenericArray<U, I> native)\n{\n')
+            f.write('    for (size_t i = 0; i < I::alloc_size; ++i)\n')
             f.write('    {\n')
-            f.write('        if (!native_to_network(&(*network).data[i], native[i]))\n')
+            f.write('        if (!native_to_network(&(*network).data[i], native[I::offset_to_index(i)]))\n')
             f.write('            return false;\n')
             f.write('    }\n')
             f.write('    return true;\n')
             f.write('}\n')
-            f.write('template<class T, class U, size_t N>\n')
-            f.write('bool network_to_native(Array<U, N> *native, NetArray<T, N> network)\n{\n')
-            f.write('    for (size_t i = 0; i < N; ++i)\n')
+            f.write('template<class T, class U, class I>\n')
+            f.write('bool network_to_native(GenericArray<U, I> *native, NetArray<T, I::alloc_size> network)\n{\n')
+            f.write('    for (size_t i = 0; i < I::alloc_size; ++i)\n')
             f.write('    {\n')
-            f.write('        if (!network_to_native(&(*native)[i], network.data[i]))\n')
-            f.write('            return false;\n')
-            f.write('    }\n')
-            f.write('    return true;\n')
-            f.write('}\n')
-            f.write('template<class T, class U, size_t N, class I>\n')
-            f.write('bool native_to_network(NetArray<T, N> *network, earray<U, I, static_cast<I>(N)> native)\n{\n')
-            f.write('    for (size_t i = 0; i < N; ++i)\n')
-            f.write('    {\n')
-            f.write('        if (!native_to_network(&(*network).data[i], native[static_cast<I>(i)]))\n')
-            f.write('            return false;\n')
-            f.write('    }\n')
-            f.write('    return true;\n')
-            f.write('}\n')
-            f.write('template<class T, class U, size_t N, class I>\n')
-            f.write('bool network_to_native(earray<U, I, static_cast<I>(N)> *native, NetArray<T, N> network)\n{\n')
-            f.write('    for (size_t i = 0; i < N; ++i)\n')
-            f.write('    {\n')
-            f.write('        if (!network_to_native(&(*native)[static_cast<I>(i)], network.data[i]))\n')
+            f.write('        if (!network_to_native(&(*native)[I::offset_to_index(i)], network.data[i]))\n')
             f.write('            return false;\n')
             f.write('    }\n')
             f.write('    return true;\n')
@@ -764,6 +786,9 @@ class Context(object):
                 ty.dump(f)
             f.write('#endif // %s\n' % define)
 
+        for g in glob.glob(os.path.join(outdir, '*.old')):
+            print('Obsolete: %s' % g)
+            os.remove(g)
 
     # types
 
@@ -804,6 +829,10 @@ class Context(object):
         if count is None:
             count = index + '::COUNT'
         rv = EArrayType(element, index, count)
+        return rv
+
+    def invarray(self, element, index, count):
+        rv = InvArrayType(element, index, count)
         return rv
 
 
@@ -920,6 +949,8 @@ def main():
     DamageType = clif_th.native('DamageType')
     SP = clif_th.native('SP')
     LOOK = clif_th.native('LOOK')
+    IOff2 = clif_th.native('IOff2')
+    SOff1 = clif_th.native('SOff1')
 
     SkillID = skill_th.native('SkillID')
     StatusChange = skill_th.native('StatusChange')
@@ -949,6 +980,8 @@ def main():
     damage_type = ctx.enum(DamageType, u8)
     sp = ctx.enum(SP, u16)
     look = ctx.enum(LOOK, u8)
+    ioff2 = ctx.provided(IOff2, Little16)
+    soff1 = ctx.provided(SOff1, Little16)
 
     skill_id = ctx.enum(SkillID, u16)
     status_change = ctx.enum(StatusChange, u16)
@@ -1178,7 +1211,7 @@ def main():
                 at(None, u16, 'mapport'),
                 at(None, point, 'last point'),
                 at(None, point, 'save point'),
-                at(None, ctx.array(item, 'MAX_INVENTORY'), 'inventory'),
+                at(None, ctx.invarray(item, 'IOff0', 'MAX_INVENTORY'), 'inventory'),
                 at(None, ctx.earray(skill_value, 'SkillID', 'MAX_SKILL'), 'skill'),
                 at(None, u32, 'global reg num'),
                 at(None, ctx.array(global_reg, 'GLOBAL_REG_NUM'), 'global reg'),
@@ -1220,7 +1253,7 @@ def main():
                 at(None, account_id, 'account id'),
                 at(None, u16, 'storage status'),
                 at(None, u16, 'storage amount'),
-                at(None, ctx.array(item, 'MAX_STORAGE'), 'storage_'),
+                at(None, ctx.invarray(item, 'SOff0', 'MAX_STORAGE'), 'storage_'),
             ],
             size=None,
     )
@@ -1779,7 +1812,7 @@ def main():
     map_user.s(0x00a0,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, u16, 'amount'),
             at(6, item_name_id, 'name id'),
             at(8, u8, 'identify'),
@@ -1805,7 +1838,7 @@ def main():
     map_user.r(0x00a2,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, u16, 'amount'),
         ],
         fixed_size=6,
@@ -1817,7 +1850,7 @@ def main():
         ],
         head_size=4,
         repeat=[
-            at(0, u16, 'ioff2'),
+            at(0, ioff2, 'ioff2'),
             at(2, item_name_id, 'name id'),
             at(4, item_type, 'item type'),
             at(5, u8, 'identify'),
@@ -1839,7 +1872,7 @@ def main():
         ],
         head_size=4,
         repeat=[
-            at(0, u16, 'soff1'),
+            at(0, soff1, 'soff1'),
             at(2, item_name_id, 'name id'),
             at(4, item_type, 'item type'),
             at(5, u8, 'identify'),
@@ -1857,7 +1890,7 @@ def main():
     map_user.r(0x00a7,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, u32, 'unused id'),
         ],
         fixed_size=8,
@@ -1865,7 +1898,7 @@ def main():
     map_user.s(0x00a8,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, u16, 'amount'),
             at(6, u8, 'ok'),
         ],
@@ -1874,7 +1907,7 @@ def main():
     map_user.r(0x00a9,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, epos, 'epos ignored'),
         ],
         fixed_size=6,
@@ -1882,7 +1915,7 @@ def main():
     map_user.s(0x00aa,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, epos, 'epos'),
             at(6, u8, 'ok'),
         ],
@@ -1891,14 +1924,14 @@ def main():
     map_user.r(0x00ab,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
         ],
         fixed_size=4,
     )
     map_user.s(0x00ac,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, epos, 'epos'),
             at(6, u8, 'ok'),
         ],
@@ -1907,7 +1940,7 @@ def main():
     map_user.s(0x00af,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, u16, 'amount'),
         ],
         fixed_size=6,
@@ -2117,7 +2150,7 @@ def main():
         ],
         head_size=4,
         repeat=[
-            at(0, u16, 'ioff2'),
+            at(0, ioff2, 'ioff2'),
             at(2, u32, 'base price'),
             at(6, u32, 'actual price'),
         ],
@@ -2142,7 +2175,7 @@ def main():
         ],
         head_size=4,
         repeat=[
-            at(0, u16, 'ioff2'),
+            at(0, ioff2, 'ioff2'),
             at(2, u16, 'count'),
         ],
         repeat_size=4,
@@ -2199,7 +2232,7 @@ def main():
     map_user.r(0x00e8,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'zeny or ioff2'),
+            at(2, ioff2, 'zeny or ioff2'),
             at(4, u32, 'amount'),
         ],
         fixed_size=8,
@@ -2268,7 +2301,7 @@ def main():
     map_user.r(0x00f3,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, u32, 'amount'),
         ],
         fixed_size=8,
@@ -2276,7 +2309,7 @@ def main():
     map_user.s(0x00f4,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'soff1'),
+            at(2, soff1, 'soff1'),
             at(4, u32, 'amount'),
             at(8, item_name_id, 'name id'),
             at(10, u8, 'identify'),
@@ -2292,7 +2325,7 @@ def main():
     map_user.r(0x00f5,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'soff1'),
+            at(2, soff1, 'soff1'),
             at(4, u32, 'amount'),
         ],
         fixed_size=8,
@@ -2300,7 +2333,7 @@ def main():
     map_user.s(0x00f6,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'soff1'),
+            at(2, soff1, 'soff1'),
             at(4, u32, 'amount'),
         ],
         fixed_size=8,
@@ -2551,7 +2584,7 @@ def main():
     map_user.s(0x013c,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
         ],
         fixed_size=4,
     )
@@ -2653,7 +2686,7 @@ def main():
     map_user.s(0x01b1,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, u16, 'amount'),
             at(6, u8, 'fail'),
         ],
@@ -2662,7 +2695,7 @@ def main():
     map_user.s(0x01c8,
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u16, 'ioff2'),
+            at(2, ioff2, 'ioff2'),
             at(4, item_name_id, 'name id'),
             at(6, block_id, 'block id'),
             at(10, u16, 'amount'),
@@ -2821,7 +2854,7 @@ def main():
         ],
         head_size=4,
         repeat=[
-            at(0, u16, 'ioff2'),
+            at(0, ioff2, 'ioff2'),
             at(2, item_name_id, 'name id'),
             at(4, item_type, 'item type'),
             at(5, u8, 'identify'),
@@ -2841,7 +2874,7 @@ def main():
         ],
         head_size=4,
         repeat=[
-            at(0, u16, 'soff1'),
+            at(0, soff1, 'soff1'),
             at(2, item_name_id, 'name id'),
             at(4, item_type, 'item type'),
             at(5, u8, 'identify'),
