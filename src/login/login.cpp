@@ -514,6 +514,8 @@ bool extract(XString line, AuthData *ad)
                     &ad->ban_until_time,
                     vrec<' '>(&vars))))
         return false;
+    if (ad->lastlogin == stringish<timestamp_milliseconds_buffer>("-"_s))
+        stamp_time(ad->lastlogin);
     ad->last_ip = IP4Address();
     if (ip != "-"_s && !extract(ip, &ad->last_ip))
         return false;
@@ -777,7 +779,7 @@ AccountId mmo_auth_new(struct mmo_account *account, SEX sex, AccountEmail email)
 
     ad.userid = account->userid;
     ad.pass = MD5_saltcrypt(account->passwd, make_salt());
-    ad.lastlogin = stringish<timestamp_milliseconds_buffer>("-"_s);
+    stamp_time(ad.lastlogin);
     ad.sex = sex;
     ad.logincount = 0;
     ad.state = 0;
@@ -1774,7 +1776,7 @@ void parse_admin(Session *s)
                     // TODO make this a 'return false' bit of the network_to_native
                     ma.userid = stringish<AccountName>(fixed.account_name.to_print());
                     ma.passwd = stringish<AccountPass>(fixed.password.to_print());
-                    ma.lastlogin = stringish<timestamp_milliseconds_buffer>("-"_s);
+                    stamp_time(ma.lastlogin);
                     ma.sex = fixed.sex;
 
                     Packet_Fixed<0x7931> fixed_31;
