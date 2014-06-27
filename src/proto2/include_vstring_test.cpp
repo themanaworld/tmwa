@@ -20,8 +20,11 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_VString_15_ = VString<15>;
 using Test_VString_19_ = VString<19>;
 using Test_VString_23_ = VString<23>;
 using Test_VString_31_ = VString<31>;
 using Test_VString_39_ = VString<39>;
+} // namespace tmwa

@@ -31,6 +31,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 static
@@ -104,3 +106,4 @@ TEST(io, write2)
     EXPECT_TRUE(wf.close());
     EXPECT_EQ("XXX"_s, pw.slurp());
 }
+} // namespace tmwa

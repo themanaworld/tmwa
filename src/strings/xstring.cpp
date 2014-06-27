@@ -27,6 +27,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     XString::XString()
@@ -75,3 +78,4 @@ namespace strings
         return _base;
     }
 } // namespace strings
+} // namespace tmwa

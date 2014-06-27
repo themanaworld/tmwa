@@ -30,6 +30,9 @@
 # include "../strings/zstring.hpp"
 # include "../strings/xstring.hpp"
 
+
+namespace tmwa
+{
 // unmanaged new/delete-able pointer
 // should be replaced by std::unique_ptr<T>
 template<class T>
@@ -267,5 +270,6 @@ const char *convert_for_printf(dumb_string ds)
 {
     return ds.c_str();
 }
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_DUMB_PTR_HPP

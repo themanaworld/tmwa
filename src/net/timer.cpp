@@ -32,6 +32,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 struct TimerData
 {
     /// This will be reset on call, to avoid problems.
@@ -215,3 +218,4 @@ bool has_timers()
 {
     return !timer_heap.empty();
 }
+} // namespace tmwa

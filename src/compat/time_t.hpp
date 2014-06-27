@@ -24,4 +24,9 @@
 // TODO fix this ordering violation by promoting TimeT here
 # include "../mmo/utils.hpp"
 
+
+namespace tmwa
+{
+} // namespace tmwa
+
 #endif // TMWA_COMPAT_TIMET_HPP

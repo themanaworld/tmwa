@@ -28,6 +28,8 @@
 # include "read.hpp"
 
 
+namespace tmwa
+{
 namespace io
 {
     // TODO split this out
@@ -103,5 +105,6 @@ namespace io
         bool is_open();
     };
 } // namespace io
+} // namespace tmwa
 
 #endif // TMWA_IO_LINE_HPP

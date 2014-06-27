@@ -27,6 +27,9 @@
 
 # include "../strings/fwd.hpp"
 
+
+namespace tmwa
+{
 // TODO make these bitwise enums
 # define TMWA_FLAG_REGISTRATION 0x01
 
@@ -88,5 +91,6 @@ extern Version CURRENT_MAP_SERVER_VERSION;
 extern LString CURRENT_VERSION_STRING;
 
 bool extract(XString str, Version *vers);
+} // namespace tmwa
 
 #endif // TMWA_MMO_VERSION_HPP

@@ -2,7 +2,7 @@ class SExpr(object):
     ''' print a SExpr
     '''
     __slots__ = ('_value')
-    name = 'sexpr::SExpr'
+    name = 'tmwa::sexpr::SExpr'
     enabled = True
 
     def __init__(self, value):

@@ -27,6 +27,9 @@
 
 # include "../strings/fwd.hpp"
 
+
+namespace tmwa
+{
 // updated automatically when using milli_clock::now()
 // which is done only by core.cpp
 extern tick_t gettick_cache;
@@ -46,5 +49,6 @@ tick_t file_modified(ZString name);
 
 /// Check if there are any events at all scheduled.
 bool has_timers();
+} // namespace tmwa
 
 #endif // TMWA_NET_TIMER_HPP

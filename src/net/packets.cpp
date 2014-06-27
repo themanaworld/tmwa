@@ -23,6 +23,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 size_t packet_avail(Session *s)
 {
     return s->rdata_size - s->rdata_pos;
@@ -100,3 +103,4 @@ void packet_dump(io::WriteFile& logfp, Session *s)
     }
     FPRINTF(logfp, "\n"_fmt);
 }
+} // namespace tmwa

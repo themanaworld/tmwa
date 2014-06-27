@@ -27,6 +27,8 @@
 # include "../strings/fwd.hpp"
 
 
+namespace tmwa
+{
 namespace io
 {
     class FD
@@ -162,5 +164,6 @@ namespace io
         int pselect(int nfds, FD_Set *readfds, FD_Set *writefds, FD_Set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask);
     };
 } // namespace io
+} // namespace tmwa
 
 #endif // TMWA_IO_FD_HPP

@@ -42,6 +42,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 static
 io::FD_Set readfds;
 static
@@ -485,3 +488,4 @@ void do_parsepacket(void)
         RFIFOFLUSH(s);
     }
 }
+} // namespace tmwa

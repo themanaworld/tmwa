@@ -22,6 +22,8 @@
 # include "fwd.hpp"
 
 
+namespace tmwa
+{
 # define SGR_BLACK "\e[30m"
 # define SGR_RED "\e[31m"
 # define SGR_GREEN "\e[32m"
@@ -34,5 +36,6 @@
 # define SGR_BOLD "\e[1m"
 
 # define SGR_RESET "\e[0m"
+} // namespace tmwa
 
 #endif // TMWA_IO_TTY_HPP

@@ -47,6 +47,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 static Battle_Config init_battle_config();
 
 #pragma GCC diagnostic push
@@ -2683,3 +2685,4 @@ void battle_config_check()
             battle_config.mask_ip_gms = 1;
     }
 }
+} // namespace tmwa

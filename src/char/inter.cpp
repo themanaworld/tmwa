@@ -51,6 +51,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 static
 AString accreg_txt = "save/accreg.txt"_s;
 
@@ -484,3 +487,4 @@ RecvResult inter_parse_frommap(Session *ms, uint16_t packet_id)
 
     return rv;
 }
+} // namespace tmwa

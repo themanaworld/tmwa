@@ -41,6 +41,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 static
 void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length);
 static
@@ -163,3 +166,4 @@ void tmw_GmHackMsg(ZString line)
             GmLevel::from(static_cast<uint32_t>(battle_config.hack_info_GM_level)),
             line);
 }
+} // namespace tmwa

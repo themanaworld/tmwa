@@ -26,6 +26,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace sexpr
 {
     Lexeme Lexer::_adv()
@@ -228,3 +231,4 @@ namespace sexpr
         }
     }
 } // namespace sexpr
+} // namespace tmwa

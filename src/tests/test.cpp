@@ -21,6 +21,11 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
+} // namespace tmwa
+
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);

@@ -23,6 +23,7 @@
 
 # include "fwd.hpp"
 
+# include <cstring>
 # include <ctime>
 
 # include <type_traits>
@@ -36,6 +37,9 @@
 
 # include "../io/fwd.hpp"
 
+
+namespace tmwa
+{
 template<class T>
 struct is_trivially_copyable
 : std::integral_constant<bool,
@@ -161,5 +165,6 @@ static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
             )[-1],                                          \
             &t                                              \
     )
+} // namespace tmwa
 
 #endif // TMWA_MMO_UTILS_HPP

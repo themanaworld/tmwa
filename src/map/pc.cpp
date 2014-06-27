@@ -63,6 +63,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 // PVP順位計算の間隔
 constexpr std::chrono::milliseconds PVP_CALCRANK_INTERVAL =
         std::chrono::seconds(1);
@@ -5273,3 +5276,4 @@ int pc_logout(dumb_ptr<map_session_data> sd) // [fate] Player logs out
     MAP_LOG_STATS(sd, "LOGOUT"_fmt);
     return 0;
 }
+} // namespace tmwa

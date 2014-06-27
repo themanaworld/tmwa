@@ -31,6 +31,9 @@
 
 # include "../mmo/fwd.hpp"
 
+
+namespace tmwa
+{
 void do_init_party(void);
 PartyPair party_search(PartyId party_id);
 PartyPair party_searchname(PartyName str);
@@ -67,5 +70,6 @@ int party_exp_share(PartyPair p, map_local *map, int base_exp, int job_exp);
 
 void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<map_session_data> sd, int type);
+} // namespace tmwa
 
 #endif // TMWA_MAP_PARTY_HPP

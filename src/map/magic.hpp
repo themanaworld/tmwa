@@ -29,6 +29,9 @@
 # include "map.t.hpp"
 # include "skill.t.hpp"
 
+
+namespace tmwa
+{
 /**
  * Try to cast magic.
  *
@@ -41,5 +44,6 @@
  *         message should not be repeated.
  */
 int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation);
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAGIC_HPP

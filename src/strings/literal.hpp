@@ -23,6 +23,9 @@
 
 # include "base.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     /// A statically owned string that is guaranteed to be NUL-terminated.
@@ -73,5 +76,6 @@ namespace strings
         return FormatString(s);
     }
 } // namespace strings
+} // namespace tmwa
 
 #endif // TMWA_STRINGS_LSTRING_HPP

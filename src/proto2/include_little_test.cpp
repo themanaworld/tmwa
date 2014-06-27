@@ -20,7 +20,10 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_Byte = Byte;
 using Test_Little16 = Little16;
 using Test_Little32 = Little32;
 using Test_Little64 = Little64;
+} // namespace tmwa

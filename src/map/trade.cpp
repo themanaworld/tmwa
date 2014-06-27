@@ -34,6 +34,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 /*==========================================
  * 取引要請を相手に送る
  *------------------------------------------
@@ -462,3 +465,4 @@ void trade_verifyzeny(dumb_ptr<map_session_data> sd)
         }
     }
 }
+} // namespace tmwa

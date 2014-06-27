@@ -56,6 +56,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 constexpr interval_t MIN_MOBTHINKTIME = std::chrono::milliseconds(100);
 
 // Move probability in the negligent mode MOB (rate of 1000 minute)
@@ -3736,3 +3739,4 @@ void do_init_mob2(void)
             MIN_MOBTHINKTIME * 10
     ).detach();
 }
+} // namespace tmwa

@@ -35,6 +35,9 @@
 # include "map.t.hpp"
 # include "skill.t.hpp"
 
+
+namespace tmwa
+{
 // ダメージ
 struct Damage
 {
@@ -223,5 +226,6 @@ extern struct Battle_Config
 
 bool battle_config_read(ZString cfgName);
 void battle_config_check();
+} // namespace tmwa
 
 #endif // TMWA_MAP_BATTLE_HPP

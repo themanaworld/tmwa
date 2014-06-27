@@ -32,6 +32,9 @@
 
 # include "../generic/dumb_ptr.hpp"
 
+
+namespace tmwa
+{
 /// An implementation of the C++ "clock" concept, exposing
 /// durations in milliseconds.
 class milli_clock
@@ -137,5 +140,6 @@ public:
     /// Check if there is no connected timer.
     bool operator !() { return !td; }
 };
+} // namespace tmwa
 
 #endif // TMWA_NET_TIMER_T_HPP

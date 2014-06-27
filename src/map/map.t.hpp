@@ -32,6 +32,9 @@
 # include "../mmo/ids.hpp"
 # include "../mmo/mmo.hpp"
 
+
+namespace tmwa
+{
 enum class BL : uint8_t
 {
     NUL,
@@ -198,5 +201,6 @@ inline
 BlockId account_to_block(AccountId a) { return wrap<BlockId>(unwrap<AccountId>(a)); }
 inline
 AccountId block_to_account(BlockId b) { return wrap<AccountId>(unwrap<BlockId>(b)); }
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAP_T_HPP

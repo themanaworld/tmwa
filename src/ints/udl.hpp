@@ -25,6 +25,9 @@
 
 # include <type_traits>
 
+
+namespace tmwa
+{
 namespace ints
 {
     namespace
@@ -222,5 +225,6 @@ using ints::operator "" _n8;
 using ints::operator "" _n16;
 using ints::operator "" _n32;
 using ints::operator "" _n64;
+} // namespace tmwa
 
 #endif // TMWA_INTS_UDL_HPP

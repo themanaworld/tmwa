@@ -27,6 +27,9 @@
 
 # include "../generic/enum.hpp"
 
+
+namespace tmwa
+{
 namespace e
 {
 enum class VERSION_2 : uint8_t
@@ -39,5 +42,6 @@ enum class VERSION_2 : uint8_t
 ENUM_BITWISE_OPERATORS(VERSION_2)
 }
 using e::VERSION_2;
+} // namespace tmwa
 
 #endif // TMWA_LOGIN_LOGIN_T_HPP

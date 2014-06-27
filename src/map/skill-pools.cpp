@@ -27,6 +27,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 Array<SkillID, MAX_POOL_SKILLS> skill_pool_skills;
 int skill_pool_skills_size = 0;
 
@@ -143,3 +146,4 @@ int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill)
     else
         return 0;
 }
+} // namespace tmwa

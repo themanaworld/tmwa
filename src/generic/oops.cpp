@@ -25,6 +25,8 @@
 //#include "../poison.hpp"
 
 
+namespace tmwa
+{
 static
 std::string do_asprintf(const char *desc, const char *expr,
         const char *file, size_t line, const char *function)
@@ -43,3 +45,4 @@ AssertionError::AssertionError(const char *desc, const char *expr,
         const char *file, size_t line, const char *function)
 : std::runtime_error(do_asprintf(desc, expr, file, line, function))
 {}
+} // namespace tmwa

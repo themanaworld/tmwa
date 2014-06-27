@@ -28,6 +28,9 @@
 # include "ids.hpp"
 # include "strs.hpp"
 
+
+namespace tmwa
+{
 constexpr int FIFOSIZE_SERVERLINK = 256 * 1024;
 
 constexpr int MAX_MAP_PER_SERVER = 512;
@@ -61,5 +64,6 @@ struct PartyMember
     int leader, online, lv;
     struct map_session_data *sd;
 };
+} // namespace tmwa
 
 #endif // TMWA_MMO_CONSTS_HPP

@@ -20,6 +20,9 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_TimeT = TimeT;
 using Test_timestamp_seconds_buffer = timestamp_seconds_buffer;
 using Test_timestamp_milliseconds_buffer = timestamp_milliseconds_buffer;
+} // namespace tmwa

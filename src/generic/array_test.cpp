@@ -23,6 +23,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 TEST(Array, simple)
@@ -159,3 +161,4 @@ TEST(Array, enum)
         SUCCEED();
     }
 }
+} // namespace tmwa

@@ -27,11 +27,15 @@
 
 # include "../net/fwd.hpp"
 
+
+namespace tmwa
+{
 bool inter_config(XString key, ZString value);
 void inter_init2();
 void inter_save(void);
 RecvResult inter_parse_frommap(Session *ms, uint16_t packet_id);
 
 extern int party_share_level;
+} // namespace tmwa
 
 #endif // TMWA_CHAR_INTER_HPP

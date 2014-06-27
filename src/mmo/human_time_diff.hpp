@@ -27,6 +27,9 @@
 
 # include "extract.hpp"
 
+
+namespace tmwa
+{
 struct HumanTimeDiff
 {
     short year, month, day, hour, minute, second;
@@ -84,5 +87,6 @@ bool extract(XString str, HumanTimeDiff *iv)
     }
     return true;
 }
+} // namespace tmwa
 
 #endif // TMWA_MMO_HUMAN_TIME_DIFF_HPP

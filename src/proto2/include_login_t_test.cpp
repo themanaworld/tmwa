@@ -20,4 +20,7 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_VERSION_2 = VERSION_2;
+} // namespace tmwa

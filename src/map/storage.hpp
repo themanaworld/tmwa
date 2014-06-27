@@ -29,6 +29,9 @@
 
 # include "clif.t.hpp"
 
+
+namespace tmwa
+{
 int storage_storageopen(dumb_ptr<map_session_data> sd);
 int storage_storageadd(dumb_ptr<map_session_data> sd, IOff0 index, int amount);
 int storage_storageget(dumb_ptr<map_session_data> sd, SOff0 index, int amount);
@@ -39,5 +42,6 @@ Storage *account2storage2(AccountId account_id);
 int storage_storage_quit(dumb_ptr<map_session_data> sd);
 int storage_storage_save(AccountId account_id, int final);
 int storage_storage_saved(AccountId account_id);
+} // namespace tmwa
 
 #endif // TMWA_MAP_STORAGE_HPP

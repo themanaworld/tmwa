@@ -45,6 +45,9 @@
 
 # include "fwd.hpp"
 
+
+namespace tmwa
+{
 /// Used by macros in this header
 bool nullpo_chk(const char *file, int line, const char *func,
         const void *target);
@@ -59,5 +62,6 @@ bool nullpo_chk(const char *file, int line, const char *func, T *target)
 {
     return nullpo_chk(file, line, func, static_cast<const void *>(target));
 }
+} // namespace tmwa
 
 #endif // TMWA_COMPAT_NULLPO_HPP

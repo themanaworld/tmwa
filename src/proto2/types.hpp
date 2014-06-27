@@ -41,6 +41,8 @@
 # include "../map/clif.t.hpp"
 # include "../map/skill.t.hpp"
 
+namespace tmwa
+{
 template<class T>
 bool native_to_network(T *network, T native)
 {
@@ -1416,5 +1418,7 @@ bool network_to_native(Storage *native, NetStorage network)
     rv &= network_to_native(&native->storage_, network.storage_);
     return rv;
 }
+
+} // namespace tmwa
 
 #endif // TMWA_PROTO2_TYPES_HPP

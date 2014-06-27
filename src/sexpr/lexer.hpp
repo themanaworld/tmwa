@@ -29,6 +29,9 @@
 
 # include "../io/line.hpp"
 
+
+namespace tmwa
+{
 namespace sexpr
 {
     enum Lexeme
@@ -70,5 +73,6 @@ namespace sexpr
 
     LString token_name(Lexeme tok);
 } // namespace sexpr
+} // namespace tmwa
 
 #endif // TMWA_SEXPR_LEXER_HPP

@@ -26,6 +26,9 @@
 
 # include "extract.hpp"
 
+
+namespace tmwa
+{
 class Species : public Wrapped<uint16_t> { public: explicit operator bool() const = delete; bool operator !() const = delete; constexpr Species() : Wrapped<uint16_t>() {} protected: constexpr explicit Species(uint16_t a) : Wrapped<uint16_t>(a) {} };
 
 constexpr Species NEGATIVE_SPECIES = Species();
@@ -163,5 +166,6 @@ uint32_t convert_for_printf(GmLevel g)
 {
     return g.get_all_bits();
 }
+} // namespace tmwa
 
 #endif // TMWA_MMO_IDS_HPP

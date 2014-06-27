@@ -23,6 +23,9 @@
 
 # include "base.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     /// A non-owning string that is guaranteed to be NUL-terminated.
@@ -60,6 +63,7 @@ namespace strings
     // Actually, it might now.
     const char *decay_for_printf(const ZString& zs);
 } // namespace strings
+} // namespace tmwa
 
 # include "zstring.tcc"
 

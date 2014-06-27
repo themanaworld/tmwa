@@ -36,6 +36,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 static
 Map<AccountId, Storage> storage_db;
 
@@ -331,3 +334,4 @@ int storage_storage_saved(AccountId account_id)
     }
     return 0;
 }
+} // namespace tmwa

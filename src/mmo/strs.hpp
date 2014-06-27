@@ -25,6 +25,9 @@
 
 # include "../strings/vstring.hpp"
 
+
+namespace tmwa
+{
 // affects CharName
 # define NAME_IGNORING_CASE 1
 
@@ -121,5 +124,6 @@ CharName stringish<CharName>(VString<23> iv)
 {
     return CharName(iv);
 }
+} // namespace tmwa
 
 #endif // TMWA_MMO_STRS_HPP

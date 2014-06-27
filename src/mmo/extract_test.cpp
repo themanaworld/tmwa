@@ -27,6 +27,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 TEST(extract, record_int)
@@ -357,3 +359,4 @@ TEST(extract, mapname)
     EXPECT_TRUE(extract("abcdefghijklmno.gat"_s, &map));
     EXPECT_EQ(map, "abcdefghijklmno"_s);
 }
+} // namespace tmwa

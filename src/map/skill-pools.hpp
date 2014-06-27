@@ -21,4 +21,9 @@
 
 # include "fwd.hpp"
 
+
+namespace tmwa
+{
+} // namespace tmwa
+
 #endif // TMWA_MAP_SKILL_POOLS_HPP

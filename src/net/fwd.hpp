@@ -21,6 +21,9 @@
 
 # include "../sanity.hpp"
 
+
+namespace tmwa
+{
 class Session;
 
 class IP4Address;
@@ -28,5 +31,6 @@ class IP4Address;
 class TimerData;
 
 enum class RecvResult;
+} // namespace tmwa
 
 #endif // TMWA_NET_FWD_HPP

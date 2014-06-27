@@ -40,6 +40,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 static
 std::map<MapName, RString> resnametable;
 
@@ -103,3 +106,4 @@ std::vector<uint8_t> grfio_reads(MapName rname)
     close(fd);
     return buffer;
 }
+} // namespace tmwa

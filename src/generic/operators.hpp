@@ -21,6 +21,9 @@
 
 # include "fwd.hpp"
 
+
+namespace tmwa
+{
 namespace _operators
 {
     class Comparable {};
@@ -63,5 +66,6 @@ namespace _operators
 }
 
 using _operators::Comparable;
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_OPERATORS_HPP

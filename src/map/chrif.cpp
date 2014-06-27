@@ -51,6 +51,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 Session *char_session;
 static
 IP4Address char_ip;
@@ -1329,3 +1331,4 @@ void do_init_chrif(void)
             std::chrono::seconds(5)
     ).detach();
 }
+} // namespace tmwa

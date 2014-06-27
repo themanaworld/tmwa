@@ -424,10 +424,11 @@ class Include(object):
             f.write(self.pp(0))
             f.write(copyright.format(filename=filename, description=desc))
             f.write('\n')
-            f.write('#include "%s"\n\n' % poison)
+            f.write('#include "%s"\n\nnamespace tmwa\n{\n' % poison)
 
             for t in self._types:
                 f.write('using %s = %s;\n' % ('Test_' + ident(t.name), t.name))
+            f.write('} // namespace tmwa\n')
 
     def pp(self, n):
         return '#%*sinclude %s\n' % (n, '', self.path)
@@ -563,6 +564,7 @@ class Channel(object):
             f.write('# include "fwd.hpp"\n\n')
             f.write('# include "types.hpp"\n')
             f.write('\n')
+            f.write('namespace tmwa\n{\n')
             if client == 'user':
                 f.write('// This is a public protocol, and changes require client cooperation\n')
             else:
@@ -579,6 +581,7 @@ class Channel(object):
             f.write('\n')
             for p in self.packets:
                 p.dump_convert(f)
+            f.write('} // namespace tmwa\n')
             f.write('\n')
             f.write('#endif // %s\n' % define)
 
@@ -589,7 +592,8 @@ class Channel(object):
             f.write('\n')
             f.write(generated)
             f.write('\n')
-            f.write('#include "{}"\n'.format(poison))
+            f.write('#include "%s"\n\nnamespace tmwa\n{\n' % poison)
+            f.write('} // namespace tmwa\n')
 
 
 ident_translation = ''.join(chr(c) if chr(c).isalnum() else '_' for c in range(256))
@@ -647,6 +651,7 @@ class Context(object):
             f.write('\n')
             f.write('# include "%s"\n\n' % sanity)
             f.write('# include <cstdint>\n\n')
+            f.write('namespace tmwa\n{\n')
             for b in ['Fixed', 'Payload', 'Head', 'Repeat', 'Option']:
                 c = 'Packet_' + b
                 f.write('template<uint16_t PACKET_ID> class %s;\n' % c)
@@ -656,6 +661,7 @@ class Context(object):
             for ch in self._channels:
                 ch.dump(outdir, f)
 
+            f.write('} // namespace tmwa\n')
             f.write('\n')
             f.write('#endif // %s\n' % define)
 
@@ -677,6 +683,7 @@ class Context(object):
                 # this is writing another file
                 inc.testcase(outdir)
             f.write('\n')
+            f.write('namespace tmwa\n{\n')
 
             f.write('template<class T>\n')
             f.write('bool native_to_network(T *network, T native)\n{\n')
@@ -784,6 +791,7 @@ class Context(object):
 
             for ty in self._types:
                 ty.dump(f)
+            f.write('} // namespace tmwa\n\n')
             f.write('#endif // %s\n' % define)
 
         for g in glob.glob(os.path.join(outdir, '*.old')):

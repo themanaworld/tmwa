@@ -23,6 +23,9 @@
 
 # include <limits>
 
+
+namespace tmwa
+{
 namespace ints
 {
 # pragma GCC diagnostic push
@@ -64,5 +67,6 @@ namespace ints
 } // namespace ints
 
 using ints::saturate;
+} // namespace tmwa
 
 #endif // TMWA_INTS_CMP_HPP

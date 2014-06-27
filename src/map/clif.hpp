@@ -41,6 +41,9 @@
 # include "pc.t.hpp"
 # include "skill.t.hpp"
 
+
+namespace tmwa
+{
 void clif_setip(IP4Address);
 void clif_setport(int);
 
@@ -187,5 +190,6 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
 int clif_foreachclient(std::function<void(dumb_ptr<map_session_data>)>);
 
 void do_init_clif(void);
+} // namespace tmwa
 
 #endif // TMWA_MAP_CLIF_HPP

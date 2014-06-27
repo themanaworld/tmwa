@@ -20,3 +20,8 @@
 #include "ladmin.hpp"
 
 #include "../poison.hpp"
+
+
+namespace tmwa
+{
+} // namespace tmwa

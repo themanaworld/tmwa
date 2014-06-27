@@ -28,6 +28,9 @@
 
 # include "../strings/fwd.hpp"
 
+
+namespace tmwa
+{
 // TODO - in the long run ports belong here also
 // and of course, IPv6 stuff.
 // But what about unix socket addresses?
@@ -161,5 +164,6 @@ VString<31> convert_for_printf(IP4Mask m);
 bool extract(XString str, IP4Address *iv);
 
 bool extract(XString str, IP4Mask *iv);
+} // namespace tmwa
 
 #endif // TMWA_NET_IP_HPP

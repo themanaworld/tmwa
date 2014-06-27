@@ -30,6 +30,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 namespace io
 {
     ReadFile::ReadFile(FD f)
@@ -120,3 +122,4 @@ namespace io
         return fd != FD();
     }
 } // namespace io
+} // namespace tmwa

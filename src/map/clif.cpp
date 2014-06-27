@@ -69,6 +69,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 constexpr int EMOTE_IGNORED = 0x0e;
 
 // functions list. Rate is how many milliseconds are required between
@@ -5679,3 +5682,4 @@ void do_init_clif(void)
 {
     make_listen_port(map_port, SessionParsers{.func_parse= clif_parse, .func_delete= clif_delete});
 }
+} // namespace tmwa

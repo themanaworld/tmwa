@@ -25,6 +25,9 @@
 
 # include "../compat/memory.hpp"
 
+
+namespace tmwa
+{
 template<class T>
 class Matrix
 {
@@ -74,5 +77,6 @@ public:
         return _ys;
     }
 };
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_MATRIX_HPP

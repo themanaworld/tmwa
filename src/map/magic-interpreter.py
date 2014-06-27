@@ -2,7 +2,7 @@ class area_t(object):
     ''' print an area_t
     '''
     __slots__ = ('_value')
-    name = 'area_t'
+    name = 'tmwa::area_t'
     enabled = True
 
     def __init__(self, value):
@@ -31,7 +31,7 @@ class val_t(object):
     ''' print a val_t
     '''
     __slots__ = ('_value')
-    name = 'val_t'
+    name = 'tmwa::val_t'
     enabled = True
 
     def __init__(self, value):
@@ -69,7 +69,7 @@ class e_area_t(object):
     ''' print an e_area_t
     '''
     __slots__ = ('_value')
-    name = 'e_area_t'
+    name = 'tmwa::e_area_t'
     enabled = True
 
     def __init__(self, value):
@@ -97,7 +97,7 @@ class expr_t(object):
     ''' print an expr_t
     '''
     __slots__ = ('_value')
-    name = 'expr_t'
+    name = 'tmwa::expr_t'
     enabled = True
 
     def __init__(self, value):
@@ -129,7 +129,7 @@ class effect_t(object):
     ''' print an effect_t
     '''
     __slots__ = ('_value')
-    name = 'effect_t'
+    name = 'tmwa::effect_t'
     enabled = True
 
     def __init__(self, value):
@@ -166,7 +166,7 @@ class spellguard_t(object):
     ''' print a spellguard_t
     '''
     __slots__ = ('_value')
-    name = 'spellguard_t'
+    name = 'tmwa::spellguard_t'
     enabled = True
 
     def __init__(self, value):
@@ -201,7 +201,7 @@ class cont_activation_record_t(object):
     ''' print a cont_activation_record_t
     '''
     __slots__ = ('_value')
-    name = 'cont_activation_record_t'
+    name = 'tmwa::cont_activation_record_t'
     enabled = True
 
     def __init__(self, value):

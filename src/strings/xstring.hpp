@@ -23,6 +23,9 @@
 
 # include "base.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     /// A non-owning string that is not guaranteed to be NUL-terminated.
@@ -55,6 +58,7 @@ namespace strings
         const RString *base() const;
     };
 } // namespace strings
+} // namespace tmwa
 
 # include "xstring.tcc"
 

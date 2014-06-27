@@ -35,4 +35,9 @@
 
 # include "conf-raw/str-VERSION_STRING.h"
 
+
+namespace tmwa
+{
+} // namespace tmwa
+
 #endif // TMWA_CONF_VERSION_HPP

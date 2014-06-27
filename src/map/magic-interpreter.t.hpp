@@ -24,6 +24,9 @@
 
 # include "../generic/enum.hpp"
 
+
+namespace tmwa
+{
 enum class SPELLARG : uint8_t
 {
     NONE,
@@ -144,5 +147,6 @@ enum class INVOCATION_FLAG : uint8_t
 ENUM_BITWISE_OPERATORS(INVOCATION_FLAG)
 }
 using e::INVOCATION_FLAG;
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAGIC_INTERPRETER_T_HPP

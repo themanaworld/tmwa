@@ -20,4 +20,7 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_PartyMember = PartyMember;
+} // namespace tmwa

@@ -31,6 +31,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 namespace io
 {
     WriteFile::WriteFile(FD f, bool linebuffered)
@@ -177,3 +179,4 @@ namespace io
         return len;
     }
 } // namespace io
+} // namespace tmwa

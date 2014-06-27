@@ -53,6 +53,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 struct skill_name_db skill_names[] =
 {
     {SkillID::AC_OWL, "OWL"_s, "Owl's_Eye"_s},
@@ -1314,3 +1317,4 @@ skill_name_db& skill_lookup_by_name(XString name)
             return ner;
     return skill_names[num_names - 1];
 }
+} // namespace tmwa

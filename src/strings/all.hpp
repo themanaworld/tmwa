@@ -32,4 +32,9 @@
 # include "literal.hpp"
 # include "vstring.hpp"
 
+
+namespace tmwa
+{
+} // namespace tmwa
+
 #endif // TMWA_STRINGS_ALL_HPP

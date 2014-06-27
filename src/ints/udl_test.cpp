@@ -25,6 +25,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 #pragma GCC diagnostic push
@@ -783,3 +785,4 @@ TEST(ints, udl64)
     EXPECT_EQ(+0X7FFFFFFFFFFFFFFE_p64, maybe_cast<int64_t>(0X7FFFFFFFFFFFFFFE));
     EXPECT_EQ(+0X7FFFFFFFFFFFFFFF_p64, maybe_cast<int64_t>(0X7FFFFFFFFFFFFFFF));
 }
+} // namespace tmwa

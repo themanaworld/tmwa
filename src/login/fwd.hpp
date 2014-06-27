@@ -21,6 +21,10 @@
 
 # include "../sanity.hpp"
 
+
+namespace tmwa
+{
 // meh, add more when I feel like it
+} // namespace tmwa
 
 #endif // TMWA_LOGIN_FWD_HPP

@@ -25,6 +25,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 TEST(InternPool, whydoesthisalwaysneedasecondname)
@@ -41,3 +43,4 @@ TEST(InternPool, whydoesthisalwaysneedasecondname)
     EXPECT_EQ("hello"_s, p.outtern(0));
     EXPECT_EQ("world"_s, p.outtern(1));
 }
+} // namespace tmwa

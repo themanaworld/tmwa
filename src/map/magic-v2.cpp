@@ -42,6 +42,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace magic_v2
 {
     static
@@ -1260,3 +1263,4 @@ bool load_magic_file_v2(ZString filename)
     }
     return rv;
 }
+} // namespace tmwa

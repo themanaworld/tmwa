@@ -25,6 +25,8 @@
 
 # include "types.hpp"
 
+namespace tmwa
+{
 // This is an internal protocol, and can be changed without notice
 
 template<>
@@ -1231,5 +1233,6 @@ bool network_to_native(Packet_Fixed<0x2741> *native, NetPacket_Fixed<0x2741> net
     return rv;
 }
 
+} // namespace tmwa
 
 #endif // TMWA_PROTO2_LOGIN_CHAR_HPP

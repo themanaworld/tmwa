@@ -28,6 +28,8 @@
 # include "oops.hpp"
 
 
+namespace tmwa
+{
 class AssertionError : public std::runtime_error
 {
 public:
@@ -38,5 +40,6 @@ public:
 # define ALLEGE(desc, expr) \
     if (expr) {}            \
     else throw AssertionError(desc, #expr, __FILE__, __LINE__, __PRETTY_FUNCTION__)
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_OOPS_HPP

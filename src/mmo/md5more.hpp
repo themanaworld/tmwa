@@ -29,6 +29,9 @@
 
 # include "../net/fwd.hpp"
 
+
+namespace tmwa
+{
 MD5_state MD5_from_FILE(io::ReadFile& in);
 
 // whoever wrote this fails basic understanding of
@@ -43,5 +46,6 @@ bool pass_ok(AccountPass password, AccountCrypt crypted);
 
 /// This returns an IP4Address because it is configurable whether it gets called at all
 IP4Address MD5_ip(IP4Address ip);
+} // namespace tmwa
 
 #endif // TMWA_MMO_MD5MORE_HPP

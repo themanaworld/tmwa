@@ -41,6 +41,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 // ファイル名のデフォルト
 // inter_config_read()で再設定される
 AString storage_txt = "save/storage.txt"_s;
@@ -269,3 +272,4 @@ RecvResult inter_storage_parse_frommap(Session *ms, uint16_t packet_id)
     }
     return rv;
 }
+} // namespace tmwa

@@ -25,6 +25,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace sexpr
 {
     bool token_is_int(ZString s, int64_t& out, bool& ok)
@@ -82,3 +85,4 @@ namespace sexpr
         return rv;
     }
 } // namespace sexpr
+} // namespace tmwa

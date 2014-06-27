@@ -20,7 +20,10 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_uint8_t = uint8_t;
 using Test_uint16_t = uint16_t;
 using Test_uint32_t = uint32_t;
 using Test_uint64_t = uint64_t;
+} // namespace tmwa

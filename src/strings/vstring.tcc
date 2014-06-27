@@ -29,6 +29,9 @@
 #include "xstring.hpp"
 #include "literal.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     template<uint8_t n>
@@ -146,3 +149,4 @@ namespace strings
         return len;
     }
 } // namespace strings
+} // namespace tmwa

@@ -47,6 +47,8 @@
 #define CONFIG "conf/eathena-monitor.conf"_s
 
 
+namespace tmwa
+{
 // initialiized to $HOME/tmwserver
 static
 AString workdir;
@@ -166,9 +168,11 @@ void stop_process(int sig)
 #pragma GCC diagnostic pop
     raise(sig);
 }
+} // namespace tmwa
 
 int main(int argc, char *argv[])
 {
+    using namespace tmwa;
     // These are all the signals we are likely to get
     // The shell handles stop/cont
     signal(SIGTERM, stop_process);

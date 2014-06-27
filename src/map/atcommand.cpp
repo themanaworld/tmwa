@@ -72,6 +72,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 enum class ATCE
 {
     OKAY,
@@ -5345,3 +5347,4 @@ Map<XString, AtCommandInfo> atcommand_info =
         0, atcommand_source,
         "Legal information about source code (must be a level 0 command!)"_s}},
 };
+} // namespace tmwa

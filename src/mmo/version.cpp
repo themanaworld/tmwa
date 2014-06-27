@@ -28,6 +28,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 Version CURRENT_VERSION =
 {
     VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH,
@@ -70,3 +73,4 @@ bool extract(XString str, Version *vers)
     // It would've been useful during the magic migration.
     return extract(str, record<'.'>(&vers->major, &vers->minor, &vers->patch));
 }
+} // namespace tmwa

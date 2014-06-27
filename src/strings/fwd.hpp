@@ -24,6 +24,9 @@
 # include <cstddef>
 # include <cstdint>
 
+
+namespace tmwa
+{
 // It is a common mistake to assume that one string class for everything.
 // Because C++ and TMWA have a C legacy, there are a few more here
 // than would probably be necessary in an ideal language.
@@ -70,5 +73,6 @@ using strings::VString;
 
 using strings::operator "" _s;
 using strings::operator "" _fmt;
+} // namespace tmwa
 
 #endif // TMWA_STRINGS_FWD_HPP

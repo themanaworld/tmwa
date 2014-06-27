@@ -26,6 +26,9 @@
 
 # include "oops.hpp"
 
+
+namespace tmwa
+{
 template<class I, I be, I en>
 struct ExclusiveIndexing
 {
@@ -113,5 +116,6 @@ public:
 
 template<class T, size_t n>
 using Array = GenericArray<T, SimpleIndexing<n>>;
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_ARRAY_HPP

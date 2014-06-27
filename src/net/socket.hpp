@@ -44,6 +44,9 @@
 # include "ip.hpp"
 # include "timer.t.hpp"
 
+
+namespace tmwa
+{
 struct SessionData
 {
 };
@@ -172,5 +175,6 @@ void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size);
 void do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
 void do_parsepacket(void);
+} // namespace tmwa
 
 #endif // TMWA_NET_SOCKET_HPP

@@ -22,6 +22,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     MString::iterator MString::begin()
@@ -100,3 +103,4 @@ namespace strings
         return _hack.back();
     }
 } // namespace strings
+} // namespace tmwa

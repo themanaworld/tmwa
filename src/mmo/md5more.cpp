@@ -35,6 +35,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 #define X block.data
 
 // TODO - refactor MD5 into a stream, and merge the implementations
@@ -153,3 +156,4 @@ IP4Address MD5_ip(IP4Address ip)
             static_cast<uint8_t>(obuf[6] ^ obuf[7] ^ obuf[14] ^ obuf[15]),
     });
 }
+} // namespace tmwa

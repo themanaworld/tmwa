@@ -25,6 +25,8 @@
 
 # include "types.hpp"
 
+namespace tmwa
+{
 // This is an internal protocol, and can be changed without notice
 
 template<>
@@ -3532,5 +3534,6 @@ bool network_to_native(Packet_Repeat<0x3827> *native, NetPacket_Repeat<0x3827> n
     return rv;
 }
 
+} // namespace tmwa
 
 #endif // TMWA_PROTO2_CHAR_MAP_HPP

@@ -20,5 +20,8 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_tick_t = tick_t;
 using Test_interval_t = interval_t;
+} // namespace tmwa

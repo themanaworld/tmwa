@@ -25,6 +25,9 @@
 
 # include <random>
 
+
+namespace tmwa
+{
 // This is not namespace random since that collides with a C function,
 // but this can be revisited when everything goes into namespace tmwa.
 namespace random_
@@ -83,5 +86,6 @@ namespace random_
         return random_::choice(il);
     }
 } // namespace random_
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_RANDOM_HPP

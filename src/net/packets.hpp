@@ -34,6 +34,9 @@
 
 # include "socket.hpp"
 
+
+namespace tmwa
+{
 struct Buffer
 {
     std::vector<Byte> bytes;
@@ -580,5 +583,6 @@ RecvResult recv_packet_repeatonly(Session *s, AString& repeat)
     Packet_Head<id> head;
     return recv_vpacket<id, 4, repeatsize>(s, head, repeat);
 }
+} // namespace tmwa
 
 #endif // TMWA_NET_PACKETS_HPP

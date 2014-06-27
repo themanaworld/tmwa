@@ -23,6 +23,9 @@
 
 #include "pair.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     namespace detail
@@ -442,3 +445,4 @@ namespace strings
         return pair_compare(l, r) >= 0;
     }
 } // namespace strings
+} // namespace tmwa

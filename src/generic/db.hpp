@@ -24,6 +24,9 @@
 # include <map>
 # include <memory>
 
+
+namespace tmwa
+{
 template<class K, class V>
 class Map
 {
@@ -176,5 +179,6 @@ public:
         return impl.size();
     }
 };
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_DB_HPP

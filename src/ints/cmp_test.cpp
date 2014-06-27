@@ -25,6 +25,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 // Google Test is *really* slow to compile this file
@@ -1462,3 +1464,4 @@ TEST(ints, satu64)
     EXPECT_EQ(maybe_cast<uint64_t>(+0xfffffffffffffffeULL), saturate<uint64_t>(maybe_cast<uint64_t>(+0xfffffffffffffffeULL)));
     EXPECT_EQ(maybe_cast<uint64_t>(+0xffffffffffffffffULL), saturate<uint64_t>(maybe_cast<uint64_t>(+0xffffffffffffffffULL)));
 }
+} // namespace tmwa

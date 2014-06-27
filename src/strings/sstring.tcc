@@ -19,6 +19,9 @@
 
 #include "vstring.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     template<uint8_t n>
@@ -26,3 +29,4 @@ namespace strings
     : _s(v), _b(0), _e(_s.size())
     {}
 } // namespace strings
+} // namespace tmwa

@@ -31,6 +31,9 @@
 
 # include "../mmo/mmo.hpp"
 
+
+namespace tmwa
+{
 constexpr int MAX_MAP_SERVERS = 30;
 
 struct mmo_map_server
@@ -51,5 +54,6 @@ void char_log(XString line);
 
 # define CHAR_LOG(fmt, ...) \
     char_log(STRPRINTF(fmt, ## __VA_ARGS__))
+} // namespace tmwa
 
 #endif // TMWA_CHAR_CHAR_HPP

@@ -20,6 +20,10 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
 } // namespace strings
+} // namespace tmwa

@@ -23,6 +23,10 @@
 
 # include <functional>
 
+
+namespace tmwa
+{
 namespace ph = std::placeholders;
+} // namespace tmwa
 
 #endif // TMWA_COMPAT_FUN_HPP

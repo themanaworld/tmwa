@@ -25,6 +25,9 @@
 
 # include "../mmo/extract.hpp" // TODO remove this (requires specializing the *other* half)
 
+
+namespace tmwa
+{
 // originally from script.cpp
 // These are part of the script API, so they can't change ever,
 // even though they are silly.
@@ -79,5 +82,6 @@ template<>
 bool extract<MapFlag, void, void>(XString str, MapFlag *mf);
 
 MapFlag map_flag_from_int(int shift);
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAPFLAG_HPP

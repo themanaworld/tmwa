@@ -27,6 +27,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 static
@@ -87,3 +89,4 @@ TEST(io, read5)
     EXPECT_FALSE(hi);
     EXPECT_FALSE(rf.getline(hi));
 }
+} // namespace tmwa

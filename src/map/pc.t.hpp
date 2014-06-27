@@ -26,6 +26,9 @@
 
 # include <cstdint>
 
+
+namespace tmwa
+{
 enum class PC_GAINEXP_REASON
 {
     KILLING = 0,
@@ -52,5 +55,6 @@ enum class CalcStatus
     NOW,
     LATER,
 };
+} // namespace tmwa
 
 #endif // TMWA_MAP_PC_T_HPP

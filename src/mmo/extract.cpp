@@ -28,6 +28,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 bool extract(XString str, XString *rv)
 {
     *rv = str;
@@ -85,3 +88,4 @@ bool extract(XString str, CharName *out)
     }
     return false;
 }
+} // namespace tmwa

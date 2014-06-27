@@ -27,6 +27,9 @@
 
 # include "../proto2/types.hpp"
 
+
+namespace tmwa
+{
 inline
 bool operator == (const SkillValue& l, const SkillValue& r)
 {
@@ -64,5 +67,6 @@ struct PartyPair
     bool operator !() const { return !party_most; }
     PartyMost *operator->() const { return party_most; }
 };
+} // namespace tmwa
 
 #endif // TMWA_MMO_MMO_HPP

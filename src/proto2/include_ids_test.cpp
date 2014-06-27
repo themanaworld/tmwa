@@ -20,6 +20,8 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_Species = Species;
 using Test_AccountId = AccountId;
 using Test_CharId = CharId;
@@ -27,3 +29,4 @@ using Test_PartyId = PartyId;
 using Test_ItemNameId = ItemNameId;
 using Test_BlockId = BlockId;
 using Test_GmLevel = GmLevel;
+} // namespace tmwa

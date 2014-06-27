@@ -25,6 +25,8 @@
 
 # include "types.hpp"
 
+namespace tmwa
+{
 // This is a public protocol, and changes require client cooperation
 
 template<>
@@ -321,5 +323,6 @@ bool network_to_native(Packet_Fixed<0x006a> *native, NetPacket_Fixed<0x006a> net
     return rv;
 }
 
+} // namespace tmwa
 
 #endif // TMWA_PROTO2_LOGIN_USER_HPP

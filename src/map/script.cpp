@@ -73,6 +73,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 constexpr bool DEBUG_DISP = false;
 constexpr bool DEBUG_RUN = false;
 
@@ -5116,3 +5119,4 @@ ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e)
     PRINTF("Warning: you lied about the type and I can't fix it!"_fmt);
     return ZString();
 }
+} // namespace tmwa

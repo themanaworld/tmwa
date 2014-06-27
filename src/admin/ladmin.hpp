@@ -21,4 +21,9 @@
 
 # include "fwd.hpp"
 
+
+namespace tmwa
+{
+} // namespace tmwa
+
 #endif // TMWA_ADMIN_LADMIN_HPP

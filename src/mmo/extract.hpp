@@ -35,6 +35,9 @@
 
 # include "utils.hpp"
 
+
+namespace tmwa
+{
 template<class T>
 bool do_extract(XString str, T t);
 
@@ -227,5 +230,6 @@ bool extract(XString str, Wrapped<R> *w)
 {
     return extract(str, &w->_value);
 }
+} // namespace tmwa
 
 #endif // TMWA_MMO_EXTRACT_HPP

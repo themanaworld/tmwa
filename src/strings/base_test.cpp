@@ -30,6 +30,9 @@
 
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
+
+namespace tmwa
+{
 using namespace strings;
 
 struct _test : VString<1> {};
@@ -50,3 +53,4 @@ TEST(strings, contains)
     EXPECT_TRUE(hi.contains_any("Hi"_s));
     EXPECT_FALSE(hi.contains_any("hi"_s));
 }
+} // namespace tmwa

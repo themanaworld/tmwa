@@ -35,6 +35,9 @@
 
 # include "map.hpp"
 
+
+namespace tmwa
+{
 constexpr int MAX_SKILL_PRODUCE_DB = 150;
 constexpr int MAX_SKILL_ARROW_DB = 150;
 constexpr int MAX_SKILL_ABRA_DB = 350;
@@ -164,4 +167,6 @@ int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill);
 
 // [Fate] Remember that a certain skill ID belongs to a pool skill
 void skill_pool_register(SkillID id);
+} // namespace tmwa
+
 #endif // TMWA_MAP_SKILL_HPP

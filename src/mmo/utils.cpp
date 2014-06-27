@@ -34,6 +34,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 //---------------------------------------------------
 // E-mail check: return 0 (not correct) or 1 (valid).
 //---------------------------------------------------
@@ -117,3 +120,4 @@ void log_with_timestamp(io::WriteFile& out, XString line)
     out.really_put(": ", 2);
     out.put_line(line);
 }
+} // namespace tmwa

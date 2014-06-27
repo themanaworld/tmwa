@@ -71,6 +71,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 constexpr int MAX_SERVERS = 30;
 
 constexpr AccountId START_ACCOUNT_NUM = wrap<AccountId>(2000000);
@@ -3997,3 +4000,4 @@ int do_init(Slice<ZString> argv)
 
     return 0;
 }
+} // namespace tmwa

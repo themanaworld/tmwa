@@ -26,6 +26,9 @@
 
 # include <iterator>
 
+
+namespace tmwa
+{
 // It is a common mistake to assume that one string class for everything.
 // Because C++ and TMWA have a C legacy, there are a few more here
 // than would probably be necessary in an ideal language.
@@ -195,6 +198,7 @@ namespace strings
     template<class L, class R, typename=typename std::enable_if<string_comparison_allowed<L, R>::value>::type>
     auto operator >= (const L& l, const R& r) -> decltype((pair_compare(l, r), true));
 } // namespace strings
+} // namespace tmwa
 
 # include "base.tcc"
 

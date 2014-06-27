@@ -24,6 +24,9 @@
 # include "base.hpp"
 # include "rstring.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     /// An owning string that represents a arbitrary slice of an RString.
@@ -54,6 +57,7 @@ namespace strings
         const RString *base() const;
     };
 } // namespace strings
+} // namespace tmwa
 
 # include "sstring.tcc"
 

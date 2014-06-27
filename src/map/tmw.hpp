@@ -26,7 +26,11 @@
 
 # include "../generic/fwd.hpp"
 
+
+namespace tmwa
+{
 int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message);
 void tmw_GmHackMsg(ZString line);
+} // namespace tmwa
 
 #endif // TMWA_MAP_TMW_HPP

@@ -2,7 +2,7 @@ class IP4Address(object):
     ''' print an IP4Address
     '''
     __slots__ = ('_value')
-    name = 'IP4Address'
+    name = 'tmwa::IP4Address'
     enabled = True
 
     def __init__(self, value):

@@ -35,6 +35,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 /// number of backups to keep
 static
 const int backup_count = 10;
@@ -91,3 +93,4 @@ namespace io
         rename(tmpfile.c_str(), filename.c_str());
     }
 } // namespace io
+} // namespace tmwa

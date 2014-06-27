@@ -37,6 +37,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 // Added by Gabuzomeu
 //
 // This is an implementation of signal() using sigaction() for portability.
@@ -95,8 +98,11 @@ void sig_proc(int)
     Unless you use SA_SIGINFO and *carefully* check the origin,
     that means they must be SIG_DFL.
  */
+} // namespace tmwa
+
 int main(int argc, char **argv)
 {
+    using namespace tmwa;
     // ZString args[argc]; is (deliberately!) not supported by clang yet
     ZString *args = static_cast<ZString *>(alloca(argc * sizeof(ZString)));
     for (int i = 0; i < argc; ++i)

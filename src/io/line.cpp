@@ -28,6 +28,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 namespace io
 {
     AString Line::message_str(ZString cat, ZString msg) const
@@ -178,3 +180,4 @@ namespace io
         return line != 0;
     }
 } // namespace io
+} // namespace tmwa

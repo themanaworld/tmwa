@@ -27,6 +27,9 @@
 
 # include "../generic/enum.hpp"
 
+
+namespace tmwa
+{
 // TODO remove most of these as their corresponding SkillIDs get deleted.
 enum class StatusChange : uint16_t
 {
@@ -131,5 +134,6 @@ enum class SkillFlags : uint16_t
 ENUM_BITWISE_OPERATORS(SkillFlags)
 }
 using e::SkillFlags;
+} // namespace tmwa
 
 #endif // TMWA_MAP_SKILL_T_HPP

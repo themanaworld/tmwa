@@ -26,6 +26,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 template<typename T>
@@ -308,3 +310,4 @@ typedef ::testing::Types<
     RString, AString, TString, ZString, VString<255>
 > NulStringTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(NulStringStuff, NulStringTest, NulStringTypes);
+} // namespace tmwa

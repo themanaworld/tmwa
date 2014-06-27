@@ -30,6 +30,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 bool is_comment(XString line)
 {
     return not line or line.startswith("//"_s);
@@ -154,3 +157,4 @@ bool load_config_file(ZString filename, ConfigItemParser slave)
     }
     return rv;
 }
+} // namespace tmwa

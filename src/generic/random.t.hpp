@@ -21,6 +21,9 @@
 
 # include "fwd.hpp"
 
+
+namespace tmwa
+{
 namespace random_
 {
     struct Fraction
@@ -39,5 +42,6 @@ namespace random_
         }
     };
 } // namespace random_
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_RANDOM_T_HPP

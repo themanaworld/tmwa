@@ -22,11 +22,14 @@
 # include "../sanity.hpp"
 
 
+namespace tmwa
+{
 namespace io
 {
     class ReadFile;
     class WriteFile;
     class AppendFile;
 } // namespace io
+} // namespace tmwa
 
 #endif // TMWA_IO_FWD_HPP

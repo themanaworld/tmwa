@@ -23,6 +23,8 @@
 
 # include <cstdint>
 
+namespace tmwa
+{
 template<uint16_t PACKET_ID> class Packet_Fixed;
 template<uint16_t PACKET_ID> class NetPacket_Fixed;
 template<uint16_t PACKET_ID> class Packet_Payload;
@@ -1719,5 +1721,6 @@ template<>
 struct NetPacket_Payload<0x8000>;
 
 
+} // namespace tmwa
 
 #endif // TMWA_PROTO2_FWD_HPP

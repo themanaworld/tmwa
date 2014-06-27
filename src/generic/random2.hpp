@@ -27,6 +27,9 @@
 
 # include "../compat/iter.hpp"
 
+
+namespace tmwa
+{
 namespace random_
 {
     namespace detail
@@ -91,5 +94,6 @@ namespace random_
         std::random_shuffle(c.begin(), c.end(), random_::to);
     }
 } // namespace random_
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_RANDOM2_HPP

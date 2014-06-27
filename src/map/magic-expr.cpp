@@ -44,6 +44,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 template<class T>
 bool CHECK_TYPE(T *v, TYPE t)
 {
@@ -1768,3 +1771,4 @@ dumb_ptr<expr_t> magic_new_expr(EXPR ty)
     expr->ty = ty;
     return expr;
 }
+} // namespace tmwa

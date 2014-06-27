@@ -27,6 +27,9 @@
 
 # include "../strings/fwd.hpp"
 
+
+namespace tmwa
+{
 /// core.c contains a server-independent main() function
 /// and then runs a do_sendrecv loop
 
@@ -40,5 +43,6 @@ extern int do_init(Slice<ZString>);
 /// Cleanup function called whenever a signal kills us
 /// or when if we manage to exit() gracefully.
 extern void term_func(void);
+} // namespace tmwa
 
 #endif // TMWA_MMO_CORE_HPP

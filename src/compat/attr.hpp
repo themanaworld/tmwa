@@ -22,10 +22,13 @@
 # include "fwd.hpp"
 
 
+namespace tmwa
+{
 # ifdef __clang__
 #  define FALLTHROUGH [[clang::fallthrough]]
 # else
 #  define FALLTHROUGH /* fallthrough */
 # endif
+} // namespace tmwa
 
 #endif // TMWA_COMPAT_ATTR_HPP

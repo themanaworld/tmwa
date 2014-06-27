@@ -25,6 +25,8 @@
 # include <type_traits>
 
 
+namespace tmwa
+{
 template<class T>
 struct is_array_of_unknown_bound
 : std::is_same<T, typename std::remove_extent<T>::type[]>
@@ -42,5 +44,6 @@ typename std::enable_if<is_array_of_unknown_bound<T>::value, std::unique_ptr<T, 
     typedef typename std::remove_extent<T>::type E;
     return std::unique_ptr<E[], D>(new E[sz]());
 }
+} // namespace tmwa
 
 #endif // TMWA_COMPAT_MEMORY_HPP

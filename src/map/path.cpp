@@ -36,6 +36,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 constexpr int MAX_HEAP = 150;
 struct tmp_path
 {
@@ -358,3 +361,4 @@ int path_search(struct walkpath_data *wpd, map_local *m, int x0, int y0, int x1,
             return -1;
     }
 }
+} // namespace tmwa

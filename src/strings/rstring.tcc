@@ -19,6 +19,9 @@
 
 #include "mstring.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     template<class It>
@@ -59,3 +62,4 @@ namespace strings
         _assign(v.begin(), v.end());
     }
 } // namespace strings
+} // namespace tmwa

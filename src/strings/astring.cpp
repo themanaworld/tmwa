@@ -34,6 +34,9 @@
 // doing sneaky tricks here
 //#include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     static_assert(sizeof(AString) == 256, "AString");
@@ -220,3 +223,4 @@ namespace strings
         return len;
     }
 } // namespace strings
+} // namespace tmwa

@@ -78,6 +78,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 DMap<BlockId, dumb_ptr<block_list>> id_db;
 
 UPMap<MapName, map_abstract> maps_db;
@@ -1786,3 +1789,4 @@ int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
 
     return 0;
 }
+} // namespace tmwa

@@ -27,6 +27,9 @@
 
 # include "../generic/enum.hpp"
 
+
+namespace tmwa
+{
 enum class SkillID : uint16_t;
 constexpr SkillID MAX_SKILL = SkillID(474); // not 450
 constexpr SkillID get_enum_min_value(SkillID) { return SkillID(); }
@@ -157,5 +160,6 @@ bool network_to_native(SEX *native, char network)
     *native = sex_from_char(network);
     return true;
 }
+} // namespace tmwa
 
 #endif // TMWA_MMO_ENUMS_HPP

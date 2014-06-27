@@ -2,7 +2,7 @@ class AString(object):
     ''' print an AString
     '''
     __slots__ = ('_value')
-    name = 'strings::AString'
+    name = 'tmwa::strings::AString'
     enabled = True
 
     def __init__(self, value):

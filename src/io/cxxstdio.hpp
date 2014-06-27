@@ -29,6 +29,8 @@
 # include "../generic/enum.hpp"
 
 
+namespace tmwa
+{
 namespace cxxstdio
 {
     // other implementations of do_vprint are injected by ADL.
@@ -187,5 +189,6 @@ namespace cxxstdio
     })
 
 } // namespace cxxstdio
+} // namespace tmwa
 
 #endif // TMWA_IO_CXXSTDIO_HPP

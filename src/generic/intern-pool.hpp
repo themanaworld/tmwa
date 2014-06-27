@@ -31,6 +31,9 @@
 # include "../strings/zstring.hpp"
 # include "../strings/xstring.hpp"
 
+
+namespace tmwa
+{
 class InternPool
 {
     std::map<RString, size_t> known;
@@ -59,5 +62,6 @@ public:
         return known.size();
     }
 };
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_INTERN_POOL_HPP

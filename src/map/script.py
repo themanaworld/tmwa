@@ -3,7 +3,7 @@ class ByteCode:
         (workaround for gcc bug 58150)
     '''
     __slots__ = ('_value')
-    name = 'ByteCode'
+    name = 'tmwa::ByteCode'
     enabled = True
 
     def __init__(self, value):
@@ -34,7 +34,7 @@ class script_data(object):
     ''' print a script_data
     '''
     __slots__ = ('_value')
-    name = 'script_data'
+    name = 'tmwa::script_data'
     enabled = True
 
     def __init__(self, value):

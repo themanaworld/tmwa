@@ -31,6 +31,9 @@
 
 # include "../mmo/fwd.hpp"
 
+
+namespace tmwa
+{
 bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
         ZString message, GmLevel gmlvl);
 
@@ -42,5 +45,6 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd);
 extern AString gm_log;
 
 void atcommand_config_write(ZString cfgName);
+} // namespace tmwa
 
 #endif // TMWA_MAP_ATCOMMAND_HPP

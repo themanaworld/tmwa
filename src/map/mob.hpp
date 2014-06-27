@@ -36,6 +36,9 @@
 # include "map.hpp"
 # include "skill.t.hpp"
 
+
+namespace tmwa
+{
 # define ENGLISH_NAME stringish<MobName>("--en--"_s)
 # define JAPANESE_NAME stringish<MobName>("--ja--"_s)
 # define MOB_THIS_MAP stringish<MapName>("this"_s)
@@ -134,5 +137,6 @@ void mobskill_castend_pos(TimerData *tid, tick_t tick, BlockId id);
 int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag);
 
 void mob_reload(void);
+} // namespace tmwa
 
 #endif // TMWA_MAP_MOB_HPP

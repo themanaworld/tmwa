@@ -25,6 +25,9 @@
 
 # include "fwd.hpp"
 
+
+namespace tmwa
+{
 inline
 void really_memcpy(uint8_t *dest, const uint8_t *src, size_t n)
 {
@@ -47,5 +50,6 @@ void really_memset0(uint8_t *dest, size_t n)
 {
     memset(dest, '\0', n);
 }
+} // namespace tmwa
 
 #endif // TMWA_COMPAT_RAWMEM_HPP

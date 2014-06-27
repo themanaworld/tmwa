@@ -2,7 +2,7 @@ class ZString(object):
     ''' print a ZString
     '''
     __slots__ = ('_value')
-    name = 'strings::ZString'
+    name = 'tmwa::strings::ZString'
     enabled = True
 
     def __init__(self, value):

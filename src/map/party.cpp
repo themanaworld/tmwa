@@ -42,6 +42,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 // 座標やＨＰ送信の間隔
 constexpr interval_t PARTY_SEND_XYHP_INVERVAL = std::chrono::seconds(1);
 
@@ -804,3 +807,4 @@ void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         if (list[i]->bl_prev)      // 有効かどうかチェック
             func(list[i]);
 }
+} // namespace tmwa

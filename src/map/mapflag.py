@@ -2,7 +2,7 @@ class MapFlags(object):
     ''' print a set of map flags
     '''
     __slots__ = ('_value')
-    name = 'MapFlags'
+    name = 'tmwa::MapFlags'
     enabled = True
 
     def __init__(self, value):

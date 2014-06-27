@@ -78,6 +78,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 static
 Array<struct mmo_map_server, MAX_MAP_SERVERS> server;
 static
@@ -3156,3 +3159,4 @@ int do_init(Slice<ZString> argv)
 
     return 0;
 }
+} // namespace tmwa

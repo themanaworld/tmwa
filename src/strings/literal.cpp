@@ -22,6 +22,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     LString::LString(const char *b, const char *e)
@@ -50,3 +53,4 @@ namespace strings
         return zs.c_str();
     }
 } // namespace strings
+} // namespace tmwa

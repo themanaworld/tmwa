@@ -25,6 +25,8 @@
 # include <type_traits>
 
 
+namespace tmwa
+{
 template<class T>
 const T& const_(T& t)
 {
@@ -68,5 +70,6 @@ typename std::remove_pointer<T>::type *sign_cast(U *u)
     static_assert(sizeof(T_) == sizeof(U), "sign cast must be same size");
     return reinterpret_cast<T_ *>(u);
 }
+} // namespace tmwa
 
 #endif // TMWA_COMPAT_CAST_HPP

@@ -29,6 +29,9 @@
 
 # include "lexer.hpp"
 
+
+namespace tmwa
+{
 namespace sexpr
 {
     enum Type
@@ -78,5 +81,6 @@ namespace sexpr
     /// return false on error or eof, check lex.peek() == TOK_EOF to see
     bool parse(Lexer& lex, SExpr& out);
 } // namespace sexpr
+} // namespace tmwa
 
 #endif // TMWA_SEXPR_PARSER_HPP

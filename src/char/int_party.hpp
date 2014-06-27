@@ -29,6 +29,9 @@
 
 # include "../mmo/fwd.hpp"
 
+
+namespace tmwa
+{
 void inter_party_init(void);
 int inter_party_save(void);
 
@@ -37,5 +40,6 @@ RecvResult inter_party_parse_frommap(Session *ms, uint16_t);
 void inter_party_leave(PartyId party_id, AccountId account_id);
 
 extern AString party_txt;
+} // namespace tmwa
 
 #endif // TMWA_CHAR_INT_PARTY_HPP

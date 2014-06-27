@@ -25,6 +25,9 @@
 
 # include <type_traits>
 
+
+namespace tmwa
+{
 namespace ints
 {
     namespace wrapped
@@ -105,5 +108,6 @@ namespace ints
 using ints::wrapped::Wrapped;
 using ints::wrapped::unwrap;
 using ints::wrapped::wrap;
+} // namespace tmwa
 
 #endif // TMWA_INTS_WRAP_HPP

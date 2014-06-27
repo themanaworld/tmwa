@@ -27,6 +27,9 @@
 
 # include "../generic/enum.hpp"
 
+
+namespace tmwa
+{
 namespace e
 {
 enum class BF : uint16_t
@@ -239,5 +242,6 @@ earray<Races, Race, Race::COUNT> race_shift //=
     Races::boss,
     Races::other,
 }};
+} // namespace tmwa
 
 #endif // TMWA_MAP_BATTLE_T_HPP

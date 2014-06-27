@@ -20,7 +20,11 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace random_
 {
     std::mt19937 generate{std::random_device()()};
 } // namespace random_
+} // namespace tmwa

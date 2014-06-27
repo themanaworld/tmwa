@@ -21,6 +21,9 @@
 
 # include "../sanity.hpp"
 
+
+namespace tmwa
+{
 // meh, add more when I feel like it
 class MapName;
 class CharName;
@@ -63,5 +66,6 @@ class PartyMember;
 # endif
 class PartyMost;
 class PartyPair;
+} // namespace tmwa
 
 #endif // TMWA_MMO_FWD_HPP

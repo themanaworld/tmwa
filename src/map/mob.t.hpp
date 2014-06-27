@@ -25,6 +25,9 @@
 
 # include <cstdint>
 
+
+namespace tmwa
+{
 enum class MobSkillTarget
 {
     MST_TARGET = 0,
@@ -59,5 +62,6 @@ enum class MobSkillState : uint8_t
     MSS_LOOT,
     MSS_CHASE,
 };
+} // namespace tmwa
 
 #endif // TMWA_MAP_MOB_T_HPP

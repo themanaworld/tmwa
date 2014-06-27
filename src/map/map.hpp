@@ -52,6 +52,9 @@
 # include "script.hpp"   // change to script.t.hpp
 # include "skill.t.hpp"
 
+
+namespace tmwa
+{
 constexpr int MAX_NPC_PER_MAP = 512;
 constexpr int BLOCK_SIZE = 8;
 # define AREA_SIZE battle_config.area_size
@@ -720,5 +723,6 @@ inline dumb_ptr<npc_data_script> npc_data::is_script() { return npc_subtype == N
 inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSubtype::SHOP ? as_shop() : nullptr ; }
 inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
 inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAP_HPP

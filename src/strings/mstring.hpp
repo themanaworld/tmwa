@@ -23,6 +23,9 @@
 
 # include <deque>
 
+
+namespace tmwa
+{
 namespace strings
 {
     /// An owning string that is still expected to change.
@@ -62,5 +65,6 @@ namespace strings
         char& back();
     };
 } // namespace strings
+} // namespace tmwa
 
 #endif // TMWA_STRINGS_MSTRING_HPP

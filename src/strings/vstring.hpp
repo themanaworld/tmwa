@@ -25,6 +25,9 @@
 
 # include "base.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     template<uint8_t n>
@@ -73,6 +76,7 @@ T stringish(VString<sizeof(T) - 1> iv)
     static_cast<VString<sizeof(T) - 1>&>(rv) = iv;
     return rv;
 }
+} // namespace tmwa
 
 # include "vstring.tcc"
 

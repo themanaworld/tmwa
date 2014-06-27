@@ -28,6 +28,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     ZString::ZString()
@@ -75,3 +78,4 @@ namespace strings
         return zs.c_str();
     }
 } // namespace strings
+} // namespace tmwa

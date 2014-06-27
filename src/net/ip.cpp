@@ -27,6 +27,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 bool extract(XString str, IP4Address *rv)
 {
     if (str.endswith('.'))
@@ -114,3 +117,4 @@ VString<31> convert_for_printf(IP4Mask a)
     return STRNPRINTF(32, "%s/%s"_fmt,
             a.addr(), a.mask());
 }
+} // namespace tmwa

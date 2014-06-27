@@ -25,6 +25,8 @@
 
 # include "types.hpp"
 
+namespace tmwa
+{
 // This is a public protocol, and changes require client cooperation
 
 template<>
@@ -210,5 +212,6 @@ bool network_to_native(Packet_Payload<0x8000> *native, NetPacket_Payload<0x8000>
     return rv;
 }
 
+} // namespace tmwa
 
 #endif // TMWA_PROTO2_ANY_USER_HPP

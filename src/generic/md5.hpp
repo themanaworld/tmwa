@@ -28,6 +28,9 @@
 # include "../strings/fwd.hpp"
 # include "../strings/vstring.hpp"
 
+
+namespace tmwa
+{
 /// The digest state - becomes the output
 struct MD5_state
 {
@@ -54,5 +57,6 @@ void MD5_to_str(MD5_state state, md5_string& out);
 
 // Convenience
 MD5_state MD5_from_string(XString msg);
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_MD5CALC_HPP

@@ -26,6 +26,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 // This should be made part of the main API,
@@ -49,3 +51,4 @@ TEST(md5calc, rfc1321)
     EXPECT_EQ("d174ab98d277d9f5a5611c2c9f419d9f"_s, MD5("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"_s));
     EXPECT_EQ("57edf4a22be3c955ac49da2e2107b67a"_s, MD5("12345678901234567890123456789012345678901234567890123456789012345678901234567890"_s));
 }
+} // namespace tmwa

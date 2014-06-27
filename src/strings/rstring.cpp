@@ -31,6 +31,9 @@
 // doing sneaky tricks here
 //#include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     static_assert(sizeof(RString) == sizeof(const char *), "RString");
@@ -173,3 +176,4 @@ namespace strings
         return len;
     }
 } // namespace strings
+} // namespace tmwa

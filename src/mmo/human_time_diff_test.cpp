@@ -23,6 +23,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 // a sequence of [-+]?[0-9]+([ay]|m|[jd]|h|mn|s)
@@ -104,3 +106,4 @@ TEST(humantimediff, multiple)
     EXPECT_EQ(0, diff.second);
     EXPECT_FALSE(extract("1y2y"_s, &diff));
 }
+} // namespace tmwa

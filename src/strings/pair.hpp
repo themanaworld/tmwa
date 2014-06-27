@@ -21,6 +21,9 @@
 
 # include "fwd.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     // TODO instead typedef ranges::Contiguous<const char>
@@ -60,5 +63,6 @@ namespace strings
         {}
     };
 } // namespace strings
+} // namespace tmwa
 
 #endif // TMWA_STRINGS_PAIR_HPP

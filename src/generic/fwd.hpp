@@ -21,9 +21,13 @@
 
 # include "../sanity.hpp"
 
+
+namespace tmwa
+{
 // meh, add more when I feel like it
 template<class T>
 class dumb_ptr;
 class dumb_string;
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_FWD_HPP

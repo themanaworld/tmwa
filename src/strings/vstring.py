@@ -2,7 +2,7 @@ class VString(object):
     ''' print a VString
     '''
     __slots__ = ('_value')
-    name = 'strings::VString'
+    name = 'tmwa::strings::VString'
     enabled = True
 
     def __init__(self, value):

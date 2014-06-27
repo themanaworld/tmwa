@@ -46,6 +46,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 AString party_txt = "save/party.txt"_s;
 
 static
@@ -843,3 +846,4 @@ void inter_party_leave(PartyId party_id, AccountId account_id)
 {
     mapif_parse_PartyLeave(nullptr, party_id, account_id);
 }
+} // namespace tmwa

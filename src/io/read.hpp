@@ -25,6 +25,8 @@
 
 # include "fd.hpp"
 
+namespace tmwa
+{
 namespace io
 {
     class ReadFile
@@ -49,5 +51,6 @@ namespace io
         bool is_open();
     };
 } // namespace io
+} // namespace tmwa
 
 #endif // TMWA_IO_READ_HPP

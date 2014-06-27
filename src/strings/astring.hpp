@@ -24,6 +24,9 @@
 # include "base.hpp"
 # include "rstring.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     /// An owning string that has reached its final contents.
@@ -77,6 +80,7 @@ namespace strings
     __attribute__((format(printf, 2, 0)))
     int do_vprint(AString& out, const char *fmt, va_list ap);
 } // namespace strings
+} // namespace tmwa
 
 # include "astring.tcc"
 

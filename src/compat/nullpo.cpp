@@ -24,6 +24,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 /// Actual output function
 static
 void nullpo_info(const char *file, int line, const char *func)
@@ -46,3 +49,4 @@ bool nullpo_chk(const char *file, int line, const char *func,
     nullpo_info(file, line, func);
     return 1;
 }
+} // namespace tmwa

@@ -20,4 +20,8 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 /* Nothing to see here, move along */
+} // namespace tmwa

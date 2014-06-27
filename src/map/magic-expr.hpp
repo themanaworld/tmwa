@@ -33,6 +33,9 @@
 
 # include "magic-interpreter.t.hpp"
 
+
+namespace tmwa
+{
 /*
  * Argument types:
  *  i : int
@@ -104,5 +107,6 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
 
 void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
         area_t& area);
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAGIC_EXPR_HPP

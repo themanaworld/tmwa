@@ -26,6 +26,9 @@
 
 # include "magic-interpreter.t.hpp"
 
+
+namespace tmwa
+{
 // TODO kill this like I killed VAR
 # define ARGINT(x) args[x].v.v_int
 # define ARGDIR(x) args[x].v.v_dir
@@ -53,5 +56,6 @@
 # define ARGMOB(x)  (ARGENTITY(x)->is_mob())
 
 # define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAGIC_EXPR_EVAL_HPP

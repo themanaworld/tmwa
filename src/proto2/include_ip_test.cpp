@@ -20,4 +20,7 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_IP4Address = IP4Address;
+} // namespace tmwa

@@ -23,6 +23,9 @@
 
 # include "../strings/fwd.hpp"
 
+
+namespace tmwa
+{
 typedef bool (*ConfigItemParser)(XString key, ZString value);
 
 bool is_comment(XString line);
@@ -32,5 +35,6 @@ bool config_split(XString line, XString *key, XString *value);
 /// Master config parser. This handles 'import' and 'version-ge' etc.
 /// Then it defers to the inferior parser for a line it does not understand.
 bool load_config_file(ZString filename, ConfigItemParser slave);
+} // namespace tmwa
 
 #endif // TMWA_MMO_CONFIG_PARSE_HPP

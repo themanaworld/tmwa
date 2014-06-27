@@ -36,6 +36,9 @@
 # include "clif.t.hpp"
 # include "map.hpp"
 
+
+namespace tmwa
+{
 inline
 void pc_setsit(dumb_ptr<map_session_data> sd)
 {
@@ -182,5 +185,6 @@ int pc_logout(dumb_ptr<map_session_data> sd);   // [fate] Player logs out
 void pc_show_motd(dumb_ptr<map_session_data> sd);
 
 void do_init_pc(void);
+} // namespace tmwa
 
 #endif // TMWA_MAP_PC_HPP

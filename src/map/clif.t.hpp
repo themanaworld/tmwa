@@ -35,6 +35,8 @@
 # include "../mmo/enums.hpp"
 
 
+namespace tmwa
+{
 namespace e
 {
 // [Fate] status.option properties.  These are persistent status changes.
@@ -713,5 +715,6 @@ bool network_to_native(SOff1 *native, Little16 network)
 {
     return network_to_native(&native->index, network);
 }
+} // namespace tmwa
 
 #endif // TMWA_MAP_CLIF_T_HPP

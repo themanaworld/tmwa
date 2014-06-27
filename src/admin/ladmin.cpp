@@ -55,6 +55,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 static
 int eathena_interactive_session;
 #define Iprintf if (eathena_interactive_session) PRINTF
@@ -2975,3 +2977,4 @@ int do_init(Slice<ZString> argv)
 
     return 0;
 }
+} // namespace tmwa

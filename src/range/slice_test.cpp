@@ -23,6 +23,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 TEST(slice, slice)
@@ -110,3 +112,4 @@ TEST(slice, cast)
     EXPECT_EQ(foos.size(), slice.size());
     EXPECT_EQ(&foos.end()[-1], &slice.end()[-1]);
 }
+} // namespace tmwa

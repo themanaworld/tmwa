@@ -20,6 +20,9 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_SkillID = SkillID;
 using Test_StatusChange = StatusChange;
 using Test_SkillFlags = SkillFlags;
+} // namespace tmwa

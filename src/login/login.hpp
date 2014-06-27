@@ -23,4 +23,9 @@
 
 # include "login.t.hpp"
 
+
+namespace tmwa
+{
+} // namespace tmwa
+
 #endif // TMWA_LOGIN_LOGIN_HPP

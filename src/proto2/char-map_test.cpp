@@ -21,3 +21,7 @@
 // This is a generated file, edit tools/protocol.py instead
 
 #include "../poison.hpp"
+
+namespace tmwa
+{
+} // namespace tmwa

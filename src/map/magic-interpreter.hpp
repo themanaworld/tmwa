@@ -42,6 +42,9 @@
 # include "script.hpp"
 # include "skill.t.hpp"
 
+
+namespace tmwa
+{
 struct location_t
 {
     map_local *m;
@@ -424,5 +427,6 @@ struct proc_t
     , body()
     {}
 };
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAGIC_INTERPRETER_HPP

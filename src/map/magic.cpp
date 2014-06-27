@@ -37,6 +37,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 #undef DEBUG
 
 /// Return a pair of strings, {spellname, parameter}
@@ -124,3 +127,4 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 
     return 0;                   /* Not a spell */
 }
+} // namespace tmwa

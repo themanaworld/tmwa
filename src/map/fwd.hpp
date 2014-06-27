@@ -21,6 +21,9 @@
 
 # include "../sanity.hpp"
 
+
+namespace tmwa
+{
 // meh, add more when I feel like it
 class BlockId;
 struct block_list;
@@ -52,5 +55,6 @@ struct env_t;
 struct magic_conf_t;
 struct component_t;
 struct effect_set_t;
+} // namespace tmwa
 
 #endif // TMWA_MAP_FWD_HPP

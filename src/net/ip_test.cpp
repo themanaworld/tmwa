@@ -28,6 +28,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 #define CB(X) (std::integral_constant<bool, (X)>::value)
@@ -356,3 +358,4 @@ TEST(ip4mask, cover)
     EXPECT_FALSE(m.covers(IP4Address({88, 56, 72, 0})));
     EXPECT_FALSE(m.covers(IP4Address({88, 56, 72, 255})));
 }
+} // namespace tmwa

@@ -26,6 +26,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 static
@@ -420,3 +422,4 @@ TEST(io, linespan)
             "~~~\n"_s
     );
 }
+} // namespace tmwa

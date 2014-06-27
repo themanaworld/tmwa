@@ -25,6 +25,9 @@
 
 # include <cstdint>
 
+
+namespace tmwa
+{
 // We implement our own actual swapping, because glibc emits assembly
 // instead of letting the *compiler* do what it does best.
 # if __BYTE_ORDER != __BIG_ENDIAN && __BYTE_ORDER != __LITTLE_ENDIAN
@@ -135,5 +138,6 @@ using ints::Byte;
 using ints::Little16;
 using ints::Little32;
 using ints::Little64;
+} // namespace tmwa
 
 #endif // TMWA_INTS_LITTLE_HPP

@@ -2,7 +2,7 @@ class XString(object):
     ''' print a XString
     '''
     __slots__ = ('_value')
-    name = 'strings::XString'
+    name = 'tmwa::strings::XString'
     enabled = True
 
     def __init__(self, value):

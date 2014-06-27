@@ -20,6 +20,8 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_AccountName = AccountName;
 using Test_AccountPass = AccountPass;
 using Test_AccountEmail = AccountEmail;
@@ -28,3 +30,4 @@ using Test_PartyName = PartyName;
 using Test_VarName = VarName;
 using Test_CharName = CharName;
 using Test_MapName = MapName;
+} // namespace tmwa

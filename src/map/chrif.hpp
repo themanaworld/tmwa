@@ -31,6 +31,9 @@
 
 # include "../mmo/fwd.hpp"
 
+
+namespace tmwa
+{
 void chrif_setuserid(AccountName);
 void chrif_setpasswd(AccountPass);
 AccountPass chrif_getpasswd(void);
@@ -61,5 +64,6 @@ void do_init_chrif(void);
 // only used by intif.cpp
 // and clif.cpp for the new on_delete stuff ...
 extern Session *char_session;
+} // namespace tmwa
 
 #endif // TMWA_MAP_CHRIF_HPP

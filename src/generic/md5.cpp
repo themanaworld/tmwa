@@ -24,6 +24,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 // auxilary data
 /*
 sin() constant table
@@ -245,3 +248,4 @@ MD5_state MD5_from_string(XString msg)
     }
     return state;
 }
+} // namespace tmwa

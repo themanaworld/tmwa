@@ -25,6 +25,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace io
 {
     FD FD::open(ZString path, int flags, int mode)
@@ -163,3 +166,4 @@ namespace io
                 timeout, sigmask);
     }
 } // namespace io
+} // namespace tmwa

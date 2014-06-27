@@ -25,6 +25,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 static
@@ -136,3 +138,4 @@ TEST(sexpr, lexbad)
         EXPECT_EQ(lexer.peek(), sexpr::TOK_ERROR);
     }
 }
+} // namespace tmwa

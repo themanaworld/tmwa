@@ -20,7 +20,10 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_SEX = SEX;
 using Test_Option = Option;
 using Test_EPOS = EPOS;
 using Test_ItemLook = ItemLook;
+} // namespace tmwa

@@ -24,6 +24,9 @@
 # include "base.hpp"
 # include "rstring.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     /// An owning string that represents a tail slice of an RString.
@@ -60,6 +63,7 @@ namespace strings
     // Actually, it might now.
     const char *decay_for_printf(const TString& ts);
 } // namespace strings
+} // namespace tmwa
 
 # include "tstring.tcc"
 

@@ -23,8 +23,12 @@
 
 # include "../strings/zstring.hpp"
 
+
+namespace tmwa
+{
 bool magic_init0();
 // must be called after itemdb initialization
 bool load_magic_file_v2(ZString filename);
+} // namespace tmwa
 
 #endif // TMWA_MAP_MAGIC_V2_HPP

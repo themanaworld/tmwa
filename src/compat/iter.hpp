@@ -24,6 +24,8 @@
 # include <iterator>
 
 
+namespace tmwa
+{
 /// Simple class to use a pair of iterators with foreach
 template<class It>
 class IteratorPair
@@ -149,5 +151,6 @@ IteratorPair<FilterIterator<T, F, C>> filter_iterator(C *c, F f=is_truthy<T>)
 {
     return {FilterIterator<T, F, C>(c, f), FilterIterator<T, F, C>(c, f)};
 }
+} // namespace tmwa
 
 #endif // TMWA_COMPAT_ITER_HPP

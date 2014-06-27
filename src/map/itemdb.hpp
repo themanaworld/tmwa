@@ -29,6 +29,9 @@
 # include "map.t.hpp"
 # include "script.hpp"
 
+
+namespace tmwa
+{
 struct item_data
 {
     ItemNameId nameid;
@@ -102,5 +105,6 @@ void itemdb_reload(void);
 
 void do_final_itemdb(void);
 bool itemdb_readdb(ZString filename);
+} // namespace tmwa
 
 #endif // TMWA_MAP_ITEMDB_HPP

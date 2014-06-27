@@ -26,6 +26,9 @@
 # include <type_traits>
 # include <vector>
 
+
+namespace tmwa
+{
 template<class T>
 class Slice
 {
@@ -67,6 +70,7 @@ public:
     Slice pslice(size_t b, size_t e) const;
     Slice islice(iterator b, iterator e) const;
 };
+} // namespace tmwa
 
 # include "slice.tcc"
 

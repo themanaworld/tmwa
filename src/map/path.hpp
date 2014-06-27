@@ -23,6 +23,10 @@
 
 # include "fwd.hpp"
 
+
+namespace tmwa
+{
 int path_search(struct walkpath_data *, map_local *, int, int, int, int, int);
+} // namespace tmwa
 
 #endif // TMWA_MAP_PATH_HPP

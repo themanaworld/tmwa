@@ -59,6 +59,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 static
 std::list<AString> npc_srcs;
 
@@ -1784,3 +1787,4 @@ bool do_init_npc(void)
     }
     return rv;
 }
+} // namespace tmwa

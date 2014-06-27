@@ -20,6 +20,8 @@
 
 #include "../poison.hpp"
 
+namespace tmwa
+{
 using Test_Position1 = Position1;
 using Test_NetPosition1 = NetPosition1;
 using Test_Position2 = Position2;
@@ -36,3 +38,4 @@ using Test_SP = SP;
 using Test_LOOK = LOOK;
 using Test_IOff2 = IOff2;
 using Test_SOff1 = SOff1;
+} // namespace tmwa

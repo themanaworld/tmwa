@@ -26,6 +26,8 @@
 # include "../strings/rstring.hpp"
 
 
+namespace tmwa
+{
 namespace io
 {
     class WriteLock : public WriteFile
@@ -38,5 +40,6 @@ namespace io
         bool close() = delete;
     };
 } // namespace io
+} // namespace tmwa
 
 #endif // TMWA_IO_LOCK_HPP

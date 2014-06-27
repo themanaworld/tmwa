@@ -27,6 +27,9 @@
 
 # include "fd.hpp"
 
+
+namespace tmwa
+{
 namespace io
 {
     class WriteFile
@@ -64,5 +67,6 @@ namespace io
     __attribute__((format(printf, 2, 0)))
     int do_vprint(WriteFile& out, const char *fmt, va_list ap);
 } // namespace io
+} // namespace tmwa
 
 #endif // TMWA_IO_WRITE_HPP

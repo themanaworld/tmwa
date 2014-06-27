@@ -2,7 +2,7 @@ class RString(object):
     ''' print a RString
     '''
     __slots__ = ('_value')
-    name = 'strings::RString'
+    name = 'tmwa::strings::RString'
     enabled = True
 
     def __init__(self, value):

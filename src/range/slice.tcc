@@ -19,6 +19,9 @@
 
 #include <cassert>
 
+
+namespace tmwa
+{
 // simple pointer-wrapping iterator
 template<class T>
 class Slice<T>::iterator
@@ -212,3 +215,4 @@ Slice<T> Slice<T>::islice(iterator b, iterator e) const
 {
     return Slice(&*b, &*e);
 }
+} // namespace tmwa

@@ -461,6 +461,8 @@ obj/%.cpp.formatted: src/%.cpp tools/indenter
 	fgrep -q Copyright $<
 	fgrep -q $(notdir $<) $<
 	fgrep -q ../poison.hpp $<
+	grep -q '^namespace tmwa$$' $<
+	grep -q '^} // namespace tmwa$$' $<
 	touch $@
 obj/%.hpp.formatted: src/%.hpp tools/indenter
 	$(MKDIR_FIRST)
@@ -469,11 +471,15 @@ obj/%.hpp.formatted: src/%.hpp tools/indenter
 	fgrep -q $(notdir $<) $<
 	if [[ $< == *fwd* ]]; then fgrep -q ../sanity.hpp $<; else fgrep -q '"fwd.hpp"' $<; fi
 	if [[ $< == *fwd* ]]; then ! fgrep -q '"fwd.hpp"' $<; else ! fgrep -q ../sanity.hpp $<; fi
+	grep -q '^namespace tmwa$$' $<
+	grep -q '^} // namespace tmwa$$' $<
 	touch $@
 obj/%.tcc.formatted: src/%.tcc tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
 	fgrep -q Copyright $<
 	fgrep -q $(notdir $<) $<
+	grep -q '^namespace tmwa$$' $<
+	grep -q '^} // namespace tmwa$$' $<
 	touch $@
 .PHONY: format format-cpp format-hpp

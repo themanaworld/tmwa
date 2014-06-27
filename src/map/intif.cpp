@@ -47,6 +47,8 @@
 #include "../poison.hpp"
 
 
+namespace tmwa
+{
 //-----------------------------------------------------------------
 // inter serverへの送信
 
@@ -695,3 +697,4 @@ RecvResult intif_parse(Session *s, uint16_t packet_id)
     }
     return rv;
 }
+} // namespace tmwa

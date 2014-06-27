@@ -27,6 +27,9 @@
 
 #include "../poison.hpp"
 
+
+namespace tmwa
+{
 namespace strings
 {
     TString::TString()
@@ -101,3 +104,4 @@ namespace strings
         return ts.c_str();
     }
 } // namespace strings
+} // namespace tmwa

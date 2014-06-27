@@ -31,6 +31,9 @@
 
 # include "array.hpp"
 
+
+namespace tmwa
+{
 template<class T, class E, E max>
 using earray = GenericArray<T, EnumIndexing<E, max>>;
 
@@ -156,5 +159,6 @@ IteratorPair<ValueIterator<E, EnumMath<E>>> erange(E b, E e)
 {
     return {b, e};
 }
+} // namespace tmwa
 
 #endif // TMWA_GENERIC_ENUM_HPP
