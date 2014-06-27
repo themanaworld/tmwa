@@ -20,6 +20,9 @@
 
 // just mention "fwd.hpp" to make formatter happy
 
+
+namespace tmwa
+{
 // impossible(*) to use safely
 // removed in C11
 # pragma GCC poison gets
@@ -116,5 +119,6 @@
 # pragma GCC poison ifstream
 # pragma GCC poison ofstream
 # pragma GCC poison fstream
+} // namespace tmwa
 
 #endif // GENERATING_DEPENDENCIES

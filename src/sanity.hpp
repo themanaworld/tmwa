@@ -21,6 +21,9 @@
 
 // just mention "fwd.hpp" to make formatter happy
 
+
+namespace tmwa
+{
 # ifndef __cplusplus
 #  error "Please compile in C++ mode"
 # endif // __cplusplus
@@ -45,5 +48,6 @@
 // some integer sizes (partially fixed for the x32 ABI)
 #  error "Unsupported platform, we use x86 / amd64 only"
 # endif // not __i386__
+} // namespace tmwa
 
 #endif // TMWA_SANITY_HPP

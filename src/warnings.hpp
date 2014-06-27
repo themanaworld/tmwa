@@ -23,6 +23,10 @@
 
 // just mention "fwd.hpp" to make formatter happy
 
+
+namespace tmwa
+{
+
 // This file is currently targeted at:
 // GCC 4.6 (incomplete due to bugs)
 // GCC 4.7 (for few minor workarounds)
@@ -781,3 +785,4 @@ EG47("-Wzero-as-null-pointer-constant")
 #undef W48
 #undef E48
 #undef X48
+} // namespace tmwa

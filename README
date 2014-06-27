@@ -53,23 +53,20 @@ platform dependencies:
   filesystem:
     must support symlinks
 build dependencies:
+  python:
+    required: 2.7.x only, installed in $PATH as 'python'
   C library:
     recommended: glibc 2.17 or higher
     supported: glibc 2.13
     known bad: glibc 2.8 or below
     unsupported: anything that's not glibc
   C++ compiler:
-    required: g++ 4.6.1 or higher
-    recommended: g++ 4.7.2 or higher
-    likely to work: clang++ 3.2 or higher
+    required: g++ 4.7.2 or higher
+    recommended: g++ 4.8.1 or higher
+    likely to work: clang++ 3.3 or higher
   C++ library:
     recommended: libstdc++ to match g++; may need patch for clang++
-    untested: libc++
-  flex:
-    tested: 2.5
-  bison:
-    tested: 2.7
-    bad: 2.3
+    may work: libc++
   attoconf:
     special: see below
 runtime dependencies:
