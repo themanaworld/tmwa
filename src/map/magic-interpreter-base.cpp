@@ -85,7 +85,7 @@ void set_spell SETTER(dumb_ptr<spell_t>, TYPE::SPELL, v_spell)
 #pragma GCC diagnostic pop
 
 magic_conf_t magic_conf;        /* Global magic conf */
-env_t magic_default_env = { &magic_conf, NULL };
+env_t magic_default_env = { &magic_conf, nullptr };
 
 AString magic_find_invocation(XString spellname)
 {
@@ -102,7 +102,7 @@ dumb_ptr<spell_t> magic_find_spell(XString invocation)
     if (it != magic_conf.spells_by_invocation.end())
         return it->second;
 
-    return NULL;
+    return nullptr;
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -125,7 +125,7 @@ dumb_ptr<teleport_anchor_t> magic_find_anchor(XString name)
     if (it != magic_conf.anchors_by_invocation.end())
         return it->second;
 
-    return NULL;
+    return nullptr;
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -201,11 +201,11 @@ dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
 static
 void free_components(dumb_ptr<component_t> *component_holder)
 {
-    if (*component_holder == NULL)
+    if (*component_holder == nullptr)
         return;
     free_components(&(*component_holder)->next);
     (*component_holder).delete_();
-    *component_holder = NULL;
+    *component_holder = nullptr;
 }
 
 void magic_add_component(dumb_ptr<component_t> *component_holder, ItemNameId id, int count)
@@ -213,10 +213,10 @@ void magic_add_component(dumb_ptr<component_t> *component_holder, ItemNameId id,
     if (count <= 0)
         return;
 
-    if (*component_holder == NULL)
+    if (*component_holder == nullptr)
     {
         auto component = dumb_ptr<component_t>::make();
-        component->next = NULL;
+        component->next = nullptr;
         component->item_id = id;
         component->count = count;
         *component_holder = component;
@@ -238,7 +238,7 @@ void magic_add_component(dumb_ptr<component_t> *component_holder, ItemNameId id,
 static
 void copy_components(dumb_ptr<component_t> *component_holder, dumb_ptr<component_t> component)
 {
-    if (component == NULL)
+    if (component == nullptr)
         return;
 
     magic_add_component(component_holder, component->item_id, component->count);
@@ -314,14 +314,14 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
         dumb_ptr<env_t> env,
         int *near_miss)
 {
-    if (guard == NULL)
-        return NULL;
+    if (guard == nullptr)
+        return nullptr;
 
     switch (guard->ty)
     {
         case SPELLGUARD::CONDITION:
             if (!magic_eval_int(env, guard->s.s_condition))
-                return NULL;
+                return nullptr;
             break;
 
         case SPELLGUARD::COMPONENTS:
@@ -337,8 +337,8 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
             spellguard_check_t altcheck = *check;
             effect_set_t *retval;
 
-            altcheck.components = NULL;
-            altcheck.catalysts = NULL;
+            altcheck.components = nullptr;
+            altcheck.catalysts = nullptr;
 
             copy_components(&altcheck.catalysts, check->catalysts);
             copy_components(&altcheck.components, check->components);
@@ -367,12 +367,12 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
             if (spellguard_can_satisfy(check, caster, env, near_miss))
                 return &guard->s.s_effect;
             else
-                return NULL;
+                return nullptr;
 
         default:
             FPRINTF(stderr, "Unexpected spellguard type %d\n"_fmt,
                     guard->ty);
-            return NULL;
+            return nullptr;
     }
 
     return spellguard_check_sub(check, guard->next, caster, env, near_miss);
@@ -385,8 +385,8 @@ effect_set_t *check_spellguard(dumb_ptr<spellguard_t> guard,
 {
     spellguard_check_t check;
     effect_set_t *retval;
-    check.catalysts = NULL;
-    check.components = NULL;
+    check.catalysts = nullptr;
+    check.components = nullptr;
     check.mana = 0;
     check.casttime = interval_t::zero();
 
@@ -478,7 +478,7 @@ dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> base)
     // since this is the only call site, it is expanded here
     //*retval = *base;
 
-    retval->next_invocation = NULL;
+    retval->next_invocation = nullptr;
     retval->flags = INVOCATION_FLAG::ZERO;
     dumb_ptr<env_t> env = retval->env = clone_env(base->env);
     retval->spell = base->spell;
@@ -491,12 +491,12 @@ dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> base)
     // huh?
     retval->current_effect = base->trigger_effect;
     retval->trigger_effect = base->trigger_effect;
-    retval->end_effect = NULL;
-    // retval->status_change_refs = NULL;
+    retval->end_effect = nullptr;
+    // retval->status_change_refs = nullptr;
 
     retval->bl_id = BlockId();
-    retval->bl_prev = NULL;
-    retval->bl_next = NULL;
+    retval->bl_prev = nullptr;
+    retval->bl_next = nullptr;
     retval->bl_m = base->bl_m;
     retval->bl_x = base->bl_x;
     retval->bl_y = base->bl_y;
@@ -517,7 +517,7 @@ void spell_bind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocat
         if (bool(invocation->flags & INVOCATION_FLAG::BOUND)
             || invocation->subject || invocation->next_invocation)
         {
-            int *i = NULL;
+            int *i = nullptr;
             FPRINTF(stderr,
                     "[magic] INTERNAL ERROR: Attempt to re-bind spell invocation `%s'\n"_fmt,
                     invocation->spell->name);
@@ -545,7 +545,7 @@ int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invoca
             *seeker = invocation_->next_invocation;
 
             invocation_->flags &= ~INVOCATION_FLAG::BOUND;
-            invocation_->next_invocation = NULL;
+            invocation_->next_invocation = nullptr;
             invocation_->subject = BlockId();
 
             return 0;

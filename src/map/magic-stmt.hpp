@@ -40,7 +40,7 @@ struct op_t
 /**
  * Retrieves an operation by name
  * @param name The name to look up
- * @return An operation of that name, or NULL, and a function index
+ * @return An operation of that name, or nullptr, and a function index
  */
 op_t *magic_get_op(ZString name);
 

@@ -22,6 +22,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 TEST(slice, slice)
 {
     int init[] = {1, 2, 3, 4, 5};

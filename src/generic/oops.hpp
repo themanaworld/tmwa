@@ -30,14 +30,13 @@
 
 class AssertionError : public std::runtime_error
 {
-    const char *_what;
 public:
     AssertionError(const char *desc, const char *expr,
             const char *file, size_t line, const char *function);
 };
 
 # define ALLEGE(desc, expr) \
-    if (expr) {} \
+    if (expr) {}            \
     else throw AssertionError(desc, #expr, __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 #endif // TMWA_GENERIC_OOPS_HPP

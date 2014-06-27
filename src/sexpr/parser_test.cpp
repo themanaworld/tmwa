@@ -22,6 +22,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 static
 io::FD string_pipe(ZString sz)
 {

@@ -116,7 +116,7 @@ namespace magic_v2
         if (it != const_defm.end())
             return &it->second;
 
-        return NULL;
+        return nullptr;
     }
     static
     dumb_ptr<effect_t> new_effect(EFFECT ty)

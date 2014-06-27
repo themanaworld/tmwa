@@ -73,7 +73,7 @@ bool runflag = true;
 static
 void chld_proc(int)
 {
-    wait(NULL);
+    wait(nullptr);
 }
 static
 void sig_proc(int)
@@ -122,6 +122,7 @@ int main(int argc, char **argv)
     // Signal to create coredumps by system when necessary (crash)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
     compat_signal(SIGSEGV, SIG_DFL);
     compat_signal(SIGBUS, SIG_DFL);
     compat_signal(SIGTRAP, SIG_DFL);

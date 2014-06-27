@@ -22,6 +22,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 TEST(oops, okay)
 {
     try
@@ -45,6 +48,6 @@ TEST(oops, uhoh)
     catch (const AssertionError& e)
     {
         ASSERT_STREQ(strstr(e.what(), "src/generic/"),
-                "src/generic/oops_test.cpp:42: error: in 'virtual void oops_uhoh_Test::TestBody()', incorrectly alleged that 'the sky is falling' (1 == 0)");
+                "src/generic/oops_test.cpp:45: error: in 'virtual void oops_uhoh_Test::TestBody()', incorrectly alleged that 'the sky is falling' (1 == 0)");
     }
 }

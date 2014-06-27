@@ -202,7 +202,7 @@ void intif_party_addmember(PartyId party_id, AccountId account_id)
 
     dumb_ptr<map_session_data> sd;
     sd = map_id2sd(account_to_block(account_id));
-    if (sd != NULL)
+    if (sd != nullptr)
     {
         Packet_Fixed<0x3022> fixed_22;
         fixed_22.party_id = party_id;
@@ -246,7 +246,7 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
     if (!char_session)
         return;
 
-    if (sd != NULL)
+    if (sd != nullptr)
     {
         Packet_Fixed<0x3025> fixed_25;
         fixed_25.party_id = sd->status.party_id;
@@ -304,7 +304,7 @@ int intif_parse_WisMessage(Session *, const Packet_Head<0x3801>& head, AString& 
                 to);
     }
     sd = map_nick2sd(to); // Searching destination player
-    if (sd != NULL && sd->status_key.name == to)
+    if (sd != nullptr && sd->status_key.name == to)
     {
         // exactly same name (inter-server have checked the name before)
         {
@@ -333,7 +333,7 @@ int intif_parse_WisEnd(Session *, const Packet_Fixed<0x3802>& fixed)
         PRINTF("intif_parse_wisend: player: %s, flag: %d\n"_fmt,
                 name, flag);
     sd = map_nick2sd(name);
-    if (sd != NULL)
+    if (sd != nullptr)
         clif_wis_end(sd->sess, flag);
 
     return 0;
@@ -366,7 +366,7 @@ static
 int intif_parse_AccountReg(Session *, const Packet_Head<0x3804>& head, const std::vector<Packet_Repeat<0x3804>>& repeat)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(head.account_id));
-    if (sd == NULL)
+    if (sd == nullptr)
         return 1;
 
     size_t jlim = std::min(ACCOUNT_REG_NUM, repeat.size());
@@ -388,7 +388,7 @@ int intif_parse_LoadStorage(Session *, const Packet_Payload<0x3810>& payload)
     dumb_ptr<map_session_data> sd;
 
     sd = map_id2sd(account_to_block(payload.account_id));
-    if (sd == NULL)
+    if (sd == nullptr)
     {
         if (battle_config.error_log)
             PRINTF("intif_parse_LoadStorage: user not found %d\n"_fmt,
@@ -541,7 +541,7 @@ RecvResult intif_parse(Session *s, uint16_t packet_id)
             if (rv != RecvResult::Complete)
                 return rv;
 
-            clif_GMmessage(NULL, mes, 0);
+            clif_GMmessage(nullptr, mes, 0);
             break;
         }
         case 0x3801:

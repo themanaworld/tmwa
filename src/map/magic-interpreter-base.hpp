@@ -32,7 +32,7 @@ extern magic_conf_t magic_conf; /* Global magic conf */
 extern env_t magic_default_env; /* Fake default environment */
 
 /**
- * Adds a component selection to a component holder (which may initially be NULL)
+ * Adds a component selection to a component holder (which may initially be nullptr)
  */
 void magic_add_component(dumb_ptr<component_t> *component_holder, ItemNameId id, int count);
 

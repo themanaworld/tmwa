@@ -59,7 +59,7 @@ void push_heap_path(int *heap, struct tmp_path *tp, int index)
 {
     int i, h;
 
-    if (heap == NULL || tp == NULL)
+    if (heap == nullptr || tp == nullptr)
     {
         PRINTF("push_heap_path nullpo\n"_fmt);
         return;
@@ -145,7 +145,7 @@ int calc_cost(struct tmp_path *p, int x1, int y1)
 {
     int xd, yd;
 
-    nullpo_ret(p);
+    nullpo_retz(p);
 
     xd = x1 - p->x;
     if (xd < 0)
@@ -166,8 +166,8 @@ int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
 {
     int i;
 
-    nullpo_ret(heap);
-    nullpo_ret(tp);
+    nullpo_retz(heap);
+    nullpo_retz(tp);
 
     i = calc_index(x, y);
 
@@ -211,7 +211,7 @@ int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
 static
 bool can_place(struct map_local *m, int x, int y)
 {
-    nullpo_ret(m);
+    nullpo_retz(m);
 
     return !bool(read_gatp(m, x, y) & MapCell::UNWALKABLE);
 }
@@ -223,7 +223,7 @@ bool can_place(struct map_local *m, int x, int y)
 static
 int can_move(struct map_local *m, int x0, int y0, int x1, int y1)
 {
-    nullpo_ret(m);
+    nullpo_retz(m);
 
     if (x0 - x1 < -1 || x0 - x1 > 1 || y0 - y1 < -1 || y0 - y1 > 1)
         return 0;
@@ -250,7 +250,7 @@ int path_search(struct walkpath_data *wpd, map_local *m, int x0, int y0, int x1,
     int i, rp, x, y;
     int dx, dy;
 
-    nullpo_ret(wpd);
+    nullpo_retz(wpd);
 
     assert (m->gat);
     map_local *md = m;

@@ -1,6 +1,6 @@
 #ifndef TMWA_IO_CXXSTDIO_HPP
 #define TMWA_IO_CXXSTDIO_HPP
-//    cxxstdio.hpp - pass C++ types through scanf/printf
+//    cxxstdio.hpp - pass C++ types through printf
 //
 //    Copyright © 2011-2013 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -31,29 +31,12 @@
 
 namespace cxxstdio
 {
-    // other implementations of do_vprint or do_vscan are injected by ADL.
+    // other implementations of do_vprint are injected by ADL.
     inline __attribute__((format(printf, 2, 0)))
     int do_vprint(FILE *out, const char *fmt, va_list ap)
     {
         return vfprintf(out, fmt, ap);
     }
-
-    inline __attribute__((format(scanf, 2, 0)))
-    int do_vscan(FILE *in, const char *fmt, va_list ap)
-    {
-        return vfscanf(in, fmt, ap);
-    }
-
-# if 0
-    inline __attribute__((format(scanf, 2, 0)))
-    int do_vscan(const char *in, const char *fmt, va_list ap)
-    {
-        return vsscanf(in, fmt, ap);
-    }
-# else
-    inline
-    int do_vscan(const char *, const char *, va_list) = delete;
-# endif
 
     template<class T>
     inline __attribute__((format(printf, 2, 3)))
@@ -66,19 +49,6 @@ namespace cxxstdio
         va_end(ap);
         return rv;
     }
-
-    template<class T>
-    inline __attribute__((format(scanf, 2, 3)))
-    int do_scan(T&& t, const char *fmt, ...)
-    {
-        int rv;
-        va_list ap;
-        va_start(ap, fmt);
-        rv = do_vscan(std::forward<T>(t), fmt, ap);
-        va_end(ap);
-        return rv;
-    }
-
 
     template<class T, typename=typename std::enable_if<!std::is_class<T>::value>::type>
     typename remove_enum<T>::type decay_for_printf(T v)
@@ -93,16 +63,8 @@ namespace cxxstdio
         return std::forward<T>(v);
     }
 
-    template<class T, typename = typename std::enable_if<!std::is_enum<T>::value>::type>
-    T& convert_for_scanf(T& v)
-    {
-        return v;
-    }
-
     inline
     const char *convert_for_printf(const char *) = delete;
-    inline
-    char *convert_for_scanf(char *) = delete;
 
 # if 0
     template<class E>
@@ -180,12 +142,6 @@ namespace cxxstdio
         }
     };
 
-    template<class T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
-    EnumConverter<T> convert_for_scanf(T& v)
-    {
-        return v;
-    }
-
     template<class Format>
     class PrintFormatter
     {
@@ -201,21 +157,6 @@ namespace cxxstdio
         }
     };
 
-    template<class Format>
-    class ScanFormatter
-    {
-    public:
-        template<class T, class... A>
-        static
-        int scan(T&& t, A&&... a)
-        {
-            constexpr static
-            const char *scan_format = Format::scan_format().format_string();
-            return do_scan(std::forward<T>(t), scan_format,
-                    &convert_for_scanf(*a)...);
-        }
-    };
-
 # define XPRINTF(out, fmt, ...)                                             \
     ({                                                                      \
         struct format_impl                                                  \
@@ -226,29 +167,10 @@ namespace cxxstdio
         cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);  \
     })
 
-# if 0
-#  define XSCANF(out, fmt, ...)                                             \
-    ({                                                                      \
-        struct format_impl                                                  \
-        {                                                                   \
-            constexpr static                                                \
-            FormatString scan_format() { return fmt; }                      \
-        };                                                                  \
-        cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__);    \
-    })
-# endif
-
 # define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
-# if 0
-#  define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
-# endif
 # define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
 # define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<AString&>(str), fmt, ## __VA_ARGS__)
 # define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
-# if 0
-#  define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
-#  define SSCANF(str, fmt, ...)       XSCANF(maybe_cast<ZString>(str), fmt, ## __VA_ARGS__)
-# endif
 
 # define STRPRINTF(fmt, ...)                        \
     ({                                              \

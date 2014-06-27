@@ -25,6 +25,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 // This should be made part of the main API,
 // but is not yet to keep the diff small.
 // Edit: hack to fix the new strict comparison.

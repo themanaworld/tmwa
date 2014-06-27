@@ -406,7 +406,7 @@ RecvResult mapif_parse_AccReg(Session *s)
 
     struct accreg *reg = accreg_db.search(head.account_id);
 
-    if (reg == NULL)
+    if (reg == nullptr)
     {
         AccountId account_id = head.account_id;
         reg = accreg_db.init(account_id);

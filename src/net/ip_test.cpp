@@ -27,6 +27,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 #define CB(X) (std::integral_constant<bool, (X)>::value)
 TEST(ip4addr, cmp)
 {

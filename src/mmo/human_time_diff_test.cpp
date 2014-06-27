@@ -22,6 +22,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 // a sequence of [-+]?[0-9]+([ay]|m|[jd]|h|mn|s)
 
 TEST(humantimediff, single)

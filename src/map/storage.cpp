@@ -47,7 +47,7 @@ void do_final_storage(void)
 Storage *account2storage(AccountId account_id)
 {
     Storage *stor = storage_db.search(account_id);
-    if (stor == NULL)
+    if (stor == nullptr)
     {
         stor = storage_db.init(account_id);
         stor->account_id = account_id;
@@ -73,13 +73,13 @@ void storage_delete(AccountId account_id)
  */
 int storage_storageopen(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->state.storage_open)
         return 1;               //Already open?
 
     Storage *stor = storage_db.search(sd->status_key.account_id);
-    if (stor == NULL)
+    if (stor == nullptr)
     {                           //Request storage.
         intif_request_storage(sd->status_key.account_id);
         return 1;
@@ -177,9 +177,9 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, IOff0 index, int amount)
 {
     Storage *stor;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
     stor = account2storage2(sd->status_key.account_id);
-    nullpo_ret(stor);
+    nullpo_retz(stor);
 
     if ((stor->storage_amount > MAX_STORAGE) || !stor->storage_status)
         return 0;               // storage full / storage closed
@@ -213,9 +213,9 @@ int storage_storageget(dumb_ptr<map_session_data> sd, SOff0 index, int amount)
     Storage *stor;
     PickupFail flag;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
     stor = account2storage2(sd->status_key.account_id);
-    nullpo_ret(stor);
+    nullpo_retz(stor);
 
     if (!index.ok())
         return 0;
@@ -242,9 +242,9 @@ int storage_storageclose(dumb_ptr<map_session_data> sd)
 {
     Storage *stor;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
     stor = account2storage2(sd->status_key.account_id);
-    nullpo_ret(stor);
+    nullpo_retz(stor);
 
     clif_storageclose(sd);
     if (stor->storage_status)
@@ -274,7 +274,7 @@ int storage_storage_quit(dumb_ptr<map_session_data> sd)
 {
     Storage *stor;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     stor = account2storage2(sd->status_key.account_id);
     if (stor)

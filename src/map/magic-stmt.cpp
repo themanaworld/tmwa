@@ -228,7 +228,7 @@ void try_to_finish_invocation(dumb_ptr<invocation> invocation)
         {
             clear_stack(invocation);
             invocation->current_effect = invocation->end_effect;
-            invocation->end_effect = NULL;
+            invocation->end_effect = nullptr;
             spell_execute(invocation);
         }
         else
@@ -341,7 +341,7 @@ static
 int op_instaheal(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> caster = (env->VAR(VAR_CASTER).ty == TYPE::ENTITY)
-        ? map_id2bl(wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_CASTER).v.v_int))) : NULL;
+        ? map_id2bl(wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_CASTER).v.v_int))) : nullptr;
     dumb_ptr<block_list> subject = ARGENTITY(0);
     if (!caster)
         caster = subject;
@@ -704,7 +704,7 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
     interval_t monster_lifetime = static_cast<interval_t>(ARGINT(5));
     int i;
 
-    dumb_ptr<map_session_data> owner = NULL;
+    dumb_ptr<map_session_data> owner = nullptr;
     if (monster_attitude == MonsterAttitude::SERVANT
         && owner_e->bl_type == BL::PC)
         owner = owner_e->is_player();
@@ -847,7 +847,7 @@ int op_emote(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_set_script_variable(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
     VarName varname = stringish<VarName>(ARGSTR(1));
     int array_index = 0;
 
@@ -862,7 +862,7 @@ int op_set_script_variable(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_set_script_str(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
     VarName varname = stringish<VarName>(ARGSTR(1));
     int array_index = 0;
 
@@ -877,7 +877,7 @@ int op_set_script_str(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_set_hair_colour(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
 
     if (!c)
         return 1;
@@ -890,7 +890,7 @@ int op_set_hair_colour(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_set_hair_style(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
 
     if (!c)
         return 1;
@@ -908,10 +908,10 @@ int op_drop_item_for (dumb_ptr<env_t>, Slice<val_t> args)
     location_t *loc = &ARGLOCATION(0);
     int count = ARGINT(2);
     interval_t interval = static_cast<interval_t>(ARGINT(3));
-    dumb_ptr<map_session_data> c = ((args.size() > 4) && (ENTITY_TYPE(4) == BL::PC)) ? ARGPC(4) : NULL;
+    dumb_ptr<map_session_data> c = ((args.size() > 4) && (ENTITY_TYPE(4) == BL::PC)) ? ARGPC(4) : nullptr;
     interval_t delay = (args.size() > 5) ? static_cast<interval_t>(ARGINT(5)) : interval_t::zero();
     interval_t delaytime[3] = { delay, delay, delay };
-    dumb_ptr<map_session_data> owners[3] = { c, NULL, NULL };
+    dumb_ptr<map_session_data> owners[3] = { c, nullptr, nullptr };
 
     GET_ARG_ITEM(1, item, stackable);
 
@@ -929,7 +929,7 @@ int op_drop_item_for (dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_gain_exp(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
 
     if (!c)
         return 1;
@@ -1015,7 +1015,7 @@ static
 dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
 {
     if (!invocation_->stack_size)
-        return NULL;
+        return nullptr;
     else
     {
         cont_activation_record_t *ar =
@@ -1091,7 +1091,7 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
                 FPRINTF(stderr,
                         "[magic] INTERNAL ERROR: While executing spell `%s':  stack corruption\n"_fmt,
                         invocation_->spell->name);
-                return NULL;
+                return nullptr;
         }
     }
 }
@@ -1108,7 +1108,7 @@ cont_activation_record_t *add_stack_entry(dumb_ptr<invocation> invocation_,
                 "[magic] Execution stack size exceeded in spell `%s'; truncating effect\n"_fmt,
                 invocation_->spell->name);
         invocation_->stack_size--;
-        return NULL;
+        return nullptr;
     }
 
     ar->ty = ty;
@@ -1417,11 +1417,11 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
             case EFFECT::ABORT:
                 invocation_->flags |= INVOCATION_FLAG::ABORTED;
-                invocation_->end_effect = NULL;
+                invocation_->end_effect = nullptr;
                 FALLTHROUGH;
             case EFFECT::END:
                 clear_stack(invocation_);
-                next = NULL;
+                next = nullptr;
                 break;
 
             case EFFECT::ASSIGN:

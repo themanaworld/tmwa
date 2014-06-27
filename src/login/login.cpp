@@ -285,7 +285,7 @@ static
 GmLevel isGM(AccountId account_id)
 {
     GM_Account *p = gm_account_db.search(account_id);
-    if (p == NULL)
+    if (p == nullptr)
         return GmLevel();
     return p->level;
 }
@@ -3255,14 +3255,14 @@ void parse_login(Session *s)
 static
 bool login_lan_config(XString w1, ZString w2)
 {
-    struct hostent *h = NULL;
+    struct hostent *h = nullptr;
 
     {
         if (w1 == "lan_char_ip"_s)
         {
             // Read Char-Server Lan IP Address
             h = gethostbyname(w2.c_str());
-            if (h != NULL)
+            if (h != nullptr)
             {
                 lan_char_ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),

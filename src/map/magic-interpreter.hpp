@@ -394,8 +394,8 @@ struct invocation : block_list
 
     int script_pos;            /* Script position; if nonzero, resume the script we were running. */
     dumb_ptr<effect_t> current_effect;
-    dumb_ptr<effect_t> trigger_effect;   /* If non-NULL, this is used to spawn a cloned effect based on the same environment */
-    dumb_ptr<effect_t> end_effect;       /* If non-NULL, this is executed when the spell terminates naturally, e.g. when all status changes have run out or all delays are over. */
+    dumb_ptr<effect_t> trigger_effect;   /* If non-nullptr, this is used to spawn a cloned effect based on the same environment */
+    dumb_ptr<effect_t> end_effect;       /* If non-nullptr, this is executed when the spell terminates naturally, e.g. when all status changes have run out or all delays are over. */
 
     /* Status change references:  for status change updates, keep track of whom we updated where */
     std::vector<status_change_ref_t> status_change_refv;

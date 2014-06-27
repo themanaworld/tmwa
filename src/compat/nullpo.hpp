@@ -26,7 +26,8 @@
 //# define BUG_FREE
 
 /// All functions print to standard error (was: standard output)
-/// nullpo_ret(cond) - return 0 if given pointer is NULL
+/// nullpo_retn(cond) - return nullptr if given pointer is nullptr
+/// nullpo_retz(cond) - return 0 if given pointer is nullptr
 /// nullpo_retv(cond) - just return (function returns void)
 /// nullpo_retr(rv, cond) - return given value instead
 
@@ -38,7 +39,8 @@
 #  define nullpo_retr(ret, t) /*t*/
 # endif // BUG_FREE
 
-# define nullpo_ret(t) nullpo_retr(0, t)
+# define nullpo_retn(t) nullpo_retr(nullptr, t)
+# define nullpo_retz(t) nullpo_retr(0, t)
 # define nullpo_retv(t) nullpo_retr(, t)
 
 # include "fwd.hpp"

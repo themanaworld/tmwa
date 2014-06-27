@@ -123,7 +123,7 @@ void npc_enable_sub(dumb_ptr<block_list> bl, dumb_ptr<npc_data> nd)
 int npc_enable(NpcName name, bool flag)
 {
     dumb_ptr<npc_data> nd = npc_name2id(name);
-    if (nd == NULL)
+    if (nd == nullptr)
     {
         PRINTF("npc_enable(%s, %s) failed.\n"_fmt, name, flag ? "true"_s : "false"_s);
         return 0;
@@ -172,7 +172,7 @@ dumb_ptr<npc_data> npc_name2id(NpcName name)
  */
 int npc_event_dequeue(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->npc_id = BlockId();
 
@@ -195,7 +195,7 @@ int npc_delete(dumb_ptr<npc_data> nd)
 {
     nullpo_retr(1, nd);
 
-    if (nd->bl_prev == NULL)
+    if (nd->bl_prev == nullptr)
         return 1;
 
     clif_clearchar(nd, BeingRemoveWhy::DEAD);
@@ -209,7 +209,7 @@ void npc_timer_event(NpcEvent eventname)
     dumb_ptr<npc_data_script> nd;
 //  int xs,ys;
 
-    if ((ev == NULL || (nd = ev->nd) == NULL))
+    if ((ev == nullptr || (nd = ev->nd) == nullptr))
     {
         PRINTF("npc_event: event not found [%s]\n"_fmt,
                 eventname);
@@ -330,7 +330,7 @@ static
 void npc_timerevent(TimerData *, tick_t tick, BlockId id, interval_t data)
 {
     dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
-    assert (nd != NULL);
+    assert (nd != nullptr);
     assert (nd->npc_subtype == NpcSubtype::SCRIPT);
     assert (nd->scr.next_event != nd->scr.timer_eventv.end());
 
@@ -466,15 +466,15 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
     dumb_ptr<npc_data_script> nd;
     int xs, ys;
 
-    if (sd == NULL)
+    if (sd == nullptr)
     {
         PRINTF("npc_event nullpo?\n"_fmt);
     }
 
-    if (ev == NULL && eventname.label == stringish<ScriptLabel>("OnTouch"_s))
+    if (ev == nullptr && eventname.label == stringish<ScriptLabel>("OnTouch"_s))
         return 1;
 
-    if (ev == NULL || (nd = ev->nd) == NULL)
+    if (ev == nullptr || (nd = ev->nd) == nullptr)
     {
         if (mob_kill)
         {
@@ -635,11 +635,11 @@ int npc_checknear(dumb_ptr<map_session_data> sd, BlockId id)
 {
     dumb_ptr<npc_data> nd;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     nd = map_id_is_npc(id);
     // this actually happens
-    if (nd == NULL)
+    if (nd == nullptr)
         return 1;
     if (nd->bl_type != BL::NPC)
         return 1;
@@ -846,7 +846,7 @@ int npc_buylist(dumb_ptr<map_session_data> sd,
         const ItemNameId& item_l_id = item_list[i].name_id;
 
         struct item_data *item_data;
-        if ((item_data = itemdb_exists(item_l_id)) != NULL)
+        if ((item_data = itemdb_exists(item_l_id)) != nullptr)
         {
             int amount = item_l_count;
             Item item_tmp {};
@@ -1027,7 +1027,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
     nd->bl_id = npc_get_new_npc_id();
     nd->n = map_addnpc(m, nd);
 
-    nd->bl_prev = nd->bl_next = NULL;
+    nd->bl_prev = nd->bl_next = nullptr;
     nd->bl_m = m;
     nd->bl_x = x;
     nd->bl_y = y;
@@ -1088,7 +1088,7 @@ bool extract(XString xs, npc_item_list *itv)
         goto return_true;
 
     id = itemdb_searchname(name_or_id.rstrip());
-    if (id == NULL)
+    if (id == nullptr)
         return false;
     itv->nameid = id->nameid;
     goto return_true;
@@ -1096,7 +1096,7 @@ bool extract(XString xs, npc_item_list *itv)
 return_true:
     if (itv->value < 0)
     {
-        if (id == NULL)
+        if (id == nullptr)
             id = itemdb_search(itv->nameid);
         itv->value = id->value_buy * abs(itv->value);
     }
@@ -1145,7 +1145,7 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
         return 1;
     }
 
-    nd->bl_prev = nd->bl_next = NULL;
+    nd->bl_prev = nd->bl_next = nullptr;
     nd->bl_m = m;
     nd->bl_x = x;
     nd->bl_y = y;
@@ -1200,7 +1200,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     int xs = 0, ys = 0;   // [Valaris] thanks to fov
     Species npc_class;
     MapName mapname;
-    std::unique_ptr<const ScriptBuffer> script = NULL;
+    std::unique_ptr<const ScriptBuffer> script = nullptr;
     dumb_ptr<npc_data_script> nd;
     int evflag = 0;
 
@@ -1257,7 +1257,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
             srcbuf += '\n';
         }
         script = parse_script(AString(srcbuf), startline, false);
-        if (script == NULL)
+        if (script == nullptr)
             // script parse error?
             return 1;
     }
@@ -1327,7 +1327,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         nd->name = w3;
     }
 
-    nd->bl_prev = nd->bl_next = NULL;
+    nd->bl_prev = nd->bl_next = nullptr;
     nd->bl_m = m;
     nd->bl_x = x;
     nd->bl_y = y;
@@ -1452,7 +1452,7 @@ int npc_parse_function(XString, XString, XString w3, ZString,
         srcbuf += '\n';
     }
     std::unique_ptr<const ScriptBuffer> script = parse_script(AString(srcbuf), startline, false);
-    if (script == NULL)
+    if (script == nullptr)
     {
         // script parse error?
         return 1;
@@ -1500,8 +1500,8 @@ int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
     {
         md.new_();
 
-        md->bl_prev = NULL;
-        md->bl_next = NULL;
+        md->bl_prev = nullptr;
+        md->bl_next = nullptr;
         md->bl_m = m;
         md->bl_x = x;
         md->bl_y = y;

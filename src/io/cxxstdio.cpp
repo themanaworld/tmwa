@@ -1,5 +1,5 @@
 #include "cxxstdio.hpp"
-//    cxxstdio.cpp - pass C++ types through scanf/printf
+//    cxxstdio.cpp - pass C++ types through printf
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //

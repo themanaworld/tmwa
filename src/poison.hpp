@@ -76,13 +76,12 @@
 # pragma GCC poison open_memstream
 # pragma GCC poison open_wmemstream
 
-// *scanf %ms is done very carefully.
-//#pragma GCC poison scanf
-//#pragma GCC poison fscanf
-//#pragma GCC poison sscanf
-//#pragma GCC poison vscanf
-//#pragma GCC poison vsscanf
-//#pragma GCC poison vfscanf
+# pragma GCC poison scanf
+# pragma GCC poison fscanf
+# pragma GCC poison sscanf
+# pragma GCC poison vscanf
+# pragma GCC poison vsscanf
+# pragma GCC poison vfscanf
 
 # pragma GCC poison getcwd
 # pragma GCC poison get_current_dir_name

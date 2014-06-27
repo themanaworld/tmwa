@@ -986,7 +986,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
 {
     if (data->type == ByteCode::PARAM_)
     {
-        if (sd == NULL)
+        if (sd == nullptr)
             PRINTF("get_val error param SP::%d\n"_fmt, data->u.reg.sp());
         data->type = ByteCode::INT;
         if (sd)
@@ -1001,7 +1001,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
 
         if (prefix != '$')
         {
-            if (sd == NULL)
+            if (sd == nullptr)
                 PRINTF("get_val error name?:%s\n"_fmt, name);
         }
         if (postfix == '$')
@@ -1664,7 +1664,7 @@ void builtin_percentheal(ScriptState *st)
 static
 void builtin_input(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     script_data& scrd = AARGO2(2);
     ByteCode type = scrd.type;
     assert (type == ByteCode::VARIABLE);
@@ -1741,7 +1741,7 @@ void builtin_if (ScriptState *st)
 static
 void builtin_set(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     SIR reg = AARGO2(2).u.reg;
     if (AARGO2(2).type == ByteCode::PARAM_)
     {
@@ -1782,7 +1782,7 @@ void builtin_set(ScriptState *st)
 static
 void builtin_setarray(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     assert (AARGO2(2).type == ByteCode::VARIABLE);
     SIR reg = AARGO2(2).u.reg;
     ZString name = variable_names.outtern(reg.base());
@@ -1813,7 +1813,7 @@ void builtin_setarray(ScriptState *st)
 static
 void builtin_cleararray(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     assert (AARGO2(2).type == ByteCode::VARIABLE);
     SIR reg = AARGO2(2).u.reg;
     ZString name = variable_names.outtern(reg.base());
@@ -1939,7 +1939,7 @@ void builtin_countitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
-        if (item_data != NULL)
+        if (item_data != nullptr)
             nameid = item_data->nameid;
     }
     else
@@ -2027,7 +2027,7 @@ void builtin_getitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
-        if (item_data != NULL)
+        if (item_data != nullptr)
             nameid = item_data->nameid;
     }
     else
@@ -2045,7 +2045,7 @@ void builtin_getitem(ScriptState *st)
         item_tmp.nameid = nameid;
         if (HARGO2(5))    //アイテムを指定したIDに渡す
             sd = map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(5))));
-        if (sd == NULL)         //アイテムを渡す相手がいなかったらお帰り
+        if (sd == nullptr)         //アイテムを渡す相手がいなかったらお帰り
             return;
         PickupFail flag;
         if ((flag = pc_additem(sd, &item_tmp, amount)) != PickupFail::OKAY)
@@ -2053,7 +2053,7 @@ void builtin_getitem(ScriptState *st)
             clif_additem(sd, IOff0::from(0), 0, flag);
             map_addflooritem(&item_tmp, amount,
                     sd->bl_m, sd->bl_x, sd->bl_y,
-                    NULL, NULL, NULL);
+                    nullptr, nullptr, nullptr);
         }
     }
 
@@ -2102,7 +2102,7 @@ void builtin_makeitem(ScriptState *st)
         Item item_tmp {};
         item_tmp.nameid = nameid;
 
-        map_addflooritem(&item_tmp, amount, m, x, y, NULL, NULL, NULL);
+        map_addflooritem(&item_tmp, amount, m, x, y, nullptr, nullptr, nullptr);
     }
 }
 
@@ -2177,7 +2177,7 @@ void builtin_readparam(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
-    if (sd == NULL)
+    if (sd == nullptr)
     {
         push_int(st->stack, ByteCode::INT, -1);
         return;
@@ -2202,7 +2202,7 @@ void builtin_getcharid(ScriptState *st)
         sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARGO2(3)))));
     else
         sd = script_rid2sd(st);
-    if (sd == NULL)
+    if (sd == nullptr)
     {
         push_int(st->stack, ByteCode::INT, -1);
         return;
@@ -2295,9 +2295,9 @@ void builtin_getequipid(ScriptState *st)
     struct item_data *item;
 
     sd = script_rid2sd(st);
-    if (sd == NULL)
+    if (sd == nullptr)
     {
-        PRINTF("getequipid: sd == NULL\n"_fmt);
+        PRINTF("getequipid: sd == nullptr\n"_fmt);
         return;
     }
     num = conv_num(st, &AARGO2(2));
@@ -3040,7 +3040,7 @@ void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, ItemNameId i
     if (drop->item_data.nameid == item)
     {
         (*amount) += drop->item_data.amount;
-        clif_clearflooritem(drop, 0);
+        clif_clearflooritem(drop, nullptr);
         map_delobject(drop->bl_id, drop->bl_type);
     }
 }
@@ -3200,7 +3200,7 @@ void builtin_resetstatus(ScriptState *st)
 static
 void builtin_changesex(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     sd = script_rid2sd(st);
 
     chrif_char_ask_name(AccountId(), sd->status_key.name, 5, HumanTimeDiff()); // type: 5 - changesex
@@ -3215,7 +3215,7 @@ static
 void builtin_attachrid(ScriptState *st)
 {
     st->rid = wrap<BlockId>(conv_num(st, &AARGO2(2)));
-    push_int(st->stack, ByteCode::INT, (map_id2sd(st->rid) != NULL));
+    push_int(st->stack, ByteCode::INT, (map_id2sd(st->rid) != nullptr));
 }
 
 /*==========================================
@@ -3236,7 +3236,7 @@ static
 void builtin_isloggedin(ScriptState *st)
 {
     push_int(st->stack, ByteCode::INT,
-              map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(2)))) != NULL);
+              map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(2)))) != nullptr);
 }
 
 static
@@ -3436,7 +3436,7 @@ void builtin_marriage(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     dumb_ptr<map_session_data> p_sd = map_nick2sd(partner);
 
-    if (sd == NULL || p_sd == NULL || pc_marriage(sd, p_sd) < 0)
+    if (sd == nullptr || p_sd == nullptr || pc_marriage(sd, p_sd) < 0)
     {
         push_int(st->stack, ByteCode::INT, 0);
         return;
@@ -3453,7 +3453,7 @@ void builtin_divorce(ScriptState *st)
 
     sd->npc_flags.divorce = 1;
 
-    if (sd == NULL || pc_divorce(sd) < 0)
+    if (sd == nullptr || pc_divorce(sd) < 0)
     {
         push_int(st->stack, ByteCode::INT, 0);
         return;
@@ -3643,7 +3643,7 @@ void builtin_misceffect(ScriptState *st)
     int type;
     BlockId id;
     CharName name;
-    dumb_ptr<block_list> bl = NULL;
+    dumb_ptr<block_list> bl = nullptr;
 
     type = conv_num(st, &AARGO2(2));
 
@@ -3690,7 +3690,7 @@ void builtin_specialeffect(ScriptState *st)
 {
     dumb_ptr<block_list> bl = map_id2bl(st->oid);
 
-    if (bl == NULL)
+    if (bl == nullptr)
         return;
 
     clif_specialeffect(bl,
@@ -3705,7 +3705,7 @@ void builtin_specialeffect2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    if (sd == NULL)
+    if (sd == nullptr)
         return;
 
     clif_specialeffect(sd,
@@ -3725,7 +3725,7 @@ void builtin_nude(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    if (sd == NULL)
+    if (sd == nullptr)
         return;
 
     for (EQUIP i : EQUIPs)
@@ -3747,7 +3747,7 @@ static
 void builtin_unequipbyid(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    if (sd == NULL)
+    if (sd == nullptr)
         return;
 
     EQUIP slot_id = EQUIP(conv_num(st, &AARGO2(2)));
@@ -3791,7 +3791,7 @@ static
 void builtin_npcwarp(ScriptState *st)
 {
     int x, y;
-    dumb_ptr<npc_data> nd = NULL;
+    dumb_ptr<npc_data> nd = nullptr;
 
     x = conv_num(st, &AARGO2(2));
     y = conv_num(st, &AARGO2(3));
@@ -3833,7 +3833,7 @@ void builtin_message(ScriptState *st)
     ZString msg = ZString(conv_str(st, &AARGO2(3)));
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(player);
-    if (pl_sd == NULL)
+    if (pl_sd == nullptr)
         return;
     clif_displaymessage(pl_sd->sess, msg);
 
@@ -4773,7 +4773,7 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     dumb_ptr<map_session_data> sd = map_id2sd(rid);
     const ScriptBuffer *rootscript = sp.code;
     int i;
-    if (sp.code == NULL || sp.pos >> 24)
+    if (sp.code == nullptr || sp.pos >> 24)
         return -1;
 
     if (sd && !sd->npc_stackbuf.empty() && sd->npc_scriptroot == rootscript)

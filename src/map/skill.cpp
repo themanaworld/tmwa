@@ -170,16 +170,16 @@ int skill_get_castnodex(SkillID id, int lv)
 int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         SkillID skillid, int skilllv)
 {
-    dumb_ptr<map_session_data> sd = NULL;
-    dumb_ptr<mob_data> md = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
+    dumb_ptr<mob_data> md = nullptr;
 
     int luk;
 
     int sc_def_mdef, sc_def_vit, sc_def_int, sc_def_luk;
     int sc_def_phys_shield_spell;
 
-    nullpo_ret(src);
-    nullpo_ret(bl);
+    nullpo_retz(src);
+    nullpo_retz(bl);
 
     if (skilllv < 0)
         return 0;
@@ -257,16 +257,16 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int type, lv, damage;
 
-    nullpo_ret(src);
-    nullpo_ret(dsrc);
-    nullpo_ret(bl);
+    nullpo_retz(src);
+    nullpo_retz(dsrc);
+    nullpo_retz(bl);
 
     sc_data = battle_get_sc_data(bl);
 
 //何もしない判定ここから
     if (dsrc->bl_m != bl->bl_m)       //対象が同じマップにいなければ何もしない
         return 0;
-    if (src->bl_prev == NULL || dsrc->bl_prev == NULL || bl->bl_prev == NULL)    //prevよくわからない※
+    if (src->bl_prev == nullptr || dsrc->bl_prev == nullptr || bl->bl_prev == nullptr)    //prevよくわからない※
         return 0;
     if (src->bl_type == BL::PC && pc_isdead(src->is_player()))  //術者？がPCですでに死んでいたら何もしない
         return 0;
@@ -305,7 +305,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
     battle_damage(src, bl, damage, 0);
 
     /* ダメージがあるなら追加効果判定 */
-    if (bl->bl_prev != NULL)
+    if (bl->bl_prev != nullptr)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
         if (bl->bl_type != BL::PC || !pc_isdead(sd))
@@ -403,7 +403,7 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         SkillID skillid, int skilllv,
         tick_t tick, BCT flag)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
 
     nullpo_retr(1, src);
     nullpo_retr(1, bl);
@@ -413,7 +413,7 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     if (sd && pc_isdead(sd))
         return 1;
 
-    if (bl->bl_prev == NULL)
+    if (bl->bl_prev == nullptr)
         return 1;
     if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))
         return 1;
@@ -498,10 +498,10 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         SkillID skillid, int skilllv)
 {
-    dumb_ptr<map_session_data> sd = NULL;
-    dumb_ptr<map_session_data> dstsd = NULL;
-    dumb_ptr<mob_data> md = NULL;
-    dumb_ptr<mob_data> dstmd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
+    dumb_ptr<map_session_data> dstsd = nullptr;
+    dumb_ptr<mob_data> md = nullptr;
+    dumb_ptr<mob_data> dstmd = nullptr;
     int sc_def_vit, sc_def_mdef, strip_fix;
 
     nullpo_retr(1, src);
@@ -536,7 +536,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     if (strip_fix < 0)
         strip_fix = 0;
 
-    if (bl == NULL || bl->bl_prev == NULL)
+    if (bl == nullptr || bl->bl_prev == nullptr)
         return 1;
     if (sd && pc_isdead(sd))
         return 1;
@@ -651,7 +651,7 @@ interval_t skill_delayfix(dumb_ptr<block_list> bl, interval_t interval)
  */
 int skill_castcancel(dumb_ptr<block_list> bl, int)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     if (bl->bl_type == BL::PC)
     {
@@ -688,7 +688,7 @@ int skill_status_change_active(dumb_ptr<block_list> bl, StatusChange type)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
     {
         if (battle_config.error_log)
@@ -806,7 +806,7 @@ int skill_update_heal_animation(dumb_ptr<map_session_data> sd)
 {
     const Opt2 mask = Opt2::_heal;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
     bool wis_active = bool(sd->opt2 & mask);
     bool is_active = sd->quick_regeneration_hp.amount > 0;
 
@@ -828,11 +828,11 @@ int skill_update_heal_animation(dumb_ptr<map_session_data> sd)
 void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusChange type)
 {
     dumb_ptr<block_list> bl;
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     //short *sc_count; //使ってない？
 
-    if ((bl = map_id2bl(id)) == NULL)
+    if ((bl = map_id2bl(id)) == nullptr)
         return;
     //該当IDがすでに消滅しているというのはいかにもありそうなのでスルーしてみる
     sc_data = battle_get_sc_data(bl);
@@ -929,7 +929,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
         interval_t tick, BlockId spell_invocation)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short *sc_count;
     Option *option;
@@ -940,20 +940,20 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     SP updateflag = SP::ZERO;
     int scdef = 0;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return 0;
     sc_count = battle_get_sc_count(bl);
-    nullpo_ret(sc_count);
+    nullpo_retz(sc_count);
     option = battle_get_option(bl);
-    nullpo_ret(option);
+    nullpo_retz(option);
     opt1 = battle_get_opt1(bl);
-    nullpo_ret(opt1);
+    nullpo_retz(opt1);
     opt2 = battle_get_opt2(bl);
-    nullpo_ret(opt2);
+    nullpo_retz(opt2);
     opt3 = battle_get_opt3(bl);
-    nullpo_ret(opt3);
+    nullpo_retz(opt3);
 
     switch (type)
     {
@@ -1111,20 +1111,20 @@ int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
     Opt2 *opt2;
     Opt3 *opt3;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return 0;
     sc_count = battle_get_sc_count(bl);
-    nullpo_ret(sc_count);
+    nullpo_retz(sc_count);
     option = battle_get_option(bl);
-    nullpo_ret(option);
+    nullpo_retz(option);
     opt1 = battle_get_opt1(bl);
-    nullpo_ret(opt1);
+    nullpo_retz(opt1);
     opt2 = battle_get_opt2(bl);
-    nullpo_ret(opt2);
+    nullpo_retz(opt2);
     opt3 = battle_get_opt3(bl);
-    nullpo_ret(opt3);
+    nullpo_retz(opt3);
 
     if (*sc_count == 0)
         return 0;

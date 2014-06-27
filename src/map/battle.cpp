@@ -63,7 +63,7 @@ static
 int battle_counttargeted(dumb_ptr<block_list> bl, dumb_ptr<block_list> src,
         ATK target_lv)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::PC)
         return pc_counttargeted(bl->is_player(), src,
                                  target_lv);
@@ -111,7 +111,7 @@ DIR battle_get_dir(dumb_ptr<block_list> bl)
  */
 int battle_get_lv(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::MOB)
         return bl->is_mob()->stats[mob_stat::LV];
     else if (bl->bl_type == BL::PC)
@@ -127,7 +127,7 @@ int battle_get_lv(dumb_ptr<block_list> bl)
  */
 int battle_get_range(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::MOB)
         return get_mob_db(bl->is_mob()->mob_class).range;
     else if (bl->bl_type == BL::PC)
@@ -189,7 +189,7 @@ int battle_get_str(dumb_ptr<block_list> bl)
     int str = 0;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         str = bl->is_mob()->stats[mob_stat::STR];
@@ -212,7 +212,7 @@ int battle_get_agi(dumb_ptr<block_list> bl)
     int agi = 0;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         agi = bl->is_mob()->stats[mob_stat::AGI];
@@ -234,7 +234,7 @@ int battle_get_vit(dumb_ptr<block_list> bl)
     int vit = 0;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         vit = bl->is_mob()->stats[mob_stat::VIT];
@@ -256,7 +256,7 @@ int battle_get_int(dumb_ptr<block_list> bl)
     int int_ = 0;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         int_ = bl->is_mob()->stats[mob_stat::INT];
@@ -278,7 +278,7 @@ int battle_get_dex(dumb_ptr<block_list> bl)
     int dex = 0;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         dex = bl->is_mob()->stats[mob_stat::DEX];
@@ -300,7 +300,7 @@ int battle_get_luk(dumb_ptr<block_list> bl)
     int luk = 0;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         luk = bl->is_mob()->stats[mob_stat::LUK];
@@ -466,7 +466,7 @@ int battle_get_atk(dumb_ptr<block_list> bl)
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int atk = 0;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
         atk = bl->is_player()->watk;
@@ -486,7 +486,7 @@ int battle_get_atk(dumb_ptr<block_list> bl)
 static
 int battle_get_atk_(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->watk_;
     else
@@ -501,7 +501,7 @@ int battle_get_atk_(dumb_ptr<block_list> bl)
 static
 int battle_get_atk2(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->watk2;
     else
@@ -524,7 +524,7 @@ int battle_get_atk2(dumb_ptr<block_list> bl)
 static
 int battle_get_atk_2(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->watk_2;
     else
@@ -540,7 +540,7 @@ static
 int battle_get_matk1(dumb_ptr<block_list> bl)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
     {
@@ -563,7 +563,7 @@ int battle_get_matk1(dumb_ptr<block_list> bl)
 static
 int battle_get_matk2(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::MOB)
     {
         int matk, int_ = battle_get_int(bl);
@@ -587,7 +587,7 @@ int battle_get_def(dumb_ptr<block_list> bl)
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int def = 0;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
     {
@@ -623,7 +623,7 @@ int battle_get_mdef(dumb_ptr<block_list> bl)
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int mdef = 0;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
         mdef = bl->is_player()->mdef;
@@ -685,7 +685,7 @@ int battle_get_mdef2(dumb_ptr<block_list> bl)
 {
     int mdef2 = 0;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::MOB)
     {
         dumb_ptr<mob_data> md = bl->is_mob();
@@ -883,60 +883,60 @@ eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_
 
 short *battle_get_sc_count(dumb_ptr<block_list> bl)
 {
-    nullpo_retr(NULL, bl);
+    nullpo_retr(nullptr, bl);
     if (bl->bl_type == BL::MOB)
         return &bl->is_mob()->sc_count;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->sc_count;
-    return NULL;
+    return nullptr;
 }
 
 Opt1 *battle_get_opt1(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retn(bl);
     if (bl->bl_type == BL::MOB)
         return &bl->is_mob()->opt1;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->opt1;
     else if (bl->bl_type == BL::NPC)
         return &bl->is_npc()->opt1;
-    return 0;
+    return nullptr;
 }
 
 Opt2 *battle_get_opt2(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retn(bl);
     if (bl->bl_type == BL::MOB)
         return &bl->is_mob()->opt2;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->opt2;
     else if (bl->bl_type == BL::NPC)
         return &bl->is_npc()->opt2;
-    return 0;
+    return nullptr;
 }
 
 Opt3 *battle_get_opt3(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retn(bl);
     if (bl->bl_type == BL::MOB)
         return &bl->is_mob()->opt3;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->opt3;
     else if (bl->bl_type == BL::NPC)
         return &bl->is_npc()->opt3;
-    return 0;
+    return nullptr;
 }
 
 Option *battle_get_option(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retn(bl);
     if (bl->bl_type == BL::MOB)
         return &bl->is_mob()->option;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->status.option;
     else if (bl->bl_type == BL::NPC)
         return &bl->is_npc()->option;
-    return 0;
+    return nullptr;
 }
 
 //-------------------------------------------------------------------
@@ -953,17 +953,17 @@ struct battle_delay_damage_
 int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
                    int damage, int flag)
 {
-    nullpo_ret(target);    //blはNULLで呼ばれることがあるので他でチェック
+    nullpo_retz(target);    //blはNULLで呼ばれることがあるので他でチェック
 
     if (damage == 0)
         return 0;
 
-    if (target->bl_prev == NULL)
+    if (target->bl_prev == nullptr)
         return 0;
 
     if (bl)
     {
-        if (bl->bl_prev == NULL)
+        if (bl->bl_prev == nullptr)
             return 0;
     }
 
@@ -991,7 +991,7 @@ int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
 int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
                  int sp, int flag)
 {
-    nullpo_ret(target);    //blはNULLで呼ばれることがあるので他でチェック
+    nullpo_retz(target);    //blはNULLで呼ばれることがあるので他でチェック
 
     if (target->bl_type == BL::PC
         && pc_isdead(target->is_player()))
@@ -1012,7 +1012,7 @@ int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
 // 攻撃停止
 int battle_stopattack(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::MOB)
         return mob_stopattack(bl->is_mob());
     else if (bl->bl_type == BL::PC)
@@ -1023,7 +1023,7 @@ int battle_stopattack(dumb_ptr<block_list> bl)
 // 移動停止
 int battle_stopwalking(dumb_ptr<block_list> bl, int type)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
     if (bl->bl_type == BL::MOB)
         return mob_stop_walking(bl->is_mob(), type);
     else if (bl->bl_type == BL::PC)
@@ -1040,9 +1040,9 @@ int battle_calc_damage(dumb_ptr<block_list>, dumb_ptr<block_list> bl,
                         int damage, int div_,
                         SkillID, int, BF flag)
 {
-    dumb_ptr<mob_data> md = NULL;
+    dumb_ptr<mob_data> md = nullptr;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     if (bl->bl_type == BL::MOB)
         md = bl->is_mob();
@@ -1059,7 +1059,7 @@ int battle_calc_damage(dumb_ptr<block_list>, dumb_ptr<block_list> bl,
             damage = 3;
     }
 
-    if (md != NULL && md->hp > 0 && damage > 0) // 反撃などのMOBスキル判定
+    if (md != nullptr && md->hp > 0 && damage > 0) // 反撃などのMOBスキル判定
         mobskill_event(md, flag);
 
     return damage;
@@ -1071,8 +1071,8 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
                                                     SkillID skill_num,
                                                     int skill_lv, int)
 {
-    dumb_ptr<map_session_data> tsd = NULL;
-    dumb_ptr<mob_data> md = src->is_mob(), tmd = NULL;
+    dumb_ptr<map_session_data> tsd = nullptr;
+    dumb_ptr<mob_data> md = src->is_mob(), tmd = nullptr;
     int hitrate, flee, cri = 0, atkmin, atkmax;
     int target_count = 1;
     int def1 = battle_get_def(target);
@@ -1282,7 +1282,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
         damage = 0;
 
     // 完全回避の判定
-    if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != NULL
+    if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr
         && random_::chance({battle_get_flee2(target), 1000}))
     {
         damage = 0;
@@ -1292,7 +1292,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
 
     if (battle_config.enemy_perfect_flee)
     {
-        if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != NULL
+        if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != nullptr
             && random_::chance({battle_get_flee2(target), 1000}))
         {
             damage = 0;
@@ -1346,8 +1346,8 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
                                                    SkillID skill_num,
                                                    int skill_lv, int)
 {
-    dumb_ptr<map_session_data> sd = src->is_player(), tsd = NULL;
-    dumb_ptr<mob_data> tmd = NULL;
+    dumb_ptr<map_session_data> sd = src->is_player(), tsd = nullptr;
+    dumb_ptr<mob_data> tmd = nullptr;
     int hitrate, flee, cri = 0, atkmin, atkmax;
     int dex, target_count = 1;
     int def1 = battle_get_def(target);
@@ -1708,7 +1708,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     }
 
     // 完全回避の判定
-    if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != NULL && div_ < 255
+    if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr && div_ < 255
         && random_::chance({battle_get_flee2(target), 1000}))
     {
         damage = damage2 = 0;
@@ -1719,7 +1719,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     // 対象が完全回避をする設定がONなら
     if (battle_config.enemy_perfect_flee)
     {
-        if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != NULL && div_ < 255
+        if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != nullptr && div_ < 255
             && random_::chance({battle_get_flee2(target), 1000}))
         {
             damage = damage2 = 0;
@@ -1809,7 +1809,7 @@ struct Damage battle_calc_magic_attack(dumb_ptr<block_list> bl,
     int matk1, matk2, damage = 0, div_ = 1;
     struct Damage md {};
     int normalmagic_flag = 1;
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
 
     nullpo_retr(md, bl);
     nullpo_retr(md, target);
@@ -1885,7 +1885,7 @@ struct Damage battle_calc_misc_attack(dumb_ptr<block_list> bl,
                                        dumb_ptr<block_list> target,
                                        SkillID skill_num, int skill_lv, int)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     int damage = 0, div_ = 1;
     struct Damage md {};
     int damagefix = 1;
@@ -1979,7 +1979,7 @@ struct Damage battle_calc_attack(BF attack_type,
 ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         tick_t tick)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> t_sc_data = battle_get_sc_data(target);
     struct Damage wd;
 
@@ -1989,7 +1989,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
     if (src->bl_type == BL::PC)
         sd = src->is_player();
 
-    if (src->bl_prev == NULL || target->bl_prev == NULL)
+    if (src->bl_prev == nullptr || target->bl_prev == nullptr)
         return ATK::ZERO;
     if (src->bl_type == BL::PC && pc_isdead(sd))
         return ATK::ZERO;
@@ -1998,7 +1998,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         return ATK::ZERO;
 
     Opt1 *opt1 = battle_get_opt1(src);
-    if (opt1 != NULL && bool(*opt1))
+    if (opt1 != nullptr && bool(*opt1))
     {
         battle_stopattack(src);
         return ATK::ZERO;
@@ -2088,7 +2088,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         }
 
         battle_damage(src, target, (wd.damage + wd.damage2), 0);
-        if (target->bl_prev != NULL &&
+        if (target->bl_prev != nullptr &&
             (target->bl_type != BL::PC
              || (target->bl_type == BL::PC
                  && !pc_isdead(target->is_player()))))
@@ -2164,8 +2164,8 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
     PartyId s_p, t_p;
     dumb_ptr<block_list> ss = src;
 
-    nullpo_ret(src);
-    nullpo_ret(target);
+    nullpo_retz(src);
+    nullpo_retz(target);
 
     if (flag & BCT_ENEMY)
     {                           // 反転フラグ
@@ -2214,7 +2214,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                     }
                 }
             }
-            if ((ss = map_id2bl(md->master_id)) == NULL)
+            if ((ss = map_id2bl(md->master_id)) == nullptr)
                 return -1;
         }
     }
@@ -2226,7 +2226,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         && pc_isinvisible(target->is_player()))
         return -1;
 
-    if (src->bl_prev == NULL ||    // 死んでるならエラー
+    if (src->bl_prev == nullptr ||    // 死んでるならエラー
         (src->bl_type == BL::PC && pc_isdead(src->is_player())))
         return -1;
 
@@ -2275,8 +2275,8 @@ int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     struct walkpath_data wpd;
     int arange;
 
-    nullpo_ret(src);
-    nullpo_ret(bl);
+    nullpo_retz(src);
+    nullpo_retz(bl);
 
     dx = abs(bl->bl_x - src->bl_x);
     dy = abs(bl->bl_y - src->bl_y);

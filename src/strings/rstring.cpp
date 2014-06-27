@@ -58,7 +58,7 @@ namespace strings
     {
         // order important for self-assign
         r.owned->count++;
-        // owned can be NULL from ctors
+        // owned can be nullptr from ctors
         // TODO do ctors *properly* (requires gcc 4.7 to stay sane)
         if (owned && !owned->count--)
             ::operator delete(owned);

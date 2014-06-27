@@ -44,7 +44,7 @@ void trade_traderequest(dumb_ptr<map_session_data> sd, BlockId target_id)
 
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(target_id)) != NULL)
+    if ((target_sd = map_id2sd(target_id)) != nullptr)
     {
         if (!battle_config.invite_request_check)
         {
@@ -97,7 +97,7 @@ void trade_tradeack(dumb_ptr<map_session_data> sd, int type)
     dumb_ptr<map_session_data> target_sd;
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != nullptr)
     {
         clif_tradestart(target_sd, type);
         clif_tradestart(sd, type);
@@ -134,7 +134,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
 
     nullpo_retv(sd);
 
-    if (((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
+    if (((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != nullptr)
         && (sd->deal_locked < 1))
     {
         if (!index.ok())
@@ -153,7 +153,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
             for (IOff0 i : IOff0::iter())
             {
                 if (!target_sd->status.inventory[i].nameid
-                    && target_sd->inventory_data[i] == NULL)
+                    && target_sd->inventory_data[i] == nullptr)
                     free_++;
             }
             for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
@@ -169,7 +169,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
                     {
                         if (target_sd->status.inventory[i].nameid ==
                             sd->status.inventory[index.unshift()].nameid
-                            && target_sd->inventory_data[i] != NULL)
+                            && target_sd->inventory_data[i] != nullptr)
                         {
                             id = target_sd->inventory_data[i];
                             if (id->type != ItemType::WEAPON
@@ -225,7 +225,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
                         if (target_sd->status.inventory[i].nameid ==
                             sd->status.
                             inventory[sd->deal_item_index[trade_i].unshift()].nameid
-                            && target_sd->inventory_data[i] != NULL)
+                            && target_sd->inventory_data[i] != nullptr)
                         {
                             id = target_sd->inventory_data[i];
                             if (id->type != ItemType::WEAPON
@@ -272,7 +272,7 @@ void trade_tradeok(dumb_ptr<map_session_data> sd)
 
     }
 
-    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != nullptr)
     {
         sd->deal_locked = 1;
         clif_tradeitemok(sd, IOff2::from(0), 0, 0);
@@ -292,7 +292,7 @@ void trade_tradecancel(dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != nullptr)
     {
         for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
         {                       //give items back (only virtual)
@@ -347,7 +347,7 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != nullptr)
     {
         MAP_LOG_PC(sd, " TRADECOMMIT WITH %d GIVE %d GET %d"_fmt,
                 target_sd->status_key.char_id, sd->deal_zeny,
@@ -451,7 +451,7 @@ void trade_verifyzeny(dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != NULL)
+    if ((target_sd = map_id2sd(account_to_block(sd->trade_partner))) != nullptr)
     {
         if (sd->deal_zeny > sd->status.zeny)
         {

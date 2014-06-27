@@ -74,10 +74,4 @@ namespace strings
     {
         return zs.c_str();
     }
-
-    __attribute__((format(scanf, 2, 0)))
-    int do_vscan(ZString in, const char *fmt, va_list ap)
-    {
-        return vsscanf(in.c_str(), fmt, ap);
-    }
 } // namespace strings

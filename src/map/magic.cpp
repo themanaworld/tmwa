@@ -97,11 +97,11 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
         if (bool(spell->flags & SPELL_FLAG::NONMAGIC) || (power >= 1))
             effects = spell_trigger(spell, caster, env, &near_miss);
         else
-            effects = NULL;
+            effects = nullptr;
 
 #ifdef DEBUG
         FPRINTF(stderr, "Found spell `%s', triggered = %d\n"_fmt, spell_,
-                effects != NULL);
+                effects != nullptr);
 #endif
 
         MAP_LOG_PC(caster, "CAST %s %s"_fmt,

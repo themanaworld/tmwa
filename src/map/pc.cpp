@@ -281,7 +281,7 @@ GmLevel pc_isGM(dumb_ptr<map_session_data> sd)
 int pc_iskiller(dumb_ptr<map_session_data> src,
                  dumb_ptr<map_session_data> target)
 {
-    nullpo_ret(src);
+    nullpo_retz(src);
 
     if (src->bl_type != BL::PC)
         return 0;
@@ -319,13 +319,13 @@ void pc_invincible_timer(TimerData *, tick_t, BlockId id)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(id);
 
-    assert (sd != NULL);
+    assert (sd != nullptr);
     assert (sd->bl_type == BL::PC);
 }
 
 int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t val)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->invincible_timer = Timer(gettick() + val,
             std::bind(pc_invincible_timer, ph::_1, ph::_2,
@@ -335,7 +335,7 @@ int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t val)
 
 int pc_delinvincibletimer(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->invincible_timer.cancel();
     return 0;
@@ -343,7 +343,7 @@ int pc_delinvincibletimer(dumb_ptr<map_session_data> sd)
 
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     {
         if (battle_config.restart_hp_rate < 50)
@@ -475,7 +475,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
 int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char_id,
         int login_id1, uint32_t client_tick, SEX sex)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     // TODO this is the primary surface
     sd->bl_id = account_to_block(account_id);
@@ -512,7 +512,7 @@ EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n)
 static
 int pc_setinventorydata(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     for (IOff0 i : IOff0::iter())
     {
@@ -525,7 +525,7 @@ int pc_setinventorydata(dumb_ptr<map_session_data> sd)
 static
 int pc_calcweapontype(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->weapontype1 != ItemLook::NONE
             && sd->weapontype2 == ItemLook::NONE)
@@ -568,7 +568,7 @@ int pc_calcweapontype(dumb_ptr<map_session_data> sd)
 static
 int pc_setequipindex(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     for (EQUIP i : EQUIPs)
         sd->equip_index_maybe[i] = IOff0::from(-1);
@@ -620,7 +620,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     //転生や養子の場合の元の職業を算出する
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     item = sd->inventory_data[n];
     sc_data = battle_get_sc_data(sd);
@@ -629,7 +629,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
     if (gm_all_equipment && pc_isGM(sd).satisfies(gm_all_equipment))
         return 1;
 
-    if (item == NULL)
+    if (item == nullptr)
         return 0;
     if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
         return 0;
@@ -647,13 +647,13 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
 int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
         short tmw_version, const CharKey *st_key, const CharData *st_data)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
 
     PartyPair p;
     tick_t tick = gettick();
 
     sd = map_id2sd(account_to_block(id));
-    if (sd == NULL)
+    if (sd == nullptr)
         return 1;
 
     sd->login_id2 = login_id2;
@@ -675,7 +675,7 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
     really_memzero_this(&sd->state);
     // 基本的な初期化
     sd->state.connect_new = 1;
-    sd->bl_prev = sd->bl_next = NULL;
+    sd->bl_prev = sd->bl_next = nullptr;
 
     sd->weapontype1 = sd->weapontype2 = ItemLook::NONE;
     sd->speed = DEFAULT_WALK_SPEED;
@@ -846,7 +846,7 @@ int pc_authfail(AccountId id)
     dumb_ptr<map_session_data> sd;
 
     sd = map_id2sd(account_to_block(id));
-    if (sd == NULL)
+    if (sd == nullptr)
         return 1;
 
     clif_authfail_fd(sd->sess, 0);
@@ -859,7 +859,7 @@ int pc_calc_skillpoint(dumb_ptr<map_session_data> sd)
 {
     int i, skill_points = 0;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     for (i = 0; i < skill_pool_skills_size; i++) {
         int lv = sd->status.skill[skill_pool_skills[i]].lv;
@@ -878,7 +878,7 @@ int pc_checkweighticon(dumb_ptr<map_session_data> sd)
 {
     int flag = 0;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->weight * 2 >= sd->max_weight
         && !sd->sc_data[StatusChange::SC_FLYING_BACKPACK].timer)
@@ -937,7 +937,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     int aspd_rate, refinedef = 0;
     int str, dstr, dex;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     interval_t b_speed = sd->speed;
     b_max_hp = sd->status.max_hp;
@@ -973,7 +973,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         for (IOff0 i : IOff0::iter())
         {
             if (!sd->status.inventory[i].nameid
-                || sd->inventory_data[i] == NULL)
+                || sd->inventory_data[i] == nullptr)
                 continue;
             sd->weight +=
                 sd->inventory_data[i]->weight *
@@ -1484,7 +1484,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
  */
 int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     switch (type)
     {
@@ -1749,7 +1749,7 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
  */
 int pc_bonus2(dumb_ptr<map_session_data> sd, SP type, int type2, int val)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     switch (type)
     {
@@ -1794,7 +1794,7 @@ int pc_bonus2(dumb_ptr<map_session_data> sd, SP type, int type2, int val)
  */
 int pc_skill(dumb_ptr<map_session_data> sd, SkillID id, int level, int flag)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (level > MAX_SKILL_LEVEL)
     {
@@ -1852,7 +1852,7 @@ int pc_inventoryblank(dumb_ptr<map_session_data> sd)
 {
     int b = 0;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     for (IOff0 i : IOff0::iter())
     {
@@ -1869,7 +1869,7 @@ int pc_inventoryblank(dumb_ptr<map_session_data> sd)
  */
 int pc_payzeny(dumb_ptr<map_session_data> sd, int zeny)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     double z = sd->status.zeny;
     if (sd->status.zeny < zeny || z - zeny > MAX_ZENY)
@@ -1886,7 +1886,7 @@ int pc_payzeny(dumb_ptr<map_session_data> sd, int zeny)
  */
 int pc_getzeny(dumb_ptr<map_session_data> sd, int zeny)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     double z = sd->status.zeny;
     if (z + zeny > MAX_ZENY)
@@ -1922,7 +1922,7 @@ int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
 {
     int count = 0;
 
-    nullpo_ret(player);
+    nullpo_retz(player);
 
     for (IOff0 i : IOff0::iter())
     {
@@ -1935,7 +1935,7 @@ int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
 
 int pc_remove_items(dumb_ptr<map_session_data> player, ItemNameId item_id, int count)
 {
-    nullpo_ret(player);
+    nullpo_retz(player);
 
     for (IOff0 i : IOff0::iter())
     {
@@ -2034,7 +2034,7 @@ int pc_delitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, int type)
 
     if (!sd->status.inventory[n].nameid || amount <= 0
         || sd->status.inventory[n].amount < amount
-        || sd->inventory_data[n] == NULL)
+        || sd->inventory_data[n] == nullptr)
         return 1;
 
     sd->status.inventory[n].amount -= amount;
@@ -2044,7 +2044,7 @@ int pc_delitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, int type)
         if (bool(sd->status.inventory[n].equip))
             pc_unequipitem(sd, n, CalcStatus::NOW);
         sd->status.inventory[n] = Item{};
-        sd->inventory_data[n] = NULL;
+        sd->inventory_data[n] = nullptr;
     }
     if (!(type & 1))
         clif_delitem(sd, n, amount);
@@ -2079,7 +2079,7 @@ int pc_dropitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount)
         return 1;
     map_addflooritem(&sd->status.inventory[n], amount,
             sd->bl_m, sd->bl_x, sd->bl_y,
-            NULL, NULL, NULL);
+            nullptr, nullptr, nullptr);
     pc_delitem(sd, n, amount, 0);
 
     return 0;
@@ -2134,8 +2134,8 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
     tick_t tick = gettick();
     int can_take;
 
-    nullpo_ret(sd);
-    nullpo_ret(fitem);
+    nullpo_retz(sd);
+    nullpo_retz(fitem);
 
     /* Sometimes the owners reported to us are buggy: */
 
@@ -2191,12 +2191,12 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
     struct item_data *item;
     ItemNameId nameid;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     item = sd->inventory_data[n];
     nameid = sd->status.inventory[n].nameid;
 
-    if (item == NULL)
+    if (item == nullptr)
         return 0;
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
@@ -2252,7 +2252,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
 {
     MapName mapname_;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->trade_partner)      // 取引を中断する
         trade_tradecancel(sd);
@@ -2325,7 +2325,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
         while (bool(read_gatp(m, x, y) & MapCell::UNWALKABLE));
     }
 
-    if (sd->mapname_ && sd->bl_prev != NULL)
+    if (sd->mapname_ && sd->bl_prev != nullptr)
     {
         clif_clearchar(sd, clrtype);
         map_delblock(sd);
@@ -2356,7 +2356,7 @@ int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type)
 {
     int x, y, i = 0;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     map_local *m = sd->bl_m;
 
@@ -2386,7 +2386,7 @@ int pc_can_reach(dumb_ptr<map_session_data> sd, int x, int y)
 {
     struct walkpath_data wpd;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->bl_x == x && sd->bl_y == y) // 同じマス
         return 1;
@@ -2430,7 +2430,7 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
     int x, y, dx, dy;
 
     sd = map_id2sd(id);
-    if (sd == NULL)
+    if (sd == nullptr)
         return;
 
     if (sd->walkpath.path_pos >= sd->walkpath.path_len
@@ -2571,7 +2571,7 @@ int pc_walktoxy_sub(dumb_ptr<map_session_data> sd)
 int pc_walktoxy(dumb_ptr<map_session_data> sd, int x, int y)
 {
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->to_x = x;
     sd->to_y = y;
@@ -2599,7 +2599,7 @@ int pc_walktoxy(dumb_ptr<map_session_data> sd, int x, int y)
  */
 int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->walktimer.cancel();
 
@@ -2638,7 +2638,7 @@ int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
 
     struct walkpath_data wpd;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (path_search(&wpd, sd->bl_m, sd->bl_x, sd->bl_y, dst_x, dst_y, 0))
         return 1;
@@ -2702,7 +2702,7 @@ int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
  */
 int pc_checkskill(dumb_ptr<map_session_data> sd, SkillID skill_id)
 {
-    if (sd == NULL)
+    if (sd == nullptr)
         return 0;
 
     return sd->status.skill[skill_id].lv;
@@ -2738,14 +2738,14 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     int dist, range;
 
     sd = map_id2sd(id);
-    if (sd == NULL)
+    if (sd == nullptr)
         return;
 
-    if (sd->bl_prev == NULL)
+    if (sd->bl_prev == nullptr)
         return;
 
     bl = map_id2bl(sd->attacktarget);
-    if (bl == NULL || bl->bl_prev == NULL)
+    if (bl == nullptr || bl->bl_prev == nullptr)
         return;
 
     if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))
@@ -2761,7 +2761,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
         return;
 
     Option *opt = battle_get_option(bl);
-    if (opt != NULL && bool(*opt & Option::REAL_ANY_HIDE))
+    if (opt != nullptr && bool(*opt & Option::REAL_ANY_HIDE))
         return;
 
     if (!battle_config.skill_delay_attack_enable)
@@ -2841,10 +2841,10 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
 {
     dumb_ptr<block_list> bl;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     bl = map_id2bl(target_id);
-    if (bl == NULL)
+    if (bl == nullptr)
         return 1;
 
     if (bl->bl_type == BL::NPC)
@@ -2882,7 +2882,7 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
  */
 int pc_stopattack(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->attacktimer.cancel();
 
@@ -2897,7 +2897,7 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
 {
     int next = pc_nextbaseexp(sd);
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.base_exp >= next && next > 0)
     {
@@ -2952,7 +2952,7 @@ int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
 {
     int next = pc_nextjobexp(sd);
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.job_exp >= next && next > 0)
     {
@@ -2987,9 +2987,9 @@ int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
 int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
         PC_GAINEXP_REASON reason)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
-    if (sd->bl_prev == NULL || pc_isdead(sd))
+    if (sd->bl_prev == nullptr || pc_isdead(sd))
         return 0;
 
     earray<LString, PC_GAINEXP_REASON, PC_GAINEXP_REASON::COUNT> reasons //=
@@ -3065,7 +3065,7 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
 int pc_extract_healer_exp(dumb_ptr<map_session_data> sd, int max)
 {
     int amount;
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     amount = sd->heal_xp;
     if (max < amount)
@@ -3081,7 +3081,7 @@ int pc_extract_healer_exp(dumb_ptr<map_session_data> sd, int max)
  */
 int pc_nextbaseexp(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.base_level >= MAX_LEVEL || sd->status.base_level <= 0)
         return 0;
@@ -3109,7 +3109,7 @@ int pc_nextjobexp(dumb_ptr<map_session_data> sd)
  */
 int pc_nextbaseafter(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.base_level >= MAX_LEVEL || sd->status.base_level <= 0)
         return 0;
@@ -3123,7 +3123,7 @@ int pc_nextbaseafter(dumb_ptr<map_session_data> sd)
  */
 int pc_nextjobafter(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.job_level >= MAX_LEVEL || sd->status.job_level <= 0)
         return 0;
@@ -3157,7 +3157,7 @@ int pc_statusup(dumb_ptr<map_session_data> sd, SP type)
 {
     int need, val = 0;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (SP::STR <= type && type <= SP::LUK)
         val = sd->status.attrs[sp_to_attr(type)];
@@ -3193,7 +3193,7 @@ int pc_statusup(dumb_ptr<map_session_data> sd, SP type)
  */
 int pc_statusup2(dumb_ptr<map_session_data> sd, SP type, int val)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (type < SP::STR || type > SP::LUK)
     {
@@ -3220,7 +3220,7 @@ int pc_statusup2(dumb_ptr<map_session_data> sd, SP type, int val)
  */
 int pc_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.skill[skill_num].lv
         && sd->status.skill_point >= sd->status.skill[skill_num].lv
@@ -3247,7 +3247,7 @@ int pc_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
  */
 int pc_resetlvl(dumb_ptr<map_session_data> sd, int type)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     for (SkillID i : erange(SkillID(1), MAX_SKILL))
     {
@@ -3336,7 +3336,7 @@ int pc_resetlvl(dumb_ptr<map_session_data> sd, int type)
 int pc_resetstate(dumb_ptr<map_session_data> sd)
 {
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->status.status_point = stat_p[sd->status.base_level - 1];
 
@@ -3362,7 +3362,7 @@ int pc_resetskill(dumb_ptr<map_session_data> sd)
 {
     int skill;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->status.skill_point += pc_calc_skillpoint(sd);
 
@@ -3387,7 +3387,7 @@ int pc_resetskill(dumb_ptr<map_session_data> sd)
 int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
                int damage)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     // 既に死んでいたら無効
     if (pc_isdead(sd))
@@ -3564,7 +3564,7 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
 {
     int val = 0;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     switch (type)
     {
@@ -3640,7 +3640,7 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
 {
     int i = 0, up_level = 50;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     switch (type)
     {
@@ -3759,7 +3759,7 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
  */
 int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (pc_checkoverhp(sd))
     {
@@ -3780,7 +3780,7 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
     if (sd->status.hp <= 0)
     {
         sd->status.hp = 0;
-        pc_damage(NULL, sd, 1);
+        pc_damage(nullptr, sd, 1);
         hp = 0;
     }
     sd->status.sp += sp;
@@ -3878,7 +3878,7 @@ int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp)
 static
 int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (pc_checkoverhp(sd))
     {
@@ -3908,7 +3908,7 @@ int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp)
     if (sd->status.hp <= 0)
     {
         sd->status.hp = 0;
-        pc_damage(NULL, sd, 1);
+        pc_damage(nullptr, sd, 1);
         hp = 0;
     }
     sd->status.sp += sp;
@@ -3928,7 +3928,7 @@ int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp)
  */
 int pc_percentheal(dumb_ptr<map_session_data> sd, int hp, int sp)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (pc_checkoverhp(sd))
     {
@@ -3949,7 +3949,7 @@ int pc_percentheal(dumb_ptr<map_session_data> sd, int hp, int sp)
         else if (hp <= -100)
         {
             sd->status.hp = 0;
-            pc_damage(NULL, sd, 1);
+            pc_damage(nullptr, sd, 1);
         }
         else
         {
@@ -3959,7 +3959,7 @@ int pc_percentheal(dumb_ptr<map_session_data> sd, int hp, int sp)
             if (sd->status.hp <= 0)
             {
                 sd->status.hp = 0;
-                pc_damage(NULL, sd, 1);
+                pc_damage(nullptr, sd, 1);
                 hp = 0;
             }
         }
@@ -4002,7 +4002,7 @@ int pc_percentheal(dumb_ptr<map_session_data> sd, int hp, int sp)
  */
 int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     switch (type)
     {
@@ -4044,7 +4044,7 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
  */
 int pc_setoption(dumb_ptr<map_session_data> sd, Option type)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->status.option = type;
     clif_changeoption(sd);
@@ -4059,7 +4059,7 @@ int pc_setoption(dumb_ptr<map_session_data> sd, Option type)
  */
 int pc_readreg(dumb_ptr<map_session_data> sd, SIR reg)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     return sd->regm.get(reg);
 }
@@ -4115,7 +4115,7 @@ int pc_readglobalreg(dumb_ptr<map_session_data> sd, VarName reg)
 {
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
     for (i = 0; i < sd->status.global_reg_num; i++)
@@ -4135,7 +4135,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
 {
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     //PC_DIE_COUNTERがスクリプトなどで変更された時の処理
     if (reg == stringish<VarName>("PC_DIE_COUNTER"_s) && sd->die_counter != val)
@@ -4188,7 +4188,7 @@ int pc_readaccountreg(dumb_ptr<map_session_data> sd, VarName reg)
 {
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     assert (sd->status.account_reg_num < ACCOUNT_REG_NUM);
     for (i = 0; i < sd->status.account_reg_num; i++)
@@ -4208,7 +4208,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
 {
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (val == 0)
     {
@@ -4257,7 +4257,7 @@ int pc_readaccountreg2(dumb_ptr<map_session_data> sd, VarName reg)
 {
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     for (i = 0; i < sd->status.account_reg2_num; i++)
     {
@@ -4325,7 +4325,7 @@ static
 void pc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(id);
-    assert (sd != NULL);
+    assert (sd != nullptr);
 
     npc_event(sd, data, 0);
 }
@@ -4338,7 +4338,7 @@ int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, NpcEvent na
 {
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     for (i = 0; i < MAX_EVENTTIMER; i++)
         if (!sd->eventtimer[i])
@@ -4361,7 +4361,7 @@ int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, NpcEvent na
  */
 int pc_cleareventtimer(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     for (int i = 0; i < MAX_EVENTTIMER; i++)
         sd->eventtimer[i].cancel();
@@ -4398,7 +4398,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
     struct item_data *id;
     //ｿｽ]ｿｽｿｽｿｽｿｽｿｽ{ｿｽqｿｽﾌ場合ｿｽﾌ鯉ｿｽｿｽﾌ職ｿｽﾆゑｿｽｿｽZｿｽoｿｽｿｽｿｽｿｽ
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (!n.ok())
     {
@@ -4540,7 +4540,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
  */
 int pc_unequipitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
 // -- moonsoul  (if player is berserk then cannot unequip)
 //
@@ -4629,7 +4629,7 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
 {
     int calc_flag = 0;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     IOff0 j = IOff0::from(0);
     for (IOff0 i : IOff0::iter())
@@ -4646,7 +4646,7 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
     for (IOff0 k = j; k != IOff0::from(MAX_INVENTORY); ++k)
     {
         sd->status.inventory[k] = Item{};
-        sd->inventory_data[k] = NULL;
+        sd->inventory_data[k] = nullptr;
     }
 
     for (IOff0 i : IOff0::iter())
@@ -4669,7 +4669,7 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
 
 int pc_checkoverhp(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.hp == sd->status.max_hp)
         return 1;
@@ -4685,7 +4685,7 @@ int pc_checkoverhp(dumb_ptr<map_session_data> sd)
 
 int pc_checkoversp(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.sp == sd->status.max_sp)
         return 1;
@@ -4722,9 +4722,9 @@ void pc_calc_pvprank_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd2
  */
 int pc_calc_pvprank(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
     map_local *m = sd->bl_m;
-    nullpo_ret(m);
+    nullpo_retz(m);
 
     if (!(m->flag.get(MapFlag::PVP)))
         return 0;
@@ -4743,12 +4743,12 @@ int pc_calc_pvprank(dumb_ptr<map_session_data> sd)
  */
 void pc_calc_pvprank_timer(TimerData *, tick_t, BlockId id)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
     if (battle_config.pk_mode)  // disable pvp ranking if pk_mode on [Valaris]
         return;
 
     sd = map_id2sd(id);
-    if (sd == NULL)
+    if (sd == nullptr)
         return;
     sd->pvp_timer.cancel();
     if (pc_calc_pvprank(sd) > 0)
@@ -4764,7 +4764,7 @@ void pc_calc_pvprank_timer(TimerData *, tick_t, BlockId id)
 static
 CharId pc_ismarried(dumb_ptr<map_session_data> sd)
 {
-    if (sd == NULL)
+    if (sd == nullptr)
         return CharId();
     if (sd->status.partner_id)
         return sd->status.partner_id;
@@ -4778,7 +4778,7 @@ CharId pc_ismarried(dumb_ptr<map_session_data> sd)
  */
 int pc_marriage(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> dstsd)
 {
-    if (sd == NULL || dstsd == NULL || sd->status.partner_id
+    if (sd == nullptr || dstsd == nullptr || sd->status.partner_id
         || dstsd->status.partner_id)
         return -1;
     sd->status.partner_id = dstsd->status_key.char_id;
@@ -4792,13 +4792,13 @@ int pc_marriage(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> dstsd)
  */
 int pc_divorce(dumb_ptr<map_session_data> sd)
 {
-    dumb_ptr<map_session_data> p_sd = NULL;
-    if (sd == NULL || !pc_ismarried(sd))
+    dumb_ptr<map_session_data> p_sd = nullptr;
+    if (sd == nullptr || !pc_ismarried(sd))
         return -1;
 
     // If both are on map server we don't need to bother the char server
     if ((p_sd =
-         map_nick2sd(map_charid2nick(sd->status.partner_id))) != NULL)
+         map_nick2sd(map_charid2nick(sd->status.partner_id))) != nullptr)
     {
         if (p_sd->status.partner_id != sd->status_key.char_id
             || sd->status.partner_id != p_sd->status_key.char_id)
@@ -4828,17 +4828,17 @@ int pc_divorce(dumb_ptr<map_session_data> sd)
  */
 dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd)
 {
-    dumb_ptr<map_session_data> p_sd = NULL;
-    if (sd == NULL || !pc_ismarried(sd))
-        return NULL;
+    dumb_ptr<map_session_data> p_sd = nullptr;
+    if (sd == nullptr || !pc_ismarried(sd))
+        return nullptr;
 
     CharName nick = map_charid2nick(sd->status.partner_id);
 
     if (!nick.to__actual())
-        return NULL;
+        return nullptr;
 
-    if ((p_sd = map_nick2sd(nick)) == NULL)
-        return NULL;
+    if ((p_sd = map_nick2sd(nick)) == nullptr)
+        return nullptr;
 
     return p_sd;
 }
@@ -4889,7 +4889,7 @@ int pc_natural_heal_hp(dumb_ptr<map_session_data> sd)
     int bhp;
     int bonus;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (pc_checkoverhp(sd))
     {
@@ -4961,7 +4961,7 @@ int pc_natural_heal_sp(dumb_ptr<map_session_data> sd)
     int bsp;
     int bonus;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (pc_checkoversp(sd))
     {

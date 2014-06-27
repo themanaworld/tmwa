@@ -62,7 +62,7 @@ int skill_pool(dumb_ptr<map_session_data> sd, SkillID *skills)
 
 int skill_pool_size(dumb_ptr<map_session_data> sd)
 {
-    return skill_pool(sd, NULL);
+    return skill_pool(sd, nullptr);
 }
 
 int skill_pool_max(dumb_ptr<map_session_data> sd)

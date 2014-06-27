@@ -431,7 +431,7 @@ void do_sendrecv(interval_t next_ms)
         timeout.tv_sec = next_s.count();
         timeout.tv_usec = next_us.count();
     }
-    if (io::FD_Set::select(fd_max, &rfd, &wfd, NULL, &timeout) <= 0)
+    if (io::FD_Set::select(fd_max, &rfd, &wfd, nullptr, &timeout) <= 0)
         return;
     for (io::FD i : iter_fds())
     {

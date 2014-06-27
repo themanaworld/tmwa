@@ -509,7 +509,7 @@ struct BlockLists
 struct map_abstract
 {
     MapName name_;
-    // gat is NULL for map_remote and non-NULL or map_local
+    // gat is nullptr for map_remote and non-nullptr or map_local
     std::unique_ptr<MapCell[]> gat;
 
     virtual ~map_abstract() {}

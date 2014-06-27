@@ -219,27 +219,4 @@ namespace strings
         out = AString(buffer, buffer + len);
         return len;
     }
-
-    AStringConverter::AStringConverter(AString& s)
-    : out(s), mid(nullptr)
-    {}
-
-    AStringConverter::~AStringConverter()
-    {
-        if (mid)
-        {
-            out = ZString(really_construct_from_a_pointer, mid, nullptr);
-            free(mid);
-        }
-    }
-
-    char **AStringConverter::operator &()
-    {
-        return &mid;
-    }
-
-    AStringConverter convert_for_scanf(AString& s)
-    {
-        return AStringConverter(s);
-    }
 } // namespace strings

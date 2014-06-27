@@ -302,8 +302,8 @@ int fun_add(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
         make_area(&args[0]);
         make_area(&args[1]);
         RESULTAREA = area_union(ARGAREA(0), ARGAREA(1));
-        ARGAREA(0) = NULL;
-        ARGAREA(1) = NULL;
+        ARGAREA(0) = nullptr;
+        ARGAREA(1) = nullptr;
         result->ty = TYPE::AREA;
     }
     else
@@ -830,7 +830,7 @@ int magic_find_item(Slice<val_t> args, int index, Item *item_, int *stackable)
 static
 int fun_count_item(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
     int stackable;
     Item item;
 
@@ -846,7 +846,7 @@ int fun_count_item(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_is_equipped(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
     int stackable;
     Item item;
     bool retval = false;
@@ -935,7 +935,7 @@ int fun_npc(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     NpcName name = stringish<NpcName>(ARGSTR(0));
     RESULTENTITY = npc_name2id(name);
-    return RESULTENTITY == NULL;
+    return RESULTENTITY == nullptr;
 }
 
 static
@@ -943,7 +943,7 @@ int fun_pc(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     CharName name = stringish<CharName>(ARGSTR(0));
     RESULTENTITY = map_nick2sd(name);
-    return RESULTENTITY == NULL;
+    return RESULTENTITY == nullptr;
 }
 
 static
@@ -1141,7 +1141,7 @@ int fun_is_exterior(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_contains_string(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    RESULTINT = NULL != strstr(ARGSTR(0).c_str(), ARGSTR(1).c_str());
+    RESULTINT = nullptr != strstr(ARGSTR(0).c_str(), ARGSTR(1).c_str());
     return 0;
 }
 
@@ -1150,7 +1150,7 @@ int fun_strstr(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     const char *offset = strstr(ARGSTR(0).c_str(), ARGSTR(1).c_str());
     RESULTINT = offset - ARGSTR(0).c_str();
-    return offset == NULL;
+    return offset == nullptr;
 }
 
 static
@@ -1281,7 +1281,7 @@ int fun_dir_towards(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_extract_healer_xp(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> sd = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> sd = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
 
     if (!sd)
         RESULTINT = 0;
@@ -1428,7 +1428,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, e_area_t& expr_)
             if (eval_location(env, &area->a.a_loc, &expr->a.a_loc))
             {
                 area.delete_();
-                return NULL;
+                return nullptr;
             }
             else
                 return area;
@@ -1451,7 +1451,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, e_area_t& expr_)
                         free_area(area->a.a_union[i]);
                 }
                 area.delete_();
-                return NULL;
+                return nullptr;
             }
             area->size = area->a.a_union[0]->size + area->a.a_union[1]->size;
             return area;
@@ -1481,7 +1481,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, e_area_t& expr_)
                 area.delete_();
                 magic_clear_var(&width);
                 magic_clear_var(&height);
-                return NULL;
+                return nullptr;
             }
         }
 
@@ -1515,7 +1515,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, e_area_t& expr_)
                 magic_clear_var(&width);
                 magic_clear_var(&depth);
                 magic_clear_var(&dir);
-                return NULL;
+                return nullptr;
             }
         }
 
@@ -1523,7 +1523,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, e_area_t& expr_)
             FPRINTF(stderr, "INTERNAL ERROR: Unknown area type %d\n"_fmt,
                     area->ty);
             area.delete_();
-            return NULL;
+            return nullptr;
     }
 }
 

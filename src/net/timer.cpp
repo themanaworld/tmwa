@@ -74,7 +74,7 @@ tick_t milli_clock::now(void) noexcept
     struct timeval tval;
     // BUG: This will cause strange behavior if the system clock is changed!
     // it should be reimplemented in terms of clock_gettime(CLOCK_MONOTONIC, )
-    gettimeofday(&tval, NULL);
+    gettimeofday(&tval, nullptr);
     return gettick_cache = tick_t(std::chrono::seconds(tval.tv_sec)
             + std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::microseconds(tval.tv_usec)));

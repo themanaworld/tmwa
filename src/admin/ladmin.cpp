@@ -2865,7 +2865,7 @@ bool admin_confs(XString w1, ZString w2)
         if (w1 == "login_ip"_s)
         {
             struct hostent *h = gethostbyname(w2.c_str());
-            if (h != NULL)
+            if (h != nullptr)
             {
                 Iprintf("Login server IP address: %s -> %s\n"_fmt,
                         w2, login_ip);

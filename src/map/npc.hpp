@@ -63,7 +63,7 @@ BlockId npc_get_new_npc_id(void);
 /**
  * Spawns and installs a talk-only NPC
  *
- * \param message The message to speak.  If message is NULL, the NPC will not do anything at all.
+ * \param message The message to speak.  If message is nullptr, the NPC will not do anything at all.
  */
 dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
         Species class_, NpcName name, AString message);

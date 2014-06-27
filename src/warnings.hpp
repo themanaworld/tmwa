@@ -27,6 +27,7 @@
 // GCC 4.6 (incomplete due to bugs)
 // GCC 4.7 (for few minor workarounds)
 // GCC 4.8 (zarro boogs found)
+// GCC 4.9 (zarro boogs found)
 // clang 3.1 (may ICE later)
 // clang 3.2 (with a few major workarounds)
 
@@ -112,6 +113,11 @@
 # define EG48(sw) static_assert('E', sw "only for gcc 4.8+");
 # define XG48(sw) static_assert('X', sw "only for gcc 4.8+");
 
+# define IG49(sw) static_assert('I', sw "only for gcc 4.9+");
+# define WG49(sw) static_assert('W', sw "only for gcc 4.9+");
+# define EG49(sw) static_assert('E', sw "only for gcc 4.9+");
+# define XG49(sw) static_assert('X', sw "only for gcc 4.9+");
+
 # define I47(sw) I(sw)
 # define W47(sw) W(sw)
 # define E47(sw) E(sw)
@@ -121,6 +127,11 @@
 # define W48(sw) W(sw)
 # define E48(sw) E(sw)
 # define X48(sw) X(sw)
+
+# define I49(sw) I(sw)
+# define W49(sw) W(sw)
+# define E49(sw) E(sw)
+# define X49(sw) X(sw)
 
 #else
 
@@ -181,6 +192,27 @@
 #   define E48(sw) static_assert('E', sw "only for gcc 4.8+ or clang");
 #   define X48(sw) static_assert('X', sw "only for gcc 4.8+ or clang");
 #  endif // __GNUC_MINOR__
+#  if __GNUC_MINOR__ >= 9
+#   define IG49(sw) IG(sw)
+#   define WG49(sw) WG(sw)
+#   define EG49(sw) EG(sw)
+#   define XG49(sw) XG(sw)
+
+#   define I49(sw) IG(sw)
+#   define W49(sw) WG(sw)
+#   define E49(sw) EG(sw)
+#   define X49(sw) XG(sw)
+#  else
+#   define IG49(sw) static_assert('I', sw "only for gcc 4.9+");
+#   define WG49(sw) static_assert('W', sw "only for gcc 4.9+");
+#   define EG49(sw) static_assert('E', sw "only for gcc 4.9+");
+#   define XG49(sw) static_assert('X', sw "only for gcc 4.9+");
+
+#   define I49(sw) static_assert('I', sw "only for gcc 4.9+ or clang");
+#   define W49(sw) static_assert('W', sw "only for gcc 4.9+ or clang");
+#   define E49(sw) static_assert('E', sw "only for gcc 4.9+ or clang");
+#   define X49(sw) static_assert('X', sw "only for gcc 4.9+ or clang");
+#  endif // __GNUC_MINOR__
 # endif // __GNUC__
 #endif // __clang__
 
@@ -232,7 +264,7 @@ static_assert('E', "-Wc++1y-extensions not in GCC");
 #endif
 
 /// Warn about pointer casts which increase alignment
-X("-Wcast-align")
+E("-Wcast-align")
 
 /// Warn about casts which discard qualifiers
 E("-Wcast-qual")
@@ -247,6 +279,9 @@ EG("-Wclobbered")
 /// Warn about possibly nested block comments, and
 /// C++ comments spanning more than one physical line
 E("-Wcomment")
+
+/// Warn for conditionally-supported constructs
+EG49("-Wconditionally-supported")
 
 // A fixable difference between c++11 and c++14
 #ifdef __clang__
@@ -272,7 +307,7 @@ E("-Wconversion-null")
 WG("-Wcoverage-mismatch")
 
 ///
-XC("-Wcovered-switch-default")
+EC("-Wcovered-switch-default")
 
 /// Warn when a #warning directive is encountered
 WG("-Wcpp")
@@ -280,6 +315,13 @@ WG("-Wcpp")
 /// Warn when all constructors and destructors are
 /// private
 E("-Wctor-dtor-privacy")
+
+/// Warn about __TIME__, __DATE__ and __TIMESTAMP__
+/// usage
+EG49("-Wdate-time")
+
+/// Warn when deleting a pointer to incomplete type
+EG49("-Wdelete-incomplete")
 
 /// Warn about deleting polymorphic objects with non-
 /// virtual destructors
@@ -487,13 +529,17 @@ E("-Wnon-virtual-dtor")
 E("-Wnonnull")
 
 ///
-XC("-Wnull-conversion")
+EC("-Wnull-conversion")
 
 /// Warn if a C-style cast is used in a program
 E("-Wold-style-cast")
 
 /// Warn about overflow in arithmetic expressions
 W("-Woverflow")
+
+/// Warn if a simd directive is overridden by the
+/// vectorizer cost model
+EG49("-Wopenmp-simd")
 
 /// Warn if a string is longer than the maximum
 /// portable length specified by the standard
@@ -523,7 +569,7 @@ E("-Wparentheses")
 // lots of minor extensions are used
 IG48("-Wpedantic")
 // a bit too noisy
-XC("-Wpedantic")
+EC("-Wpedantic")
 
 /// Warn when converting the type of pointers to
 /// member functions
@@ -563,7 +609,7 @@ X("-Wsign-compare")
 
 /// Warn when overload promotes from unsigned to
 /// signed
-X("-Wsign-promo")
+E("-Wsign-promo")
 
 /// This switch lacks documentation
 WG48("-Wsizeof-pointer-memaccess")
@@ -585,15 +631,15 @@ X("-Wstrict-overflow")
 
 /// Warn about enumerated switches, with no default,
 /// missing a case
-X("-Wswitch")
+I("-Wswitch")
 
 /// Warn about enumerated switches missing a
 /// "default:" statement
-X("-Wswitch-default")
+I("-Wswitch-default")
 
 /// Warn about all enumerated switches missing a
 /// specific case
-X("-Wswitch-enum")
+I("-Wswitch-enum")
 
 /// Warn when __sync_fetch_and_nand and
 /// __sync_nand_and_fetch built-in functions are used
@@ -695,7 +741,7 @@ E("-Wwrite-strings")
 
 /// Warn when a literal '0' is used as null
 /// pointer
-XG47("-Wzero-as-null-pointer-constant")
+EG47("-Wzero-as-null-pointer-constant")
 
 
 // clean up after myself

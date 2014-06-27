@@ -57,7 +57,7 @@ struct fun_t
 /**
  * Retrieves a function by name
  * @param name The name to look up
- * @return A function of that name, or NULL.
+ * @return A function of that name, or nullptr.
  */
 fun_t *magic_get_fun(ZString name);
 

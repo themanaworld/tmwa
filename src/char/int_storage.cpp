@@ -116,7 +116,7 @@ bool extract(XString str, Storage *p)
 Storage *account2storage(AccountId account_id)
 {
     Storage *s = storage_db.search(account_id);
-    if (s == NULL)
+    if (s == nullptr)
     {
         s = storage_db.init(account_id);
         s->account_id = account_id;

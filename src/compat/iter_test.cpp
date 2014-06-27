@@ -26,6 +26,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 TEST(iterpair, strings)
 {
     IteratorPair<ValueIterator<char>> pair = value_range('0', ':');
@@ -144,7 +147,7 @@ TEST(iterpair, filter3)
     int one = 1;
     int two = 2;
     int three = 3;
-    std::vector<int *> vals = {0, &one, 0, &two, 0, &three, 0};
+    std::vector<int *> vals = {nullptr, &one, nullptr, &two, nullptr, &three, nullptr};
 
     int sum = 0, count = 0;
     for (int *i : filter_iterator<int *>(&vals))

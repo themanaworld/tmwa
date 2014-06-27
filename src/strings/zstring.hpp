@@ -59,9 +59,6 @@ namespace strings
     // Nope, it doesn't, since there's a template
     // Actually, it might now.
     const char *decay_for_printf(const ZString& zs);
-
-    __attribute__((format(scanf, 2, 0)))
-    int do_vscan(ZString in, const char *fmt, va_list ap);
 } // namespace strings
 
 # include "zstring.tcc"

@@ -600,7 +600,7 @@ struct IOff0
     static IOff0 from(uint16_t i)
     { return IOff0{i}; }
     static IteratorPair<ValueIterator<IOff0>> iter()
-    { return {IOff0::from(0), IOff0::from(MAX_INVENTORY)}; };
+    { return {IOff0::from(0), IOff0::from(MAX_INVENTORY)}; }
     friend uint16_t convert_for_printf(IOff0 i0) { return i0.index; }
 
     IOff0& operator ++() { ++index; return *this; }
@@ -624,7 +624,7 @@ struct SOff0
     static SOff0 from(uint16_t i)
     { return SOff0{i}; }
     static IteratorPair<ValueIterator<SOff0>> iter()
-    { return {SOff0::from(0), SOff0::from(MAX_STORAGE)}; };
+    { return {SOff0::from(0), SOff0::from(MAX_STORAGE)}; }
     friend uint16_t convert_for_printf(SOff0 s0) { return s0.index; }
 
     SOff0& operator ++() { ++index; return *this; }
@@ -648,7 +648,7 @@ struct IOff2
     static IOff2 from(uint16_t i)
     { return IOff2{static_cast<uint16_t>(i + 2)}; }
     static IteratorPair<ValueIterator<IOff2>> iter()
-    { return {IOff2::from(0), IOff2::from(MAX_INVENTORY)}; };
+    { return {IOff2::from(0), IOff2::from(MAX_INVENTORY)}; }
 
     IOff2& operator ++() { ++index; return *this; }
     friend bool operator == (IOff2 l, IOff2 r) { return l.index == r.index; }
@@ -672,7 +672,7 @@ struct SOff1
     static SOff1 from(uint16_t i)
     { return SOff1{static_cast<uint16_t>(i + 1)}; }
     static IteratorPair<ValueIterator<SOff1>> iter()
-    { return {SOff1::from(0), SOff1::from(MAX_STORAGE)}; };
+    { return {SOff1::from(0), SOff1::from(MAX_STORAGE)}; }
 
     SOff1& operator ++() { ++index; return *this; }
     friend bool operator == (SOff1 l, SOff1 r) { return l.index == r.index; }

@@ -274,7 +274,7 @@ void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
             break;
     }
 
-    if (sd->sess != NULL)
+    if (sd->sess != nullptr)
     {
         {
             {
@@ -296,7 +296,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
 
     if (type != SendWho::ALL_CLIENT)
     {
-        nullpo_ret(bl);
+        nullpo_retz(bl);
 
         if (bl->bl_type == BL::PC)
         {
@@ -461,7 +461,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
  */
 int clif_authok(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (!sd)
         return 0;
@@ -507,7 +507,7 @@ int clif_charselectok(BlockId id)
 {
     dumb_ptr<map_session_data> sd;
 
-    if ((sd = map_id2sd(id)) == NULL)
+    if ((sd = map_id2sd(id)) == nullptr)
         return 1;
 
     if (!sd->sess)
@@ -549,7 +549,7 @@ void clif_set009e(dumb_ptr<flooritem_data> fitem, Buffer& buf)
  */
 int clif_dropflooritem(dumb_ptr<flooritem_data> fitem)
 {
-    nullpo_ret(fitem);
+    nullpo_retz(fitem);
 
     if (!fitem->item_data.nameid)
         return 0;
@@ -567,7 +567,7 @@ int clif_dropflooritem(dumb_ptr<flooritem_data> fitem)
  */
 int clif_clearflooritem(dumb_ptr<flooritem_data> fitem, Session *s)
 {
-    nullpo_ret(fitem);
+    nullpo_retz(fitem);
 
     Packet_Fixed<0x00a1> fixed_a1;
     fixed_a1.block_id = fitem->bl_id;
@@ -591,7 +591,7 @@ int clif_clearflooritem(dumb_ptr<flooritem_data> fitem, Session *s)
  */
 int clif_clearchar(dumb_ptr<block_list> bl, BeingRemoveWhy type)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     Packet_Fixed<0x0080> fixed_80;
     fixed_80.block_id = bl->bl_id;
@@ -931,7 +931,7 @@ earray<EQUIP, LOOK, LOOK::COUNT> equip_points //=
  */
 int clif_spawnpc(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Buffer buf;
     clif_set0078_alt_1d9(sd, buf);
@@ -949,7 +949,7 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
     if (sd->bl_m->flag.get(MapFlag::RAIN))
         clif_specialeffect(sd, 161, 1);
 
-//        clif_changelook_accessories(sd, NULL);
+//        clif_changelook_accessories(sd, nullptr);
 
     return 0;
 }
@@ -960,7 +960,7 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
  */
 int clif_spawnnpc(dumb_ptr<npc_data> nd)
 {
-    nullpo_ret(nd);
+    nullpo_retz(nd);
 
     if (nd->npc_class == NEGATIVE_SPECIES || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
@@ -983,7 +983,7 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 
 int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_npc_id)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
 
@@ -1028,7 +1028,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
  */
 int clif_spawnmob(dumb_ptr<mob_data> md)
 {
-    nullpo_ret(md);
+    nullpo_retz(md);
 
     {
         Packet_Fixed<0x007c> fixed_7c;
@@ -1058,7 +1058,7 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
 static
 int clif_servertick(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x007f> fixed_7f;
@@ -1074,7 +1074,7 @@ int clif_servertick(dumb_ptr<map_session_data> sd)
  */
 int clif_walkok(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x0087> fixed_87;
@@ -1095,7 +1095,7 @@ int clif_walkok(dumb_ptr<map_session_data> sd)
  */
 int clif_movechar(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Buffer buf;
     clif_set007b(sd, buf);
@@ -1201,7 +1201,7 @@ void clif_fixpos(dumb_ptr<block_list> bl)
  */
 int clif_npcbuysell(dumb_ptr<map_session_data> sd, BlockId id)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00c4> fixed_c4;
@@ -1220,8 +1220,8 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
     struct item_data *id;
     int i, val;
 
-    nullpo_ret(sd);
-    nullpo_ret(nd);
+    nullpo_retz(sd);
+    nullpo_retz(nd);
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x00c6>> repeat_c6(nd->shop_items.size());
@@ -1245,7 +1245,7 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
  */
 int clif_selllist(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x00c7>> repeat_c7;
@@ -1359,7 +1359,7 @@ void clif_scriptinputstr(dumb_ptr<map_session_data> sd, BlockId npcid)
  */
 int clif_additem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, PickupFail fail)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00a0> fixed_a0;
@@ -1373,7 +1373,7 @@ int clif_additem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, PickupFail 
     else
     {
         if (!n.ok() || !sd->status.inventory[n].nameid
-            || sd->inventory_data[n] == NULL)
+            || sd->inventory_data[n] == nullptr)
             return 1;
 
         fixed_a0.ioff2 = n.shift();
@@ -1429,7 +1429,7 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
     for (IOff0 i : IOff0::iter())
     {
         if (!sd->status.inventory[i].nameid
-            || sd->inventory_data[i] == NULL
+            || sd->inventory_data[i] == nullptr
             || itemdb_isequip2(sd->inventory_data[i]))
             continue;
         Packet_Repeat<0x01ee> info;
@@ -1473,7 +1473,7 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
     for (IOff0 i : IOff0::iter())
     {
         if (!sd->status.inventory[i].nameid
-            || sd->inventory_data[i] == NULL
+            || sd->inventory_data[i] == nullptr
             || !itemdb_isequip2(sd->inventory_data[i]))
             continue;
         Packet_Repeat<0x00a4> info;
@@ -1508,8 +1508,8 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
  */
 int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
 {
-    nullpo_ret(sd);
-    nullpo_ret(stor);
+    nullpo_retz(sd);
+    nullpo_retz(stor);
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x01f0>> repeat_1f0;
@@ -1520,7 +1520,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
 
         struct item_data *id;
         id = itemdb_search(stor->storage_[i].nameid);
-        nullpo_ret(id);
+        nullpo_retz(id);
         if (itemdb_isequip2(id))
             continue;
 
@@ -1550,8 +1550,8 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
  */
 int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
 {
-    nullpo_ret(sd);
-    nullpo_ret(stor);
+    nullpo_retz(sd);
+    nullpo_retz(stor);
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x00a6>> repeat_a6;
@@ -1562,7 +1562,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
 
         struct item_data *id;
         id = itemdb_search(stor->storage_[i].nameid);
-        nullpo_ret(id);
+        nullpo_retz(id);
         if (!itemdb_isequip2(id))
             continue;
         Packet_Repeat<0x00a6> info;
@@ -1596,7 +1596,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
  */
 int clif_updatestatus(dumb_ptr<map_session_data> sd, SP type)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
 
@@ -1809,15 +1809,15 @@ not_141:
  */
 int clif_changelook(dumb_ptr<block_list> bl, LOOK type, int val)
 {
-    return clif_changelook_towards(bl, type, val, NULL);
+    return clif_changelook_towards(bl, type, val, nullptr);
 }
 
 int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
                              dumb_ptr<map_session_data> dstsd)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     if (bl->bl_type == BL::PC)
         sd = bl->is_player();
@@ -1898,7 +1898,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
 static
 int clif_initialstatus(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
 
@@ -1954,7 +1954,7 @@ int clif_initialstatus(dumb_ptr<map_session_data> sd)
  */
 int clif_arrowequip(dumb_ptr<map_session_data> sd, IOff0 val)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     sd->attacktarget = BlockId();
 
@@ -1972,7 +1972,7 @@ int clif_arrowequip(dumb_ptr<map_session_data> sd, IOff0 val)
  */
 int clif_arrow_fail(dumb_ptr<map_session_data> sd, int type)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
 
@@ -1989,7 +1989,7 @@ int clif_arrow_fail(dumb_ptr<map_session_data> sd, int type)
  */
 int clif_statusupack(dumb_ptr<map_session_data> sd, SP type, int ok, int val)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00bc> fixed_bc;
@@ -2007,7 +2007,7 @@ int clif_statusupack(dumb_ptr<map_session_data> sd, SP type, int ok, int val)
  */
 int clif_equipitemack(dumb_ptr<map_session_data> sd, IOff0 n, EPOS pos, int ok)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00aa> fixed_aa;
@@ -2025,7 +2025,7 @@ int clif_equipitemack(dumb_ptr<map_session_data> sd, IOff0 n, EPOS pos, int ok)
  */
 int clif_unequipitemack(dumb_ptr<map_session_data> sd, IOff0 n, EPOS pos, int ok)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00ac> fixed_ac;
@@ -2043,7 +2043,7 @@ int clif_unequipitemack(dumb_ptr<map_session_data> sd, IOff0 n, EPOS pos, int ok
  */
 int clif_misceffect(dumb_ptr<block_list> bl, int type)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     Packet_Fixed<0x019b> fixed_19b;
     fixed_19b.block_id = bl->bl_id;
@@ -2063,7 +2063,7 @@ int clif_changeoption(dumb_ptr<block_list> bl)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     Option option = *battle_get_option(bl);
     sc_data = battle_get_sc_data(bl);
@@ -2088,7 +2088,7 @@ int clif_changeoption(dumb_ptr<block_list> bl)
 int clif_useitemack(dumb_ptr<map_session_data> sd, IOff0 index, int amount,
                      int ok)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (!ok)
     {
@@ -2190,7 +2190,7 @@ void clif_tradeadditem(dumb_ptr<map_session_data> sd,
 int clif_tradeitemok(dumb_ptr<map_session_data> sd, IOff2 index2, int amount,
                       int fail)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x01b1> fixed_1b1;
@@ -2208,7 +2208,7 @@ int clif_tradeitemok(dumb_ptr<map_session_data> sd, IOff2 index2, int amount,
  */
 int clif_tradedeal_lock(dumb_ptr<map_session_data> sd, int fail)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00ec> fixed_ec;
@@ -2224,7 +2224,7 @@ int clif_tradedeal_lock(dumb_ptr<map_session_data> sd, int fail)
  */
 int clif_tradecancelled(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00ee> fixed_ee;
@@ -2239,7 +2239,7 @@ int clif_tradecancelled(dumb_ptr<map_session_data> sd)
  */
 int clif_tradecompleted(dumb_ptr<map_session_data> sd, int fail)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f0> fixed_f0;
@@ -2256,8 +2256,8 @@ int clif_tradecompleted(dumb_ptr<map_session_data> sd, int fail)
 int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
                               Storage *stor)
 {
-    nullpo_ret(sd);
-    nullpo_ret(stor);
+    nullpo_retz(sd);
+    nullpo_retz(stor);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f2> fixed_f2;
@@ -2275,8 +2275,8 @@ int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
 int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
         SOff0 index, int amount)
 {
-    nullpo_ret(sd);
-    nullpo_ret(stor);
+    nullpo_retz(sd);
+    nullpo_retz(stor);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f4> fixed_f4;
@@ -2304,7 +2304,7 @@ int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
 int clif_storageitemremoved(dumb_ptr<map_session_data> sd, SOff0 index,
                              int amount)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f6> fixed_f6;
@@ -2321,7 +2321,7 @@ int clif_storageitemremoved(dumb_ptr<map_session_data> sd, SOff0 index,
  */
 int clif_storageclose(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f8> fixed_f8;
@@ -2397,7 +2397,7 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
  */
 int clif_movemob(dumb_ptr<mob_data> md)
 {
-    nullpo_ret(md);
+    nullpo_retz(md);
 
     Buffer buf;
     clif_mob007b(md, buf);
@@ -2412,7 +2412,7 @@ int clif_movemob(dumb_ptr<mob_data> md)
  */
 int clif_fixmobpos(dumb_ptr<mob_data> md)
 {
-    nullpo_ret(md);
+    nullpo_retz(md);
 
     if (md->state.state == MS::WALK)
     {
@@ -2436,7 +2436,7 @@ int clif_fixmobpos(dumb_ptr<mob_data> md)
  */
 int clif_fixpcpos(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->walktimer)
     {
@@ -2450,7 +2450,7 @@ int clif_fixpcpos(dumb_ptr<map_session_data> sd)
         clif_set0078_main_1d8(sd, buf);
         clif_send(buf, sd, SendWho::AREA);
     }
-    clif_changelook_accessories(sd, NULL);
+    clif_changelook_accessories(sd, nullptr);
 
     return 0;
 }
@@ -2465,8 +2465,8 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(src);
-    nullpo_ret(dst);
+    nullpo_retz(src);
+    nullpo_retz(dst);
 
     sc_data = battle_get_sc_data(dst);
 
@@ -2683,7 +2683,7 @@ void clif_mobinsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
 int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
                     int range)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     if (!sd->status.skill[skillid].lv)
@@ -2755,7 +2755,7 @@ void clif_skillinfoblock(dumb_ptr<map_session_data> sd)
  */
 int clif_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x010e> fixed_10e;
@@ -2793,7 +2793,7 @@ int clif_skillcastcancel(dumb_ptr<block_list> bl)
 int clif_skill_fail(dumb_ptr<map_session_data> sd, SkillID skill_id, int type,
                      int btype)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
 
@@ -2823,8 +2823,8 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
-    nullpo_ret(src);
-    nullpo_ret(dst);
+    nullpo_retz(src);
+    nullpo_retz(dst);
 
     sc_data = battle_get_sc_data(dst);
 
@@ -2851,7 +2851,7 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
  */
 int clif_status_change(dumb_ptr<block_list> bl, StatusChange type, int flag)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     Packet_Fixed<0x0196> fixed_196;
     fixed_196.sc_type = type;
@@ -2944,7 +2944,7 @@ void clif_wis_end(Session *s, int flag) // R 0098 <type>.B: 0: success to send w
  */
 int clif_party_created(dumb_ptr<map_session_data> sd, int flag)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00fa> fixed_fa;
@@ -2960,9 +2960,9 @@ int clif_party_created(dumb_ptr<map_session_data> sd, int flag)
 int clif_party_info(PartyPair p, Session *s)
 {
     int i;
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
 
-    nullpo_ret(p);
+    nullpo_retz(p);
 
     Packet_Head<0x00fb> head_fb;
     std::vector<Packet_Repeat<0x00fb>> repeat_fb;
@@ -2973,7 +2973,7 @@ int clif_party_info(PartyPair p, Session *s)
         if (m->account_id)
         {
             Packet_Repeat<0x00fb> info;
-            if (sd == NULL)
+            if (sd == nullptr)
                 sd = dumb_ptr<map_session_data>(m->sd);
 
             info.account_id = m->account_id;
@@ -2991,7 +2991,7 @@ int clif_party_info(PartyPair p, Session *s)
         return 9;
     }
     // else, send it to all the party, if they exist.
-    if (sd != NULL)
+    if (sd != nullptr)
     {
         Buffer buf = create_vpacket<0x00fb, 28, 46>(head_fb, repeat_fb);
         clif_send(buf, sd, SendWho::PARTY);
@@ -3061,14 +3061,14 @@ void clif_party_option(PartyPair p, dumb_ptr<map_session_data> sd, int flag)
 {
     nullpo_retv(p);
 
-    if (sd == NULL && flag == 0)
+    if (sd == nullptr && flag == 0)
     {
         int i;
         for (i = 0; i < MAX_PARTY; i++)
-            if ((sd = map_id2sd(account_to_block(p->member[i].account_id))) != NULL)
+            if ((sd = map_id2sd(account_to_block(p->member[i].account_id))) != nullptr)
                 break;
     }
-    if (sd == NULL)
+    if (sd == nullptr)
         return;
     Packet_Fixed<0x0101> fixed_101;
     fixed_101.exp = ((flag & 0x01) ? 2 : p->exp);
@@ -3102,20 +3102,20 @@ void clif_party_leaved(PartyPair p, dumb_ptr<map_session_data> sd,
 
     if ((flag & 0xf0) == 0)
     {
-        if (sd == NULL)
+        if (sd == nullptr)
             for (i = 0; i < MAX_PARTY; i++)
             {
                 sd = dumb_ptr<map_session_data>(p->member[i].sd);
-                if (sd != NULL)
+                if (sd != nullptr)
                     break;
             }
-        if (sd != NULL)
+        if (sd != nullptr)
         {
             Buffer buf = create_fpacket<0x0105, 31>(fixed_105);
             clif_send(buf, sd, SendWho::PARTY);
         }
     }
-    else if (sd != NULL)
+    else if (sd != nullptr)
     {
         send_fpacket<0x0105, 31>(sd->sess, fixed_105);
     }
@@ -3136,10 +3136,10 @@ void clif_party_message(PartyPair p, AccountId account_id, XString mes)
     for (i = 0; i < MAX_PARTY; i++)
     {
         sd = dumb_ptr<map_session_data>(p->member[i].sd);
-        if (sd != NULL)
+        if (sd != nullptr)
             break;
     }
-    if (sd != NULL)
+    if (sd != nullptr)
     {
         Packet_Head<0x0109> head_109;
         head_109.account_id = account_id;
@@ -3154,7 +3154,7 @@ void clif_party_message(PartyPair p, AccountId account_id, XString mes)
  */
 int clif_party_xy(PartyPair , dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Packet_Fixed<0x0107> fixed_107;
     fixed_107.account_id = sd->status_key.account_id;
@@ -3171,7 +3171,7 @@ int clif_party_xy(PartyPair , dumb_ptr<map_session_data> sd)
  */
 int clif_party_hp(PartyPair , dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Packet_Fixed<0x0106> fixed_106;
     fixed_106.account_id = sd->status_key.account_id;
@@ -3189,8 +3189,8 @@ int clif_party_hp(PartyPair , dumb_ptr<map_session_data> sd)
  */
 int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
 {
-    nullpo_ret(sd);
-    nullpo_ret(bl);
+    nullpo_retz(sd);
+    nullpo_retz(bl);
 
     Session *s = sd->sess;
     Packet_Fixed<0x0139> fixed_139;
@@ -3210,7 +3210,7 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
  */
 int clif_mvp_effect(dumb_ptr<map_session_data> sd)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Packet_Fixed<0x010c> fixed_10c;
     fixed_10c.block_id = sd->bl_id;
@@ -3275,7 +3275,7 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
 static
 int clif_GM_kickack(dumb_ptr<map_session_data> sd, AccountId id)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00cd> fixed_cd;
@@ -3290,7 +3290,7 @@ void clif_do_quit_game(Session *s, dumb_ptr<map_session_data> sd);
 int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
                   int type)
 {
-    nullpo_ret(tsd);
+    nullpo_retz(tsd);
 
     if (type)
         clif_GM_kickack(sd, tsd->status_key.account_id);
@@ -3304,7 +3304,7 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
 // displaying special effects (npcs, weather, etc) [Valaris]
 int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     Packet_Fixed<0x019b> fixed_19b;
     fixed_19b.block_id = bl->bl_id;
@@ -3401,7 +3401,7 @@ RecvResult clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd
 static
 RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
 {
-    if (sd->bl_prev != NULL)
+    if (sd->bl_prev != nullptr)
         return RecvResult::Error;
 
     Packet_Fixed<0x007d> fixed;
@@ -3479,7 +3479,7 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     clif_changeoption(sd);
     // broken equipment
 
-//        clif_changelook_accessories(sd, NULL);
+//        clif_changelook_accessories(sd, nullptr);
 
     map_foreachinarea(std::bind(clif_getareachar, ph::_1, sd),
             sd->bl_m,
@@ -3613,7 +3613,7 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
 
     account_id = fixed.block_id;
     bl = map_id2bl(account_id);
-    if (bl == NULL)
+    if (bl == nullptr)
         return rv;
 
     Packet_Fixed<0x0095> fixed_95;
@@ -3999,7 +3999,7 @@ RecvResult clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    dumb_ptr<map_session_data> dstsd = NULL;
+    dumb_ptr<map_session_data> dstsd = nullptr;
 
     AString mbuf = clif_validate_chat(sd, ChatType::Whisper, repeat);
     if (!mbuf)
@@ -4081,7 +4081,7 @@ RecvResult clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
         || sd->opt1 != Opt1::ZERO)   //会話禁止
         return rv;
 
-    if (fitem == NULL || fitem->bl_m != sd->bl_m)
+    if (fitem == nullptr || fitem->bl_m != sd->bl_m)
         return rv;
 
     if (abs(sd->bl_x - fitem->bl_x) >= 2
@@ -4808,550 +4808,550 @@ RecvResult clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
 
 func_table clif_parse_func_table[0x0220] =
 {
-    {0,     10, NULL,                           },  // 0x0000
-    {0,     0,  NULL,                           },  // 0x0001
-    {0,     0,  NULL,                           },  // 0x0002
-    {0,     0,  NULL,                           },  // 0x0003
-    {0,     0,  NULL,                           },  // 0x0004
-    {0,     0,  NULL,                           },  // 0x0005
-    {0,     0,  NULL,                           },  // 0x0006
-    {0,     0,  NULL,                           },  // 0x0007
-    {0,     0,  NULL,                           },  // 0x0008
-    {0,     0,  NULL,                           },  // 0x0009
-    {0,     0,  NULL,                           },  // 0x000a
-    {0,     0,  NULL,                           },  // 0x000b
-    {0,     0,  NULL,                           },  // 0x000c
-    {0,     0,  NULL,                           },  // 0x000d
-    {0,     0,  NULL,                           },  // 0x000e
-    {0,     0,  NULL,                           },  // 0x000f
-    {0,     0,  NULL,                           },  // 0x0010
-    {0,     0,  NULL,                           },  // 0x0011
-    {0,     0,  NULL,                           },  // 0x0012
-    {0,     0,  NULL,                           },  // 0x0013
-    {0,     0,  NULL,                           },  // 0x0014
-    {0,     0,  NULL,                           },  // 0x0015
-    {0,     0,  NULL,                           },  // 0x0016
-    {0,     0,  NULL,                           },  // 0x0017
-    {0,     0,  NULL,                           },  // 0x0018
-    {0,     0,  NULL,                           },  // 0x0019
-    {0,     0,  NULL,                           },  // 0x001a
-    {0,     0,  NULL,                           },  // 0x001b
-    {0,     0,  NULL,                           },  // 0x001c
-    {0,     0,  NULL,                           },  // 0x001d
-    {0,     0,  NULL,                           },  // 0x001e
-    {0,     0,  NULL,                           },  // 0x001f
-    {0,     0,  NULL,                           },  // 0x0020
-    {0,     0,  NULL,                           },  // 0x0021
-    {0,     0,  NULL,                           },  // 0x0022
-    {0,     0,  NULL,                           },  // 0x0023
-    {0,     0,  NULL,                           },  // 0x0024
-    {0,     0,  NULL,                           },  // 0x0025
-    {0,     0,  NULL,                           },  // 0x0026
-    {0,     0,  NULL,                           },  // 0x0027
-    {0,     0,  NULL,                           },  // 0x0028
-    {0,     0,  NULL,                           },  // 0x0029
-    {0,     0,  NULL,                           },  // 0x002a
-    {0,     0,  NULL,                           },  // 0x002b
-    {0,     0,  NULL,                           },  // 0x002c
-    {0,     0,  NULL,                           },  // 0x002d
-    {0,     0,  NULL,                           },  // 0x002e
-    {0,     0,  NULL,                           },  // 0x002f
-    {0,     0,  NULL,                           },  // 0x0030
-    {0,     0,  NULL,                           },  // 0x0031
-    {0,     0,  NULL,                           },  // 0x0032
-    {0,     0,  NULL,                           },  // 0x0033
-    {0,     0,  NULL,                           },  // 0x0034
-    {0,     0,  NULL,                           },  // 0x0035
-    {0,     0,  NULL,                           },  // 0x0036
-    {0,     0,  NULL,                           },  // 0x0037
-    {0,     0,  NULL,                           },  // 0x0038
-    {0,     0,  NULL,                           },  // 0x0039
-    {0,     0,  NULL,                           },  // 0x003a
-    {0,     0,  NULL,                           },  // 0x003b
-    {0,     0,  NULL,                           },  // 0x003c
-    {0,     0,  NULL,                           },  // 0x003d
-    {0,     0,  NULL,                           },  // 0x003e
-    {0,     0,  NULL,                           },  // 0x003f
-    {0,     0,  NULL,                           },  // 0x0040
-    {0,     0,  NULL,                           },  // 0x0041
-    {0,     0,  NULL,                           },  // 0x0042
-    {0,     0,  NULL,                           },  // 0x0043
-    {0,     0,  NULL,                           },  // 0x0044
-    {0,     0,  NULL,                           },  // 0x0045
-    {0,     0,  NULL,                           },  // 0x0046
-    {0,     0,  NULL,                           },  // 0x0047
-    {0,     0,  NULL,                           },  // 0x0048
-    {0,     0,  NULL,                           },  // 0x0049
-    {0,     0,  NULL,                           },  // 0x004a
-    {0,     0,  NULL,                           },  // 0x004b
-    {0,     0,  NULL,                           },  // 0x004c
-    {0,     0,  NULL,                           },  // 0x004d
-    {0,     0,  NULL,                           },  // 0x004e
-    {0,     0,  NULL,                           },  // 0x004f
-    {0,     0,  NULL,                           },  // 0x0050
-    {0,     0,  NULL,                           },  // 0x0051
-    {0,     0,  NULL,                           },  // 0x0052
-    {0,     0,  NULL,                           },  // 0x0053
-    {0,     0,  NULL,                           },  // 0x0054
-    {0,     0,  NULL,                           },  // 0x0055
-    {0,     0,  NULL,                           },  // 0x0056
-    {0,     0,  NULL,                           },  // 0x0057
-    {0,     0,  NULL,                           },  // 0x0058
-    {0,     0,  NULL,                           },  // 0x0059
-    {0,     0,  NULL,                           },  // 0x005a
-    {0,     0,  NULL,                           },  // 0x005b
-    {0,     0,  NULL,                           },  // 0x005c
-    {0,     0,  NULL,                           },  // 0x005d
-    {0,     0,  NULL,                           },  // 0x005e
-    {0,     0,  NULL,                           },  // 0x005f
-    {0,     0,  NULL,                           },  // 0x0060
-    {0,     0,  NULL,                           },  // 0x0061
-    {0,     0,  NULL,                           },  // 0x0062
-    {0,     VAR,NULL,                           },  // 0x0063
-    {0,     55, NULL,                           },  // 0x0064
-    {0,     17, NULL,                           },  // 0x0065
-    {0,     3,  NULL,                           },  // 0x0066
-    {0,     37, NULL,                           },  // 0x0067
-    {0,     46, NULL,                           },  // 0x0068
-    {0,     VAR,NULL,                           },  // 0x0069
-    {0,     23, NULL,                           },  // 0x006a
-    {0,     VAR,NULL,                           },  // 0x006b
-    {0,     3,  NULL,                           },  // 0x006c
-    {0,     108,NULL,                           },  // 0x006d
-    {0,     3,  NULL,                           },  // 0x006e
-    {0,     2,  NULL,                           },  // 0x006f
-    {0,     3,  NULL,                           },  // 0x0070
-    {0,     28, NULL,                           },  // 0x0071
+    {0,     10, nullptr,                        },  // 0x0000
+    {0,     0,  nullptr,                        },  // 0x0001
+    {0,     0,  nullptr,                        },  // 0x0002
+    {0,     0,  nullptr,                        },  // 0x0003
+    {0,     0,  nullptr,                        },  // 0x0004
+    {0,     0,  nullptr,                        },  // 0x0005
+    {0,     0,  nullptr,                        },  // 0x0006
+    {0,     0,  nullptr,                        },  // 0x0007
+    {0,     0,  nullptr,                        },  // 0x0008
+    {0,     0,  nullptr,                        },  // 0x0009
+    {0,     0,  nullptr,                        },  // 0x000a
+    {0,     0,  nullptr,                        },  // 0x000b
+    {0,     0,  nullptr,                        },  // 0x000c
+    {0,     0,  nullptr,                        },  // 0x000d
+    {0,     0,  nullptr,                        },  // 0x000e
+    {0,     0,  nullptr,                        },  // 0x000f
+    {0,     0,  nullptr,                        },  // 0x0010
+    {0,     0,  nullptr,                        },  // 0x0011
+    {0,     0,  nullptr,                        },  // 0x0012
+    {0,     0,  nullptr,                        },  // 0x0013
+    {0,     0,  nullptr,                        },  // 0x0014
+    {0,     0,  nullptr,                        },  // 0x0015
+    {0,     0,  nullptr,                        },  // 0x0016
+    {0,     0,  nullptr,                        },  // 0x0017
+    {0,     0,  nullptr,                        },  // 0x0018
+    {0,     0,  nullptr,                        },  // 0x0019
+    {0,     0,  nullptr,                        },  // 0x001a
+    {0,     0,  nullptr,                        },  // 0x001b
+    {0,     0,  nullptr,                        },  // 0x001c
+    {0,     0,  nullptr,                        },  // 0x001d
+    {0,     0,  nullptr,                        },  // 0x001e
+    {0,     0,  nullptr,                        },  // 0x001f
+    {0,     0,  nullptr,                        },  // 0x0020
+    {0,     0,  nullptr,                        },  // 0x0021
+    {0,     0,  nullptr,                        },  // 0x0022
+    {0,     0,  nullptr,                        },  // 0x0023
+    {0,     0,  nullptr,                        },  // 0x0024
+    {0,     0,  nullptr,                        },  // 0x0025
+    {0,     0,  nullptr,                        },  // 0x0026
+    {0,     0,  nullptr,                        },  // 0x0027
+    {0,     0,  nullptr,                        },  // 0x0028
+    {0,     0,  nullptr,                        },  // 0x0029
+    {0,     0,  nullptr,                        },  // 0x002a
+    {0,     0,  nullptr,                        },  // 0x002b
+    {0,     0,  nullptr,                        },  // 0x002c
+    {0,     0,  nullptr,                        },  // 0x002d
+    {0,     0,  nullptr,                        },  // 0x002e
+    {0,     0,  nullptr,                        },  // 0x002f
+    {0,     0,  nullptr,                        },  // 0x0030
+    {0,     0,  nullptr,                        },  // 0x0031
+    {0,     0,  nullptr,                        },  // 0x0032
+    {0,     0,  nullptr,                        },  // 0x0033
+    {0,     0,  nullptr,                        },  // 0x0034
+    {0,     0,  nullptr,                        },  // 0x0035
+    {0,     0,  nullptr,                        },  // 0x0036
+    {0,     0,  nullptr,                        },  // 0x0037
+    {0,     0,  nullptr,                        },  // 0x0038
+    {0,     0,  nullptr,                        },  // 0x0039
+    {0,     0,  nullptr,                        },  // 0x003a
+    {0,     0,  nullptr,                        },  // 0x003b
+    {0,     0,  nullptr,                        },  // 0x003c
+    {0,     0,  nullptr,                        },  // 0x003d
+    {0,     0,  nullptr,                        },  // 0x003e
+    {0,     0,  nullptr,                        },  // 0x003f
+    {0,     0,  nullptr,                        },  // 0x0040
+    {0,     0,  nullptr,                        },  // 0x0041
+    {0,     0,  nullptr,                        },  // 0x0042
+    {0,     0,  nullptr,                        },  // 0x0043
+    {0,     0,  nullptr,                        },  // 0x0044
+    {0,     0,  nullptr,                        },  // 0x0045
+    {0,     0,  nullptr,                        },  // 0x0046
+    {0,     0,  nullptr,                        },  // 0x0047
+    {0,     0,  nullptr,                        },  // 0x0048
+    {0,     0,  nullptr,                        },  // 0x0049
+    {0,     0,  nullptr,                        },  // 0x004a
+    {0,     0,  nullptr,                        },  // 0x004b
+    {0,     0,  nullptr,                        },  // 0x004c
+    {0,     0,  nullptr,                        },  // 0x004d
+    {0,     0,  nullptr,                        },  // 0x004e
+    {0,     0,  nullptr,                        },  // 0x004f
+    {0,     0,  nullptr,                        },  // 0x0050
+    {0,     0,  nullptr,                        },  // 0x0051
+    {0,     0,  nullptr,                        },  // 0x0052
+    {0,     0,  nullptr,                        },  // 0x0053
+    {0,     0,  nullptr,                        },  // 0x0054
+    {0,     0,  nullptr,                        },  // 0x0055
+    {0,     0,  nullptr,                        },  // 0x0056
+    {0,     0,  nullptr,                        },  // 0x0057
+    {0,     0,  nullptr,                        },  // 0x0058
+    {0,     0,  nullptr,                        },  // 0x0059
+    {0,     0,  nullptr,                        },  // 0x005a
+    {0,     0,  nullptr,                        },  // 0x005b
+    {0,     0,  nullptr,                        },  // 0x005c
+    {0,     0,  nullptr,                        },  // 0x005d
+    {0,     0,  nullptr,                        },  // 0x005e
+    {0,     0,  nullptr,                        },  // 0x005f
+    {0,     0,  nullptr,                        },  // 0x0060
+    {0,     0,  nullptr,                        },  // 0x0061
+    {0,     0,  nullptr,                        },  // 0x0062
+    {0,     VAR,nullptr,                        },  // 0x0063
+    {0,     55, nullptr,                        },  // 0x0064
+    {0,     17, nullptr,                        },  // 0x0065
+    {0,     3,  nullptr,                        },  // 0x0066
+    {0,     37, nullptr,                        },  // 0x0067
+    {0,     46, nullptr,                        },  // 0x0068
+    {0,     VAR,nullptr,                        },  // 0x0069
+    {0,     23, nullptr,                        },  // 0x006a
+    {0,     VAR,nullptr,                        },  // 0x006b
+    {0,     3,  nullptr,                        },  // 0x006c
+    {0,     108,nullptr,                        },  // 0x006d
+    {0,     3,  nullptr,                        },  // 0x006e
+    {0,     2,  nullptr,                        },  // 0x006f
+    {0,     3,  nullptr,                        },  // 0x0070
+    {0,     28, nullptr,                        },  // 0x0071
     {0,     19, clif_parse_WantToConnection,    },  // 0x0072
-    {0,     11, NULL,                           },  // 0x0073
-    {0,     3,  NULL,                           },  // 0x0074
-    {0,     VAR,NULL,                           },  // 0x0075
-    {0,     9,  NULL,                           },  // 0x0076
-    {0,     5,  NULL,                           },  // 0x0077
-    {0,     54, NULL,                           },  // 0x0078
-    {0,     53, NULL,                           },  // 0x0079
-    {0,     58, NULL,                           },  // 0x007a
-    {0,     60, NULL,                           },  // 0x007b
-    {0,     41, NULL,                           },  // 0x007c
+    {0,     11, nullptr,                        },  // 0x0073
+    {0,     3,  nullptr,                        },  // 0x0074
+    {0,     VAR,nullptr,                        },  // 0x0075
+    {0,     9,  nullptr,                        },  // 0x0076
+    {0,     5,  nullptr,                        },  // 0x0077
+    {0,     54, nullptr,                        },  // 0x0078
+    {0,     53, nullptr,                        },  // 0x0079
+    {0,     58, nullptr,                        },  // 0x007a
+    {0,     60, nullptr,                        },  // 0x007b
+    {0,     41, nullptr,                        },  // 0x007c
     {-1,    2,  clif_parse_LoadEndAck,          },  // 0x007d
     {0,     6,  clif_parse_TickSend,            },  // 0x007e
-    {0,     6,  NULL,                           },  // 0x007f
-    {0,     7,  NULL,                           },  // 0x0080
-    {0,     3,  NULL,                           },  // 0x0081
-    {0,     2,  NULL,                           },  // 0x0082
-    {0,     2,  NULL,                           },  // 0x0083
-    {0,     2,  NULL,                           },  // 0x0084
+    {0,     6,  nullptr,                        },  // 0x007f
+    {0,     7,  nullptr,                        },  // 0x0080
+    {0,     3,  nullptr,                        },  // 0x0081
+    {0,     2,  nullptr,                        },  // 0x0082
+    {0,     2,  nullptr,                        },  // 0x0083
+    {0,     2,  nullptr,                        },  // 0x0084
     {-1,    5,  clif_parse_WalkToXY,            },  // 0x0085 Walk code limits this on it's own
-    {0,     16, NULL,                           },  // 0x0086
-    {0,     12, NULL,                           },  // 0x0087
-    {0,     10, NULL,                           },  // 0x0088
+    {0,     16, nullptr,                        },  // 0x0086
+    {0,     12, nullptr,                        },  // 0x0087
+    {0,     10, nullptr,                        },  // 0x0088
     {1000,  7,  clif_parse_ActionRequest,       },  // 0x0089 Special case - see below
-    {0,     29, NULL,                           },  // 0x008a
-    {0,     23, NULL,                           },  // 0x008b unknown... size 2 or 23?
+    {0,     29, nullptr,                        },  // 0x008a
+    {0,     23, nullptr,                        },  // 0x008b unknown... size 2 or 23?
     {300,   VAR,clif_parse_GlobalMessage,       },  // 0x008c
-    {0,     VAR,NULL,                           },  // 0x008d
-    {0,     VAR,NULL,                           },  // 0x008e
-    {0,     0,  NULL,                           },  // 0x008f
+    {0,     VAR,nullptr,                        },  // 0x008d
+    {0,     VAR,nullptr,                        },  // 0x008e
+    {0,     0,  nullptr,                        },  // 0x008f
     {500,   7,  clif_parse_NpcClicked,          },  // 0x0090
-    {0,     22, NULL,                           },  // 0x0091
-    {0,     28, NULL,                           },  // 0x0092
-    {0,     2,  NULL,                           },  // 0x0093
+    {0,     22, nullptr,                        },  // 0x0091
+    {0,     28, nullptr,                        },  // 0x0092
+    {0,     2,  nullptr,                        },  // 0x0093
     {-1,    6,  clif_parse_GetCharNameRequest,  },  // 0x0094
-    {0,     30, NULL,                           },  // 0x0095
+    {0,     30, nullptr,                        },  // 0x0095
     {300,   VAR,clif_parse_Wis,                 },  // 0x0096
-    {0,     VAR,NULL,                           },  // 0x0097
-    {0,     3,  NULL,                           },  // 0x0098
-    {300,   VAR,NULL,                           },  // 0x0099
-    {0,     VAR,NULL,                           },  // 0x009a
+    {0,     VAR,nullptr,                        },  // 0x0097
+    {0,     3,  nullptr,                        },  // 0x0098
+    {300,   VAR,nullptr,                        },  // 0x0099
+    {0,     VAR,nullptr,                        },  // 0x009a
     {-1,    5,  clif_parse_ChangeDir,           },  // 0x009b
-    {0,     9,  NULL,                           },  // 0x009c
-    {0,     17, NULL,                           },  // 0x009d
-    {0,     17, NULL,                           },  // 0x009e
+    {0,     9,  nullptr,                        },  // 0x009c
+    {0,     17, nullptr,                        },  // 0x009d
+    {0,     17, nullptr,                        },  // 0x009e
     {400,   6,  clif_parse_TakeItem,            },  // 0x009f
-    {0,     23, NULL,                           },  // 0x00a0
-    {0,     6,  NULL,                           },  // 0x00a1
+    {0,     23, nullptr,                        },  // 0x00a0
+    {0,     6,  nullptr,                        },  // 0x00a1
     {50,    6,  clif_parse_DropItem,            },  // 0x00a2
-    {0,     VAR,NULL,                           },  // 0x00a3
-    {0,     VAR,NULL,                           },  // 0x00a4
-    {0,     VAR,NULL,                           },  // 0x00a5
-    {0,     VAR,NULL,                           },  // 0x00a6
+    {0,     VAR,nullptr,                        },  // 0x00a3
+    {0,     VAR,nullptr,                        },  // 0x00a4
+    {0,     VAR,nullptr,                        },  // 0x00a5
+    {0,     VAR,nullptr,                        },  // 0x00a6
     {0,     8,  clif_parse_UseItem,             },  // 0x00a7
-    {0,     7,  NULL,                           },  // 0x00a8
+    {0,     7,  nullptr,                        },  // 0x00a8
     {-1,    6,  clif_parse_EquipItem,           },  // 0x00a9 Special case - outfit window (not implemented yet - needs to allow bursts)
-    {0,     7,  NULL,                           },  // 0x00aa
+    {0,     7,  nullptr,                        },  // 0x00aa
     {-1,    4,  clif_parse_UnequipItem,         },  // 0x00ab Special case - outfit window (not implemented yet - needs to allow bursts)
-    {0,     7,  NULL,                           },  // 0x00ac
-    {0,     0,  NULL,                           },  // 0x00ad
-    {0,     VAR,NULL,                           },  // 0x00ae
-    {0,     6,  NULL,                           },  // 0x00af
-    {0,     8,  NULL,                           },  // 0x00b0
-    {0,     8,  NULL,                           },  // 0x00b1
+    {0,     7,  nullptr,                        },  // 0x00ac
+    {0,     0,  nullptr,                        },  // 0x00ad
+    {0,     VAR,nullptr,                        },  // 0x00ae
+    {0,     6,  nullptr,                        },  // 0x00af
+    {0,     8,  nullptr,                        },  // 0x00b0
+    {0,     8,  nullptr,                        },  // 0x00b1
     {0,     3,  clif_parse_Restart,             },  // 0x00b2
-    {0,     3,  NULL,                           },  // 0x00b3
-    {0,     VAR,NULL,                           },  // 0x00b4
-    {0,     6,  NULL,                           },  // 0x00b5
-    {0,     6,  NULL,                           },  // 0x00b6
-    {0,     VAR,NULL,                           },  // 0x00b7
+    {0,     3,  nullptr,                        },  // 0x00b3
+    {0,     VAR,nullptr,                        },  // 0x00b4
+    {0,     6,  nullptr,                        },  // 0x00b5
+    {0,     6,  nullptr,                        },  // 0x00b6
+    {0,     VAR,nullptr,                        },  // 0x00b7
     {0,     7,  clif_parse_NpcSelectMenu,       },  // 0x00b8
     {-1,    6,  clif_parse_NpcNextClicked,      },  // 0x00b9
-    {0,     2,  NULL,                           },  // 0x00ba
+    {0,     2,  nullptr,                        },  // 0x00ba
     {-1,    5,  clif_parse_StatusUp,            },  // 0x00bb People click this very quickly
-    {0,     6,  NULL,                           },  // 0x00bc
-    {0,     44, NULL,                           },  // 0x00bd
-    {0,     5,  NULL,                           },  // 0x00be
+    {0,     6,  nullptr,                        },  // 0x00bc
+    {0,     44, nullptr,                        },  // 0x00bd
+    {0,     5,  nullptr,                        },  // 0x00be
     {1000,  3,  clif_parse_Emotion,             },  // 0x00bf
-    {0,     7,  NULL,                           },  // 0x00c0
+    {0,     7,  nullptr,                        },  // 0x00c0
     {0,     2,  clif_parse_HowManyConnections,  },  // 0x00c1
-    {0,     6,  NULL,                           },  // 0x00c2
-    {0,     8,  NULL,                           },  // 0x00c3
-    {0,     6,  NULL,                           },  // 0x00c4
+    {0,     6,  nullptr,                        },  // 0x00c2
+    {0,     8,  nullptr,                        },  // 0x00c3
+    {0,     6,  nullptr,                        },  // 0x00c4
     {0,     7,  clif_parse_NpcBuySellSelected,  },  // 0x00c5
-    {0,     VAR,NULL,                           },  // 0x00c6
-    {0,     VAR,NULL,                           },  // 0x00c7
+    {0,     VAR,nullptr,                        },  // 0x00c6
+    {0,     VAR,nullptr,                        },  // 0x00c7
     {-1,    VAR,clif_parse_NpcBuyListSend,      },  // 0x00c8
     {-1,    VAR,clif_parse_NpcSellListSend,     },  // 0x00c9 Selling multiple 1-slot items
-    {0,     3,  NULL,                           },  // 0x00ca
-    {0,     3,  NULL,                           },  // 0x00cb
-    {0,     6,  NULL,                           },  // 0x00cc
-    {0,     6,  NULL,                           },  // 0x00cd
-    {0,     2,  NULL,                           },  // 0x00ce
-    {0,     27, NULL,                           },  // 0x00cf
-    {0,     3,  NULL,                           },  // 0x00d0
-    {0,     4,  NULL,                           },  // 0x00d1
-    {0,     4,  NULL,                           },  // 0x00d2
-    {0,     2,  NULL,                           },  // 0x00d3
-    {0,     VAR,NULL,                           },  // 0x00d4
-    {0,     VAR,NULL,                           },  // 0x00d5
-    {0,     3,  NULL,                           },  // 0x00d6
-    {0,     VAR,NULL,                           },  // 0x00d7
-    {0,     6,  NULL,                           },  // 0x00d8
-    {0,     14, NULL,                           },  // 0x00d9
-    {0,     3,  NULL,                           },  // 0x00da
-    {0,     VAR,NULL,                           },  // 0x00db
-    {0,     28, NULL,                           },  // 0x00dc
-    {0,     29, NULL,                           },  // 0x00dd
-    {0,     VAR,NULL,                           },  // 0x00de
-    {0,     VAR,NULL,                           },  // 0x00df
-    {0,     30, NULL,                           },  // 0x00e0
-    {0,     30, NULL,                           },  // 0x00e1
-    {0,     26, NULL,                           },  // 0x00e2
-    {0,     2,  NULL,                           },  // 0x00e3
+    {0,     3,  nullptr,                        },  // 0x00ca
+    {0,     3,  nullptr,                        },  // 0x00cb
+    {0,     6,  nullptr,                        },  // 0x00cc
+    {0,     6,  nullptr,                        },  // 0x00cd
+    {0,     2,  nullptr,                        },  // 0x00ce
+    {0,     27, nullptr,                        },  // 0x00cf
+    {0,     3,  nullptr,                        },  // 0x00d0
+    {0,     4,  nullptr,                        },  // 0x00d1
+    {0,     4,  nullptr,                        },  // 0x00d2
+    {0,     2,  nullptr,                        },  // 0x00d3
+    {0,     VAR,nullptr,                        },  // 0x00d4
+    {0,     VAR,nullptr,                        },  // 0x00d5
+    {0,     3,  nullptr,                        },  // 0x00d6
+    {0,     VAR,nullptr,                        },  // 0x00d7
+    {0,     6,  nullptr,                        },  // 0x00d8
+    {0,     14, nullptr,                        },  // 0x00d9
+    {0,     3,  nullptr,                        },  // 0x00da
+    {0,     VAR,nullptr,                        },  // 0x00db
+    {0,     28, nullptr,                        },  // 0x00dc
+    {0,     29, nullptr,                        },  // 0x00dd
+    {0,     VAR,nullptr,                        },  // 0x00de
+    {0,     VAR,nullptr,                        },  // 0x00df
+    {0,     30, nullptr,                        },  // 0x00e0
+    {0,     30, nullptr,                        },  // 0x00e1
+    {0,     26, nullptr,                        },  // 0x00e2
+    {0,     2,  nullptr,                        },  // 0x00e3
     {2000,  6,  clif_parse_TradeRequest,        },  // 0x00e4
-    {0,     26, NULL,                           },  // 0x00e5
+    {0,     26, nullptr,                        },  // 0x00e5
     {0,     3,  clif_parse_TradeAck,            },  // 0x00e6
-    {0,     3,  NULL,                           },  // 0x00e7
+    {0,     3,  nullptr,                        },  // 0x00e7
     {0,     8,  clif_parse_TradeAddItem,        },  // 0x00e8
-    {0,     19, NULL,                           },  // 0x00e9
-    {0,     5,  NULL,                           },  // 0x00ea
+    {0,     19, nullptr,                        },  // 0x00e9
+    {0,     5,  nullptr,                        },  // 0x00ea
     {0,     2,  clif_parse_TradeOk,             },  // 0x00eb
-    {0,     3,  NULL,                           },  // 0x00ec
+    {0,     3,  nullptr,                        },  // 0x00ec
     {0,     2,  clif_parse_TradeCansel,         },  // 0x00ed
-    {0,     2,  NULL,                           },  // 0x00ee
+    {0,     2,  nullptr,                        },  // 0x00ee
     {0,     2,  clif_parse_TradeCommit,         },  // 0x00ef
-    {0,     3,  NULL,                           },  // 0x00f0
-    {0,     2,  NULL,                           },  // 0x00f1
-    {0,     6,  NULL,                           },  // 0x00f2
+    {0,     3,  nullptr,                        },  // 0x00f0
+    {0,     2,  nullptr,                        },  // 0x00f1
+    {0,     6,  nullptr,                        },  // 0x00f2
     {-1,    8,  clif_parse_MoveToKafra,         },  // 0x00f3
-    {0,     21, NULL,                           },  // 0x00f4
+    {0,     21, nullptr,                        },  // 0x00f4
     {-1,    8,  clif_parse_MoveFromKafra,       },  // 0x00f5
-    {0,     8,  NULL,                           },  // 0x00f6
+    {0,     8,  nullptr,                        },  // 0x00f6
     {0,     2,  clif_parse_CloseKafra,          },  // 0x00f7
-    {0,     2,  NULL,                           },  // 0x00f8
+    {0,     2,  nullptr,                        },  // 0x00f8
     {2000,  26, clif_parse_CreateParty,         },  // 0x00f9
-    {0,     3,  NULL,                           },  // 0x00fa
-    {0,     VAR,NULL,                           },  // 0x00fb
+    {0,     3,  nullptr,                        },  // 0x00fa
+    {0,     VAR,nullptr,                        },  // 0x00fb
     {2000,  6,  clif_parse_PartyInvite,         },  // 0x00fc
-    {0,     27, NULL,                           },  // 0x00fd
-    {0,     30, NULL,                           },  // 0x00fe
+    {0,     27, nullptr,                        },  // 0x00fd
+    {0,     30, nullptr,                        },  // 0x00fe
     {0,     10, clif_parse_ReplyPartyInvite,    },  // 0x00ff
     {0,     2,  clif_parse_LeaveParty,          },  // 0x0100
-    {0,     6,  NULL,                           },  // 0x0101
+    {0,     6,  nullptr,                        },  // 0x0101
     {0,     6,  clif_parse_PartyChangeOption,   },  // 0x0102
     {0,     30, clif_parse_RemovePartyMember,   },  // 0x0103
-    {0,     79, NULL,                           },  // 0x0104
-    {0,     31, NULL,                           },  // 0x0105
-    {0,     10, NULL,                           },  // 0x0106
-    {0,     10, NULL,                           },  // 0x0107
+    {0,     79, nullptr,                        },  // 0x0104
+    {0,     31, nullptr,                        },  // 0x0105
+    {0,     10, nullptr,                        },  // 0x0106
+    {0,     10, nullptr,                        },  // 0x0107
     {300,   VAR,clif_parse_PartyMessage,        },  // 0x0108
-    {0,     VAR,NULL,                           },  // 0x0109
-    {0,     4,  NULL,                           },  // 0x010a
-    {0,     6,  NULL,                           },  // 0x010b
-    {0,     6,  NULL,                           },  // 0x010c
-    {0,     2,  NULL,                           },  // 0x010d
-    {0,     11, NULL,                           },  // 0x010e
-    {0,     VAR,NULL,                           },  // 0x010f
-    {0,     10, NULL,                           },  // 0x0110
-    {0,     39, NULL,                           },  // 0x0111
+    {0,     VAR,nullptr,                        },  // 0x0109
+    {0,     4,  nullptr,                        },  // 0x010a
+    {0,     6,  nullptr,                        },  // 0x010b
+    {0,     6,  nullptr,                        },  // 0x010c
+    {0,     2,  nullptr,                        },  // 0x010d
+    {0,     11, nullptr,                        },  // 0x010e
+    {0,     VAR,nullptr,                        },  // 0x010f
+    {0,     10, nullptr,                        },  // 0x0110
+    {0,     39, nullptr,                        },  // 0x0111
     {-1,    4,  clif_parse_SkillUp,             },  // 0x0112
-    {0,     10, NULL,                           },  // 0x0113
-    {0,     31, NULL,                           },  // 0x0114
-    {0,     35, NULL,                           },  // 0x0115
-    {0,     10, NULL,                           },  // 0x0116
-    {0,     18, NULL,                           },  // 0x0117
+    {0,     10, nullptr,                        },  // 0x0113
+    {0,     31, nullptr,                        },  // 0x0114
+    {0,     35, nullptr,                        },  // 0x0115
+    {0,     10, nullptr,                        },  // 0x0116
+    {0,     18, nullptr,                        },  // 0x0117
     {0,     2,  clif_parse_StopAttack,          },  // 0x0118
-    {0,     13, NULL,                           },  // 0x0119
-    {0,     15, NULL,                           },  // 0x011a
-    {0,     20, NULL,                           },  // 0x011b
-    {0,     68, NULL,                           },  // 0x011c
-    {0,     2,  NULL,                           },  // 0x011d
-    {0,     3,  NULL,                           },  // 0x011e
-    {0,     16, NULL,                           },  // 0x011f
-    {0,     6,  NULL,                           },  // 0x0120
-    {0,     14, NULL,                           },  // 0x0121
-    {0,     VAR,NULL,                           },  // 0x0122
-    {0,     VAR,NULL,                           },  // 0x0123
-    {0,     21, NULL,                           },  // 0x0124
-    {0,     8,  NULL,                           },  // 0x0125
-    {0,     8,  NULL,                           },  // 0x0126
-    {0,     8,  NULL,                           },  // 0x0127
-    {0,     8,  NULL,                           },  // 0x0128
-    {0,     8,  NULL,                           },  // 0x0129
-    {0,     2,  NULL,                           },  // 0x012a
-    {0,     2,  NULL,                           },  // 0x012b
-    {0,     3,  NULL,                           },  // 0x012c
-    {0,     4,  NULL,                           },  // 0x012d
-    {0,     2,  NULL,                           },  // 0x012e
-    {0,     VAR,NULL,                           },  // 0x012f
-    {0,     6,  NULL,                           },  // 0x0130
-    {0,     86, NULL,                           },  // 0x0131
-    {0,     6,  NULL,                           },  // 0x0132
-    {0,     VAR,NULL,                           },  // 0x0133
-    {0,     VAR,NULL,                           },  // 0x0134
-    {0,     7,  NULL,                           },  // 0x0135
-    {0,     VAR,NULL,                           },  // 0x0136
-    {0,     6,  NULL,                           },  // 0x0137
-    {0,     3,  NULL,                           },  // 0x0138
-    {0,     16, NULL,                           },  // 0x0139
-    {0,     4,  NULL,                           },  // 0x013a
-    {0,     4,  NULL,                           },  // 0x013b
-    {0,     4,  NULL,                           },  // 0x013c
-    {0,     6,  NULL,                           },  // 0x013d
-    {0,     24, NULL,                           },  // 0x013e
-    {0,     26, NULL,                           },  // 0x013f
-    {0,     22, NULL,                           },  // 0x0140
-    {0,     14, NULL,                           },  // 0x0141
-    {0,     6,  NULL,                           },  // 0x0142
+    {0,     13, nullptr,                        },  // 0x0119
+    {0,     15, nullptr,                        },  // 0x011a
+    {0,     20, nullptr,                        },  // 0x011b
+    {0,     68, nullptr,                        },  // 0x011c
+    {0,     2,  nullptr,                        },  // 0x011d
+    {0,     3,  nullptr,                        },  // 0x011e
+    {0,     16, nullptr,                        },  // 0x011f
+    {0,     6,  nullptr,                        },  // 0x0120
+    {0,     14, nullptr,                        },  // 0x0121
+    {0,     VAR,nullptr,                        },  // 0x0122
+    {0,     VAR,nullptr,                        },  // 0x0123
+    {0,     21, nullptr,                        },  // 0x0124
+    {0,     8,  nullptr,                        },  // 0x0125
+    {0,     8,  nullptr,                        },  // 0x0126
+    {0,     8,  nullptr,                        },  // 0x0127
+    {0,     8,  nullptr,                        },  // 0x0128
+    {0,     8,  nullptr,                        },  // 0x0129
+    {0,     2,  nullptr,                        },  // 0x012a
+    {0,     2,  nullptr,                        },  // 0x012b
+    {0,     3,  nullptr,                        },  // 0x012c
+    {0,     4,  nullptr,                        },  // 0x012d
+    {0,     2,  nullptr,                        },  // 0x012e
+    {0,     VAR,nullptr,                        },  // 0x012f
+    {0,     6,  nullptr,                        },  // 0x0130
+    {0,     86, nullptr,                        },  // 0x0131
+    {0,     6,  nullptr,                        },  // 0x0132
+    {0,     VAR,nullptr,                        },  // 0x0133
+    {0,     VAR,nullptr,                        },  // 0x0134
+    {0,     7,  nullptr,                        },  // 0x0135
+    {0,     VAR,nullptr,                        },  // 0x0136
+    {0,     6,  nullptr,                        },  // 0x0137
+    {0,     3,  nullptr,                        },  // 0x0138
+    {0,     16, nullptr,                        },  // 0x0139
+    {0,     4,  nullptr,                        },  // 0x013a
+    {0,     4,  nullptr,                        },  // 0x013b
+    {0,     4,  nullptr,                        },  // 0x013c
+    {0,     6,  nullptr,                        },  // 0x013d
+    {0,     24, nullptr,                        },  // 0x013e
+    {0,     26, nullptr,                        },  // 0x013f
+    {0,     22, nullptr,                        },  // 0x0140
+    {0,     14, nullptr,                        },  // 0x0141
+    {0,     6,  nullptr,                        },  // 0x0142
     {300,   10, clif_parse_NpcAmountInput,      },  // 0x0143
-    {0,     23, NULL,                           },  // 0x0144
-    {0,     19, NULL,                           },  // 0x0145
+    {0,     23, nullptr,                        },  // 0x0144
+    {0,     19, nullptr,                        },  // 0x0145
     {300,   6,  clif_parse_NpcCloseClicked,     },  // 0x0146
-    {0,     39, NULL,                           },  // 0x0147
-    {0,     8,  NULL,                           },  // 0x0148
-    {0,     9,  NULL,                           },  // 0x0149
-    {0,     6,  NULL,                           },  // 0x014a
-    {0,     27, NULL,                           },  // 0x014b
-    {0,     VAR,NULL,                           },  // 0x014c
-    {0,     2,  NULL,                           },  // 0x014d
-    {0,     6,  NULL,                           },  // 0x014e
-    {0,     6,  NULL,                           },  // 0x014f
-    {0,     110,NULL,                           },  // 0x0150
-    {0,     6,  NULL,                           },  // 0x0151
-    {0,     VAR,NULL,                           },  // 0x0152
-    {0,     VAR,NULL,                           },  // 0x0153
-    {0,     VAR,NULL,                           },  // 0x0154
-    {0,     VAR,NULL,                           },  // 0x0155
-    {0,     VAR,NULL,                           },  // 0x0156
-    {0,     6,  NULL,                           },  // 0x0157
-    {0,     VAR,NULL,                           },  // 0x0158
-    {0,     54, NULL,                           },  // 0x0159
-    {0,     66, NULL,                           },  // 0x015a
-    {0,     54, NULL,                           },  // 0x015b
-    {0,     90, NULL,                           },  // 0x015c
-    {0,     42, NULL,                           },  // 0x015d
-    {0,     6,  NULL,                           },  // 0x015e
-    {0,     42, NULL,                           },  // 0x015f
-    {0,     VAR,NULL,                           },  // 0x0160
-    {0,     VAR,NULL,                           },  // 0x0161
-    {0,     VAR,NULL,                           },  // 0x0162
-    {0,     VAR,NULL,                           },  // 0x0163
-    {0,     VAR,NULL,                           },  // 0x0164
-    {0,     30, NULL,                           },  // 0x0165
-    {0,     VAR,NULL,                           },  // 0x0166
-    {0,     3,  NULL,                           },  // 0x0167
-    {0,     14, NULL,                           },  // 0x0168
-    {0,     3,  NULL,                           },  // 0x0169
-    {0,     30, NULL,                           },  // 0x016a
-    {0,     10, NULL,                           },  // 0x016b
-    {0,     43, NULL,                           },  // 0x016c
-    {0,     14, NULL,                           },  // 0x016d
-    {0,     186,NULL,                           },  // 0x016e
-    {0,     182,NULL,                           },  // 0x016f
-    {0,     14, NULL,                           },  // 0x0170
-    {0,     30, NULL,                           },  // 0x0171
-    {0,     10, NULL,                           },  // 0x0172
-    {0,     3,  NULL,                           },  // 0x0173
-    {0,     VAR,NULL,                           },  // 0x0174
-    {0,     6,  NULL,                           },  // 0x0175
-    {0,     106,NULL,                           },  // 0x0176
-    {0,     VAR,NULL,                           },  // 0x0177
-    {0,     4,  NULL,                           },  // 0x0178
-    {0,     5,  NULL,                           },  // 0x0179
-    {0,     4,  NULL,                           },  // 0x017a
-    {0,     VAR,NULL,                           },  // 0x017b
-    {0,     6,  NULL,                           },  // 0x017c
-    {0,     7,  NULL,                           },  // 0x017d
-    {0,     VAR,NULL,                           },  // 0x017e
-    {0,     VAR,NULL,                           },  // 0x017f
-    {0,     6,  NULL,                           },  // 0x0180
-    {0,     3,  NULL,                           },  // 0x0181
-    {0,     106,NULL,                           },  // 0x0182
-    {0,     10, NULL,                           },  // 0x0183
-    {0,     10, NULL,                           },  // 0x0184
-    {0,     34, NULL,                           },  // 0x0185
-    {0,     0,  NULL,                           },  // 0x0186
-    {0,     6,  NULL,                           },  // 0x0187
-    {0,     8,  NULL,                           },  // 0x0188
-    {0,     4,  NULL,                           },  // 0x0189
+    {0,     39, nullptr,                        },  // 0x0147
+    {0,     8,  nullptr,                        },  // 0x0148
+    {0,     9,  nullptr,                        },  // 0x0149
+    {0,     6,  nullptr,                        },  // 0x014a
+    {0,     27, nullptr,                        },  // 0x014b
+    {0,     VAR,nullptr,                        },  // 0x014c
+    {0,     2,  nullptr,                        },  // 0x014d
+    {0,     6,  nullptr,                        },  // 0x014e
+    {0,     6,  nullptr,                        },  // 0x014f
+    {0,     110,nullptr,                        },  // 0x0150
+    {0,     6,  nullptr,                        },  // 0x0151
+    {0,     VAR,nullptr,                        },  // 0x0152
+    {0,     VAR,nullptr,                        },  // 0x0153
+    {0,     VAR,nullptr,                        },  // 0x0154
+    {0,     VAR,nullptr,                        },  // 0x0155
+    {0,     VAR,nullptr,                        },  // 0x0156
+    {0,     6,  nullptr,                        },  // 0x0157
+    {0,     VAR,nullptr,                        },  // 0x0158
+    {0,     54, nullptr,                        },  // 0x0159
+    {0,     66, nullptr,                        },  // 0x015a
+    {0,     54, nullptr,                        },  // 0x015b
+    {0,     90, nullptr,                        },  // 0x015c
+    {0,     42, nullptr,                        },  // 0x015d
+    {0,     6,  nullptr,                        },  // 0x015e
+    {0,     42, nullptr,                        },  // 0x015f
+    {0,     VAR,nullptr,                        },  // 0x0160
+    {0,     VAR,nullptr,                        },  // 0x0161
+    {0,     VAR,nullptr,                        },  // 0x0162
+    {0,     VAR,nullptr,                        },  // 0x0163
+    {0,     VAR,nullptr,                        },  // 0x0164
+    {0,     30, nullptr,                        },  // 0x0165
+    {0,     VAR,nullptr,                        },  // 0x0166
+    {0,     3,  nullptr,                        },  // 0x0167
+    {0,     14, nullptr,                        },  // 0x0168
+    {0,     3,  nullptr,                        },  // 0x0169
+    {0,     30, nullptr,                        },  // 0x016a
+    {0,     10, nullptr,                        },  // 0x016b
+    {0,     43, nullptr,                        },  // 0x016c
+    {0,     14, nullptr,                        },  // 0x016d
+    {0,     186,nullptr,                        },  // 0x016e
+    {0,     182,nullptr,                        },  // 0x016f
+    {0,     14, nullptr,                        },  // 0x0170
+    {0,     30, nullptr,                        },  // 0x0171
+    {0,     10, nullptr,                        },  // 0x0172
+    {0,     3,  nullptr,                        },  // 0x0173
+    {0,     VAR,nullptr,                        },  // 0x0174
+    {0,     6,  nullptr,                        },  // 0x0175
+    {0,     106,nullptr,                        },  // 0x0176
+    {0,     VAR,nullptr,                        },  // 0x0177
+    {0,     4,  nullptr,                        },  // 0x0178
+    {0,     5,  nullptr,                        },  // 0x0179
+    {0,     4,  nullptr,                        },  // 0x017a
+    {0,     VAR,nullptr,                        },  // 0x017b
+    {0,     6,  nullptr,                        },  // 0x017c
+    {0,     7,  nullptr,                        },  // 0x017d
+    {0,     VAR,nullptr,                        },  // 0x017e
+    {0,     VAR,nullptr,                        },  // 0x017f
+    {0,     6,  nullptr,                        },  // 0x0180
+    {0,     3,  nullptr,                        },  // 0x0181
+    {0,     106,nullptr,                        },  // 0x0182
+    {0,     10, nullptr,                        },  // 0x0183
+    {0,     10, nullptr,                        },  // 0x0184
+    {0,     34, nullptr,                        },  // 0x0185
+    {0,     0,  nullptr,                        },  // 0x0186
+    {0,     6,  nullptr,                        },  // 0x0187
+    {0,     8,  nullptr,                        },  // 0x0188
+    {0,     4,  nullptr,                        },  // 0x0189
     {0,     4,  clif_parse_QuitGame,            },  // 0x018a
-    {0,     4,  NULL,                           },  // 0x018b
-    {0,     29, NULL,                           },  // 0x018c
-    {0,     VAR,NULL,                           },  // 0x018d
-    {0,     10, NULL,                           },  // 0x018e
-    {0,     6,  NULL,                           },  // 0x018f
-    {0,     90, NULL,                           },  // 0x0190
-    {0,     86, NULL,                           },  // 0x0191
-    {0,     24, NULL,                           },  // 0x0192
-    {0,     6,  NULL,                           },  // 0x0193
-    {0,     30, NULL,                           },  // 0x0194
-    {0,     102,NULL,                           },  // 0x0195
-    {0,     9,  NULL,                           },  // 0x0196
-    {0,     4,  NULL,                           },  // 0x0197
-    {0,     8,  NULL,                           },  // 0x0198
-    {0,     4,  NULL,                           },  // 0x0199
-    {0,     14, NULL,                           },  // 0x019a
-    {0,     10, NULL,                           },  // 0x019b
-    {0,     VAR,NULL,                           },  // 0x019c
-    {300,   6,  NULL,                           },  // 0x019d
-    {0,     2,  NULL,                           },  // 0x019e
-    {0,     6,  NULL,                           },  // 0x019f
-    {0,     3,  NULL,                           },  // 0x01a0
-    {0,     3,  NULL,                           },  // 0x01a1
-    {0,     35, NULL,                           },  // 0x01a2
-    {0,     5,  NULL,                           },  // 0x01a3
-    {0,     11, NULL,                           },  // 0x01a4
-    {0,     26, NULL,                           },  // 0x01a5
-    {0,     VAR,NULL,                           },  // 0x01a6
-    {0,     4,  NULL,                           },  // 0x01a7
-    {0,     4,  NULL,                           },  // 0x01a8
-    {0,     6,  NULL,                           },  // 0x01a9
-    {0,     10, NULL,                           },  // 0x01aa
-    {0,     12, NULL,                           },  // 0x01ab
-    {0,     6,  NULL,                           },  // 0x01ac
-    {0,     VAR,NULL,                           },  // 0x01ad
-    {0,     4,  NULL,                           },  // 0x01ae
-    {0,     4,  NULL,                           },  // 0x01af
-    {0,     11, NULL,                           },  // 0x01b0
-    {0,     7,  NULL,                           },  // 0x01b1
-    {0,     VAR,NULL,                           },  // 0x01b2
-    {0,     67, NULL,                           },  // 0x01b3
-    {0,     12, NULL,                           },  // 0x01b4
-    {0,     18, NULL,                           },  // 0x01b5
-    {0,     114,NULL,                           },  // 0x01b6
-    {0,     6,  NULL,                           },  // 0x01b7
-    {0,     3,  NULL,                           },  // 0x01b8
-    {0,     6,  NULL,                           },  // 0x01b9
-    {0,     26, NULL,                           },  // 0x01ba
-    {0,     26, NULL,                           },  // 0x01bb
-    {0,     26, NULL,                           },  // 0x01bc
-    {0,     26, NULL,                           },  // 0x01bd
-    {0,     2,  NULL,                           },  // 0x01be
-    {0,     3,  NULL,                           },  // 0x01bf
-    {0,     2,  NULL,                           },  // 0x01c0
-    {0,     14, NULL,                           },  // 0x01c1
-    {0,     10, NULL,                           },  // 0x01c2
-    {0,     VAR,NULL,                           },  // 0x01c3
-    {0,     22, NULL,                           },  // 0x01c4
-    {0,     22, NULL,                           },  // 0x01c5
-    {0,     4,  NULL,                           },  // 0x01c6
-    {0,     2,  NULL,                           },  // 0x01c7
-    {0,     13, NULL,                           },  // 0x01c8
-    {0,     97, NULL,                           },  // 0x01c9
-    {0,     0,  NULL,                           },  // 0x01ca
-    {0,     9,  NULL,                           },  // 0x01cb
-    {0,     9,  NULL,                           },  // 0x01cc
-    {0,     30, NULL,                           },  // 0x01cd
-    {0,     6,  NULL,                           },  // 0x01ce
-    {0,     28, NULL,                           },  // 0x01cf
-    {0,     8,  NULL,                           },  // 0x01d0
-    {0,     14, NULL,                           },  // 0x01d1
-    {0,     10, NULL,                           },  // 0x01d2
-    {0,     35, NULL,                           },  // 0x01d3
-    {0,     6,  NULL,                           },  // 0x01d4
+    {0,     4,  nullptr,                        },  // 0x018b
+    {0,     29, nullptr,                        },  // 0x018c
+    {0,     VAR,nullptr,                        },  // 0x018d
+    {0,     10, nullptr,                        },  // 0x018e
+    {0,     6,  nullptr,                        },  // 0x018f
+    {0,     90, nullptr,                        },  // 0x0190
+    {0,     86, nullptr,                        },  // 0x0191
+    {0,     24, nullptr,                        },  // 0x0192
+    {0,     6,  nullptr,                        },  // 0x0193
+    {0,     30, nullptr,                        },  // 0x0194
+    {0,     102,nullptr,                        },  // 0x0195
+    {0,     9,  nullptr,                        },  // 0x0196
+    {0,     4,  nullptr,                        },  // 0x0197
+    {0,     8,  nullptr,                        },  // 0x0198
+    {0,     4,  nullptr,                        },  // 0x0199
+    {0,     14, nullptr,                        },  // 0x019a
+    {0,     10, nullptr,                        },  // 0x019b
+    {0,     VAR,nullptr,                        },  // 0x019c
+    {300,   6,  nullptr,                        },  // 0x019d
+    {0,     2,  nullptr,                        },  // 0x019e
+    {0,     6,  nullptr,                        },  // 0x019f
+    {0,     3,  nullptr,                        },  // 0x01a0
+    {0,     3,  nullptr,                        },  // 0x01a1
+    {0,     35, nullptr,                        },  // 0x01a2
+    {0,     5,  nullptr,                        },  // 0x01a3
+    {0,     11, nullptr,                        },  // 0x01a4
+    {0,     26, nullptr,                        },  // 0x01a5
+    {0,     VAR,nullptr,                        },  // 0x01a6
+    {0,     4,  nullptr,                        },  // 0x01a7
+    {0,     4,  nullptr,                        },  // 0x01a8
+    {0,     6,  nullptr,                        },  // 0x01a9
+    {0,     10, nullptr,                        },  // 0x01aa
+    {0,     12, nullptr,                        },  // 0x01ab
+    {0,     6,  nullptr,                        },  // 0x01ac
+    {0,     VAR,nullptr,                        },  // 0x01ad
+    {0,     4,  nullptr,                        },  // 0x01ae
+    {0,     4,  nullptr,                        },  // 0x01af
+    {0,     11, nullptr,                        },  // 0x01b0
+    {0,     7,  nullptr,                        },  // 0x01b1
+    {0,     VAR,nullptr,                        },  // 0x01b2
+    {0,     67, nullptr,                        },  // 0x01b3
+    {0,     12, nullptr,                        },  // 0x01b4
+    {0,     18, nullptr,                        },  // 0x01b5
+    {0,     114,nullptr,                        },  // 0x01b6
+    {0,     6,  nullptr,                        },  // 0x01b7
+    {0,     3,  nullptr,                        },  // 0x01b8
+    {0,     6,  nullptr,                        },  // 0x01b9
+    {0,     26, nullptr,                        },  // 0x01ba
+    {0,     26, nullptr,                        },  // 0x01bb
+    {0,     26, nullptr,                        },  // 0x01bc
+    {0,     26, nullptr,                        },  // 0x01bd
+    {0,     2,  nullptr,                        },  // 0x01be
+    {0,     3,  nullptr,                        },  // 0x01bf
+    {0,     2,  nullptr,                        },  // 0x01c0
+    {0,     14, nullptr,                        },  // 0x01c1
+    {0,     10, nullptr,                        },  // 0x01c2
+    {0,     VAR,nullptr,                        },  // 0x01c3
+    {0,     22, nullptr,                        },  // 0x01c4
+    {0,     22, nullptr,                        },  // 0x01c5
+    {0,     4,  nullptr,                        },  // 0x01c6
+    {0,     2,  nullptr,                        },  // 0x01c7
+    {0,     13, nullptr,                        },  // 0x01c8
+    {0,     97, nullptr,                        },  // 0x01c9
+    {0,     0,  nullptr,                        },  // 0x01ca
+    {0,     9,  nullptr,                        },  // 0x01cb
+    {0,     9,  nullptr,                        },  // 0x01cc
+    {0,     30, nullptr,                        },  // 0x01cd
+    {0,     6,  nullptr,                        },  // 0x01ce
+    {0,     28, nullptr,                        },  // 0x01cf
+    {0,     8,  nullptr,                        },  // 0x01d0
+    {0,     14, nullptr,                        },  // 0x01d1
+    {0,     10, nullptr,                        },  // 0x01d2
+    {0,     35, nullptr,                        },  // 0x01d3
+    {0,     6,  nullptr,                        },  // 0x01d4
     {300,   VAR,clif_parse_NpcStringInput,      },  // 0x01d5 - set to -1
-    {0,     4,  NULL,                           },  // 0x01d6
-    {0,     11, NULL,                           },  // 0x01d7
-    {0,     54, NULL,                           },  // 0x01d8
-    {0,     53, NULL,                           },  // 0x01d9
-    {0,     60, NULL,                           },  // 0x01da
-    {0,     2,  NULL,                           },  // 0x01db
-    {0,     VAR,NULL,                           },  // 0x01dc
-    {0,     47, NULL,                           },  // 0x01dd
-    {0,     33, NULL,                           },  // 0x01de
-    {0,     6,  NULL,                           },  // 0x01df
-    {0,     30, NULL,                           },  // 0x01e0
-    {0,     8,  NULL,                           },  // 0x01e1
-    {0,     34, NULL,                           },  // 0x01e2
-    {0,     14, NULL,                           },  // 0x01e3
-    {0,     2,  NULL,                           },  // 0x01e4
-    {0,     6,  NULL,                           },  // 0x01e5
-    {0,     26, NULL,                           },  // 0x01e6
-    {0,     2,  NULL,                           },  // 0x01e7
-    {0,     28, NULL,                           },  // 0x01e8
-    {0,     81, NULL,                           },  // 0x01e9
-    {0,     6,  NULL,                           },  // 0x01ea
-    {0,     10, NULL,                           },  // 0x01eb
-    {0,     26, NULL,                           },  // 0x01ec
-    {0,     2,  NULL,                           },  // 0x01ed
-    {0,     VAR,NULL,                           },  // 0x01ee
-    {0,     VAR,NULL,                           },  // 0x01ef
-    {0,     VAR,NULL,                           },  // 0x01f0
-    {0,     VAR,NULL,                           },  // 0x01f1
-    {0,     20, NULL,                           },  // 0x01f2
-    {0,     10, NULL,                           },  // 0x01f3
-    {0,     32, NULL,                           },  // 0x01f4
-    {0,     9,  NULL,                           },  // 0x01f5
-    {0,     34, NULL,                           },  // 0x01f6
-    {0,     14, NULL,                           },  // 0x01f7
-    {0,     2,  NULL,                           },  // 0x01f8
-    {0,     6,  NULL,                           },  // 0x01f9
-    {0,     48, NULL,                           },  // 0x01fa
-    {0,     56, NULL,                           },  // 0x01fb
-    {0,     VAR,NULL,                           },  // 0x01fc
-    {0,     4,  NULL,                           },  // 0x01fd
-    {0,     5,  NULL,                           },  // 0x01fe
-    {0,     10, NULL,                           },  // 0x01ff
-    {0,     26, NULL,                           },  // 0x0200
-    {0,     VAR,NULL,                           },  // 0x0201
-    {0,     26, NULL,                           },  // 0x0202
-    {0,     10, NULL,                           },  // 0x0203
-    {0,     18, NULL,                           },  // 0x0204
-    {0,     26, NULL,                           },  // 0x0205
-    {0,     11, NULL,                           },  // 0x0206
-    {0,     34, NULL,                           },  // 0x0207
-    {0,     14, NULL,                           },  // 0x0208
-    {0,     36, NULL,                           },  // 0x0209
-    {0,     10, NULL,                           },  // 0x020a
-    {0,     19, NULL,                           },  // 0x020b
-    {0,     10, NULL,                           },  // 0x020c
-    {0,     VAR,NULL,                           },  // 0x020d
-    {0,     24, NULL,                           },  // 0x020e
-    {0,     0,  NULL,                           },  // 0x020f
-    {0,     0,  NULL,                           },  // 0x0210
-    {0,     0,  NULL,                           },  // 0x0211
-    {0,     0,  NULL,                           },  // 0x0212
-    {0,     0,  NULL,                           },  // 0x0213
-    {0,     0,  NULL,                           },  // 0x0214
-    {0,     0,  NULL,                           },  // 0x0215
-    {0,     0,  NULL,                           },  // 0x0216
-    {0,     0,  NULL,                           },  // 0x0217
-    {0,     0,  NULL,                           },  // 0x0218
-    {0,     0,  NULL,                           },  // 0x0219
-    {0,     0,  NULL,                           },  // 0x021a
-    {0,     0,  NULL,                           },  // 0x021b
-    {0,     0,  NULL,                           },  // 0x021c
-    {0,     0,  NULL,                           },  // 0x021d
-    {0,     0,  NULL,                           },  // 0x021e
-    {0,     0,  NULL,                           },  // 0x021f
+    {0,     4,  nullptr,                        },  // 0x01d6
+    {0,     11, nullptr,                        },  // 0x01d7
+    {0,     54, nullptr,                        },  // 0x01d8
+    {0,     53, nullptr,                        },  // 0x01d9
+    {0,     60, nullptr,                        },  // 0x01da
+    {0,     2,  nullptr,                        },  // 0x01db
+    {0,     VAR,nullptr,                        },  // 0x01dc
+    {0,     47, nullptr,                        },  // 0x01dd
+    {0,     33, nullptr,                        },  // 0x01de
+    {0,     6,  nullptr,                        },  // 0x01df
+    {0,     30, nullptr,                        },  // 0x01e0
+    {0,     8,  nullptr,                        },  // 0x01e1
+    {0,     34, nullptr,                        },  // 0x01e2
+    {0,     14, nullptr,                        },  // 0x01e3
+    {0,     2,  nullptr,                        },  // 0x01e4
+    {0,     6,  nullptr,                        },  // 0x01e5
+    {0,     26, nullptr,                        },  // 0x01e6
+    {0,     2,  nullptr,                        },  // 0x01e7
+    {0,     28, nullptr,                        },  // 0x01e8
+    {0,     81, nullptr,                        },  // 0x01e9
+    {0,     6,  nullptr,                        },  // 0x01ea
+    {0,     10, nullptr,                        },  // 0x01eb
+    {0,     26, nullptr,                        },  // 0x01ec
+    {0,     2,  nullptr,                        },  // 0x01ed
+    {0,     VAR,nullptr,                        },  // 0x01ee
+    {0,     VAR,nullptr,                        },  // 0x01ef
+    {0,     VAR,nullptr,                        },  // 0x01f0
+    {0,     VAR,nullptr,                        },  // 0x01f1
+    {0,     20, nullptr,                        },  // 0x01f2
+    {0,     10, nullptr,                        },  // 0x01f3
+    {0,     32, nullptr,                        },  // 0x01f4
+    {0,     9,  nullptr,                        },  // 0x01f5
+    {0,     34, nullptr,                        },  // 0x01f6
+    {0,     14, nullptr,                        },  // 0x01f7
+    {0,     2,  nullptr,                        },  // 0x01f8
+    {0,     6,  nullptr,                        },  // 0x01f9
+    {0,     48, nullptr,                        },  // 0x01fa
+    {0,     56, nullptr,                        },  // 0x01fb
+    {0,     VAR,nullptr,                        },  // 0x01fc
+    {0,     4,  nullptr,                        },  // 0x01fd
+    {0,     5,  nullptr,                        },  // 0x01fe
+    {0,     10, nullptr,                        },  // 0x01ff
+    {0,     26, nullptr,                        },  // 0x0200
+    {0,     VAR,nullptr,                        },  // 0x0201
+    {0,     26, nullptr,                        },  // 0x0202
+    {0,     10, nullptr,                        },  // 0x0203
+    {0,     18, nullptr,                        },  // 0x0204
+    {0,     26, nullptr,                        },  // 0x0205
+    {0,     11, nullptr,                        },  // 0x0206
+    {0,     34, nullptr,                        },  // 0x0207
+    {0,     14, nullptr,                        },  // 0x0208
+    {0,     36, nullptr,                        },  // 0x0209
+    {0,     10, nullptr,                        },  // 0x020a
+    {0,     19, nullptr,                        },  // 0x020b
+    {0,     10, nullptr,                        },  // 0x020c
+    {0,     VAR,nullptr,                        },  // 0x020d
+    {0,     24, nullptr,                        },  // 0x020e
+    {0,     0,  nullptr,                        },  // 0x020f
+    {0,     0,  nullptr,                        },  // 0x0210
+    {0,     0,  nullptr,                        },  // 0x0211
+    {0,     0,  nullptr,                        },  // 0x0212
+    {0,     0,  nullptr,                        },  // 0x0213
+    {0,     0,  nullptr,                        },  // 0x0214
+    {0,     0,  nullptr,                        },  // 0x0215
+    {0,     0,  nullptr,                        },  // 0x0216
+    {0,     0,  nullptr,                        },  // 0x0217
+    {0,     0,  nullptr,                        },  // 0x0218
+    {0,     0,  nullptr,                        },  // 0x0219
+    {0,     0,  nullptr,                        },  // 0x021a
+    {0,     0,  nullptr,                        },  // 0x021b
+    {0,     0,  nullptr,                        },  // 0x021c
+    {0,     0,  nullptr,                        },  // 0x021d
+    {0,     0,  nullptr,                        },  // 0x021e
+    {0,     0,  nullptr,                        },  // 0x021f
 };
 
 // Checks for packet flooding

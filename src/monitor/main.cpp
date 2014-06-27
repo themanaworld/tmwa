@@ -129,7 +129,7 @@ bool read_config(ZString filename)
 static
 pid_t start_process(ZString exec)
 {
-    const char *args[2] = {exec.c_str(), NULL};
+    const char *args[2] = {exec.c_str(), nullptr};
     pid_t pid = fork();
     if (pid == -1)
     {
@@ -161,6 +161,7 @@ void stop_process(int sig)
         kill(pid_char, sig);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
     signal(sig, SIG_DFL);
 #pragma GCC diagnostic pop
     raise(sig);
@@ -236,7 +237,7 @@ int main(int argc, char *argv[])
             FPRINTF(stderr, "[%s] forked map server: %lu\n"_fmt,
                     timestamp, static_cast<unsigned long>(pid_map));
         }
-        pid_t dead = wait(NULL);
+        pid_t dead = wait(nullptr);
         if (dead == -1)
         {
             perror("Failed to wait for child");

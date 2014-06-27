@@ -23,6 +23,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 TEST(StringTests, traits2)
 {
     ZString print_non = "\t\e"_s;

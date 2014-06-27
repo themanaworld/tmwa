@@ -62,7 +62,7 @@ struct item_data *itemdb_searchname(XString str_)
     ItemName str = stringish<ItemName>(str_);
     if (XString(str) != str_)
         return nullptr;
-    struct item_data *item = NULL;
+    struct item_data *item = nullptr;
     for (auto& pair : item_db)
         itemdb_searchname_sub(&pair.second, str, &item);
     return item;
@@ -222,8 +222,8 @@ bool itemdb_readdb(ZString filename)
                 id->value_sell = id->value_buy / 2;
             }
 
-            id->use_script = NULL;
-            id->equip_script = NULL;
+            id->use_script = nullptr;
+            id->equip_script = nullptr;
 
             if (!tail_part)
                 continue;

@@ -214,7 +214,7 @@ AString gm_log;
 io::AppendFile *get_gm_log()
 {
     if (!gm_log)
-        return NULL;
+        return nullptr;
 
     struct tm ctime = TimeT::now();
 
@@ -334,7 +334,7 @@ void atkillmonster_sub(dumb_ptr<block_list> bl, int flag)
 
     dumb_ptr<mob_data> md = bl->is_mob();
     if (flag)
-        mob_damage(NULL, md, md->hp, 2);
+        mob_damage(nullptr, md, md->hp, 2);
     else
         mob_delete(md);
 }
@@ -369,7 +369,7 @@ bool atcommand_config_read(ZString cfgName)
             continue;
         }
         AtCommandInfo *p = get_atcommandinfo_byname(w1);
-        if (p != NULL)
+        if (p != nullptr)
         {
             p->level = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
         }
@@ -639,7 +639,7 @@ ATCE atcommand_where(Session *s, dumb_ptr<map_session_data> sd,
     extract(message, &character);
 
     dumb_ptr<map_session_data> pl_sd = character.to__actual() ? map_nick2sd(character) : sd;
-    if (pl_sd != NULL &&
+    if (pl_sd != nullptr &&
         !((battle_config.hide_GM_session
            || bool(pl_sd->status.option & Option::HIDE))
           && !(pc_isGM(sd).detects(pc_isGM(pl_sd)))))
@@ -673,7 +673,7 @@ ATCE atcommand_goto(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
             && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
@@ -1152,7 +1152,7 @@ ATCE atcommand_storage(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::EXIST;
     }
 
-    if ((stor = account2storage2(sd->status_key.account_id)) != NULL
+    if ((stor = account2storage2(sd->status_key.account_id)) != nullptr
         && stor->storage_status == 1)
     {
         clif_displaymessage(s, "msg_table[250]"_s);
@@ -1209,7 +1209,7 @@ static
 ATCE atcommand_die(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    pc_damage(NULL, sd, sd->status.hp + 1);
+    pc_damage(nullptr, sd, sd->status.hp + 1);
     clif_displaymessage(s, "A pity! You've died."_s);
 
     return ATCE::OKAY;
@@ -1225,12 +1225,12 @@ ATCE atcommand_kill(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can kill only lower or same level
-            pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
+            pc_damage(nullptr, pl_sd, pl_sd->status.hp + 1);
             clif_displaymessage(s, "Character killed."_s);
         }
         else
@@ -1334,7 +1334,7 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
     XString item_name;
     int number = 0;
     ItemNameId item_id;
-    struct item_data *item_data = NULL;
+    struct item_data *item_data = nullptr;
     int get_count, i;
 
     if (!extract(message, record<' ', 1>(&item_name, &number)))
@@ -1347,9 +1347,9 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
     if (number <= 0)
         number = 1;
 
-    if ((item_data = itemdb_searchname(item_name)) != NULL)
+    if ((item_data = itemdb_searchname(item_name)) != nullptr)
         item_id = item_data->nameid;
-    else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != NULL)
+    else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != nullptr)
         item_id = item_data->nameid;
     else
         return ATCE::EXIST;
@@ -2068,7 +2068,7 @@ ATCE atcommand_recall(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -2116,7 +2116,7 @@ ATCE atcommand_revive(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         pl_sd->status.hp = pl_sd->status.max_hp;
         pc_setstand(pl_sd);
@@ -2146,7 +2146,7 @@ ATCE atcommand_character_stats(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         AString output;
         output = STRPRINTF("'%s' stats:"_fmt, pl_sd->status_key.name);
@@ -2256,7 +2256,7 @@ ATCE atcommand_character_option(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -2391,7 +2391,7 @@ ATCE atcommand_character_save(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -2445,7 +2445,7 @@ ATCE atcommand_doom(Session *s, dumb_ptr<map_session_data> sd,
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can doom only lower or same gm level
-            pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
+            pc_damage(nullptr, pl_sd, pl_sd->status.hp + 1);
             clif_displaymessage(pl_sd->sess, "The holy messenger has given judgement."_s);
         }
     }
@@ -2469,7 +2469,7 @@ ATCE atcommand_doommap(Session *s, dumb_ptr<map_session_data> sd,
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can doom only lower or same gm level
-            pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
+            pc_damage(nullptr, pl_sd, pl_sd->status.hp + 1);
             clif_displaymessage(pl_sd->sess, "The holy messenger has given judgement."_s);
         }
     }
@@ -2541,7 +2541,7 @@ ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -2627,7 +2627,7 @@ ATCE atcommand_character_joblevel(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -2699,7 +2699,7 @@ ATCE atcommand_kick(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
             // you can kick only lower or same gm level
@@ -2797,7 +2797,7 @@ ATCE atcommand_charquestskill(Session *s, dumb_ptr<map_session_data>,
         if (skill_get_inf2(skill_id) & 0x01)
         {
             dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-            if (pl_sd != NULL)
+            if (pl_sd != nullptr)
             {
                 if (pc_checkskill(pl_sd, skill_id) == 0)
                 {
@@ -2887,7 +2887,7 @@ ATCE atcommand_charlostskill(Session *s, dumb_ptr<map_session_data>,
         if (skill_get_inf2(skill_id) & 0x01)
         {
             dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-            if (pl_sd != NULL)
+            if (pl_sd != nullptr)
             {
                 if (pc_checkskill(pl_sd, skill_id) > 0)
                 {
@@ -2976,7 +2976,7 @@ ATCE atcommand_idsearch(Session *s, dumb_ptr<map_session_data>,
     match = 0;
     for (ItemNameId i = wrap<ItemNameId>(0); i < wrap<ItemNameId>(-1); i = next(i))
     {
-        if ((item = itemdb_exists(i)) != NULL
+        if ((item = itemdb_exists(i)) != nullptr
             && item->jname.contains_seq(item_name))
         {
             match++;
@@ -3000,7 +3000,7 @@ ATCE atcommand_charskreset(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -3035,7 +3035,7 @@ ATCE atcommand_charstreset(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -3071,7 +3071,7 @@ ATCE atcommand_charreset(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -3111,7 +3111,7 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -3191,7 +3191,7 @@ ATCE atcommand_charmodel(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (hair_style >= MIN_HAIR_STYLE && hair_style <= MAX_HAIR_STYLE &&
             hair_color >= MIN_HAIR_COLOR && hair_color <= MAX_HAIR_COLOR &&
@@ -3229,7 +3229,7 @@ ATCE atcommand_charskpoint(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         new_skill_point = pl_sd->status.skill_point + point;
         if (point > 0 && (point > 0x7FFF || new_skill_point > 0x7FFF))
@@ -3269,7 +3269,7 @@ ATCE atcommand_charstpoint(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         new_status_point = pl_sd->status.status_point + point;
         if (point > 0 && (point > 0x7FFF || new_status_point > 0x7FFF))
@@ -3307,7 +3307,7 @@ ATCE atcommand_charzeny(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         new_zeny = pl_sd->status.zeny + zeny;
         if (zeny > 0 && (zeny > MAX_ZENY || new_zeny > MAX_ZENY))
@@ -3445,7 +3445,7 @@ static
 ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    dumb_ptr<npc_data> nd = NULL;
+    dumb_ptr<npc_data> nd = nullptr;
     MapName map_name;
     LString direction = ""_s;
     int list = 0;
@@ -3618,7 +3618,7 @@ ATCE atcommand_enablenpc(Session *s, dumb_ptr<map_session_data>,
     if (!extract(message, &NPCname) || !NPCname)
         return ATCE::USAGE;
 
-    if (npc_name2id(NPCname) != NULL)
+    if (npc_name2id(NPCname) != nullptr)
     {
         npc_enable(NPCname, 1);
         clif_displaymessage(s, "Npc Enabled."_s);
@@ -3641,7 +3641,7 @@ ATCE atcommand_disablenpc(Session *s, dumb_ptr<map_session_data>,
     if (!extract(message, &NPCname) || !NPCname)
         return ATCE::USAGE;
 
-    if (npc_name2id(NPCname) != NULL)
+    if (npc_name2id(NPCname) != nullptr)
     {
         npc_enable(NPCname, 0);
         clif_displaymessage(s, "Npc Disabled."_s);
@@ -3681,15 +3681,15 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
     if (!asplit(message, &item_name, &number, &character) || number < 1)
         return ATCE::USAGE;
 
-    if ((item_data = itemdb_searchname(item_name)) != NULL)
+    if ((item_data = itemdb_searchname(item_name)) != nullptr)
         item_id = item_data->nameid;
-    else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != NULL)
+    else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != nullptr)
         item_id = item_data->nameid;
 
     if (item_id)
     {
         dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-        if (pl_sd != NULL)
+        if (pl_sd != nullptr)
         {
             if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
             {
@@ -3845,7 +3845,7 @@ static
 ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    struct item_data *item_data = NULL;
+    struct item_data *item_data = nullptr;
     int count, counter;
     CharName character;
 
@@ -3853,7 +3853,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -3865,7 +3865,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                 if (pl_sd->status.inventory[i].nameid
                     && (item_data =
                         itemdb_search(pl_sd->status.inventory[i].nameid)) !=
-                    NULL)
+                    nullptr)
                 {
                     counter = counter + pl_sd->status.inventory[i].amount;
                     count++;
@@ -3957,7 +3957,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     Storage *stor;
-    struct item_data *item_data = NULL;
+    struct item_data *item_data = nullptr;
     int count, counter;
     CharName character;
 
@@ -3965,12 +3965,12 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can look items only lower or same level
-            if ((stor = account2storage2(pl_sd->status_key.account_id)) != NULL)
+            if ((stor = account2storage2(pl_sd->status_key.account_id)) != nullptr)
             {
                 counter = 0;
                 count = 0;
@@ -3978,7 +3978,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                 {
                     if (stor->storage_[i].nameid
                         && (item_data =
-                            itemdb_search(stor->storage_[i].nameid)) != NULL)
+                            itemdb_search(stor->storage_[i].nameid)) != nullptr)
                     {
                         counter = counter + stor->storage_[i].amount;
                         count++;
@@ -4054,7 +4054,7 @@ ATCE atcommand_charkiller(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd == NULL)
+    if (pl_sd == nullptr)
         return ATCE::EXIST;
 
     pl_sd->special_state.killer = !pl_sd->special_state.killer;
@@ -4097,7 +4097,7 @@ ATCE atcommand_charkillable(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd == NULL)
+    if (pl_sd == nullptr)
         return ATCE::EXIST;
 
     pl_sd->special_state.killable = !pl_sd->special_state.killable;
@@ -4116,13 +4116,13 @@ ATCE atcommand_npcmove(Session *, dumb_ptr<map_session_data>,
 {
     NpcName character;
     int x = 0, y = 0;
-    dumb_ptr<npc_data> nd = 0;
+    dumb_ptr<npc_data> nd = nullptr;
 
     if (!asplit(message, &x, &y, &character))
         return ATCE::USAGE;
 
     nd = npc_name2id(character);
-    if (nd == NULL)
+    if (nd == nullptr)
         return ATCE::EXIST;
 
     npc_enable(character, 0);
@@ -4172,7 +4172,7 @@ ATCE atcommand_chareffect(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(target);
-    if (pl_sd == NULL)
+    if (pl_sd == nullptr)
         return ATCE::EXIST;
 
     clif_specialeffect(pl_sd, type, 0);
@@ -4206,7 +4206,7 @@ ATCE atcommand_chardropall(Session *s, dumb_ptr<map_session_data>,
     if (!asplit(message, &character))
         return ATCE::USAGE;
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd == NULL)
+    if (pl_sd == nullptr)
         return ATCE::EXIST;
     for (IOff0 i : IOff0::iter())
     {
@@ -4268,7 +4268,7 @@ ATCE atcommand_charstoreall(Session *s, dumb_ptr<map_session_data> sd,
     if (!asplit(message, &character))
         return ATCE::USAGE;
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd == NULL)
+    if (pl_sd == nullptr)
         return ATCE::EXIST;
 
     if (storage_storageopen(pl_sd) == 1)
@@ -4451,7 +4451,7 @@ ATCE atcommand_adjgmlvl(Session *s, dumb_ptr<map_session_data>,
     }
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(user);
-    if (pl_sd == NULL)
+    if (pl_sd == nullptr)
         return ATCE::EXIST;
 
     pc_set_gm_level(pl_sd->status_key.account_id, newlev);
@@ -4583,7 +4583,7 @@ ATCE atcommand_set_magic(Session *s, dumb_ptr<map_session_data>,
     }
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (skill_index == SkillID::ZERO)
             for (SkillID sk : magic_skills)
@@ -4713,7 +4713,7 @@ ATCE atcommand_skillpool_info(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         SkillID pool_skills[MAX_SKILL_POOL];
         int pool_skills_nr = skill_pool(pl_sd, pool_skills);
@@ -4773,7 +4773,7 @@ ATCE atcommand_skillpool_focus(Session *s, dumb_ptr<map_session_data>,
     }
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (skill_pool_activate(pl_sd, skill))
             clif_displaymessage(s, "Activation failed."_s);
@@ -4797,7 +4797,7 @@ ATCE atcommand_skillpool_unfocus(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         if (skill_pool_deactivate(pl_sd, skill))
             clif_displaymessage(s, "Deactivation failed."_s);
@@ -4822,7 +4822,7 @@ ATCE atcommand_skill_learn(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
+    if (pl_sd != nullptr)
     {
         set_skill(pl_sd, skill, level);
         clif_skillinfoblock(pl_sd);
@@ -4843,7 +4843,7 @@ ATCE atcommand_ipcheck(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd == NULL)
+    if (pl_sd == nullptr)
     {
         clif_displaymessage(s, "Character not found."_s);
         return ATCE::EXIST;
@@ -4894,7 +4894,7 @@ ATCE atcommand_doomspot(Session *s, dumb_ptr<map_session_data> sd,
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can doom only lower or same gm level
-            pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
+            pc_damage(nullptr, pl_sd, pl_sd->status.hp + 1);
             clif_displaymessage(pl_sd->sess, "The holy messenger has given judgement."_s);
         }
     }

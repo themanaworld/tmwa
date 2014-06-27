@@ -24,6 +24,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 TEST(InternPool, whydoesthisalwaysneedasecondname)
 {
     InternPool p;

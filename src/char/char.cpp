@@ -1083,7 +1083,7 @@ int set_account_reg2(AccountId acc, Slice<GlobalReg> reg)
 static
 int char_divorce(CharPair *cp)
 {
-    if (cp == NULL)
+    if (cp == nullptr)
         return 0;
 
     CharKey *ck = &cp->key;
@@ -2465,7 +2465,7 @@ void parse_char(Session *s)
                     else
                         PRINTF("Account Logged On; Account ID: %d.\n"_fmt,
                                 account_id);
-                    if (sd == NULL)
+                    if (sd == nullptr)
                     {
                         s->session_data = make_unique<char_session_data, SessionDeleter>();
                         sd = static_cast<char_session_data *>(s->session_data.get());
@@ -2833,14 +2833,14 @@ void check_connect_login_server(TimerData *, tick_t)
 static
 bool char_lan_config(XString w1, ZString w2)
 {
-    struct hostent *h = NULL;
+    struct hostent *h = nullptr;
 
     {
         if (w1 == "lan_map_ip"_s)
         {
             // Read map-server Lan IP Address
             h = gethostbyname(w2.c_str());
-            if (h != NULL)
+            if (h != nullptr)
             {
                 lan_map_ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),
@@ -2894,7 +2894,7 @@ bool lan_check()
 static
 bool char_config(XString w1, ZString w2)
 {
-    struct hostent *h = NULL;
+    struct hostent *h = nullptr;
 
     {
         if (w1 == "userid"_s)
@@ -2914,7 +2914,7 @@ bool char_config(XString w1, ZString w2)
         else if (w1 == "login_ip"_s)
         {
             h = gethostbyname(w2.c_str());
-            if (h != NULL)
+            if (h != nullptr)
             {
                 login_ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),
@@ -2938,7 +2938,7 @@ bool char_config(XString w1, ZString w2)
         else if (w1 == "char_ip"_s)
         {
             h = gethostbyname(w2.c_str());
-            if (h != NULL)
+            if (h != nullptr)
             {
                 char_ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),

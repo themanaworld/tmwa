@@ -257,7 +257,7 @@ int chrif_changemapserverack(Session *, const Packet_Fixed<0x2b06>& fixed)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(fixed.account_id));
 
-    if (sd == NULL || sd->status_key.char_id != fixed.char_id)
+    if (sd == nullptr || sd->status_key.char_id != fixed.char_id)
         return -1;
 
     // I am fairly certain that this is not possible
@@ -480,7 +480,7 @@ int chrif_char_ask_name_answer(Session *, const Packet_Fixed<0x2b0f>& fixed)
     CharName player_name = fixed.char_name;
 
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(acc));
-    if (acc && sd != NULL)
+    if (acc && sd != nullptr)
     {
         AString output;
         if (fixed.error == 1)   // player not found
@@ -621,7 +621,7 @@ void chrif_changedgm(Session *, const Packet_Fixed<0x2b0b>& fixed)
     if (battle_config.etc_log)
         PRINTF("chrif_changedgm: account: %d, GM level 0 -> %d.\n"_fmt, acc,
                 level);
-    if (sd != NULL)
+    if (sd != nullptr)
     {
         if (level)
             clif_displaymessage(sd->sess, "GM modification success."_s);
@@ -646,7 +646,7 @@ void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
     sd = map_id2sd(account_to_block(acc));
     if (acc)
     {
-        if (sd != NULL && sd->status.sex != sex)
+        if (sd != nullptr && sd->status.sex != sex)
         {
             if (sd->status.sex == SEX::MALE)
                 sd->sex = sd->status.sex = SEX::FEMALE;
@@ -670,7 +670,7 @@ void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
     }
     else
     {
-        if (sd != NULL)
+        if (sd != nullptr)
         {
             PRINTF("chrif_changedsex failed.\n"_fmt);
         }
@@ -716,7 +716,7 @@ static
 int chrif_accountreg2(Session *, const Packet_Head<0x2b11>& head, const std::vector<Packet_Repeat<0x2b11>>& repeat)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(head.account_id));
-    if (sd == NULL)
+    if (sd == nullptr)
         return 1;
 
     size_t jlim = std::min(ACCOUNT_REG2_NUM, repeat.size());
@@ -739,7 +739,7 @@ int chrif_accountreg2(Session *, const Packet_Head<0x2b11>& head, const std::vec
 static
 int chrif_divorce(CharId char_id, CharId partner_id)
 {
-    dumb_ptr<map_session_data> sd = NULL;
+    dumb_ptr<map_session_data> sd = nullptr;
 
     if (!char_id || !partner_id)
         return 0;
@@ -757,7 +757,7 @@ int chrif_divorce(CharId char_id, CharId partner_id)
     }
 
     sd = map_nick2sd(map_charid2nick(partner_id));
-    nullpo_ret(sd);
+    nullpo_retz(sd);
     if (sd->status.partner_id == char_id)
         sd->status.partner_id = CharId();
 
@@ -795,7 +795,7 @@ int chrif_accountdeletion(Session *, const Packet_Fixed<0x2b13>& fixed)
     sd = map_id2sd(account_to_block(acc));
     if (acc)
     {
-        if (sd != NULL)
+        if (sd != nullptr)
         {
             sd->login_id1++;    // change identify, because if player come back in char within the 5 seconds, he can change its characters
             clif_displaymessage(sd->sess,
@@ -805,7 +805,7 @@ int chrif_accountdeletion(Session *, const Packet_Fixed<0x2b13>& fixed)
     }
     else
     {
-        if (sd != NULL)
+        if (sd != nullptr)
             PRINTF("chrif_accountdeletion failed - player not online.\n"_fmt);
     }
 
@@ -827,7 +827,7 @@ int chrif_accountban(Session *, const Packet_Fixed<0x2b14>& fixed)
     sd = map_id2sd(account_to_block(acc));
     if (acc)
     {
-        if (sd != NULL)
+        if (sd != nullptr)
         {
             sd->login_id1++;    // change identify, because if player come back in char within the 5 seconds, he can change its characters
             if (fixed.ban_not_status == 0)
@@ -894,7 +894,7 @@ int chrif_accountban(Session *, const Packet_Fixed<0x2b14>& fixed)
     }
     else
     {
-        if (sd != NULL)
+        if (sd != nullptr)
             PRINTF("chrif_accountban failed - player not online.\n"_fmt);
     }
 

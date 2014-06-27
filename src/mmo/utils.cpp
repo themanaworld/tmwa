@@ -96,7 +96,7 @@ void stamp_time(timestamp_seconds_buffer& out, const TimeT *t)
 void stamp_time(timestamp_milliseconds_buffer& out)
 {
     struct timeval tv;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
     struct tm when = TimeT(tv.tv_sec);
     char buf[24];
     strftime(buf, 20, "%Y-%m-%d %H:%M:%S", &when);

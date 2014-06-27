@@ -23,6 +23,8 @@
 #include "../poison.hpp"
 
 
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 TEST(Array, simple)
 {
     GenericArray<int, SimpleIndexing<3>> a;

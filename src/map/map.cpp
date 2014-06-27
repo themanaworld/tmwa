@@ -189,12 +189,12 @@ struct block_list bl_head;
  */
 int map_addblock(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     if (bl->bl_prev)
     {
         if (battle_config.error_log)
-            PRINTF("map_addblock error : bl->bl_prev!=NULL\n"_fmt);
+            PRINTF("map_addblock error : bl->bl_prev!=nullptr\n"_fmt);
         return 0;
     }
 
@@ -234,7 +234,7 @@ int map_addblock(dumb_ptr<block_list> bl)
  */
 int map_delblock(dumb_ptr<block_list> bl)
 {
-    nullpo_ret(bl);
+    nullpo_retz(bl);
 
     // 既にblocklistから抜けている
     if (!bl->bl_prev)
@@ -243,7 +243,7 @@ int map_delblock(dumb_ptr<block_list> bl)
         {
             // prevがNULLでnextがNULLでないのは有ってはならない
             if (battle_config.error_log)
-                PRINTF("map_delblock error : bl->bl_next!=NULL\n"_fmt);
+                PRINTF("map_delblock error : bl->bl_next!=nullptr\n"_fmt);
         }
         return 0;
     }
@@ -269,8 +269,8 @@ int map_delblock(dumb_ptr<block_list> bl)
     {
         bl->bl_prev->bl_next = bl->bl_next;
     }
-    bl->bl_next = NULL;
-    bl->bl_prev = NULL;
+    bl->bl_next = nullptr;
+    bl->bl_prev = nullptr;
 
     return 0;
 }
@@ -282,7 +282,7 @@ int map_delblock(dumb_ptr<block_list> bl)
 int map_count_oncell(map_local *m, int x, int y)
 {
     int bx, by;
-    dumb_ptr<block_list> bl = NULL;
+    dumb_ptr<block_list> bl = nullptr;
     int count = 0;
 
     if (x < 0 || y < 0 || (x >= m->xs) || (y >= m->ys))
@@ -606,7 +606,7 @@ void map_delobject(BlockId id, BL type)
     assert (id < MAX_FLOORITEM);
     dumb_ptr<block_list> obj = object[id._value];
 
-    if (obj == NULL)
+    if (obj == nullptr)
         return;
 
     map_delobjectnofree(id, type);
@@ -666,7 +666,7 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, BlockId id)
     dumb_ptr<flooritem_data> fitem = obj->is_item();
     if (!tid)
         fitem->cleartimer.cancel();
-    clif_clearflooritem(fitem, 0);
+    clif_clearflooritem(fitem, nullptr);
     map_delobject(fitem->bl_id, BL::ITEM);
 }
 
@@ -702,7 +702,7 @@ BlockId map_addflooritem_any(Item *item_data, int amount,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal)
 {
-    dumb_ptr<flooritem_data> fitem = NULL;
+    dumb_ptr<flooritem_data> fitem = nullptr;
 
     nullpo_retr(BlockId(), item_data);
     auto xy = map_searchrandfreecell(m, x, y, dispersal);
@@ -711,7 +711,7 @@ BlockId map_addflooritem_any(Item *item_data, int amount,
 
     fitem.new_();
     fitem->bl_type = BL::ITEM;
-    fitem->bl_prev = fitem->bl_next = NULL;
+    fitem->bl_prev = fitem->bl_next = nullptr;
     fitem->bl_m = m;
     fitem->bl_x = xy.first;
     fitem->bl_y = xy.second;
@@ -789,7 +789,7 @@ BlockId map_addflooritem(Item *item_data, int amount,
 void map_addchariddb(CharId charid, CharName name)
 {
     struct charid2nick *p = charid_db.search(charid);
-    if (p == NULL)
+    if (p == nullptr)
         p = charid_db.init(charid);
 
     p->nick = name;
@@ -901,7 +901,7 @@ dumb_ptr<map_session_data> map_id2sd(BlockId id)
         bl=numdb_search(id_db,id);
         if (bl && bl->bl_type==BL::PC)
                 return (struct map_session_data*)bl;
-        return NULL;
+        return nullptr;
 */
     for (io::FD i : iter_fds())
     {
@@ -916,7 +916,7 @@ dumb_ptr<map_session_data> map_id2sd(BlockId id)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 /*==========================================
@@ -927,7 +927,7 @@ CharName map_charid2nick(CharId id)
 {
     struct charid2nick *p = charid_db.search(id);
 
-    if (p == NULL)
+    if (p == nullptr)
         return CharName();
     if (p->req_id != 0)
         return CharName();
@@ -949,7 +949,7 @@ dumb_ptr<map_session_data> map_get_session(io::FD i)
             return dumb_ptr<map_session_data>(d);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 static
@@ -962,7 +962,7 @@ dumb_ptr<map_session_data> map_get_session_forward(int start)
             return d;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 static
@@ -975,7 +975,7 @@ dumb_ptr<map_session_data> map_get_session_backward(int start)
             return d;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 dumb_ptr<map_session_data> map_get_first_session(void)
@@ -1001,7 +1001,7 @@ dumb_ptr<map_session_data> map_get_prev_session(dumb_ptr<map_session_data> d)
 /*==========================================
  * Search session data from a nick name
  * (without sensitive case if necessary)
- * return map_session_data pointer or NULL
+ * return map_session_data pointer or nullptr
  *------------------------------------------
  */
 dumb_ptr<map_session_data> map_nick2sd(CharName nick)
@@ -1020,7 +1020,7 @@ dumb_ptr<map_session_data> map_nick2sd(CharName nick)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /*==========================================
@@ -1030,7 +1030,7 @@ dumb_ptr<map_session_data> map_nick2sd(CharName nick)
  */
 dumb_ptr<block_list> map_id2bl(BlockId id)
 {
-    dumb_ptr<block_list> bl = NULL;
+    dumb_ptr<block_list> bl = nullptr;
     if (id < MAX_FLOORITEM)
         bl = object[id._value];
     else
@@ -1049,7 +1049,7 @@ int map_addnpc(map_local *m, dumb_ptr<npc_data> nd)
     if (!m)
         return -1;
     for (i = 0; i < m->npc_num && i < MAX_NPC_PER_MAP; i++)
-        if (m->npc[i] == NULL)
+        if (m->npc[i] == nullptr)
             break;
     if (i == MAX_NPC_PER_MAP)
     {
@@ -1062,7 +1062,7 @@ int map_addnpc(map_local *m, dumb_ptr<npc_data> nd)
         m->npc_num++;
     }
 
-    nullpo_ret(nd);
+    nullpo_retz(nd);
 
     m->npc[i] = nd;
     nd->n = i;
@@ -1083,7 +1083,7 @@ void map_removenpc(void)
         map_local *m = static_cast<map_local *>(mitp.second.get());
         for (int i = 0; i < m->npc_num && i < MAX_NPC_PER_MAP; i++)
         {
-            if (m->npc[i] != NULL)
+            if (m->npc[i] != nullptr)
             {
                 clif_clearchar(m->npc[i], BeingRemoveWhy::QUIT);
                 map_delblock(m->npc[i]);
@@ -1108,7 +1108,7 @@ void map_removenpc(void)
 map_local *map_mapname2mapid(MapName name)
 {
     map_abstract *md = maps_db.get(name);
-    if (md == NULL || md->gat == NULL)
+    if (md == nullptr || md->gat == nullptr)
         return nullptr;
     return static_cast<map_local *>(md);
 }
@@ -1120,7 +1120,7 @@ map_local *map_mapname2mapid(MapName name)
 int map_mapname2ipport(MapName name, IP4Address *ip, int *port)
 {
     map_abstract *md = maps_db.get(name);
-    if (md == NULL || md->gat)
+    if (md == nullptr || md->gat)
         return -1;
     map_remote *mdos = static_cast<map_remote *>(md);
     *ip = mdos->ip;
@@ -1229,12 +1229,12 @@ void map_setcell(map_local *m, int x, int y, MapCell t)
 int map_setipport(MapName name, IP4Address ip, int port)
 {
     map_abstract *md = maps_db.get(name);
-    if (md == NULL)
+    if (md == nullptr)
     {
         // not exist -> add new data
         auto mdos = make_unique<map_remote>();
         mdos->name_ = name;
-        mdos->gat = NULL;
+        mdos->gat = nullptr;
         mdos->ip = ip;
         mdos->port = port;
         maps_db.put(mdos->name_, std::move(mdos));
@@ -1397,7 +1397,7 @@ void map_close_logfile(void)
             "gzip",
             "-f",
             filename.c_str(),
-            NULL
+            nullptr
         };
         char **argv = const_cast<char **>(args);
 
@@ -1408,7 +1408,7 @@ void map_close_logfile(void)
             execvp("gzip", argv);
             _exit(1);
         }
-        wait(NULL);
+        wait(nullptr);
     }
 }
 
@@ -1435,7 +1435,7 @@ void map_set_logfile(AString filename)
     struct timeval tv;
 
     map_logfile_name = std::move(filename);
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
 
     map_start_logfile(tv.tv_sec >> LOGFILE_SECONDS_PER_CHUNK_SHIFT);
 
@@ -1466,7 +1466,7 @@ void map_log(XString line)
 static
 bool map_config_read(ZString cfgName)
 {
-    struct hostent *h = NULL;
+    struct hostent *h = nullptr;
 
     io::ReadFile in(cfgName);
     if (!in.is_open())
@@ -1503,7 +1503,7 @@ bool map_config_read(ZString cfgName)
         {
             h = gethostbyname(w2.c_str());
             IP4Address w2ip;
-            if (h != NULL)
+            if (h != nullptr)
             {
                 w2ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),
@@ -1529,7 +1529,7 @@ bool map_config_read(ZString cfgName)
         {
             h = gethostbyname(w2.c_str());
             IP4Address w2ip;
-            if (h != NULL)
+            if (h != nullptr)
             {
                 w2ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),

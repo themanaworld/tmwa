@@ -96,7 +96,7 @@ PartyPair party_searchname(PartyName str)
 /* Process a party creation request. */
 int party_create(dumb_ptr<map_session_data> sd, PartyName name)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     name = stringish<PartyName>(name.strip());
 
@@ -155,7 +155,7 @@ void party_request_info(PartyId party_id)
 static
 int party_check_member(PartyPair p)
 {
-    nullpo_ret(p);
+    nullpo_retz(p);
 
     for (io::FD i : iter_fds())
     {
@@ -177,7 +177,7 @@ int party_check_member(PartyPair p)
                         else
                         {
                             // I can prove it was already zeroed
-                            // p->member[j].sd = NULL; // 同垢別キャラだった
+                            // p->member[j].sd = nullptr; // 同垢別キャラだった
                         }
                     }
                 }
@@ -217,7 +217,7 @@ int party_recv_info(const PartyPair sp)
 {
     int i;
 
-    nullpo_ret(sp);
+    nullpo_retz(sp);
 
     PartyPair p = party_search(sp.party_id);
     if (!p)
@@ -234,8 +234,8 @@ int party_recv_info(const PartyPair sp)
     for (i = 0; i < MAX_PARTY; i++)
     {                           // sdの設定
         dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(p->member[i].account_id));
-        p->member[i].sd = (sd != NULL
-                           && sd->status.party_id == p.party_id) ? sd.operator->() : NULL;
+        p->member[i].sd = (sd != nullptr
+                           && sd->status.party_id == p.party_id) ? sd.operator->() : nullptr;
     }
 
     clif_party_info(p, nullptr);
@@ -244,7 +244,7 @@ int party_recv_info(const PartyPair sp)
     {                           // 設定情報の送信
 //      dumb_ptr<map_session_data> sd = map_id2sd(p->member[i].account_id);
         dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(p->member[i].sd);
-        if (sd != NULL && sd->party_sended == 0)
+        if (sd != nullptr && sd->party_sended == 0)
         {
             clif_party_option(p, sd, 0x100);
             sd->party_sended = 1;
@@ -262,7 +262,7 @@ int party_invite(dumb_ptr<map_session_data> sd, AccountId account_id)
     int i;
     int full = 1; /* Indicates whether or not there's room for one more. */
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (!tsd || !p || !tsd->sess)
         return 0;
@@ -321,7 +321,7 @@ int party_invite(dumb_ptr<map_session_data> sd, AccountId account_id)
 /* Process response to party invitation. */
 int party_reply_invite(dumb_ptr<map_session_data> sd, AccountId account_id, int flag)
 {
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     /* There is no pending invitation. */
     if (!sd->party_invite || !sd->party_invite_account)
@@ -341,7 +341,7 @@ int party_reply_invite(dumb_ptr<map_session_data> sd, AccountId account_id, int 
     else
     {
         /* This is the player who sent the invitation. */
-        dumb_ptr<map_session_data> tsd = NULL;
+        dumb_ptr<map_session_data> tsd = nullptr;
 
         sd->party_invite = PartyId();
         sd->party_invite_account = AccountId();
@@ -358,7 +358,7 @@ int party_member_added(PartyId party_id, AccountId account_id, int flag)
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(account_id)), sd2;
     PartyPair p = party_search(party_id);
 
-    if (sd == NULL)
+    if (sd == nullptr)
     {
         if (flag == 0)
         {
@@ -382,7 +382,7 @@ int party_member_added(PartyId party_id, AccountId account_id, int flag)
 
     if (flag == 1)
     {                           // 失敗
-        if (sd2 != NULL)
+        if (sd2 != nullptr)
             clif_party_inviteack(sd2, sd->status_key.name, 0);
         return 0;
     }
@@ -391,7 +391,7 @@ int party_member_added(PartyId party_id, AccountId account_id, int flag)
     sd->party_sended = 0;
     sd->status.party_id = party_id;
 
-    if (sd2 != NULL)
+    if (sd2 != nullptr)
         clif_party_inviteack(sd2, sd->status_key.name, 2);
 
     // いちおう競合確認
@@ -408,7 +408,7 @@ int party_removemember(dumb_ptr<map_session_data> sd, AccountId account_id)
     PartyPair p;
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (!(p = party_search(sd->status.party_id)))
         return 0;
@@ -439,7 +439,7 @@ int party_leave(dumb_ptr<map_session_data> sd)
     PartyPair p;
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (!(p = party_search(sd->status.party_id)))
         return 0;
@@ -468,10 +468,10 @@ int party_member_leaved(PartyId party_id, AccountId account_id, CharName name)
             {
                 clif_party_leaved(p, sd, account_id, name, 0x00);
                 p->member[i].account_id = AccountId();
-                p->member[i].sd = NULL;
+                p->member[i].sd = nullptr;
             }
     }
-    if (sd != NULL && sd->status.party_id == party_id)
+    if (sd != nullptr && sd->status.party_id == party_id)
     {
         sd->status.party_id = PartyId();
         sd->party_sended = 0;
@@ -489,7 +489,7 @@ int party_broken(PartyId party_id)
 
     for (i = 0; i < MAX_PARTY; i++)
     {
-        if (p->member[i].sd != NULL)
+        if (p->member[i].sd != nullptr)
         {
             clif_party_leaved(p, dumb_ptr<map_session_data>(p->member[i].sd),
                                p->member[i].account_id, p->member[i].name,
@@ -507,7 +507,7 @@ int party_changeoption(dumb_ptr<map_session_data> sd, int exp, int item)
 {
     PartyPair p;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (!sd->status.party_id
         || !(p = party_search(sd->status.party_id)))
@@ -545,7 +545,7 @@ void party_recv_movemap(PartyId party_id, AccountId account_id, MapName mapname,
     for (i = 0; i < MAX_PARTY; i++)
     {
         PartyMember *m = &p->member[i];
-        if (m == NULL)
+        if (m == nullptr)
         {
             PRINTF("party_recv_movemap nullpo?\n"_fmt);
             return;
@@ -569,8 +569,8 @@ void party_recv_movemap(PartyId party_id, AccountId account_id, MapName mapname,
     for (i = 0; i < MAX_PARTY; i++)
     {                           // sd再設定
         dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(p->member[i].account_id));
-        p->member[i].sd = (sd != NULL
-                           && sd->status.party_id == p.party_id) ? sd.operator->() : NULL;
+        p->member[i].sd = (sd != nullptr
+                           && sd->status.party_id == p.party_id) ? sd.operator->() : nullptr;
     }
 
     party_send_xy_clear(p);    // 座標再通知要請
@@ -583,7 +583,7 @@ int party_send_movemap(dumb_ptr<map_session_data> sd)
 {
     PartyPair p;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (!sd->status.party_id)
         return 0;
@@ -615,7 +615,7 @@ int party_send_logout(dumb_ptr<map_session_data> sd)
 {
     PartyPair p;
 
-    nullpo_ret(sd);
+    nullpo_retz(sd);
 
     if (sd->status.party_id)
         intif_party_changemap(sd, 0);
@@ -626,7 +626,7 @@ int party_send_logout(dumb_ptr<map_session_data> sd)
         int i;
         for (i = 0; i < MAX_PARTY; i++)
             if (dumb_ptr<map_session_data>(p->member[i].sd) == sd)
-                p->member[i].sd = NULL;
+                p->member[i].sd = nullptr;
     }
 
     return 0;
@@ -669,7 +669,7 @@ void party_send_xyhp_timer_sub(PartyPair p)
     for (i = 0; i < MAX_PARTY; i++)
     {
         dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(p->member[i].sd);
-        if (sd != NULL)
+        if (sd != nullptr)
         {
             // 座標通知
             if (sd->party_x != sd->bl_x || sd->party_y != sd->bl_y)
@@ -711,7 +711,7 @@ void party_send_xy_clear(PartyPair p)
     for (i = 0; i < MAX_PARTY; i++)
     {
         dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(p->member[i].sd);
-        if (sd != NULL)
+        if (sd != nullptr)
         {
             sd->party_x = -1;
             sd->party_y = -1;
@@ -741,12 +741,12 @@ int party_exp_share(PartyPair p, map_local *mapid, int base_exp, int job_exp)
     dumb_ptr<map_session_data> sd;
     int i, c;
 
-    nullpo_ret(p);
+    nullpo_retz(p);
 
     for (i = c = 0; i < MAX_PARTY; i++)
     {
         sd = dumb_ptr<map_session_data>(p->member[i].sd);
-        if (sd != NULL && sd->bl_m == mapid)
+        if (sd != nullptr && sd->bl_m == mapid)
             c++;
     }
     if (c == 0)
@@ -754,7 +754,7 @@ int party_exp_share(PartyPair p, map_local *mapid, int base_exp, int job_exp)
     for (i = 0; i < MAX_PARTY; i++)
     {
         sd = dumb_ptr<map_session_data>(p->member[i].sd);
-        if (sd != NULL && sd->bl_m == mapid)
+        if (sd != nullptr && sd->bl_m == mapid)
             pc_gainexp_reason(sd, base_exp / c + 1, job_exp / c + 1,
             PC_GAINEXP_REASON::SHARING);
     }
@@ -786,7 +786,7 @@ void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
     for (i = 0; i < MAX_PARTY; i++)
     {
         PartyMember *m = &p->member[i];
-        if (m->sd != NULL)
+        if (m->sd != nullptr)
         {
             if (sd->bl_m != m->sd->bl_m)
                 continue;

@@ -62,9 +62,6 @@ namespace strings
     // Actually, it might now.
     const char *decay_for_printf(const LString& zs);
 
-    __attribute__((format(scanf, 2, 0)))
-    int do_vscan(LString in, const char *fmt, va_list ap);
-
     inline
     LString operator "" _s(const char *s, size_t)
     {

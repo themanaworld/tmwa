@@ -26,6 +26,9 @@
 
 #include "../poison.hpp"
 
+
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 TEST(extract, record_int)
 {
     int x, y, z;

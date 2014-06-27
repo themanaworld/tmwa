@@ -84,7 +84,7 @@ struct TimeT : Comparable
     TimeT now()
     {
         // poisoned, but this is still in header-land
-        return time(NULL);
+        return time(nullptr);
     }
 
     bool error() const
@@ -99,12 +99,6 @@ struct TimeT : Comparable
 
 inline
 long long convert_for_printf(TimeT t)
-{
-    return t.value;
-}
-
-inline
-long long& convert_for_scanf(TimeT& t)
 {
     return t.value;
 }
