@@ -29,6 +29,8 @@
 
 # include "lexer.hpp"
 
+# include "fwd.hpp"
+
 
 namespace tmwa
 {

@@ -29,6 +29,8 @@
 
 # include "../io/line.hpp"
 
+# include "fwd.hpp"
+
 
 namespace tmwa
 {
