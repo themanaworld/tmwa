@@ -1,6 +1,6 @@
-#ifndef TMWA_GENERIC_OOPS_HPP
-#define TMWA_GENERIC_OOPS_HPP
-//    oops.hpp - Stuff that shouldn't happen.
+#ifndef TMWA_TESTS_FWD_HPP
+#define TMWA_TESTS_FWD_HPP
+//    tests/fwd.hpp - list of type names for test libs
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -19,25 +19,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
-
-# include <cstddef>
-
-# include <stdexcept>
+# include "../sanity.hpp"
 
 
 namespace tmwa
 {
-class AssertionError : public std::runtime_error
-{
-public:
-    AssertionError(const char *desc, const char *expr,
-            const char *file, size_t line, const char *function);
-};
-
-# define ALLEGE(desc, expr) \
-    if (expr) {}            \
-    else throw AssertionError(desc, #expr, __FILE__, __LINE__, __PRETTY_FUNCTION__)
+// meh, add more when I feel like it
 } // namespace tmwa
 
-#endif // TMWA_GENERIC_OOPS_HPP
+#endif // TMWA_TESTS_FWD_HPP

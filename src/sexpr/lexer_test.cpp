@@ -22,6 +22,8 @@
 
 #include "../strings/vstring.hpp"
 
+#include "../tests/fdhack.hpp"
+
 #include "../poison.hpp"
 
 
@@ -117,6 +119,7 @@ TEST(sexpr, lexer)
 
 TEST(sexpr, lexbad)
 {
+    QuietFd q;
     {
         io::LineSpan span;
         sexpr::Lexer lexer("<lexer-bad>"_s, string_pipe("(\n"_s));

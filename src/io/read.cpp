@@ -107,12 +107,12 @@ namespace io
         if (unhappy)
         {
             if (happy)
-                PRINTF("warning: file contains CR\n"_fmt);
+                FPRINTF(stderr, "warning: file contains CR\n"_fmt);
             else
-                PRINTF("warning: file contains bare CR\n"_fmt);
+                FPRINTF(stderr, "warning: file contains bare CR\n"_fmt);
         }
         else if (!happy && anything)
-            PRINTF("warning: file does not contain a trailing newline\n"_fmt);
+            FPRINTF(stderr, "warning: file does not contain a trailing newline\n"_fmt);
         line = AString(tmp);
         return anything;
     }

@@ -1,6 +1,6 @@
-#ifndef TMWA_GENERIC_OOPS_HPP
-#define TMWA_GENERIC_OOPS_HPP
-//    oops.hpp - Stuff that shouldn't happen.
+#ifndef TMWA_TESTS_FDHACK_HPP
+#define TMWA_TESTS_FDHACK_HPP
+//    fdhack.hpp - Move file descriptors around.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -22,22 +22,40 @@
 # include "fwd.hpp"
 
 # include <cstddef>
+# include <fcntl.h>
 
 # include <stdexcept>
 
+# include "../strings/literal.hpp"
+# include "../strings/zstring.hpp"
+
+# include "../io/fd.hpp"
 
 namespace tmwa
 {
-class AssertionError : public std::runtime_error
+class ReplaceFd
+{
+    io::FD number, backup;
+public:
+    ReplaceFd(io::FD num, io::FD handle, bool owned)
+    : number(handle.dup2(num)), backup(num.dup())
+    {
+        if (owned)
+            handle.close();
+    }
+    ~ReplaceFd()
+    {
+        backup.dup2(number);
+        backup.close();
+    }
+};
+class QuietFd : ReplaceFd
 {
 public:
-    AssertionError(const char *desc, const char *expr,
-            const char *file, size_t line, const char *function);
+    QuietFd(io::FD num=io::FD::stderr())
+    : ReplaceFd(num, io::FD::open("/dev/null"_s, O_RDONLY), true)
+    {}
 };
-
-# define ALLEGE(desc, expr) \
-    if (expr) {}            \
-    else throw AssertionError(desc, #expr, __FILE__, __LINE__, __PRETTY_FUNCTION__)
 } // namespace tmwa
 
-#endif // TMWA_GENERIC_OOPS_HPP
+#endif // TMWA_TESTS_FDHACK_HPP
