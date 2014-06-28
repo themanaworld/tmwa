@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAGIC_EXPR_HPP
-#define TMWA_MAP_MAGIC_EXPR_HPP
+#pragma once
 //    magic-expr.hpp - Pure functions for the old magic backend.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -20,18 +19,18 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../range/fwd.hpp"
+#include "../range/fwd.hpp"
 
-# include "../strings/zstring.hpp"
-# include "../strings/literal.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/literal.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
-# include "magic-interpreter.t.hpp"
+#include "magic-interpreter.t.hpp"
 
 
 namespace tmwa
@@ -90,7 +89,7 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area);
 // ret -1: not a string, ret 1: no such item, ret 0: OK
 int magic_find_item(Slice<val_t> args, int index, Item *item, int *stackable);
 
-# define GET_ARG_ITEM(index, dest, stackable)                   \
+#define GET_ARG_ITEM(index, dest, stackable)                    \
      switch (magic_find_item(args, index, &dest, &stackable))   \
     {                                                           \
         case -1: return 1;                                      \
@@ -108,5 +107,3 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
 void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
         area_t& area);
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAGIC_EXPR_HPP

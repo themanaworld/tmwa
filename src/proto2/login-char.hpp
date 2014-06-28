@@ -1,5 +1,4 @@
-#ifndef TMWA_PROTO2_LOGIN_CHAR_HPP
-#define TMWA_PROTO2_LOGIN_CHAR_HPP
+#pragma once
 //    login-char.hpp - TMWA network protocol: login/char
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -21,9 +20,9 @@
 
 // This is a generated file, edit tools/protocol.py instead
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "types.hpp"
+#include "types.hpp"
 
 namespace tmwa
 {
@@ -1234,5 +1233,3 @@ bool network_to_native(Packet_Fixed<0x2741> *native, NetPacket_Fixed<0x2741> net
 }
 
 } // namespace tmwa
-
-#endif // TMWA_PROTO2_LOGIN_CHAR_HPP

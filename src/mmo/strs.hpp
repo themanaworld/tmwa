@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_STRS_HPP
-#define TMWA_MMO_STRS_HPP
+#pragma once
 //    strs.hpp - common string types
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,15 +20,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/vstring.hpp"
+#include "../strings/vstring.hpp"
 
 
 namespace tmwa
 {
 // affects CharName
-# define NAME_IGNORING_CASE 1
+#define NAME_IGNORING_CASE 1
 
 struct AccountName : VString<23> {};
 struct AccountPass : VString<23> {};
@@ -39,7 +38,7 @@ struct ServerName : VString<19> {};
 struct PartyName : VString<23> {};
 struct VarName : VString<31> {};
 
-# define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com"_s)
+#define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com"_s)
 
 // It is decreed: a mapname shall not contain an extension
 class MapName : public strings::_crtp_string<MapName, MapName, strings::ZPair>
@@ -94,12 +93,12 @@ public:
     }
     VString<23> to__canonical() const
     {
-# if NAME_IGNORING_CASE == 0
+#if NAME_IGNORING_CASE == 0
         return to__actual();
-# endif
-# if NAME_IGNORING_CASE == 1
+#endif
+#if NAME_IGNORING_CASE == 1
         return to__lower();
-# endif
+#endif
     }
 
     friend bool operator == (const CharName& l, const CharName& r)
@@ -125,5 +124,3 @@ CharName stringish<CharName>(VString<23> iv)
     return CharName(iv);
 }
 } // namespace tmwa
-
-#endif // TMWA_MMO_STRS_HPP

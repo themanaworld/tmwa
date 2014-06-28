@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_RANDOM_HPP
-#define TMWA_GENERIC_RANDOM_HPP
+#pragma once
 //    random.hpp - Random number generation.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "random.t.hpp"
+#include "random.t.hpp"
 
-# include <random>
+#include <random>
 
 
 namespace tmwa
@@ -87,5 +86,3 @@ namespace random_
     }
 } // namespace random_
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_RANDOM_HPP

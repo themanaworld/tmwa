@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_INTIF_HPP
-#define TMWA_MAP_INTIF_HPP
+#pragma once
 //    intif.hpp - Network interface to the internal server.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,15 +20,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../net/fwd.hpp"
+#include "../net/fwd.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
 
 namespace tmwa
@@ -57,5 +56,3 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online);
 void intif_party_message(PartyId party_id, AccountId account_id, XString mes);
 void intif_party_checkconflict(PartyId party_id, AccountId account_id, CharName nick);
 } // namespace tmwa
-
-#endif // TMWA_MAP_INTIF_HPP

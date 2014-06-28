@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_ENUMS_HPP
-#define TMWA_MMO_ENUMS_HPP
+#pragma once
 //    enums.hpp - Common enumerated types
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,11 +20,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include "../generic/enum.hpp"
+#include "../generic/enum.hpp"
 
 
 namespace tmwa
@@ -161,5 +160,3 @@ bool network_to_native(SEX *native, char network)
     return true;
 }
 } // namespace tmwa
-
-#endif // TMWA_MMO_ENUMS_HPP

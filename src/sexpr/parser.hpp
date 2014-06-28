@@ -1,5 +1,4 @@
-#ifndef TMWA_SEXPR_PARSER_HPP
-#define TMWA_SEXPR_PARSER_HPP
+#pragma once
 //    parser.hpp - build a tree of S-expressions
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,17 +18,17 @@
 //    You should have received a copy of the GNU Affero General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdlib>
+#include <cstdlib>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../io/line.hpp"
+#include "../io/line.hpp"
 
-# include "lexer.hpp"
+#include "lexer.hpp"
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
@@ -84,5 +83,3 @@ namespace sexpr
     bool parse(Lexer& lex, SExpr& out);
 } // namespace sexpr
 } // namespace tmwa
-
-#endif // TMWA_SEXPR_PARSER_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_UTILS_HPP
-#define TMWA_MMO_UTILS_HPP
+#pragma once
 //    utils.hpp - Useful stuff that hasn't been categorized.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,21 +20,21 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstring>
-# include <ctime>
+#include <cstring>
+#include <ctime>
 
-# include <type_traits>
+#include <type_traits>
 
-# include "../ints/little.hpp"
+#include "../ints/little.hpp"
 
-# include "../strings/fwd.hpp"
-# include "../strings/vstring.hpp"
+#include "../strings/fwd.hpp"
+#include "../strings/vstring.hpp"
 
-# include "../generic/operators.hpp"
+#include "../generic/operators.hpp"
 
-# include "../io/fwd.hpp"
+#include "../io/fwd.hpp"
 
 
 namespace tmwa
@@ -149,16 +148,16 @@ void stamp_time(timestamp_milliseconds_buffer&);
 void log_with_timestamp(io::WriteFile& out, XString line);
 
 // TODO VString?
-# define TIMESTAMP_DUMMY "YYYY-MM-DD HH:MM:SS"
+#define TIMESTAMP_DUMMY "YYYY-MM-DD HH:MM:SS"
 static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
         "timestamp size");
-# define WITH_TIMESTAMP(str) str TIMESTAMP_DUMMY
+#define WITH_TIMESTAMP(str) str TIMESTAMP_DUMMY
 //  str:            prefix: YYYY-MM-DD HH:MM:SS
 //  sizeof:        01234567890123456789012345678
 //  str + sizeof:                               ^
 //  -1:                     ^
 // there's probably a better way to do this now
-# define REPLACE_TIMESTAMP(str, t)                          \
+#define REPLACE_TIMESTAMP(str, t)                           \
     stamp_time(                                             \
             reinterpret_cast<timestamp_seconds_buffer *>(   \
                 str + sizeof(str)                           \
@@ -166,5 +165,3 @@ static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
             &t                                              \
     )
 } // namespace tmwa
-
-#endif // TMWA_MMO_UTILS_HPP

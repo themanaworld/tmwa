@@ -1,5 +1,4 @@
-#ifndef TMWA_IO_READ_HPP
-#define TMWA_IO_READ_HPP
+#pragma once
 //    io/read.hpp - Input from files.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "fd.hpp"
+#include "fd.hpp"
 
 namespace tmwa
 {
@@ -52,5 +51,3 @@ namespace io
     };
 } // namespace io
 } // namespace tmwa
-
-#endif // TMWA_IO_READ_HPP

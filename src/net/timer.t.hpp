@@ -1,5 +1,4 @@
-#ifndef TMWA_NET_TIMER_T_HPP
-#define TMWA_NET_TIMER_T_HPP
+#pragma once
 //    timer.t.hpp - Future event scheduler.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,16 +20,16 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdlib>
+#include <cstdlib>
 
-# include <chrono>
-# include <functional>
+#include <chrono>
+#include <functional>
 
-# include "../ints/little.hpp"
+#include "../ints/little.hpp"
 
-# include "../generic/dumb_ptr.hpp"
+#include "../generic/dumb_ptr.hpp"
 
 
 namespace tmwa
@@ -141,5 +140,3 @@ public:
     bool operator !() { return !td; }
 };
 } // namespace tmwa
-
-#endif // TMWA_NET_TIMER_T_HPP

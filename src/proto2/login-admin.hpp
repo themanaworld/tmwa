@@ -1,5 +1,4 @@
-#ifndef TMWA_PROTO2_LOGIN_ADMIN_HPP
-#define TMWA_PROTO2_LOGIN_ADMIN_HPP
+#pragma once
 //    login-admin.hpp - TMWA network protocol: login/admin
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -21,9 +20,9 @@
 
 // This is a generated file, edit tools/protocol.py instead
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "types.hpp"
+#include "types.hpp"
 
 namespace tmwa
 {
@@ -2217,5 +2216,3 @@ bool network_to_native(Packet_Fixed<0x7955> *native, NetPacket_Fixed<0x7955> net
 }
 
 } // namespace tmwa
-
-#endif // TMWA_PROTO2_LOGIN_ADMIN_HPP

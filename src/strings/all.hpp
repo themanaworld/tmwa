@@ -1,5 +1,4 @@
-#ifndef TMWA_STRINGS_ALL_HPP
-#define TMWA_STRINGS_ALL_HPP
+#pragma once
 //    strings/all.hpp - All the string classes you'll ever need.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,22 +18,20 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "base.hpp"
-# include "mstring.hpp"
-# include "rstring.hpp"
-# include "astring.hpp"
-# include "tstring.hpp"
-# include "sstring.hpp"
-# include "zstring.hpp"
-# include "xstring.hpp"
-# include "literal.hpp"
-# include "vstring.hpp"
+#include "base.hpp"
+#include "mstring.hpp"
+#include "rstring.hpp"
+#include "astring.hpp"
+#include "tstring.hpp"
+#include "sstring.hpp"
+#include "zstring.hpp"
+#include "xstring.hpp"
+#include "literal.hpp"
+#include "vstring.hpp"
 
 
 namespace tmwa
 {
 } // namespace tmwa
-
-#endif // TMWA_STRINGS_ALL_HPP

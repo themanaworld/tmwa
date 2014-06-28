@@ -1,5 +1,4 @@
-#ifndef TMWA_SEXPR_UNION_HPP
-#define TMWA_SEXPR_UNION_HPP
+#pragma once
 //    union.hpp - A (unsafe!) convenience wrapper for classes in unions.
 //
 //    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,12 +18,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include <utility>
-# include <type_traits>
-# include <cstddef>
-# include <new>
+#include <utility>
+#include <type_traits>
+#include <cstddef>
+#include <new>
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
@@ -104,5 +103,3 @@ namespace sexpr
     };
 } // namespace sexpr
 } // namespace tmwa
-
-#endif //TMWA_SEXPR_UNION_HPP

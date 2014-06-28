@@ -1,5 +1,4 @@
-#ifndef TMWA_COMPAT_ITER_HPP
-#define TMWA_COMPAT_ITER_HPP
+#pragma once
 //    iter.hpp - tools for dealing with iterators
 //
 //    Copyright © 2012-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,9 +18,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <iterator>
+#include <iterator>
 
 
 namespace tmwa
@@ -152,5 +151,3 @@ IteratorPair<FilterIterator<T, F, C>> filter_iterator(C *c, F f=is_truthy<T>)
     return {FilterIterator<T, F, C>(c, f), FilterIterator<T, F, C>(c, f)};
 }
 } // namespace tmwa
-
-#endif // TMWA_COMPAT_ITER_HPP

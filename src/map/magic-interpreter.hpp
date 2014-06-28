@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAGIC_INTERPRETER_HPP
-#define TMWA_MAP_MAGIC_INTERPRETER_HPP
+#pragma once
 //    magic-interpreter.hpp - Old magic.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -20,27 +19,27 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "magic-interpreter.t.hpp"
+#include "magic-interpreter.t.hpp"
 
-# include <cassert>
+#include <cassert>
 
-# include <memory>
+#include <memory>
 
-# include "../strings/fwd.hpp"
-# include "../strings/rstring.hpp"
+#include "../strings/fwd.hpp"
+#include "../strings/rstring.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../net/timer.t.hpp"
+#include "../net/timer.t.hpp"
 
-# include "../mmo/ids.hpp"
-# include "../mmo/utils.hpp"
+#include "../mmo/ids.hpp"
+#include "../mmo/utils.hpp"
 
-# include "map.hpp"
-# include "script.hpp"
-# include "skill.t.hpp"
+#include "map.hpp"
+#include "script.hpp"
+#include "skill.t.hpp"
 
 
 namespace tmwa
@@ -105,7 +104,7 @@ struct val_t
 /* Expressions */
 /* ----------- */
 
-# define MAX_ARGS 7              /* Max. # of args used in builtin primitive functions */
+#define MAX_ARGS 7              /* Max. # of args used in builtin primitive functions */
 
 struct e_location_t
 {
@@ -311,15 +310,15 @@ struct magic_conf_t
 /* Execution environment */
 
 // these are not an enum they're a nasty intern hack
-# define VAR_MIN_CASTTIME        0
-# define VAR_OBSCURE_CHANCE      1
-# define VAR_CASTER              2
-# define VAR_SPELLPOWER          3
-# define VAR_SPELL               4
-# define VAR_INVOCATION          5
-# define VAR_TARGET              6
-# define VAR_SCRIPTTARGET        7
-# define VAR_LOCATION            8
+#define VAR_MIN_CASTTIME        0
+#define VAR_OBSCURE_CHANCE      1
+#define VAR_CASTER              2
+#define VAR_SPELLPOWER          3
+#define VAR_SPELL               4
+#define VAR_INVOCATION          5
+#define VAR_TARGET              6
+#define VAR_SCRIPTTARGET        7
+#define VAR_LOCATION            8
 
 struct env_t
 {
@@ -337,7 +336,7 @@ struct env_t
 
 };
 
-# define MAX_STACK_SIZE 32
+#define MAX_STACK_SIZE 32
 
 struct cont_activation_record_t
 {
@@ -428,5 +427,3 @@ struct proc_t
     {}
 };
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAGIC_INTERPRETER_HPP

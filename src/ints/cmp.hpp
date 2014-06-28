@@ -1,5 +1,4 @@
-#ifndef TMWA_INTS_CMP_HPP
-#define TMWA_INTS_CMP_HPP
+#pragma once
 //    cmp.hpp - comparison related operations
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,17 +18,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <limits>
+#include <limits>
 
 
 namespace tmwa
 {
 namespace ints
 {
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wtype-limits"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
     template<class T, class U>
     T saturate(const U& v)
     {
@@ -63,10 +62,8 @@ namespace ints
             return v;
         }
     }
-# pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 } // namespace ints
 
 using ints::saturate;
 } // namespace tmwa
-
-#endif // TMWA_INTS_CMP_HPP

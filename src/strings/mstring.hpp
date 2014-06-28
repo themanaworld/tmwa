@@ -1,5 +1,4 @@
-#ifndef TMWA_STRINGS_MSTRING_HPP
-#define TMWA_STRINGS_MSTRING_HPP
+#pragma once
 //    strings/mstring.hpp - A mutable string.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,9 +18,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <deque>
+#include <deque>
 
 
 namespace tmwa
@@ -66,5 +65,3 @@ namespace strings
     };
 } // namespace strings
 } // namespace tmwa
-
-#endif // TMWA_STRINGS_MSTRING_HPP

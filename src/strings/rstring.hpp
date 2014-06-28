@@ -1,5 +1,4 @@
-#ifndef TMWA_STRINGS_RSTRING_HPP
-#define TMWA_STRINGS_RSTRING_HPP
+#pragma once
 //    strings/rstring.hpp - An owned, reference-counted immutable string.
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdarg>
+#include <cstdarg>
 
-# include "base.hpp"
+#include "base.hpp"
 
 
 namespace tmwa
@@ -88,6 +87,4 @@ namespace strings
 } // namespace strings
 } // namespace tmwa
 
-# include "rstring.tcc"
-
-#endif // TMWA_STRINGS_RSTRING_HPP
+#include "rstring.tcc"

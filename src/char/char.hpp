@@ -1,5 +1,4 @@
-#ifndef TMWA_CHAR_CHAR_HPP
-#define TMWA_CHAR_CHAR_HPP
+#pragma once
 //    char.hpp - Character server.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,15 +20,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/array.hpp"
+#include "../generic/array.hpp"
 
-# include "../net/ip.hpp"
+#include "../net/ip.hpp"
 
-# include "../mmo/mmo.hpp"
+#include "../mmo/mmo.hpp"
 
 
 namespace tmwa
@@ -52,8 +51,6 @@ auto iter_map_sessions() -> decltype(filter_iterator<Session *>(std::declval<Arr
 
 void char_log(XString line);
 
-# define CHAR_LOG(fmt, ...) \
+#define CHAR_LOG(fmt, ...)  \
     char_log(STRPRINTF(fmt, ## __VA_ARGS__))
 } // namespace tmwa
-
-#endif // TMWA_CHAR_CHAR_HPP

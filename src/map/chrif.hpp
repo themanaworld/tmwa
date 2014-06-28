@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_CHRIF_HPP
-#define TMWA_MAP_CHRIF_HPP
+#pragma once
 //    chrif.hpp - Network interface to the character server.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,15 +20,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../net/fwd.hpp"
+#include "../net/fwd.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
 
 namespace tmwa
@@ -65,5 +64,3 @@ void do_init_chrif(void);
 // and clif.cpp for the new on_delete stuff ...
 extern Session *char_session;
 } // namespace tmwa
-
-#endif // TMWA_MAP_CHRIF_HPP

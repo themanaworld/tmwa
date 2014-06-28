@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_ENUM_HPP
-#define TMWA_GENERIC_ENUM_HPP
+#pragma once
 //    enum.hpp - Safe building blocks for enumerated types.
 //
 //    Copyright © 2012-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,17 +18,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cassert>
-# include <cstddef>
+#include <cassert>
+#include <cstddef>
 
-# include <algorithm>
-# include <type_traits>
+#include <algorithm>
+#include <type_traits>
 
-# include "../compat/iter.hpp"
+#include "../compat/iter.hpp"
 
-# include "array.hpp"
+#include "array.hpp"
 
 
 namespace tmwa
@@ -102,7 +101,7 @@ struct remove_enum<E, true>
 
 // This really should just go in a namespace
 // that's how I use it anyway ...
-# define ENUM_BITWISE_OPERATORS(E)      \
+#define ENUM_BITWISE_OPERATORS(E)       \
 inline                                  \
 E operator & (E l, E r)                 \
 {                                       \
@@ -160,5 +159,3 @@ IteratorPair<ValueIterator<E, EnumMath<E>>> erange(E b, E e)
     return {b, e};
 }
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_ENUM_HPP

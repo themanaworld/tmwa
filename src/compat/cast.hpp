@@ -1,5 +1,4 @@
-#ifndef TMWA_COMPAT_CAST_HPP
-#define TMWA_COMPAT_CAST_HPP
+#pragma once
 //    cast.hpp - Change the type of a variable.
 //
 //    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,10 +18,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <utility>
-# include <type_traits>
+#include <utility>
+#include <type_traits>
 
 
 namespace tmwa
@@ -71,5 +70,3 @@ typename std::remove_pointer<T>::type *sign_cast(U *u)
     return reinterpret_cast<T_ *>(u);
 }
 } // namespace tmwa
-
-#endif // TMWA_COMPAT_CAST_HPP

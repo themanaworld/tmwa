@@ -303,6 +303,8 @@ o: ${OBJECTS}
 
 clean-deps:
 	-$c find obj -name '*.d' -delete
+clean-format:
+	-$c find obj -name '*.formatted' -delete
 clean-obj:
 	-$c find obj -name '*.o' -delete
 clean-conf:
@@ -473,6 +475,7 @@ obj/%.hpp.formatted: src/%.hpp tools/indenter
 	if [[ $< == *fwd* ]]; then ! fgrep -q '"fwd.hpp"' $<; else ! fgrep -q ../sanity.hpp $<; fi
 	grep -q '^namespace tmwa$$' $<
 	grep -q '^} // namespace tmwa$$' $<
+	grep -q '^#pragma once$$' $<
 	touch $@
 obj/%.tcc.formatted: src/%.tcc tools/indenter
 	$(MKDIR_FIRST)

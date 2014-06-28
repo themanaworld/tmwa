@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_SCRIPT_HPP
-#define TMWA_MAP_SCRIPT_HPP
+#pragma once
 //    script.hpp - EAthena script frontend, engine, and library.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,23 +20,23 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include <vector>
+#include <vector>
 
-# include "../range/slice.hpp"
+#include "../range/slice.hpp"
 
-# include "../strings/zstring.hpp"
+#include "../strings/zstring.hpp"
 
-# include "../generic/db.hpp"
-# include "../generic/dumb_ptr.hpp"
+#include "../generic/db.hpp"
+#include "../generic/dumb_ptr.hpp"
 
-# include "../mmo/ids.hpp"
+#include "../mmo/ids.hpp"
 
-# include "clif.t.hpp"
-# include "map.t.hpp"
+#include "clif.t.hpp"
+#include "map.t.hpp"
 
 
 namespace tmwa
@@ -201,5 +200,3 @@ void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString
 int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e);
 ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e);
 } // namespace tmwa
-
-#endif // TMWA_MAP_SCRIPT_HPP

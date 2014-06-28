@@ -1,5 +1,4 @@
-#ifndef TMWA_IO_LOCK_HPP
-#define TMWA_IO_LOCK_HPP
+#pragma once
 //    io/lock.hpp - Output to files with atomic replacement and backups.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "write.hpp"
+#include "write.hpp"
 
-# include "../strings/rstring.hpp"
+#include "../strings/rstring.hpp"
 
 
 namespace tmwa
@@ -41,5 +40,3 @@ namespace io
     };
 } // namespace io
 } // namespace tmwa
-
-#endif // TMWA_IO_LOCK_HPP

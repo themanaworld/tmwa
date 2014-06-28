@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_ARRAY_HPP
-#define TMWA_GENERIC_ARRAY_HPP
+#pragma once
 //    array.hpp - A simple bounds-checked array.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,12 +18,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cassert>
-# include <cstddef>
+#include <cassert>
+#include <cstddef>
 
-# include "oops.hpp"
+#include "oops.hpp"
 
 
 namespace tmwa
@@ -117,5 +116,3 @@ public:
 template<class T, size_t n>
 using Array = GenericArray<T, SimpleIndexing<n>>;
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_ARRAY_HPP

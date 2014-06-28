@@ -1,5 +1,4 @@
-#ifndef TMWA_LOGIN_LOGIN_HPP
-#define TMWA_LOGIN_LOGIN_HPP
+#pragma once
 //    login.hpp - dummy header to make Make dependencies work.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,13 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "login.t.hpp"
+#include "login.t.hpp"
 
 
 namespace tmwa
 {
 } // namespace tmwa
-
-#endif // TMWA_LOGIN_LOGIN_HPP

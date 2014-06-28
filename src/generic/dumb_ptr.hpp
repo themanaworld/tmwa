@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_DUMB_PTR_HPP
-#define TMWA_GENERIC_DUMB_PTR_HPP
+#pragma once
 //    dumb_ptr.hpp - temporary new/delete wrappers
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,16 +18,16 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstring>
+#include <cstring>
 
-# include <algorithm>
-# include <utility>
+#include <algorithm>
+#include <utility>
 
-# include "../strings/astring.hpp"
-# include "../strings/zstring.hpp"
-# include "../strings/xstring.hpp"
+#include "../strings/astring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
 
 
 namespace tmwa
@@ -208,9 +207,9 @@ struct dumb_string
         return dumb_string::copy(&*s.begin(), &*s.end());
     }
     static
-# ifndef __clang__
+#ifndef __clang__
     __attribute__((warning("shouldn't use this - slice instead")))
-# endif
+#endif
     dumb_string copyn(const char *sn, size_t n)
     {
         return dumb_string::copy(sn, sn + strnlen(sn, n));
@@ -271,5 +270,3 @@ const char *convert_for_printf(dumb_string ds)
     return ds.c_str();
 }
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_DUMB_PTR_HPP

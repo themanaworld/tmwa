@@ -1,5 +1,4 @@
-#ifndef TMWA_SANITY_HPP
-#define TMWA_SANITY_HPP
+#pragma once
 //    sanity.hpp - Keep spatulas out of the build environment.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -24,30 +23,28 @@
 
 namespace tmwa
 {
-# ifndef __cplusplus
-#  error "Please compile in C++ mode"
-# endif // __cplusplus
+#ifndef __cplusplus
+# error "Please compile in C++ mode"
+#endif // __cplusplus
 
-# if __GNUC__ < 4
-#  error "Your compiler is absolutely ancient. You have no chance ..."
-# endif // __GNUC__ < 4
+#if __GNUC__ < 4
+# error "Your compiler is absolutely ancient. You have no chance ..."
+#endif // __GNUC__ < 4
 
-# if __GNUC__ == 4
+#if __GNUC__ == 4
 // clang identifies as GCC 4.2, but is mostly okay.
 // Until a bug-free release of it happens, though, I won't recommend it.
 // clang 3.2 is the minimum that the CI builds are using
-#  if __GNUC_MINOR__ < 7 && !defined(__clang__)
-#   error "Please upgrade to at least GCC 4.7"
-#  endif // __GNUC_MINOR__ < 7 && !defined(__clang__)
-# endif // __GNUC__ == 4
+# if __GNUC_MINOR__ < 7 && !defined(__clang__)
+#  error "Please upgrade to at least GCC 4.7"
+# endif // __GNUC_MINOR__ < 7 && !defined(__clang__)
+#endif // __GNUC__ == 4
 
-# if not defined(__i386__) and not defined(__x86_64__)
+#if not defined(__i386__) and not defined(__x86_64__)
 // Known platform dependencies:
 // endianness for the [RW]FIFO.* macros
 // possibly, some signal-handling
 // some integer sizes (partially fixed for the x32 ABI)
-#  error "Unsupported platform, we use x86 / amd64 only"
-# endif // not __i386__
+# error "Unsupported platform, we use x86 / amd64 only"
+#endif // not __i386__
 } // namespace tmwa
-
-#endif // TMWA_SANITY_HPP

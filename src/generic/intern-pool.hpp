@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_INTERN_POOL_HPP
-#define TMWA_GENERIC_INTERN_POOL_HPP
+#pragma once
 //    intern-pool.hpp - Cached integer/string lookups.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,17 +18,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cassert>
-# include <cstddef>
+#include <cassert>
+#include <cstddef>
 
-# include <map>
-# include <vector>
+#include <map>
+#include <vector>
 
-# include "../strings/rstring.hpp"
-# include "../strings/zstring.hpp"
-# include "../strings/xstring.hpp"
+#include "../strings/rstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
 
 
 namespace tmwa
@@ -63,5 +62,3 @@ public:
     }
 };
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_INTERN_POOL_HPP

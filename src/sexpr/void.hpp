@@ -1,5 +1,4 @@
-#ifndef TMWA_SEXPR_VOID_HPP
-#define TMWA_SEXPR_VOID_HPP
+#pragma once
 //    void.hpp - A type that represents nothing and anything.
 //
 //    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
@@ -39,5 +38,3 @@ namespace sexpr
     constexpr Void::Void() noexcept = default;
 } // namespace sexpr
 } // namespace tmwa
-
-#endif //TMWA_SEXPR_VOID_HPP

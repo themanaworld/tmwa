@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_DB_HPP
-#define TMWA_GENERIC_DB_HPP
+#pragma once
 //    db.hpp - convenience wrappers over std::map<K, V>
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,10 +18,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <map>
-# include <memory>
+#include <map>
+#include <memory>
 
 
 namespace tmwa
@@ -180,5 +179,3 @@ public:
     }
 };
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_DB_HPP

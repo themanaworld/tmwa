@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAGIC_EXPR_EVAL_HPP
-#define TMWA_MAP_MAGIC_EXPR_EVAL_HPP
+#pragma once
 //    magic-expr-eval.hpp - Utilities for evaluating magic.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -20,42 +19,40 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/zstring.hpp"
+#include "../strings/zstring.hpp"
 
-# include "magic-interpreter.t.hpp"
+#include "magic-interpreter.t.hpp"
 
 
 namespace tmwa
 {
 // TODO kill this like I killed VAR
-# define ARGINT(x) args[x].v.v_int
-# define ARGDIR(x) args[x].v.v_dir
-# define ARGSTR(x) ZString(args[x].v.v_string)
-# define ARGENTITY(x) args[x].v.v_entity
-# define ARGLOCATION(x) args[x].v.v_location
-# define ARGAREA(x) args[x].v.v_area
-# define ARGSPELL(x) args[x].v.v_spell
-# define ARGINVOCATION(x) args[x].v.v_invocation
+#define ARGINT(x) args[x].v.v_int
+#define ARGDIR(x) args[x].v.v_dir
+#define ARGSTR(x) ZString(args[x].v.v_string)
+#define ARGENTITY(x) args[x].v.v_entity
+#define ARGLOCATION(x) args[x].v.v_location
+#define ARGAREA(x) args[x].v.v_area
+#define ARGSPELL(x) args[x].v.v_spell
+#define ARGINVOCATION(x) args[x].v.v_invocation
 
-# define RESULTINT result->v.v_int
-# define RESULTDIR result->v.v_dir
-# define RESULTSTR result->v.v_string
-# define RESULTENTITY result->v.v_entity
-# define RESULTLOCATION result->v.v_location
-# define RESULTAREA result->v.v_area
-# define RESULTSPELL result->v.v_spell
-# define RESULTINVOCATION result->v.v_invocation
+#define RESULTINT result->v.v_int
+#define RESULTDIR result->v.v_dir
+#define RESULTSTR result->v.v_string
+#define RESULTENTITY result->v.v_entity
+#define RESULTLOCATION result->v.v_location
+#define RESULTAREA result->v.v_area
+#define RESULTSPELL result->v.v_spell
+#define RESULTINVOCATION result->v.v_invocation
 
-# define ARG_TYPE(x) args[x].ty
-# define ENTITY_TYPE(x) ARGENTITY(x)->bl_type
+#define ARG_TYPE(x) args[x].ty
+#define ENTITY_TYPE(x) ARGENTITY(x)->bl_type
 
-# define ARGPC(x)  (ARGENTITY(x)->is_player())
-# define ARGNPC(x)  (ARGENTITY(x)->is_npc())
-# define ARGMOB(x)  (ARGENTITY(x)->is_mob())
+#define ARGPC(x)  (ARGENTITY(x)->is_player())
+#define ARGNPC(x)  (ARGENTITY(x)->is_npc())
+#define ARGMOB(x)  (ARGENTITY(x)->is_mob())
 
-# define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
+#define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAGIC_EXPR_EVAL_HPP

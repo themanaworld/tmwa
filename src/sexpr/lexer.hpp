@@ -1,5 +1,4 @@
-#ifndef TMWA_SEXPR_LEXER_HPP
-#define TMWA_SEXPR_LEXER_HPP
+#pragma once
 //    lexer.hpp - tokenize a stream of S-expressions
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,17 +18,17 @@
 //    You should have received a copy of the GNU Affero General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <vector>
+#include <vector>
 
-# include "../strings/fwd.hpp"
-# include "../strings/astring.hpp"
-# include "../strings/zstring.hpp"
+#include "../strings/fwd.hpp"
+#include "../strings/astring.hpp"
+#include "../strings/zstring.hpp"
 
-# include "../io/line.hpp"
+#include "../io/line.hpp"
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
@@ -76,5 +75,3 @@ namespace sexpr
     LString token_name(Lexeme tok);
 } // namespace sexpr
 } // namespace tmwa
-
-#endif // TMWA_SEXPR_LEXER_HPP

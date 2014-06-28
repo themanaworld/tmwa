@@ -1,5 +1,4 @@
-#ifndef TMWA_LOGIN_FWD_HPP
-#define TMWA_LOGIN_FWD_HPP
+#pragma once
 //    login/fwd.hpp - list of type names for login server
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,12 +18,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+#include "../sanity.hpp"
 
 
 namespace tmwa
 {
 // meh, add more when I feel like it
 } // namespace tmwa
-
-#endif // TMWA_LOGIN_FWD_HPP

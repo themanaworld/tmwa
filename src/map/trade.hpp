@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_TRADE_HPP
-#define TMWA_MAP_TRADE_HPP
+#pragma once
 //    trade.hpp - Inter-player item and money transactions.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,11 +20,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "clif.t.hpp"
+#include "clif.t.hpp"
 
 
 namespace tmwa
@@ -38,5 +37,3 @@ void trade_tradecancel(dumb_ptr<map_session_data> sd);
 void trade_tradecommit(dumb_ptr<map_session_data> sd);
 void trade_verifyzeny(dumb_ptr<map_session_data> sd);
 } // namespace tmwa
-
-#endif // TMWA_MAP_TRADE_HPP

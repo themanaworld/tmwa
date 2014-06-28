@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAGIC_HPP
-#define TMWA_MAP_MAGIC_HPP
+#pragma once
 //    magic.hpp - Entry to the magic system.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -20,14 +19,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "map.t.hpp"
-# include "skill.t.hpp"
+#include "map.t.hpp"
+#include "skill.t.hpp"
 
 
 namespace tmwa
@@ -45,5 +44,3 @@ namespace tmwa
  */
 int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation);
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAGIC_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAP_T_HPP
-#define TMWA_MAP_MAP_T_HPP
+#pragma once
 //    map.t.hpp - Core of the map server.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,16 +20,16 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include "../strings/vstring.hpp"
+#include "../strings/vstring.hpp"
 
-# include "../generic/enum.hpp"
+#include "../generic/enum.hpp"
 
-# include "../mmo/ids.hpp"
-# include "../mmo/mmo.hpp"
+#include "../mmo/ids.hpp"
+#include "../mmo/mmo.hpp"
 
 
 namespace tmwa
@@ -202,5 +201,3 @@ BlockId account_to_block(AccountId a) { return wrap<BlockId>(unwrap<AccountId>(a
 inline
 AccountId block_to_account(BlockId b) { return wrap<AccountId>(unwrap<BlockId>(b)); }
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAP_T_HPP

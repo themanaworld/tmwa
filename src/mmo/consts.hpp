@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_CONSTS_HPP
-#define TMWA_MMO_CONSTS_HPP
+#pragma once
 //    consts.hpp - Huge mess of constants.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,12 +20,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../net/timer.t.hpp"
+#include "../net/timer.t.hpp"
 
-# include "ids.hpp"
-# include "strs.hpp"
+#include "ids.hpp"
+#include "strs.hpp"
 
 
 namespace tmwa
@@ -48,12 +47,12 @@ constexpr interval_t MAX_WALK_SPEED = std::chrono::seconds(1);
 constexpr int MAX_STORAGE = 300;
 constexpr int MAX_PARTY = 12;
 
-# define MIN_HAIR_STYLE battle_config.min_hair_style
-# define MAX_HAIR_STYLE battle_config.max_hair_style
-# define MIN_HAIR_COLOR battle_config.min_hair_color
-# define MAX_HAIR_COLOR battle_config.max_hair_color
-# define MIN_CLOTH_COLOR battle_config.min_cloth_color
-# define MAX_CLOTH_COLOR battle_config.max_cloth_color
+#define MIN_HAIR_STYLE battle_config.min_hair_style
+#define MAX_HAIR_STYLE battle_config.max_hair_style
+#define MIN_HAIR_COLOR battle_config.min_hair_color
+#define MAX_HAIR_COLOR battle_config.max_hair_color
+#define MIN_CLOTH_COLOR battle_config.min_cloth_color
+#define MAX_CLOTH_COLOR battle_config.max_cloth_color
 
 // WTF is this doing here?
 struct PartyMember
@@ -65,5 +64,3 @@ struct PartyMember
     struct map_session_data *sd;
 };
 } // namespace tmwa
-
-#endif // TMWA_MMO_CONSTS_HPP

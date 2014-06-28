@@ -1,4 +1,4 @@
-// no include guards
+#pragma once
 // This is the first file in every compilation, passed by the makefile.
 // This file contains only preprocessor directions.
 

@@ -1,5 +1,4 @@
-#ifndef TMWA_NET_IP_HPP
-#define TMWA_NET_IP_HPP
+#pragma once
 //    ip.hpp - classes to deal with IP addresses.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,14 +18,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <netinet/in.h>
+#include <netinet/in.h>
 
-# include <cstddef>
-# include <cstdint>
+#include <cstddef>
+#include <cstdint>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
 
 namespace tmwa
@@ -165,5 +164,3 @@ bool extract(XString str, IP4Address *iv);
 
 bool extract(XString str, IP4Mask *iv);
 } // namespace tmwa
-
-#endif // TMWA_NET_IP_HPP

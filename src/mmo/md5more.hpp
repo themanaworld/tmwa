@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_MD5MORE_HPP
-#define TMWA_MMO_MD5MORE_HPP
+#pragma once
 //    md5more.hpp - Non-basic MD5 functions.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,13 +20,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../generic/md5.hpp"
+#include "../generic/md5.hpp"
 
-# include "../io/fwd.hpp"
+#include "../io/fwd.hpp"
 
-# include "../net/fwd.hpp"
+#include "../net/fwd.hpp"
 
 
 namespace tmwa
@@ -47,5 +46,3 @@ bool pass_ok(AccountPass password, AccountCrypt crypted);
 /// This returns an IP4Address because it is configurable whether it gets called at all
 IP4Address MD5_ip(IP4Address ip);
 } // namespace tmwa
-
-#endif // TMWA_MMO_MD5MORE_HPP

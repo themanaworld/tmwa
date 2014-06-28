@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAPFLAG_HPP
-#define TMWA_MAP_MAPFLAG_HPP
+#pragma once
 //    mapflag.hpp - booleans that apply to an entire map
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include "../mmo/extract.hpp" // TODO remove this (requires specializing the *other* half)
+#include "../mmo/extract.hpp" // TODO remove this (requires specializing the *other* half)
 
 
 namespace tmwa
@@ -83,5 +82,3 @@ bool extract<MapFlag, void, void>(XString str, MapFlag *mf);
 
 MapFlag map_flag_from_int(int shift);
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAPFLAG_HPP

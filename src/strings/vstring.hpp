@@ -1,5 +1,4 @@
-#ifndef TMWA_STRINGS_VSTRING_HPP
-#define TMWA_STRINGS_VSTRING_HPP
+#pragma once
 //    strings/vstring.hpp - A small string that stores its own value.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdio>
+#include <cstdio>
 
-# include "base.hpp"
+#include "base.hpp"
 
 
 namespace tmwa
@@ -78,6 +77,4 @@ T stringish(VString<sizeof(T) - 1> iv)
 }
 } // namespace tmwa
 
-# include "vstring.tcc"
-
-#endif // TMWA_STRINGS_VSTRING_HPP
+#include "vstring.tcc"

@@ -1,5 +1,4 @@
-#ifndef TMWA_PROTO2_LOGIN_USER_HPP
-#define TMWA_PROTO2_LOGIN_USER_HPP
+#pragma once
 //    login-user.hpp - TMWA network protocol: login/user
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -21,9 +20,9 @@
 
 // This is a generated file, edit tools/protocol.py instead
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "types.hpp"
+#include "types.hpp"
 
 namespace tmwa
 {
@@ -324,5 +323,3 @@ bool network_to_native(Packet_Fixed<0x006a> *native, NetPacket_Fixed<0x006a> net
 }
 
 } // namespace tmwa
-
-#endif // TMWA_PROTO2_LOGIN_USER_HPP

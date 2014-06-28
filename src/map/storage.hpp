@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_STORAGE_HPP
-#define TMWA_MAP_STORAGE_HPP
+#pragma once
 //    storage.hpp - Storage handling.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,13 +20,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
-# include "clif.t.hpp"
+#include "clif.t.hpp"
 
 
 namespace tmwa
@@ -43,5 +42,3 @@ int storage_storage_quit(dumb_ptr<map_session_data> sd);
 int storage_storage_save(AccountId account_id, int final);
 int storage_storage_saved(AccountId account_id);
 } // namespace tmwa
-
-#endif // TMWA_MAP_STORAGE_HPP

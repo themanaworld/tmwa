@@ -1,5 +1,4 @@
-#ifndef TMWA_SEXPR_VARIANT_HPP
-#define TMWA_SEXPR_VARIANT_HPP
+#pragma once
 //    variant.hpp - A single value, multiple type container. Better than boost's.
 //
 //    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,30 +18,30 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include <type_traits>
-# include <cstdint>
-# include <cstddef>
-# include <utility>
+#include <type_traits>
+#include <cstdint>
+#include <cstddef>
+#include <utility>
 
-# include "union.hpp"
-# include "void.hpp"
+#include "union.hpp"
+#include "void.hpp"
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
 {
 namespace sexpr
 {
-# define JOIN(a, b) a##b
+#define JOIN(a, b) a##b
 
-# define WITH_VAR(ty, var, expr)                                \
+#define WITH_VAR(ty, var, expr)                                 \
     for (bool JOIN(var, _guard) = true; JOIN(var, _guard); )    \
         for (ty var = expr; JOIN(var, _guard); JOIN(var, _guard) = false)
-# define MATCH(expr)                    \
+#define MATCH(expr)                     \
     WITH_VAR(auto&&, _match_var, expr)  \
     switch (tmwa::sexpr::VariantFriend::get_state(_match_var))
-# define CASE(ty, var)                                                          \
+#define CASE(ty, var)                                                           \
     break;                                                                      \
     case tmwa::sexpr::VariantFriend::get_state_for<ty, decltype(_match_var)>(): \
     WITH_VAR(ty, var, tmwa::sexpr::VariantFriend::unchecked_get<ty>(_match_var))
@@ -114,6 +113,4 @@ namespace sexpr
 } // namespace sexpr
 } // namespace tmwa
 
-# include "variant.tcc"
-
-#endif //TMWA_SEXPR_VARIANT_HPP
+#include "variant.tcc"

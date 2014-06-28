@@ -1,5 +1,4 @@
-#ifndef TMWA_PROTO2_FWD_HPP
-#define TMWA_PROTO2_FWD_HPP
+#pragma once
 //    proto2/fwd.hpp - Forward declarations of network packets
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,9 +18,9 @@
 //    You should have received a copy of the GNU Affero General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+#include "../sanity.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
 namespace tmwa
 {
@@ -1722,5 +1721,3 @@ struct NetPacket_Payload<0x8000>;
 
 
 } // namespace tmwa
-
-#endif // TMWA_PROTO2_FWD_HPP

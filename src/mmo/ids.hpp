@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_IDS_HPP
-#define TMWA_MMO_IDS_HPP
+#pragma once
 //    ids.hpp - special integer classes for various object IDs
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,12 +18,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../ints/little.hpp"
-# include "../ints/wrap.hpp"
+#include "../ints/little.hpp"
+#include "../ints/wrap.hpp"
 
-# include "extract.hpp"
+#include "extract.hpp"
 
 
 namespace tmwa
@@ -167,5 +166,3 @@ uint32_t convert_for_printf(GmLevel g)
     return g.get_all_bits();
 }
 } // namespace tmwa
-
-#endif // TMWA_MMO_IDS_HPP

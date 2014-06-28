@@ -1,5 +1,4 @@
-#ifndef TMWA_IO_CXXSTDIO_HPP
-#define TMWA_IO_CXXSTDIO_HPP
+#pragma once
 //    cxxstdio.hpp - pass C++ types through printf
 //
 //    Copyright © 2011-2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,14 +18,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdarg>
-# include <cstdio>
+#include <cstdarg>
+#include <cstdio>
 
-# include "../compat/cast.hpp"
+#include "../compat/cast.hpp"
 
-# include "../generic/enum.hpp"
+#include "../generic/enum.hpp"
 
 
 namespace tmwa
@@ -68,7 +67,7 @@ namespace cxxstdio
     inline
     const char *convert_for_printf(const char *) = delete;
 
-# if 0
+#if 0
     template<class E>
     constexpr
     E get_enum_min_value(decltype(E::min_value))
@@ -94,7 +93,7 @@ namespace cxxstdio
     {
         return def;
     }
-# else
+#else
     template<class E>
     constexpr
     E get_enum_min_value(E)
@@ -107,24 +106,24 @@ namespace cxxstdio
     {
         return E::max_value;
     }
-# endif
+#endif
 
     template<class E>
     class EnumConverter
     {
         E& out;
         typedef typename underlying_type<E>::type U;
-# if 0
+#if 0
         constexpr static
         U min_value = U(get_enum_min_value<E>(E(std::numeric_limits<U>::min())));
         constexpr static
         U max_value = U(get_enum_max_value<E>(E(std::numeric_limits<U>::max())));
-# else
+#else
         constexpr static
         U min_value = U(get_enum_min_value(E()));
         constexpr static
         U max_value = U(get_enum_max_value(E()));
-# endif
+#endif
         U mid;
     public:
         EnumConverter(E& e)
@@ -132,10 +131,10 @@ namespace cxxstdio
         {}
         ~EnumConverter()
         {
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wtype-limits"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
             if (min_value <= mid && mid <= max_value)
-# pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
                 out = E(mid);
         }
         U *operator &()
@@ -159,7 +158,7 @@ namespace cxxstdio
         }
     };
 
-# define XPRINTF(out, fmt, ...)                                             \
+#define XPRINTF(out, fmt, ...)                                              \
     ({                                                                      \
         struct format_impl                                                  \
         {                                                                   \
@@ -169,19 +168,19 @@ namespace cxxstdio
         cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);  \
     })
 
-# define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
-# define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
-# define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<AString&>(str), fmt, ## __VA_ARGS__)
-# define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
+#define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
+#define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
+#define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<AString&>(str), fmt, ## __VA_ARGS__)
+#define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
 
-# define STRPRINTF(fmt, ...)                        \
+#define STRPRINTF(fmt, ...)                         \
     ({                                              \
         AString _out_impl;                          \
         SPRINTF(_out_impl, fmt, ## __VA_ARGS__);    \
         _out_impl;                                  \
     })
 
-# define STRNPRINTF(n, fmt, ...)                        \
+#define STRNPRINTF(n, fmt, ...)                         \
     ({                                                  \
         VString<n - 1> _out_impl;                       \
         SNPRINTF(_out_impl, n, fmt, ## __VA_ARGS__);    \
@@ -190,5 +189,3 @@ namespace cxxstdio
 
 } // namespace cxxstdio
 } // namespace tmwa
-
-#endif // TMWA_IO_CXXSTDIO_HPP

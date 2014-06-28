@@ -1,5 +1,4 @@
-#ifndef TMWA_INTS_UDL_HPP
-#define TMWA_INTS_UDL_HPP
+#pragma once
 //    udl.hpp - user-defined literals for integers.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include <type_traits>
+#include <type_traits>
 
 
 namespace tmwa
@@ -129,12 +128,12 @@ namespace ints
             {
                 typedef typename std::make_unsigned<T>::type U;
                 // boo, body of constexpr function can't use variables
-# define is_signed bool(T(-1) < T(0))
+#define is_signed bool(T(-1) < T(0))
                 static_assert(is_signed >= (sign && magnitude), "signed");
-# define max ullong(ullong(U(-1) >> is_signed))
+#define max ullong(ullong(U(-1) >> is_signed))
                 static_assert(magnitude <= max || (sign && magnitude == max + 1), "magna");
-# undef is_signed
-# undef max
+#undef is_signed
+#undef max
                 return sign ? T(ullong(-magnitude)) : T(magnitude);
             }
         };
@@ -226,5 +225,3 @@ using ints::operator "" _n16;
 using ints::operator "" _n32;
 using ints::operator "" _n64;
 } // namespace tmwa
-
-#endif // TMWA_INTS_UDL_HPP

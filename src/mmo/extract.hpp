@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_EXTRACT_HPP
-#define TMWA_MMO_EXTRACT_HPP
+#pragma once
 //    extract.hpp - a simple, hierarchical, tokenizer
 //
 //    Copyright © 2012-2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,21 +18,21 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cerrno>
-# include <cstdlib>
+#include <cerrno>
+#include <cstdlib>
 
-# include <algorithm>
-# include <vector>
+#include <algorithm>
+#include <vector>
 
-# include "../ints/wrap.hpp"
+#include "../ints/wrap.hpp"
 
-# include "../strings/xstring.hpp"
+#include "../strings/xstring.hpp"
 
-# include "../generic/enum.hpp"
+#include "../generic/enum.hpp"
 
-# include "utils.hpp"
+#include "utils.hpp"
 
 
 namespace tmwa
@@ -231,5 +230,3 @@ bool extract(XString str, Wrapped<R> *w)
     return extract(str, &w->_value);
 }
 } // namespace tmwa
-
-#endif // TMWA_MMO_EXTRACT_HPP

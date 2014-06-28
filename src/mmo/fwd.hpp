@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_FWD_HPP
-#define TMWA_MMO_FWD_HPP
+#pragma once
 //    mmo/fwd.hpp - list of type names for mmo lib
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+#include "../sanity.hpp"
 
 
 namespace tmwa
@@ -49,23 +48,21 @@ class MapName;
 class CharName;
 
 class Item;
-# if 0
+#if 0
 class Point;
 class SkillValue;
-# endif
+#endif
 class GlobalReg;
-# if 0
+#if 0
 class CharKey;
 class CharData;
 class CharPair;
-# endif
+#endif
 class Storage;
-# if 0
+#if 0
 class GM_Account;
 class PartyMember;
-# endif
+#endif
 class PartyMost;
 class PartyPair;
 } // namespace tmwa
-
-#endif // TMWA_MMO_FWD_HPP

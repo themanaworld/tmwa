@@ -1,5 +1,4 @@
-#ifndef TMWA_PROTO2_CHAR_MAP_HPP
-#define TMWA_PROTO2_CHAR_MAP_HPP
+#pragma once
 //    char-map.hpp - TMWA network protocol: char/map
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -21,9 +20,9 @@
 
 // This is a generated file, edit tools/protocol.py instead
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "types.hpp"
+#include "types.hpp"
 
 namespace tmwa
 {
@@ -3535,5 +3534,3 @@ bool network_to_native(Packet_Repeat<0x3827> *native, NetPacket_Repeat<0x3827> n
 }
 
 } // namespace tmwa
-
-#endif // TMWA_PROTO2_CHAR_MAP_HPP

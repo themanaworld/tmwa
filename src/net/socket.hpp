@@ -1,5 +1,4 @@
-#ifndef TMWA_NET_SOCKET_HPP
-#define TMWA_NET_SOCKET_HPP
+#pragma once
 //    socket.hpp - Network event system.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,28 +20,28 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <algorithm>
+#include <algorithm>
 
-# include <sys/select.h>
+#include <sys/select.h>
 
-# include <memory>
+#include <memory>
 
-# include "../compat/iter.hpp"
-# include "../compat/rawmem.hpp"
-# include "../compat/time_t.hpp"
+#include "../compat/iter.hpp"
+#include "../compat/rawmem.hpp"
+#include "../compat/time_t.hpp"
 
-# include "../strings/astring.hpp"
-# include "../strings/vstring.hpp"
-# include "../strings/xstring.hpp"
+#include "../strings/astring.hpp"
+#include "../strings/vstring.hpp"
+#include "../strings/xstring.hpp"
 
-# include "../generic/dumb_ptr.hpp"
+#include "../generic/dumb_ptr.hpp"
 
-# include "../io/fd.hpp"
+#include "../io/fd.hpp"
 
-# include "ip.hpp"
-# include "timer.t.hpp"
+#include "ip.hpp"
+#include "timer.t.hpp"
 
 
 namespace tmwa
@@ -176,5 +175,3 @@ void do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
 void do_parsepacket(void);
 } // namespace tmwa
-
-#endif // TMWA_NET_SOCKET_HPP

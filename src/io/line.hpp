@@ -1,5 +1,4 @@
-#ifndef TMWA_IO_LINE_HPP
-#define TMWA_IO_LINE_HPP
+#pragma once
 //    io/line.hpp - Input from files, line-by-line
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,13 +18,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/rstring.hpp"
-# include "../strings/zstring.hpp"
-# include "../strings/literal.hpp"
+#include "../strings/rstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/literal.hpp"
 
-# include "read.hpp"
+#include "read.hpp"
 
 
 namespace tmwa
@@ -106,5 +105,3 @@ namespace io
     };
 } // namespace io
 } // namespace tmwa
-
-#endif // TMWA_IO_LINE_HPP

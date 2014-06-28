@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_CONFIG_PARSE_HPP
-#define TMWA_MMO_CONFIG_PARSE_HPP
+#pragma once
 //    config_parse.hpp - Framework for per-server config parsers.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,9 +18,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
 
 namespace tmwa
@@ -36,5 +35,3 @@ bool config_split(XString line, XString *key, XString *value);
 /// Then it defers to the inferior parser for a line it does not understand.
 bool load_config_file(ZString filename, ConfigItemParser slave);
 } // namespace tmwa
-
-#endif // TMWA_MMO_CONFIG_PARSE_HPP

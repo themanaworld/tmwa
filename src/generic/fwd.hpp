@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_FWD_HPP
-#define TMWA_GENERIC_FWD_HPP
+#pragma once
 //    generic/fwd.hpp - list of type names for generic lib
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+#include "../sanity.hpp"
 
 
 namespace tmwa
@@ -29,5 +28,3 @@ template<class T>
 class dumb_ptr;
 class dumb_string;
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_FWD_HPP

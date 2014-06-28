@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_HUMAN_TIME_DIFF_HPP
-#define TMWA_MMO_HUMAN_TIME_DIFF_HPP
+#pragma once
 //    human_time_diff.hpp - broken deltas
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,13 +18,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <algorithm>
+#include <algorithm>
 
-# include "../strings/xstring.hpp"
+#include "../strings/xstring.hpp"
 
-# include "extract.hpp"
+#include "extract.hpp"
 
 
 namespace tmwa
@@ -88,5 +87,3 @@ bool extract(XString str, HumanTimeDiff *iv)
     return true;
 }
 } // namespace tmwa
-
-#endif // TMWA_MMO_HUMAN_TIME_DIFF_HPP

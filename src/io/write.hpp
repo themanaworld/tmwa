@@ -1,5 +1,4 @@
-#ifndef TMWA_IO_WRITE_HPP
-#define TMWA_IO_WRITE_HPP
+#pragma once
 //    io/write.hpp - Output to files.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,13 +18,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdarg>
+#include <cstdarg>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "fd.hpp"
+#include "fd.hpp"
 
 
 namespace tmwa
@@ -68,5 +67,3 @@ namespace io
     int do_vprint(WriteFile& out, const char *fmt, va_list ap);
 } // namespace io
 } // namespace tmwa
-
-#endif // TMWA_IO_WRITE_HPP

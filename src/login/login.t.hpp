@@ -1,5 +1,4 @@
-#ifndef TMWA_LOGIN_LOGIN_T_HPP
-#define TMWA_LOGIN_LOGIN_T_HPP
+#pragma once
 //    login.t.hpp - externally useful types from login
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,11 +20,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include "../generic/enum.hpp"
+#include "../generic/enum.hpp"
 
 
 namespace tmwa
@@ -43,5 +42,3 @@ ENUM_BITWISE_OPERATORS(VERSION_2)
 }
 using e::VERSION_2;
 } // namespace tmwa
-
-#endif // TMWA_LOGIN_LOGIN_T_HPP

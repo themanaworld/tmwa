@@ -1,5 +1,4 @@
-#ifndef TMWA_RANGE_FWD_HPP
-#define TMWA_RANGE_FWD_HPP
+#pragma once
 //    range/fwd.hpp - list of type names for range lib
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+#include "../sanity.hpp"
 
 
 namespace tmwa
@@ -28,5 +27,3 @@ namespace tmwa
 template<class T>
 class Slice;
 } // namespace tmwa
-
-#endif // TMWA_RANGE_FWD_HPP

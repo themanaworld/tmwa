@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_PC_HPP
-#define TMWA_MAP_PC_HPP
+#pragma once
 //    pc.hpp - Player state changes.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,20 +20,20 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "pc.t.hpp"
+#include "pc.t.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/dumb_ptr.hpp"
+#include "../generic/dumb_ptr.hpp"
 
-# include "../mmo/utils.hpp"
+#include "../mmo/utils.hpp"
 
-# include "../proto2/fwd.hpp"
+#include "../proto2/fwd.hpp"
 
-# include "clif.t.hpp"
-# include "map.hpp"
+#include "clif.t.hpp"
+#include "map.hpp"
 
 
 namespace tmwa
@@ -186,5 +185,3 @@ void pc_show_motd(dumb_ptr<map_session_data> sd);
 
 void do_init_pc(void);
 } // namespace tmwa
-
-#endif // TMWA_MAP_PC_HPP

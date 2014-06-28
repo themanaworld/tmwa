@@ -1,5 +1,4 @@
-#ifndef TMWA_CHAR_INT_PARTY_HPP
-#define TMWA_CHAR_INT_PARTY_HPP
+#pragma once
 //    int_party.hpp - Internal party handling.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,13 +20,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../net/fwd.hpp"
+#include "../net/fwd.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
 
 namespace tmwa
@@ -41,5 +40,3 @@ void inter_party_leave(PartyId party_id, AccountId account_id);
 
 extern AString party_txt;
 } // namespace tmwa
-
-#endif // TMWA_CHAR_INT_PARTY_HPP

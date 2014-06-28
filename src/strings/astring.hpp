@@ -1,5 +1,4 @@
-#ifndef TMWA_STRINGS_ASTRING_HPP
-#define TMWA_STRINGS_ASTRING_HPP
+#pragma once
 //    strings/astring.hpp - An owned, reference-counted immutable string.
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,10 +18,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "base.hpp"
-# include "rstring.hpp"
+#include "base.hpp"
+#include "rstring.hpp"
 
 
 namespace tmwa
@@ -33,9 +32,9 @@ namespace strings
     /// The storage is NUL-terminated
     class AString : public _crtp_string<AString, AString, ZPair>
     {
-# ifdef __clang__
+#ifdef __clang__
         __attribute__((unused))
-# endif
+#endif
         RString *align[0];
         char data[255];
         unsigned char special;
@@ -82,6 +81,4 @@ namespace strings
 } // namespace strings
 } // namespace tmwa
 
-# include "astring.tcc"
-
-#endif // TMWA_STRINGS_ASTRING_HPP
+#include "astring.tcc"

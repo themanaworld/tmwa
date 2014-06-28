@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MOB_HPP
-#define TMWA_MAP_MOB_HPP
+#pragma once
 //    mob.hpp - Really scary code.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,27 +20,27 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "mob.t.hpp"
+#include "mob.t.hpp"
 
-# include "../generic/fwd.hpp"
-# include "../generic/enum.hpp"
-# include "../generic/random.t.hpp"
+#include "../generic/fwd.hpp"
+#include "../generic/enum.hpp"
+#include "../generic/random.t.hpp"
 
-# include "../net/timer.t.hpp"
+#include "../net/timer.t.hpp"
 
-# include "battle.t.hpp"
-# include "clif.t.hpp"
-# include "map.hpp"
-# include "skill.t.hpp"
+#include "battle.t.hpp"
+#include "clif.t.hpp"
+#include "map.hpp"
+#include "skill.t.hpp"
 
 
 namespace tmwa
 {
-# define ENGLISH_NAME stringish<MobName>("--en--"_s)
-# define JAPANESE_NAME stringish<MobName>("--ja--"_s)
-# define MOB_THIS_MAP stringish<MapName>("this"_s)
+#define ENGLISH_NAME stringish<MobName>("--en--"_s)
+#define JAPANESE_NAME stringish<MobName>("--ja--"_s)
+#define MOB_THIS_MAP stringish<MapName>("this"_s)
 
 struct mob_skill
 {
@@ -138,5 +137,3 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag);
 
 void mob_reload(void);
 } // namespace tmwa
-
-#endif // TMWA_MAP_MOB_HPP

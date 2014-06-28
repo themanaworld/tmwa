@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAP_HPP
-#define TMWA_MAP_MAP_HPP
+#pragma once
 //    map.hpp - Core of the map server.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,43 +20,43 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "map.t.hpp"
+#include "map.t.hpp"
 
-# include <chrono>
-# include <functional>
-# include <list>
+#include <chrono>
+#include <functional>
+#include <list>
 
-# include "../ints/udl.hpp"
+#include "../ints/udl.hpp"
 
-# include "../strings/fwd.hpp"
-# include "../strings/rstring.hpp"
-# include "../strings/astring.hpp"
-# include "../strings/vstring.hpp"
+#include "../strings/fwd.hpp"
+#include "../strings/rstring.hpp"
+#include "../strings/astring.hpp"
+#include "../strings/vstring.hpp"
 
-# include "../generic/db.hpp"
-# include "../generic/dumb_ptr.hpp"
-# include "../generic/matrix.hpp"
+#include "../generic/db.hpp"
+#include "../generic/dumb_ptr.hpp"
+#include "../generic/matrix.hpp"
 
-# include "../net/socket.hpp"
-# include "../net/timer.t.hpp"
+#include "../net/socket.hpp"
+#include "../net/timer.t.hpp"
 
-# include "../mmo/utils.hpp"
+#include "../mmo/utils.hpp"
 
-# include "battle.t.hpp"
-# include "clif.t.hpp"
-# include "mapflag.hpp"
-# include "mob.t.hpp"
-# include "script.hpp"   // change to script.t.hpp
-# include "skill.t.hpp"
+#include "battle.t.hpp"
+#include "clif.t.hpp"
+#include "mapflag.hpp"
+#include "mob.t.hpp"
+#include "script.hpp"   // change to script.t.hpp
+#include "skill.t.hpp"
 
 
 namespace tmwa
 {
 constexpr int MAX_NPC_PER_MAP = 512;
 constexpr int BLOCK_SIZE = 8;
-# define AREA_SIZE battle_config.area_size
+#define AREA_SIZE battle_config.area_size
 constexpr std::chrono::seconds LIFETIME_FLOORITEM = std::chrono::minutes(1);
 constexpr int MAX_SKILL_LEVEL = 100;
 constexpr int MAX_EVENTTIMER = 32;
@@ -608,10 +607,10 @@ void map_quit(dumb_ptr<map_session_data>);
 int map_addnpc(map_local *, dumb_ptr<npc_data>);
 
 void map_log(XString line);
-# define MAP_LOG(format, ...)   \
+#define MAP_LOG(format, ...)    \
     map_log(STRPRINTF(format, ## __VA_ARGS__))
 
-# define MAP_LOG_PC(sd, fmt, ...)   \
+#define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
             sd->status_key.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat"_s)), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
@@ -724,5 +723,3 @@ inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSu
 inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
 inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAP_HPP

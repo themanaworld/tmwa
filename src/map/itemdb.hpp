@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_ITEMDB_HPP
-#define TMWA_MAP_ITEMDB_HPP
+#pragma once
 //    itemdb.hpp - Item definitions.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,13 +20,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../mmo/ids.hpp"
-# include "../mmo/mmo.hpp"
+#include "../mmo/ids.hpp"
+#include "../mmo/mmo.hpp"
 
-# include "map.t.hpp"
-# include "script.hpp"
+#include "map.t.hpp"
+#include "script.hpp"
 
 
 namespace tmwa
@@ -106,5 +105,3 @@ void itemdb_reload(void);
 void do_final_itemdb(void);
 bool itemdb_readdb(ZString filename);
 } // namespace tmwa
-
-#endif // TMWA_MAP_ITEMDB_HPP

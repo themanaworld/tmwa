@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_RANDOM2_HPP
-#define TMWA_GENERIC_RANDOM2_HPP
+#pragma once
 //    random2.hpp - Random number generation.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,13 +18,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "random.hpp"
+#include "random.hpp"
 
-# include <algorithm>
+#include <algorithm>
 
-# include "../compat/iter.hpp"
+#include "../compat/iter.hpp"
 
 
 namespace tmwa
@@ -95,5 +94,3 @@ namespace random_
     }
 } // namespace random_
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_RANDOM2_HPP

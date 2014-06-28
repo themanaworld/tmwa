@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_PARTY_HPP
-#define TMWA_MAP_PARTY_HPP
+#pragma once
 //    party.hpp - Small groups of temporary allies.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,15 +20,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <functional>
+#include <functional>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
 
 namespace tmwa
@@ -71,5 +70,3 @@ int party_exp_share(PartyPair p, map_local *map, int base_exp, int job_exp);
 void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<map_session_data> sd, int type);
 } // namespace tmwa
-
-#endif // TMWA_MAP_PARTY_HPP

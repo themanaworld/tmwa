@@ -1,5 +1,4 @@
-#ifndef TMWA_TESTS_FDHACK_HPP
-#define TMWA_TESTS_FDHACK_HPP
+#pragma once
 //    fdhack.hpp - Move file descriptors around.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,17 +18,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstddef>
-# include <fcntl.h>
+#include <cstddef>
+#include <fcntl.h>
 
-# include <stdexcept>
+#include <stdexcept>
 
-# include "../strings/literal.hpp"
-# include "../strings/zstring.hpp"
+#include "../strings/literal.hpp"
+#include "../strings/zstring.hpp"
 
-# include "../io/fd.hpp"
+#include "../io/fd.hpp"
 
 namespace tmwa
 {
@@ -57,5 +56,3 @@ public:
     {}
 };
 } // namespace tmwa
-
-#endif // TMWA_TESTS_FDHACK_HPP

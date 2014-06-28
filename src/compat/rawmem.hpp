@@ -1,5 +1,4 @@
-#ifndef TMWA_COMPAT_RAWMEM_HPP
-#define TMWA_COMPAT_RAWMEM_HPP
+#pragma once
 //    rawmem.hpp - Ignore poisoning and really frob this memory unsafely.
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include <cstddef>
-# include <cstdint>
-# include <cstring>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
@@ -51,5 +50,3 @@ void really_memset0(uint8_t *dest, size_t n)
     memset(dest, '\0', n);
 }
 } // namespace tmwa
-
-#endif // TMWA_COMPAT_RAWMEM_HPP

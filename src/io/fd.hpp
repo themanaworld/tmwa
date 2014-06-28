@@ -1,5 +1,4 @@
-#ifndef TMWA_IO_FD_HPP
-#define TMWA_IO_FD_HPP
+#pragma once
 //    io/fd.hpp - typesafe (but not scopesafe) file descriptors
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,12 +18,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <sys/select.h>
-# include <sys/socket.h>
+#include <sys/select.h>
+#include <sys/socket.h>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
 
 namespace tmwa
@@ -138,24 +137,24 @@ namespace io
         }
         void clr(FD fd)
         {
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
             FD_CLR(fd.uncast_dammit(), &fds);
-# pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
         }
         bool isset(FD fd)
         {
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
             return FD_ISSET(fd.uncast_dammit(), &fds);
-# pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
         }
         void set(FD fd)
         {
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
             FD_SET(fd.uncast_dammit(), &fds);
-# pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
         }
 
         static
@@ -165,5 +164,3 @@ namespace io
     };
 } // namespace io
 } // namespace tmwa
-
-#endif // TMWA_IO_FD_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_STRINGS_BASE_HPP
-#define TMWA_STRINGS_BASE_HPP
+#pragma once
 //    strings/base.hpp - CRTP base for string implementations.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,12 +18,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
-# include "pair.hpp"
+#include "fwd.hpp"
+#include "pair.hpp"
 
-# include <cstddef>
+#include <cstddef>
 
-# include <iterator>
+#include <iterator>
 
 
 namespace tmwa
@@ -200,6 +199,4 @@ namespace strings
 } // namespace strings
 } // namespace tmwa
 
-# include "base.tcc"
-
-#endif // TMWA_STRINGS_BASE_HPP
+#include "base.tcc"

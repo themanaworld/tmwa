@@ -1,5 +1,4 @@
-#ifndef TMWA_NET_FWD_HPP
-#define TMWA_NET_FWD_HPP
+#pragma once
 //    net/fwd.hpp - list of type names for net lib
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+#include "../sanity.hpp"
 
 
 namespace tmwa
@@ -32,5 +31,3 @@ class TimerData;
 
 enum class RecvResult;
 } // namespace tmwa
-
-#endif // TMWA_NET_FWD_HPP

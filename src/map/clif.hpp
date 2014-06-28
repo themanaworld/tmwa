@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_CLIF_HPP
-#define TMWA_MAP_CLIF_HPP
+#pragma once
 //    clif.hpp - Network interface to the client.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,25 +20,25 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "clif.t.hpp"
+#include "clif.t.hpp"
 
-# include <functional>
+#include <functional>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../net/timer.t.hpp"
+#include "../net/timer.t.hpp"
 
-# include "../mmo/fwd.hpp"
-# include "../mmo/mmo.hpp"
+#include "../mmo/fwd.hpp"
+#include "../mmo/mmo.hpp"
 
-# include "battle.t.hpp"
-# include "map.t.hpp"
-# include "pc.t.hpp"
-# include "skill.t.hpp"
+#include "battle.t.hpp"
+#include "map.t.hpp"
+#include "pc.t.hpp"
+#include "skill.t.hpp"
 
 
 namespace tmwa
@@ -191,5 +190,3 @@ int clif_foreachclient(std::function<void(dumb_ptr<map_session_data>)>);
 
 void do_init_clif(void);
 } // namespace tmwa
-
-#endif // TMWA_MAP_CLIF_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_CORE_HPP
-#define TMWA_MMO_CORE_HPP
+#pragma once
 //    core.hpp - The main loop.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,11 +20,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../range/slice.hpp"
+#include "../range/slice.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
 
 namespace tmwa
@@ -44,5 +43,3 @@ extern int do_init(Slice<ZString>);
 /// or when if we manage to exit() gracefully.
 extern void term_func(void);
 } // namespace tmwa
-
-#endif // TMWA_MMO_CORE_HPP

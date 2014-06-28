@@ -1,5 +1,4 @@
-#ifndef TMWA_STRINGS_TSTRING_HPP
-#define TMWA_STRINGS_TSTRING_HPP
+#pragma once
 //    strings/tstring.hpp - A tail slice of a string.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,10 +18,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "base.hpp"
-# include "rstring.hpp"
+#include "base.hpp"
+#include "rstring.hpp"
 
 
 namespace tmwa
@@ -65,6 +64,4 @@ namespace strings
 } // namespace strings
 } // namespace tmwa
 
-# include "tstring.tcc"
-
-#endif // TMWA_STRINGS_TSTRING_HPP
+#include "tstring.tcc"

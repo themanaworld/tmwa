@@ -1,5 +1,4 @@
-#ifndef TMWA_PROTO2_ANY_USER_HPP
-#define TMWA_PROTO2_ANY_USER_HPP
+#pragma once
 //    any-user.hpp - TMWA network protocol: any/user
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -21,9 +20,9 @@
 
 // This is a generated file, edit tools/protocol.py instead
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "types.hpp"
+#include "types.hpp"
 
 namespace tmwa
 {
@@ -213,5 +212,3 @@ bool network_to_native(Packet_Payload<0x8000> *native, NetPacket_Payload<0x8000>
 }
 
 } // namespace tmwa
-
-#endif // TMWA_PROTO2_ANY_USER_HPP

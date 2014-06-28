@@ -1,5 +1,4 @@
-#ifndef TMWA_PROTO2_TYPES_HPP
-#define TMWA_PROTO2_TYPES_HPP
+#pragma once
 //    proto2/types.hpp - Forward declarations of packet component types
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,27 +18,27 @@
 //    You should have received a copy of the GNU Affero General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../generic/array.hpp"
-# include "../mmo/consts.hpp"
+#include "../generic/array.hpp"
+#include "../mmo/consts.hpp"
 
 //TODO split the includes
-# include <cstdint>
-# include "../ints/little.hpp"
-# include "../strings/vstring.hpp"
-# include "../net/ip.hpp"
-# include "../net/timer.t.hpp"
-# include "../mmo/consts.hpp"
-# include "../mmo/enums.hpp"
-# include "../mmo/human_time_diff.hpp"
-# include "../mmo/ids.hpp"
-# include "../mmo/strs.hpp"
-# include "../mmo/utils.hpp"
-# include "../mmo/version.hpp"
-# include "../login/login.t.hpp"
-# include "../map/clif.t.hpp"
-# include "../map/skill.t.hpp"
+#include <cstdint>
+#include "../ints/little.hpp"
+#include "../strings/vstring.hpp"
+#include "../net/ip.hpp"
+#include "../net/timer.t.hpp"
+#include "../mmo/consts.hpp"
+#include "../mmo/enums.hpp"
+#include "../mmo/human_time_diff.hpp"
+#include "../mmo/ids.hpp"
+#include "../mmo/strs.hpp"
+#include "../mmo/utils.hpp"
+#include "../mmo/version.hpp"
+#include "../login/login.t.hpp"
+#include "../map/clif.t.hpp"
+#include "../map/skill.t.hpp"
 
 namespace tmwa
 {
@@ -1420,5 +1419,3 @@ bool network_to_native(Storage *native, NetStorage network)
 }
 
 } // namespace tmwa
-
-#endif // TMWA_PROTO2_TYPES_HPP

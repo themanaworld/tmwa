@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_GRFIO_HPP
-#define TMWA_MAP_GRFIO_HPP
+#pragma once
 //    grfio.hpp - Don't read GRF files, just name-map .wlk files.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,15 +20,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include <vector>
+#include <vector>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
 
 namespace tmwa
@@ -41,5 +40,3 @@ bool load_resnametable(ZString filename);
 /// Currently there is exactly one .wlk per .gat, but multiples are fine.
 std::vector<uint8_t> grfio_reads(MapName resourcename);
 } // namespace tmwa
-
-#endif // TMWA_MAP_GRFIO_HPP

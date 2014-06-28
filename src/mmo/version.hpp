@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_VERSION_HPP
-#define TMWA_MMO_VERSION_HPP
+#pragma once
 //    version.hpp - Prevent mass rebuild when conf/version.hpp changes.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,22 +20,22 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
 
 namespace tmwa
 {
 // TODO make these bitwise enums
-# define TMWA_FLAG_REGISTRATION 0x01
+#define TMWA_FLAG_REGISTRATION 0x01
 
-# define TMWA_SERVER_LOGIN      0x01
-# define TMWA_SERVER_CHAR       0x02
-# define TMWA_SERVER_INTER      0x04
-# define TMWA_SERVER_MAP        0x08
+#define TMWA_SERVER_LOGIN      0x01
+#define TMWA_SERVER_CHAR       0x02
+#define TMWA_SERVER_INTER      0x04
+#define TMWA_SERVER_MAP        0x08
 
 // TODO now that I generate the protocol, split 'flags' out of the struct
 struct Version
@@ -92,5 +91,3 @@ extern LString CURRENT_VERSION_STRING;
 
 bool extract(XString str, Version *vers);
 } // namespace tmwa
-
-#endif // TMWA_MMO_VERSION_HPP

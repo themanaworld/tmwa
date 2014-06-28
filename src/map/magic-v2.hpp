@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAGIC_V2_HPP
-#define TMWA_MAP_MAGIC_V2_HPP
+#pragma once
 //    magic-v2.hpp - second generation magic parser
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,9 +18,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/zstring.hpp"
+#include "../strings/zstring.hpp"
 
 
 namespace tmwa
@@ -30,5 +29,3 @@ bool magic_init0();
 // must be called after itemdb initialization
 bool load_magic_file_v2(ZString filename);
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAGIC_V2_HPP

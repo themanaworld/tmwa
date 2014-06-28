@@ -1,5 +1,4 @@
-#ifndef TMWA_COMPAT_ATTR_HPP
-#define TMWA_COMPAT_ATTR_HPP
+#pragma once
 //    attr.hpp - Attributes.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,16 +18,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
 {
-# ifdef __clang__
-#  define FALLTHROUGH [[clang::fallthrough]]
-# else
-#  define FALLTHROUGH /* fallthrough */
-# endif
+#ifdef __clang__
+# define FALLTHROUGH [[clang::fallthrough]]
+#else
+# define FALLTHROUGH /* fallthrough */
+#endif
 } // namespace tmwa
-
-#endif // TMWA_COMPAT_ATTR_HPP

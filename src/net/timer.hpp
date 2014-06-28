@@ -1,5 +1,4 @@
-#ifndef TMWA_NET_TIMER_HPP
-#define TMWA_NET_TIMER_HPP
+#pragma once
 //    timer.hpp - Future event scheduler.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,11 +20,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "timer.t.hpp"
+#include "timer.t.hpp"
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
 
 namespace tmwa
@@ -50,5 +49,3 @@ tick_t file_modified(ZString name);
 /// Check if there are any events at all scheduled.
 bool has_timers();
 } // namespace tmwa
-
-#endif // TMWA_NET_TIMER_HPP

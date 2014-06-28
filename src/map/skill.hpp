@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_SKILL_HPP
-#define TMWA_MAP_SKILL_HPP
+#pragma once
 //    skill.hpp - Old-style skills.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,19 +20,19 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "skill.t.hpp"
-# include "skill-pools.hpp"
+#include "skill.t.hpp"
+#include "skill-pools.hpp"
 
-# include "../strings/fwd.hpp"
-# include "../strings/rstring.hpp"
-# include "../strings/literal.hpp"
+#include "../strings/fwd.hpp"
+#include "../strings/rstring.hpp"
+#include "../strings/literal.hpp"
 
-# include "../generic/fwd.hpp"
-# include "../generic/array.hpp"
+#include "../generic/fwd.hpp"
+#include "../generic/array.hpp"
 
-# include "map.hpp"
+#include "map.hpp"
 
 
 namespace tmwa
@@ -168,5 +167,3 @@ int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill);
 // [Fate] Remember that a certain skill ID belongs to a pool skill
 void skill_pool_register(SkillID id);
 } // namespace tmwa
-
-#endif // TMWA_MAP_SKILL_HPP

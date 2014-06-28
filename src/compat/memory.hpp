@@ -1,5 +1,4 @@
-#ifndef TMWA_COMPAT_MEMORY_HPP
-#define TMWA_COMPAT_MEMORY_HPP
+#pragma once
 //    memory.hpp - I forget ...
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,10 +18,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <memory>
-# include <type_traits>
+#include <memory>
+#include <type_traits>
 
 
 namespace tmwa
@@ -45,5 +44,3 @@ typename std::enable_if<is_array_of_unknown_bound<T>::value, std::unique_ptr<T, 
     return std::unique_ptr<E[], D>(new E[sz]());
 }
 } // namespace tmwa
-
-#endif // TMWA_COMPAT_MEMORY_HPP

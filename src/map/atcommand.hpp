@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_ATCOMMAND_HPP
-#define TMWA_MAP_ATCOMMAND_HPP
+#pragma once
 //    atcommand.hpp - GM commands.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,15 +20,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../net/fwd.hpp"
+#include "../net/fwd.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
 
 namespace tmwa
@@ -46,5 +45,3 @@ extern AString gm_log;
 
 void atcommand_config_write(ZString cfgName);
 } // namespace tmwa
-
-#endif // TMWA_MAP_ATCOMMAND_HPP

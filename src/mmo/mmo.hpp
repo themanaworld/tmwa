@@ -1,5 +1,4 @@
-#ifndef TMWA_MMO_MMO_HPP
-#define TMWA_MMO_MMO_HPP
+#pragma once
 //    mmo.hpp - Huge mess of structures.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,11 +20,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../compat/memory.hpp"
+#include "../compat/memory.hpp"
 
-# include "../proto2/types.hpp"
+#include "../proto2/types.hpp"
 
 
 namespace tmwa
@@ -68,5 +67,3 @@ struct PartyPair
     PartyMost *operator->() const { return party_most; }
 };
 } // namespace tmwa
-
-#endif // TMWA_MMO_MMO_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAGIC_INTERPRETER_T_HPP
-#define TMWA_MAP_MAGIC_INTERPRETER_T_HPP
+#pragma once
 //    magic-interpreter.t.hpp - Old magic.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -20,9 +19,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../generic/enum.hpp"
+#include "../generic/enum.hpp"
 
 
 namespace tmwa
@@ -148,5 +147,3 @@ ENUM_BITWISE_OPERATORS(INVOCATION_FLAG)
 }
 using e::INVOCATION_FLAG;
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAGIC_INTERPRETER_T_HPP

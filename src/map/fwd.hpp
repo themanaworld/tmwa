@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_FWD_HPP
-#define TMWA_MAP_FWD_HPP
+#pragma once
 //    map/fwd.hpp - list of type names for map server
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+#include "../sanity.hpp"
 
 
 namespace tmwa
@@ -56,5 +55,3 @@ struct magic_conf_t;
 struct component_t;
 struct effect_set_t;
 } // namespace tmwa
-
-#endif // TMWA_MAP_FWD_HPP

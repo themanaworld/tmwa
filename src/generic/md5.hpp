@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_MD5CALC_HPP
-#define TMWA_GENERIC_MD5CALC_HPP
+#pragma once
 //    md5.hpp - Fundamental MD5 operations.
 //
 //    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,14 +18,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include <array>
+#include <array>
 
-# include "../strings/fwd.hpp"
-# include "../strings/vstring.hpp"
+#include "../strings/fwd.hpp"
+#include "../strings/vstring.hpp"
 
 
 namespace tmwa
@@ -58,5 +57,3 @@ void MD5_to_str(MD5_state state, md5_string& out);
 // Convenience
 MD5_state MD5_from_string(XString msg);
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_MD5CALC_HPP

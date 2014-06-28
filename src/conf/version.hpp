@@ -1,5 +1,4 @@
-#ifndef TMWA_CONF_VERSION_HPP
-#define TMWA_CONF_VERSION_HPP
+#pragma once
 //    conf/version.hpp - Import configuration variables related to version.
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -21,23 +20,21 @@
 
 // just mention "fwd.hpp" to make formatter happy
 
-# include "conf-raw/str-VERSION_FULL.h"
-# include "conf-raw/str-VERSION_HASH.h"
+#include "conf-raw/str-VERSION_FULL.h"
+#include "conf-raw/str-VERSION_HASH.h"
 
-# include "conf-raw/int-VERSION_MAJOR.h"
-# include "conf-raw/int-VERSION_MINOR.h"
-# include "conf-raw/int-VERSION_PATCH.h"
-# include "conf-raw/int-VERSION_DEVEL.h"
+#include "conf-raw/int-VERSION_MAJOR.h"
+#include "conf-raw/int-VERSION_MINOR.h"
+#include "conf-raw/int-VERSION_PATCH.h"
+#include "conf-raw/int-VERSION_DEVEL.h"
 
-# include "conf-raw/str-VENDOR_NAME.h"
-# include "conf-raw/int-VENDOR_POINT.h"
-# include "conf-raw/str-VENDOR_SOURCE.h"
+#include "conf-raw/str-VENDOR_NAME.h"
+#include "conf-raw/int-VENDOR_POINT.h"
+#include "conf-raw/str-VENDOR_SOURCE.h"
 
-# include "conf-raw/str-VERSION_STRING.h"
+#include "conf-raw/str-VERSION_STRING.h"
 
 
 namespace tmwa
 {
 } // namespace tmwa
-
-#endif // TMWA_CONF_VERSION_HPP

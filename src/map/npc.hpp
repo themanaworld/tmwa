@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_NPC_HPP
-#define TMWA_MAP_NPC_HPP
+#pragma once
 //    npc.hpp - Noncombatants.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,19 +20,19 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../net/timer.t.hpp"
+#include "../net/timer.t.hpp"
 
-# include "../proto2/fwd.hpp"
+#include "../proto2/fwd.hpp"
 
-# include "map.hpp"
+#include "map.hpp"
 
 
 namespace tmwa
@@ -100,5 +99,3 @@ interval_t npc_gettimerevent_tick(dumb_ptr<npc_data_script> nd);
 void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer);
 int npc_delete(dumb_ptr<npc_data> nd);
 } // namespace tmwa
-
-#endif // TMWA_MAP_NPC_HPP

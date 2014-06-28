@@ -1,5 +1,4 @@
-#ifndef TMWA_INTS_WRAP_HPP
-#define TMWA_INTS_WRAP_HPP
+#pragma once
 //    wrap.hpp - basic integer wrapper classes
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstdint>
+#include <cstdint>
 
-# include <type_traits>
+#include <type_traits>
 
 
 namespace tmwa
@@ -109,5 +108,3 @@ using ints::wrapped::Wrapped;
 using ints::wrapped::unwrap;
 using ints::wrapped::wrap;
 } // namespace tmwa
-
-#endif // TMWA_INTS_WRAP_HPP

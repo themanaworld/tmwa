@@ -1,5 +1,4 @@
-#ifndef TMWA_INTS_LITTLE_HPP
-#define TMWA_INTS_LITTLE_HPP
+#pragma once
 //    little.hpp - integers of known endianness
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,20 +18,20 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <endian.h>
+#include <endian.h>
 
-# include <cstdint>
+#include <cstdint>
 
 
 namespace tmwa
 {
 // We implement our own actual swapping, because glibc emits assembly
 // instead of letting the *compiler* do what it does best.
-# if __BYTE_ORDER != __BIG_ENDIAN && __BYTE_ORDER != __LITTLE_ENDIAN
-#  error "broken endians"
-# endif
+#if __BYTE_ORDER != __BIG_ENDIAN && __BYTE_ORDER != __LITTLE_ENDIAN
+# error "broken endians"
+#endif
 
 namespace ints
 {
@@ -139,5 +138,3 @@ using ints::Little16;
 using ints::Little32;
 using ints::Little64;
 } // namespace tmwa
-
-#endif // TMWA_INTS_LITTLE_HPP

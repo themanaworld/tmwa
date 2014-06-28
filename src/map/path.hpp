@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_PATH_HPP
-#define TMWA_MAP_PATH_HPP
+#pragma once
 //    path.hpp - Pathfinding system.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,12 +20,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
 {
 int path_search(struct walkpath_data *, map_local *, int, int, int, int, int);
 } // namespace tmwa
-
-#endif // TMWA_MAP_PATH_HPP

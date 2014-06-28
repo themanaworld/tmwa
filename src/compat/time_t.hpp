@@ -1,5 +1,4 @@
-#ifndef TMWA_COMPAT_TIMET_HPP
-#define TMWA_COMPAT_TIMET_HPP
+#pragma once
 //    time_t.hpp - time_t with a reliable representation
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,14 +18,12 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 // TODO fix this ordering violation by promoting TimeT here
-# include "../mmo/utils.hpp"
+#include "../mmo/utils.hpp"
 
 
 namespace tmwa
 {
 } // namespace tmwa
-
-#endif // TMWA_COMPAT_TIMET_HPP

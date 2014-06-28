@@ -1,5 +1,4 @@
-#ifndef TMWA_NET_PACKETS_HPP
-#define TMWA_NET_PACKETS_HPP
+#pragma once
 //    packets.hpp - palatable socket buffer accessors
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,20 +18,20 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <vector>
+#include <vector>
 
-# include "../compat/cast.hpp"
+#include "../compat/cast.hpp"
 
-# include "../ints/little.hpp"
+#include "../ints/little.hpp"
 
-# include "../io/fwd.hpp"
+#include "../io/fwd.hpp"
 
 // TODO ordering violation, should invert
-# include "../proto2/fwd.hpp"
+#include "../proto2/fwd.hpp"
 
-# include "socket.hpp"
+#include "socket.hpp"
 
 
 namespace tmwa
@@ -584,5 +583,3 @@ RecvResult recv_packet_repeatonly(Session *s, AString& repeat)
     return recv_vpacket<id, 4, repeatsize>(s, head, repeat);
 }
 } // namespace tmwa
-
-#endif // TMWA_NET_PACKETS_HPP

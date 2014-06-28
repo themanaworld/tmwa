@@ -1,4 +1,4 @@
-#ifndef GENERATING_DEPENDENCIES
+#pragma once
 //    poison.hpp - List of dangerous functions and objects.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -23,6 +23,7 @@
 
 namespace tmwa
 {
+#ifndef GENERATING_DEPENDENCIES
 // impossible(*) to use safely
 // removed in C11
 # pragma GCC poison gets
@@ -119,6 +120,5 @@ namespace tmwa
 # pragma GCC poison ifstream
 # pragma GCC poison ofstream
 # pragma GCC poison fstream
-} // namespace tmwa
-
 #endif // GENERATING_DEPENDENCIES
+} // namespace tmwa

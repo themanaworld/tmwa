@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_BATTLE_HPP
-#define TMWA_MAP_BATTLE_HPP
+#pragma once
 //    battle.hpp - Not so scary code.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -21,19 +20,19 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "battle.t.hpp"
+#include "battle.t.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../net/timer.t.hpp"
+#include "../net/timer.t.hpp"
 
-# include "clif.t.hpp"
-# include "map.t.hpp"
-# include "skill.t.hpp"
+#include "clif.t.hpp"
+#include "map.t.hpp"
+#include "skill.t.hpp"
 
 
 namespace tmwa
@@ -227,5 +226,3 @@ extern struct Battle_Config
 bool battle_config_read(ZString cfgName);
 void battle_config_check();
 } // namespace tmwa
-
-#endif // TMWA_MAP_BATTLE_HPP

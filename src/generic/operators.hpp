@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_OPERATORS_HPP
-#define TMWA_GENERIC_OPERATORS_HPP
+#pragma once
 //    operators.hpp - ADL helper for value wrappers.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
@@ -67,5 +66,3 @@ namespace _operators
 
 using _operators::Comparable;
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_OPERATORS_HPP

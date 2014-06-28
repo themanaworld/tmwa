@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_MATRIX_HPP
-#define TMWA_GENERIC_MATRIX_HPP
+#pragma once
 //    matrix.hpp - A 2D array.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cassert>
+#include <cassert>
 
-# include "../compat/memory.hpp"
+#include "../compat/memory.hpp"
 
 
 namespace tmwa
@@ -78,5 +77,3 @@ public:
     }
 };
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_MATRIX_HPP

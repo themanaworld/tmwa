@@ -1,5 +1,4 @@
-#ifndef TMWA_COMPAT_NULLPO_HPP
-#define TMWA_COMPAT_NULLPO_HPP
+#pragma once
 //    nullpo.hpp - Non-fatal pointer assertions.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -31,19 +30,19 @@
 /// nullpo_retv(cond) - just return (function returns void)
 /// nullpo_retr(rv, cond) - return given value instead
 
-# ifndef BUG_FREE
-#  define nullpo_retr(ret, t)                                   \
+#ifndef BUG_FREE
+# define nullpo_retr(ret, t)                                    \
     if (nullpo_chk(__FILE__, __LINE__, __PRETTY_FUNCTION__, t)) \
         return ret;
-# else // BUG_FREE
-#  define nullpo_retr(ret, t) /*t*/
-# endif // BUG_FREE
+#else // BUG_FREE
+# define nullpo_retr(ret, t) /*t*/
+#endif // BUG_FREE
 
-# define nullpo_retn(t) nullpo_retr(nullptr, t)
-# define nullpo_retz(t) nullpo_retr(0, t)
-# define nullpo_retv(t) nullpo_retr(, t)
+#define nullpo_retn(t) nullpo_retr(nullptr, t)
+#define nullpo_retz(t) nullpo_retr(0, t)
+#define nullpo_retv(t) nullpo_retr(, t)
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
@@ -63,5 +62,3 @@ bool nullpo_chk(const char *file, int line, const char *func, T *target)
     return nullpo_chk(file, line, func, static_cast<const void *>(target));
 }
 } // namespace tmwa
-
-#endif // TMWA_COMPAT_NULLPO_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_IO_FWD_HPP
-#define TMWA_IO_FWD_HPP
+#pragma once
 //    io/fwd.hpp - Forward declarations of I/O classes
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
+#include "../sanity.hpp"
 
 
 namespace tmwa
@@ -31,5 +30,3 @@ namespace io
     class AppendFile;
 } // namespace io
 } // namespace tmwa
-
-#endif // TMWA_IO_FWD_HPP

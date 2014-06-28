@@ -1,5 +1,4 @@
-#ifndef TMWA_IO_TTY_HPP
-#define TMWA_IO_TTY_HPP
+#pragma once
 //    io/tty.hpp - terminal escape sequences
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,23 +18,21 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
 
 namespace tmwa
 {
-# define SGR_BLACK "\e[30m"
-# define SGR_RED "\e[31m"
-# define SGR_GREEN "\e[32m"
-# define SGR_YELLOW "\e[33m"
-# define SGR_BLUE "\e[34m"
-# define SGR_MAGENTA "\e[35m"
-# define SGR_CYAN "\e[36m"
-# define SGR_WHITE "\e[37m"
+#define SGR_BLACK "\e[30m"
+#define SGR_RED "\e[31m"
+#define SGR_GREEN "\e[32m"
+#define SGR_YELLOW "\e[33m"
+#define SGR_BLUE "\e[34m"
+#define SGR_MAGENTA "\e[35m"
+#define SGR_CYAN "\e[36m"
+#define SGR_WHITE "\e[37m"
 
-# define SGR_BOLD "\e[1m"
+#define SGR_BOLD "\e[1m"
 
-# define SGR_RESET "\e[0m"
+#define SGR_RESET "\e[0m"
 } // namespace tmwa
-
-#endif // TMWA_IO_TTY_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_TMW_HPP
-#define TMWA_MAP_TMW_HPP
+#pragma once
 //    tmw.hpp - Some random functions added by TMW.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -20,11 +19,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
 
 namespace tmwa
@@ -32,5 +31,3 @@ namespace tmwa
 int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message);
 void tmw_GmHackMsg(ZString line);
 } // namespace tmwa
-
-#endif // TMWA_MAP_TMW_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_GENERIC_OOPS_HPP
-#define TMWA_GENERIC_OOPS_HPP
+#pragma once
 //    oops.hpp - Stuff that shouldn't happen.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,11 +18,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include <cstddef>
+#include <cstddef>
 
-# include <stdexcept>
+#include <stdexcept>
 
 
 namespace tmwa
@@ -35,9 +34,7 @@ public:
             const char *file, size_t line, const char *function);
 };
 
-# define ALLEGE(desc, expr) \
+#define ALLEGE(desc, expr)  \
     if (expr) {}            \
     else throw AssertionError(desc, #expr, __FILE__, __LINE__, __PRETTY_FUNCTION__)
 } // namespace tmwa
-
-#endif // TMWA_GENERIC_OOPS_HPP

@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAGIC_INTERPRETER_BASE_HPP
-#define TMWA_MAP_MAGIC_INTERPRETER_BASE_HPP
+#pragma once
 //    magic-interpreter-base.hpp - Core of the old magic system.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -20,13 +19,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../strings/fwd.hpp"
+#include "../strings/fwd.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "../mmo/fwd.hpp"
+#include "../mmo/fwd.hpp"
 
 
 namespace tmwa
@@ -86,5 +85,3 @@ dumb_ptr<spell_t> magic_find_spell(XString invocation);
 
 void spell_update_location(dumb_ptr<invocation> invocation);
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAGIC_INTERPRETER_BASE_HPP

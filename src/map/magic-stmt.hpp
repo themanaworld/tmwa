@@ -1,5 +1,4 @@
-#ifndef TMWA_MAP_MAGIC_STMT_HPP
-#define TMWA_MAP_MAGIC_STMT_HPP
+#pragma once
 //    magic-stmt.hpp - Imperative commands for the magic backend.
 //
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -20,15 +19,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "fwd.hpp"
+#include "fwd.hpp"
 
-# include "../range/fwd.hpp"
+#include "../range/fwd.hpp"
 
-# include "../strings/zstring.hpp"
+#include "../strings/zstring.hpp"
 
-# include "../generic/fwd.hpp"
+#include "../generic/fwd.hpp"
 
-# include "skill.t.hpp"
+#include "skill.t.hpp"
 
 
 namespace tmwa
@@ -90,5 +89,3 @@ int spell_attack(BlockId caster, BlockId target);
 
 void spell_free_invocation(dumb_ptr<invocation> invocation);
 } // namespace tmwa
-
-#endif // TMWA_MAP_MAGIC_STMT_HPP
