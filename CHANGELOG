@@ -1,3 +1,21 @@
+v14.6.30:
+  - packet names (thanks evets)
+  - silence secondary output from tests
+  - port the variant
+  - fix anti-purge thing by giving every account a date
+  - prevent null session crash during shutdown
+  - specialize inventory/storage indices to avoid out-of-bounds
+  - don't crash when giving invalid ID to @item
+  - play with obscure corners of the C++ standard that no one can interpret
+  - replace hand-coded network protocols with generate ones
+  - lots source layout and formatting cleanup
+  - faster depedency calculation
+  - strict ids (yay less bugs, boo account/block entanglement)
+  - beginning of integers
+  - support libc++ (experimental)
+  - drop gcc 4.6 support
+  - completely remove flex/bison dependency
+  - fix duplication in npctalk
 v14.4.18:
   - fix some fatal bugs related to logout in the previous release
   - fix out-of-bounds in trades exposed in the previous commit
