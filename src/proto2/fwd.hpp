@@ -66,11 +66,6 @@ template<>
 struct NetPacket_Fixed<0x2714>;
 
 template<>
-struct Packet_Fixed<0x2715>;
-template<>
-struct NetPacket_Fixed<0x2715>;
-
-template<>
 struct Packet_Fixed<0x2716>;
 template<>
 struct NetPacket_Fixed<0x2716>;
@@ -714,11 +709,6 @@ template<>
 struct Packet_Fixed<0x3025>;
 template<>
 struct NetPacket_Fixed<0x3025>;
-
-template<>
-struct Packet_Fixed<0x3026>;
-template<>
-struct NetPacket_Fixed<0x3026>;
 
 template<>
 struct Packet_Head<0x3027>;

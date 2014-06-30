@@ -650,19 +650,6 @@ void mapif_parse_PartyChangeMap(Session *s, PartyId party_id, AccountId account_
     }
 }
 
-// パーティ解散要求
-static
-void mapif_parse_BreakParty(Session *, PartyId party_id)
-{
-    PartyPair p;
-    p.party_most = party_db.search(party_id);
-    if (!p)
-        return;
-
-    party_db.erase(party_id);
-    mapif_party_broken(party_id, 0 /*unknown*/);
-}
-
 // パーティメッセージ送信
 static
 void mapif_parse_PartyMessage(Session *, PartyId party_id, AccountId account_id, XString mes)
@@ -788,17 +775,6 @@ RecvResult inter_party_parse_frommap(Session *ms, uint16_t packet_id)
                     map,
                     online,
                     lv);
-            break;
-        }
-        case 0x3026:
-        {
-            Packet_Fixed<0x3026> fixed;
-            rv = recv_fpacket<0x3026, 6>(ms, fixed);
-            if (rv != RecvResult::Complete)
-                break;
-
-            PartyId party_id = fixed.party_id;
-            mapif_parse_BreakParty(ms, party_id);
             break;
         }
         case 0x3027:

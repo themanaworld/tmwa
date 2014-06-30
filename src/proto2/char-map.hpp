@@ -648,16 +648,6 @@ struct Packet_Fixed<0x3025>
 };
 
 template<>
-struct Packet_Fixed<0x3026>
-{
-    static const uint16_t PACKET_ID = 0x3026;
-
-    // TODO remove this
-    uint16_t magic_packet_id = PACKET_ID;
-    PartyId party_id = {};
-};
-
-template<>
 struct Packet_Head<0x3027>
 {
     static const uint16_t PACKET_ID = 0x3027;
@@ -1661,17 +1651,6 @@ static_assert(offsetof(NetPacket_Fixed<0x3025>, online) == 26, "offsetof(NetPack
 static_assert(offsetof(NetPacket_Fixed<0x3025>, level) == 27, "offsetof(NetPacket_Fixed<0x3025>, level) == 27");
 static_assert(sizeof(NetPacket_Fixed<0x3025>) == 29, "sizeof(NetPacket_Fixed<0x3025>) == 29");
 static_assert(alignof(NetPacket_Fixed<0x3025>) == 1, "alignof(NetPacket_Fixed<0x3025>) == 1");
-
-template<>
-struct NetPacket_Fixed<0x3026>
-{
-    Little16 magic_packet_id;
-    Little32 party_id;
-};
-static_assert(offsetof(NetPacket_Fixed<0x3026>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x3026>, magic_packet_id) == 0");
-static_assert(offsetof(NetPacket_Fixed<0x3026>, party_id) == 2, "offsetof(NetPacket_Fixed<0x3026>, party_id) == 2");
-static_assert(sizeof(NetPacket_Fixed<0x3026>) == 6, "sizeof(NetPacket_Fixed<0x3026>) == 6");
-static_assert(alignof(NetPacket_Fixed<0x3026>) == 1, "alignof(NetPacket_Fixed<0x3026>) == 1");
 
 template<>
 struct NetPacket_Head<0x3027>
@@ -3058,23 +3037,6 @@ bool network_to_native(Packet_Fixed<0x3025> *native, NetPacket_Fixed<0x3025> net
     rv &= network_to_native(&native->map_name, network.map_name);
     rv &= network_to_native(&native->online, network.online);
     rv &= network_to_native(&native->level, network.level);
-    return rv;
-}
-
-inline __attribute__((warn_unused_result))
-bool native_to_network(NetPacket_Fixed<0x3026> *network, Packet_Fixed<0x3026> native)
-{
-    bool rv = true;
-    rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
-    rv &= native_to_network(&network->party_id, native.party_id);
-    return rv;
-}
-inline __attribute__((warn_unused_result))
-bool network_to_native(Packet_Fixed<0x3026> *native, NetPacket_Fixed<0x3026> network)
-{
-    bool rv = true;
-    rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
-    rv &= network_to_native(&native->party_id, network.party_id);
     return rv;
 }
 

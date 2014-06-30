@@ -103,17 +103,6 @@ struct Packet_Fixed<0x2714>
 };
 
 template<>
-struct Packet_Fixed<0x2715>
-{
-    static const uint16_t PACKET_ID = 0x2715;
-
-    // TODO remove this
-    uint16_t magic_packet_id = PACKET_ID;
-    AccountId account_id = {};
-    AccountEmail email = {};
-};
-
-template<>
 struct Packet_Fixed<0x2716>
 {
     static const uint16_t PACKET_ID = 0x2716;
@@ -428,19 +417,6 @@ static_assert(offsetof(NetPacket_Fixed<0x2714>, magic_packet_id) == 0, "offsetof
 static_assert(offsetof(NetPacket_Fixed<0x2714>, users) == 2, "offsetof(NetPacket_Fixed<0x2714>, users) == 2");
 static_assert(sizeof(NetPacket_Fixed<0x2714>) == 6, "sizeof(NetPacket_Fixed<0x2714>) == 6");
 static_assert(alignof(NetPacket_Fixed<0x2714>) == 1, "alignof(NetPacket_Fixed<0x2714>) == 1");
-
-template<>
-struct NetPacket_Fixed<0x2715>
-{
-    Little16 magic_packet_id;
-    Little32 account_id;
-    NetString<sizeof(AccountEmail)> email;
-};
-static_assert(offsetof(NetPacket_Fixed<0x2715>, magic_packet_id) == 0, "offsetof(NetPacket_Fixed<0x2715>, magic_packet_id) == 0");
-static_assert(offsetof(NetPacket_Fixed<0x2715>, account_id) == 2, "offsetof(NetPacket_Fixed<0x2715>, account_id) == 2");
-static_assert(offsetof(NetPacket_Fixed<0x2715>, email) == 6, "offsetof(NetPacket_Fixed<0x2715>, email) == 6");
-static_assert(sizeof(NetPacket_Fixed<0x2715>) == 46, "sizeof(NetPacket_Fixed<0x2715>) == 46");
-static_assert(alignof(NetPacket_Fixed<0x2715>) == 1, "alignof(NetPacket_Fixed<0x2715>) == 1");
 
 template<>
 struct NetPacket_Fixed<0x2716>
@@ -827,25 +803,6 @@ bool network_to_native(Packet_Fixed<0x2714> *native, NetPacket_Fixed<0x2714> net
     bool rv = true;
     rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
     rv &= network_to_native(&native->users, network.users);
-    return rv;
-}
-
-inline __attribute__((warn_unused_result))
-bool native_to_network(NetPacket_Fixed<0x2715> *network, Packet_Fixed<0x2715> native)
-{
-    bool rv = true;
-    rv &= native_to_network(&network->magic_packet_id, native.magic_packet_id);
-    rv &= native_to_network(&network->account_id, native.account_id);
-    rv &= native_to_network(&network->email, native.email);
-    return rv;
-}
-inline __attribute__((warn_unused_result))
-bool network_to_native(Packet_Fixed<0x2715> *native, NetPacket_Fixed<0x2715> network)
-{
-    bool rv = true;
-    rv &= network_to_native(&native->magic_packet_id, network.magic_packet_id);
-    rv &= network_to_native(&native->account_id, network.account_id);
-    rv &= network_to_native(&native->email, network.email);
     return rv;
 }
 

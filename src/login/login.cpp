@@ -1097,38 +1097,6 @@ void parse_fromchar(Session *s)
                 break;
             }
 
-                // we receive a e-mail creation of an account with a default e-mail (no answer)
-            case 0x2715:
-            {
-                Packet_Fixed<0x2715> fixed;
-                rv = recv_fpacket<0x2715, 46>(s, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                AccountId acc = fixed.account_id;
-                AccountEmail email = fixed.email;
-                if (!e_mail_check(email))
-                    LOGIN_LOG("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - e-mail is invalid (account: %d, ip: %s)\n"_fmt,
-                            server[id].name, acc, ip);
-                else
-                {
-                    for (AuthData& ad : auth_data)
-                    {
-                        if (ad.account_id == acc
-                            && (ad.email == DEFAULT_EMAIL || !ad.email))
-                        {
-                            ad.email = email;
-                            LOGIN_LOG("Char-server '%s': Create an e-mail on an account with a default e-mail (account: %d, new e-mail: %s, ip: %s).\n"_fmt,
-                                    server[id].name, acc, email, ip);
-                            goto x2715_out;
-                        }
-                    }
-                    LOGIN_LOG("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - account doesn't exist or e-mail of account isn't default e-mail (account: %d, ip: %s).\n"_fmt,
-                            server[id].name, acc, ip);
-                }
-            x2715_out:
-                break;
-            }
                 // We receive an e-mail/limited time request, because a player comes back from a map-server to the char-server
             case 0x2716:
             {
