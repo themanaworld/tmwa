@@ -99,7 +99,7 @@ Map<SIR, RString> mapregstr_db;
 static
 int mapreg_dirty = -1;
 AString mapreg_txt = "save/mapreg.txt"_s;
-constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = std::chrono::seconds(10);
+constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = 10_s;
 
 Map<ScriptLabel, int> scriptlabel_db;
 static
@@ -3131,7 +3131,7 @@ void builtin_sc_start(ScriptState *st)
     int val1;
     StatusChange type = static_cast<StatusChange>(conv_num(st, &AARGO2(2)));
     interval_t tick = static_cast<interval_t>(conv_num(st, &AARGO2(3)));
-    if (tick < std::chrono::seconds(1))
+    if (tick < 1_s)
         // work around old behaviour of:
         // speed potion
         // atk potion
@@ -3307,7 +3307,7 @@ void builtin_pvpon(ScriptState *st)
             {
                 if (m == pl_sd->bl_m && !pl_sd->pvp_timer)
                 {
-                    pl_sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
+                    pl_sd->pvp_timer = Timer(gettick() + 200_ms,
                             std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
                                 pl_sd->bl_id));
                     pl_sd->pvp_rank = 0;

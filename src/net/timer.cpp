@@ -166,7 +166,7 @@ interval_t do_timer(tick_t tick)
 {
     /// Number of milliseconds until it calls this again
     // this says to wait 1 sec if all timers get popped
-    interval_t nextmin = std::chrono::seconds(1);
+    interval_t nextmin = 1_s;
 
     while (dumb_ptr<TimerData> td = top_timer_heap())
     {
@@ -186,7 +186,7 @@ interval_t do_timer(tick_t tick)
             td->owner->detach();
         // If we are too far past the requested tick, call with
         // the current tick instead to fix reregistration problems
-        if (td->tick + std::chrono::seconds(1) < tick)
+        if (td->tick + 1_s < tick)
             td->func(td.operator->(), tick);
         else
             td->func(td.operator->(), td->tick);
@@ -196,14 +196,14 @@ interval_t do_timer(tick_t tick)
             td.delete_();
             continue;
         }
-        if (td->tick + std::chrono::seconds(1) < tick)
+        if (td->tick + 1_s < tick)
             td->tick = tick + td->interval;
         else
             td->tick += td->interval;
         push_timer_heap(td);
     }
 
-    return std::max(nextmin, std::chrono::milliseconds(10));
+    return std::max(nextmin, 10_ms);
 }
 
 tick_t file_modified(ZString name)

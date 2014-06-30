@@ -90,11 +90,11 @@ Array<int, MAX_MAP_SERVERS> server_freezeflag;    // Map-server anti-freeze syst
 static
 int anti_freeze_enable = 0;
 static
-std::chrono::seconds anti_freeze_interval = std::chrono::seconds(6);
+std::chrono::seconds anti_freeze_interval = 6_s;
 
 constexpr
 std::chrono::milliseconds DEFAULT_AUTOSAVE_INTERVAL =
-        std::chrono::minutes(5);
+        5_min;
 
 static
 Session *login_session, *char_session;
@@ -3037,7 +3037,7 @@ bool char_config(XString w1, ZString w2)
         {
             anti_freeze_interval = std::max(
                     std::chrono::seconds(atoi(w2.c_str())),
-                    std::chrono::seconds(5));
+                    5_s);
         }
         else
         {
@@ -3130,13 +3130,13 @@ int do_init(Slice<ZString> argv)
 
     char_session = make_listen_port(char_port, SessionParsers{parse_char, delete_char});
 
-    Timer(gettick() + std::chrono::seconds(1),
+    Timer(gettick() + 1_s,
             check_connect_login_server,
-            std::chrono::seconds(10)
+            10_s
     ).detach();
-    Timer(gettick() + std::chrono::seconds(1),
+    Timer(gettick() + 1_s,
             send_users_tologin,
-            std::chrono::seconds(5)
+            5_s
     ).detach();
     Timer(gettick() + autosave_time,
             mmo_char_sync_timer,
@@ -3145,7 +3145,7 @@ int do_init(Slice<ZString> argv)
 
     if (anti_freeze_enable > 0)
     {
-        Timer(gettick() + std::chrono::seconds(1),
+        Timer(gettick() + 1_s,
                 map_anti_freeze_system,
                 anti_freeze_interval
         ).detach();

@@ -181,7 +181,7 @@ int npc_event_dequeue(dumb_ptr<map_session_data> sd)
 
     if (!sd->eventqueuel.empty())
     {
-        if (!pc_addeventtimer(sd, std::chrono::milliseconds(100), sd->eventqueuel.front()))
+        if (!pc_addeventtimer(sd, 100_ms, sd->eventqueuel.front()))
         {
             PRINTF("npc_event_dequeue(): Event timer is full.\n"_fmt);
             return 0;
@@ -318,9 +318,9 @@ int npc_event_do_oninit(void)
     int c = npc_event_doall(stringish<ScriptLabel>("OnInit"_s));
     PRINTF("npc: OnInit Event done. (%d npc)\n"_fmt, c);
 
-    Timer(gettick() + std::chrono::milliseconds(100),
+    Timer(gettick() + 100_ms,
             npc_event_do_clock,
-            std::chrono::seconds(1)
+            1_s
     ).detach();
 
     return 0;
@@ -1042,7 +1042,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
         nd->npc_class = WARP_CLASS;
     else
         nd->npc_class = WARP_DEBUG_CLASS;
-    nd->speed = std::chrono::milliseconds(200);
+    nd->speed = 200_ms;
     nd->option = Option::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
@@ -1157,7 +1157,7 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
     nd->flag = 0;
     nd->name = w3;
     nd->npc_class = npc_class;
-    nd->speed = std::chrono::milliseconds(200);
+    nd->speed = 200_ms;
     nd->option = Option::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
@@ -1338,7 +1338,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     nd->dir = dir;
     nd->flag = 0;
     nd->npc_class = npc_class;
-    nd->speed = std::chrono::milliseconds(200);
+    nd->speed = 200_ms;
     nd->scr.script = std::move(script);
     nd->option = Option::ZERO;
     nd->opt1 = Opt1::ZERO;
@@ -1620,7 +1620,7 @@ dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
         retval->message = message;
 
     retval->npc_class = npc_class;
-    retval->speed = std::chrono::milliseconds(200);
+    retval->speed = 200_ms;
 
     clif_spawnnpc(retval);
     map_addblock(retval);

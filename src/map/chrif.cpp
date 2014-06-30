@@ -1322,13 +1322,13 @@ void check_connect_char_server(TimerData *, tick_t)
  */
 void do_init_chrif(void)
 {
-    Timer(gettick() + std::chrono::seconds(1),
+    Timer(gettick() + 1_s,
             check_connect_char_server,
-            std::chrono::seconds(10)
+            10_s
     ).detach();
-    Timer(gettick() + std::chrono::seconds(1),
+    Timer(gettick() + 1_s,
             send_users_tochar,
-            std::chrono::seconds(5)
+            5_s
     ).detach();
 }
 } // namespace tmwa

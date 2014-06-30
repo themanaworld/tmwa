@@ -1613,7 +1613,7 @@ ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
             {
                 if (sd->bl_m == pl_sd->bl_m && !pl_sd->pvp_timer)
                 {
-                    pl_sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
+                    pl_sd->pvp_timer = Timer(gettick() + 200_ms,
                             std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl_id));
                     pl_sd->pvp_rank = 0;
                     pl_sd->pvp_lastusers = 0;
@@ -4403,7 +4403,7 @@ ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
         md->master_id = sd->bl_id;
         md->state.special_mob_ai = 1;
         md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
-        md->deletetimer = Timer(tick + std::chrono::minutes(1),
+        md->deletetimer = Timer(tick + 1_min,
                 std::bind(mob_timer_delete, ph::_1, ph::_2,
                     id));
         clif_misceffect(md, 344);

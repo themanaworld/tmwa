@@ -133,7 +133,7 @@ int save_unknown_packets = 0;
 static
 tick_t creation_time_GM_account_file;
 static
-std::chrono::seconds gm_account_filename_check_timer = std::chrono::seconds(15);
+std::chrono::seconds gm_account_filename_check_timer = 15_s;
 
 static
 int display_parse_login = 0;   // 0: no, 1: yes
@@ -151,7 +151,7 @@ Array<int, MAX_SERVERS> server_freezeflag;    // Char-server anti-freeze system.
 static
 int anti_freeze_enable = 0;
 static
-std::chrono::seconds anti_freeze_interval = std::chrono::seconds(15);
+std::chrono::seconds anti_freeze_interval = 15_s;
 
 static
 Session *login_session;
@@ -3489,7 +3489,7 @@ bool login_config(XString w1, ZString w2)
         {
             anti_freeze_interval = std::max(
                     std::chrono::seconds(atoi(w2.c_str())),
-                    std::chrono::seconds(5));
+                    5_s);
         }
         else if (w1 == "update_host"_s)
         {
@@ -3574,14 +3574,14 @@ bool display_conf_warnings(void)
     {
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n"_fmt);
         PRINTF("            -> set to 15 sec (default).\n"_fmt);
-        gm_account_filename_check_timer = std::chrono::seconds(15);
+        gm_account_filename_check_timer = 15_s;
         rv = false;
     }
-    else if (gm_account_filename_check_timer == std::chrono::seconds(1))
+    else if (gm_account_filename_check_timer == 1_s)
     {
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n"_fmt);
         PRINTF("            -> set to 2 sec (minimum value).\n"_fmt);
-        gm_account_filename_check_timer = std::chrono::seconds(2);
+        gm_account_filename_check_timer = 2_s;
         rv = false;
     }
 
@@ -3939,14 +3939,14 @@ int do_init(Slice<ZString> argv)
     login_session = make_listen_port(login_port, SessionParsers{.func_parse= parse_login, .func_delete= delete_login});
 
 
-    Timer(gettick() + std::chrono::minutes(5),
+    Timer(gettick() + 5_min,
             check_auth_sync,
-            std::chrono::minutes(5)
+            5_min
     ).detach();
 
     if (anti_freeze_enable > 0)
     {
-        Timer(gettick() + std::chrono::seconds(1),
+        Timer(gettick() + 1_s,
                 char_anti_freeze_system,
                 anti_freeze_interval
         ).detach();
@@ -3955,7 +3955,7 @@ int do_init(Slice<ZString> argv)
     // add timer to check GM accounts file modification
     std::chrono::seconds j = gm_account_filename_check_timer;
     if (j == interval_t::zero())
-        j = std::chrono::minutes(1);
+        j = 1_min;
     Timer(gettick() + j,
             check_GM_file,
             j).detach();

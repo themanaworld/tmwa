@@ -712,16 +712,16 @@ int battle_get_mdef2(dumb_ptr<block_list> bl)
  */
 interval_t battle_get_speed(dumb_ptr<block_list> bl)
 {
-    nullpo_retr(std::chrono::seconds(1), bl);
+    nullpo_retr(1_s, bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->speed;
     else
     {
-        interval_t speed = std::chrono::seconds(1);
+        interval_t speed = 1_s;
         if (bl->bl_type == BL::MOB)
             speed = static_cast<interval_t>(bl->is_mob()->stats[mob_stat::SPEED]);
 
-        return std::max(speed, std::chrono::milliseconds(1));
+        return std::max(speed, 1_ms);
     }
 }
 
@@ -733,13 +733,13 @@ interval_t battle_get_speed(dumb_ptr<block_list> bl)
 // TODO figure out what all the doubling is about
 interval_t battle_get_adelay(dumb_ptr<block_list> bl)
 {
-    nullpo_retr(std::chrono::seconds(4), bl);
+    nullpo_retr(4_s, bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->aspd * 2;
     else
     {
         eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data = battle_get_sc_data(bl);
-        interval_t adelay = std::chrono::seconds(4);
+        interval_t adelay = 4_s;
         int aspd_rate = 100;
         if (bl->bl_type == BL::MOB)
             adelay = static_cast<interval_t>(bl->is_mob()->stats[mob_stat::ADELAY]);
@@ -761,13 +761,13 @@ interval_t battle_get_adelay(dumb_ptr<block_list> bl)
 
 interval_t battle_get_amotion(dumb_ptr<block_list> bl)
 {
-    nullpo_retr(std::chrono::seconds(2), bl);
+    nullpo_retr(2_s, bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->amotion;
     else
     {
         eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data = battle_get_sc_data(bl);
-        interval_t amotion = std::chrono::seconds(2);
+        interval_t amotion = 2_s;
         int aspd_rate = 100;
         if (bl->bl_type == BL::MOB)
             amotion = static_cast<interval_t>(get_mob_db(bl->is_mob()->mob_class).amotion);
@@ -798,7 +798,7 @@ interval_t battle_get_dmotion(dumb_ptr<block_list> bl)
         return bl->is_player()->dmotion;
     }
     else
-        return std::chrono::seconds(2);
+        return 2_s;
 }
 
 LevelElement battle_get_element(dumb_ptr<block_list> bl)
@@ -2052,7 +2052,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                     && (sd->status.weapon == ItemLook::_16
                         || sd->status.weapon >= ItemLook::SINGLE_HANDED_COUNT)
                     && wd.damage2 == 0)
-                clif_damage(src, target, tick + std::chrono::milliseconds(10),
+                clif_damage(src, target, tick + 10_ms,
                         wd.amotion, wd.dmotion, 0, 1, DamageType::NORMAL, 0);
         }
 
@@ -2580,7 +2580,7 @@ bool battle_config_read(ZString cfgName)
 void battle_config_check()
 {
     {
-        if (static_cast<interval_t>(battle_config.flooritem_lifetime) < std::chrono::seconds(1))
+        if (static_cast<interval_t>(battle_config.flooritem_lifetime) < 1_s)
             battle_config.flooritem_lifetime = std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
         if (battle_config.restart_hp_rate < 0)
             battle_config.restart_hp_rate = 0;

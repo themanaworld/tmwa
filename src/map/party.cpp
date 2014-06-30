@@ -46,7 +46,7 @@
 namespace tmwa
 {
 // 座標やＨＰ送信の間隔
-constexpr interval_t PARTY_SEND_XYHP_INVERVAL = std::chrono::seconds(1);
+constexpr interval_t PARTY_SEND_XYHP_INVERVAL = 1_s;
 
 static
 Map<PartyId, PartyMost> party_db;

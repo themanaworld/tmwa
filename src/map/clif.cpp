@@ -1139,7 +1139,7 @@ void clif_waitclose(TimerData *, tick_t, Session *s)
  */
 void clif_setwaitclose(Session *s)
 {
-    s->timed_close = Timer(gettick() + std::chrono::seconds(5),
+    s->timed_close = Timer(gettick() + 5_s,
             std::bind(clif_waitclose, ph::_1, ph::_2,
                 s)
     );
@@ -3457,7 +3457,7 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
         if (!battle_config.pk_mode)
         {
             // remove pvp stuff for pk_mode [Valaris]
-            sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
+            sd->pvp_timer = Timer(gettick() + 200_ms,
                     std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
                         sd->bl_id));
             sd->pvp_rank = 0;
@@ -3587,7 +3587,7 @@ void clif_do_quit_game(Session *s, dumb_ptr<map_session_data> sd)
 
     /*  Rovert's prevent logout option fixed [Valaris]  */
     if (!battle_config.prevent_logout
-        || tick >= sd->canlog_tick + std::chrono::seconds(10))
+        || tick >= sd->canlog_tick + 10_s)
     {
         clif_setwaitclose(s);
         fixed_18b.okay = 0;
@@ -3966,7 +3966,7 @@ RecvResult clif_parse_Restart(Session *s, dumb_ptr<map_session_data> sd)
         case 0x01:
             /*  Rovert's Prevent logout option - Fixed [Valaris]    */
             if (!battle_config.prevent_logout
-                || gettick() >= sd->canlog_tick + std::chrono::seconds(10))
+                || gettick() >= sd->canlog_tick + 10_s)
             {
                 chrif_charselectreq(sd);
             }
@@ -5398,7 +5398,7 @@ uint16_t clif_check_packet_flood(Session *s, int cmd)
     // Default rate is 100ms
     interval_t rate = clif_parse_func_table[cmd].rate;
     if (rate == interval_t::zero())
-        rate = std::chrono::milliseconds(100);
+        rate = 100_ms;
 
     // ActionRequest - attacks are allowed a faster rate than sit/stand
     if (cmd == 0x89)
@@ -5413,9 +5413,9 @@ uint16_t clif_check_packet_flood(Session *s, int cmd)
             return 0;
         }
         if (damage_type == DamageType::NORMAL || damage_type == DamageType::CONTINUOUS)
-            rate = std::chrono::milliseconds(20);
+            rate = 20_ms;
         else
-            rate = std::chrono::seconds(1);
+            rate = 1_s;
     }
 
     // Restore this code when mana1.0 is released

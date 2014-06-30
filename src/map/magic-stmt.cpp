@@ -305,7 +305,7 @@ dumb_ptr<npc_data> local_spell_effect(map_local *m, int x, int y, int effect,
         interval_t tdelay)
 {
     /* 1 minute should be enough for all interesting spell effects, I hope */
-    std::chrono::seconds delay = std::chrono::seconds(30);
+    std::chrono::seconds delay = 30_s;
     dumb_ptr<npc_data> effect_npc = npc_spawn_text(m, x, y,
             INVISIBLE_NPC, NpcName(), "?"_s);
     BlockId effect_npc_id = effect_npc->bl_id;

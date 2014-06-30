@@ -59,7 +59,7 @@
 
 namespace tmwa
 {
-constexpr interval_t MIN_MOBTHINKTIME = std::chrono::milliseconds(100);
+constexpr interval_t MIN_MOBTHINKTIME = 100_ms;
 
 // Move probability in the negligent mode MOB (rate of 1000 minute)
 constexpr random_::Fraction MOB_LAZYMOVEPERC {50, 1000};
@@ -672,7 +672,7 @@ int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
     {
         i = i / 2;
         if (md->walkpath.path_half == 0)
-            i = std::max(i, std::chrono::milliseconds(1));
+            i = std::max(i, 1_ms);
         md->timer = Timer(tick + i,
                 std::bind(mob_timer, ph::_1, ph::_2,
                     md->bl_id, md->walkpath.path_pos));
@@ -879,7 +879,7 @@ int mob_changestate(dumb_ptr<mob_data> md, MS state, bool type)
         {
             tick_t tick = gettick();
             interval_t i = md->attackabletime - tick;
-            if (i > interval_t::zero() && i < std::chrono::seconds(2))
+            if (i > interval_t::zero() && i < 2_s)
                 md->timer = Timer(md->attackabletime,
                         std::bind(mob_timer, ph::_1, ph::_2,
                             md->bl_id, 0));
@@ -892,7 +892,7 @@ int mob_changestate(dumb_ptr<mob_data> md, MS state, bool type)
             }
             else
             {
-                md->attackabletime = tick + std::chrono::milliseconds(1);
+                md->attackabletime = tick + 1_ms;
                 md->timer = Timer(md->attackabletime,
                         std::bind(mob_timer, ph::_1, ph::_2,
                             md->bl_id, 0));
@@ -1058,7 +1058,7 @@ int mob_setdelayspawn(BlockId id)
 
     tick_t spawntime1 = md->last_spawntime + md->spawn.delay1;
     tick_t spawntime2 = md->last_deadtime + md->spawn.delay2;
-    tick_t spawntime3 = gettick() + std::chrono::seconds(5);
+    tick_t spawntime3 = gettick() + 5_s;
     tick_t spawntime = std::max({spawntime1, spawntime2, spawntime3});
 
     Timer(spawntime,
@@ -1121,7 +1121,7 @@ int mob_spawn(BlockId id)
 
         if (i >= 50)
         {
-            Timer(tick + std::chrono::seconds(5),
+            Timer(tick + 5_s,
                     std::bind(mob_delayspawn, ph::_1, ph::_2,
                         id)
             ).detach();
@@ -1151,7 +1151,7 @@ int mob_spawn(BlockId id)
     md->state.skillstate = MobSkillState::MSS_IDLE;
     assert (!md->timer);
     md->last_thinktime = tick;
-    md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(random_::to(50));
+    md->next_walktime = tick + 5_s + std::chrono::milliseconds(random_::to(50));
     md->attackabletime = tick;
     md->canmove_tick = tick;
 
@@ -1160,7 +1160,7 @@ int mob_spawn(BlockId id)
     // md->skilltimer = nullptr;
     md->skilldelayup = make_unique<tick_t[]>(get_mob_db(md->mob_class).skills.size());
     for (size_t i = 0; i < get_mob_db(md->mob_class).skills.size(); i++)
-        md->skilldelayup[i] = tick - std::chrono::hours(10);
+        md->skilldelayup[i] = tick - 10_h;
     md->skillid = SkillID();
     md->skilllv = 0;
 
@@ -1640,7 +1640,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
             while (ret && i < 10);
         }
 
-        md->next_walktime = tick + std::chrono::milliseconds(500);
+        md->next_walktime = tick + 500_ms;
         md->state.master_check = 1;
     }
 
@@ -1684,7 +1684,7 @@ int mob_unlocktarget(dumb_ptr<mob_data> md, tick_t tick)
     md->target_id = BlockId();
     md->state.attackable = false;
     md->state.skillstate = MobSkillState::MSS_IDLE;
-    md->next_walktime = tick + std::chrono::seconds(3) + std::chrono::milliseconds(random_::to(3000));
+    md->next_walktime = tick + 3_s + std::chrono::milliseconds(random_::to(3000));
     return 0;
 }
 
@@ -1738,7 +1738,7 @@ int mob_randomwalk(dumb_ptr<mob_data> md, tick_t tick)
             else
                 c += speed;
         }
-        md->next_walktime = tick + std::chrono::seconds(3) + std::chrono::milliseconds(random_::to(3000)) + c;
+        md->next_walktime = tick + 3_s + std::chrono::milliseconds(random_::to(3000)) + c;
         md->state.skillstate = MobSkillState::MSS_WALK;
         return 1;
     }
@@ -1919,7 +1919,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     else
                     {
                         // 追跡
-                        md->next_walktime = tick + std::chrono::milliseconds(500);
+                        md->next_walktime = tick + 500_ms;
                         i = 0;
                         do
                         {
@@ -2003,7 +2003,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                         && (md->next_walktime < tick
                             || distance(md->to_x, md->to_y, tbl->bl_x, tbl->bl_y) <= 0))
                         return;   // 既に移動中
-                    md->next_walktime = tick + std::chrono::milliseconds(500);
+                    md->next_walktime = tick + 500_ms;
                     dx = tbl->bl_x - md->bl_x;
                     dy = tbl->bl_y - md->bl_y;
                     ret = mob_walktoxy(md, md->bl_x + dx, md->bl_y + dy, 0);
@@ -2045,11 +2045,11 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     {
         // if walktime is more than 7 seconds in the future,
         // set it to somewhere between 3 and 5 seconds
-        if (md->next_walktime > tick + std::chrono::seconds(7)
+        if (md->next_walktime > tick + 7_s
             && (md->walkpath.path_len == 0
                 || md->walkpath.path_pos >= md->walkpath.path_len))
         {
-            md->next_walktime = tick + std::chrono::seconds(3)
+            md->next_walktime = tick + 3_s
                 + std::chrono::milliseconds(random_::to(2000));
         }
 
@@ -2148,7 +2148,7 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
                 mob_warp(md, nullptr, -1, -1, BeingRemoveWhy::NEGATIVE1);
         }
 
-        md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(random_::to(10 * 1000));
+        md->next_walktime = tick + 5_s + std::chrono::milliseconds(random_::to(10 * 1000));
     }
 }
 
@@ -2640,7 +2640,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 ditem.first_sd = mvp_sd;
                 ditem.second_sd = second_sd;
                 ditem.third_sd = third_sd;
-                Timer(tick + std::chrono::milliseconds(500) + static_cast<interval_t>(i),
+                Timer(tick + 500_ms + static_cast<interval_t>(i),
                         std::bind(mob_delay_item_drop, ph::_1, ph::_2,
                             ditem)
                 ).detach();
@@ -2658,7 +2658,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                     ditem.second_sd = second_sd;
                     ditem.third_sd = third_sd;
                     // ?
-                    Timer(tick + std::chrono::milliseconds(540) + static_cast<interval_t>(i),
+                    Timer(tick + 540_ms + static_cast<interval_t>(i),
                             std::bind(mob_delay_item_drop2, ph::_1, ph::_2,
                                 ditem)
                     ).detach();

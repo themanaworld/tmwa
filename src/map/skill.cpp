@@ -883,7 +883,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
                             md->hp -= hp;
                         }
                     }
-                    sc_data[type].timer = Timer(tick + std::chrono::seconds(1),
+                    sc_data[type].timer = Timer(tick + 1_s,
                             std::bind(skill_status_change_timer, ph::_1, ph::_2,
                                 bl->bl_id, type));
                     return;
@@ -891,7 +891,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
             }
             else
             {
-                sc_data[type].timer = Timer(tick + std::chrono::seconds(2),
+                sc_data[type].timer = Timer(tick + 2_s,
                         std::bind(skill_status_change_timer, ph::_1, ph::_2,
                             bl->bl_id, type));
                 return;
@@ -903,7 +903,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
             /* 時間切れ無し？？ */
         case StatusChange::SC_WEIGHT50:
         case StatusChange::SC_WEIGHT90:
-            sc_data[type].timer = Timer(tick + std::chrono::minutes(10),
+            sc_data[type].timer = Timer(tick + 10_min,
                     std::bind(skill_status_change_timer, ph::_1, ph::_2,
                         bl->bl_id, type));
             return;
@@ -1029,12 +1029,12 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
             }
 
             // huh?
-            tick = std::chrono::seconds(1);
+            tick = 1_s;
             break;
 
         case StatusChange::SC_WEIGHT50:
         case StatusChange::SC_WEIGHT90:
-            tick = std::chrono::minutes(10);
+            tick = 10_min;
             break;
 
         case StatusChange::SC_HASTE:

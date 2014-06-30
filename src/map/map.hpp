@@ -57,16 +57,16 @@ namespace tmwa
 constexpr int MAX_NPC_PER_MAP = 512;
 constexpr int BLOCK_SIZE = 8;
 #define AREA_SIZE battle_config.area_size
-constexpr std::chrono::seconds LIFETIME_FLOORITEM = std::chrono::minutes(1);
+constexpr std::chrono::seconds LIFETIME_FLOORITEM = 1_min;
 constexpr int MAX_SKILL_LEVEL = 100;
 constexpr int MAX_EVENTTIMER = 32;
-constexpr interval_t NATURAL_HEAL_INTERVAL = std::chrono::milliseconds(500);
+constexpr interval_t NATURAL_HEAL_INTERVAL = 500_ms;
 constexpr BlockId MAX_FLOORITEM = wrap<BlockId>(500000_u32);
 constexpr int MAX_LEVEL = 255;
 constexpr int MAX_WALKPATH = 48;
 constexpr int MAX_DROP_PER_MAP = 48;
 
-constexpr interval_t DEFAULT_AUTOSAVE_INTERVAL = std::chrono::minutes(1);
+constexpr interval_t DEFAULT_AUTOSAVE_INTERVAL = 1_min;
 
 // formerly VString<49>, as name::label
 struct NpcEvent

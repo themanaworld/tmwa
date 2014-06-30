@@ -68,7 +68,7 @@ namespace tmwa
 {
 // PVP順位計算の間隔
 constexpr std::chrono::milliseconds PVP_CALCRANK_INTERVAL =
-        std::chrono::seconds(1);
+        1_s;
 
 //define it here, since the ifdef only occurs in this file
 #define USE_ASTRAL_SOUL_SKILL
@@ -121,23 +121,23 @@ int sp_coefficient_0 = 100;
 static //const
 earray<interval_t, ItemLook, ItemLook::SINGLE_HANDED_COUNT> aspd_base_0 //=
 {{
-std::chrono::milliseconds(650),
-std::chrono::milliseconds(700),
-std::chrono::milliseconds(750),
-std::chrono::milliseconds(600),
-std::chrono::milliseconds(2000),
-std::chrono::milliseconds(2000),
-std::chrono::milliseconds(800),
-std::chrono::milliseconds(2000),
-std::chrono::milliseconds(700),
-std::chrono::milliseconds(700),
-std::chrono::milliseconds(650),
-std::chrono::milliseconds(900),
-std::chrono::milliseconds(2000),
-std::chrono::milliseconds(2000),
-std::chrono::milliseconds(2000),
-std::chrono::milliseconds(2000),
-std::chrono::milliseconds(2000),
+650_ms,
+700_ms,
+750_ms,
+600_ms,
+2000_ms,
+2000_ms,
+800_ms,
+2000_ms,
+700_ms,
+700_ms,
+650_ms,
+900_ms,
+2000_ms,
+2000_ms,
+2000_ms,
+2000_ms,
+2000_ms,
 }};
 static const
 int exp_table_0[MAX_LEVEL] =
@@ -1393,7 +1393,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     if (sd->speed_rate != 100)
         sd->speed = sd->speed * sd->speed_rate / 100;
-    sd->speed = std::max(sd->speed, std::chrono::milliseconds(1));
+    sd->speed = std::max(sd->speed, 1_ms);
     if (aspd_rate != 100)
         sd->aspd = sd->aspd * aspd_rate / 100;
 
@@ -1403,7 +1403,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->aspd = std::max(sd->aspd, static_cast<interval_t>(battle_config.max_aspd));
     sd->amotion = sd->aspd;
     sd->dmotion = std::chrono::milliseconds(800 - sd->paramc[ATTR::AGI] * 4);
-    sd->dmotion = std::max(sd->dmotion, std::chrono::milliseconds(400));
+    sd->dmotion = std::max(sd->dmotion, 400_ms);
 
     if (sd->status.hp > sd->status.max_hp)
         sd->status.hp = sd->status.max_hp;
@@ -2528,7 +2528,7 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
     {
         i = i / 2;
         if (sd->walkpath.path_half == 0)
-            i = std::max(i, std::chrono::milliseconds(1));
+            i = std::max(i, 1_ms);
 
         sd->walktimer = Timer(tick + i,
                 std::bind(pc_walk, ph::_1, ph::_2,
@@ -2864,7 +2864,7 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
     sd->state.attack_continue = type;
 
     interval_t d = sd->attackabletime - gettick();
-    if (d > interval_t::zero() && d < std::chrono::seconds(2))
+    if (d > interval_t::zero() && d < 2_s)
     {                           // 攻撃delay中
         sd->attacktimer = Timer(sd->attackabletime,
                 std::bind(pc_attack_timer, ph::_1, ph::_2,
@@ -5173,7 +5173,7 @@ void pc_autosave(TimerData *, tick_t)
 
     interval_t interval = autosave_time / (clif_countusers() + 1);
     if (interval <= interval_t::zero())
-        interval = std::chrono::milliseconds(1);
+        interval = 1_ms;
     Timer(gettick() + interval,
             pc_autosave
     ).detach();
