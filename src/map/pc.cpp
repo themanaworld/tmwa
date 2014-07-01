@@ -3422,6 +3422,8 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     if (damage > sd->status.max_hp >> 2)
         skill_stop_dancing(sd, 0);
 
+    if (damage > sd->status.hp)
+        damage = sd->status.hp;
     sd->status.hp -= damage;
 
     if (sd->status.hp > 0)
@@ -3779,6 +3781,8 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
         hp = sd->status.max_hp - sd->status.hp;
     if (sp + sd->status.sp > sd->status.max_sp)
         sp = sd->status.max_sp - sd->status.sp;
+    if (-hp >= sd->status.hp)
+        hp = -sd->status.hp;
     sd->status.hp += hp;
     if (sd->status.hp <= 0)
     {
@@ -3786,6 +3790,8 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
         pc_damage(nullptr, sd, 1);
         hp = 0;
     }
+    if (-sp >= sd->status.sp)
+        sp = sd->status.sp;
     sd->status.sp += sp;
     if (sd->status.sp <= 0)
         sd->status.sp = 0;
@@ -3907,6 +3913,8 @@ int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp)
         hp = sd->status.max_hp - sd->status.hp;
     if (sp + sd->status.sp > sd->status.max_sp)
         sp = sd->status.max_sp - sd->status.sp;
+    if (-hp > sd->status.hp)
+        hp = -sd->status.hp;
     sd->status.hp += hp;
     if (sd->status.hp <= 0)
     {
@@ -4755,9 +4763,11 @@ void pc_calc_pvprank_timer(TimerData *, tick_t, BlockId id)
         return;
     sd->pvp_timer.cancel();
     if (pc_calc_pvprank(sd) > 0)
+    {
         sd->pvp_timer = Timer(gettick() + PVP_CALCRANK_INTERVAL,
                 std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
                     id));
+    }
 }
 
 /*==========================================

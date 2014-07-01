@@ -919,12 +919,16 @@ int op_drop_item_for (dumb_ptr<env_t>, Slice<val_t> args)
     GET_ARG_ITEM(1, item, stackable);
 
     if (stackable)
+    {
         map_addflooritem_any(&item, count, loc->m, loc->x, loc->y,
                 owners, delaytime, interval, 0);
+    }
     else
+    {
         while (count-- > 0)
             map_addflooritem_any(&item, 1, loc->m, loc->x, loc->y,
                     owners, delaytime, interval, 0);
+    }
 
     return 0;
 }

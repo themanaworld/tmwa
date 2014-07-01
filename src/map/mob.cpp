@@ -272,12 +272,16 @@ void mob_mutate(dumb_ptr<mob_data> md, mob_stat stat, int intensity)
         int real_intensity2 = (((new_stat - old_stat) << 8) / mut_base);
 
         if (real_intensity < 0)
+        {
             if (real_intensity2 > real_intensity)
                 real_intensity = real_intensity2;
+        }
 
         if (real_intensity > 0)
+        {
             if (real_intensity2 < real_intensity)
                 real_intensity = real_intensity2;
+        }
     }
 
     real_intensity *= sign;
@@ -2456,6 +2460,9 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             ;
         }
     }
+
+    if (damage > md->hp)
+        damage = md->hp;
 
     md->hp -= damage;
 
