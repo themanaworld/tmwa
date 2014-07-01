@@ -62,10 +62,12 @@ sigfunc compat_signal(int signo, sigfunc func)
     sact.sa_flags = 0;
 
     if (sigaction(signo, &sact, &oact) < 0)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
+    {
+        DIAG_PUSH();
+        DIAG_I(old_style_cast);
         return SIG_ERR;
-#pragma GCC diagnostic pop
+        DIAG_POP();
+    }
 
     return oact.sa_handler;
 }
@@ -82,10 +84,12 @@ static
 void sig_proc(int)
 {
     for (int i = 1; i < 31; ++i)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
+    {
+        DIAG_PUSH();
+        DIAG_I(old_style_cast);
         compat_signal(i, SIG_IGN);
-#pragma GCC diagnostic pop
+        DIAG_POP();
+    }
     runflag = false;
 }
 
@@ -117,24 +121,24 @@ int main(int argc, char **argv)
     // set up exit handlers *after* the initialization has happened.
     // This is because term_func is likely to depend on successful init.
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
+    DIAG_PUSH();
+    DIAG_I(old_style_cast);
     compat_signal(SIGPIPE, SIG_IGN);
-#pragma GCC diagnostic pop
+    DIAG_POP();
     compat_signal(SIGTERM, sig_proc);
     compat_signal(SIGINT, sig_proc);
     compat_signal(SIGCHLD, chld_proc);
 
     // Signal to create coredumps by system when necessary (crash)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+    DIAG_PUSH();
+    DIAG_I(old_style_cast);
+    DIAG_I(zero_as_null_pointer_constant);
     compat_signal(SIGSEGV, SIG_DFL);
     compat_signal(SIGBUS, SIG_DFL);
     compat_signal(SIGTRAP, SIG_DFL);
     compat_signal(SIGILL, SIG_DFL);
     compat_signal(SIGFPE, SIG_DFL);
-#pragma GCC diagnostic pop
+    DIAG_POP();
 
     atexit(term_func);
 

@@ -27,8 +27,8 @@ namespace tmwa
 {
 namespace ints
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
+    DIAG_PUSH();
+    DIAG_I(type_limits);
     template<class T, class U>
     T saturate(const U& v)
     {
@@ -62,7 +62,7 @@ namespace ints
             return v;
         }
     }
-#pragma GCC diagnostic pop
+    DIAG_POP();
 } // namespace ints
 
 using ints::saturate;

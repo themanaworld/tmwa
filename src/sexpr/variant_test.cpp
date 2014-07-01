@@ -27,8 +27,6 @@
 
 namespace tmwa
 {
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
-
     struct Tracker
     {
         int id, moves, copies;

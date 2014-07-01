@@ -29,8 +29,6 @@
 
 namespace tmwa
 {
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
-
 TEST(iterpair, strings)
 {
     IteratorPair<ValueIterator<char>> pair = value_range('0', ':');

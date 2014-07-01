@@ -137,24 +137,24 @@ namespace io
         }
         void clr(FD fd)
         {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
+            DIAG_PUSH();
+            DIAG_I(old_style_cast);
             FD_CLR(fd.uncast_dammit(), &fds);
-#pragma GCC diagnostic pop
+            DIAG_POP();
         }
         bool isset(FD fd)
         {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
+            DIAG_PUSH();
+            DIAG_I(old_style_cast);
             return FD_ISSET(fd.uncast_dammit(), &fds);
-#pragma GCC diagnostic pop
+            DIAG_POP();
         }
         void set(FD fd)
         {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
+            DIAG_PUSH();
+            DIAG_I(old_style_cast);
             FD_SET(fd.uncast_dammit(), &fds);
-#pragma GCC diagnostic pop
+            DIAG_POP();
         }
 
         static

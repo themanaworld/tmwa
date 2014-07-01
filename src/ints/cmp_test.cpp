@@ -27,8 +27,6 @@
 
 namespace tmwa
 {
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
-
 // Google Test is *really* slow to compile this file
 #undef EXPECT_EQ
 #define EXPECT_EQ(a, b) assert(a == b)

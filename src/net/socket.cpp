@@ -55,11 +55,11 @@ const uint32_t RFIFO_SIZE = 65536;
 static
 const uint32_t WFIFO_SIZE = 65536;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
+DIAG_PUSH();
+DIAG_I(old_style_cast);
 static
 std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
-#pragma GCC diagnostic pop
+DIAG_POP();
 
 Session::Session(SessionIO io, SessionParsers p)
 : created()
@@ -269,14 +269,12 @@ Session *make_listen_port(uint16_t port, SessionParsers inferior)
     fd.setsockopt(IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
 
     server_address.sin_family = AF_INET;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#if __GNUC__ > 4 || __GNUC_MINOR__ >= 8
-# pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
+    DIAG_PUSH();
+    DIAG_I(old_style_cast);
+    DIAG_I(useless_cast);
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
     server_address.sin_port = htons(port);
-#pragma GCC diagnostic pop
+    DIAG_POP();
 
     if (fd.bind(reinterpret_cast<struct sockaddr *>(&server_address),
               sizeof(server_address)) == -1)
@@ -330,13 +328,11 @@ Session *make_connection(IP4Address ip, uint16_t port, SessionParsers parsers)
 
     server_address.sin_family = AF_INET;
     server_address.sin_addr = in_addr(ip);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#if __GNUC__ > 4 || __GNUC_MINOR__ >= 8
-# pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
+    DIAG_PUSH();
+    DIAG_I(old_style_cast);
+    DIAG_I(useless_cast);
     server_address.sin_port = htons(port);
-#pragma GCC diagnostic pop
+    DIAG_POP();
 
     fd.fcntl(F_SETFL, O_NONBLOCK);
 

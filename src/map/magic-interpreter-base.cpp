@@ -46,8 +46,8 @@ void set_int_p(val_t *v, int i, TYPE t)
 }
 
 #warning "This code should die"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-macros"
+DIAG_PUSH();
+DIAG_I(unused_macros);
 
 #define set_int(v, i) set_int_p(v, i, TYPE::INT)
 #define set_dir(v, i) set_int_p(v, i, TYPE::DIR)
@@ -85,7 +85,7 @@ void set_spell SETTER(dumb_ptr<spell_t>, TYPE::SPELL, v_spell)
 #define set_env_invocation(v, x) setenv(set_invocation, v, x)
 #define set_env_spell(v, x) setenv(set_spell, v, x)
 
-#pragma GCC diagnostic pop
+DIAG_POP();
 
 magic_conf_t magic_conf;        /* Global magic conf */
 env_t magic_default_env = { &magic_conf, nullptr };

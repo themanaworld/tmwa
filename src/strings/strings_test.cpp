@@ -28,8 +28,6 @@
 
 namespace tmwa
 {
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
-
 template<typename T>
 class StringTest : public ::testing::Test
 {

@@ -131,11 +131,13 @@ namespace cxxstdio
         {}
         ~EnumConverter()
         {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
+            DIAG_PUSH();
+            DIAG_I(type_limits);
             if (min_value <= mid && mid <= max_value)
-#pragma GCC diagnostic pop
+            {
+                DIAG_POP();
                 out = E(mid);
+            }
         }
         U *operator &()
         {

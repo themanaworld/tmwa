@@ -178,13 +178,13 @@ int start_limited_time = -1;   // Starting additional sec from now for the limit
 static
 int check_ip_flag = 1;         // It's to check IP of a player between login-server and char-server (part of anti-hacking system)
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-noreturn"
+DIAG_PUSH();
+DIAG_I(missing_noreturn);
 void SessionDeleter::operator()(SessionData *)
 {
     assert(false && "login server does not have sessions anymore"_s);
 }
-#pragma GCC diagnostic pop
+DIAG_POP();
 
 constexpr int AUTH_FIFO_SIZE = 256;
 struct AuthFifo

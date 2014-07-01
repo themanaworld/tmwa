@@ -272,13 +272,13 @@ int list_type, list_count;  // parameter to display a list of accounts
 static
 int already_exit_function = 0; // sometimes, the exit function is called twice... so, don't log twice the message
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-noreturn"
+DIAG_PUSH();
+DIAG_I(missing_noreturn);
 void SessionDeleter::operator()(SessionData *)
 {
     assert(false && "ladmin does not have sessions"_s);
 }
-#pragma GCC diagnostic pop
+DIAG_POP();
 
 //------------------------------
 // Writing function of logs file

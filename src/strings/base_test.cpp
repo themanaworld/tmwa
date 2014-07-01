@@ -28,9 +28,6 @@
 #include "../poison.hpp"
 
 
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
-
-
 namespace tmwa
 {
 using namespace strings;

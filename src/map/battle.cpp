@@ -51,10 +51,10 @@ namespace tmwa
 {
 static Battle_Config init_battle_config();
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
+DIAG_PUSH();
+DIAG_I(shadow);
 struct Battle_Config battle_config = init_battle_config();
-#pragma GCC diagnostic pop
+DIAG_POP();
 
 /*==========================================
  * 自分をロックしている対象の数を返す(汎用)
@@ -2312,10 +2312,10 @@ int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 
 Battle_Config init_battle_config()
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
+    DIAG_PUSH();
+    DIAG_I(shadow);
     Battle_Config battle_config;
-#pragma GCC diagnostic pop
+    DIAG_POP();
     {
         battle_config.warp_point_debug = 0;
         battle_config.enemy_critical = 0;

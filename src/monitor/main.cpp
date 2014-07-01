@@ -140,10 +140,10 @@ pid_t start_process(ZString exec)
     }
     if (pid == 0)
     {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
+        DIAG_PUSH();
+        DIAG_I(cast_qual);
         execv(exec.c_str(), const_cast<char **>(args));
-#pragma GCC diagnostic pop
+        DIAG_POP();
         perror("Failed to exec");
         kill(getppid(), SIGABRT);
         exit(1);
@@ -161,11 +161,11 @@ void stop_process(int sig)
         kill(pid_login, sig);
     if (pid_char)
         kill(pid_char, sig);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+    DIAG_PUSH();
+    DIAG_I(old_style_cast);
+    DIAG_I(zero_as_null_pointer_constant);
     signal(sig, SIG_DFL);
-#pragma GCC diagnostic pop
+    DIAG_POP();
     raise(sig);
 }
 } // namespace tmwa

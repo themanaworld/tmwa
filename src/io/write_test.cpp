@@ -33,8 +33,6 @@
 
 namespace tmwa
 {
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
-
 static
 io::FD pipew(io::FD& rfd)
 {

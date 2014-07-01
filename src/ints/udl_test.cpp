@@ -27,10 +27,9 @@
 
 namespace tmwa
 {
-#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+DIAG_PUSH();
+DIAG_I(unused_variable);
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
 TEST(ints, smc)
 {
     {
@@ -476,7 +475,7 @@ TEST(ints, smc)
         //ints::SignedMagnitudeConstant<true, 0x10000000000000000> i;
     }
 }
-#pragma GCC diagnostic pop
+DIAG_POP();
 
 TEST(ints, constant)
 {

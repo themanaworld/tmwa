@@ -28,7 +28,7 @@ namespace sexpr
     struct Void
     {
         template<class T>
-        constexpr operator T() noexcept { return T(); }
+        constexpr operator T() const noexcept { return T(); }
         template<class T>
         void operator = (T&&) noexcept {}
         template<class T>
