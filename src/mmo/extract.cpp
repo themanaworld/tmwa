@@ -45,6 +45,13 @@ bool extract(XString str, AString *rv)
 
 bool extract(XString str, GlobalReg *var)
 {
+    // vars used to be stored signed
+    int compat_value;
+    if (extract(str, record<','>(&var->str, &compat_value)))
+    {
+        var->value = compat_value;
+        return true;
+    }
     return extract(str,
             record<','>(&var->str, &var->value));
 }
@@ -52,11 +59,12 @@ bool extract(XString str, GlobalReg *var)
 bool extract(XString str, Item *it)
 {
     XString ignored;
-    return extract(str,
+    XString corruption_hack_amount;
+    bool rv = extract(str,
             record<',', 11>(
                 &ignored,
                 &it->nameid,
-                &it->amount,
+                &corruption_hack_amount,
                 &it->equip,
                 &ignored,
                 &ignored,
@@ -66,6 +74,14 @@ bool extract(XString str, Item *it)
                 &ignored,
                 &ignored,
                 &ignored));
+    if (rv)
+    {
+        if (corruption_hack_amount == "-1"_s)
+            it->amount = 0;
+        else
+            rv = extract(corruption_hack_amount, &it->amount);
+    }
+    return rv;
 }
 
 bool extract(XString str, MapName *m)

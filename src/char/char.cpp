@@ -452,6 +452,7 @@ bool extract(XString str, CharPair *cp)
     XString unused_cart;
     std::vector<struct skill_loader> skills;
     std::vector<GlobalReg> vars;
+    XString hair_style;
     if (!extract(str,
                 record<'\t'>(
                     &k->char_id,
@@ -464,7 +465,7 @@ bool extract(XString str, CharPair *cp)
                     record<','>(&p->status_point, &p->skill_point),
                     record<','>(&p->option, &p->karma, &p->manner),
                     record<','>(&p->party_id, &unused_guild_id, &unused_pet_id),
-                    record<','>(&p->hair, &p->hair_color, &p->clothes_color),
+                    record<','>(&hair_style, &p->hair_color, &p->clothes_color),
                     record<','>(&p->weapon, &p->shield, &p->head_top, &p->head_mid, &p->head_bottom),
                     &p->last_point,
                     // somebody was silly and stuck partner id as a field
@@ -476,6 +477,14 @@ bool extract(XString str, CharPair *cp)
                     &unused_cart,
                     vrec<' '>(&skills),
                     vrec<' '>(&vars))))
+        return false;
+
+    // leftover corruption from Platinum
+    if (hair_style == "-1"_s)
+    {
+        p->hair = 0;
+    }
+    else if (!extract(hair_style, &p->hair))
         return false;
 
     if (wisp_server_name == k->name)
