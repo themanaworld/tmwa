@@ -598,16 +598,17 @@ int clif_clearchar(dumb_ptr<block_list> bl, BeingRemoveWhy type)
 
     Packet_Fixed<0x0080> fixed_80;
     fixed_80.block_id = bl->bl_id;
-    Buffer buf = create_fpacket<0x0080, 7>(fixed_80);
 
     if (type == BeingRemoveWhy::DISGUISE)
     {
         fixed_80.type = BeingRemoveWhy::GONE;
+        Buffer buf = create_fpacket<0x0080, 7>(fixed_80);
         clif_send(buf, bl, SendWho::AREA);
     }
     else
     {
         fixed_80.type = type;
+        Buffer buf = create_fpacket<0x0080, 7>(fixed_80);
         clif_send(buf, bl,
                    type == BeingRemoveWhy::DEAD ? SendWho::AREA : SendWho::AREA_WOS);
     }
