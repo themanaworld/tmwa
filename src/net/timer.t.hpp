@@ -35,25 +35,25 @@
 namespace tmwa
 {
 constexpr
-std::chrono::nanoseconds operator ""_ns(unsigned long long ns)
+std::chrono::nanoseconds operator "" _ns(unsigned long long ns)
 { return std::chrono::nanoseconds(ns); }
 constexpr
-std::chrono::microseconds operator ""_us(unsigned long long us)
+std::chrono::microseconds operator "" _us(unsigned long long us)
 { return std::chrono::microseconds(us); }
 constexpr
-std::chrono::milliseconds operator ""_ms(unsigned long long ms)
+std::chrono::milliseconds operator "" _ms(unsigned long long ms)
 { return std::chrono::milliseconds(ms); }
 constexpr
-std::chrono::seconds operator ""_s(unsigned long long s)
+std::chrono::seconds operator "" _s(unsigned long long s)
 { return std::chrono::seconds(s); }
 constexpr
-std::chrono::minutes operator ""_min(unsigned long long min)
+std::chrono::minutes operator "" _min(unsigned long long min)
 { return std::chrono::minutes(min); }
 constexpr
-std::chrono::hours operator ""_h(unsigned long long h)
+std::chrono::hours operator "" _h(unsigned long long h)
 { return std::chrono::hours(h); }
 constexpr
-std::chrono::duration<int, std::ratio<60*60*24>> operator ""_d(unsigned long long d)
+std::chrono::duration<int, std::ratio<60*60*24>> operator "" _d(unsigned long long d)
 { return std::chrono::duration<int, std::ratio<60*60*24>>(d); }
 
 /// An implementation of the C++ "clock" concept, exposing
