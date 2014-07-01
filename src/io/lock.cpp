@@ -39,7 +39,7 @@ namespace tmwa
 {
 /// number of backups to keep
 static
-const int backup_count = 10;
+const int backup_count = 9;
 
 /// Protected file writing
 /// (Until the file is closed, it keeps the old file)
