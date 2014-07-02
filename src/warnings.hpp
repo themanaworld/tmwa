@@ -23,11 +23,16 @@
 
 // just mention "fwd.hpp" to make formatter happy
 
-#include "warning_list.hpp"
+#include "diagnostics.hpp"
 
 
 namespace tmwa
 {
+PRAGMA(GCC diagnostic warning "-Wall");
+PRAGMA(GCC diagnostic warning "-Wextra");
+PRAGMA(GCC diagnostic warning "-Wunused");
+PRAGMA(GCC diagnostic warning "-Wformat");
+
 DIAG_E(abi);
 DIAG_W(abi_tag);
 DIAG_E(address);

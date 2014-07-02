@@ -48,7 +48,7 @@ script:
   - mkdir build
   - cd build
   - git init
-  - ../configure --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi6`
+  - ../configure --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi6` $EXTRA_CONFIGURE_ARGS
   - make -R -k -j2
   - make -R -k -j2 test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
 
@@ -90,6 +90,9 @@ matrix:
       env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7
     - compiler: gcc
       env: REAL_CC=gcc-4.8   REAL_CXX=g++-4.8     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.8
+
+    - compiler: gcc
+      env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7 EXTRA_CONFIGURE_ARGS=--disable-warnings
 
 # everything that was pushed to stable was already on 'master', except
 # the version change and some doc changes.

@@ -27,6 +27,8 @@
 
 #include "../generic/enum.hpp"
 
+#include "../diagnostics.hpp"
+
 
 namespace tmwa
 {

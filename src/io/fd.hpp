@@ -25,6 +25,8 @@
 
 #include "../strings/fwd.hpp"
 
+#include "../diagnostics.hpp"
+
 
 namespace tmwa
 {

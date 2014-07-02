@@ -1,5 +1,5 @@
 #pragma once
-//    warning_list.hpp - List of useful warnings.
+//    diagnostics.hpp - List of useful warnings and macros to control them.
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -58,11 +58,6 @@ namespace tmwa
 #else
 # define PRAGMA(x) static_assert(1, "pragmas not available, can't do: " #x)
 #endif
-
-PRAGMA(GCC diagnostic warning "-Wall");
-PRAGMA(GCC diagnostic warning "-Wextra");
-PRAGMA(GCC diagnostic warning "-Wunused");
-PRAGMA(GCC diagnostic warning "-Wformat");
 
 #define DIAG_E(tag) DO_DIAG_IF(HAS_DIAG_##tag)(error, DIAG_##tag)
 #define DIAG_W(tag) DO_DIAG_IF(HAS_DIAG_##tag)(warning, DIAG_##tag)

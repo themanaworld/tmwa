@@ -22,6 +22,8 @@
 
 #include <limits>
 
+#include "../diagnostics.hpp"
+
 
 namespace tmwa
 {

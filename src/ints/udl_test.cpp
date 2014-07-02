@@ -22,6 +22,7 @@
 
 #include "../compat/cast.hpp"
 
+#include "../diagnostics.hpp"
 #include "../poison.hpp"
 
 
