@@ -64,6 +64,7 @@ namespace ints
         uint8_t data[8];
     };
 
+
     inline __attribute__((warn_unused_result))
     bool native_to_network(Byte *net, uint8_t nat)
     {
@@ -125,6 +126,75 @@ namespace ints
     bool network_to_native(uint64_t *nat, Little64 net)
     {
         uint64_t tmp;
+        __builtin_memcpy(&tmp, &net, 8);
+        if (__BYTE_ORDER == __BIG_ENDIAN)
+            tmp = __builtin_bswap64(tmp);
+        *nat = tmp;
+        return true;
+    }
+
+
+    inline __attribute__((warn_unused_result))
+    bool native_to_network(Byte *net, int8_t nat)
+    {
+        net->value = nat;
+        return true;
+    }
+    inline __attribute__((warn_unused_result))
+    bool native_to_network(Little16 *net, int16_t nat)
+    {
+        if (__BYTE_ORDER == __BIG_ENDIAN)
+            nat = bswap16(nat);
+        __builtin_memcpy(net, &nat, 2);
+        return true;
+    }
+    inline __attribute__((warn_unused_result))
+    bool native_to_network(Little32 *net, int32_t nat)
+    {
+        if (__BYTE_ORDER == __BIG_ENDIAN)
+            nat = __builtin_bswap32(nat);
+        __builtin_memcpy(net, &nat, 4);
+        return true;
+    }
+    inline __attribute__((warn_unused_result))
+    bool native_to_network(Little64 *net, int64_t nat)
+    {
+        if (__BYTE_ORDER == __BIG_ENDIAN)
+            nat = __builtin_bswap64(nat);
+        __builtin_memcpy(net, &nat, 8);
+        return true;
+    }
+
+    inline __attribute__((warn_unused_result))
+    bool network_to_native(int8_t *nat, Byte net)
+    {
+        *nat = net.value;
+        return true;
+    }
+    inline __attribute__((warn_unused_result))
+    bool network_to_native(int16_t *nat, Little16 net)
+    {
+        int16_t tmp;
+        __builtin_memcpy(&tmp, &net, 2);
+        if (__BYTE_ORDER == __BIG_ENDIAN)
+            tmp = bswap16(tmp);
+        *nat = tmp;
+        return true;
+    }
+    inline __attribute__((warn_unused_result))
+    bool network_to_native(int32_t *nat, Little32 net)
+    {
+        int32_t tmp;
+        __builtin_memcpy(&tmp, &net, 4);
+        if (__BYTE_ORDER == __BIG_ENDIAN)
+            tmp = __builtin_bswap32(tmp);
+        *nat = tmp;
+        return true;
+    }
+    inline __attribute__((warn_unused_result))
+    bool network_to_native(int64_t *nat, Little64 net)
+    {
+        int64_t tmp;
         __builtin_memcpy(&tmp, &net, 8);
         if (__BYTE_ORDER == __BIG_ENDIAN)
             tmp = __builtin_bswap64(tmp);

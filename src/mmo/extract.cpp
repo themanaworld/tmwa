@@ -45,13 +45,6 @@ bool extract(XString str, AString *rv)
 
 bool extract(XString str, GlobalReg *var)
 {
-    // vars used to be stored signed
-    int compat_value;
-    if (extract(str, record<','>(&var->str, &compat_value)))
-    {
-        var->value = compat_value;
-        return true;
-    }
     return extract(str,
             record<','>(&var->str, &var->value));
 }

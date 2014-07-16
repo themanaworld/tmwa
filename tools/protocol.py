@@ -874,6 +874,10 @@ def main():
     uint16_t = cstdint.native('uint16_t')
     uint32_t = cstdint.native('uint32_t')
     uint64_t = cstdint.native('uint64_t')
+    int8_t = cstdint.native('int8_t')
+    int16_t = cstdint.native('int16_t')
+    int32_t = cstdint.native('int32_t')
+    int64_t = cstdint.native('int64_t')
 
     Byte = endians_h.neutral('Byte')
     Little16 = endians_h.network('Little16')
@@ -962,6 +966,10 @@ def main():
     u16 = ctx.provided(uint16_t, Little16)
     u32 = ctx.provided(uint32_t, Little32)
     u64 = ctx.provided(uint64_t, Little64)
+    i8 = ctx.provided(int8_t, Byte)
+    i16 = ctx.provided(int16_t, Little16)
+    i32 = ctx.provided(int32_t, Little32)
+    i64 = ctx.provided(int64_t, Little64)
 
     sex_char = ctx.provided(SEX, char)
 
@@ -1029,12 +1037,12 @@ def main():
     human_time_diff = ctx.partial_struct(
             HumanTimeDiff,
             [
-                ('year', u16),
-                ('month', u16),
-                ('day', u16),
-                ('hour', u16),
-                ('minute', u16),
-                ('second', u16),
+                ('year', i16),
+                ('month', i16),
+                ('day', i16),
+                ('hour', i16),
+                ('minute', i16),
+                ('second', i16),
             ]
     )
 
@@ -1129,7 +1137,7 @@ def main():
             'Item',
             [
                 at(None, item_name_id, 'nameid'),
-                at(None, u16, 'amount'),
+                at(None, i16, 'amount'),
                 at(None, epos, 'equip'),
             ],
             size=None,
@@ -1139,8 +1147,8 @@ def main():
             'Point',
             [
                 at(None, map_name, 'map_'),
-                at(None, u16, 'x'),
-                at(None, u16, 'y'),
+                at(None, i16, 'x'),
+                at(None, i16, 'y'),
             ],
             size=None,
             ctor=True,
@@ -1159,7 +1167,7 @@ def main():
             'GlobalReg',
             [
                 at(None, var_name, 'str'),
-                at(None, u32, 'value'),
+                at(None, i32, 'value'),
             ],
             size=None,
     )
@@ -1178,22 +1186,22 @@ def main():
             'CharData',
             [
                 at(None, char_id, 'partner id'),
-                at(None, u32, 'base exp'),
-                at(None, u32, 'job exp'),
-                at(None, u32, 'zeny'),
+                at(None, i32, 'base exp'),
+                at(None, i32, 'job exp'),
+                at(None, i32, 'zeny'),
                 at(None, species, 'species'),
-                at(None, u16, 'status point'),
-                at(None, u16, 'skill point'),
-                at(None, u32, 'hp'),
-                at(None, u32, 'max hp'),
-                at(None, u32, 'sp'),
-                at(None, u32, 'max sp'),
+                at(None, i16, 'status point'),
+                at(None, i16, 'skill point'),
+                at(None, i32, 'hp'),
+                at(None, i32, 'max hp'),
+                at(None, i32, 'sp'),
+                at(None, i32, 'max sp'),
                 at(None, option, 'option'),
-                at(None, u16, 'karma'),
-                at(None, u16, 'manner'),
-                at(None, u16, 'hair'),
-                at(None, u16, 'hair color'),
-                at(None, u16, 'clothes color'),
+                at(None, i16, 'karma'),
+                at(None, i16, 'manner'),
+                at(None, i16, 'hair'),
+                at(None, i16, 'hair color'),
+                at(None, i16, 'clothes color'),
                 at(None, party_id, 'party id'),
                 at(None, item_look, 'weapon'),
                 at(None, item_name_id, 'shield'),
@@ -1202,7 +1210,7 @@ def main():
                 at(None, item_name_id, 'head bottom'),
                 at(None, u8, 'base level'),
                 at(None, u8, 'job level'),
-                at(None, ctx.earray(u16, 'ATTR'), 'attrs'),
+                at(None, ctx.earray(i16, 'ATTR'), 'attrs'),
                 at(None, sex, 'sex'),
                 at(None, ip4, 'mapip'),
                 at(None, u16, 'mapport'),
@@ -1210,11 +1218,11 @@ def main():
                 at(None, point, 'save point'),
                 at(None, ctx.invarray(item, 'IOff0', 'MAX_INVENTORY'), 'inventory'),
                 at(None, ctx.earray(skill_value, 'SkillID', 'MAX_SKILL'), 'skill'),
-                at(None, u32, 'global reg num'),
+                at(None, i32, 'global reg num'),
                 at(None, ctx.array(global_reg, 'GLOBAL_REG_NUM'), 'global reg'),
-                at(None, u32, 'account reg num'),
+                at(None, i32, 'account reg num'),
                 at(None, ctx.array(global_reg, 'ACCOUNT_REG_NUM'), 'account reg'),
-                at(None, u32, 'account reg2 num'),
+                at(None, i32, 'account reg2 num'),
                 at(None, ctx.array(global_reg, 'ACCOUNT_REG2_NUM'), 'account reg2'),
             ],
             size=None,
@@ -1226,9 +1234,9 @@ def main():
                 ('account_id', account_id),
                 ('name', char_name),
                 ('map', map_name),
-                ('leader', u32),
-                ('online', u32),
-                ('lv', u32),
+                ('leader', i32),
+                ('online', i32),
+                ('lv', i32),
             ]
     )
 
@@ -1236,8 +1244,8 @@ def main():
             'PartyMost',
             [
                 at(None, party_name, 'name'),
-                at(None, u32, 'exp'),
-                at(None, u32, 'item'),
+                at(None, i32, 'exp'),
+                at(None, i32, 'item'),
                 at(None, ctx.array(party_member, 'MAX_PARTY'), 'member'),
             ],
             size=None,
@@ -1248,8 +1256,8 @@ def main():
             [
                 at(None, bit, 'dirty'),
                 at(None, account_id, 'account id'),
-                at(None, u16, 'storage status'),
-                at(None, u16, 'storage amount'),
+                at(None, i16, 'storage status'),
+                at(None, i16, 'storage amount'),
                 at(None, ctx.invarray(item, 'SOff0', 'MAX_STORAGE'), 'storage_'),
             ],
             size=None,

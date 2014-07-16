@@ -1034,10 +1034,10 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
         sel.manner = p->manner;
 
         sel.status_point = p->status_point;
-        sel.hp = std::min(p->hp, 0x7fffu);
-        sel.max_hp = std::min(p->max_hp, 0x7fffu);
-        sel.sp = std::min(p->sp, 0x7fffu);
-        sel.max_sp = std::min(p->max_sp, 0x7fffu);
+        sel.hp = std::min(p->hp, 0x7fff);
+        sel.max_hp = std::min(p->max_hp, 0x7fff);
+        sel.sp = std::min(p->sp, 0x7fff);
+        sel.max_sp = std::min(p->max_sp, 0x7fff);
         sel.speed = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // p->speed;
         sel.species = p->species;
         sel.hair_style = p->hair;

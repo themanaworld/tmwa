@@ -595,24 +595,24 @@ inline __attribute__((warn_unused_result))
 bool native_to_network(NetHumanTimeDiff *network, HumanTimeDiff native)
 {
     bool rv = true;
-    uint16_t year = native.year; rv &= native_to_network(&network->year, year);
-    uint16_t month = native.month; rv &= native_to_network(&network->month, month);
-    uint16_t day = native.day; rv &= native_to_network(&network->day, day);
-    uint16_t hour = native.hour; rv &= native_to_network(&network->hour, hour);
-    uint16_t minute = native.minute; rv &= native_to_network(&network->minute, minute);
-    uint16_t second = native.second; rv &= native_to_network(&network->second, second);
+    int16_t year = native.year; rv &= native_to_network(&network->year, year);
+    int16_t month = native.month; rv &= native_to_network(&network->month, month);
+    int16_t day = native.day; rv &= native_to_network(&network->day, day);
+    int16_t hour = native.hour; rv &= native_to_network(&network->hour, hour);
+    int16_t minute = native.minute; rv &= native_to_network(&network->minute, minute);
+    int16_t second = native.second; rv &= native_to_network(&network->second, second);
     return rv;
 }
 inline __attribute__((warn_unused_result))
 bool network_to_native(HumanTimeDiff *native, NetHumanTimeDiff network)
 {
     bool rv = true;
-    uint16_t year; rv &= network_to_native(&year, network.year); native->year = year;
-    uint16_t month; rv &= network_to_native(&month, network.month); native->month = month;
-    uint16_t day; rv &= network_to_native(&day, network.day); native->day = day;
-    uint16_t hour; rv &= network_to_native(&hour, network.hour); native->hour = hour;
-    uint16_t minute; rv &= network_to_native(&minute, network.minute); native->minute = minute;
-    uint16_t second; rv &= network_to_native(&second, network.second); native->second = second;
+    int16_t year; rv &= network_to_native(&year, network.year); native->year = year;
+    int16_t month; rv &= network_to_native(&month, network.month); native->month = month;
+    int16_t day; rv &= network_to_native(&day, network.day); native->day = day;
+    int16_t hour; rv &= network_to_native(&hour, network.hour); native->hour = hour;
+    int16_t minute; rv &= network_to_native(&minute, network.minute); native->minute = minute;
+    int16_t second; rv &= network_to_native(&second, network.second); native->second = second;
     return rv;
 }
 
@@ -977,7 +977,7 @@ bool network_to_native(SkillInfo *native, NetSkillInfo network)
 struct Item
 {
     ItemNameId nameid = {};
-    uint16_t amount = {};
+    int16_t amount = {};
     EPOS equip = {};
 };
 struct NetItem
@@ -1009,10 +1009,10 @@ bool network_to_native(Item *native, NetItem network)
 struct Point
 {
     MapName map_ = {};
-    uint16_t x = {};
-    uint16_t y = {};
+    int16_t x = {};
+    int16_t y = {};
     Point() = default;
-    Point(MapName _map_, uint16_t _x, uint16_t _y) : map_(_map_), x(_x), y(_y) {}
+    Point(MapName _map_, int16_t _x, int16_t _y) : map_(_map_), x(_x), y(_y) {}
 };
 struct NetPoint
 {
@@ -1071,7 +1071,7 @@ bool network_to_native(SkillValue *native, NetSkillValue network)
 struct GlobalReg
 {
     VarName str = {};
-    uint32_t value = {};
+    int32_t value = {};
 };
 struct NetGlobalReg
 {
@@ -1135,22 +1135,22 @@ bool network_to_native(CharKey *native, NetCharKey network)
 struct CharData
 {
     CharId partner_id = {};
-    uint32_t base_exp = {};
-    uint32_t job_exp = {};
-    uint32_t zeny = {};
+    int32_t base_exp = {};
+    int32_t job_exp = {};
+    int32_t zeny = {};
     Species species = {};
-    uint16_t status_point = {};
-    uint16_t skill_point = {};
-    uint32_t hp = {};
-    uint32_t max_hp = {};
-    uint32_t sp = {};
-    uint32_t max_sp = {};
+    int16_t status_point = {};
+    int16_t skill_point = {};
+    int32_t hp = {};
+    int32_t max_hp = {};
+    int32_t sp = {};
+    int32_t max_sp = {};
     Option option = {};
-    uint16_t karma = {};
-    uint16_t manner = {};
-    uint16_t hair = {};
-    uint16_t hair_color = {};
-    uint16_t clothes_color = {};
+    int16_t karma = {};
+    int16_t manner = {};
+    int16_t hair = {};
+    int16_t hair_color = {};
+    int16_t clothes_color = {};
     PartyId party_id = {};
     ItemLook weapon = {};
     ItemNameId shield = {};
@@ -1159,7 +1159,7 @@ struct CharData
     ItemNameId head_bottom = {};
     uint8_t base_level = {};
     uint8_t job_level = {};
-    earray<uint16_t, ATTR, ATTR::COUNT> attrs = {};
+    earray<int16_t, ATTR, ATTR::COUNT> attrs = {};
     SEX sex = {};
     IP4Address mapip = {};
     uint16_t mapport = {};
@@ -1167,11 +1167,11 @@ struct CharData
     Point save_point = {};
     GenericArray<Item, InventoryIndexing<IOff0, MAX_INVENTORY>> inventory = {};
     earray<SkillValue, SkillID, MAX_SKILL> skill = {};
-    uint32_t global_reg_num = {};
+    int32_t global_reg_num = {};
     Array<GlobalReg, GLOBAL_REG_NUM> global_reg = {};
-    uint32_t account_reg_num = {};
+    int32_t account_reg_num = {};
     Array<GlobalReg, ACCOUNT_REG_NUM> account_reg = {};
-    uint32_t account_reg2_num = {};
+    int32_t account_reg2_num = {};
     Array<GlobalReg, ACCOUNT_REG2_NUM> account_reg2 = {};
 };
 struct NetCharData
@@ -1324,9 +1324,9 @@ bool native_to_network(NetPartyMember *network, PartyMember native)
     AccountId account_id = native.account_id; rv &= native_to_network(&network->account_id, account_id);
     CharName name = native.name; rv &= native_to_network(&network->name, name);
     MapName map = native.map; rv &= native_to_network(&network->map, map);
-    uint32_t leader = native.leader; rv &= native_to_network(&network->leader, leader);
-    uint32_t online = native.online; rv &= native_to_network(&network->online, online);
-    uint32_t lv = native.lv; rv &= native_to_network(&network->lv, lv);
+    int32_t leader = native.leader; rv &= native_to_network(&network->leader, leader);
+    int32_t online = native.online; rv &= native_to_network(&network->online, online);
+    int32_t lv = native.lv; rv &= native_to_network(&network->lv, lv);
     return rv;
 }
 inline __attribute__((warn_unused_result))
@@ -1336,17 +1336,17 @@ bool network_to_native(PartyMember *native, NetPartyMember network)
     AccountId account_id; rv &= network_to_native(&account_id, network.account_id); native->account_id = account_id;
     CharName name; rv &= network_to_native(&name, network.name); native->name = name;
     MapName map; rv &= network_to_native(&map, network.map); native->map = map;
-    uint32_t leader; rv &= network_to_native(&leader, network.leader); native->leader = leader;
-    uint32_t online; rv &= network_to_native(&online, network.online); native->online = online;
-    uint32_t lv; rv &= network_to_native(&lv, network.lv); native->lv = lv;
+    int32_t leader; rv &= network_to_native(&leader, network.leader); native->leader = leader;
+    int32_t online; rv &= network_to_native(&online, network.online); native->online = online;
+    int32_t lv; rv &= network_to_native(&lv, network.lv); native->lv = lv;
     return rv;
 }
 
 struct PartyMost
 {
     PartyName name = {};
-    uint32_t exp = {};
-    uint32_t item = {};
+    int32_t exp = {};
+    int32_t item = {};
     Array<PartyMember, MAX_PARTY> member = {};
 };
 struct NetPartyMost
@@ -1382,8 +1382,8 @@ struct Storage
 {
     bool dirty = {};
     AccountId account_id = {};
-    uint16_t storage_status = {};
-    uint16_t storage_amount = {};
+    int16_t storage_status = {};
+    int16_t storage_amount = {};
     GenericArray<Item, InventoryIndexing<SOff0, MAX_STORAGE>> storage_ = {};
 };
 struct NetStorage

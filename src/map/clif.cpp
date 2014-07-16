@@ -1703,6 +1703,8 @@ not_b0:
         {
         case SP::ZENY:
             trade_verifyzeny(sd);
+            if (sd->status.zeny < 0)
+                sd->status.zeny = 0;
             fixed_b1.value = sd->status.zeny;
             break;
 

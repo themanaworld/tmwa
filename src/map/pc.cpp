@@ -1341,7 +1341,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->sprate != 100)
         sd->status.max_sp = sd->status.max_sp * sd->sprate / 100;
 
-    if (sd->status.max_sp > battle_config.max_sp)
+    if (sd->status.max_sp < 0 || sd->status.max_sp > battle_config.max_sp)
         sd->status.max_sp = battle_config.max_sp;
 
     //自然回復HP
@@ -3016,8 +3016,6 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
         }
     }
 
-    if (base_exp < 0 && -base_exp > sd->status.base_exp)
-        base_exp = -sd->status.base_exp;
     sd->status.base_exp += base_exp;
 
     // [Fate] Adjust experience points that healers can extract from this character
@@ -3030,6 +3028,9 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
         if (sd->heal_xp > max_heal_xp)
             sd->heal_xp = max_heal_xp;
     }
+
+    if (sd->status.base_exp < 0)
+        sd->status.base_exp = 0;
 
     while (pc_checkbaselevelup(sd))
     {}
@@ -3045,9 +3046,9 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
         }
     }
 
-    if (job_exp < 0 && -job_exp > sd->status.job_exp)
-        job_exp = -sd->status.job_exp;
     sd->status.job_exp += job_exp;
+    if (sd->status.job_exp < 0)
+        sd->status.job_exp = 0;
 
     while (pc_checkjoblevelup(sd))
     {}
@@ -3422,8 +3423,6 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     if (damage > sd->status.max_hp >> 2)
         skill_stop_dancing(sd, 0);
 
-    if (damage > sd->status.hp)
-        damage = sd->status.hp;
     sd->status.hp -= damage;
 
     if (sd->status.hp > 0)
@@ -3473,48 +3472,52 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         {
             if (battle_config.death_penalty_type == 1
                 && battle_config.death_penalty_base > 0)
-                sd->status.base_exp -= std::min(sd->status.base_exp,
-                        static_cast<uint32_t>(static_cast<double>(pc_nextbaseexp(sd)) *
-                        static_cast<double>(battle_config.death_penalty_base) / 10000));
+                sd->status.base_exp -=
+                    static_cast<double>(pc_nextbaseexp(sd)) *
+                    static_cast<double>(battle_config.death_penalty_base) / 10000;
             if (battle_config.pk_mode && src && src->bl_type == BL::PC)
-                sd->status.base_exp -= std::min(sd->status.base_exp,
-                        static_cast<uint32_t>(static_cast<double>(pc_nextbaseexp(sd)) *
-                        static_cast<double>(battle_config.death_penalty_base) / 10000));
+                sd->status.base_exp -=
+                    static_cast<double>(pc_nextbaseexp(sd)) *
+                    static_cast<double>(battle_config.death_penalty_base) / 10000;
             else if (battle_config.death_penalty_type == 2
                      && battle_config.death_penalty_base > 0)
             {
                 if (pc_nextbaseexp(sd) > 0)
-                    sd->status.base_exp -= std::min(sd->status.base_exp,
-                            static_cast<uint32_t>(static_cast<double>(sd->status.base_exp) *
-                            static_cast<double>(battle_config.death_penalty_base) / 10000));
+                    sd->status.base_exp -=
+                        static_cast<double>(sd->status.base_exp) *
+                        static_cast<double>(battle_config.death_penalty_base) / 10000;
                 if (battle_config.pk_mode && src && src->bl_type == BL::PC)
-                    sd->status.base_exp -= std::min(sd->status.base_exp,
-                            static_cast<uint32_t>(static_cast<double>(sd->status.base_exp) *
-                            static_cast<double>(battle_config.death_penalty_base) / 10000));
+                    sd->status.base_exp -=
+                        static_cast<double>(sd->status.base_exp) *
+                        static_cast<double>(battle_config.death_penalty_base) / 10000;
             }
+            if (sd->status.base_exp < 0)
+                sd->status.base_exp = 0;
             clif_updatestatus(sd, SP::BASEEXP);
 
             if (battle_config.death_penalty_type == 1
                 && battle_config.death_penalty_job > 0)
-                sd->status.job_exp -= std::min(sd->status.job_exp,
-                        static_cast<uint32_t>(static_cast<double>(pc_nextjobexp(sd)) *
-                        static_cast<double>(battle_config.death_penalty_job) / 10000));
+                sd->status.job_exp -=
+                    static_cast<double>(pc_nextjobexp(sd)) *
+                    static_cast<double>(battle_config.death_penalty_job) / 10000;
             if (battle_config.pk_mode && src && src->bl_type == BL::PC)
-                sd->status.job_exp -= std::min(sd->status.job_exp,
-                        static_cast<uint32_t>(static_cast<double>(pc_nextjobexp(sd)) *
-                        static_cast<double>(battle_config.death_penalty_job) / 10000));
+                sd->status.job_exp -=
+                    static_cast<double>(pc_nextjobexp(sd)) *
+                    static_cast<double>(battle_config.death_penalty_job) / 10000;
             else if (battle_config.death_penalty_type == 2
                      && battle_config.death_penalty_job > 0)
             {
                 if (pc_nextjobexp(sd) > 0)
-                    sd->status.job_exp -= std::min(sd->status.job_exp,
-                            static_cast<uint32_t>(static_cast<double>(sd->status.job_exp) *
-                            static_cast<double>(battle_config.death_penalty_job) / 10000));
+                    sd->status.job_exp -=
+                        static_cast<double>(sd->status.job_exp) *
+                        static_cast<double>(battle_config.death_penalty_job) / 10000;
                 if (battle_config.pk_mode && src && src->bl_type == BL::PC)
-                    sd->status.job_exp -= std::min(sd->status.job_exp,
-                            static_cast<uint32_t>(static_cast<double>(sd->status.job_exp) *
-                            static_cast<double>(battle_config.death_penalty_job) / 10000));
+                    sd->status.job_exp -=
+                        static_cast<double>(sd->status.job_exp) *
+                        static_cast<double>(battle_config.death_penalty_job) / 10000;
             }
+            if (sd->status.job_exp < 0)
+                sd->status.job_exp = 0;
             clif_updatestatus(sd, SP::JOBEXP);
         }
     }
@@ -3707,18 +3710,18 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
         case SP::BASEEXP:
             if (pc_nextbaseexp(sd) > 0)
             {
-                if (val < 0)
-                    val = 0;
                 sd->status.base_exp = val;
+                if (sd->status.base_exp < 0)
+                    sd->status.base_exp = 0;
                 pc_checkbaselevelup(sd);
             }
             break;
         case SP::JOBEXP:
             if (pc_nextjobexp(sd) > 0)
             {
-                if (val < 0)
-                    val = 0;
                 sd->status.job_exp = val;
+                if (sd->status.job_exp < 0)
+                    sd->status.job_exp = 0;
                 pc_checkjoblevelup(sd);
             }
             break;
@@ -3781,8 +3784,6 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
         hp = sd->status.max_hp - sd->status.hp;
     if (sp + sd->status.sp > sd->status.max_sp)
         sp = sd->status.max_sp - sd->status.sp;
-    if (-hp >= sd->status.hp)
-        hp = -sd->status.hp;
     sd->status.hp += hp;
     if (sd->status.hp <= 0)
     {
@@ -3790,8 +3791,6 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
         pc_damage(nullptr, sd, 1);
         hp = 0;
     }
-    if (-sp >= sd->status.sp)
-        sp = sd->status.sp;
     sd->status.sp += sp;
     if (sd->status.sp <= 0)
         sd->status.sp = 0;
@@ -3913,8 +3912,6 @@ int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp)
         hp = sd->status.max_hp - sd->status.hp;
     if (sp + sd->status.sp > sd->status.max_sp)
         sp = sd->status.max_sp - sd->status.sp;
-    if (-hp > sd->status.hp)
-        hp = -sd->status.hp;
     sd->status.hp += hp;
     if (sd->status.hp <= 0)
     {
@@ -3987,16 +3984,11 @@ int pc_percentheal(dumb_ptr<map_session_data> sd, int hp, int sp)
         }
         else
         {
-            if (sp > 0)
-            {
-                sd->status.sp += sd->status.max_sp * sp / 100;
-                if (sd->status.sp > sd->status.max_sp)
-                    sd->status.sp = sd->status.max_sp;
-            }
-            if (sp < 0)
-            {
-                sd->status.sp -= std::min(sd->status.sp, sd->status.max_sp * -sp / 100);
-            }
+            sd->status.sp += sd->status.max_sp * sp / 100;
+            if (sd->status.sp > sd->status.max_sp)
+                sd->status.sp = sd->status.max_sp;
+            if (sd->status.sp < 0)
+                sd->status.sp = 0;
         }
     }
     if (hp)

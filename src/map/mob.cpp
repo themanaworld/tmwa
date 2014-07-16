@@ -2461,9 +2461,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         }
     }
 
-    if (damage > md->hp)
-        damage = md->hp;
-
     md->hp -= damage;
 
     if (md->hp > 0)
