@@ -34,6 +34,10 @@ namespace io
     {
         return FD(::open(path.c_str(), flags, mode));
     }
+    FD FD::openat(FD dirfd, ZString path, int flags, int mode)
+    {
+        return FD(::openat(dirfd.fd, path.c_str(), flags, mode));
+    }
     FD FD::socket(int domain, int type, int protocol)
     {
         return FD(::socket(domain, type, protocol));

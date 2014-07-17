@@ -48,8 +48,8 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
     def general(self):
         super(Configuration, self).general()
         home = os.path.expanduser('~')
-        self.add_alias('--user', ['--prefix=%s' % home],
-                help='alias for --prefix=$HOME', hidden=False)
+        self.add_alias('--user', ['--prefix=%s' % home, '--enable-rpath=relative'],
+                help='alias for --prefix=$HOME --enable-rpath=relative', hidden=False)
         self.add_alias('--dev', ['--user', '--enable-warnings', '--enable-abi6'],
                 help=None, hidden=False)
 
@@ -78,12 +78,15 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
         self.add_bool_feature('cygwin-hacks', init='no',
                 check=lambda build, ENABLE_CYGWIN_HACKS: None,
                 help='Work around bugs in certain cygwin versions')
-        self.add_bool_feature('compat-symlinks', init='yes',
+        self.add_bool_feature('compat-symlinks', init='no',
                 check=lambda build, ENABLE_COMPAT_SYMLINKS: None,
                 help='Install symlinks to avoid breaking old scripts')
         self.add_bool_feature('debug', init='yes',
                 check=lambda build, ENABLE_DEBUG: None,
                 help='Install extra files useful for debugging')
+        self.add_option('--enable-rpath', init='none',
+                type=enum('none', 'relative', 'absolute'), check=lambda build, ENABLE_RPATH: None,
+                help='Use rpaths to find libraries', hidden=False)
 
     def vars(self):
         super(Configuration, self).vars()

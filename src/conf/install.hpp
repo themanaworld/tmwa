@@ -1,7 +1,7 @@
 #pragma once
-//    io/read.hpp - Input from files.
+//    conf/install.hpp - Import configuration variables related to install.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,39 +18,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "fwd.hpp"
+// just mention "fwd.hpp" to make formatter happy
 
-#include "../strings/fwd.hpp"
+#include "conf-raw/str-PACKAGESYSCONFDIR.h"
+#include "conf-raw/str-PACKAGELOCALSTATEDIR.h"
+#include "conf-raw/str-PACKAGEDATADIR.h"
 
-#include "dir.hpp"
-#include "fd.hpp"
 
 namespace tmwa
 {
-namespace io
-{
-    class ReadFile
-    {
-    private:
-        FD fd;
-        unsigned short start, end;
-        char buf[4096];
-    public:
-        explicit
-        ReadFile(FD fd);
-        explicit
-        ReadFile(ZString name);
-        ReadFile(const DirFd& dir, ZString name);
-
-        ReadFile& operator = (ReadFile&&) = delete;
-        ReadFile(ReadFile&&) = delete;
-        ~ReadFile();
-
-        bool get(char&);
-        size_t get(char *buf, size_t len);
-        bool getline(AString&);
-
-        bool is_open();
-    };
-} // namespace io
 } // namespace tmwa

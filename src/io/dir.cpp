@@ -1,7 +1,7 @@
-#pragma once
-//    io/read.hpp - Input from files.
+#include "dir.hpp"
+//    io/dir.cpp - rooted file operations
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,39 +18,37 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "fwd.hpp"
+#include <fcntl.h>
 
-#include "../strings/fwd.hpp"
+#include "../strings/zstring.hpp"
 
-#include "dir.hpp"
-#include "fd.hpp"
+#include "../poison.hpp"
+
 
 namespace tmwa
 {
 namespace io
 {
-    class ReadFile
+    DirFd::DirFd()
+    : dirfd(FD::cast_dammit(AT_FDCWD))
+    {}
+
+    DirFd::DirFd(ZString path)
+    : dirfd(FD::open(path, O_DIRECTORY | O_RDONLY, 0))
+    {}
+
+    DirFd::DirFd(const DirFd& root, ZString path)
+    : dirfd(FD::openat(root.dirfd, path, O_DIRECTORY | O_RDONLY, 0))
+    {}
+
+    DirFd::~DirFd()
     {
-    private:
-        FD fd;
-        unsigned short start, end;
-        char buf[4096];
-    public:
-        explicit
-        ReadFile(FD fd);
-        explicit
-        ReadFile(ZString name);
-        ReadFile(const DirFd& dir, ZString name);
+        dirfd.close();
+    }
 
-        ReadFile& operator = (ReadFile&&) = delete;
-        ReadFile(ReadFile&&) = delete;
-        ~ReadFile();
-
-        bool get(char&);
-        size_t get(char *buf, size_t len);
-        bool getline(AString&);
-
-        bool is_open();
-    };
+    FD DirFd::open_fd(ZString name, int flags, int mode) const
+    {
+        return FD::openat(dirfd, name, flags, mode);
+    }
 } // namespace io
 } // namespace tmwa

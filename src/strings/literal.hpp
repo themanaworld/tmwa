@@ -32,11 +32,12 @@ namespace strings
     class LString : public _crtp_string<LString, AString, LPair>
     {
         iterator _b, _e;
-        // optional
-        const RString *_base;
     private:
         LString(const char *b, const char *e);
         friend LString operator "" _s(const char *, size_t);
+        // for tail slicing
+        LString(const char *b, const char *e, const RString *) : LString(b, e) {}
+        friend class _crtp_string<LString, AString, LPair>;
     public:
 
         iterator begin() const;

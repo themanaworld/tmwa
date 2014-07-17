@@ -56,8 +56,13 @@ namespace io
         FD stdout() { return FD(1); }
         static
         FD stderr() { return FD(2); }
+
+        static const int DEFAULT_MODE = 0666;
+
         static
-        FD open(ZString path, int flags, int mode=0666);
+        FD open(ZString path, int flags, int mode=DEFAULT_MODE);
+        static
+        FD openat(FD dirfd, ZString path, int flags, int mode=DEFAULT_MODE);
         static
         FD socket(int domain, int type, int protocol);
         FD accept(struct sockaddr *addr, socklen_t *addrlen);
@@ -65,6 +70,7 @@ namespace io
         int pipe(FD& r, FD& w);
         static
         int pipe2(FD& r, FD& w, int flags);
+
         static
         FD sysconf_SC_OPEN_MAX();
 

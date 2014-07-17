@@ -2,9 +2,7 @@
 # Replace one file with another, but maybe don't update the timestamp
 if cmp "$1" "$2"
 then
-    echo rm "$1"
     rm "$1"
 else
-    echo mv "$1" "$2"
     mv "$1" "$2"
 fi

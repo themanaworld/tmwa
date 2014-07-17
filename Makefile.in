@@ -12,8 +12,10 @@ BINDIR = @BINDIR@
 SBINDIR = @SBINDIR@
 LIBEXECDIR = @LIBEXECDIR@
 SYSCONFDIR = @SYSCONFDIR@
+PACKAGESYSCONFDIR := ${SYSCONFDIR}/${PACKAGE}
 SHAREDSTATEDIR = @SHAREDSTATEDIR@
 LOCALSTATEDIR = @LOCALSTATEDIR@
+PACKAGELOCALSTATEDIR := ${LOCALSTATEDIR}/${PACKAGE}
 LIBDIR = @LIBDIR@
 INCLUDEDIR = @INCLUDEDIR@
 OLDINCLUDEDIR = @OLDINCLUDEDIR@
@@ -33,8 +35,6 @@ DEBUGDIR = @DEBUGDIR@
 BUILD = @BUILD@
 HOST = @HOST@
 
-BISON = @BISON@
-FLEX = @FLEX@
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LIBS@
@@ -49,6 +49,7 @@ ENABLE_ABI6 = @ENABLE_ABI6@
 ENABLE_CYGWIN_HACKS = @ENABLE_CYGWIN_HACKS@
 ENABLE_COMPAT_SYMLINKS = @ENABLE_COMPAT_SYMLINKS@
 ENABLE_DEBUG = @ENABLE_DEBUG@
+ENABLE_RPATH = @ENABLE_RPATH@
 
 TESTER =
 TEST_ARGS =
@@ -170,22 +171,26 @@ SHELL=bash
 
 # path lists
 REAL_SOURCES := $(shell cd ${SRC_DIR}; find src/ -name '*.cpp')
-REAL_HEADERS := $(shell cd ${SRC_DIR}; find src/ -name '*.hpp' -o -name '*.tcc')
+REAL_HEADERS := $(shell cd ${SRC_DIR}; find include/ src/ -name '*.hpp' -o -name '*.tcc')
 PIES := $(shell cd ${SRC_DIR}; find src/ -name '*.py')
 SOURCES := ${REAL_SOURCES}
 HEADERS := ${REAL_HEADERS}
 PATTERN_ROOTS := $(patsubst src/%.cpp,%,${SOURCES})
 PATTERN_MAINS := $(patsubst %/main,%,$(filter %/main,${PATTERN_ROOTS}))
+PATTERN_LIBS := $(patsubst %/lib,%,$(filter %/lib,${PATTERN_ROOTS}))
 PATTERN_TESTS := $(patsubst %/test,%,$(filter %/test,${PATTERN_ROOTS}))
 DEPENDS := $(patsubst src/%.cpp,obj/%.d,${SOURCES})
 PREPROCESSED := $(patsubst %.d,%.ii,${DEPENDS})
 IRS := $(patsubst %.d,%.ll,${DEPENDS})
 BITCODES := $(patsubst %.d,%.bc,${DEPENDS})
 ASSEMBLED := $(patsubst %.d,%.s,${DEPENDS})
-OBJECTS := $(patsubst %.d,%.o,${DEPENDS})
+PDC_OBJECTS := $(patsubst %.d,%.pdc.o,${DEPENDS})
+PIC_OBJECTS := $(patsubst %.d,%.pic.o,${DEPENDS})
 MAIN_SOURCES := $(filter %/main.cpp,${SOURCES})
+LIB_SOURCES := $(filter %/lib.cpp,${SOURCES})
 TEST_SOURCES := $(filter %/test.cpp,${SOURCES})
 BINARIES := $(patsubst src/%/main.cpp,bin/tmwa-%,${MAIN_SOURCES})
+LIBRARIES := $(patsubst src/%/lib.cpp,lib/libtmwa-%.so,${LIB_SOURCES})
 TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
 
 # tricky part
@@ -193,7 +198,7 @@ TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
 # We can't put comments in a macro so here goes:
 # 1: Include the contents of the current %.d file ($1).
 # 2: For each header, substitute the corresponding %.o's dependency file.
-# 3: Blank, reserved for header->libtmwa-common.a if that gets implemented.
+# 3: For each lib.hpp header, substitute the corresponding .so library
 # 4: Remove all non-deps - clutter and lonely headers.
 # 5: Prevent infinite loops later by filtering out deps we've already seen.
 # 6: Merge new deps into the existing dep list.
@@ -201,7 +206,7 @@ TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
 define RECURSIVE_DEPS_IMPL
 $(eval more_deps := $(value ${1}))
 $(eval more_deps := $(patsubst src/%.hpp,%,${more_deps}))
-
+$(eval lib_deps += $(patsubst include/tmwa/%.hpp,lib/libtmwa-%.${SO_LONG},$(filter include/tmwa/%.hpp,${more_deps})))
 $(eval more_deps := $(filter ${PATTERN_ROOTS},${more_deps}))
 $(eval more_deps := $(filter-out ${cur_deps},${more_deps}))
 $(eval cur_deps += ${more_deps})
@@ -215,6 +220,7 @@ endef
 # 4: Expand to text. Note that *nothing* else actually produces anything!
 define RECURSIVE_DEPS
 $(eval cur_deps := ${1})
+$(eval lib_deps :=)
 $(call RECURSIVE_DEPS_IMPL,${1})
 
 ${cur_deps}
@@ -249,6 +255,30 @@ CXXFLAGS += -fstack-protector
 override CXXFLAGS += -fno-strict-aliasing
 override CXXFLAGS += -fvisibility=hidden
 
+nothing=
+space=${nothing} ${nothing}
+define relpath
+$(subst ${space},/,$(foreach component,$(subst /,${space},$1),..))$2
+endef
+
+,=,
+ifeq (${ENABLE_RPATH},relative)
+rel_BINDIR := $(subst ${EPREFIX},,${BINDIR})
+rel_LIBDIR := $(subst ${EPREFIX},,${LIBDIR})
+ifneq (${EPREFIX}${rel_BINDIR},${BINDIR})
+$(error BINDIR must be within EPREFIX to use relative rpath)
+endif
+ifneq (${EPREFIX}${rel_LIBDIR},${LIBDIR})
+$(error LIBDIR must be within EPREFIX to use relative rpath)
+endif
+override LDFLAGS += -Wl,-rpath='$$ORIGIN/$(call relpath,${rel_BINDIR},${rel_LIBDIR})'
+endif
+
+ifeq (${ENABLE_RPATH},absolute)
+override LDFLAGS += -Wl,rpath=${LIBDIR}
+override LDFLAGS += $(patsubst -L%,-Wl$,rpath=%,$(filter -L%,${LDFLAGS}))
+endif
+
 
 
 
@@ -263,12 +293,15 @@ else
 include ${DEPENDS}
 endif
 
+include ${SRC_DIR}/version.make
+
+
 thisdir := $(abspath .)
 #$(foreach root,${PATTERN_ROOTS},$(info pre-root: ${root} := $(value ${root}))$(info ))
 # can't do $(filter %.hpp yet)
 $(foreach root,${PATTERN_ROOTS},$(eval ${root} := $(sort $(patsubst ${thisdir}/%,%,$(abspath $(patsubst ${SRC_DIR}/%,%,$(wildcard $(value ${root})) $(filter conf-raw/%.h,$(value ${root}))))))))
 # have to redo what we undid to get it as a variable
-$(foreach root,${PATTERN_ROOTS},$(eval obj/${root}.ii obj/${root}.ll obj/${root}.bc obj/${root}.s obj/${root}.o obj/${root}.d : $(value ${root})) )
+$(foreach root,${PATTERN_ROOTS},$(eval obj/${root}.ii obj/${root}.ll obj/${root}.bc obj/${root}.s obj/${root}.pdc.o obj/${root}.pic.o obj/${root}.d : $(value ${root})) )
 #$(foreach root,${PATTERN_ROOTS},$(info post-root: ${root} := $(value ${root}))$(info ))
 
 # test.o implicitly (NOT explicitly) depends on all (nonexistent) test_*.hpp
@@ -276,17 +309,23 @@ $(foreach root,${PATTERN_ROOTS},$(eval obj/${root}.ii obj/${root}.ll obj/${root}
 $(foreach test,${PATTERN_TESTS},$(eval ${test}/test += $(patsubst %,src/%.hpp,$(filter %_test,${PATTERN_ROOTS}))))
 
 
-$(foreach main,${PATTERN_MAINS},$(eval main-${main} := $(strip $(call RECURSIVE_DEPS,${main}/main))))
+$(foreach main,${PATTERN_MAINS},$(eval main-${main} := $(strip $(call RECURSIVE_DEPS,${main}/main))) $(eval main-${main}-libs := ${lib_deps}))
 # actual rule deps
-$(foreach main,${PATTERN_MAINS},$(eval bin/tmwa-${main} : $(patsubst %,obj/%.o,$(value main-${main}))))
+$(foreach main,${PATTERN_MAINS},$(eval bin/tmwa-${main} : $(patsubst %,obj/%.pdc.o,$(value main-${main})) $(value main-${main}-libs)))
 $(foreach main,${PATTERN_MAINS},$(eval bin/tmwa-${main}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value main-${main})))))
-#$(foreach main,${PATTERN_MAINS},$(info post-main: main-${main}: $(value main-${main})) $(info ))
+#$(foreach main,${PATTERN_MAINS},$(info post-main: main-${main}: $(value main-${main})) $(info post-main: main-${main}-libs: $(value main-${main}-libs)) $(info ))
 
-$(foreach test,${PATTERN_TESTS},$(eval test-${test} := $(strip $(call RECURSIVE_DEPS,${test}/test))))
+$(foreach lib,${PATTERN_LIBS},$(eval lib-${lib} := $(strip $(call RECURSIVE_DEPS,${lib}/lib))) $(eval lib-${lib}-libs := ${lib_deps}))
 # actual rule deps
-$(foreach test,${PATTERN_TESTS},$(eval bin/test-${test} : $(patsubst %,obj/%.o,$(value test-${test}))))
+$(foreach lib,${PATTERN_LIBS},$(eval lib/libtmwa-${lib}.${SO_LONG} : $(patsubst %,obj/%.pic.o,$(value lib-${lib})) $(filter-out lib/libtmwa-${lib}.${SO_LONG},$(value lib-${lib}-libs))))
+$(foreach lib,${PATTERN_LIBS},$(eval lib/libtmwa-${lib}.${SO_LONG}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value lib-${lib})))))
+#$(foreach lib,${PATTERN_LIBS},$(info post-lib: lib-${lib}: $(value lib-${lib})) $(info post-lib: lib-${lib}-libs: $(value lib-${lib}-libs)) $(info ))
+
+$(foreach test,${PATTERN_TESTS},$(eval test-${test} := $(strip $(call RECURSIVE_DEPS,${test}/test))) $(eval test-${test}-libs := ${lib_deps}))
+# actual rule deps
+$(foreach test,${PATTERN_TESTS},$(eval bin/test-${test} : $(patsubst %,obj/%.pdc.o,$(value test-${test})) $(value test-${test}-libs)))
 $(foreach test,${PATTERN_TESTS},$(eval bin/test-${test}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value test-${test})))))
-#$(foreach test,${PATTERN_TESTS},$(info post-test: test-${test}: $(value test-${test})) $(info ))
+#$(foreach test,${PATTERN_TESTS},$(info post-test: test-${test}: $(value test-${test})) $(info post-test: test-${test}-libs: $(value test-${test}-libs)) $(info ))
 
 
 vpath %.cpp ${SRC_DIR}
@@ -306,17 +345,17 @@ s: ${ASSEMBLED}
 o: ${OBJECTS}
 
 clean-deps:
-	-$c find obj -name '*.d' -delete
+	-$l find obj -name '*.d' -delete
 clean-format:
-	-$c find obj -name '*.formatted' -delete
+	-$l find obj -name '*.formatted' -delete
 clean-obj:
-	-$c find obj -name '*.o' -delete
+	-$l find obj -name '*.o' -delete
 clean-conf:
-	$c rm -rf conf-raw
+	$l rm -rf conf-raw
 mostlyclean: clean-conf
-	$c rm -rf obj
+	$l rm -rf obj
 clean: mostlyclean
-	$c rm -rf bin
+	$l rm -rf bin lib
 distclean: clean gen-clean
 gen-clean: ;
 
@@ -341,11 +380,13 @@ obj/%.bc: src/%.cpp
 obj/%.s: src/%.cpp
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -S -o $@ $<
-obj/%.o: src/%.cpp
+obj/%.pdc.o: src/%.cpp
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
+obj/%.pic.o: src/%.cpp
+	$(MKDIR_FIRST)
+	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -fPIC -c -o $@ $<
 
-# I'm not convinced keeping the bin/ is a good idea
 bin/%-gdb.py:
 	$(MKDIR_FIRST)
 	cat ${SRC_DIR}/src/main-gdb-head.py \
@@ -356,12 +397,24 @@ bin/%: bin/%-gdb.py
 	$(MKDIR_FIRST)
 	$l ${CXX} ${LDFLAGS} $(filter-out bin/%-gdb.py,$^) ${LDLIBS} -o $@
 
-${TEST_BINARIES}: obj/gtest-all.o
+lib/%.${SO_LONG}-gdb.py:
+	$(MKDIR_FIRST)
+	cat ${SRC_DIR}/src/main-gdb-head.py \
+	    $^ \
+	    ${SRC_DIR}/src/main-gdb-tail.py \
+	    > $@
+lib/%.${SO_LONG}: lib/%.${SO_LONG}-gdb.py
+	$(MKDIR_FIRST)
+	$l ${CXX} -shared -Wl,-soname=$*.${SO_SHORT} ${LDFLAGS} $(filter-out lib/%-gdb.py,$^) ${LDLIBS} -o $@
+	$c ln -sf $*.${SO_LONG} lib/$*.${SO_SHORT}
+	$c ln -sf $*.${SO_SHORT} lib/$*.so
+
+${TEST_BINARIES}: obj/gtest-all.pdc.o
 
 # This isn't perfect.
-$(filter %_test.o,${OBJECTS}) obj/gtest-all.o: override CPPFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
-obj/gtest-all.o: override WARNINGS :=
-obj/gtest-all.o: ${GTEST_DIR}/src/gtest-all.cc
+$(filter %_test.pdc.o,${OBJECTS}) obj/gtest-all.pdc.o: override CPPFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
+obj/gtest-all.pdc.o: override WARNINGS :=
+obj/gtest-all.pdc.o: ${GTEST_DIR}/src/gtest-all.cc
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
@@ -398,6 +451,17 @@ else
 	@echo - Not installing compatibility symlinks
 endif
 
+install: install-lib
+install-lib:
+	@echo + Install libraries
+	${install_dir} ${DESTDIR}${LIBDIR}
+	${install_data} -t ${DESTDIR}${LIBDIR} \
+	    $(patsubst %.so,%.${SO_LONG},${LIBRARIES})
+	for lib in $(patsubst lib/%.so,%,${LIBRARIES}); do \
+	    ln -sf $$lib.${SO_LONG} ${DESTDIR}${LIBDIR}/$$lib.${SO_SHORT}; \
+	    ln -sf $$lib.${SO_SHORT} ${DESTDIR}${LIBDIR}/$$lib.so; \
+	done
+
 install: install-debug
 install-debug:
 ifeq (${ENABLE_DEBUG},yes)
@@ -405,9 +469,39 @@ ifeq (${ENABLE_DEBUG},yes)
 	${install_dir} ${DESTDIR}${DEBUGDIR}${BINDIR}
 	${install_data} -t ${DESTDIR}${DEBUGDIR}${BINDIR} \
 	    $(patsubst %,%-gdb.py,${BINARIES})
+	${install_dir} ${DESTDIR}${DEBUGDIR}${LIBDIR}
+	${install_data} -t ${DESTDIR}${DEBUGDIR}${LIBDIR} \
+	    $(patsubst %.so,%.${SO_LONG}-gdb.py,${LIBRARIES})
 else
 	@echo - Not installing debug files
 endif
+
+install: install-include
+install-include:
+	@echo + Install headers
+	${install_dir} ${DESTDIR}${INCLUDEDIR}
+	${install_data} -t ${DESTDIR}${INCLUDEDIR} \
+	    $(addprefix ${SRC_DIR}/,$(filter include/%,${HEADERS}))
+
+install: install-state
+install-state:
+	@echo + Install statedir
+	${install_dir} ${DESTDIR}${PACKAGELOCALSTATEDIR}
+	touch ${DESTDIR}${PACKAGELOCALSTATEDIR}/.keep
+
+install: install-data
+install-data:
+	@echo + Install data
+	${install_dir} ${DESTDIR}${PACKAGEDATADIR}
+	${install_data} -t ${DESTDIR}${PACKAGEDATADIR} \
+	    ${SRC_DIR}/share/tmwa/*
+
+install: install-conf
+install-conf:
+	@echo + Install config files
+	${install_dir} ${DESTDIR}${PACKAGESYSCONFDIR}
+	${install_data} -t ${DESTDIR}${PACKAGESYSCONFDIR} \
+	    ${SRC_DIR}/etc/tmwa/*
 
 tags: ${SOURCES} ${HEADERS}
 	$l ctags --totals -h .tcc --langmap=C++:+.tcc --c-kinds=+px -f $@ $^
@@ -416,25 +510,23 @@ Makefile: ${SRC_DIR}/Makefile.in
 	@echo Makefile.in updated, reconfiguring ...
 	./config.status
 
-include ${SRC_DIR}/version.make
-
 # TODO - fix pattern priority bug so I can make these .hpp
 #
 # This is complicated and still isn't optimal.
 conf-raw/int-%.h: FORCE
 	$(MKDIR_FIRST)
-	echo '#define $* $(value $*)' | maybe-replace $@
+	@echo '#define $* $(value $*)' | maybe-replace $@
 bool_yes := true
 bool_no := false
 conf-raw/bool-%.h: FORCE
 	$(MKDIR_FIRST)
-	echo '#define $* $(bool_$(value $*))' | maybe-replace $@
+	@echo '#define $* $(bool_$(value $*))' | maybe-replace $@
 conf-raw/str-%.h: FORCE
 	$(MKDIR_FIRST)
-	echo '#define $* "$(value $*)"_s' | maybe-replace $@
+	@echo '#define $* "$(value $*)"_s' | maybe-replace $@
 FORCE: ;
 .PHONY: FORCE
-override CPPFLAGS += -I .
+override CPPFLAGS += -I . -I ${SRC_DIR}/include
 
 # distribution tarballs
 # this only works from within a git checkout
@@ -455,8 +547,10 @@ dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
 	cp dist/$*-src.tar $@
 	tar Af $@ dist/$*-attoconf-only.tar
 dist/%-bin-${HOST}.tar: all
-	${MAKE} install DESTDIR=$(abspath dist/$*)
-	tar cf $@ -C dist $*
+	${MAKE} install DESTDIR=$(abspath dist/${HOST}/$*)
+	if test -n '${BUNDLED_LIBS}'; then cp ${BUNDLED_LIBS} dist/${HOST}/$*/${LIBDIR}/; fi
+	tar cf $@ -C dist/${HOST} $*
+	rm -r dist/${HOST}/
 
 dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
 ifneq '' '${HOST}'

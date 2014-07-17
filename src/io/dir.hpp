@@ -1,7 +1,7 @@
 #pragma once
-//    io/read.hpp - Input from files.
+//    io/dir.hpp - rooted file operations
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -22,35 +22,29 @@
 
 #include "../strings/fwd.hpp"
 
-#include "dir.hpp"
 #include "fd.hpp"
+
 
 namespace tmwa
 {
 namespace io
 {
-    class ReadFile
+    class DirFd
     {
     private:
-        FD fd;
-        unsigned short start, end;
-        char buf[4096];
+        FD dirfd;
+
     public:
+        DirFd();
         explicit
-        ReadFile(FD fd);
-        explicit
-        ReadFile(ZString name);
-        ReadFile(const DirFd& dir, ZString name);
+        DirFd(ZString);
+        DirFd(const DirFd&, ZString);
 
-        ReadFile& operator = (ReadFile&&) = delete;
-        ReadFile(ReadFile&&) = delete;
-        ~ReadFile();
+        DirFd(const DirFd&) = delete;
+        ~DirFd();
+        DirFd& operator = (const DirFd&) = delete;
 
-        bool get(char&);
-        size_t get(char *buf, size_t len);
-        bool getline(AString&);
-
-        bool is_open();
+        FD open_fd(ZString name, int flags, int mode=FD::DEFAULT_MODE) const;
     };
 } // namespace io
 } // namespace tmwa

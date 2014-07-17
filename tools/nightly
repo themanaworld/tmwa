@@ -1,0 +1,68 @@
+#!/bin/bash -e
+
+WWW=${HOME}/www/
+
+ALL_CONFIGS=(
+    config64
+    config32
+)
+# need a special kernel for configx32
+
+
+config32() {
+    # No one knows what number this is supposed to be:
+    # - the lib directory is called i386-linux-gnu
+    # - the 32-bit files are called i486-linux-gnu
+    # - the cross-32 configury says i586
+    HOST=i586-linux-gnu
+    CXX='g++ -m32'
+    EXTRA_LIBS=(
+        /lib32/libc.so.6
+        /lib32/libm.so.6
+        /usr/lib32/libgcc_s.so.1
+        /usr/lib32/libstdc++.so.6
+    )
+}
+
+configx32() {
+    HOST=x86_64-linux-gnux32
+    CXX='g++ -mx32'
+    EXTRA_LIBS=(
+        /libx32/libc.so.6
+        /libx32/libm.so.6
+        /usr/libx32/libgcc_s.so.1
+        /usr/libx32/libstdc++.so.6
+    )
+}
+
+config64() {
+    HOST=x86_64-linux-gnu
+    CXX='g++ -m64'
+    EXTRA_LIBS=(
+        /lib/x86_64-linux-gnu/libc.so.6
+        /lib/x86_64-linux-gnu/libm.so.6
+        /lib/x86_64-linux-gnu/libgcc_s.so.1
+        /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+    )
+}
+
+first=true
+
+for config in ${ALL_CONFIGS[@]}
+do
+    $config
+    mkdir -p build-$HOST
+    cd build-$HOST
+    ../configure --host=$HOST CXX="$CXX -Wno-deprecated-declarations" --prefix=/. --enable-rpath=relative
+    make -j3 all
+    make -j3 test
+    if $first
+    then
+        make -j3 dist
+        first=false
+    fi
+    make -j3 bindist BUNDLED_LIBS="${EXTRA_LIBS[*]}"
+    gzip -n -9 dist/*.tar
+    mv dist/*.tar.gz $WWW
+    cd ..
+done

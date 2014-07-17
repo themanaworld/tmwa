@@ -42,6 +42,10 @@ namespace io
     : fd(FD::open(name, O_RDONLY | O_CLOEXEC)), start(0), end(0)
     {
     }
+    ReadFile::ReadFile(const DirFd& dir, ZString name)
+    : fd(dir.open_fd(name, O_RDONLY | O_CLOEXEC)), start(0), end(0)
+    {
+    }
     ReadFile::~ReadFile()
     {
         fd.close();

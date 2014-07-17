@@ -24,6 +24,7 @@
 
 #include "../strings/fwd.hpp"
 
+#include "dir.hpp"
 #include "fd.hpp"
 
 
@@ -43,6 +44,8 @@ namespace io
         WriteFile(FD fd, bool linebuffered=false);
         explicit
         WriteFile(ZString name, bool linebuffered=false);
+        WriteFile(const DirFd& dir, ZString name, bool linebuffered=false);
+
         WriteFile(WriteFile&&) = delete;
         WriteFile& operator = (WriteFile&&) = delete;
         ~WriteFile();

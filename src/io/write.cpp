@@ -41,6 +41,9 @@ namespace io
     WriteFile::WriteFile(ZString name, bool linebuffered)
     : fd(FD::open(name, O_WRONLY | O_CREAT | O_TRUNC, 0666)), lb(linebuffered), buflen(0)
     {}
+    WriteFile::WriteFile(const DirFd& dir, ZString name, bool linebuffered)
+    : fd(dir.open_fd(name, O_WRONLY | O_CREAT | O_TRUNC, 0666)), lb(linebuffered), buflen(0)
+    {}
     WriteFile::~WriteFile()
     {
         if (fd != FD())
