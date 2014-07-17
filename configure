@@ -28,7 +28,7 @@ except ImportError:
     sys.exit('attoconf missing - please run: git submodule update --init')
 else:
     try:
-        require_version(0, 8)
+        require_version(0, 9)
     except SystemExit as e:
         e.code += '\nPlease run: git submodule update'
         raise
@@ -58,7 +58,7 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Templates):
     def paths(self):
         super(Configuration, self).paths()
 
-        self.add_option('--debugdir', init='/',
+        self.add_option('--debugdir', init='/.',
                 type=filepath, check=lambda build, DIR: None,
                 help='root for split debug files (often /usr/lib/debug)', hidden=False,
                 help_var='DIR')

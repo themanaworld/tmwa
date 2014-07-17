@@ -5,7 +5,8 @@ PACKAGE = @PACKAGE@
 PACKAGE_NAME = @PACKAGE_NAME@
 
 PREFIX = @PREFIX@
-EPREFIX = @EPREFIX@
+EPREFIX = @EXEC_PREFIX@
+# EPREFIX = @EPREFIX@
 
 BINDIR = @BINDIR@
 SBINDIR = @SBINDIR@
@@ -29,12 +30,15 @@ PDFDIR = @PDFDIR@
 PSDIR = @PSDIR@
 DEBUGDIR = @DEBUGDIR@
 
+BUILD = @BUILD@
+HOST = @HOST@
 
 BISON = @BISON@
 FLEX = @FLEX@
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
-LDLIBS = @LDLIBS@
+LDLIBS = @LIBS@
+# LDLIBS = @LDLIBS@
 CXX = @CXX@
 CXXFLAGS = @CXXFLAGS@
 GTEST_DIR = @GTEST_DIR@
@@ -450,8 +454,24 @@ dist/%-attoconf-only.tar:
 dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
 	cp dist/$*-src.tar $@
 	tar Af $@ dist/$*-attoconf-only.tar
+dist/%-bin-${HOST}.tar: all
+	${MAKE} install DESTDIR=$(abspath dist/$*)
+	tar cf $@ -C dist $*
 
 dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
+ifneq '' '${HOST}'
+bindist: dist/tmwa-${VERSION_FULL}-bin-${HOST}.tar
+else
+bindist:
+	@echo
+	@echo
+	@echo "Fatal Error: 'make bindist' requires './configure --host='."
+	@echo "Maybe you want `${CXX} -v 2>&1 | sed -n '/Target: /{s///;p}'`, but I refuse to guess,"
+	@echo "because there are too many options like -m32 that confuse me."
+	@echo
+	@echo
+	@false
+endif
 .PHONY: dist
 
 format: format-cpp format-hpp
