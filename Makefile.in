@@ -342,7 +342,10 @@ ii: ${PREPROCESSED}
 ll: ${IRS}
 bc: ${BITCODES}
 s: ${ASSEMBLED}
-o: ${OBJECTS}
+o: ${PDC_OBJECTS}
+# why not PIC objects? Because this is only for debugging, so we don't need
+# duplicates, and PDC is more common, and also some override rules are only
+# currently defined for PDC
 
 clean-deps:
 	-$l find obj -name '*.d' -delete
@@ -412,7 +415,7 @@ lib/%.${SO_LONG}: lib/%.${SO_LONG}-gdb.py
 ${TEST_BINARIES}: obj/gtest-all.pdc.o
 
 # This isn't perfect.
-$(filter %_test.pdc.o,${OBJECTS}) obj/gtest-all.pdc.o: override CPPFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
+$(filter %_test.pdc.o,${PDC_OBJECTS}) obj/gtest-all.pdc.o: override CPPFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
 obj/gtest-all.pdc.o: override WARNINGS :=
 obj/gtest-all.pdc.o: ${GTEST_DIR}/src/gtest-all.cc
 	$(MKDIR_FIRST)
