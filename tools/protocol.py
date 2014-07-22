@@ -451,16 +451,18 @@ class Include(object):
 
 
 class FixedPacket(object):
-    __slots__ = ('fixed_struct')
+    __slots__ = ('fixed_struct', 'comment')
 
-    def __init__(self, fixed_struct):
+    def __init__(self, fixed_struct, comment):
         self.fixed_struct = fixed_struct
+        self.comment = comment
 
     def dump_fwd(self, fwd):
         self.fixed_struct.dump_fwd(fwd)
         fwd.write('\n')
 
     def dump_native(self, f):
+        f.write(self.comment)
         self.fixed_struct.dump_native(f)
         f.write('\n')
 
@@ -473,11 +475,12 @@ class FixedPacket(object):
         f.write('\n')
 
 class VarPacket(object):
-    __slots__ = ('head_struct', 'repeat_struct')
+    __slots__ = ('head_struct', 'repeat_struct', 'comment')
 
-    def __init__(self, head_struct, repeat_struct):
+    def __init__(self, head_struct, repeat_struct, comment):
         self.head_struct = head_struct
         self.repeat_struct = repeat_struct
+        self.comment = comment
 
     def dump_fwd(self, fwd):
         self.head_struct.dump_fwd(fwd)
@@ -485,6 +488,7 @@ class VarPacket(object):
         fwd.write('\n')
 
     def dump_native(self, f):
+        f.write(self.comment)
         self.head_struct.dump_native(f)
         self.repeat_struct.dump_native(f)
         f.write('\n')
@@ -499,38 +503,72 @@ class VarPacket(object):
         self.repeat_struct.dump_convert(f)
         f.write('\n')
 
+def sanitize_line(line, n):
+    if not line:
+        return line
+    m = len(line) - len(line.lstrip(' '))
+    assert m >= n, 'not %d: %r' % (n, line)
+    return line[n:]
+
+def sanitize_multiline(text):
+    text = text.strip('\n').rstrip(' ')
+    assert '\r' not in text
+    assert '\t' not in text
+    n = len(text) - len(text.lstrip(' '))
+    return '\n'.join(sanitize_line(l, n) for l in text.split('\n'))
+
 def packet(id, name,
         fixed=None, fixed_size=None,
         payload=None, payload_size=None,
         head=None, head_size=None,
         repeat=None, repeat_size=None,
         option=None, option_size=None,
+        pre=None, post=None, desc=None,
 ):
     assert (fixed is None) <= (fixed_size is None)
     assert (payload is None) <= (payload_size is None)
     assert (head is None) <= (head_size is None)
     assert (repeat is None) <= (repeat_size is None)
     assert (option is None) <= (option_size is None)
+    assert (pre is None) == (post is None) == (not desc)
+
+    comment = 'Packet 0x%04x: "%s"\n' % (id, name)
+    if desc:
+        desc = sanitize_multiline(desc)
+        pre = ', '.join('packet 0x%04x' % x for x in pre) or 'none'
+        post = ', '.join('packet 0x%04x' % x for x in post) or 'none'
+        comment += 'pre:  ' + pre + '\n'
+        comment += 'post: ' + post + '\n'
+        comment += desc
+    comment = ''.join('// ' + c + '\n' if c else '//\n' for c in comment.split('\n'))
 
     if fixed is not None:
         assert not head and not repeat and not option and not payload
         return FixedPacket(
-                StructType(id, 'Packet_Fixed<0x%04x>' % id, fixed, fixed_size))
+                StructType(id, 'Packet_Fixed<0x%04x>' % id, fixed, fixed_size),
+                comment=comment,
+        )
     elif payload is not None:
         assert not head and not repeat and not option
         return FixedPacket(
-                StructType(id, 'Packet_Payload<0x%04x>' % id, payload, payload_size))
+                StructType(id, 'Packet_Payload<0x%04x>' % id, payload, payload_size),
+                comment=comment,
+        )
     else:
         assert head
         if option:
             return VarPacket(
                     StructType(id, 'Packet_Head<0x%04x>' % id, head, head_size),
-                    StructType(id, 'Packet_Option<0x%04x>' % id, option, option_size))
+                    StructType(id, 'Packet_Option<0x%04x>' % id, option, option_size),
+                    comment=comment,
+            )
         else:
             assert repeat
             return VarPacket(
                     StructType(id, 'Packet_Head<0x%04x>' % id, head, head_size),
-                    StructType(id, 'Packet_Repeat<0x%04x>' % id, repeat, repeat_size))
+                    StructType(id, 'Packet_Repeat<0x%04x>' % id, repeat, repeat_size),
+                    comment=comment,
+            )
 
 
 class Channel(object):
@@ -1341,6 +1379,11 @@ def main():
             at(26, account_pass, 'new pass'),
         ],
         fixed_size=50,
+        pre=[],
+        post=[0x2740],
+        desc='''
+            Sent by a client to the character server to request a password change.
+        ''',
     )
     char_user.s(0x0062, 'change password response',
         fixed=[
@@ -1348,6 +1391,17 @@ def main():
             at(2, u8, 'status'),
         ],
         fixed_size=3,
+        pre=[0x2741],
+        post=[],
+        desc='''
+            Sent by the character server with the response of a password change request.
+
+            Status:
+                0: The account was not found.
+                1: Success.
+                2: The old password was incorrect.
+                3: The new password was too short.
+        ''',
     )
     login_user.r(0x0063, 'update host',
         head=[
@@ -1357,6 +1411,13 @@ def main():
         head_size=4,
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
+        pre=[0x0064],
+        post=[],
+        desc='''
+            This packet gives the client the location of the update server URL, such as http://tmwdata.org/updates/
+
+            It is only sent if an update host is specified for the server (there is one in the default configuration) and the client identifies as accepting an update host (which all supported clients do).
+        ''',
     )
     login_user.r(0x0064, 'login request',
         fixed=[
@@ -1367,6 +1428,13 @@ def main():
             at(54, version_2, 'version 2 flags'),
         ],
         fixed_size=55,
+        pre=[0x7531],
+        post=[0x006a, 0x0081, 0x0063, 0x0069],
+        desc='''
+            Registers login credentials.
+
+            All clients must now set both defined version 2 flags.
+        ''',
     )
     char_user.r(0x0065, 'char-server connection request',
         fixed=[
