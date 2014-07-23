@@ -1436,7 +1436,7 @@ def main():
             All clients must now set both defined version 2 flags.
         ''',
     )
-    char_user.r(0x0065, 'char-server connection request',
+    char_user.r(0x0065, 'tmwa-char connection request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -1560,7 +1560,7 @@ def main():
         ],
         fixed_size=28,
     )
-    map_user.r(0x0072, 'map server connect',
+    map_user.r(0x0072, 'tmwa-map connect',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -3033,7 +3033,7 @@ def main():
         pre=[0x2af7],
         post=[0x2732],
    	    desc='''
-            Request from map-server via char-server to reload GM accounts. (by Yor)
+            Request from tmwa-map via tmwa-char to reload GM accounts. (by Yor)
         ''',
     )
     login_char.r(0x2710, 'add char server request',
@@ -3230,7 +3230,7 @@ def main():
         pre=[0x2709],
         post=[0x2b15],
         desc='''
-            Send GM accounts to all char-servers.
+            Send GM accounts to all character servers.
         ''',
     )
     login_char.r(0x2740, 'change password request',
@@ -3241,6 +3241,11 @@ def main():
             at(30, account_pass, 'new pass'),
         ],
         fixed_size=54,
+        pre=[0x0061],
+        post=[0x2741],
+        desc='''
+            Change password request from tmwa-char.
+        ''',
     )
     login_char.s(0x2741, 'change password reply',
         fixed=[
@@ -3249,6 +3254,11 @@ def main():
             at(6, u8, 'status'),
         ],
         fixed_size=7,
+        pre=[0x2740],
+        post=[0x0062],
+        desc='''
+            Password change response from tmwa-login.
+        ''',
     )
 
     # char map
@@ -3260,9 +3270,9 @@ def main():
         pre=[],
         post=[0x2709],
         desc='''
-            Request from map server to reload GM accounts.
+            Request from tmwa-map to reload GM accounts.
             
-            Transmission to login-server. (by Yor)
+            Transmission to tmwa-login. (by Yor)
         ''',
     )
     char_map.r(0x2af8, 'add map server request',
@@ -3278,7 +3288,7 @@ def main():
         pre=[],
         post=[0x2af9, 0x2b15],
         desc='''
-            Attempt to connect from map-server.
+            Attempt to connect from tmwa-map.
         ''',
     )
     char_map.s(0x2af9, 'add map server result',
@@ -3290,7 +3300,7 @@ def main():
         pre=[0x2af8],
         post=[0x2afa],
         desc='''
-            Acknowledgement to map-server of connection.
+            Acknowledgement to tmwa-map of connection.
         ''',
     )
     # wtf duplicate v
@@ -3307,7 +3317,7 @@ def main():
         pre=[0x2af9],
         post=[0x2afb, 0x2b04],
         desc='''
-            Receive map names list from map-server.
+            Receive map names list from tmwa-map.
         ''',
     )
     # wtf duplicate ^
@@ -3329,7 +3339,7 @@ def main():
         pre=[0x2afa],
         post=[],
         desc='''
-            Acknowledgement to map-server that map names list was received.
+            Acknowledgement to tmwa-map that map names list was received.
         ''',
     )
     char_map.r(0x2afc, 'character auth request',
@@ -3574,7 +3584,7 @@ def main():
         pre=[0x2732, 0x2af8],
         post=[],
         desc='''
-            Send GM accounts to all map-servers.
+            Send GM accounts to all map servers.
         ''',
     )
     char_map.r(0x2b16, 'divorce request',
