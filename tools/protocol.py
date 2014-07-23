@@ -3275,6 +3275,11 @@ def main():
             at(58, u16, 'port'),
         ],
         fixed_size=60,
+		pre=[],
+		post=[0x2af9, 0x2b15],
+		desc='''
+		Attempt to connect from map-server.
+		''',
     )
     char_map.s(0x2af9, 'add map server result',
         fixed=[
@@ -3282,6 +3287,11 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
+		pre=[0x2af8],
+		post=[0x2afa],
+		desc='''
+		Acknowledgement to map-server of connection.
+		''',
     )
     # wtf duplicate v
     char_map.r(0x2afa, 'map list',
@@ -3294,6 +3304,11 @@ def main():
             at(0, map_name, 'map name'),
         ],
         repeat_size=16,
+		pre=[0x2af9],
+		post=[0x2afb, 0x2b04],
+		desc='''
+		Receive map names list from map-server.
+		''',
     )
     # wtf duplicate ^
     char_map.s(0x2afa, 'itemfrob',
@@ -3311,6 +3326,11 @@ def main():
             at(3, char_name, 'whisper name'),
         ],
         fixed_size=27,
+		pre=[0x2afa],
+		post=[],
+		desc='''
+		Acknowledgement to map-server that map names list was received.
+		''',
     )
     char_map.r(0x2afc, 'character auth request',
         fixed=[
@@ -3403,6 +3423,11 @@ def main():
             at(0, map_name, 'map name'),
         ],
         repeat_size=16,
+		pre=[0x2afa],
+		post=[],
+		desc='''
+		Send map information to all map servers.
+		''',
     )
     char_map.r(0x2b05, 'change map server request',
         fixed=[
@@ -3546,7 +3571,7 @@ def main():
             at(4, gm1, 'gm level'),
         ],
         repeat_size=5,
-		pre=[0x2732],
+		pre=[0x2732, 0x2af8],
 		post=[],
 		desc='''
 		Send GM accounts to all map-servers.
