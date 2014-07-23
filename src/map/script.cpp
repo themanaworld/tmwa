@@ -157,6 +157,7 @@ struct BuiltinFunction
     void (*func)(ScriptState *);
     LString name;
     LString arg;
+    char ret;
 };
 // defined later
 extern BuiltinFunction builtin_functions[];
@@ -598,13 +599,18 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
             {
                 ZString arg = builtin_functions[funcp->val].arg;
                 int j = 0;
+                // TODO handle ? and multiple * correctly
                 for (j = 0; arg[j]; j++)
-                    if (arg[j] == '*')
+                    if (arg[j] == '*' || arg[j] == '?')
                         break;
-                if ((arg[j] == 0 && i != j) || (arg[j] == '*' && i < j))
+                if ((arg[j] == 0 && i != j) || ((arg[j] == '*' || arg[j] == '?') && i < j))
                 {
                     disp_error_message("illegal number of parameters"_s,
                             plist[std::min(i, j)]);
+                }
+                if (!builtin_functions[funcp->val].ret)
+                {
+                    disp_error_message("statement in function context"_s, tmpp);
                 }
             }
         }
@@ -713,13 +719,18 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
     {
         ZString arg = builtin_functions[cmd->val].arg;
         int j = 0;
+        // TODO see above
         for (j = 0; arg[j]; j++)
-            if (arg[j] == '*')
+            if (arg[j] == '*' || arg[j] == '?')
                 break;
-        if ((arg[j] == 0 && i != j) || (arg[j] == '*' && i < j))
+        if ((arg[j] == 0 && i != j) || ((arg[j] == '*' || arg[j] == '?') && i < j))
         {
             disp_error_message("illegal number of parameters"_s,
                     plist[std::min(i, j)]);
+        }
+        if (builtin_functions[cmd->val].ret)
+        {
+            disp_error_message("function in statement context"_s, p2);
         }
     }
 
@@ -1510,23 +1521,6 @@ void builtin_rand(ScriptState *st)
         int range = conv_num(st, &AARGO2(2));
         push_int(st->stack, ByteCode::INT, range <= 0 ? 0 : random_::to(range));
     }
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_pow(ScriptState *st)
-{
-    int a, b;
-
-    a = conv_num(st, &AARGO2(2));
-    b = conv_num(st, &AARGO2(3));
-
-#warning "This is silly"
-    push_int(st->stack, ByteCode::INT, static_cast<int>(pow(a * 0.001, b)));
-
 }
 
 /*==========================================
@@ -4956,129 +4950,128 @@ void do_init_script(void)
     ).detach();
 }
 
-#define BUILTIN(func, args) \
-{builtin_##func, #func ## _s, {args}}
+#define BUILTIN(func, args, ret)    \
+{builtin_##func, #func ## _s, args, ret}
 
 BuiltinFunction builtin_functions[] =
 {
-    BUILTIN(mes, "s"_s),
-    BUILTIN(next, ""_s),
-    BUILTIN(close, ""_s),
-    BUILTIN(close2, ""_s),
-    BUILTIN(menu, "sL*"_s),
-    BUILTIN(goto, "L"_s),
-    BUILTIN(callsub, "L"_s),
-    BUILTIN(callfunc, "F"_s),
-    BUILTIN(return, ""_s),
-    BUILTIN(input, "N"_s),
-    BUILTIN(warp, "Mxy"_s),
-    BUILTIN(isat, "Mxy"_s),
-    BUILTIN(areawarp, "MxyxyMxy"_s),
-    BUILTIN(setlook, "ii"_s),
-    BUILTIN(set, "Ne"_s),
-    BUILTIN(setarray, "Ne*"_s),
-    BUILTIN(cleararray, "Nei"_s),
-    BUILTIN(getarraysize, "N"_s),
-    BUILTIN(getelementofarray, "Ni"_s),
-    BUILTIN(if, "iF*"_s),
-    BUILTIN(getitem, "Ii**"_s),
-    BUILTIN(makeitem, "IiMxy"_s),
-    BUILTIN(delitem, "Ii"_s),
-    BUILTIN(heal, "ii"_s),
-    BUILTIN(itemheal, "ii"_s),
-    BUILTIN(percentheal, "ii"_s),
-    BUILTIN(rand, "i*"_s),
-    BUILTIN(pow, "ii"_s),
-    BUILTIN(countitem, "I"_s),
-    BUILTIN(checkweight, "Ii"_s),
-    BUILTIN(readparam, "i*"_s),
-    BUILTIN(getcharid, "i*"_s),
-    BUILTIN(strcharinfo, "i"_s),
-    BUILTIN(getequipid, "i"_s),
-    BUILTIN(getequipname, "i"_s),
-    BUILTIN(statusup2, "ii"_s),
-    BUILTIN(bonus, "ii"_s),
-    BUILTIN(bonus2, "iii"_s),
-    BUILTIN(skill, "ii*"_s),
-    BUILTIN(setskill, "ii"_s),
-    BUILTIN(getskilllv, "i"_s),
-    BUILTIN(getgmlevel, ""_s),
-    BUILTIN(end, ""_s),
-    BUILTIN(getopt2, ""_s),
-    BUILTIN(setopt2, "i"_s),
-    BUILTIN(savepoint, "Mxy"_s),
-    BUILTIN(gettimetick, "i"_s),
-    BUILTIN(gettime, "i"_s),
-    BUILTIN(openstorage, "*"_s),
-    BUILTIN(monster, "Mxysmi*"_s),
-    BUILTIN(areamonster, "Mxyxysmi*"_s),
-    BUILTIN(killmonster, "ME"_s),
-    BUILTIN(killmonsterall, "M"_s),
-    BUILTIN(donpcevent, "E"_s),
-    BUILTIN(addtimer, "tE"_s),
-    BUILTIN(initnpctimer, ""_s),
-    BUILTIN(stopnpctimer, ""_s),
-    BUILTIN(startnpctimer, "*"_s),
-    BUILTIN(setnpctimer, "i"_s),
-    BUILTIN(getnpctimer, "i"_s),
-    BUILTIN(announce, "si"_s),
-    BUILTIN(mapannounce, "Msi"_s),
-    BUILTIN(getusers, "i"_s),
-    BUILTIN(getmapusers, "M"_s),
-    BUILTIN(getareausers, "Mxyxy*"_s),
-    BUILTIN(getareadropitem, "Mxyxyi*"_s),
-    BUILTIN(enablenpc, "s"_s),
-    BUILTIN(disablenpc, "s"_s),
-    BUILTIN(sc_start, "iTi*"_s),
-    BUILTIN(sc_end, "i"_s),
-    BUILTIN(sc_check, "i"_s),
-    BUILTIN(debugmes, "s"_s),
-    BUILTIN(resetstatus, ""_s),
-    BUILTIN(changesex, ""_s),
-    BUILTIN(attachrid, "i"_s),
-    BUILTIN(detachrid, ""_s),
-    BUILTIN(isloggedin, "i"_s),
-    BUILTIN(setmapflag, "Mi"_s),
-    BUILTIN(removemapflag, "Mi"_s),
-    BUILTIN(getmapflag, "Mi"_s),
-    BUILTIN(pvpon, "M"_s),
-    BUILTIN(pvpoff, "M"_s),
-    BUILTIN(emotion, "i"_s),
-    BUILTIN(marriage, "P"_s),
-    BUILTIN(divorce, ""_s),
-    BUILTIN(getitemname, "I"_s),
-    BUILTIN(getspellinvocation, "s"_s),
-    BUILTIN(getpartnerid2, ""_s),
-    BUILTIN(getexp, "ii"_s),
-    BUILTIN(getinventorylist, ""_s),
-    BUILTIN(getactivatedpoolskilllist, ""_s),
-    BUILTIN(getunactivatedpoolskilllist, ""_s),
-    BUILTIN(poolskill, "i"_s),
-    BUILTIN(unpoolskill, "i"_s),
-    BUILTIN(misceffect, "i*"_s),
-    BUILTIN(specialeffect, "i"_s),
-    BUILTIN(specialeffect2, "i"_s),
-    BUILTIN(nude, ""_s),
-    BUILTIN(mapwarp, "MMxy"_s),
-    BUILTIN(cmdothernpc, "ss"_s),
-    BUILTIN(gmcommand, "s"_s),
-    BUILTIN(npcwarp, "xys"_s),
-    BUILTIN(message, "Ps"_s),
-    BUILTIN(npctalk, "s"_s),
-    BUILTIN(mobcount, "ME"_s),
-    BUILTIN(getlook, "i"_s),
-    BUILTIN(getsavepoint, "i"_s),
-    BUILTIN(areatimer, "MxyxytE"_s),
-    BUILTIN(isin, "Mxyxy"_s),
-    BUILTIN(shop, "s"_s),
-    BUILTIN(isdead, ""_s),
-    BUILTIN(unequipbyid, "i"_s),
-    BUILTIN(fakenpcname, "ssi"_s),
-    BUILTIN(getx, ""_s),
-    BUILTIN(gety, ""_s),
-    BUILTIN(getmap, ""_s),
-    BUILTIN(mapexit, ""_s),
-    {nullptr, ""_s, ""_s},
+    BUILTIN(mes, "s"_s, '\0'),
+    BUILTIN(goto, "L"_s, '\0'),
+    BUILTIN(callfunc, "F"_s, '\0'),
+    BUILTIN(callsub, "L"_s, '\0'),
+    BUILTIN(return, ""_s, '\0'),
+    BUILTIN(next, ""_s, '\0'),
+    BUILTIN(close, ""_s, '\0'),
+    BUILTIN(close2, ""_s, '\0'),
+    BUILTIN(menu, "sL**"_s, '\0'),
+    BUILTIN(rand, "i?"_s, 'i'),
+    BUILTIN(isat, "Mxy"_s, 'i'),
+    BUILTIN(warp, "Mxy"_s, '\0'),
+    BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
+    BUILTIN(heal, "ii"_s, '\0'),
+    BUILTIN(itemheal, "ii"_s, '\0'),
+    BUILTIN(percentheal, "ii"_s, '\0'),
+    BUILTIN(input, "N"_s, '\0'),
+    BUILTIN(if, "iF*"_s, '\0'),
+    BUILTIN(set, "Ne"_s, '\0'),
+    BUILTIN(setarray, "Ne*"_s, '\0'),
+    BUILTIN(cleararray, "Nei"_s, '\0'),
+    BUILTIN(getarraysize, "N"_s, 'i'),
+    BUILTIN(getelementofarray, "Ni"_s, '.'),
+    BUILTIN(setlook, "ii"_s, '\0'),
+    BUILTIN(countitem, "I"_s, 'i'),
+    BUILTIN(checkweight, "Ii"_s, 'i'),
+    BUILTIN(getitem, "Ii??"_s, '\0'),
+    BUILTIN(makeitem, "IiMxy"_s, '\0'),
+    BUILTIN(delitem, "Ii"_s, '\0'),
+    BUILTIN(readparam, "i?"_s, 'i'),
+    BUILTIN(getcharid, "i?"_s, 'i'),
+    BUILTIN(strcharinfo, "i"_s, 's'),
+    BUILTIN(getequipid, "i"_s, 'i'),
+    BUILTIN(getequipname, "i"_s, 's'),
+    BUILTIN(statusup2, "ii"_s, '\0'),
+    BUILTIN(bonus, "ii"_s, '\0'),
+    BUILTIN(bonus2, "iii"_s, '\0'),
+    BUILTIN(skill, "ii?"_s, '\0'),
+    BUILTIN(setskill, "ii"_s, '\0'),
+    BUILTIN(getskilllv, "i"_s, 'i'),
+    BUILTIN(getgmlevel, ""_s, 'i'),
+    BUILTIN(end, ""_s, '\0'),
+    BUILTIN(getopt2, ""_s, 'i'),
+    BUILTIN(setopt2, "i"_s, '\0'),
+    BUILTIN(savepoint, "Mxy"_s, '\0'),
+    BUILTIN(gettimetick, "i"_s, 'i'),
+    BUILTIN(gettime, "i"_s, 'i'),
+    BUILTIN(openstorage, ""_s, '\0'),
+    BUILTIN(getexp, "ii"_s, '\0'),
+    BUILTIN(monster, "Mxysmi?"_s, '\0'),
+    BUILTIN(areamonster, "Mxyxysmi?"_s, '\0'),
+    BUILTIN(killmonster, "ME"_s, '\0'),
+    BUILTIN(killmonsterall, "M"_s, '\0'),
+    BUILTIN(donpcevent, "E"_s, '\0'),
+    BUILTIN(addtimer, "tE"_s, '\0'),
+    BUILTIN(initnpctimer, ""_s, '\0'),
+    BUILTIN(startnpctimer, "?"_s, '\0'),
+    BUILTIN(stopnpctimer, ""_s, '\0'),
+    BUILTIN(getnpctimer, "i"_s, 'i'),
+    BUILTIN(setnpctimer, "i"_s, '\0'),
+    BUILTIN(announce, "si"_s, '\0'),
+    BUILTIN(mapannounce, "Msi"_s, '\0'),
+    BUILTIN(getusers, "i"_s, 'i'),
+    BUILTIN(getmapusers, "M"_s, 'i'),
+    BUILTIN(getareausers, "Mxyxy?"_s, 'i'),
+    BUILTIN(getareadropitem, "Mxyxyi?"_s, 'i'),
+    BUILTIN(enablenpc, "s"_s, '\0'),
+    BUILTIN(disablenpc, "s"_s, '\0'),
+    BUILTIN(sc_start, "iTi?"_s, '\0'),
+    BUILTIN(sc_end, "i"_s, '\0'),
+    BUILTIN(sc_check, "i"_s, 'i'),
+    BUILTIN(debugmes, "s"_s, '\0'),
+    BUILTIN(resetstatus, ""_s, '\0'),
+    BUILTIN(changesex, ""_s, '\0'),
+    BUILTIN(attachrid, "i"_s, 'i'),
+    BUILTIN(detachrid, ""_s, '\0'),
+    BUILTIN(isloggedin, "i"_s, 'i'),
+    BUILTIN(setmapflag, "Mi"_s, '\0'),
+    BUILTIN(removemapflag, "Mi"_s, '\0'),
+    BUILTIN(getmapflag, "Mi"_s, 'i'),
+    BUILTIN(pvpon, "M"_s, '\0'),
+    BUILTIN(pvpoff, "M"_s, '\0'),
+    BUILTIN(emotion, "i"_s, '\0'),
+    BUILTIN(mapwarp, "MMxy"_s, '\0'),
+    BUILTIN(cmdothernpc, "ss"_s, '\0'),
+    BUILTIN(mobcount, "ME"_s, 'i'),
+    BUILTIN(marriage, "P"_s, 'i'),
+    BUILTIN(divorce, ""_s, 'i'),
+    BUILTIN(getitemname, "I"_s, 's'),
+    BUILTIN(getspellinvocation, "s"_s, 's'),
+    BUILTIN(getpartnerid2, ""_s, 'i'),
+    BUILTIN(getinventorylist, ""_s, '\0'),
+    BUILTIN(getactivatedpoolskilllist, ""_s, '\0'),
+    BUILTIN(getunactivatedpoolskilllist, ""_s, '\0'),
+    BUILTIN(poolskill, "i"_s, '\0'),
+    BUILTIN(unpoolskill, "i"_s, '\0'),
+    BUILTIN(misceffect, "i?"_s, '\0'),
+    BUILTIN(specialeffect, "i"_s, '\0'),
+    BUILTIN(specialeffect2, "i"_s, '\0'),
+    BUILTIN(nude, ""_s, '\0'),
+    BUILTIN(unequipbyid, "i"_s, '\0'),
+    BUILTIN(gmcommand, "s"_s, '\0'),
+    BUILTIN(npcwarp, "xys"_s, '\0'),
+    BUILTIN(message, "Ps"_s, '\0'),
+    BUILTIN(npctalk, "s"_s, '\0'),
+    BUILTIN(getlook, "i"_s, 'i'),
+    BUILTIN(getsavepoint, "i"_s, '.'),
+    BUILTIN(areatimer, "MxyxytE"_s, '\0'),
+    BUILTIN(isin, "Mxyxy"_s, 'i'),
+    BUILTIN(shop, "s"_s, '\0'),
+    BUILTIN(isdead, ""_s, 'i'),
+    BUILTIN(fakenpcname, "ssi"_s, '\0'),
+    BUILTIN(getx, ""_s, 'i'),
+    BUILTIN(gety, ""_s, 'i'),
+    BUILTIN(getmap, ""_s, 's'),
+    BUILTIN(mapexit, ""_s, '\0'),
+    {nullptr, ""_s, ""_s, '\0'},
 };
 
 void set_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e, int val)
