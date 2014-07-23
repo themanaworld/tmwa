@@ -3030,6 +3030,11 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+		pre=[0x2af7],
+		post=[0x2732],
+		desc='''
+		Request from map-server via char-server to reload GM accounts. (by Yor)
+		''',
     )
     login_char.r(0x2710, 'add char server request',
         fixed=[
@@ -3222,6 +3227,11 @@ def main():
             at(4, gm1, 'gm level'),
         ],
         repeat_size=5,
+		pre=[0x2709],
+		post=[0x2b15],
+		desc='''
+		Send GM accounts to all char-servers.
+		''',
     )
     login_char.r(0x2740, 'change password request',
         fixed=[
@@ -3247,6 +3257,13 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+		pre=[],
+		post=[0x2709],
+		desc='''
+		Request from map server to reload GM accounts.
+		
+		Transmission to login-server. (by Yor)
+		''',
     )
     char_map.r(0x2af8, 'add map server request',
         fixed=[
@@ -3529,6 +3546,11 @@ def main():
             at(4, gm1, 'gm level'),
         ],
         repeat_size=5,
+		pre=[0x2732],
+		post=[],
+		desc='''
+		Send GM accounts to all map-servers.
+		''',
     )
     char_map.r(0x2b16, 'divorce request',
         fixed=[
