@@ -21,6 +21,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 
 #include "battle.hpp"
 #include "pc.hpp"

@@ -25,8 +25,6 @@
 
 #include "../compat/cast.hpp"
 
-#include "../generic/enum.hpp"
-
 #include "../diagnostics.hpp"
 
 
@@ -54,10 +52,9 @@ namespace cxxstdio
     }
 
     template<class T, typename=typename std::enable_if<!std::is_class<T>::value>::type>
-    typename remove_enum<T>::type decay_for_printf(T v)
+    T decay_for_printf(T v)
     {
-        typedef typename remove_enum<T>::type repr_type;
-        return repr_type(v);
+        return v;
     }
 
     template<class T, typename=decltype(decay_for_printf(std::declval<T&&>()))>
@@ -68,84 +65,6 @@ namespace cxxstdio
 
     inline
     const char *convert_for_printf(const char *) = delete;
-
-#if 0
-    template<class E>
-    constexpr
-    E get_enum_min_value(decltype(E::min_value))
-    {
-        return E::min_value;
-    }
-    template<class E>
-    constexpr
-    E get_enum_min_value(E def)
-    {
-        return def;
-    }
-
-    template<class E>
-    constexpr
-    E get_enum_max_value(decltype(E::max_value))
-    {
-        return E::max_value;
-    }
-    template<class E>
-    constexpr
-    E get_enum_max_value(E def)
-    {
-        return def;
-    }
-#else
-    template<class E>
-    constexpr
-    E get_enum_min_value(E)
-    {
-        return E::min_value;
-    }
-    template<class E>
-    constexpr
-    E get_enum_max_value(E)
-    {
-        return E::max_value;
-    }
-#endif
-
-    template<class E>
-    class EnumConverter
-    {
-        E& out;
-        typedef typename underlying_type<E>::type U;
-#if 0
-        constexpr static
-        U min_value = U(get_enum_min_value<E>(E(std::numeric_limits<U>::min())));
-        constexpr static
-        U max_value = U(get_enum_max_value<E>(E(std::numeric_limits<U>::max())));
-#else
-        constexpr static
-        U min_value = U(get_enum_min_value(E()));
-        constexpr static
-        U max_value = U(get_enum_max_value(E()));
-#endif
-        U mid;
-    public:
-        EnumConverter(E& e)
-        : out(e), mid(0)
-        {}
-        ~EnumConverter()
-        {
-            DIAG_PUSH();
-            DIAG_I(type_limits);
-            if (min_value <= mid && mid <= max_value)
-            {
-                DIAG_POP();
-                out = E(mid);
-            }
-        }
-        U *operator &()
-        {
-            return &mid;
-        }
-    };
 
     template<class Format>
     class PrintFormatter

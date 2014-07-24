@@ -44,6 +44,7 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 #include "../io/write.hpp"

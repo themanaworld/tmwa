@@ -24,6 +24,7 @@
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "extract_enums.hpp"
 #include "mmo.hpp"
 
 #include "../poison.hpp"

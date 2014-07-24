@@ -45,6 +45,7 @@
 #include "../generic/random2.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 #include "../io/read.hpp"
 #include "../io/tty.hpp"
 #include "../io/write.hpp"

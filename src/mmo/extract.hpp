@@ -79,9 +79,8 @@ bool extract(XString str, TimeT *tv)
     return extract(str, &tv->value);
 }
 
-// extra typename=void to workaround some duplicate overload rule
-template<class T, typename=typename std::enable_if<std::is_enum<T>::value>::type, typename=void>
-bool extract(XString str, T *iv)
+template<class T, typename=typename std::enable_if<std::is_enum<T>::value>::type>
+bool extract_as_int(XString str, T *iv)
 {
     typedef typename underlying_type<T>::type U;
     U v;

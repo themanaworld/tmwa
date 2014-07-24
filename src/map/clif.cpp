@@ -36,6 +36,7 @@
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 #include "../io/write.hpp"
 
 #include "../net/ip.hpp"

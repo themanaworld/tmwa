@@ -49,6 +49,7 @@
 #include "../generic/array.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 #include "../io/tty.hpp"
@@ -67,6 +68,7 @@
 #include "../mmo/config_parse.hpp"
 #include "../mmo/core.hpp"
 #include "../mmo/extract.hpp"
+#include "../mmo/extract_enums.hpp"
 #include "../mmo/human_time_diff.hpp"
 #include "../mmo/mmo.hpp"
 #include "../mmo/utils.hpp"

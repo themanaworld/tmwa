@@ -36,6 +36,7 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 #include "../io/read.hpp"
 
 #include "../net/socket.hpp"
@@ -43,6 +44,7 @@
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/extract.hpp"
+#include "../mmo/extract_enums.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
@@ -3582,8 +3584,8 @@ bool mob_readdb(ZString filename)
     return rv;
 }
 
-template<>
-bool extract<MobSkillCondition, void, void>(XString str, MobSkillCondition *msc)
+static
+bool extract(XString str, MobSkillCondition *msc)
 {
     const struct
     {
@@ -3606,8 +3608,8 @@ bool extract<MobSkillCondition, void, void>(XString str, MobSkillCondition *msc)
     return false;
 }
 
-template<>
-bool extract<MobSkillState, void, void>(XString str, MobSkillState *mss)
+static
+bool extract(XString str, MobSkillState *mss)
 {
     const struct
     {
@@ -3629,8 +3631,8 @@ bool extract<MobSkillState, void, void>(XString str, MobSkillState *mss)
     return false;
 }
 
-template<>
-bool extract<MobSkillTarget, void, void>(XString str, MobSkillTarget *mst)
+static
+bool extract(XString str, MobSkillTarget *mst)
 {
     const struct
     {

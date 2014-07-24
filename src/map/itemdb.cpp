@@ -33,6 +33,7 @@
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/extract.hpp"
+#include "../mmo/extract_enums.hpp"
 
 #include "../poison.hpp"
 

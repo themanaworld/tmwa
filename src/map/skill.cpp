@@ -39,11 +39,13 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 #include "../io/read.hpp"
 
 #include "../net/timer.hpp"
 
 #include "../mmo/extract.hpp"
+#include "../mmo/extract_enums.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

@@ -33,6 +33,7 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 
 #include "battle.hpp"
 #include "itemdb.hpp"
