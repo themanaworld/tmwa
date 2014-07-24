@@ -44,6 +44,8 @@
 
 namespace tmwa
 {
+namespace magic
+{
 struct location_t
 {
     map_local *m;
@@ -403,11 +405,14 @@ struct invocation : block_list
     std::vector<status_change_ref_t> status_change_refv;
 
 };
+} // namespace magic
 
 // inlines for map.hpp
-inline dumb_ptr<invocation> block_list::as_spell() { return dumb_ptr<invocation>(static_cast<invocation *>(this)); }
-inline dumb_ptr<invocation> block_list::is_spell() { return bl_type == BL::SPELL ? as_spell() : nullptr; }
+inline dumb_ptr<magic::invocation> block_list::as_spell() { return dumb_ptr<magic::invocation>(static_cast<magic::invocation *>(this)); }
+inline dumb_ptr<magic::invocation> block_list::is_spell() { return bl_type == BL::SPELL ? as_spell() : nullptr; }
 
+namespace magic
+{
 /* The following is used only by the parser: */
 struct args_rec_t
 {
@@ -426,4 +431,5 @@ struct proc_t
     , body()
     {}
 };
+} // namespace magic
 } // namespace tmwa

@@ -1624,7 +1624,7 @@ void cleanup_sub(dumb_ptr<block_list> bl)
             map_clearflooritem(bl->bl_id);
             break;
         case BL::SPELL:
-            spell_free_invocation(bl->is_spell());
+            magic::spell_free_invocation(bl->is_spell());
             break;
     }
 }
@@ -1686,7 +1686,7 @@ bool map_confs(XString key, ZString value)
     if (key == "skill_db"_s)
         return skill_readdb(value);
     if (key == "magic_conf"_s)
-        return load_magic_file_v2(value);
+        return magic::load_magic_file_v2(value);
 
     if (key == "resnametable"_s)
         return load_resnametable(value);
@@ -1703,7 +1703,7 @@ bool map_confs(XString key, ZString value)
 int do_init(Slice<ZString> argv)
 {
     ZString argv0 = argv.pop_front();
-    runflag &= magic_init0();
+    runflag &= magic::magic_init0();
 
     bool loaded_config_yet = false;
     while (argv)
@@ -1784,7 +1784,7 @@ int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
         case BL::NPC:
             return npc_scriptcont(sd, id);
         case BL::SPELL:
-            spell_execute_script(bl->is_spell());
+            magic::spell_execute_script(bl->is_spell());
             break;
     }
 

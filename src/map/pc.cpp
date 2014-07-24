@@ -2782,7 +2782,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
 
     interval_t attack_spell_delay = sd->attack_spell_delay;
     if (sd->attack_spell_override   // [Fate] If we have an active attack spell, use that
-        && spell_attack(id, sd->attacktarget))
+        && magic::spell_attack(id, sd->attacktarget))
     {
         // Return if the spell succeeded.  If the spell had disspiated, spell_attack() may fail.
         sd->attackabletime = tick + attack_spell_delay;
@@ -3464,7 +3464,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     pc_calcstatus(sd, 0);
     // [Fate] Reset magic
     sd->cast_tick = gettick();
-    magic_stop_completely(sd);
+    magic::magic_stop_completely(sd);
 
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {
@@ -5234,7 +5234,7 @@ void do_init_pc(void)
 
 void pc_cleanup(dumb_ptr<map_session_data> sd)
 {
-    magic_stop_completely(sd);
+    magic::magic_stop_completely(sd);
 }
 
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)

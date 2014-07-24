@@ -45,6 +45,8 @@
 
 namespace tmwa
 {
+namespace magic
+{
 namespace magic_v2
 {
     static
@@ -1263,4 +1265,5 @@ bool load_magic_file_v2(ZString filename)
     }
     return rv;
 }
+} // namespace magic
 } // namespace tmwa

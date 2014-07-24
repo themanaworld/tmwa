@@ -50,6 +50,8 @@
 
 namespace tmwa
 {
+namespace magic
+{
 /* used for local spell effects */
 constexpr Species INVISIBLE_NPC = wrap<Species>(127);
 
@@ -1643,4 +1645,5 @@ int spell_attack(BlockId caster_id, BlockId target_id)
 
     return 1;
 }
+} // namespace magic
 } // namespace tmwa

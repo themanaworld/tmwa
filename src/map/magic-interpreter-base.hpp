@@ -30,6 +30,8 @@
 
 namespace tmwa
 {
+namespace magic
+{
 extern magic_conf_t magic_conf; /* Global magic conf */
 extern env_t magic_default_env; /* Fake default environment */
 
@@ -84,4 +86,5 @@ dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> source);
 dumb_ptr<spell_t> magic_find_spell(XString invocation);
 
 void spell_update_location(dumb_ptr<invocation> invocation);
+} // namespace magic
 } // namespace tmwa

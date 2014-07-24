@@ -111,6 +111,7 @@ namespace sexpr
     template<class F, class... V>
     void apply(Void&& r, F&& f, V&&... v);
 } // namespace sexpr
+using sexpr::Variant;
 } // namespace tmwa
 
 #include "variant.tcc"

@@ -30,7 +30,7 @@ struct map_session_data;
 struct npc_data;
 struct mob_data;
 struct flooritem_data;
-struct invocation;
+//struct magic::invocation;
 struct map_local;
 class npc_data_script;
 class npc_data_shop;
@@ -40,7 +40,8 @@ struct NpcEvent;
 
 struct item_data;
 
-// magic
+namespace magic
+{
 struct fun_t;
 struct op_t;
 struct expr_t;
@@ -54,4 +55,5 @@ struct env_t;
 struct magic_conf_t;
 struct component_t;
 struct effect_set_t;
+} // namespace magic
 } // namespace tmwa

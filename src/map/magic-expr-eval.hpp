@@ -28,7 +28,9 @@
 
 namespace tmwa
 {
-// TODO kill this like I killed VAR
+namespace magic
+{
+// TODO soon kill this unlike I killed VAR
 #define ARGINT(x) args[x].v.v_int
 #define ARGDIR(x) args[x].v.v_dir
 #define ARGSTR(x) ZString(args[x].v.v_string)
@@ -55,4 +57,5 @@ namespace tmwa
 #define ARGMOB(x)  (ARGENTITY(x)->is_mob())
 
 #define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
+} // namespace magic
 } // namespace tmwa

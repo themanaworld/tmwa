@@ -31,6 +31,8 @@
 
 namespace tmwa
 {
+namespace magic
+{
 /**
  * Try to cast magic.
  *
@@ -43,4 +45,5 @@ namespace tmwa
  *         message should not be repeated.
  */
 int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation);
+} // namespace magic
 } // namespace tmwa

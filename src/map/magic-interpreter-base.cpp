@@ -39,6 +39,8 @@
 
 namespace tmwa
 {
+namespace magic
+{
 static
 void set_int_p(val_t *v, int i, TYPE t)
 {
@@ -559,4 +561,5 @@ int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invoca
 
     return 1;
 }
+} // namespace magic
 } // namespace tmwa

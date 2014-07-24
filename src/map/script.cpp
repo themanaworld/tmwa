@@ -3497,7 +3497,7 @@ void builtin_getspellinvocation(ScriptState *st)
 {
     dumb_string name = conv_str(st, &AARGO2(2));
 
-    AString invocation = magic_find_invocation(name.str());
+    AString invocation = magic::magic_find_invocation(name.str());
     if (!invocation)
         invocation = "..."_s;
 

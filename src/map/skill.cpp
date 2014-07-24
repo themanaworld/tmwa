@@ -851,7 +851,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
 
     if (sc_data[type].spell_invocation)
     {                           // Must report termination
-        spell_effect_report_termination(sc_data[type].spell_invocation,
+        magic::spell_effect_report_termination(sc_data[type].spell_invocation,
                                          bl->bl_id, type, 0);
         sc_data[type].spell_invocation = BlockId();
     }
@@ -1084,7 +1084,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
 
     sc_data[type].val1 = val1;
     if (sc_data[type].spell_invocation) // Supplant by newer spell
-        spell_effect_report_termination(sc_data[type].spell_invocation,
+        magic::spell_effect_report_termination(sc_data[type].spell_invocation,
                                          bl->bl_id, type, 1);
 
     sc_data[type].spell_invocation = spell_invocation;

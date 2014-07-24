@@ -32,6 +32,8 @@
 
 namespace tmwa
 {
+namespace magic
+{
 struct op_t
 {
     ZString name;
@@ -88,4 +90,5 @@ void magic_stop_completely(dumb_ptr<map_session_data> c);
 int spell_attack(BlockId caster, BlockId target);
 
 void spell_free_invocation(dumb_ptr<invocation> invocation);
+} // namespace magic
 } // namespace tmwa

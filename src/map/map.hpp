@@ -117,13 +117,13 @@ private:
     dumb_ptr<npc_data> as_npc();
     dumb_ptr<mob_data> as_mob();
     dumb_ptr<flooritem_data> as_item();
-    dumb_ptr<invocation> as_spell();
+    dumb_ptr<magic::invocation> as_spell();
 public:
     dumb_ptr<map_session_data> is_player();
     dumb_ptr<npc_data> is_npc();
     dumb_ptr<mob_data> is_mob();
     dumb_ptr<flooritem_data> is_item();
-    dumb_ptr<invocation> is_spell();
+    dumb_ptr<magic::invocation> is_spell();
 };
 
 struct walkpath_data
@@ -223,7 +223,7 @@ struct map_session_data : block_list, SessionData
     BlockId followtarget;
 
     tick_t cast_tick;     // [Fate] Next tick at which spellcasting is allowed
-    dumb_ptr<invocation> active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
+    dumb_ptr<magic::invocation> active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
     BlockId attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
     // like a weapon.  Check pc_attack_timer() for details.
     // Weapon equipment slot (slot 4) item override
@@ -664,7 +664,7 @@ dumb_ptr<flooritem_data> map_id_is_item(BlockId id)
     return bl ? bl->is_item() : nullptr;
 }
 inline
-dumb_ptr<invocation> map_id_is_spell(BlockId id)
+dumb_ptr<magic::invocation> map_id_is_spell(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
     return bl ? bl->is_spell() : nullptr;

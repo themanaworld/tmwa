@@ -23,4 +23,7 @@
 
 namespace tmwa
 {
+namespace magic
+{
+} // namespace magic
 } // namespace tmwa

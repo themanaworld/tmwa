@@ -44,30 +44,41 @@ inline
 auto decay_for_printf(Option v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 }
 
+namespace magic
+{
 enum class AREA : uint8_t;
-enum class BL : uint8_t;
-enum class ByteCode : uint8_t;
 enum class EFFECT : uint8_t;
 enum class EXPR : uint8_t;
-enum class ItemLook : uint16_t;
-enum class MS : uint8_t;
-enum class SP : uint16_t;
 enum class SPELLARG : uint8_t;
 enum class SPELLGUARD : uint8_t;
-enum class SkillID : uint16_t;
-enum class StatusChange : uint16_t;
 enum class TYPE : uint8_t;
 
 inline
 auto decay_for_printf(AREA v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
-auto decay_for_printf(BL v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(ByteCode v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
 auto decay_for_printf(EFFECT v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
 auto decay_for_printf(EXPR v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+inline
+auto decay_for_printf(SPELLARG v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+inline
+auto decay_for_printf(SPELLGUARD v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+inline
+auto decay_for_printf(TYPE v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+}
+
+enum class BL : uint8_t;
+enum class ByteCode : uint8_t;
+enum class ItemLook : uint16_t;
+enum class MS : uint8_t;
+enum class SP : uint16_t;
+enum class SkillID : uint16_t;
+enum class StatusChange : uint16_t;
+
+inline
+auto decay_for_printf(BL v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+inline
+auto decay_for_printf(ByteCode v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
 auto decay_for_printf(ItemLook v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
@@ -75,13 +86,7 @@ auto decay_for_printf(MS v) -> typename remove_enum<decltype(v)>::type { return 
 inline
 auto decay_for_printf(SP v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
-auto decay_for_printf(SPELLARG v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(SPELLGUARD v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
 auto decay_for_printf(SkillID v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
 auto decay_for_printf(StatusChange v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(TYPE v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 } // namespace tmwa
