@@ -603,3 +603,7 @@ obj/%.tcc.formatted: src/%.tcc tools/indenter
 	grep -q '^} // namespace tmwa$$' $<
 	touch $@
 .PHONY: format format-cpp format-hpp
+
+most: $(filter-out bin/tmwa-map,${BINARIES})
+magic: $(filter obj/map/magic%,${PDC_OBJECTS})
+common: $(filter-out %/lib.pdc.o %_test.pdc.o obj/login/% obj/char/% obj/map/% obj/admin/% obj/monitor/%,${PDC_OBJECTS})
