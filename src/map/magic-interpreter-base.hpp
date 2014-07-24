@@ -64,11 +64,11 @@ void magic_free_env(dumb_ptr<env_t> env);
 /**
  * near_miss is set to nonzero iff the spell only failed due to ephemereal issues (spell delay in effect, out of mana, out of components)
  */
-effect_set_t *spell_trigger(dumb_ptr<spell_t> spell,
+const effect_set_t *spell_trigger(dumb_ptr<spell_t> spell,
         dumb_ptr<map_session_data> caster,
         dumb_ptr<env_t> env, int *near_miss);
 
-dumb_ptr<invocation> spell_instantiate(effect_set_t *effect, dumb_ptr<env_t> env);
+dumb_ptr<invocation> spell_instantiate(const effect_set_t *effect, dumb_ptr<env_t> env);
 
 /**
  * Bind a spell to a subject (this is a no-op for `local' spells).

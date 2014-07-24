@@ -31,31 +31,21 @@ namespace tmwa
 namespace magic
 {
 // TODO soon kill this unlike I killed VAR
-#define ARGINT(x) args[x].v.v_int
-#define ARGDIR(x) args[x].v.v_dir
-#define ARGSTR(x) ZString(args[x].v.v_string)
-#define ARGENTITY(x) args[x].v.v_entity
-#define ARGLOCATION(x) args[x].v.v_location
-#define ARGAREA(x) args[x].v.v_area
-#define ARGSPELL(x) args[x].v.v_spell
-#define ARGINVOCATION(x) args[x].v.v_invocation
+#define ARGINT(x) args[x].get_if<ValInt>()->v_int
+#define ARGDIR(x) args[x].get_if<ValDir>()->v_dir
+#define ARGSTR(x) ZString(args[x].get_if<ValString>()->v_string)
+#define ARGENTITY(x) args[x].get_if<ValEntityPtr>()->v_entity
+#define ARGLOCATION(x) args[x].get_if<ValLocation>()->v_location
+#define ARGAREA(x) args[x].get_if<ValArea>()->v_area
+#define ARGSPELL(x) args[x].get_if<ValSpell>()->v_spell
+#define ARGINVOCATION(x) args[x].get_if<ValInvocationPtr>()->v_invocation
 
-#define RESULTINT result->v.v_int
-#define RESULTDIR result->v.v_dir
-#define RESULTSTR result->v.v_string
-#define RESULTENTITY result->v.v_entity
-#define RESULTLOCATION result->v.v_location
-#define RESULTAREA result->v.v_area
-#define RESULTSPELL result->v.v_spell
-#define RESULTINVOCATION result->v.v_invocation
-
-#define ARG_TYPE(x) args[x].ty
 #define ENTITY_TYPE(x) ARGENTITY(x)->bl_type
 
 #define ARGPC(x)  (ARGENTITY(x)->is_player())
 #define ARGNPC(x)  (ARGENTITY(x)->is_npc())
 #define ARGMOB(x)  (ARGENTITY(x)->is_mob())
 
-#define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
+#define ARG_MAY_BE_AREA(x) (args[x].is<ValArea>() || args[x].is<ValArea>())
 } // namespace magic
 } // namespace tmwa

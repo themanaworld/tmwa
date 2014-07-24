@@ -80,11 +80,9 @@ int magic_eval_int(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
  */
 AString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
 
-dumb_ptr<expr_t> magic_new_expr(EXPR ty);
-
 void magic_clear_var(val_t *v);
 
-void magic_copy_var(val_t *dest, val_t *src);
+void magic_copy_var(val_t *dest, const val_t *src);
 
 void magic_random_location(location_t *dest, dumb_ptr<area_t> area);
 

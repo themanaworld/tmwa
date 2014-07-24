@@ -35,58 +35,6 @@ enum class SPELLARG : uint8_t
     STRING,
 };
 
-enum class TYPE : uint8_t
-{
-    UNDEF,
-    INT,
-    DIR,
-    STRING,
-    ENTITY,
-    LOCATION,
-    AREA,
-    SPELL,
-    INVOCATION,
-    FAIL = 127,
-
-    NEGATIVE_1 = 255,
-};
-
-enum class AREA : uint8_t
-{
-    LOCATION,
-    UNION,
-    RECT,
-    BAR,
-};
-
-enum class EXPR : uint8_t
-{
-    VAL,
-    LOCATION,
-    AREA,
-    FUNAPP,
-    ID,
-    SPELLFIELD,
-};
-
-// temporary rename to avoid collision with enum value
-// in magic-interpreter-parser
-enum class EFFECT : uint8_t
-{
-    SKIP,
-    ABORT,
-    ASSIGN,
-    FOREACH,
-    FOR,
-    IF,
-    SLEEP,
-    SCRIPT,
-    BREAK,
-    OP,
-    END,
-    CALL,
-};
-
 enum class FOREACH_FILTER : uint8_t
 {
     MOB,
@@ -95,17 +43,6 @@ enum class FOREACH_FILTER : uint8_t
     TARGET,
     SPELL,
     NPC,
-};
-
-enum class SPELLGUARD : uint8_t
-{
-    CONDITION,
-    COMPONENTS,
-    CATALYSTS,
-    CHOICE,
-    MANA,
-    CASTTIME,
-    EFFECT,
 };
 
 namespace e
@@ -124,13 +61,6 @@ enum class SPELL_FLAG : uint8_t
 ENUM_BITWISE_OPERATORS(SPELL_FLAG)
 }
 using e::SPELL_FLAG;
-
-enum class CONT_STACK : uint8_t
-{
-    FOREACH,
-    FOR,
-    PROC,
-};
 
 namespace e
 {

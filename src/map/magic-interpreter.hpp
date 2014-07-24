@@ -32,6 +32,8 @@
 
 #include "../generic/fwd.hpp"
 
+#include "../sexpr/variant.hpp"
+
 #include "../net/timer.t.hpp"
 
 #include "../mmo/ids.hpp"
@@ -52,55 +54,133 @@ struct location_t
     int x, y;
 };
 
-struct area_t
+struct AreaUnion
 {
-    union au
-    {
-        location_t a_loc;
-        struct
-        {
-            location_t loc;
-            int width, depth;
-            DIR dir;
-        } a_bar;
-        struct
-        {
-            location_t loc;
-            int width, height;
-        } a_rect;
-        dumb_ptr<area_t> a_union[2];
+    dumb_ptr<area_t> a_union[2];
+};
+struct AreaRect
+{
+    location_t loc;
+    int width, height;
+};
+struct AreaBar
+{
+    location_t loc;
+    int width, depth;
+    DIR dir;
+};
 
-        au() { really_memzero_this(this); }
-        ~au() = default;
-        au(const au&) = default;
-        au& operator = (const au&) = default;
-    } a;
+using AreaVariantBase = Variant<
+    location_t,
+    AreaUnion,
+    AreaRect,
+    AreaBar
+>;
+
+struct area_t : AreaVariantBase
+{
     int size;
-    AREA ty;
+
+    area_t() = delete;
+    area_t(area_t&&) = default;
+    area_t(const area_t&) = delete;
+    area_t& operator = (area_t&&) = default;
+    area_t& operator = (const area_t&) = delete;
+
+    area_t(location_t v, int sz) : AreaVariantBase(std::move(v)), size(sz) {}
+    area_t(AreaUnion v, int sz) : AreaVariantBase(std::move(v)), size(sz) {}
+    area_t(AreaRect v, int sz) : AreaVariantBase(std::move(v)), size(sz) {}
+    area_t(AreaBar v, int sz) : AreaVariantBase(std::move(v)), size(sz) {}
 };
 
-struct val_t
+struct ValUndef
 {
-    union vu
-    {
-        int v_int;
-        DIR v_dir;
-        dumb_string v_string;
-        /* Used ONLY during operation/function invocation; otherwise we use v_int */
-        dumb_ptr<block_list> v_entity;
-        dumb_ptr<area_t> v_area;
-        location_t v_location;
-        /* Used ONLY during operation/function invocation; otherwise we use v_int */
-        dumb_ptr<invocation> v_invocation;
-        dumb_ptr<spell_t> v_spell;
-
-        vu() { really_memzero_this(this); }
-        ~vu() = default;
-        vu(const vu&) = default;
-        vu& operator = (const vu&) = default;
-    } v;
-    TYPE ty;
 };
+struct ValInt
+{
+    int v_int;
+};
+struct ValDir
+{
+    DIR v_dir;
+};
+struct ValString
+{
+    dumb_string v_string;
+};
+struct ValEntityInt
+{
+    BlockId v_eid;
+};
+struct ValEntityPtr
+{
+    dumb_ptr<block_list> v_entity;
+};
+struct ValLocation
+{
+    location_t v_location;
+};
+struct ValArea
+{
+    dumb_ptr<area_t> v_area;
+};
+struct ValSpell
+{
+    dumb_ptr<spell_t> v_spell;
+};
+struct ValInvocationInt
+{
+    BlockId v_iid;
+};
+struct ValInvocationPtr
+{
+    dumb_ptr<invocation> v_invocation;
+};
+struct ValFail
+{
+};
+struct ValNegative1
+{
+};
+
+using ValVariantBase = Variant<
+    ValUndef,
+    ValInt,
+    ValDir,
+    ValString,
+    ValEntityInt,
+    ValEntityPtr,
+    ValLocation,
+    ValArea,
+    ValSpell,
+    ValInvocationInt,
+    ValInvocationPtr,
+    ValFail,
+    ValNegative1
+>;
+struct val_t : ValVariantBase
+{
+    val_t() noexcept : ValVariantBase(ValUndef{}) {}
+    val_t(val_t&&) = default;
+    val_t(const val_t&) = delete;
+    val_t& operator = (val_t&&) = default;
+    val_t& operator = (const val_t&) = delete;
+
+    val_t(ValUndef v) : ValVariantBase(std::move(v)) {}
+    val_t(ValInt v) : ValVariantBase(std::move(v)) {}
+    val_t(ValDir v) : ValVariantBase(std::move(v)) {}
+    val_t(ValString v) : ValVariantBase(std::move(v)) {}
+    val_t(ValEntityInt v) : ValVariantBase(std::move(v)) {}
+    val_t(ValEntityPtr v) : ValVariantBase(std::move(v)) {}
+    val_t(ValLocation v) : ValVariantBase(std::move(v)) {}
+    val_t(ValArea v) : ValVariantBase(std::move(v)) {}
+    val_t(ValSpell v) : ValVariantBase(std::move(v)) {}
+    val_t(ValInvocationInt v) : ValVariantBase(std::move(v)) {}
+    val_t(ValInvocationPtr v) : ValVariantBase(std::move(v)) {}
+    val_t(ValFail v) : ValVariantBase(std::move(v)) {}
+    val_t(ValNegative1 v) : ValVariantBase(std::move(v)) {}
+};
+
 
 /* ----------- */
 /* Expressions */
@@ -108,115 +188,187 @@ struct val_t
 
 #define MAX_ARGS 7              /* Max. # of args used in builtin primitive functions */
 
+struct e_area_t;
+
 struct e_location_t
 {
     dumb_ptr<expr_t> m, x, y;
-};
 
-struct e_area_t
+    e_location_t() noexcept : m(), x(), y() {}
+};
+struct ExprAreaUnion
 {
-    union a0
-    {
-        e_location_t a_loc;
-        struct
-        {
-            e_location_t loc;
-            dumb_ptr<expr_t> width, depth, dir;
-        } a_bar;
-        struct
-        {
-            e_location_t loc;
-            dumb_ptr<expr_t> width, height;
-        } a_rect;
-        dumb_ptr<e_area_t> a_union[2];
-
-        a0() { really_memzero_this(this); }
-        ~a0() = default;
-        a0(const a0&) = default;
-        a0& operator = (const a0&) = default;
-    } a;
-    AREA ty;
+    dumb_ptr<e_area_t> a_union[2];
 };
-
-struct expr_t
+struct ExprAreaRect
 {
-    union eu
-    {
-        val_t e_val;
-        e_location_t e_location;
-        e_area_t e_area;
-        struct
-        {
-            fun_t *funp;
-            int line_nr, column;
-            int args_nr;
-            dumb_ptr<expr_t> args[MAX_ARGS];
-        } e_funapp;
-        int e_id;
-        struct
-        {
-            dumb_ptr<expr_t> expr;
-            int id;
-        } e_field;
-
-        eu() { really_memzero_this(this); }
-        ~eu() = default;
-        eu(const eu&) = default;
-        eu& operator = (const eu&) = default;
-    } e;
-    EXPR ty;
+    e_location_t loc;
+    dumb_ptr<expr_t> width, height;
+};
+struct ExprAreaBar
+{
+    e_location_t loc;
+    dumb_ptr<expr_t> width, depth, dir;
 };
 
-struct effect_t
+using ExprAreaVariantBase = Variant<
+    e_location_t,
+    ExprAreaUnion,
+    ExprAreaRect,
+    ExprAreaBar
+>;
+
+struct e_area_t : ExprAreaVariantBase
+{
+    e_area_t() = delete;
+    e_area_t(e_area_t&&) = default;
+    e_area_t(const e_area_t&) = delete;
+    e_area_t& operator = (e_area_t&&) = default;
+    e_area_t& operator = (const e_area_t&) = delete;
+
+    e_area_t(e_location_t v) : ExprAreaVariantBase(std::move(v)) {}
+    e_area_t(ExprAreaUnion v) : ExprAreaVariantBase(std::move(v)) {}
+    e_area_t(ExprAreaRect v) : ExprAreaVariantBase(std::move(v)) {}
+    e_area_t(ExprAreaBar v) : ExprAreaVariantBase(std::move(v)) {}
+};
+
+struct ExprFunApp
+{
+    fun_t *funp;
+    int line_nr, column;
+    int args_nr;
+    dumb_ptr<expr_t> args[MAX_ARGS];
+};
+struct ExprId
+{
+    int e_id;
+};
+struct ExprField
+{
+    dumb_ptr<expr_t> expr;
+    int id;
+};
+
+using ExprVariantBase = Variant<
+    val_t,
+    e_location_t,
+    e_area_t,
+    ExprFunApp,
+    ExprId,
+    ExprField
+>;
+struct expr_t : ExprVariantBase
+{
+    expr_t() = delete;
+    expr_t(expr_t&&) = default;
+    expr_t(const expr_t&) = delete;
+    expr_t& operator = (expr_t&&) = default;
+    expr_t& operator = (const expr_t&) = delete;
+
+    expr_t(val_t v) : ExprVariantBase(std::move(v)) {}
+    expr_t(e_location_t v) : ExprVariantBase(std::move(v)) {}
+    expr_t(e_area_t v) : ExprVariantBase(std::move(v)) {}
+    expr_t(ExprFunApp v) : ExprVariantBase(std::move(v)) {}
+    expr_t(ExprId v) : ExprVariantBase(std::move(v)) {}
+    expr_t(ExprField v) : ExprVariantBase(std::move(v)) {}
+};
+
+
+struct effect_t;
+
+struct EffectSkip
+{
+};
+struct EffectAbort
+{
+};
+struct EffectAssign
+{
+    int id;
+    dumb_ptr<expr_t> expr;
+};
+struct EffectForEach
+{
+    int id;
+    dumb_ptr<expr_t> area;
+    dumb_ptr<effect_t> body;
+    FOREACH_FILTER filter;
+};
+struct EffectFor
+{
+    int id;
+    dumb_ptr<expr_t> start, stop;
+    dumb_ptr<effect_t> body;
+};
+struct EffectIf
+{
+    dumb_ptr<expr_t> cond;
+    dumb_ptr<effect_t> true_branch, false_branch;
+};
+struct EffectSleep
+{
+    dumb_ptr<expr_t> e_sleep;        /* sleep time */
+};
+struct EffectScript
+{
+    dumb_ptr<const ScriptBuffer> e_script;
+};
+struct EffectBreak
+{
+};
+struct EffectOp
+{
+    op_t *opp;
+    int args_nr;
+    int line_nr, column;
+    dumb_ptr<expr_t> args[MAX_ARGS];
+};
+struct EffectEnd
+{
+};
+struct EffectCall
+{
+    std::vector<int> *formalv;
+    dumb_ptr<std::vector<dumb_ptr<expr_t>>> actualvp;
+    dumb_ptr<effect_t> body;
+};
+
+using EffectVariantBase = Variant<
+    EffectSkip,
+    EffectAbort,
+    EffectAssign,
+    EffectForEach,
+    EffectFor,
+    EffectIf,
+    EffectSleep,
+    EffectScript,
+    EffectBreak,
+    EffectOp,
+    EffectEnd,
+    EffectCall
+>;
+struct effect_t : EffectVariantBase
 {
     dumb_ptr<effect_t> next;
-    union e0
-    {
-        struct
-        {
-            int id;
-            dumb_ptr<expr_t> expr;
-        } e_assign;
-        struct
-        {
-            int id;
-            dumb_ptr<expr_t> area;
-            dumb_ptr<effect_t> body;
-            FOREACH_FILTER filter;
-        } e_foreach;
-        struct
-        {
-            int id;
-            dumb_ptr<expr_t> start, stop;
-            dumb_ptr<effect_t> body;
-        } e_for;
-        struct
-        {
-            dumb_ptr<expr_t> cond;
-            dumb_ptr<effect_t> true_branch, false_branch;
-        } e_if;
-        dumb_ptr<expr_t> e_sleep;        /* sleep time */
-        dumb_ptr<const ScriptBuffer> e_script;
-        struct
-        {
-            op_t *opp;
-            int args_nr;
-            int line_nr, column;
-            dumb_ptr<expr_t> args[MAX_ARGS];
-        } e_op;
-        struct
-        {
-            std::vector<int> *formalv;
-            dumb_ptr<std::vector<dumb_ptr<expr_t>>> actualvp;
-            dumb_ptr<effect_t> body;
-        } e_call;
 
-        e0() { really_memzero_this(this); }
-        ~e0() = default;
-        e0(const e0&) = default;
-        e0& operator = (const e0&) = default;
-    } e;
-    EFFECT ty;
+    effect_t() = delete;
+    effect_t(effect_t&&) = default;
+    effect_t(const effect_t&) = delete;
+    effect_t& operator = (effect_t&&) = default;
+    effect_t& operator = (const effect_t&) = delete;
+
+    effect_t(EffectSkip v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectAbort v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectAssign v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectForEach v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectFor v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectIf v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectSleep v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectScript v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectBreak v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectOp v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectEnd v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
+    effect_t(EffectCall v, dumb_ptr<effect_t> n) : EffectVariantBase(std::move(v)), next(n) {}
 };
 
 /* ---------- */
@@ -231,29 +383,62 @@ struct component_t
 };
 
 
+struct spellguard_t;
+struct GuardCondition
+{
+    dumb_ptr<expr_t> s_condition;
+};
+struct GuardMana
+{
+    dumb_ptr<expr_t> s_mana;
+};
+struct GuardCastTime
+{
+    dumb_ptr<expr_t> s_casttime;
+};
+struct GuardComponents
+{
+    dumb_ptr<component_t> s_components;
+};
+struct GuardCatalysts
+{
+    dumb_ptr<component_t> s_catalysts;
+};
+struct GuardChoice
+{
+    dumb_ptr<spellguard_t> s_alt;   /* either `next' or `s.s_alt' */
+};
 struct effect_set_t
 {
     dumb_ptr<effect_t> effect, at_trigger, at_end;
 };
 
-struct spellguard_t
+using SpellGuardVariantBase = Variant<
+    GuardCondition,
+    GuardMana,
+    GuardCastTime,
+    GuardComponents,
+    GuardCatalysts,
+    GuardChoice,
+    effect_set_t
+>;
+struct spellguard_t : SpellGuardVariantBase
 {
     dumb_ptr<spellguard_t> next;
-    union su
-    {
-        dumb_ptr<expr_t> s_condition;
-        dumb_ptr<expr_t> s_mana;
-        dumb_ptr<expr_t> s_casttime;
-        dumb_ptr<component_t> s_components;
-        dumb_ptr<component_t> s_catalysts;
-        dumb_ptr<spellguard_t> s_alt;   /* either `next' or `s.s_alt' */
-        effect_set_t s_effect;
-        su() { really_memzero_this(this); }
-        ~su() = default;
-        su(const su&) = default;
-        su& operator = (const su&) = default;
-    } s;
-    SPELLGUARD ty;
+
+    spellguard_t() = delete;
+    spellguard_t(spellguard_t&&) = default;
+    spellguard_t(const spellguard_t&) = delete;
+    spellguard_t& operator = (spellguard_t&&) = default;
+    spellguard_t& operator = (const spellguard_t&) = delete;
+
+    spellguard_t(GuardCondition v, dumb_ptr<spellguard_t> n) : SpellGuardVariantBase(std::move(v)), next(n) {}
+    spellguard_t(GuardMana v, dumb_ptr<spellguard_t> n) : SpellGuardVariantBase(std::move(v)), next(n) {}
+    spellguard_t(GuardCastTime v, dumb_ptr<spellguard_t> n) : SpellGuardVariantBase(std::move(v)), next(n) {}
+    spellguard_t(GuardComponents v, dumb_ptr<spellguard_t> n) : SpellGuardVariantBase(std::move(v)), next(n) {}
+    spellguard_t(GuardCatalysts v, dumb_ptr<spellguard_t> n) : SpellGuardVariantBase(std::move(v)), next(n) {}
+    spellguard_t(GuardChoice v, dumb_ptr<spellguard_t> n) : SpellGuardVariantBase(std::move(v)), next(n) {}
+    spellguard_t(effect_set_t v, dumb_ptr<spellguard_t> n) : SpellGuardVariantBase(std::move(v)), next(n) {}
 };
 
 /* ------ */
@@ -330,7 +515,7 @@ struct env_t
     val_t& VAR(size_t i)
     {
         assert (varu);
-        if (varu[i].ty == TYPE::UNDEF)
+        if (varu[i].is<ValUndef>())
             return base_env->varv[i].val;
         else
             return varu[i];
@@ -338,41 +523,47 @@ struct env_t
 
 };
 
-#define MAX_STACK_SIZE 32
+struct CarForEach
+{
+    int id;
+    bool ty_is_spell_not_entity;
+    dumb_ptr<effect_t> body;
+    dumb_ptr<std::vector<BlockId>> entities_vp;
+    int index;
+};
+struct CarFor
+{
+    int id;
+    dumb_ptr<effect_t> body;
+    int current;
+    int stop;
+};
+struct CarProc
+{
+    int args_nr;
+    int *formalap;
+    dumb_ptr<val_t[]> old_actualpa;
+};
 
-struct cont_activation_record_t
+using CarVariantBase = Variant<
+    CarForEach,
+    CarFor,
+    CarProc
+>;
+
+struct cont_activation_record_t : CarVariantBase
 {
     dumb_ptr<effect_t> return_location;
-    union cu
-    {
-        struct
-        {
-            int id;
-            TYPE ty;
-            dumb_ptr<effect_t> body;
-            dumb_ptr<std::vector<BlockId>> entities_vp;
-            int index;
-        } c_foreach;
-        struct
-        {
-            int id;
-            dumb_ptr<effect_t> body;
-            int current;
-            int stop;
-        } c_for;
-        struct
-        {
-            int args_nr;
-            int *formalap;
-            dumb_ptr<val_t[]> old_actualpa;
-        } c_proc;
 
-        cu() { really_memzero_this(this); }
-        ~cu() = default;
-        cu(const cu&) = default;
-        cu& operator = (const cu&) = default;
-    } c;
-    CONT_STACK ty;
+    cont_activation_record_t() = delete;
+    cont_activation_record_t(cont_activation_record_t&&) = default;
+    cont_activation_record_t(const cont_activation_record_t&) = delete;
+    cont_activation_record_t& operator = (cont_activation_record_t&&) = default;
+    cont_activation_record_t& operator = (const cont_activation_record_t&) = delete;
+
+    cont_activation_record_t(CarForEach v, dumb_ptr<effect_t> rl) : CarVariantBase(std::move(v)), return_location(rl) {}
+    cont_activation_record_t(CarFor v, dumb_ptr<effect_t> rl) : CarVariantBase(std::move(v)), return_location(rl) {}
+    cont_activation_record_t(CarProc v, dumb_ptr<effect_t> rl) : CarVariantBase(std::move(v)), return_location(rl) {}
 };
 
 struct status_change_ref_t
@@ -393,8 +584,7 @@ struct invocation : block_list
 
     Timer timer;                 /* spell timer, if any */
 
-    int stack_size;
-    cont_activation_record_t stack[MAX_STACK_SIZE];
+    std::vector<cont_activation_record_t> stack;
 
     int script_pos;            /* Script position; if nonzero, resume the script we were running. */
     dumb_ptr<effect_t> current_effect;

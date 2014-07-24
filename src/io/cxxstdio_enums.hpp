@@ -46,25 +46,10 @@ auto decay_for_printf(Option v) -> typename remove_enum<decltype(v)>::type { ret
 
 namespace magic
 {
-enum class AREA : uint8_t;
-enum class EFFECT : uint8_t;
-enum class EXPR : uint8_t;
 enum class SPELLARG : uint8_t;
-enum class SPELLGUARD : uint8_t;
-enum class TYPE : uint8_t;
 
 inline
-auto decay_for_printf(AREA v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(EFFECT v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(EXPR v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
 auto decay_for_printf(SPELLARG v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(SPELLGUARD v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(TYPE v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 }
 
 enum class BL : uint8_t;

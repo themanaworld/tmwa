@@ -67,8 +67,8 @@ namespace magic_v2
         /* Must add new */
         magic_conf_t::mcvar new_var {};
         new_var.name = id_name;
-        new_var.val.ty = TYPE::UNDEF;
-        magic_conf.varv.push_back(new_var);
+        new_var.val = ValUndef();
+        magic_conf.varv.push_back(std::move(new_var));
 
         return i;
     }
@@ -105,9 +105,9 @@ namespace magic_v2
 
 
     static
-    bool bind_constant(io::LineSpan span, RString name, val_t *val)
+    bool bind_constant(io::LineSpan span, RString name, val_t val)
     {
-        if (!const_defm.insert({name, *val}).second)
+        if (!const_defm.insert(std::make_pair(name, std::move(val))).second)
         {
             span.error(STRPRINTF("Redefinition of constant '%s'"_fmt, name));
             return false;
@@ -115,20 +115,13 @@ namespace magic_v2
         return true;
     }
     static
-    val_t *find_constant(RString name)
+    const val_t *find_constant(RString name)
     {
         auto it = const_defm.find(name);
         if (it != const_defm.end())
             return &it->second;
 
         return nullptr;
-    }
-    static
-    dumb_ptr<effect_t> new_effect(EFFECT ty)
-    {
-        auto effect = dumb_ptr<effect_t>::make();
-        effect->ty = ty;
-        return effect;
     }
     static
     dumb_ptr<effect_t> set_effect_continuation(dumb_ptr<effect_t> src, dumb_ptr<effect_t> continuation)
@@ -141,10 +134,13 @@ namespace magic_v2
 
         /* For FOR and FOREACH, we use special stack handlers and thus don't have to set
          * the continuation.  It's only IF that we need to handle in this fashion. */
-        if (src->ty == EFFECT::IF)
+        MATCH (*src)
         {
-            set_effect_continuation(src->e.e_if.true_branch, continuation);
-            set_effect_continuation(src->e.e_if.false_branch, continuation);
+            CASE (EffectIf&, e_if)
+            {
+                set_effect_continuation(e_if.true_branch, continuation);
+                set_effect_continuation(e_if.false_branch, continuation);
+            }
         }
 
         if (src->next)
@@ -152,13 +148,6 @@ namespace magic_v2
         else
             src->next = continuation;
 
-        return retval;
-    }
-    static
-    dumb_ptr<spellguard_t> new_spellguard(SPELLGUARD ty)
-    {
-        dumb_ptr<spellguard_t> retval = dumb_ptr<spellguard_t>::make();
-        retval->ty = ty;
         return retval;
     }
     static
@@ -183,8 +172,13 @@ namespace magic_v2
         }
 
         /* If the premise is a disjunction, b is the continuation of _all_ branches */
-        if (a->ty == SPELLGUARD::CHOICE)
-            spellguard_implication(a->s.s_alt, b);
+        MATCH (*a)
+        {
+            CASE(const GuardChoice&, s)
+            {
+                spellguard_implication(s.s_alt, b);
+            }
+        }
 
         if (a->next)
             spellguard_implication(a->next, b);
@@ -265,10 +259,11 @@ namespace magic_v2
             return false;
         }
 
-        retval = new_effect(EFFECT::CALL);
-        retval->e.e_call.body = p->body;
-        retval->e.e_call.formalv = &p->argv;
-        retval->e.e_call.actualvp = argvp;
+        EffectCall e_call;
+        e_call.body = p->body;
+        e_call.formalv = &p->argv;
+        e_call.actualvp = argvp;
+        retval = dumb_ptr<effect_t>::make(e_call, nullptr);
         return true;
     }
     static
@@ -287,23 +282,25 @@ namespace magic_v2
             return false;
         }
 
-        effect = new_effect(EFFECT::OP);
-        effect->e.e_op.line_nr = span.begin.line;
-        effect->e.e_op.column = span.begin.column;
-        effect->e.e_op.opp = op;
+        EffectOp e_op;
+        e_op.line_nr = span.begin.line;
+        e_op.column = span.begin.column;
+        e_op.opp = op;
         assert (argv.size() <= MAX_ARGS);
-        effect->e.e_op.args_nr = argv.size();
+        e_op.args_nr = argv.size();
 
-        std::copy(argv.begin(), argv.end(), effect->e.e_op.args);
+        std::copy(argv.begin(), argv.end(), e_op.args);
+        effect = dumb_ptr<effect_t>::make(e_op, nullptr);
         return true;
     }
 
     static
     dumb_ptr<expr_t> dot_expr(dumb_ptr<expr_t> expr, int id)
     {
-        dumb_ptr<expr_t> retval = magic_new_expr(EXPR::SPELLFIELD);
-        retval->e.e_field.id = id;
-        retval->e.e_field.expr = expr;
+        ExprField e_field;
+        e_field.id = id;
+        e_field.expr = expr;
+        dumb_ptr<expr_t> retval = dumb_ptr<expr_t>::make(e_field);
 
         return retval;
     }
@@ -322,15 +319,16 @@ namespace magic_v2
                         name, fun->signature.size(), argv.size()));
             return false;
         }
-        expr = magic_new_expr(EXPR::FUNAPP);
-        expr->e.e_funapp.line_nr = span.begin.line;
-        expr->e.e_funapp.column = span.begin.column;
-        expr->e.e_funapp.funp = fun;
+        ExprFunApp e_funapp;
+        e_funapp.line_nr = span.begin.line;
+        e_funapp.column = span.begin.column;
+        e_funapp.funp = fun;
 
         assert (argv.size() <= MAX_ARGS);
-        expr->e.e_funapp.args_nr = argv.size();
+        e_funapp.args_nr = argv.size();
 
-        std::copy(argv.begin(), argv.end(), expr->e.e_funapp.args);
+        std::copy(argv.begin(), argv.end(), e_funapp.args);
+        expr = dumb_ptr<expr_t>::make(e_funapp);
         return true;
     }
     static
@@ -407,23 +405,19 @@ namespace magic_v2
         case sexpr::INT:
             {
                 val_t val;
-                val.ty = TYPE::INT;
-                val.v.v_int = x._int;
-                if (val.v.v_int != x._int)
+                val = ValInt{static_cast<int32_t>(x._int)};
+                if (val.get_if<ValInt>()->v_int != x._int)
                     return fail(x, "integer too large"_s);
 
-                out = magic_new_expr(EXPR::VAL);
-                out->e.e_val = val;
+                out = dumb_ptr<expr_t>::make(std::move(val));
                 return true;
             }
         case sexpr::STRING:
             {
                 val_t val;
-                val.ty = TYPE::STRING;
-                val.v.v_string = dumb_string::copys(x._str);
+                val = ValString{dumb_string::copys(x._str)};
 
-                out = magic_new_expr(EXPR::VAL);
-                out->e.e_val = val;
+                out = dumb_ptr<expr_t>::make(std::move(val));
                 return true;
             }
         case sexpr::TOKEN:
@@ -439,25 +433,25 @@ namespace magic_v2
                 if (it != end)
                 {
                     val_t val;
-                    val.ty = TYPE::DIR;
-                    val.v.v_dir = static_cast<DIR>(it - begin);
+                    val = ValDir{static_cast<DIR>(it - begin)};
 
-                    out = magic_new_expr(EXPR::VAL);
-                    out->e.e_val = val;
+                    out = dumb_ptr<expr_t>::make(std::move(val));
                     return true;
                 }
             }
             {
-                if (val_t *val = find_constant(x._str))
+                if (const val_t *val = find_constant(x._str))
                 {
-                    out = magic_new_expr(EXPR::VAL);
-                    out->e.e_val = *val;
+                    val_t copy;
+                    magic_copy_var(&copy, val);
+                    out = dumb_ptr<expr_t>::make(std::move(copy));
                     return true;
                 }
                 else
                 {
-                    out = magic_new_expr(EXPR::ID);
-                    out->e.e_id = intern_id(x._str);
+                    ExprId e;
+                    e.e_id = intern_id(x._str);
+                    out = dumb_ptr<expr_t>::make(e);
                     return true;
                 }
             }
@@ -475,9 +469,7 @@ namespace magic_v2
                     e_location_t loc;
                     if (!parse_loc(x, loc))
                         return false;
-                    out = magic_new_expr(EXPR::AREA);
-                    out->e.e_area.ty = AREA::LOCATION;
-                    out->e.e_area.a.a_loc = loc;
+                    out = dumb_ptr<expr_t>::make(loc);
                     return true;
                 }
                 if (op == "@+"_s)
@@ -491,11 +483,11 @@ namespace magic_v2
                         return false;
                     if (!parse_expression(x._list[3], height))
                         return false;
-                    out = magic_new_expr(EXPR::AREA);
-                    out->e.e_area.ty = AREA::RECT;
-                    out->e.e_area.a.a_rect.loc = loc;
-                    out->e.e_area.a.a_rect.width = width;
-                    out->e.e_area.a.a_rect.height = height;
+                    ExprAreaRect a_rect;
+                    a_rect.loc = loc;
+                    a_rect.width = width;
+                    a_rect.height = height;
+                    out = dumb_ptr<expr_t>::make(a_rect);
                     return true;
                 }
                 if (op == "TOWARDS"_s)
@@ -512,12 +504,12 @@ namespace magic_v2
                         return false;
                     if (!parse_expression(x._list[4], depth))
                         return false;
-                    out = magic_new_expr(EXPR::AREA);
-                    out->e.e_area.ty = AREA::BAR;
-                    out->e.e_area.a.a_bar.loc = loc;
-                    out->e.e_area.a.a_bar.dir = dir;
-                    out->e.e_area.a.a_bar.width = width;
-                    out->e.e_area.a.a_bar.depth = depth;
+                    ExprAreaBar a_bar;
+                    a_bar.loc = loc;
+                    a_bar.dir = dir;
+                    a_bar.width = width;
+                    a_bar.depth = depth;
+                    out = dumb_ptr<expr_t>::make(a_bar);
                     return true;
                 }
                 if (op == "."_s)
@@ -630,10 +622,10 @@ namespace magic_v2
                 dumb_ptr<spellguard_t> alt;
                 if (!parse_spellguard(*begin, alt))
                     return false;
-                dumb_ptr<spellguard_t> choice = new_spellguard(SPELLGUARD::CHOICE);
-                choice->next = out;
-                choice->s.s_alt = alt;
-                out = choice;
+                GuardChoice choice;
+                auto next = out;
+                choice.s_alt = alt;
+                out = dumb_ptr<spellguard_t>::make(choice, next);
             }
             return true;
         }
@@ -666,8 +658,9 @@ namespace magic_v2
             dumb_ptr<expr_t> condition;
             if (!parse_expression(s._list[1], condition))
                 return false;
-            out = new_spellguard(SPELLGUARD::CONDITION);
-            out->s.s_condition = condition;
+            GuardCondition cond;
+            cond.s_condition = condition;
+            out = dumb_ptr<spellguard_t>::make(cond, nullptr);
             return true;
         }
         if (cmd == "MANA"_s)
@@ -677,8 +670,9 @@ namespace magic_v2
             dumb_ptr<expr_t> mana;
             if (!parse_expression(s._list[1], mana))
                 return false;
-            out = new_spellguard(SPELLGUARD::MANA);
-            out->s.s_mana = mana;
+            GuardMana sp;
+            sp.s_mana = mana;
+            out = dumb_ptr<spellguard_t>::make(sp, nullptr);
             return true;
         }
         if (cmd == "CASTTIME"_s)
@@ -688,8 +682,9 @@ namespace magic_v2
             dumb_ptr<expr_t> casttime;
             if (!parse_expression(s._list[1], casttime))
                 return false;
-            out = new_spellguard(SPELLGUARD::CASTTIME);
-            out->s.s_casttime = casttime;
+            GuardCastTime ct;
+            ct.s_casttime = casttime;
+            out = dumb_ptr<spellguard_t>::make(ct, nullptr);
             return true;
         }
         if (cmd == "CATALYSTS"_s)
@@ -703,8 +698,9 @@ namespace magic_v2
                     return false;
                 magic_add_component(&items, id, count);
             }
-            out = new_spellguard(SPELLGUARD::CATALYSTS);
-            out->s.s_catalysts = items;
+            GuardCatalysts cat;
+            cat.s_catalysts = items;
+            out = dumb_ptr<spellguard_t>::make(cat, nullptr);
             return true;
         }
         if (cmd == "COMPONENTS"_s)
@@ -718,8 +714,9 @@ namespace magic_v2
                     return false;
                 magic_add_component(&items, id, count);
             }
-            out = new_spellguard(SPELLGUARD::COMPONENTS);
-            out->s.s_components = items;
+            GuardComponents comp;
+            comp.s_components = items;
+            out = dumb_ptr<spellguard_t>::make(comp, nullptr);
             return true;
         }
         return fail(s._list[0], "unknown guard"_s);
@@ -731,7 +728,7 @@ namespace magic_v2
     {
         // these backward lists could be forward by keeping the reference
         // I know this is true because Linus said so
-        out = new_effect(EFFECT::SKIP);
+        out = dumb_ptr<effect_t>::make(EffectSkip{}, nullptr);
         while (end != begin)
         {
             const SExpr& s = *--end;
@@ -772,9 +769,10 @@ namespace magic_v2
             if (!parse_expression(s._list[2], expr))
                 return false;
 
-            out = new_effect(EFFECT::ASSIGN);
-            out->e.e_assign.id = intern_id(name);
-            out->e.e_assign.expr = expr;
+            EffectAssign e_assign;
+            e_assign.id = intern_id(name);
+            e_assign.expr = expr;
+            out = dumb_ptr<effect_t>::make(e_assign, nullptr);
             return true;
         }
         if (cmd == "SCRIPT"_s)
@@ -787,36 +785,37 @@ namespace magic_v2
             std::unique_ptr<const ScriptBuffer> script = parse_script(body, s._list[1]._span.begin.line, true);
             if (!script)
                 return fail(s._list[1], "script does not compile"_s);
-            out = new_effect(EFFECT::SCRIPT);
-            out->e.e_script = dumb_ptr<const ScriptBuffer>(script.release());
+            EffectScript e;
+            e.e_script = dumb_ptr<const ScriptBuffer>(script.release());
+            out = dumb_ptr<effect_t>::make(e, nullptr);
             return true;
         }
         if (cmd == "SKIP"_s)
         {
             if (s._list.size() != 1)
                 return fail(s, "not 0 arg"_s);
-            out = new_effect(EFFECT::SKIP);
+            out = dumb_ptr<effect_t>::make(EffectSkip{}, nullptr);
             return true;
         }
         if (cmd == "ABORT"_s)
         {
             if (s._list.size() != 1)
                 return fail(s, "not 0 arg"_s);
-            out = new_effect(EFFECT::ABORT);
+            out = dumb_ptr<effect_t>::make(EffectAbort{}, nullptr);
             return true;
         }
         if (cmd == "END"_s)
         {
             if (s._list.size() != 1)
                 return fail(s, "not 0 arg"_s);
-            out = new_effect(EFFECT::END);
+            out = dumb_ptr<effect_t>::make(EffectEnd{}, nullptr);
             return true;
         }
         if (cmd == "BREAK"_s)
         {
             if (s._list.size() != 1)
                 return fail(s, "not 0 arg"_s);
-            out = new_effect(EFFECT::BREAK);
+            out = dumb_ptr<effect_t>::make(EffectBreak{}, nullptr);
             return true;
         }
         if (cmd == "FOREACH"_s)
@@ -850,11 +849,13 @@ namespace magic_v2
                 return false;
             if (!parse_effect(s._list[4], effect))
                 return false;
-            out = new_effect(EFFECT::FOREACH);
-            out->e.e_foreach.id = intern_id(var);
-            out->e.e_foreach.area = area;
-            out->e.e_foreach.body = effect;
-            out->e.e_foreach.filter = filter;
+
+            EffectForEach e_foreach;
+            e_foreach.id = intern_id(var);
+            e_foreach.area = area;
+            e_foreach.body = effect;
+            e_foreach.filter = filter;
+            out = dumb_ptr<effect_t>::make(e_foreach, nullptr);
             return true;
         }
         if (cmd == "FOR"_s)
@@ -873,11 +874,13 @@ namespace magic_v2
                 return false;
             if (!parse_effect(s._list[4], effect))
                 return false;
-            out = new_effect(EFFECT::FOR);
-            out->e.e_for.id = intern_id(var);
-            out->e.e_for.start = low;
-            out->e.e_for.stop = high;
-            out->e.e_for.body = effect;
+
+            EffectFor e_for;
+            e_for.id = intern_id(var);
+            e_for.start = low;
+            e_for.stop = high;
+            e_for.body = effect;
+            out = dumb_ptr<effect_t>::make(e_for, nullptr);
             return true;
         }
         if (cmd == "IF"_s)
@@ -897,11 +900,13 @@ namespace magic_v2
                     return false;
             }
             else
-                if_false = new_effect(EFFECT::SKIP);
-            out = new_effect(EFFECT::IF);
-            out->e.e_if.cond = cond;
-            out->e.e_if.true_branch = if_true;
-            out->e.e_if.false_branch = if_false;
+                if_false = dumb_ptr<effect_t>::make(EffectSkip{}, nullptr);
+
+            EffectIf e_if;
+            e_if.cond = cond;
+            e_if.true_branch = if_true;
+            e_if.false_branch = if_false;
+            out = dumb_ptr<effect_t>::make(e_if, nullptr);
             return true;
         }
         if (cmd == "WAIT"_s)
@@ -911,8 +916,9 @@ namespace magic_v2
             dumb_ptr<expr_t> expr;
             if (!parse_expression(s._list[1], expr))
                 return false;
-            out = new_effect(EFFECT::SLEEP);
-            out->e.e_sleep = expr;
+            EffectSleep e;
+            e.e_sleep = expr;
+            out = dumb_ptr<effect_t>::make(e, nullptr);
             return true;
         }
         if (cmd == "CALL"_s)
@@ -981,9 +987,9 @@ namespace magic_v2
                 if (!parse_spellbody(*begin, alt))
                     return false;
                 auto tmp = out;
-                out = new_spellguard(SPELLGUARD::CHOICE);
-                out->next = tmp;
-                out->s.s_alt = alt;
+                GuardChoice choice;
+                choice.s_alt = alt;
+                out = dumb_ptr<spellguard_t>::make(choice, tmp);
             }
             return true;
         }
@@ -1031,10 +1037,11 @@ namespace magic_v2
             }
             if (!build_effect_list(begin, end, effect))
                 return false;
-            out = new_spellguard(SPELLGUARD::EFFECT);
-            out->s.s_effect.effect = effect;
-            out->s.s_effect.at_trigger = attrig;
-            out->s.s_effect.at_end = atend;
+            effect_set_t s_effect;
+            s_effect.effect = effect;
+            s_effect.at_trigger = attrig;
+            s_effect.at_end = atend;
+            out = dumb_ptr<spellguard_t>::make(s_effect, nullptr);
             return true;
         }
         return fail(s._list[0], "unknown spellbody"_s);
@@ -1068,7 +1075,7 @@ namespace magic_v2
             return false;
         val_t tmp;
         magic_eval(dumb_ptr<env_t>(&magic_default_env), &tmp, expr);
-        return bind_constant(span, name, &tmp);
+        return bind_constant(span, name, std::move(tmp));
     }
     static
     bool parse_anchor(io::LineSpan span, const std::vector<SExpr>& in)

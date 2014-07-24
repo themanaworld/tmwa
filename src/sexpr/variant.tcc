@@ -24,6 +24,16 @@ namespace tmwa
 {
 namespace sexpr
 {
+    template<size_t v>
+    constexpr
+    size_t not_negative_one()
+    {
+        return v;
+    }
+    template<>
+    constexpr
+    size_t not_negative_one<-1>() = delete;
+
     class VariantFriend
     {
     public:
@@ -77,7 +87,7 @@ namespace sexpr
         template<class W, class V>
         constexpr static size_t get_state_for()
         {
-            return std::remove_reference<V>::type::DataType::template index<W>();
+            return not_negative_one<std::remove_reference<V>::type::DataType::template index<W>()>();
         }
     };
 
@@ -104,7 +114,7 @@ namespace sexpr
         try
         {
             data.template construct<C, A...>(std::forward<A>(a)...);
-            state = Union<D, T...>::template index<C>();
+            state = not_negative_one<Union<D, T...>::template index<C>()>();
         }
         catch(...)
         {
@@ -244,7 +254,7 @@ namespace sexpr
     template<class E>
     E *Variant<D, T...>::get_if()
     {
-        if (state == Union<D, T...>::template index<E>())
+        if (state == not_negative_one<Union<D, T...>::template index<E>()>())
             return data.template get<E>();
         return nullptr;
     }
@@ -253,7 +263,7 @@ namespace sexpr
     template<class E>
     const E *Variant<D, T...>::get_if() const
     {
-        if (state == Union<D, T...>::template index<E>())
+        if (state == not_negative_one<Union<D, T...>::template index<E>()>())
             return data.template get<E>();
         return nullptr;
     }

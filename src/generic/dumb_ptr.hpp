@@ -42,7 +42,7 @@ class dumb_ptr
     T *impl;
 public:
     explicit
-    dumb_ptr(T *p=nullptr)
+    dumb_ptr(T *p=nullptr) noexcept
     : impl(p)
     {}
     template<class U>
@@ -112,7 +112,7 @@ class dumb_ptr<T[]>
     T *impl;
     size_t sz;
 public:
-    dumb_ptr() : impl(), sz() {}
+    dumb_ptr() noexcept : impl(), sz() {}
     dumb_ptr(std::nullptr_t)
     : impl(nullptr), sz(0) {}
     dumb_ptr(T *p, size_t z)

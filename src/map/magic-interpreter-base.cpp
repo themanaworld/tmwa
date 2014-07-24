@@ -42,53 +42,41 @@ namespace tmwa
 namespace magic
 {
 static
-void set_int_p(val_t *v, int i, TYPE t)
+void set_int(val_t *v, int i)
 {
-    v->ty = t;
-    v->v.v_int = i;
+    *v = ValInt{i};
 }
 
-#warning "This code should die"
-DIAG_PUSH();
-DIAG_I(unused_macros);
+static __attribute__((unused))
+void set_dir(val_t *v, DIR d)
+{
+    *v = ValDir{d};
+}
 
-#define set_int(v, i) set_int_p(v, i, TYPE::INT)
-#define set_dir(v, i) set_int_p(v, i, TYPE::DIR)
-
-#define SETTER(tty, dyn_ty, field) (val_t *v, tty x) { v->ty = dyn_ty; v->v.field = x; }
 
 static
-void set_string SETTER(dumb_string, TYPE::STRING, v_string)
+void set_string(val_t *v, dumb_string x)
+{
+    *v = ValString{x};
+}
 
 static
 void set_entity(val_t *v, dumb_ptr<block_list> e)
 {
-    v->ty = TYPE::ENTITY;
-    v->v.v_int = static_cast<int32_t>(unwrap<BlockId>(e->bl_id));
+    *v = ValEntityInt{e->bl_id};
 }
 
 static
 void set_invocation(val_t *v, dumb_ptr<invocation> i)
 {
-    v->ty = TYPE::INVOCATION;
-    v->v.v_int = static_cast<int32_t>(unwrap<BlockId>(i->bl_id));
+    *v = ValInvocationInt{i->bl_id};
 }
 
 static
-void set_spell SETTER(dumb_ptr<spell_t>, TYPE::SPELL, v_spell)
-
-#define setenv(f, v, x) f(&(env->varu[v]), x)
-
-#define set_env_int(v, x) setenv(set_int, v, x)
-#define set_env_dir(v, x) setenv(set_dir, v, x)
-#define set_env_string(v, x) setenv(set_string, v, x)
-#define set_env_entity(v, x) setenv(set_entity, v, x)
-#define set_env_location(v, x) setenv(set_location, v, x)
-#define set_env_area(v, x) setenv(set_area, v, x)
-#define set_env_invocation(v, x) setenv(set_invocation, v, x)
-#define set_env_spell(v, x) setenv(set_spell, v, x)
-
-DIAG_POP();
+void set_spell(val_t *v, dumb_ptr<spell_t> x)
+{
+    *v = ValSpell{x};
+}
 
 magic_conf_t magic_conf;        /* Global magic conf */
 env_t magic_default_env = { &magic_conf, nullptr };
@@ -176,7 +164,7 @@ dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
     {
 
         case SPELLARG::STRING:
-            set_env_string(spell->arg, dumb_string::copys(param));
+            set_string(&env->varu[spell->arg], dumb_string::copys(param));
             break;
 
         case SPELLARG::PC:
@@ -185,7 +173,7 @@ dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
             dumb_ptr<map_session_data> subject = map_nick2sd(name);
             if (!subject)
                 subject = caster;
-            set_env_entity(spell->arg, subject);
+            set_entity(&env->varu[spell->arg], subject);
             break;
         }
 
@@ -197,9 +185,9 @@ dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
                     spell->spellarg_ty);
     }
 
-    set_env_entity(VAR_CASTER, caster);
-    set_env_int(VAR_SPELLPOWER, spellpower);
-    set_env_spell(VAR_SPELL, spell);
+    set_entity(&env->varu[VAR_CASTER], caster);
+    set_int(&env->varu[VAR_SPELLPOWER], spellpower);
+    set_spell(&env->varu[VAR_SPELL], spell);
 
     return env;
 }
@@ -301,8 +289,10 @@ int spellguard_can_satisfy(spellguard_check_t *check, dumb_ptr<map_session_data>
     {
         interval_t casttime = check->casttime;
 
-        if (env->VAR(VAR_MIN_CASTTIME).ty == TYPE::INT)
-            casttime = std::max(casttime, static_cast<interval_t>(env->VAR(VAR_MIN_CASTTIME).v.v_int));
+        if (ValInt *v = env->VAR(VAR_MIN_CASTTIME).get_if<ValInt>())
+        {
+            casttime = std::max(casttime, static_cast<interval_t>(v->v_int));
+        }
 
         caster->cast_tick = tick + casttime;    /* Make sure not to cast too frequently */
 
@@ -314,7 +304,7 @@ int spellguard_can_satisfy(spellguard_check_t *check, dumb_ptr<map_session_data>
 }
 
 static
-effect_set_t *spellguard_check_sub(spellguard_check_t *check,
+const effect_set_t *spellguard_check_sub(spellguard_check_t *check,
         dumb_ptr<spellguard_t> guard,
         dumb_ptr<map_session_data> caster,
         dumb_ptr<env_t> env,
@@ -323,25 +313,25 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
     if (guard == nullptr)
         return nullptr;
 
-    switch (guard->ty)
+    MATCH (*guard)
     {
-        case SPELLGUARD::CONDITION:
-            if (!magic_eval_int(env, guard->s.s_condition))
+        CASE (const GuardCondition&, s)
+        {
+            if (!magic_eval_int(env, s.s_condition))
                 return nullptr;
-            break;
-
-        case SPELLGUARD::COMPONENTS:
-            copy_components(&check->components, guard->s.s_components);
-            break;
-
-        case SPELLGUARD::CATALYSTS:
-            copy_components(&check->catalysts, guard->s.s_catalysts);
-            break;
-
-        case SPELLGUARD::CHOICE:
+        }
+        CASE (const GuardComponents&, s)
+        {
+            copy_components(&check->components, s.s_components);
+        }
+        CASE (const GuardCatalysts&, s)
+        {
+            copy_components(&check->catalysts, s.s_catalysts);
+        }
+        CASE (const GuardChoice&, s)
         {
             spellguard_check_t altcheck = *check;
-            effect_set_t *retval;
+            const effect_set_t *retval;
 
             altcheck.components = nullptr;
             altcheck.catalysts = nullptr;
@@ -357,40 +347,36 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
             if (retval)
                 return retval;
             else
-                return spellguard_check_sub(check, guard->s.s_alt, caster,
+                return spellguard_check_sub(check, s.s_alt, caster,
                                              env, near_miss);
         }
-
-        case SPELLGUARD::MANA:
-            check->mana += magic_eval_int(env, guard->s.s_mana);
-            break;
-
-        case SPELLGUARD::CASTTIME:
-            check->casttime += static_cast<interval_t>(magic_eval_int(env, guard->s.s_mana));
-            break;
-
-        case SPELLGUARD::EFFECT:
+        CASE (const GuardMana&, s)
+        {
+            check->mana += magic_eval_int(env, s.s_mana);
+        }
+        CASE (const GuardCastTime&, s)
+        {
+            check->casttime += static_cast<interval_t>(magic_eval_int(env, s.s_casttime));
+        }
+        CASE (const effect_set_t&, s_effect)
+        {
             if (spellguard_can_satisfy(check, caster, env, near_miss))
-                return &guard->s.s_effect;
+                return &s_effect;
             else
                 return nullptr;
-
-        default:
-            FPRINTF(stderr, "Unexpected spellguard type %d\n"_fmt,
-                    guard->ty);
-            return nullptr;
+        }
     }
 
     return spellguard_check_sub(check, guard->next, caster, env, near_miss);
 }
 
 static
-effect_set_t *check_spellguard(dumb_ptr<spellguard_t> guard,
+const effect_set_t *check_spellguard(dumb_ptr<spellguard_t> guard,
         dumb_ptr<map_session_data> caster, dumb_ptr<env_t> env,
         int *near_miss)
 {
     spellguard_check_t check;
-    effect_set_t *retval;
+    const effect_set_t *retval;
     check.catalysts = nullptr;
     check.components = nullptr;
     check.mana = 0;
@@ -408,7 +394,7 @@ effect_set_t *check_spellguard(dumb_ptr<spellguard_t> guard,
 /* Public API */
 /* -------------------------------------------------------------------------------- */
 
-effect_set_t *spell_trigger(dumb_ptr<spell_t> spell, dumb_ptr<map_session_data> caster,
+const effect_set_t *spell_trigger(dumb_ptr<spell_t> spell, dumb_ptr<map_session_data> caster,
         dumb_ptr<env_t> env, int *near_miss)
 {
     dumb_ptr<spellguard_t> guard = spell->spellguard;
@@ -426,10 +412,11 @@ static
 void spell_set_location(dumb_ptr<invocation> invocation, dumb_ptr<block_list> entity)
 {
     magic_clear_var(&invocation->env->varu[VAR_LOCATION]);
-    invocation->env->varu[VAR_LOCATION].ty = TYPE::LOCATION;
-    invocation->env->varu[VAR_LOCATION].v.v_location.m = entity->bl_m;
-    invocation->env->varu[VAR_LOCATION].v.v_location.x = entity->bl_x;
-    invocation->env->varu[VAR_LOCATION].v.v_location.y = entity->bl_y;
+    ValLocation v;
+    v.v_location.m = entity->bl_m;
+    v.v_location.x = entity->bl_x;
+    v.v_location.y = entity->bl_y;
+    invocation->env->varu[VAR_LOCATION] = v;
 }
 
 void spell_update_location(dumb_ptr<invocation> invocation)
@@ -447,7 +434,7 @@ void spell_update_location(dumb_ptr<invocation> invocation)
     }
 }
 
-dumb_ptr<invocation> spell_instantiate(effect_set_t *effect_set, dumb_ptr<env_t> env)
+dumb_ptr<invocation> spell_instantiate(const effect_set_t *effect_set, dumb_ptr<env_t> env)
 {
     dumb_ptr<invocation> retval;
     retval.new_();
@@ -455,9 +442,8 @@ dumb_ptr<invocation> spell_instantiate(effect_set_t *effect_set, dumb_ptr<env_t>
 
     retval->env = env;
 
-    retval->caster = wrap<BlockId>(static_cast<uint32_t>(env->VAR(VAR_CASTER).v.v_int));
-    retval->spell = env->VAR(VAR_SPELL).v.v_spell;
-    retval->stack_size = 0;
+    retval->caster = env->VAR(VAR_CASTER).get_if<ValEntityInt>()->v_eid;
+    retval->spell = env->VAR(VAR_SPELL).get_if<ValSpell>()->v_spell;
     retval->current_effect = effect_set->effect;
     retval->trigger_effect = effect_set->at_trigger;
     retval->end_effect = effect_set->at_end;
@@ -470,7 +456,7 @@ dumb_ptr<invocation> spell_instantiate(effect_set_t *effect_set, dumb_ptr<env_t>
     retval->bl_y = caster->bl_y;
 
     map_addblock(retval);
-    set_env_invocation(VAR_INVOCATION, retval);
+    set_invocation(&env->varu[VAR_INVOCATION], retval);
 
     return retval;
 }
@@ -491,7 +477,6 @@ dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> base)
     retval->caster = base->caster;
     retval->subject = BlockId();
     // retval->timer = 0;
-    retval->stack_size = 0;
     // retval->stack = undef;
     retval->script_pos = 0;
     // huh?
@@ -509,7 +494,7 @@ dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> base)
     retval->bl_type = base->bl_type;
 
     retval->bl_id = map_addobject(retval);
-    set_env_invocation(VAR_INVOCATION, retval);
+    set_invocation(&env->varu[VAR_INVOCATION], retval);
 
     return retval;
 }

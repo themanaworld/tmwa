@@ -41,10 +41,11 @@ namespace sexpr
 #define MATCH(expr)                     \
     WITH_VAR(auto&&, _match_var, expr)  \
     switch (tmwa::sexpr::VariantFriend::get_state(_match_var))
-#define CASE(ty, var)                                                           \
-    break;                                                                      \
-    case tmwa::sexpr::VariantFriend::get_state_for<ty, decltype(_match_var)>(): \
-    WITH_VAR(ty, var, tmwa::sexpr::VariantFriend::unchecked_get<ty>(_match_var))
+#define TYPED_CASE(ty, var, look)                                                   \
+    break;                                                                          \
+    case tmwa::sexpr::VariantFriend::get_state_for<look, decltype(_match_var)>():   \
+    WITH_VAR(ty, var, tmwa::sexpr::VariantFriend::unchecked_get<look>(_match_var))
+#define CASE(ty, var) TYPED_CASE(ty, var, std::remove_const<std::remove_reference<ty>::type>::type)
 
     template<class... T>
     class Variant

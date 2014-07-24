@@ -42,8 +42,6 @@ namespace tmwa
 {
 namespace magic
 {
-#undef DEBUG
-
 /// Return a pair of strings, {spellname, parameter}
 /// Parameter may be empty.
 static
@@ -97,17 +95,12 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
         int near_miss;
         dumb_ptr<env_t> env =
             spell_create_env(&magic_conf, spell, caster, power, parameter);
-        effect_set_t *effects;
+        const effect_set_t *effects;
 
         if (bool(spell->flags & SPELL_FLAG::NONMAGIC) || (power >= 1))
             effects = spell_trigger(spell, caster, env, &near_miss);
         else
             effects = nullptr;
-
-#ifdef DEBUG
-        FPRINTF(stderr, "Found spell `%s', triggered = %d\n"_fmt, spell_,
-                effects != nullptr);
-#endif
 
         MAP_LOG_PC(caster, "CAST %s %s"_fmt,
                 spell->name, effects ? "SUCCESS"_s : "FAILURE"_s);
