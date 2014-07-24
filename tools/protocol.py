@@ -1446,6 +1446,11 @@ def main():
             at(16, sex, 'sex'),
         ],
         fixed_size=17,
+        pre=[],
+        post=[0x8000, 0x2716, 0x006c, 0x2712, 0x006b],
+        desc='''
+            Connect request from client.
+        ''',
     )
     char_user.r(0x0066, 'select character request',
         fixed=[
@@ -1515,6 +1520,11 @@ def main():
             at(0, char_select, 'char select'),
         ],
         repeat_size=106,
+        pre=[0x0065, 0x2713],
+        post=[],
+        desc='''
+            Send list of characters to client.
+        ''',
     )
     char_user.s(0x006c, 'login error',
         fixed=[
@@ -1522,6 +1532,15 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
+        pre=[0x0065, 0x2713],
+        post=[],
+        desc='''
+            Refuse connection.
+            
+            Status:
+                0: Overpopulated
+                0x42: Auth failed
+        ''',
     )
     char_user.s(0x006d, 'create character succeeded',
         fixed=[
@@ -3068,6 +3087,11 @@ def main():
             at(15, ip4, 'ip'),
         ],
         fixed_size=19,
+        pre=[0x0065],
+        post=[0x2729, 0x2713],
+        desc='''
+            Request from tmwa-char to authenticate account.
+        ''',
     )
     login_char.s(0x2713, 'account auth result',
         fixed=[
@@ -3078,6 +3102,15 @@ def main():
             at(47, time32, 'connect until'),
         ],
         fixed_size=51,
+        pre=[0x2712],
+        post=[0x006c, 0x006b],
+        desc='''
+            Send account auth status to tmwa-char.
+            
+            Status:
+                0: good
+                1: bad
+        ''',
     )
     login_char.r(0x2714, 'online count',
         fixed=[
@@ -3092,6 +3125,11 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[0x0065],
+        post=[0x2717],
+        desc='''
+            Request from tmwa-char to obtain e-mail/time limit.
+        ''',
     )
     login_char.s(0x2717, 'email limit result',
         fixed=[
@@ -3101,6 +3139,11 @@ def main():
             at(46, time32, 'connect until'),
         ],
         fixed_size=50,
+        pre=[0x2716],
+        post=[],
+        desc='''
+            Send e-mail/time limite to tmwa-char.
+        ''',
     )
     # 0x2b0a
     login_char.r(0x2720, 'become gm request',
@@ -4342,6 +4385,11 @@ def main():
             at(2, u16, 'packet length'),
         ],
         payload_size=4,
+        pre=[0x0065],
+        post=[],
+        desc='''
+            
+        ''',
     )
 
     ## teardown
