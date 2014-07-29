@@ -4038,6 +4038,11 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+        pre=[],
+        post=[],
+        desc='''
+            Request from client to disconnect.
+        ''',
     )
 
     # login admin
