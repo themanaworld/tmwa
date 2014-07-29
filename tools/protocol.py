@@ -3505,6 +3505,11 @@ def main():
             at(None, char_data, 'char data'),
         ],
         payload_size=None,
+        pre=[],
+        post=[],
+        desc='''
+            Receive character save information from tmwa-map.
+        ''',
     )
     char_map.r(0x2b02, 'char select req',
         fixed=[
