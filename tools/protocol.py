@@ -1875,6 +1875,11 @@ def main():
             at(26, u16, 'port'),
         ],
         fixed_size=28,
+        pre=[0x2b06],
+        post=[],
+        desc='''
+            Send notification of map server change to client.
+        ''',
     )
     map_user.r(0x0094, 'request being name',
         fixed=[
@@ -3578,6 +3583,11 @@ def main():
             at(45, ip4, 'client ip'),
         ],
         fixed_size=49,
+        pre=[],
+        post=[0x2b06],
+        desc='''
+            Request from tmwa-map to change map server.
+        ''',
     )
     char_map.s(0x2b06, 'change map server ack',
         fixed=[
@@ -3593,6 +3603,11 @@ def main():
             at(42, u16, 'map port'),
         ],
         fixed_size=44,
+        pre=[0x2b05],
+        post=[0x0092],
+        desc='''
+            Send acknowledgement of map server change to tmwa-map. 
+        ''',
     )
     # 0x2720
     char_map.r(0x2b0a, 'become gm request',
