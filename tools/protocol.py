@@ -3205,6 +3205,11 @@ def main():
         head_size=8,
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
+        pre=[0x2b0a],
+        post=[0x2721],
+        desc='''
+            Request from tmwa-map via tmwa-char to give GM status to an account.
+        ''',
     )
     login_char.s(0x2721, 'become gm reply',
         fixed=[
@@ -3213,6 +3218,11 @@ def main():
             at(6, gm, 'gm level'),
         ],
         fixed_size=10,
+        pre=[0x2720],
+        post=[0x2b0b],
+        desc='''
+            Response to tmwa-char of accounts new GM status.
+        ''',
     )
     # 0x2b0c
     login_char.r(0x2722, 'account email change request',
@@ -3619,6 +3629,11 @@ def main():
         head_size=8,
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
+        pre=[],
+        post=[0x2720, 0x2b0b],
+        desc='''
+            Request from tmwa-map to give GM status to an account.
+        ''',
     )
     char_map.s(0x2b0b, 'become gm result',
         fixed=[
@@ -3627,6 +3642,11 @@ def main():
             at(6, gm, 'gm level'),
         ],
         fixed_size=10,
+        pre=[0x2b0a],
+        post=[],
+        desc='''
+            Send notification of accounts GM level to tmwa-map.
+        ''',
     )
     # 0x2722
     char_map.r(0x2b0c, 'change email request',
