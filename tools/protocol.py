@@ -1458,6 +1458,11 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
+        pre=[],
+        post=[0x0081, 0x0071],
+        desc='''
+            Request from cilent for character location and map server IP.
+        ''',
     )
     char_user.r(0x0067, 'create character request',
         fixed=[
@@ -1469,6 +1474,11 @@ def main():
             at(35, u16, 'hair style'),
         ],
         fixed_size=37,
+        pre=[],
+        post=[0x006d],
+        desc='''
+            Request from client to create a character.
+        ''',
     )
     char_user.r(0x0068, 'delete character request',
         fixed=[
@@ -1548,6 +1558,11 @@ def main():
             at(2, char_select, 'char select'),
         ],
         fixed_size=108,
+        pre=[0x0067],
+        post=[],
+        desc='''
+            Send new character information to client.
+        ''',
     )
     char_user.s(0x006e, 'create character failed',
         fixed=[
@@ -1578,6 +1593,11 @@ def main():
             at(26, u16, 'port'),
         ],
         fixed_size=28,
+        pre=[0x0066],
+        post=[],
+        desc='''
+            Send character location and IP to client.
+        ''',
     )
     map_user.r(0x0072, 'tmwa-map connect',
         fixed=[
@@ -1725,6 +1745,11 @@ def main():
             at(2, u8, 'error code'),
         ],
         fixed_size=3,
+        pre=[0x0066],
+        post=[],
+        desc='''
+            
+        ''',
     )
     map_user.r(0x0085, 'change player destination',
         fixed=[
