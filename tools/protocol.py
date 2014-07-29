@@ -3246,6 +3246,11 @@ def main():
             at(6, sex, 'sex'),
         ],
         fixed_size=7,
+        pre=[0x272a],
+        post=[0x2b0d],
+        desc='''
+            Response from tmwa-login about account gender swap.
+        ''',
     )
     login_char.r(0x2724, 'block status',
         fixed=[
@@ -3254,6 +3259,11 @@ def main():
             at(6, u32, 'status'),
         ],
         fixed_size=10,
+        pre=[0x2b0e],
+        post=[0x2731],
+        desc='''
+            Request from tmwa-map via tmwa-char to block account.
+        ''',
     )
     login_char.r(0x2725, 'ban add',
         fixed=[
@@ -3262,6 +3272,11 @@ def main():
             at(6, human_time_diff, 'ban add'),
         ],
         fixed_size=18,
+        pre=[0x2b0e],
+        post=[0x2731],
+        desc='''
+            Request from tmwa-map via tmwa-char to ban account.
+        ''',
     )
     # evil packet, see also 0x794e
     login_admin.s(0x2726, 'broadcast',
@@ -3282,6 +3297,11 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[0x2b0e],
+        post=[],
+        desc='''
+            Request from tmwa-map via tmwa-char to swap account gender.
+        ''',
     )
     # 0x2b10, 0x2b11
     for (id, cat) in [
@@ -3307,6 +3327,11 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[0x2b0e],
+        post=[0x2723],
+        desc='''
+            Request from tmwa-map via tmwa-char to unblock or unban and account.
+        ''',
     )
     login_char.s(0x2730, 'account deleted',
         fixed=[
@@ -3323,6 +3348,11 @@ def main():
             at(7, time32, 'status or ban until'),
         ],
         fixed_size=11,
+        pre=[0x2724, 0x2725],
+        post=[0x2b14],
+        desc='''
+            Response from tmwa-login about account ban/block status.
+        ''',
     )
     login_char.s(0x2732, 'gm account list',
         head=[
@@ -3675,6 +3705,11 @@ def main():
             at(6, sex, 'sex'),
         ],
         fixed_size=7,
+        pre=[0x2723],
+        post=[],
+        desc='''
+            Response from tmwa-login via tmwa-char about account gender swap.
+        ''',
     )
     char_map.r(0x2b0e, 'named char operation request',
         fixed=[
@@ -3685,6 +3720,11 @@ def main():
             at(32, human_time_diff, 'ban add'),
         ],
         fixed_size=44,
+        pre=[],
+        post=[0x2724, 0x2725, 0x272a, 0x2727, 0x2b0f],
+        desc='''
+            Request from tmwa-map to change account ban status or gender.
+        ''',
     )
     char_map.r(0x2b0f, 'named char operation answer',
         fixed=[
@@ -3695,6 +3735,11 @@ def main():
             at(32, u16, 'error'),
         ],
         fixed_size=34,
+        pre=[0x2b0e],
+        post=[],
+        desc='''
+            Reqponse from tmwa-char about changing account ban/block status or gender.
+        ''',
     )
     # 0x2728, 0x2729
     for (id, cat) in [
@@ -3742,6 +3787,11 @@ def main():
             at(7, time32, 'status or ban until'),
         ],
         fixed_size=11,
+        pre=[0x2731],
+        post=[],
+        desc='''
+            Response from tmwa-login via tmwa-char about account ban/block status.
+        ''',
     )
     char_map.s(0x2b15, 'gm account list notify',
         head=[
