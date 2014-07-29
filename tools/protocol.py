@@ -3435,6 +3435,11 @@ def main():
             at(18, ip4, 'ip'),
         ],
         fixed_size=22,
+        pre=[],
+        post=[0x2afd, 0x2afe],
+        desc='''
+            Request from tmwa-map to authenticate an account.
+        ''',
     )
     char_map.s(0x2afd, 'character auth and data',
         payload=[
@@ -3448,6 +3453,11 @@ def main():
             at(None, char_data, 'char data'),
         ],
         payload_size=None,
+        pre=[0x2afc],
+        post=[0x3005],
+        desc='''
+            Send that account authentication succeeded.
+        ''',
     )
     char_map.s(0x2afe, 'character auth error',
         fixed=[
@@ -3455,10 +3465,10 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[0x0068],
+        pre=[0x0068, 0x2afc],
         post=[0x0081],
         desc='''
-            Send account id to tmwa-map for removal.
+            Send account id to tmwa-map for disconnection.
         ''',
     )
     char_map.r(0x2aff, 'user list',
@@ -3749,6 +3759,11 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[0x2afd],
+        post=[],
+        desc='''
+            TODO: determine what's going on here. initf.cpp sends this packet, but I don't see it being received in char.cpp. Assumed to go to client.
+        ''',
     )
     char_map.r(0x3010, 'want storage',
         fixed=[
