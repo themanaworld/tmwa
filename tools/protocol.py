@@ -3233,6 +3233,11 @@ def main():
             at(46, account_email, 'new email'),
         ],
         fixed_size=86,
+        pre=[0x2b0c],
+        post=[],
+        desc='''
+            Request from tmwa-map via tmwa-char to change account email.
+        ''',
     )
     login_char.s(0x2723, 'changesex reply',
         fixed=[
@@ -3657,6 +3662,11 @@ def main():
             at(46, account_email, 'new email'),
         ],
         fixed_size=86,
+        pre=[],
+        post=[0x2722],
+        desc='''
+            Request from tmwa-map to change account email.
+        ''',
     )
     char_map.s(0x2b0d, 'sex changed notify',
         fixed=[
