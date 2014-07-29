@@ -3721,6 +3721,11 @@ def main():
             at(6, char_id, 'partner id'),
         ],
         fixed_size=10,
+        pre=[0x2b12],
+        post=[],
+        desc='''
+            Send notification of character divorce status to tmwa-map.
+        ''',
     )
     char_map.s(0x2b13, 'account delete notify',
         fixed=[
@@ -3761,6 +3766,11 @@ def main():
             at(2, char_id, 'char id'),
         ],
         fixed_size=6,
+        pre=[],
+        post=[0x2b12],
+        desc='''
+            Request from tmwa-map to divorce a character.
+        ''',
     )
 
     char_map.r(0x3000, 'gm broadcast',
