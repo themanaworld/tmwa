@@ -4015,6 +4015,11 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+        pre=[],
+        post=[0x7531],
+        desc='''
+            Request from client for server version.
+        ''',
     )
     any_user.s(0x7531, 'version reply',
         fixed=[
@@ -4022,6 +4027,11 @@ def main():
             at(2, version, 'version'),
         ],
         fixed_size=10,
+        pre=[0x7530],
+        post=[],
+        desc='''
+            Response to client's request for server version.
+        ''',
     )
     any_user.r(0x7532, 'shutdown please',
         fixed=[
