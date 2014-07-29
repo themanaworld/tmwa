@@ -1487,6 +1487,11 @@ def main():
             at(6, account_email, 'email'),
         ],
         fixed_size=46,
+        pre=[],
+        post=[0x006f, 0x0070, 0x2afe],
+        desc='''
+            Request from client to delete a character.
+        ''',
     )
     login_user.r(0x0069, 'login data',
         head=[
@@ -1576,6 +1581,11 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+        pre=[0x0068],
+        post=[],
+        desc='''
+            Send deletion success to client.
+        ''',
     )
     char_user.s(0x0070, 'delete character failed',
         fixed=[
@@ -1583,6 +1593,11 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
+        pre=[0x0068],
+        post=[],
+        desc='''
+            Send deletion failure to client.
+        ''',
     )
     char_user.s(0x0071, 'char-map info',
         fixed=[
@@ -1745,7 +1760,7 @@ def main():
             at(2, u8, 'error code'),
         ],
         fixed_size=3,
-        pre=[0x0066],
+        pre=[0x0066, 0x2afe],
         post=[],
         desc='''
             
@@ -3440,6 +3455,11 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[0x0068],
+        post=[0x0081],
+        desc='''
+            Send account id to tmwa-map for removal.
+        ''',
     )
     char_map.r(0x2aff, 'user list',
         head=[
