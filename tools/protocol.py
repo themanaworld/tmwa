@@ -3890,9 +3890,9 @@ def main():
         ],
         fixed_size=6,
         pre=[0x2afd],
-        post=[],
+        post=[0x3804],
         desc='''
-            TODO: determine what's going on here. initf.cpp sends this packet, but I don't see it being received in char.cpp. Assumed to go to client.
+            Request accountreg from tmwa-char.
         ''',
     )
     char_map.r(0x3010, 'want storage',
@@ -4052,6 +4052,11 @@ def main():
             at(32, u32, 'value'),
         ],
         repeat_size=36,
+        pre=[0x3005],
+        post=[],
+        desc='''
+            Send account reg status to tmwa-map.
+        ''',
     )
     char_map.s(0x3810, 'load storage',
         payload=[
