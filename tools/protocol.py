@@ -3482,6 +3482,11 @@ def main():
             at(0, char_id, 'char id'),
         ],
         repeat_size=4,
+        pre=[],
+        post=[],
+        desc='''
+            Receive list of users from tmwa-map.
+        ''',
     )
     char_map.s(0x2b00, 'total users',
         fixed=[
