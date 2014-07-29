@@ -2150,6 +2150,11 @@ def main():
             at(2, u8, 'one'),
         ],
         fixed_size=3,
+        pre=[0x0x2b03],
+        post=[],
+        desc='''
+            Send character select "OK" to client.
+        ''',
     )
     map_user.s(0x00b4, 'npc message',
         head=[
@@ -3520,6 +3525,11 @@ def main():
             at(14, ip4, 'ip'),
         ],
         fixed_size=18,
+        pre=[],
+        post=[0x2b03],
+        desc='''
+            Receive character select information from tmwa-map.
+        ''',
     )
     char_map.s(0x2b03, 'char select res',
         fixed=[
@@ -3528,6 +3538,11 @@ def main():
             at(6, u8, 'unknown'),
         ],
         fixed_size=7,
+        pre=[0x2b02],
+        post=[0x00b3],
+        desc='''
+            Send character select "OK" to tmwa-map.
+        ''',
     )
     char_map.s(0x2b04, 'map list broadcast',
         head=[
