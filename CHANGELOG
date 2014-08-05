@@ -16,6 +16,8 @@ v14.6.30:
   - drop gcc 4.6 support
   - completely remove flex/bison dependency
   - fix duplication in npctalk
+v14.4.19:
+  - emergency backport of security fix, since v14.7.1 is too buggy
 v14.4.18:
   - fix some fatal bugs related to logout in the previous release
   - fix out-of-bounds in trades exposed in the previous commit
