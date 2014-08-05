@@ -2410,7 +2410,8 @@ void parse_char(Session *s)
                         {
                             if (cd.key.char_id == RFIFOL(s, 2))
                             {
-                                cs = &cd;
+                                if (cd.key.account_id == sd->account_id)
+                                    cs = &cd;
                                 break;
                             }
                         }
