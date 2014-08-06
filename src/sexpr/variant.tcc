@@ -34,7 +34,7 @@ namespace sexpr
     }
     template<>
     constexpr
-    size_t not_negative_one<-1>() = delete;
+    size_t not_negative_one<static_cast<size_t>(-1)>() = delete;
 
     class VariantFriend
     {
@@ -120,7 +120,10 @@ namespace sexpr
         }
         catch (...)
         {
-#if GCC_PATCH != 40702 // apparent compiler bug, not reduced
+#if GCC != 407 // apparent compiler bug, not reduced
+            // 4.7.2 from wheezy is bad
+            // 4.7.3 from jessie is good
+            // 4.7.3 from ubuntu-toolchain-test is bad
             static_assert(std::is_nothrow_constructible<D>::value, "first element is nothrow constructible");
 #endif
             data.template construct<D>();
