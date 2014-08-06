@@ -52,6 +52,7 @@ namespace tmwa
 #  define CLANG (0)
 # endif
 #endif
+#define GCC_PATCH (GCC * 100 + __GNUC_PATCHLEVEL__)
 
 #if GCC >= 406 || CLANG
 # define PRAGMA(x) _Pragma(#x) static_assert(1, "I like my semicolons")

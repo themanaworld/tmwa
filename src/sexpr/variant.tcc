@@ -20,6 +20,8 @@
 #include <cassert>
 #include "bind.hpp"
 
+#include "../diagnostics.hpp"
+
 namespace tmwa
 {
 namespace sexpr
@@ -116,9 +118,11 @@ namespace sexpr
             data.template construct<C, A...>(std::forward<A>(a)...);
             state = not_negative_one<Union<D, T...>::template index<C>()>();
         }
-        catch(...)
+        catch (...)
         {
+#if GCC_PATCH != 40702 // apparent compiler bug, not reduced
             static_assert(std::is_nothrow_constructible<D>::value, "first element is nothrow constructible");
+#endif
             data.template construct<D>();
             state = 0;
             throw;
