@@ -115,9 +115,43 @@ TEST(variant, match)
     }
 }
 
-TEST(variant, copymove)
+TEST(variant, copymove1)
 {
     sexpr::Variant<Qux> moveonly(Qux(3));
     (void)moveonly;
+}
+
+TEST(variant, copymove2)
+{
+    struct Move
+    {
+        Move() = default;
+        Move(Move&&) = default;
+        Move(const Move&) = delete;
+        Move& operator = (Move&&) = default;
+        Move& operator = (const Move&) = delete;
+        ~Move() = default;
+    };
+    struct Copy
+    {
+        Copy() = default;
+        Copy(Copy&&) = default;
+        Copy(const Copy&) = default;
+        Copy& operator = (Copy&&) = default;
+        Copy& operator = (const Copy&) = default;
+        ~Copy() = default;
+    };
+
+    using VarMv = sexpr::Variant<Move>;
+    using VarCp = sexpr::Variant<Copy>;
+
+    VarMv mv1;
+    VarMv mv3 = std::move(mv1);
+    mv1 = std::move(mv3);
+    VarCp cp1;
+    VarCp cp2 = cp1;
+    VarCp cp3 = std::move(cp1);
+    cp1 = cp2;
+    cp1 = std::move(cp3);
 }
 } // namespace tmwa

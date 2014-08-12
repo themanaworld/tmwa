@@ -82,7 +82,7 @@ constexpr bool DEBUG_RUN = false;
 
 struct str_data_t
 {
-    ByteCode type;
+    StringCode type;
     RString strs;
     int backpatch;
     int label_;
@@ -166,21 +166,20 @@ extern BuiltinFunction builtin_functions[];
 static
 InternPool variable_names;
 
-enum class ByteCode : uint8_t
+
+template<class D>
+bool first_type_is_any()
 {
-    // types and specials
-    NOP, POS, INT, PARAM_, FUNC_, STR, ARG,
-    VARIABLE, EOL, RETINFO,
+    return false;
+}
 
-    // unary and binary operators
-    LOR, LAND, LE, LT, GE, GT, EQ, NE,
-    XOR, OR, AND, ADD, SUB, MUL, DIV, MOD,
-    NEG, LNOT, NOT, R_SHIFT, L_SHIFT,
+template<class D, class F, class... R>
+constexpr
+bool first_type_is_any()
+{
+    return std::is_same<D, F>::value || first_type_is_any<D, R...>();
+}
 
-    // additions
-    // needed because FUNC is used for the actual call
-    FUNC_REF,
-};
 
 static
 str_data_t *search_strp(XString p)
@@ -196,7 +195,7 @@ str_data_t *add_strp(XString p)
 
     RString p2 = p;
     str_data_t *datum = str_datam.init(p2);
-    datum->type = ByteCode::NOP;
+    datum->type = StringCode::NOP;
     datum->strs = p2;
     datum->backpatch = -1;
     datum->label_ = -1;
@@ -246,13 +245,13 @@ void ScriptBuffer::add_scriptl(str_data_t *ld)
 
     switch (ld->type)
     {
-        case ByteCode::POS:
+        case StringCode::POS:
             add_scriptc(ByteCode::POS);
             add_scriptb(static_cast<uint8_t>(ld->label_));
             add_scriptb(static_cast<uint8_t>(ld->label_ >> 8));
             add_scriptb(static_cast<uint8_t>(ld->label_ >> 16));
             break;
-        case ByteCode::NOP:
+        case StringCode::NOP:
             // need to set backpatch, because it might become a label later
             add_scriptc(ByteCode::VARIABLE);
             ld->backpatch = script_buf.size();
@@ -260,17 +259,17 @@ void ScriptBuffer::add_scriptl(str_data_t *ld)
             add_scriptb(static_cast<uint8_t>(backpatch >> 8));
             add_scriptb(static_cast<uint8_t>(backpatch >> 16));
             break;
-        case ByteCode::INT:
+        case StringCode::INT:
             add_scripti(ld->val);
             break;
-        case ByteCode::FUNC_:
+        case StringCode::FUNC:
             add_scriptc(ByteCode::FUNC_REF);
             add_scriptb(static_cast<uint8_t>(ld->val));
             add_scriptb(static_cast<uint8_t>(ld->val >> 8));
             add_scriptb(static_cast<uint8_t>(ld->val >> 16));
             break;
-        case ByteCode::PARAM_:
-            add_scriptc(ByteCode::PARAM_);
+        case StringCode::PARAM:
+            add_scriptc(ByteCode::PARAM);
             add_scriptb(static_cast<uint8_t>(ld->val));
             add_scriptb(static_cast<uint8_t>(ld->val >> 8));
             add_scriptb(static_cast<uint8_t>(ld->val >> 16));
@@ -288,7 +287,7 @@ void ScriptBuffer::set_label(str_data_t *ld, int pos_)
 {
     int next;
 
-    ld->type = ByteCode::POS;
+    ld->type = StringCode::POS;
     ld->label_ = pos_;
     for (int i = ld->backpatch; i >= 0 && i != 0x00ffffff; i = next)
     {
@@ -482,7 +481,7 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
             parse_cmd_if++;
         p = p2;
 
-        if (ld->type != ByteCode::FUNC_ && *p == '[')
+        if (ld->type != StringCode::FUNC && *p == '[')
         {
             // array(name[i] => getelementofarray(name,i) )
             add_scriptl(search_strp("getelementofarray"_s));
@@ -496,7 +495,7 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
                 exit(1);
             }
             p++;
-            add_scriptc(ByteCode::FUNC_);
+            add_scriptc(ByteCode::FUNC);
         }
         else
             add_scriptl(ld);
@@ -543,7 +542,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
             (op = ByteCode::MUL, opl = 7, len = 1, *p == '*') ||
             (op = ByteCode::DIV, opl = 7, len = 1, *p == '/') ||
             (op = ByteCode::MOD, opl = 7, len = 1, *p == '%') ||
-            (op = ByteCode::FUNC_, opl = 8, len = 1, *p == '(') ||
+            (op = ByteCode::FUNC, opl = 8, len = 1, *p == '(') ||
             (op = ByteCode::LAND, opl = 1, len = 2, *p == '&' && p[1] == '&') ||
             (op = ByteCode::AND, opl = 5, len = 1, *p == '&') ||
             (op = ByteCode::LOR, opl = 0, len = 2, *p == '|' && p[1] == '|') ||
@@ -559,13 +558,13 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
             (op = ByteCode::LT, opl = 2, len = 1, *p == '<')) && opl > limit)
     {
         p += len;
-        if (op == ByteCode::FUNC_)
+        if (op == ByteCode::FUNC)
         {
             int i = 0;
             str_data_t *funcp = parse_cmdp;
             ZString::iterator plist[128];
 
-            if (funcp->type != ByteCode::FUNC_)
+            if (funcp->type != StringCode::FUNC)
             {
                 disp_error_message("expect function"_s, tmpp);
                 exit(0);
@@ -595,7 +594,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
             }
             p++;
 
-            if (funcp->type == ByteCode::FUNC_
+            if (funcp->type == StringCode::FUNC
                 && script_config.warn_func_mismatch_paramnum)
             {
                 ZString arg = builtin_functions[funcp->val].arg;
@@ -667,10 +666,9 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
     p = skip_space(p);
 
     str_data_t *cmd = parse_cmdp;
-    if (cmd->type != ByteCode::FUNC_)
+    if (cmd->type != StringCode::FUNC)
     {
         disp_error_message("expect command"_s, p2);
-//      exit(0);
     }
 
     {
@@ -713,9 +711,9 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
         disp_error_message("need ';'"_s, p);
         exit(1);
     }
-    add_scriptc(ByteCode::FUNC_);
+    add_scriptc(ByteCode::FUNC);
 
-    if (cmd->type == ByteCode::FUNC_
+    if (cmd->type == StringCode::FUNC
         && script_config.warn_cmd_mismatch_paramnum)
     {
         ZString arg = builtin_functions[cmd->val].arg;
@@ -748,7 +746,7 @@ void add_builtin_functions(void)
     for (int i = 0; builtin_functions[i].func; i++)
     {
         str_data_t *n = add_strp(builtin_functions[i].name);
-        n->type = ByteCode::FUNC_;
+        n->type = StringCode::FUNC;
         n->val = i;
     }
 }
@@ -806,7 +804,7 @@ bool read_constdb(ZString filename)
             continue;
         }
         str_data_t *n = add_strp(name);
-        n->type = type ? ByteCode::PARAM_ : ByteCode::INT;
+        n->type = type ? StringCode::PARAM : StringCode::INT;
         n->val = val;
     }
     return rv;
@@ -832,15 +830,15 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         add_builtin_functions();
     }
     first = 0;
-    LABEL_NEXTLINE_.type = ByteCode::NOP;
+    LABEL_NEXTLINE_.type = StringCode::NOP;
     LABEL_NEXTLINE_.backpatch = -1;
     LABEL_NEXTLINE_.label_ = -1;
     for (auto& pair : str_datam)
     {
         str_data_t& dit = pair.second;
-        if (dit.type == ByteCode::POS || dit.type == ByteCode::VARIABLE)
+        if (dit.type == StringCode::POS || dit.type == StringCode::VARIABLE)
         {
-            dit.type = ByteCode::NOP;
+            dit.type = StringCode::NOP;
             dit.backpatch = -1;
             dit.label_ = -1;
         }
@@ -876,8 +874,8 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
             ZString::iterator tmpp = skip_word(p);
             XString str(&*p, &*tmpp, nullptr);
             str_data_t *ld = add_strp(str);
-            bool e1 = ld->type != ByteCode::NOP;
-            bool e2 = ld->type == ByteCode::POS;
+            bool e1 = ld->type != StringCode::NOP;
+            bool e2 = ld->type == StringCode::POS;
             bool e3 = ld->label_ != -1;
             assert (e1 == e2 && e2 == e3);
             if (e3)
@@ -901,7 +899,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         add_scriptc(ByteCode::EOL);
 
         set_label(&LABEL_NEXTLINE_, script_buf.size());
-        LABEL_NEXTLINE_.type = ByteCode::NOP;
+        LABEL_NEXTLINE_.type = StringCode::NOP;
         LABEL_NEXTLINE_.backpatch = -1;
         LABEL_NEXTLINE_.label_ = -1;
     }
@@ -916,9 +914,9 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
     for (auto& pair : str_datam)
     {
         str_data_t& sit = pair.second;
-        if (sit.type == ByteCode::NOP)
+        if (sit.type == StringCode::NOP)
         {
-            sit.type = ByteCode::VARIABLE;
+            sit.type = StringCode::VARIABLE;
             sit.label_ = 0; // anything but -1. Shouldn't matter, but helps asserts.
             size_t pool_index = variable_names.intern(sit.strs);
             for (int next, j = sit.backpatch; j >= 0 && j != 0x00ffffff; j = next)
@@ -999,76 +997,82 @@ dumb_ptr<map_session_data> script_rid2sd(ScriptState *st)
 static
 void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
 {
-    if (data->type == ByteCode::PARAM_)
+    MATCH (*data)
     {
-        if (sd == nullptr)
-            PRINTF("get_val error param SP::%d\n"_fmt, data->u.reg.sp());
-        data->type = ByteCode::INT;
-        if (sd)
-            data->u.numi = pc_readparam(sd, data->u.reg.sp());
-    }
-    else if (data->type == ByteCode::VARIABLE)
-    {
-        ZString name_ = variable_names.outtern(data->u.reg.base());
-        VarName name = stringish<VarName>(name_);
-        char prefix = name.front();
-        char postfix = name.back();
-
-        if (prefix != '$')
+        CASE (const ScriptDataParam&, u)
         {
             if (sd == nullptr)
-                PRINTF("get_val error name?:%s\n"_fmt, name);
+                PRINTF("get_val error param SP::%d\n"_fmt, u.reg.sp());
+            int numi = 0;
+            if (sd)
+                numi = pc_readparam(sd, u.reg.sp());
+            *data = ScriptDataInt{numi};
         }
-        if (postfix == '$')
+        CASE (const ScriptDataVariable&, u)
         {
-            data->type = ByteCode::STR;
-            if (prefix == '@')
+            ZString name_ = variable_names.outtern(u.reg.base());
+            VarName name = stringish<VarName>(name_);
+            char prefix = name.front();
+            char postfix = name.back();
+
+            if (prefix != '$')
             {
-                if (sd)
-                    data->u.str = dumb_string::copys(pc_readregstr(sd, data->u.reg));
+                if (sd == nullptr)
+                    PRINTF("get_val error name?:%s\n"_fmt, name);
             }
-            else if (prefix == '$')
+            if (postfix == '$')
             {
-                RString *s = mapregstr_db.search(data->u.reg);
-                data->u.str = s ? dumb_string::copys(*s) : dumb_string();
+                dumb_string str;
+                if (prefix == '@')
+                {
+                    if (sd)
+                        str = dumb_string::copys(pc_readregstr(sd, u.reg));
+                }
+                else if (prefix == '$')
+                {
+                    RString *s = mapregstr_db.search(u.reg);
+                    str = s ? dumb_string::copys(*s) : dumb_string();
+                }
+                else
+                {
+                    PRINTF("script: get_val: illegal scope string variable.\n"_fmt);
+                    str = dumb_string::copys("!!ERROR!!"_s);
+                }
+                if (!str)
+                    str = dumb_string::copys(""_s);
+                *data = ScriptDataStr{str};
             }
             else
             {
-                PRINTF("script: get_val: illegal scope string variable.\n"_fmt);
-                data->u.str = dumb_string::copys("!!ERROR!!"_s);
-            }
-            if (!data->u.str)
-                data->u.str = dumb_string::copys(""_s);
-        }
-        else
-        {
-            data->type = ByteCode::INT;
-            if (prefix == '@')
-            {
-                if (sd)
-                    data->u.numi = pc_readreg(sd, data->u.reg);
-            }
-            else if (prefix == '$')
-            {
-                data->u.numi = mapreg_db.get(data->u.reg);
-            }
-            else if (prefix == '#')
-            {
-                if (name[1] == '#')
+                int numi = 0;
+                if (prefix == '@')
                 {
                     if (sd)
-                        data->u.numi = pc_readaccountreg2(sd, name);
+                        numi = pc_readreg(sd, u.reg);
+                }
+                else if (prefix == '$')
+                {
+                    numi = mapreg_db.get(u.reg);
+                }
+                else if (prefix == '#')
+                {
+                    if (name[1] == '#')
+                    {
+                        if (sd)
+                            numi = pc_readaccountreg2(sd, name);
+                    }
+                    else
+                    {
+                        if (sd)
+                            numi = pc_readaccountreg(sd, name);
+                    }
                 }
                 else
                 {
                     if (sd)
-                        data->u.numi = pc_readaccountreg(sd, name);
+                        numi = pc_readglobalreg(sd, name);
                 }
-            }
-            else
-            {
-                if (sd)
-                    data->u.numi = pc_readglobalreg(sd, name);
+                *data = ScriptDataInt{numi};
             }
         }
     }
@@ -1088,9 +1092,7 @@ void get_val(ScriptState *st, struct script_data *data)
 static
 struct script_data get_val2(ScriptState *st, SIR reg)
 {
-    struct script_data dat;
-    dat.type = ByteCode::VARIABLE;
-    dat.u.reg = reg;
+    struct script_data dat = ScriptDataVariable{reg};
     get_val(st, &dat);
     return dat;
 }
@@ -1100,16 +1102,15 @@ struct script_data get_val2(ScriptState *st, SIR reg)
  *------------------------------------------
  */
 static
-void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct script_data vd)
+void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, struct script_data vd)
 {
-    if (type == ByteCode::PARAM_)
+    if (type == VariableCode::PARAM)
     {
-        assert (vd.type == ByteCode::INT);
-        int val = vd.u.numi;
+        int val = vd.get_if<ScriptDataInt>()->numi;
         pc_setparam(sd, reg.sp(), val);
         return;
     }
-    assert (type == ByteCode::VARIABLE);
+    assert (type == VariableCode::VARIABLE);
 
     ZString name_ = variable_names.outtern(reg.base());
     VarName name = stringish<VarName>(name_);
@@ -1118,7 +1119,7 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
 
     if (postfix == '$')
     {
-        dumb_string str = vd.u.str;
+        dumb_string str = vd.get_if<ScriptDataStr>()->str;
         if (prefix == '@')
         {
             pc_setregstr(sd, reg, str.str());
@@ -1134,8 +1135,7 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
     }
     else
     {
-        // 数値
-        int val = vd.u.numi;
+        int val = vd.get_if<ScriptDataInt>()->numi;
         if (prefix == '@')
         {
             pc_setreg(sd, reg, val);
@@ -1159,20 +1159,16 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
 }
 
 static
-void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, int id)
+void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, int id)
 {
-    struct script_data vd;
-    vd.type = ByteCode::INT;
-    vd.u.numi = id;
+    struct script_data vd = ScriptDataInt{id};
     set_reg(sd, type, reg, vd);
 }
 
 static
-void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, dumb_string zd)
+void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, dumb_string zd)
 {
-    struct script_data vd;
-    vd.type = ByteCode::STR;
-    vd.u.str = zd;
+    struct script_data vd = ScriptDataStr{zd};
     set_reg(sd, type, reg, vd);
 }
 
@@ -1184,14 +1180,13 @@ static __attribute__((warn_unused_result))
 dumb_string conv_str(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
-    assert (data->type != ByteCode::RETINFO);
-    if (data->type == ByteCode::INT)
+    assert (!data->is<ScriptDataRetInfo>());
+    if (auto *u = data->get_if<ScriptDataInt>())
     {
-        AString buf = STRPRINTF("%d"_fmt, data->u.numi);
-        data->type = ByteCode::STR;
-        data->u.str = dumb_string::copys(buf);
+        AString buf = STRPRINTF("%d"_fmt, u->numi);
+        *data = ScriptDataStr{dumb_string::copys(buf)};
     }
-    return data->u.str;
+    return data->get_if<ScriptDataStr>()->str;
 }
 
 /*==========================================
@@ -1202,105 +1197,86 @@ static __attribute__((warn_unused_result))
 int conv_num(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
-    assert (data->type != ByteCode::RETINFO);
-    if (data->type == ByteCode::STR)
+    assert (!data->is<ScriptDataRetInfo>());
+    if (auto *u = data->get_if<ScriptDataStr>())
     {
-        dumb_string p = data->u.str;
-        data->u.numi = atoi(p.c_str());
+        dumb_string p = u->str;
+        *data = ScriptDataInt{atoi(p.c_str())};
         p.delete_();
-        data->type = ByteCode::INT;
     }
-    return data->u.numi;
+    // TODO see if I also need to return for other types?
+    return data->get_if<ScriptDataInt>()->numi;
 }
 
 static __attribute__((warn_unused_result))
 const ScriptBuffer *conv_script(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
-    assert (data->type == ByteCode::RETINFO);
-    return data->u.script;
+    return data->get_if<ScriptDataRetInfo>()->script;
 }
 
-/*==========================================
- * スタックへ数値をプッシュ
- *------------------------------------------
- */
-static
-void push_int(struct script_stack *stack, ByteCode type, int val)
-{
-    assert (type == ByteCode::POS || type == ByteCode::INT || type == ByteCode::ARG || type == ByteCode::FUNC_REF);
 
-    script_data nsd {};
-    nsd.type = type;
-    nsd.u.numi = val;
+template<class T>
+static
+void push_int(struct script_stack *stack, int val)
+{
+    static_assert(first_type_is_any<T, ScriptDataPos, ScriptDataInt, ScriptDataArg, ScriptDataFuncRef>(), "not int type");
+
+    script_data nsd = T{.numi= val};
     stack->stack_datav.push_back(nsd);
 }
 
+template<class T>
 static
-void push_reg(struct script_stack *stack, ByteCode type, SIR reg)
+void push_reg(struct script_stack *stack, SIR reg)
 {
-    assert (type == ByteCode::PARAM_ || type == ByteCode::VARIABLE);
+    static_assert(first_type_is_any<T, ScriptDataParam, ScriptDataVariable>(), "not reg type");
 
-    script_data nsd {};
-    nsd.type = type;
-    nsd.u.reg = reg;
+    script_data nsd = T{.reg= reg};
     stack->stack_datav.push_back(nsd);
 }
 
+template<class T>
 static
-void push_script(struct script_stack *stack, ByteCode type, const ScriptBuffer *code)
+void push_script(struct script_stack *stack, const ScriptBuffer *code)
 {
-    assert (type == ByteCode::RETINFO);
+    static_assert(first_type_is_any<T, ScriptDataRetInfo>(), "not scriptbuf type");
 
-    script_data nsd {};
-    nsd.type = type;
-    nsd.u.script = code;
+    script_data nsd = T{.script= code};
     stack->stack_datav.push_back(nsd);
 }
 
-/*==========================================
- * スタックへ文字列をプッシュ
- *------------------------------------------
- */
+template<class T>
 static
-void push_str(struct script_stack *stack, ByteCode type, dumb_string str)
+void push_str(struct script_stack *stack, dumb_string str)
 {
-    assert (type == ByteCode::STR);
+    static_assert(first_type_is_any<T, ScriptDataStr>(), "not str type");
 
-    script_data nsd {};
-    nsd.type = type;
-    nsd.u.str = str;
+    script_data nsd = T{.str= str};
     stack->stack_datav.push_back(nsd);
 }
 
-/*==========================================
- * スタックへ複製をプッシュ
- *------------------------------------------
- */
 static
 void push_copy(struct script_stack *stack, int pos_)
 {
     script_data csd = stack->stack_datav[pos_];
-    if (csd.type == ByteCode::STR)
-        csd.u.str = csd.u.str.dup();
+    if (auto *u = csd.get_if<ScriptDataStr>())
+        u->str = u->str.dup();
     stack->stack_datav.push_back(csd);
 }
 
-/*==========================================
- * スタックからポップ
- *------------------------------------------
- */
 static
 void pop_stack(struct script_stack *stack, int start, int end)
 {
     for (int i = start; i < end; i++)
     {
-        if (stack->stack_datav[i].type == ByteCode::STR)
-            stack->stack_datav[i].u.str.delete_();
+        if (auto *u = stack->stack_datav[i].get_if<ScriptDataStr>())
+            u->str.delete_();
     }
     auto it = stack->stack_datav.begin();
     stack->stack_datav.erase(it + start, it + end);
 }
+
 
 #define AARGO2(n) (st->stack->stack_datav[st->start + (n)])
 #define HARGO2(n) (st->end > st->start + (n))
@@ -1326,7 +1302,7 @@ void builtin_mes(ScriptState *st)
 static
 void builtin_goto(ScriptState *st)
 {
-    if (AARGO2(2).type != ByteCode::POS)
+    if (!AARGO2(2).is<ScriptDataPos>())
     {
         PRINTF("script: goto: not label !\n"_fmt);
         st->state = ScriptEndState::END;
@@ -1356,10 +1332,10 @@ void builtin_callfunc(ScriptState *st)
             push_copy(st->stack, i);
 #endif
 
-        push_int(st->stack, ByteCode::INT, j); // 引数の数をプッシュ
-        push_int(st->stack, ByteCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
-        push_int(st->stack, ByteCode::INT, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-        push_script(st->stack, ByteCode::RETINFO, st->scriptp.code);  // 現在のスクリプトをプッシュ
+        push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
+        push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
+        push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
+        push_script<ScriptDataRetInfo>(st->stack, st->scriptp.code);  // 現在のスクリプトをプッシュ
 
         st->scriptp = ScriptPointer(scr, 0);
         st->defsp = st->start + 4 + j;
@@ -1387,10 +1363,10 @@ void builtin_callsub(ScriptState *st)
         push_copy(st->stack, i);
 #endif
 
-    push_int(st->stack, ByteCode::INT, j); // 引数の数をプッシュ
-    push_int(st->stack, ByteCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
-    push_int(st->stack, ByteCode::INT, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-    push_script(st->stack, ByteCode::RETINFO, st->scriptp.code);  // 現在のスクリプトをプッシュ
+    push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
+    push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
+    push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
+    push_script<ScriptDataRetInfo>(st->stack, st->scriptp.code);  // 現在のスクリプトをプッシュ
 
     st->scriptp.pos = pos_;
     st->defsp = st->start + 4 + j;
@@ -1490,12 +1466,12 @@ void builtin_menu(ScriptState *st)
         if (sd->npc_menu > 0 && sd->npc_menu <= menu_choices)
         {
             int arg_index = (sd->npc_menu - 1) * 2 + 1;
-            if (AARGO2(arg_index + 2).type != ByteCode::POS)
+            if (!AARGO2(arg_index + 2).is<ScriptDataPos>())
             {
                 st->state = ScriptEndState::END;
                 return;
             }
-            st->scriptp.pos = conv_num(st, &AARGO2(arg_index + 2));
+            st->scriptp.pos = AARGO2(arg_index + 2).get_if<ScriptDataPos>()->numi;
             st->state = ScriptEndState::GOTO;
         }
     }
@@ -1514,12 +1490,12 @@ void builtin_rand(ScriptState *st)
         int max = conv_num(st, &AARGO2(3));
         if (min > max)
             std::swap(max, min);
-        push_int(st->stack, ByteCode::INT, random_::in(min, max));
+        push_int<ScriptDataInt>(st->stack, random_::in(min, max));
     }
     else
     {
         int range = conv_num(st, &AARGO2(2));
-        push_int(st->stack, ByteCode::INT, range <= 0 ? 0 : random_::to(range));
+        push_int<ScriptDataInt>(st->stack, range <= 0 ? 0 : random_::to(range));
     }
 }
 
@@ -1540,7 +1516,7 @@ void builtin_isat(ScriptState *st)
     if (!sd)
         return;
 
-    push_int(st->stack, ByteCode::INT,
+    push_int<ScriptDataInt>(st->stack,
             (x == sd->bl_x) && (y == sd->bl_y)
             && (str == sd->bl_m->name_));
 }
@@ -1663,10 +1639,9 @@ void builtin_input(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
     script_data& scrd = AARGO2(2);
-    ByteCode type = scrd.type;
-    assert (type == ByteCode::VARIABLE);
+    assert (scrd.is<ScriptDataVariable>());
 
-    SIR reg = scrd.u.reg;
+    SIR reg = scrd.get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
 //  char prefix = name.front();
     char postfix = name.back();
@@ -1678,7 +1653,7 @@ void builtin_input(ScriptState *st)
         sd->state.menu_or_input = 0;
         if (postfix == '$')
         {
-            set_reg(sd, type, reg, dumb_string::copys(sd->npc_str));
+            set_reg(sd, VariableCode::VARIABLE, reg, dumb_string::copys(sd->npc_str));
         }
         else
         {
@@ -1691,7 +1666,7 @@ void builtin_input(ScriptState *st)
                 builtin_close(st); //** close
             }
 
-            set_reg(sd, type, reg, sd->npc_amount);
+            set_reg(sd, VariableCode::VARIABLE, reg, sd->npc_amount);
         }
     }
     else
@@ -1722,7 +1697,7 @@ void builtin_if (ScriptState *st)
     // 関数名をコピー
     push_copy(st->stack, st->start + 3);
     // 間に引数マーカを入れて
-    push_int(st->stack, ByteCode::ARG, 0);
+    push_int<ScriptDataArg>(st->stack, 0);
     // 残りの引数をコピー
     for (i = st->start + 4; i < st->end; i++)
     {
@@ -1739,20 +1714,21 @@ static
 void builtin_set(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
-    SIR reg = AARGO2(2).u.reg;
-    if (AARGO2(2).type == ByteCode::PARAM_)
+    if (auto *u = AARGO2(2).get_if<ScriptDataParam>())
     {
+        SIR reg = u->reg;
         sd = script_rid2sd(st);
 
         int val = conv_num(st, &AARGO2(3));
-        set_reg(sd, ByteCode::PARAM_, reg, val);
+        set_reg(sd, VariableCode::PARAM, reg, val);
         return;
     }
+
+    SIR reg = AARGO2(2).get_if<ScriptDataVariable>()->reg;
+
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
-
-    assert (AARGO2(2).type == ByteCode::VARIABLE);
 
     if (prefix != '$')
         sd = script_rid2sd(st);
@@ -1761,13 +1737,13 @@ void builtin_set(ScriptState *st)
     {
         // 文字列
         dumb_string str = conv_str(st, &AARGO2(3));
-        set_reg(sd, ByteCode::VARIABLE, reg, str);
+        set_reg(sd, VariableCode::VARIABLE, reg, str);
     }
     else
     {
         // 数値
         int val = conv_num(st, &AARGO2(3));
-        set_reg(sd, ByteCode::VARIABLE, reg, val);
+        set_reg(sd, VariableCode::VARIABLE, reg, val);
     }
 
 }
@@ -1780,8 +1756,7 @@ static
 void builtin_setarray(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
-    assert (AARGO2(2).type == ByteCode::VARIABLE);
-    SIR reg = AARGO2(2).u.reg;
+    SIR reg = AARGO2(2).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
@@ -1797,9 +1772,9 @@ void builtin_setarray(ScriptState *st)
     for (int j = 0, i = st->start + 3; i < st->end && j < 256; i++, j++)
     {
         if (postfix == '$')
-            set_reg(sd, ByteCode::VARIABLE, reg.iplus(j), conv_str(st, &AARGO2(i - st->start)));
+            set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARGO2(i - st->start)));
         else
-            set_reg(sd, ByteCode::VARIABLE, reg.iplus(j), conv_num(st, &AARGO2(i - st->start)));
+            set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), conv_num(st, &AARGO2(i - st->start)));
     }
 }
 
@@ -1811,8 +1786,7 @@ static
 void builtin_cleararray(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
-    assert (AARGO2(2).type == ByteCode::VARIABLE);
-    SIR reg = AARGO2(2).u.reg;
+    SIR reg = AARGO2(2).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
@@ -1829,9 +1803,9 @@ void builtin_cleararray(ScriptState *st)
     for (int i = 0; i < sz; i++)
     {
         if (postfix == '$')
-            set_reg(sd, ByteCode::VARIABLE, reg.iplus(i), conv_str(st, &AARGO2(3)));
+            set_reg(sd, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARGO2(3)));
         else
-            set_reg(sd, ByteCode::VARIABLE, reg.iplus(i), conv_num(st, &AARGO2(3)));
+            set_reg(sd, VariableCode::VARIABLE, reg.iplus(i), conv_num(st, &AARGO2(3)));
     }
 
 }
@@ -1841,15 +1815,28 @@ void builtin_cleararray(ScriptState *st)
  *------------------------------------------
  */
 static
-int getarraysize(ScriptState *st, SIR reg, bool is_string)
+int getarraysize(ScriptState *st, SIR reg)
 {
     int i = reg.index(), c = i;
     for (; i < 256; i++)
     {
-        // This is obviously not what was intended
         struct script_data vd = get_val2(st, reg.iplus(i));
-        if (is_string ? bool(vd.u.str[0]) : bool(vd.u.numi))
-            c = i;
+        MATCH (vd)
+        {
+            CASE (const ScriptDataStr&, u)
+            {
+                if (u.str[0])
+                    c = i;
+                continue;
+            }
+            CASE (const ScriptDataInt&, u)
+            {
+                if (u.numi)
+                    c = i;
+                continue;
+            }
+        }
+        abort();
     }
     return c + 1;
 }
@@ -1857,11 +1844,9 @@ int getarraysize(ScriptState *st, SIR reg, bool is_string)
 static
 void builtin_getarraysize(ScriptState *st)
 {
-    assert (AARGO2(2).type == ByteCode::VARIABLE);
-    SIR reg = AARGO2(2).u.reg;
+    SIR reg = AARGO2(2).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
-    char postfix = name.back();
 
     if (prefix != '$' && prefix != '@')
     {
@@ -1869,7 +1854,7 @@ void builtin_getarraysize(ScriptState *st)
         return;
     }
 
-    push_int(st->stack, ByteCode::INT, getarraysize(st, reg, postfix == '$'));
+    push_int<ScriptDataInt>(st->stack, getarraysize(st, reg));
 }
 
 /*==========================================
@@ -1879,25 +1864,25 @@ void builtin_getarraysize(ScriptState *st)
 static
 void builtin_getelementofarray(ScriptState *st)
 {
-    if (AARGO2(2).type == ByteCode::VARIABLE)
+    if (auto *u = AARGO2(2).get_if<ScriptDataVariable>())
     {
         int i = conv_num(st, &AARGO2(3));
         if (i > 255 || i < 0)
         {
             PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n"_fmt,
                     i);
-            push_int(st->stack, ByteCode::INT, 0);
+            push_int<ScriptDataInt>(st->stack, 0);
         }
         else
         {
-            push_reg(st->stack, ByteCode::VARIABLE,
-                    AARGO2(2).u.reg.iplus(i));
+            push_reg<ScriptDataVariable>(st->stack,
+                    u->reg.iplus(i));
         }
     }
     else
     {
         PRINTF("script: getelementofarray (operator[]): param1 not name !\n"_fmt);
-        push_int(st->stack, ByteCode::INT, 0);
+        push_int<ScriptDataInt>(st->stack, 0);
     }
 }
 
@@ -1932,7 +1917,7 @@ void builtin_countitem(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR)
+    if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -1955,7 +1940,7 @@ void builtin_countitem(ScriptState *st)
         if (battle_config.error_log)
             PRINTF("wrong item ID : countitem (%i)\n"_fmt, nameid);
     }
-    push_int(st->stack, ByteCode::INT, count);
+    push_int<ScriptDataInt>(st->stack, count);
 
 }
 
@@ -1975,7 +1960,7 @@ void builtin_checkweight(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR)
+    if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -1989,17 +1974,17 @@ void builtin_checkweight(ScriptState *st)
     if (amount <= 0 || !nameid)
     {
         //if get wrong item ID or amount<=0, don't count weight of non existing items
-        push_int(st->stack, ByteCode::INT, 0);
+        push_int<ScriptDataInt>(st->stack, 0);
         return;
     }
 
     if (itemdb_weight(nameid) * amount + sd->weight > sd->max_weight)
     {
-        push_int(st->stack, ByteCode::INT, 0);
+        push_int<ScriptDataInt>(st->stack, 0);
     }
     else
     {
-        push_int(st->stack, ByteCode::INT, 1);
+        push_int<ScriptDataInt>(st->stack, 1);
     }
 
 }
@@ -2020,7 +2005,7 @@ void builtin_getitem(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR)
+    if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -2073,7 +2058,7 @@ void builtin_makeitem(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR)
+    if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -2119,7 +2104,7 @@ void builtin_delitem(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR)
+    if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -2176,11 +2161,11 @@ void builtin_readparam(ScriptState *st)
 
     if (sd == nullptr)
     {
-        push_int(st->stack, ByteCode::INT, -1);
+        push_int<ScriptDataInt>(st->stack, -1);
         return;
     }
 
-    push_int(st->stack, ByteCode::INT, pc_readparam(sd, type));
+    push_int<ScriptDataInt>(st->stack, pc_readparam(sd, type));
 
 }
 
@@ -2201,17 +2186,17 @@ void builtin_getcharid(ScriptState *st)
         sd = script_rid2sd(st);
     if (sd == nullptr)
     {
-        push_int(st->stack, ByteCode::INT, -1);
+        push_int<ScriptDataInt>(st->stack, -1);
         return;
     }
     if (num == 0)
-        push_int(st->stack, ByteCode::INT, unwrap<CharId>(sd->status_key.char_id));
+        push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status_key.char_id));
     if (num == 1)
-        push_int(st->stack, ByteCode::INT, unwrap<PartyId>(sd->status.party_id));
+        push_int<ScriptDataInt>(st->stack, unwrap<PartyId>(sd->status.party_id));
     if (num == 2)
-        push_int(st->stack, ByteCode::INT, 0/*guild_id*/);
+        push_int<ScriptDataInt>(st->stack, 0/*guild_id*/);
     if (num == 3)
-        push_int(st->stack, ByteCode::INT, unwrap<AccountId>(sd->status_key.account_id));
+        push_int<ScriptDataInt>(st->stack, unwrap<AccountId>(sd->status_key.account_id));
 }
 
 /*==========================================
@@ -2244,20 +2229,20 @@ void builtin_strcharinfo(ScriptState *st)
     if (num == 0)
     {
         dumb_string buf = dumb_string::copys(sd->status_key.name.to__actual());
-        push_str(st->stack, ByteCode::STR, buf);
+        push_str<ScriptDataStr>(st->stack, buf);
     }
     if (num == 1)
     {
         dumb_string buf = builtin_getpartyname_sub(sd->status.party_id);
         if (buf)
-            push_str(st->stack, ByteCode::STR, buf);
+            push_str<ScriptDataStr>(st->stack, buf);
         else
-            push_str(st->stack, ByteCode::STR, dumb_string::copys(""_s));
+            push_str<ScriptDataStr>(st->stack, dumb_string::copys(""_s));
     }
     if (num == 2)
     {
         // was: guild name
-        push_str(st->stack, ByteCode::STR, dumb_string::copys(""_s));
+        push_str<ScriptDataStr>(st->stack, dumb_string::copys(""_s));
     }
 
 }
@@ -2303,13 +2288,13 @@ void builtin_getequipid(ScriptState *st)
     {
         item = sd->inventory_data[i];
         if (item)
-            push_int(st->stack, ByteCode::INT, unwrap<ItemNameId>(item->nameid));
+            push_int<ScriptDataInt>(st->stack, unwrap<ItemNameId>(item->nameid));
         else
-            push_int(st->stack, ByteCode::INT, 0);
+            push_int<ScriptDataInt>(st->stack, 0);
     }
     else
     {
-        push_int(st->stack, ByteCode::INT, -1);
+        push_int<ScriptDataInt>(st->stack, -1);
     }
 }
 
@@ -2341,7 +2326,7 @@ void builtin_getequipname(ScriptState *st)
     {
         buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
     }
-    push_str(st->stack, ByteCode::STR, dumb_string::copys(buf));
+    push_str<ScriptDataStr>(st->stack, dumb_string::copys(buf));
 
 }
 
@@ -2434,7 +2419,7 @@ static
 void builtin_getskilllv(ScriptState *st)
 {
     SkillID id = SkillID(conv_num(st, &AARGO2(2)));
-    push_int(st->stack, ByteCode::INT, pc_checkskill(script_rid2sd(st), id));
+    push_int<ScriptDataInt>(st->stack, pc_checkskill(script_rid2sd(st), id));
 }
 
 /*==========================================
@@ -2444,7 +2429,7 @@ void builtin_getskilllv(ScriptState *st)
 static
 void builtin_getgmlevel(ScriptState *st)
 {
-    push_int(st->stack, ByteCode::INT, pc_isGM(script_rid2sd(st)).get_all_bits());
+    push_int<ScriptDataInt>(st->stack, pc_isGM(script_rid2sd(st)).get_all_bits());
 }
 
 /*==========================================
@@ -2469,7 +2454,7 @@ void builtin_getopt2(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    push_int(st->stack, ByteCode::INT, static_cast<uint16_t>(sd->opt2));
+    push_int<ScriptDataInt>(st->stack, static_cast<uint16_t>(sd->opt2));
 
 }
 
@@ -2530,18 +2515,18 @@ void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
         case 1:
         {
             struct tm t = TimeT::now();
-            push_int(st->stack, ByteCode::INT,
+            push_int<ScriptDataInt>(st->stack,
                     t.tm_hour * 3600 + t.tm_min * 60 + t.tm_sec);
             break;
         }
         /* Seconds since Unix epoch. */
         case 2:
-            push_int(st->stack, ByteCode::INT, static_cast<time_t>(TimeT::now()));
+            push_int<ScriptDataInt>(st->stack, static_cast<time_t>(TimeT::now()));
             break;
         /* System tick(unsigned int, and yes, it will wrap). */
         case 0:
         default:
-            push_int(st->stack, ByteCode::INT, gettick().time_since_epoch().count());
+            push_int<ScriptDataInt>(st->stack, gettick().time_since_epoch().count());
             break;
     }
 }
@@ -2563,28 +2548,28 @@ void builtin_gettime(ScriptState *st)   /* Asgard Version */
     switch (type)
     {
         case 1:                //Sec(0~59)
-            push_int(st->stack, ByteCode::INT, t.tm_sec);
+            push_int<ScriptDataInt>(st->stack, t.tm_sec);
             break;
         case 2:                //Min(0~59)
-            push_int(st->stack, ByteCode::INT, t.tm_min);
+            push_int<ScriptDataInt>(st->stack, t.tm_min);
             break;
         case 3:                //Hour(0~23)
-            push_int(st->stack, ByteCode::INT, t.tm_hour);
+            push_int<ScriptDataInt>(st->stack, t.tm_hour);
             break;
         case 4:                //WeekDay(0~6)
-            push_int(st->stack, ByteCode::INT, t.tm_wday);
+            push_int<ScriptDataInt>(st->stack, t.tm_wday);
             break;
         case 5:                //MonthDay(01~31)
-            push_int(st->stack, ByteCode::INT, t.tm_mday);
+            push_int<ScriptDataInt>(st->stack, t.tm_mday);
             break;
         case 6:                //Month(01~12)
-            push_int(st->stack, ByteCode::INT, t.tm_mon + 1);
+            push_int<ScriptDataInt>(st->stack, t.tm_mon + 1);
             break;
         case 7:                //Year(20xx)
-            push_int(st->stack, ByteCode::INT, t.tm_year + 1900);
+            push_int<ScriptDataInt>(st->stack, t.tm_year + 1900);
             break;
         default:               //(format error)
-            push_int(st->stack, ByteCode::INT, -1);
+            push_int<ScriptDataInt>(st->stack, -1);
             break;
     }
 }
@@ -2851,7 +2836,7 @@ void builtin_getnpctimer(ScriptState *st)
             val = nd->scr.timer_eventv.size();
             break;
     }
-    push_int(st->stack, ByteCode::INT, val);
+    push_int<ScriptDataInt>(st->stack, val);
 }
 
 /*==========================================
@@ -2945,7 +2930,7 @@ void builtin_getusers(ScriptState *st)
             val = map_getusers();
             break;
     }
-    push_int(st->stack, ByteCode::INT, val);
+    push_int<ScriptDataInt>(st->stack, val);
 }
 
 /*==========================================
@@ -2959,10 +2944,10 @@ void builtin_getmapusers(ScriptState *st)
     map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
     {
-        push_int(st->stack, ByteCode::INT, -1);
+        push_int<ScriptDataInt>(st->stack, -1);
         return;
     }
-    push_int(st->stack, ByteCode::INT, m->users);
+    push_int<ScriptDataInt>(st->stack, m->users);
 }
 
 /*==========================================
@@ -3004,7 +2989,7 @@ void builtin_getareausers(ScriptState *st)
     map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
     {
-        push_int(st->stack, ByteCode::INT, -1);
+        push_int<ScriptDataInt>(st->stack, -1);
         return;
     }
     map_foreachinarea(std::bind(living ? builtin_getareausers_living_sub: builtin_getareausers_sub, ph::_1, &users),
@@ -3012,7 +2997,7 @@ void builtin_getareausers(ScriptState *st)
             x0, y0,
             x1, y1,
             BL::PC);
-    push_int(st->stack, ByteCode::INT, users);
+    push_int<ScriptDataInt>(st->stack, users);
 }
 
 /*==========================================
@@ -3057,7 +3042,7 @@ void builtin_getareadropitem(ScriptState *st)
 
     data = &AARGO2(7);
     get_val(st, data);
-    if (data->type == ByteCode::STR)
+    if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -3073,7 +3058,7 @@ void builtin_getareadropitem(ScriptState *st)
     map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
     {
-        push_int(st->stack, ByteCode::INT, -1);
+        push_int<ScriptDataInt>(st->stack, -1);
         return;
     }
     if (delitems)
@@ -3089,7 +3074,7 @@ void builtin_getareadropitem(ScriptState *st)
                 x1, y1,
                 BL::ITEM);
 
-    push_int(st->stack, ByteCode::INT, amount);
+    push_int<ScriptDataInt>(st->stack, amount);
 }
 
 /*==========================================
@@ -3162,7 +3147,7 @@ void builtin_sc_check(ScriptState *st)
     StatusChange type = StatusChange(conv_num(st, &AARGO2(2)));
     bl = map_id2bl(st->rid);
 
-    push_int(st->stack, ByteCode::INT, skill_status_change_active(bl, type));
+    push_int<ScriptDataInt>(st->stack, skill_status_change_active(bl, type));
 
 }
 
@@ -3212,7 +3197,7 @@ static
 void builtin_attachrid(ScriptState *st)
 {
     st->rid = wrap<BlockId>(conv_num(st, &AARGO2(2)));
-    push_int(st->stack, ByteCode::INT, (map_id2sd(st->rid) != nullptr));
+    push_int<ScriptDataInt>(st->stack, (map_id2sd(st->rid) != nullptr));
 }
 
 /*==========================================
@@ -3232,7 +3217,7 @@ void builtin_detachrid(ScriptState *st)
 static
 void builtin_isloggedin(ScriptState *st)
 {
-    push_int(st->stack, ByteCode::INT,
+    push_int<ScriptDataInt>(st->stack,
               map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(2)))) != nullptr);
 }
 
@@ -3276,7 +3261,7 @@ void builtin_getmapflag(ScriptState *st)
         r = m->flag.get(mf);
     }
 
-    push_int(st->stack, ByteCode::INT, r);
+    push_int<ScriptDataInt>(st->stack, r);
 }
 
 static
@@ -3413,7 +3398,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
     map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
     {
-        push_int(st->stack, ByteCode::INT, -1);
+        push_int<ScriptDataInt>(st->stack, -1);
         return;
     }
     map_foreachinarea(std::bind(builtin_mobcount_sub, ph::_1, event, &c),
@@ -3422,7 +3407,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
             m->xs, m->ys,
             BL::MOB);
 
-    push_int(st->stack, ByteCode::INT, (c - 1));
+    push_int<ScriptDataInt>(st->stack, (c - 1));
 
 }
 
@@ -3435,10 +3420,10 @@ void builtin_marriage(ScriptState *st)
 
     if (sd == nullptr || p_sd == nullptr || pc_marriage(sd, p_sd) < 0)
     {
-        push_int(st->stack, ByteCode::INT, 0);
+        push_int<ScriptDataInt>(st->stack, 0);
         return;
     }
-    push_int(st->stack, ByteCode::INT, 1);
+    push_int<ScriptDataInt>(st->stack, 1);
 }
 
 static
@@ -3452,11 +3437,11 @@ void builtin_divorce(ScriptState *st)
 
     if (sd == nullptr || pc_divorce(sd) < 0)
     {
-        push_int(st->stack, ByteCode::INT, 0);
+        push_int<ScriptDataInt>(st->stack, 0);
         return;
     }
 
-    push_int(st->stack, ByteCode::INT, 1);
+    push_int<ScriptDataInt>(st->stack, 1);
 }
 
 /*==========================================
@@ -3471,7 +3456,7 @@ void builtin_getitemname(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR)
+    if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
         i_data = itemdb_searchname(name);
@@ -3488,7 +3473,7 @@ void builtin_getitemname(ScriptState *st)
     else
         item_name = dumb_string::copys("Unknown Item"_s);
 
-    push_str(st->stack, ByteCode::STR, item_name);
+    push_str<ScriptDataStr>(st->stack, item_name);
 }
 
 static
@@ -3500,7 +3485,7 @@ void builtin_getspellinvocation(ScriptState *st)
     if (!invocation)
         invocation = "..."_s;
 
-    push_str(st->stack, ByteCode::STR, dumb_string::copys(invocation));
+    push_str<ScriptDataStr>(st->stack, dumb_string::copys(invocation));
 }
 
 static
@@ -3508,7 +3493,7 @@ void builtin_getpartnerid2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_int(st->stack, ByteCode::INT, unwrap<CharId>(sd->status.partner_id));
+    push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status.partner_id));
 }
 
 /*==========================================
@@ -3650,7 +3635,7 @@ void builtin_misceffect(ScriptState *st)
 
         get_val(st, sdata);
 
-        if (sdata->type == ByteCode::STR)
+        if (sdata->is<ScriptDataStr>())
             name = stringish<CharName>(ZString(conv_str(st, sdata)));
         else
             id = wrap<BlockId>(conv_num(st, sdata));
@@ -3895,7 +3880,7 @@ void builtin_getlook(ScriptState *st)
             break;
     }
 
-    push_int(st->stack, ByteCode::INT, val);
+    push_int<ScriptDataInt>(st->stack, val);
 }
 
 /*==========================================
@@ -3919,14 +3904,14 @@ void builtin_getsavepoint(ScriptState *st)
         case 0:
         {
             dumb_string mapname = dumb_string::copys(sd->status.save_point.map_);
-            push_str(st->stack, ByteCode::STR, mapname);
+            push_str<ScriptDataStr>(st->stack, mapname);
         }
             break;
         case 1:
-            push_int(st->stack, ByteCode::INT, x);
+            push_int<ScriptDataInt>(st->stack, x);
             break;
         case 2:
-            push_int(st->stack, ByteCode::INT, y);
+            push_int<ScriptDataInt>(st->stack, y);
             break;
     }
 }
@@ -3986,7 +3971,7 @@ void builtin_isin(ScriptState *st)
     if (!sd)
         return;
 
-    push_int(st->stack, ByteCode::INT,
+    push_int<ScriptDataInt>(st->stack,
               (sd->bl_x >= x1 && sd->bl_x <= x2)
               && (sd->bl_y >= y1 && sd->bl_y <= y2)
               && (str == sd->bl_m->name_));
@@ -4023,7 +4008,7 @@ void builtin_isdead(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_int(st->stack, ByteCode::INT, pc_isdead(sd));
+    push_int<ScriptDataInt>(st->stack, pc_isdead(sd));
 }
 
 /*========================================
@@ -4060,7 +4045,7 @@ void builtin_getx(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_int(st->stack, ByteCode::INT, sd->bl_x);
+    push_int<ScriptDataInt>(st->stack, sd->bl_x);
 }
 
 /*============================
@@ -4072,7 +4057,7 @@ void builtin_gety(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_int(st->stack, ByteCode::INT, sd->bl_y);
+    push_int<ScriptDataInt>(st->stack, sd->bl_y);
 }
 
 /*
@@ -4083,7 +4068,7 @@ void builtin_getmap(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_str(st->stack, ByteCode::STR, dumb_string::copys(sd->bl_m->name_));
+    push_str<ScriptDataStr>(st->stack, dumb_string::copys(sd->bl_m->name_));
 }
 
 static
@@ -4143,8 +4128,8 @@ int pop_val(ScriptState *st)
     script_data& back = st->stack->stack_datav.back();
     get_val(st, &back);
     int rv = 0;
-    if (back.type == ByteCode::INT)
-        rv = back.u.numi;
+    if (auto *u = back.get_if<ScriptDataInt>())
+        rv = u->numi;
     st->stack->stack_datav.pop_back();
     return rv;
 }
@@ -4152,7 +4137,7 @@ int pop_val(ScriptState *st)
 static
 bool isstr(struct script_data& c)
 {
-    return c.type == ByteCode::STR;
+    return c.is<ScriptDataStr>();
 }
 
 /*==========================================
@@ -4171,7 +4156,7 @@ void op_add(ScriptState *st)
 
     if (!(isstr(back) || isstr(back1)))
     {
-        back1.u.numi += back.u.numi;
+        back1.get_if<ScriptDataInt>()->numi += back.get_if<ScriptDataInt>()->numi;
     }
     else
     {
@@ -4180,12 +4165,11 @@ void op_add(ScriptState *st)
         MString buf;
         buf += ZString(sb1);
         buf += ZString(sb);
-        if (back1.type == ByteCode::STR)
-            back1.u.str.delete_();
-        if (back.type == ByteCode::STR)
-            back.u.str.delete_();
-        back1.type = ByteCode::STR;
-        back1.u.str = dumb_string::copys(AString(buf));
+        if (auto *u = back1.get_if<ScriptDataStr>())
+            u->str.delete_();
+        if (auto *u = back.get_if<ScriptDataStr>())
+            u->str.delete_();
+        back1 = ScriptDataStr{.str= dumb_string::copys(AString(buf))};
     }
 }
 
@@ -4225,7 +4209,7 @@ void op_2str(ScriptState *st, ByteCode op, dumb_string s1_, dumb_string s2_)
             break;
     }
 
-    push_int(st->stack, ByteCode::INT, a);
+    push_int<ScriptDataInt>(st->stack, a);
 }
 
 /*==========================================
@@ -4289,7 +4273,7 @@ void op_2num(ScriptState *st, ByteCode op, int i1, int i2)
             i1 = i1 << i2;
             break;
     }
-    push_int(st->stack, ByteCode::INT, i1);
+    push_int<ScriptDataInt>(st->stack, i1);
 }
 
 /*==========================================
@@ -4310,22 +4294,20 @@ void op_2(ScriptState *st, ByteCode op)
     if (isstr(d1) && isstr(d2))
     {
         // ss => op_2str
-        op_2str(st, op, d1.u.str, d2.u.str);
-        if (d1.type == ByteCode::STR)
-            d1.u.str.delete_();
-        if (d2.type == ByteCode::STR)
-            d2.u.str.delete_();
+        op_2str(st, op, d1.get_if<ScriptDataStr>()->str, d2.get_if<ScriptDataStr>()->str);
+        d1.get_if<ScriptDataStr>()->str.delete_();
+        d2.get_if<ScriptDataStr>()->str.delete_();
     }
     else if (!(isstr(d1) || isstr(d2)))
     {
         // ii => op_2num
-        op_2num(st, op, d1.u.numi, d2.u.numi);
+        op_2num(st, op, d1.get_if<ScriptDataInt>()->numi, d2.get_if<ScriptDataInt>()->numi);
     }
     else
     {
         // si,is => error
         PRINTF("script: op_2: int&str, str&int not allow.\n"_fmt);
-        push_int(st->stack, ByteCode::INT, 0);
+        push_int<ScriptDataInt>(st->stack, 0);
     }
 }
 
@@ -4350,7 +4332,7 @@ void op_1num(ScriptState *st, ByteCode op)
             i1 = !i1;
             break;
     }
-    push_int(st->stack, ByteCode::INT, i1);
+    push_int<ScriptDataInt>(st->stack, i1);
 }
 
 /*==========================================
@@ -4361,7 +4343,7 @@ void run_func(ScriptState *st)
 {
     size_t end_sp = st->stack->stack_datav.size();
     size_t start_sp = end_sp - 1;
-    while (st->stack->stack_datav[start_sp].type != ByteCode::ARG)
+    while (!st->stack->stack_datav[start_sp].is<ScriptDataArg>())
     {
         start_sp--;
         if (start_sp == 0)
@@ -4377,13 +4359,13 @@ void run_func(ScriptState *st)
     st->start = start_sp;
     st->end = end_sp;
 
-    size_t func = st->stack->stack_datav[st->start].u.numi;
-    if (st->stack->stack_datav[st->start].type != ByteCode::FUNC_REF)
+    if (!st->stack->stack_datav[st->start].is<ScriptDataFuncRef>())
     {
         PRINTF("run_func: not function and command! \n"_fmt);
         st->state = ScriptEndState::END;
         return;
     }
+    size_t func = st->stack->stack_datav[st->start].get_if<ScriptDataFuncRef>()->numi;
 
     if (DEBUG_RUN && battle_config.etc_log)
     {
@@ -4392,34 +4374,52 @@ void run_func(ScriptState *st)
         PRINTF("stack dump :"_fmt);
         for (script_data& d : st->stack->stack_datav)
         {
-            switch (d.type)
+            MATCH (d)
             {
-                case ByteCode::INT:
-                    PRINTF(" int(%d)"_fmt, d.u.numi);
+                CASE (const ScriptDataInt&, u)
+                {
+                    PRINTF(" int(%d)"_fmt, u.numi);
                     break;
-                case ByteCode::RETINFO:
-                    PRINTF(" retinfo(%p)"_fmt, static_cast<const void *>(d.u.script));
+                }
+                CASE (const ScriptDataRetInfo&, u)
+                {
+                    PRINTF(" retinfo(%p)"_fmt, static_cast<const void *>(u.script));
                     break;
-                case ByteCode::PARAM_:
-                    PRINTF(" param(%d)"_fmt, d.u.reg.sp());
+                }
+                CASE (const ScriptDataParam&, u)
+                {
+                    PRINTF(" param(%d)"_fmt, u.reg.sp());
                     break;
-                case ByteCode::VARIABLE:
-                    PRINTF(" name(%s)[%d]"_fmt, variable_names.outtern(d.u.reg.base()), d.u.reg.index());
+                }
+                CASE (const ScriptDataVariable&, u)
+                {
+                    PRINTF(" name(%s)[%d]"_fmt, variable_names.outtern(u.reg.base()), u.reg.index());
                     break;
-                case ByteCode::ARG:
+                }
+                CASE (const ScriptDataArg&, u)
+                {
+                    (void)u;
                     PRINTF(" arg"_fmt);
                     break;
-                case ByteCode::POS:
-                    PRINTF(" pos(%d)"_fmt, d.u.numi);
+                }
+                CASE (const ScriptDataPos&, u)
+                {
+                    (void)u;
+                    PRINTF(" pos(%d)"_fmt, u.numi);
                     break;
-                case ByteCode::STR:
-                    PRINTF(" str(%s)"_fmt, d.u.str);
+                }
+                CASE (const ScriptDataStr&, u)
+                {
+                    (void)u;
+                    PRINTF(" str(%s)"_fmt, u.str);
                     break;
-                case ByteCode::FUNC_REF:
-                    PRINTF(" func(%s)"_fmt, builtin_functions[d.u.numi].name);
+                }
+                CASE (const ScriptDataFuncRef&, u)
+                {
+                    (void)u;
+                    PRINTF(" func(%s)"_fmt, builtin_functions[u.numi].name);
                     break;
-                default:
-                    PRINTF(" %d,%d"_fmt, d.type, d.u.numi);
+                }
             }
         }
         PRINTF("\n"_fmt);
@@ -4435,7 +4435,7 @@ void run_func(ScriptState *st)
 
         pop_stack(st->stack, st->defsp, start_sp); // 復帰に邪魔なスタック削除
         if (st->defsp < 4
-            || st->stack->stack_datav[st->defsp - 1].type != ByteCode::RETINFO)
+            || !st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
         {
             PRINTF("script:run_func (return) return without callfunc or callsub!\n"_fmt);
             st->state = ScriptEndState::END;
@@ -4476,7 +4476,7 @@ void dump_script(const ScriptBuffer *script)
             case ByteCode::POS:
             case ByteCode::VARIABLE:
             case ByteCode::FUNC_REF:
-            case ByteCode::PARAM_:
+            case ByteCode::PARAM:
             {
                 int arg = 0;
                 arg |= static_cast<uint8_t>(scriptp.pop()) << 0;
@@ -4493,7 +4493,7 @@ void dump_script(const ScriptBuffer *script)
                 case ByteCode::FUNC_REF:
                     PRINTF("FUNC_REF %s"_fmt, builtin_functions[arg].name);
                     break;
-                case ByteCode::PARAM_:
+                case ByteCode::PARAM:
                     PRINTF("PARAM SP::#%d (sorry)"_fmt, arg);
                     break;
                 }
@@ -4505,8 +4505,8 @@ void dump_script(const ScriptBuffer *script)
             case ByteCode::STR:
                 PRINTF("STR \"%s\""_fmt, scriptp.pops());
                 break;
-            case ByteCode::FUNC_:
-                PRINTF("FUNC_"_fmt);
+            case ByteCode::FUNC:
+                PRINTF("FUNC"_fmt);
                 break;
 
             case ByteCode::ADD:
@@ -4607,23 +4607,23 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
             case ByteCode::EOL:
                 if (stack->stack_datav.size() != st->defsp)
                 {
-                    if (battle_config.error_log)
+                    if (true)
                         PRINTF("stack.sp (%zu) != default (%d)\n"_fmt,
                                 stack->stack_datav.size(),
                                 st->defsp);
-                    stack->stack_datav.resize(st->defsp);
+                    abort();
                 }
                 rerun_pos = st->scriptp.pos;
                 break;
             case ByteCode::INT:
                 // synthesized!
-                push_int(stack, ByteCode::INT, get_num(&st->scriptp));
+                push_int<ScriptDataInt>(stack, get_num(&st->scriptp));
                 break;
 
             case ByteCode::POS:
             case ByteCode::VARIABLE:
             case ByteCode::FUNC_REF:
-            case ByteCode::PARAM_:
+            case ByteCode::PARAM:
                 // Note that these 3 have *very* different meanings,
                 // despite being encoded similarly.
             {
@@ -4634,28 +4634,28 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
                 switch(c)
                 {
                 case ByteCode::POS:
-                    push_int(stack, ByteCode::POS, arg);
+                    push_int<ScriptDataPos>(stack, arg);
                     break;
                 case ByteCode::VARIABLE:
-                    push_reg(stack, ByteCode::VARIABLE, SIR::from(arg));
+                    push_reg<ScriptDataVariable>(stack, SIR::from(arg));
                     break;
                 case ByteCode::FUNC_REF:
-                    push_int(stack, ByteCode::FUNC_REF, arg);
+                    push_int<ScriptDataFuncRef>(stack, arg);
                     break;
-                case ByteCode::PARAM_:
+                case ByteCode::PARAM:
                     SP arg_sp = static_cast<SP>(arg);
-                    push_reg(stack, ByteCode::PARAM_, SIR::from(arg_sp));
+                    push_reg<ScriptDataParam>(stack, SIR::from(arg_sp));
                     break;
                 }
             }
                 break;
             case ByteCode::ARG:
-                push_int(stack, ByteCode::ARG, 0);
+                push_int<ScriptDataArg>(stack, 0);
                 break;
             case ByteCode::STR:
-                push_str(stack, ByteCode::STR, dumb_string::copys(st->scriptp.pops()));
+                push_str<ScriptDataStr>(stack, dumb_string::copys(st->scriptp.pops()));
                 break;
-            case ByteCode::FUNC_:
+            case ByteCode::FUNC:
                 run_func(st);
                 if (st->state == ScriptEndState::GOTO)
                 {
@@ -5073,24 +5073,22 @@ void set_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e, int val
 {
     size_t k = variable_names.intern(var);
     SIR reg = SIR::from(k, e);
-    set_reg(sd, ByteCode::VARIABLE, reg, val);
+    set_reg(sd, VariableCode::VARIABLE, reg, val);
 }
 void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString val)
 {
     size_t k = variable_names.intern(var);
     SIR reg = SIR::from(k, e);
-    set_reg(sd, ByteCode::VARIABLE, reg, dumb_string::copys(val));
+    set_reg(sd, VariableCode::VARIABLE, reg, dumb_string::copys(val));
 }
 int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e)
 {
     size_t k = variable_names.intern(var);
     SIR reg = SIR::from(k, e);
-    struct script_data dat;
-    dat.type = ByteCode::VARIABLE;
-    dat.u.reg = reg;
+    struct script_data dat = ScriptDataVariable{.reg= reg};
     get_val(sd, &dat);
-    if (dat.type == ByteCode::INT)
-        return dat.u.numi;
+    if (auto *u = dat.get_if<ScriptDataInt>())
+        return u->numi;
     PRINTF("Warning: you lied about the type and I'm too lazy to fix it!"_fmt);
     return 0;
 }
@@ -5098,12 +5096,11 @@ ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e)
 {
     size_t k = variable_names.intern(var);
     SIR reg = SIR::from(k, e);
-    struct script_data dat;
-    dat.type = ByteCode::VARIABLE;
-    dat.u.reg = reg;
+    struct script_data dat = ScriptDataVariable{.reg= reg};
     get_val(sd, &dat);
-    if (dat.type == ByteCode::STR)
-        return dat.u.str;
+    if (auto *u = dat.get_if<ScriptDataStr>())
+        // this is almost certainly a memory leak after CONSTSTR removal
+        return u->str;
     PRINTF("Warning: you lied about the type and I can't fix it!"_fmt);
     return ZString();
 }

@@ -228,7 +228,7 @@ namespace sexpr
     Variant<D, T...>& Variant<D, T...>::operator = (const Variant& r)
     {
         if (state == r.state)
-            apply(Void(), CopyAssign<D, T...>(this), r);
+            apply(Void(), CopyAssign<D, T...>(&data), r);
         else
         {
             do_destruct();

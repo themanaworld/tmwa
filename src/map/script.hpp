@@ -33,6 +33,8 @@
 #include "../generic/db.hpp"
 #include "../generic/dumb_ptr.hpp"
 
+#include "../sexpr/variant.hpp"
+
 #include "../mmo/ids.hpp"
 
 #include "clif.t.hpp"
@@ -41,7 +43,35 @@
 
 namespace tmwa
 {
-enum class ByteCode : uint8_t;
+enum class VariableCode : uint8_t
+{
+    PARAM,
+    VARIABLE,
+};
+
+enum class StringCode : uint8_t
+{
+    NOP, POS, INT, PARAM, FUNC,
+    VARIABLE,
+};
+
+enum class ByteCode : uint8_t
+{
+    // types and specials
+    // Note that 'INT' is synthetic, and does not occur in the data stream
+    NOP, POS, INT, PARAM, FUNC, STR, ARG,
+    VARIABLE, EOL,
+
+    // unary and binary operators
+    LOR, LAND, LE, LT, GE, GT, EQ, NE,
+    XOR, OR, AND, ADD, SUB, MUL, DIV, MOD,
+    NEG, LNOT, NOT, R_SHIFT, L_SHIFT,
+
+    // additions
+    // needed because FUNC is used for the actual call
+    FUNC_REF,
+};
+
 struct str_data_t;
 
 class ScriptBuffer
@@ -123,23 +153,68 @@ public:
     friend bool operator < (SIR l, SIR r) { return l.impl < r.impl; }
 };
 
-struct script_data
+struct ScriptDataPos
 {
-    ByteCode type;
-    union uu
-    {
-        SIR reg;
-        int numi;
-        dumb_string str;
-        // Not a ScriptPointer - pos is stored in a separate slot,
-        // to avoid exploding the struct for everyone.
-        const ScriptBuffer *script;
+    int numi;
+};
+struct ScriptDataInt
+{
+    int numi;
+};
+struct ScriptDataParam
+{
+    SIR reg;
+};
+struct ScriptDataStr
+{
+    dumb_string str;
+};
+struct ScriptDataArg
+{
+    int numi;
+};
+struct ScriptDataVariable
+{
+    SIR reg;
+};
+struct ScriptDataRetInfo
+{
+    // Not a ScriptPointer - pos is stored in a separate slot,
+    // to avoid exploding the struct for everyone.
+    const ScriptBuffer *script;
+};
+struct ScriptDataFuncRef
+{
+    int numi;
+};
 
-        uu() { memset(this, '\0', sizeof(*this)); }
-        ~uu() = default;
-        uu(const uu&) = default;
-        uu& operator = (const uu&) = default;
-    } u;
+using ScriptDataVariantBase = Variant<
+    ScriptDataPos,
+    ScriptDataInt,
+    ScriptDataParam,
+    ScriptDataStr,
+    ScriptDataArg,
+    ScriptDataVariable,
+    ScriptDataRetInfo,
+    ScriptDataFuncRef
+>;
+struct script_data : ScriptDataVariantBase
+{
+    script_data() = delete;
+    // TODO see if I can delete the copy ctor/assign instead of defaulting
+    script_data(script_data&&) = default;
+    script_data(const script_data&) = default /*delete*/;
+    script_data& operator = (script_data&&) = default;
+    script_data& operator = (const script_data&) = default /*delete*/;
+
+    script_data(ScriptDataPos v) : ScriptDataVariantBase(std::move(v)) {}
+    script_data(ScriptDataInt v) : ScriptDataVariantBase(std::move(v)) {}
+    script_data(ScriptDataParam v) : ScriptDataVariantBase(std::move(v)) {}
+    script_data(ScriptDataStr v) : ScriptDataVariantBase(std::move(v)) {}
+    script_data(ScriptDataArg v) : ScriptDataVariantBase(std::move(v)) {}
+    script_data(ScriptDataVariable v) : ScriptDataVariantBase(std::move(v)) {}
+    script_data(ScriptDataRetInfo v) : ScriptDataVariantBase(std::move(v)) {}
+    script_data(ScriptDataFuncRef v) : ScriptDataVariantBase(std::move(v)) {}
 };
 
 struct script_stack
