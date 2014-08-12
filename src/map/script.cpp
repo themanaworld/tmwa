@@ -169,7 +169,7 @@ InternPool variable_names;
 enum class ByteCode : uint8_t
 {
     // types and specials
-    NOP, POS, INT, PARAM_, FUNC_, STR, CONSTSTR, ARG,
+    NOP, POS, INT, PARAM_, FUNC_, STR, ARG,
     VARIABLE, EOL, RETINFO,
 
     // unary and binary operators
@@ -1021,24 +1021,24 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
         }
         if (postfix == '$')
         {
-            data->type = ByteCode::CONSTSTR;
+            data->type = ByteCode::STR;
             if (prefix == '@')
             {
                 if (sd)
-                    data->u.str = dumb_string::fake(pc_readregstr(sd, data->u.reg));
+                    data->u.str = dumb_string::copys(pc_readregstr(sd, data->u.reg));
             }
             else if (prefix == '$')
             {
                 RString *s = mapregstr_db.search(data->u.reg);
-                data->u.str = s ? dumb_string::fake(*s) : dumb_string();
+                data->u.str = s ? dumb_string::copys(*s) : dumb_string();
             }
             else
             {
                 PRINTF("script: get_val: illegal scope string variable.\n"_fmt);
-                data->u.str = dumb_string::fake("!!ERROR!!"_s);
+                data->u.str = dumb_string::copys("!!ERROR!!"_s);
             }
             if (!data->u.str)
-                data->u.str = dumb_string::fake(""_s);
+                data->u.str = dumb_string::copys(""_s);
         }
         else
         {
@@ -1171,7 +1171,7 @@ static
 void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, dumb_string zd)
 {
     struct script_data vd;
-    vd.type = ByteCode::CONSTSTR;
+    vd.type = ByteCode::STR;
     vd.u.str = zd;
     set_reg(sd, type, reg, vd);
 }
@@ -1203,12 +1203,11 @@ int conv_num(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
     assert (data->type != ByteCode::RETINFO);
-    if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
+    if (data->type == ByteCode::STR)
     {
         dumb_string p = data->u.str;
         data->u.numi = atoi(p.c_str());
-        if (data->type == ByteCode::STR)
-            p.delete_();
+        p.delete_();
         data->type = ByteCode::INT;
     }
     return data->u.numi;
@@ -1266,7 +1265,7 @@ void push_script(struct script_stack *stack, ByteCode type, const ScriptBuffer *
 static
 void push_str(struct script_stack *stack, ByteCode type, dumb_string str)
 {
-    assert (type == ByteCode::STR || type == ByteCode::CONSTSTR);
+    assert (type == ByteCode::STR);
 
     script_data nsd {};
     nsd.type = type;
@@ -1679,7 +1678,7 @@ void builtin_input(ScriptState *st)
         sd->state.menu_or_input = 0;
         if (postfix == '$')
         {
-            set_reg(sd, type, reg, dumb_string::fake(sd->npc_str));
+            set_reg(sd, type, reg, dumb_string::copys(sd->npc_str));
         }
         else
         {
@@ -1933,7 +1932,7 @@ void builtin_countitem(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
+    if (data->type == ByteCode::STR)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -1976,7 +1975,7 @@ void builtin_checkweight(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
+    if (data->type == ByteCode::STR)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -2021,7 +2020,7 @@ void builtin_getitem(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
+    if (data->type == ByteCode::STR)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -2074,7 +2073,7 @@ void builtin_makeitem(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
+    if (data->type == ByteCode::STR)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -2120,7 +2119,7 @@ void builtin_delitem(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
+    if (data->type == ByteCode::STR)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -2253,12 +2252,12 @@ void builtin_strcharinfo(ScriptState *st)
         if (buf)
             push_str(st->stack, ByteCode::STR, buf);
         else
-            push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(""_s));
+            push_str(st->stack, ByteCode::STR, dumb_string::copys(""_s));
     }
     if (num == 2)
     {
         // was: guild name
-        push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(""_s));
+        push_str(st->stack, ByteCode::STR, dumb_string::copys(""_s));
     }
 
 }
@@ -3058,7 +3057,7 @@ void builtin_getareadropitem(ScriptState *st)
 
     data = &AARGO2(7);
     get_val(st, data);
-    if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
+    if (data->type == ByteCode::STR)
     {
         ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
@@ -3472,7 +3471,7 @@ void builtin_getitemname(ScriptState *st)
 
     data = &AARGO2(2);
     get_val(st, data);
-    if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
+    if (data->type == ByteCode::STR)
     {
         ZString name = ZString(conv_str(st, data));
         i_data = itemdb_searchname(name);
@@ -3651,7 +3650,7 @@ void builtin_misceffect(ScriptState *st)
 
         get_val(st, sdata);
 
-        if (sdata->type == ByteCode::STR || sdata->type == ByteCode::CONSTSTR)
+        if (sdata->type == ByteCode::STR)
             name = stringish<CharName>(ZString(conv_str(st, sdata)));
         else
             id = wrap<BlockId>(conv_num(st, sdata));
@@ -4084,8 +4083,7 @@ void builtin_getmap(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    // A map_data lives essentially forever.
-    push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(sd->bl_m->name_));
+    push_str(st->stack, ByteCode::STR, dumb_string::copys(sd->bl_m->name_));
 }
 
 static
@@ -4154,8 +4152,7 @@ int pop_val(ScriptState *st)
 static
 bool isstr(struct script_data& c)
 {
-    return c.type == ByteCode::STR
-        || c.type == ByteCode::CONSTSTR;
+    return c.type == ByteCode::STR;
 }
 
 /*==========================================
@@ -4418,9 +4415,6 @@ void run_func(ScriptState *st)
                 case ByteCode::STR:
                     PRINTF(" str(%s)"_fmt, d.u.str);
                     break;
-                case ByteCode::CONSTSTR:
-                    PRINTF(" cstr(%s)"_fmt, d.u.str);
-                    break;
                 case ByteCode::FUNC_REF:
                     PRINTF(" func(%s)"_fmt, builtin_functions[d.u.numi].name);
                     break;
@@ -4659,7 +4653,7 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
                 push_int(stack, ByteCode::ARG, 0);
                 break;
             case ByteCode::STR:
-                push_str(stack, ByteCode::CONSTSTR, dumb_string::fake(st->scriptp.pops()));
+                push_str(stack, ByteCode::STR, dumb_string::copys(st->scriptp.pops()));
                 break;
             case ByteCode::FUNC_:
                 run_func(st);
@@ -5108,7 +5102,7 @@ ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e)
     dat.type = ByteCode::VARIABLE;
     dat.u.reg = reg;
     get_val(sd, &dat);
-    if (dat.type == ByteCode::CONSTSTR)
+    if (dat.type == ByteCode::STR)
         return dat.u.str;
     PRINTF("Warning: you lied about the type and I can't fix it!"_fmt);
     return ZString();

@@ -215,15 +215,6 @@ struct dumb_string
         return dumb_string::copy(sn, sn + strnlen(sn, n));
     }
 
-    static
-    dumb_string fake(ZString p)
-    {
-        dumb_string rv;
-        size_t len = p.size();
-        rv.impl = dumb_ptr<char[]>(const_cast<char *>(p.c_str()), len);
-        return rv;
-    }
-
     dumb_string dup() const
     {
         return dumb_string::copy(&impl[0], &impl[0] + impl.size());
