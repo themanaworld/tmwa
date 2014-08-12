@@ -120,7 +120,7 @@ void magic_copy_var(val_t *dest, const val_t *src)
         }
         CASE (const ValString&, s)
         {
-            *dest = ValString{s.v_string.dup()};
+            *dest = ValString{s.v_string};
         }
         CASE (const ValEntityInt&, s)
         {
@@ -167,7 +167,7 @@ void magic_clear_var(val_t *v)
     {
         CASE (ValString&, s)
         {
-            s.v_string.delete_();
+            (void)s;
         }
         CASE (const ValArea&, a)
         {
@@ -271,7 +271,7 @@ void stringify(val_t *v)
         }
     }
 
-    *v = ValString{dumb_string::copys(buf)};
+    *v = ValString{buf};
 }
 
 static
@@ -368,7 +368,7 @@ int fun_add(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
         MString m;
         m += ARGSTR(0);
         m += ARGSTR(1);
-        *result = ValString{dumb_string::copys(AString(m))};
+        *result = ValString{AString(m)};
     }
     return 0;
 }
@@ -785,17 +785,17 @@ int fun_name_of(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (args[0].is<ValEntityPtr>())
     {
-        *result = ValString{dumb_string::copys(show_entity(ARGENTITY(0)))};
+        *result = ValString{show_entity(ARGENTITY(0))};
         return 0;
     }
     else if (args[0].is<ValSpell>())
     {
-        *result = ValString{dumb_string::copys(ARGSPELL(0)->name)};
+        *result = ValString{ARGSPELL(0)->name};
         return 0;
     }
     else if (args[0].is<ValInvocationPtr>())
     {
-        *result = ValString{dumb_string::copys(ARGINVOCATION(0)->spell->name)};
+        *result = ValString{ARGINVOCATION(0)->spell->name};
         return 0;
     }
     return 1;
@@ -1195,7 +1195,7 @@ int fun_read_script_str(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     if (subject_p->bl_type != BL::PC)
         return 1;
 
-    *result = ValString{dumb_string::copys(get_script_var_s(subject_p->is_player(), var_name, array_index))};
+    *result = ValString{get_script_var_s(subject_p->is_player(), var_name, array_index)};
     return 0;
 }
 
@@ -1281,8 +1281,7 @@ int fun_strlen(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_substr(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    const char *src = ARGSTR(0).c_str();
-    const int slen = strlen(src);
+    RString src = ARGSTR(0);
     int offset = ARGINT(1);
     int len = ARGINT(2);
 
@@ -1291,15 +1290,15 @@ int fun_substr(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     if (offset < 0)
         offset = 0;
 
-    if (offset > slen)
-        offset = slen;
+    if (offset > src.size())
+        offset = src.size();
 
-    if (offset + len > slen)
-        len = slen - offset;
+    if (offset + len > src.size())
+        len = src.size() - offset;
 
-    const char *begin = src + offset;
-    const char *end = begin + len;
-    *result = ValString{dumb_string::copy(begin, end)};
+    auto begin = src.begin() + offset;
+    auto end = begin + len;
+    *result = ValString{RString(begin, end)};
 
     return 0;
 }
@@ -1863,10 +1862,9 @@ AString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
     if (result.is<ValFail>() || result.is<ValUndef>())
         return "?"_s;
 
-    // is this a memory leak?
     stringify(&result);
 
-    return result.get_if<ValString>()->v_string.str();
+    return result.get_if<ValString>()->v_string;
 }
 } // namespace magic
 } // namespace tmwa

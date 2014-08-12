@@ -55,7 +55,7 @@ void set_dir(val_t *v, DIR d)
 
 
 static
-void set_string(val_t *v, dumb_string x)
+void set_string(val_t *v, RString x)
 {
     *v = ValString{x};
 }
@@ -164,7 +164,7 @@ dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
     {
 
         case SPELLARG::STRING:
-            set_string(&env->varu[spell->arg], dumb_string::copys(param));
+            set_string(&env->varu[spell->arg], param);
             break;
 
         case SPELLARG::PC:

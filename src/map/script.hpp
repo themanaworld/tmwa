@@ -167,7 +167,7 @@ struct ScriptDataParam
 };
 struct ScriptDataStr
 {
-    dumb_string str;
+    RString str;
 };
 struct ScriptDataArg
 {

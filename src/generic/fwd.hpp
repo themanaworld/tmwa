@@ -26,5 +26,4 @@ namespace tmwa
 // meh, add more when I feel like it
 template<class T>
 class dumb_ptr;
-class dumb_string;
 } // namespace tmwa

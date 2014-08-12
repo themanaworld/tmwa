@@ -1022,24 +1022,23 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
             }
             if (postfix == '$')
             {
-                dumb_string str;
+                RString str;
                 if (prefix == '@')
                 {
                     if (sd)
-                        str = dumb_string::copys(pc_readregstr(sd, u.reg));
+                        str = pc_readregstr(sd, u.reg);
                 }
                 else if (prefix == '$')
                 {
                     RString *s = mapregstr_db.search(u.reg);
-                    str = s ? dumb_string::copys(*s) : dumb_string();
+                    if (s)
+                        str = *s;
                 }
                 else
                 {
                     PRINTF("script: get_val: illegal scope string variable.\n"_fmt);
-                    str = dumb_string::copys("!!ERROR!!"_s);
+                    str = "!!ERROR!!"_s;
                 }
-                if (!str)
-                    str = dumb_string::copys(""_s);
                 *data = ScriptDataStr{str};
             }
             else
@@ -1119,14 +1118,14 @@ void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, struct s
 
     if (postfix == '$')
     {
-        dumb_string str = vd.get_if<ScriptDataStr>()->str;
+        RString str = vd.get_if<ScriptDataStr>()->str;
         if (prefix == '@')
         {
-            pc_setregstr(sd, reg, str.str());
+            pc_setregstr(sd, reg, str);
         }
         else if (prefix == '$')
         {
-            mapreg_setregstr(reg, str.str());
+            mapreg_setregstr(reg, str);
         }
         else
         {
@@ -1166,7 +1165,7 @@ void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, int id)
 }
 
 static
-void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, dumb_string zd)
+void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, RString zd)
 {
     struct script_data vd = ScriptDataStr{zd};
     set_reg(sd, type, reg, vd);
@@ -1177,14 +1176,14 @@ void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, dumb_str
  *------------------------------------------
  */
 static __attribute__((warn_unused_result))
-dumb_string conv_str(ScriptState *st, struct script_data *data)
+RString conv_str(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
     assert (!data->is<ScriptDataRetInfo>());
     if (auto *u = data->get_if<ScriptDataInt>())
     {
         AString buf = STRPRINTF("%d"_fmt, u->numi);
-        *data = ScriptDataStr{dumb_string::copys(buf)};
+        *data = ScriptDataStr{buf};
     }
     return data->get_if<ScriptDataStr>()->str;
 }
@@ -1200,9 +1199,8 @@ int conv_num(ScriptState *st, struct script_data *data)
     assert (!data->is<ScriptDataRetInfo>());
     if (auto *u = data->get_if<ScriptDataStr>())
     {
-        dumb_string p = u->str;
+        RString p = u->str;
         *data = ScriptDataInt{atoi(p.c_str())};
-        p.delete_();
     }
     // TODO see if I also need to return for other types?
     return data->get_if<ScriptDataInt>()->numi;
@@ -1248,7 +1246,7 @@ void push_script(struct script_stack *stack, const ScriptBuffer *code)
 
 template<class T>
 static
-void push_str(struct script_stack *stack, dumb_string str)
+void push_str(struct script_stack *stack, RString str)
 {
     static_assert(first_type_is_any<T, ScriptDataStr>(), "not str type");
 
@@ -1260,19 +1258,12 @@ static
 void push_copy(struct script_stack *stack, int pos_)
 {
     script_data csd = stack->stack_datav[pos_];
-    if (auto *u = csd.get_if<ScriptDataStr>())
-        u->str = u->str.dup();
     stack->stack_datav.push_back(csd);
 }
 
 static
 void pop_stack(struct script_stack *stack, int start, int end)
 {
-    for (int i = start; i < end; i++)
-    {
-        if (auto *u = stack->stack_datav[i].get_if<ScriptDataStr>())
-            u->str.delete_();
-    }
     auto it = stack->stack_datav.begin();
     stack->stack_datav.erase(it + start, it + end);
 }
@@ -1291,8 +1282,8 @@ void pop_stack(struct script_stack *stack, int start, int end)
 static
 void builtin_mes(ScriptState *st)
 {
-    dumb_string mes = conv_str(st, &AARGO2(2));
-    clif_scriptmes(script_rid2sd(st), st->oid, ZString(mes));
+    RString mes = conv_str(st, &AARGO2(2));
+    clif_scriptmes(script_rid2sd(st), st->oid, mes);
 }
 
 /*==========================================
@@ -1320,8 +1311,8 @@ void builtin_goto(ScriptState *st)
 static
 void builtin_callfunc(ScriptState *st)
 {
-    dumb_string str = conv_str(st, &AARGO2(2));
-    const ScriptBuffer *scr = userfunc_db.get(str.str());
+    RString str = conv_str(st, &AARGO2(2));
+    const ScriptBuffer *scr = userfunc_db.get(str);
 
     if (scr)
     {
@@ -1436,10 +1427,10 @@ void builtin_menu(ScriptState *st)
         MString buf;
         for (int i = st->start + 2; i < st->end; i += 2)
         {
-            dumb_string choice_str = conv_str(st, &AARGO2(i - st->start));
-            if (!choice_str[0])
+            RString choice_str = conv_str(st, &AARGO2(i - st->start));
+            if (!choice_str)
                 break;
-            buf += ZString(choice_str);
+            buf += choice_str;
             buf += ':';
         }
 
@@ -1653,7 +1644,7 @@ void builtin_input(ScriptState *st)
         sd->state.menu_or_input = 0;
         if (postfix == '$')
         {
-            set_reg(sd, VariableCode::VARIABLE, reg, dumb_string::copys(sd->npc_str));
+            set_reg(sd, VariableCode::VARIABLE, reg, sd->npc_str);
         }
         else
         {
@@ -1736,7 +1727,7 @@ void builtin_set(ScriptState *st)
     if (postfix == '$')
     {
         // 文字列
-        dumb_string str = conv_str(st, &AARGO2(3));
+        RString str = conv_str(st, &AARGO2(3));
         set_reg(sd, VariableCode::VARIABLE, reg, str);
     }
     else
@@ -2204,14 +2195,14 @@ void builtin_getcharid(ScriptState *st)
  *------------------------------------------
  */
 static
-dumb_string builtin_getpartyname_sub(PartyId party_id)
+RString builtin_getpartyname_sub(PartyId party_id)
 {
     PartyPair p = party_search(party_id);
 
     if (p)
-        return dumb_string::copys(p->name);
+        return p->name;
 
-    return dumb_string();
+    return RString();
 }
 
 /*==========================================
@@ -2228,21 +2219,21 @@ void builtin_strcharinfo(ScriptState *st)
     num = conv_num(st, &AARGO2(2));
     if (num == 0)
     {
-        dumb_string buf = dumb_string::copys(sd->status_key.name.to__actual());
+        RString buf = sd->status_key.name.to__actual();
         push_str<ScriptDataStr>(st->stack, buf);
     }
     if (num == 1)
     {
-        dumb_string buf = builtin_getpartyname_sub(sd->status.party_id);
+        RString buf = builtin_getpartyname_sub(sd->status.party_id);
         if (buf)
             push_str<ScriptDataStr>(st->stack, buf);
         else
-            push_str<ScriptDataStr>(st->stack, dumb_string::copys(""_s));
+            push_str<ScriptDataStr>(st->stack, ""_s);
     }
     if (num == 2)
     {
         // was: guild name
-        push_str<ScriptDataStr>(st->stack, dumb_string::copys(""_s));
+        push_str<ScriptDataStr>(st->stack, ""_s);
     }
 
 }
@@ -2326,7 +2317,7 @@ void builtin_getequipname(ScriptState *st)
     {
         buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
     }
-    push_str<ScriptDataStr>(st->stack, dumb_string::copys(buf));
+    push_str<ScriptDataStr>(st->stack, buf);
 
 }
 
@@ -3158,7 +3149,7 @@ void builtin_sc_check(ScriptState *st)
 static
 void builtin_debugmes(ScriptState *st)
 {
-    dumb_string mes = conv_str(st, &AARGO2(2));
+    RString mes = conv_str(st, &AARGO2(2));
     PRINTF("script debug : %d %d : %s\n"_fmt,
             st->rid, st->oid, mes);
 }
@@ -3467,11 +3458,11 @@ void builtin_getitemname(ScriptState *st)
         i_data = itemdb_search(item_id);
     }
 
-    dumb_string item_name;
+    RString item_name;
     if (i_data)
-        item_name = dumb_string::copys(i_data->jname);
+        item_name = i_data->jname;
     else
-        item_name = dumb_string::copys("Unknown Item"_s);
+        item_name = "Unknown Item"_s;
 
     push_str<ScriptDataStr>(st->stack, item_name);
 }
@@ -3479,13 +3470,13 @@ void builtin_getitemname(ScriptState *st)
 static
 void builtin_getspellinvocation(ScriptState *st)
 {
-    dumb_string name = conv_str(st, &AARGO2(2));
+    RString name = conv_str(st, &AARGO2(2));
 
-    AString invocation = magic::magic_find_invocation(name.str());
+    AString invocation = magic::magic_find_invocation(name);
     if (!invocation)
         invocation = "..."_s;
 
-    push_str<ScriptDataStr>(st->stack, dumb_string::copys(invocation));
+    push_str<ScriptDataStr>(st->stack, invocation);
 }
 
 static
@@ -3758,7 +3749,7 @@ void builtin_gmcommand(ScriptState *st)
     dumb_ptr<map_session_data> sd;
 
     sd = script_rid2sd(st);
-    dumb_string cmd = conv_str(st, &AARGO2(2));
+    RString cmd = conv_str(st, &AARGO2(2));
 
     is_atcommand(sd->sess, sd, cmd, GmLevel::from(-1U));
 
@@ -3831,11 +3822,11 @@ static
 void builtin_npctalk(ScriptState *st)
 {
     dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
-    dumb_string str = conv_str(st, &AARGO2(2));
+    RString str = conv_str(st, &AARGO2(2));
 
     if (nd)
     {
-        clif_message(nd, XString(str));
+        clif_message(nd, str);
     }
 }
 
@@ -3903,7 +3894,7 @@ void builtin_getsavepoint(ScriptState *st)
     {
         case 0:
         {
-            dumb_string mapname = dumb_string::copys(sd->status.save_point.map_);
+            RString mapname = sd->status.save_point.map_;
             push_str<ScriptDataStr>(st->stack, mapname);
         }
             break;
@@ -4068,7 +4059,7 @@ void builtin_getmap(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_str<ScriptDataStr>(st->stack, dumb_string::copys(sd->bl_m->name_));
+    push_str<ScriptDataStr>(st->stack, sd->bl_m->name_);
 }
 
 static
@@ -4160,16 +4151,12 @@ void op_add(ScriptState *st)
     }
     else
     {
-        dumb_string sb = conv_str(st, &back);
-        dumb_string sb1 = conv_str(st, &back1);
+        RString sb = conv_str(st, &back);
+        RString sb1 = conv_str(st, &back1);
         MString buf;
-        buf += ZString(sb1);
-        buf += ZString(sb);
-        if (auto *u = back1.get_if<ScriptDataStr>())
-            u->str.delete_();
-        if (auto *u = back.get_if<ScriptDataStr>())
-            u->str.delete_();
-        back1 = ScriptDataStr{.str= dumb_string::copys(AString(buf))};
+        buf += sb1;
+        buf += sb;
+        back1 = ScriptDataStr{.str= AString(buf)};
     }
 }
 
@@ -4178,10 +4165,8 @@ void op_add(ScriptState *st)
  *------------------------------------------
  */
 static
-void op_2str(ScriptState *st, ByteCode op, dumb_string s1_, dumb_string s2_)
+void op_2str(ScriptState *st, ByteCode op, ZString s1, ZString s2)
 {
-    ZString s1 = ZString(s1_);
-    ZString s2 = ZString(s2_);
     int a = 0;
 
     switch (op)
@@ -4295,8 +4280,6 @@ void op_2(ScriptState *st, ByteCode op)
     {
         // ss => op_2str
         op_2str(st, op, d1.get_if<ScriptDataStr>()->str, d2.get_if<ScriptDataStr>()->str);
-        d1.get_if<ScriptDataStr>()->str.delete_();
-        d2.get_if<ScriptDataStr>()->str.delete_();
     }
     else if (!(isstr(d1) || isstr(d2)))
     {
@@ -4653,7 +4636,7 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
                 push_int<ScriptDataArg>(stack, 0);
                 break;
             case ByteCode::STR:
-                push_str<ScriptDataStr>(stack, dumb_string::copys(st->scriptp.pops()));
+                push_str<ScriptDataStr>(stack, st->scriptp.pops());
                 break;
             case ByteCode::FUNC:
                 run_func(st);
@@ -5079,7 +5062,7 @@ void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString
 {
     size_t k = variable_names.intern(var);
     SIR reg = SIR::from(k, e);
-    set_reg(sd, VariableCode::VARIABLE, reg, dumb_string::copys(val));
+    set_reg(sd, VariableCode::VARIABLE, reg, val);
 }
 int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e)
 {

@@ -34,8 +34,6 @@
 
 namespace tmwa
 {
-#define PRINT_VAR(var) PRINTF("%s = %s\n"_fmt, #var##_s, var)
-
     static
     void try_read(const io::DirFd& dirfd, ZString filename)
     {

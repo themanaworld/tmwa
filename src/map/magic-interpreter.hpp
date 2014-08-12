@@ -106,7 +106,7 @@ struct ValDir
 };
 struct ValString
 {
-    dumb_string v_string;
+    RString v_string;
 };
 struct ValEntityInt
 {

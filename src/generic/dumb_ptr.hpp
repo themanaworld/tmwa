@@ -20,14 +20,8 @@
 
 #include "fwd.hpp"
 
-#include <cstring>
-
 #include <algorithm>
 #include <utility>
-
-#include "../strings/astring.hpp"
-#include "../strings/zstring.hpp"
-#include "../strings/xstring.hpp"
 
 
 namespace tmwa
@@ -184,80 +178,4 @@ public:
         return !(l == r);
     }
 };
-
-struct dumb_string
-{
-    dumb_ptr<char[]> impl;
-
-    dumb_string()
-    : impl()
-    {}
-    dumb_string(char *) = delete;
-    // copy ctor, copy assign, and dtor are all default
-
-    static dumb_string copy(const char *b, const char *e)
-    {
-        dumb_string rv;
-        rv.impl.new_((e - b) + 1);
-        std::copy(b, e, &rv.impl[0]);
-        return rv;
-    }
-    static dumb_string copys(XString s)
-    {
-        return dumb_string::copy(&*s.begin(), &*s.end());
-    }
-    static
-#ifndef __clang__
-    __attribute__((warning("shouldn't use this - slice instead")))
-#endif
-    dumb_string copyn(const char *sn, size_t n)
-    {
-        return dumb_string::copy(sn, sn + strnlen(sn, n));
-    }
-
-    dumb_string dup() const
-    {
-        return dumb_string::copy(&impl[0], &impl[0] + impl.size());
-    }
-    void delete_()
-    {
-        impl.delete_();
-    }
-
-    const char *c_str() const
-    {
-        return &impl[0];
-    }
-
-    operator ZString() const
-    {
-        return ZString(strings::really_construct_from_a_pointer, c_str(), nullptr);
-    }
-
-    AString str() const
-    {
-        return ZString(*this);
-    }
-
-    char& operator[](size_t i) const
-    {
-        return impl[i];
-    }
-
-    explicit
-    operator bool() const
-    {
-        return bool(impl);
-    }
-    bool operator !() const
-    {
-        return !impl;
-    }
-};
-
-inline
-const char *convert_for_printf(dumb_string ds)
-{
-    return ds.c_str();
-}
 } // namespace tmwa

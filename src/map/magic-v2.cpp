@@ -415,7 +415,7 @@ namespace magic_v2
         case sexpr::STRING:
             {
                 val_t val;
-                val = ValString{dumb_string::copys(x._str)};
+                val = ValString{x._str};
 
                 out = dumb_ptr<expr_t>::make(std::move(val));
                 return true;
