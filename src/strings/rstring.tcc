@@ -1,6 +1,6 @@
 //    strings/rstring.tcc - Inline functions for rstring.hpp
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -25,12 +25,11 @@ namespace tmwa
 namespace strings
 {
     template<class It>
-    void RString::_assign(It b, It e)
+    RString::RString(It b, It e)
+    : RString()
     {
-        owned = nullptr;
         if (b == e)
         {
-            *this = RString();
             return;
         }
         if (!std::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<It>::iterator_category>::value)
@@ -43,23 +42,19 @@ namespace strings
             return;
         }
         size_t diff = std::distance(b, e);
-        owned = static_cast<Rep *>(::operator new(sizeof(Rep) + diff + 1));
-        owned->count = 0;
-        owned->size = diff;
-        std::copy(b, e, owned->body);
-        owned->body[diff] = '\0';
-    }
+        u.owned = static_cast<Rep *>(::operator new(sizeof(Rep) + diff + 1));
+        maybe_end = nullptr;
 
-    template<class It>
-    RString::RString(It b, It e)
-    {
-        _assign(b, e);
+        u.owned->count = 0;
+        u.owned->size = diff;
+        std::copy(b, e, u.owned->body);
+        u.owned->body[diff] = '\0';
     }
 
     template<uint8_t n>
     RString::RString(const VString<n>& v)
+    : RString(v.begin(), v.end())
     {
-        _assign(v.begin(), v.end());
     }
 } // namespace strings
 } // namespace tmwa

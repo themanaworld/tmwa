@@ -170,9 +170,11 @@ TEST(StringTests, rempty)
 TEST(StringTests, rshort)
 {
     LString short_text = "0123456789"_s;
-    RString r = short_text;
+    EXPECT_EQ(&*short_text.begin(), &*RString(short_text).begin());
+    EXPECT_EQ(&*short_text.begin(), &*AString(short_text).begin());
+    RString r = VString<255>(short_text);
     EXPECT_EQ(r.size(), 10);
-    AString a = short_text;
+    AString a = VString<255>(short_text);
     EXPECT_EQ(r, a);
     AString r2 = r, r3;
     RString a2 = a, a3;

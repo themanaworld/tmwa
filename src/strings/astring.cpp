@@ -47,7 +47,6 @@ namespace strings
         std::copy(src + 0, src + 255, dst);
     }
 
-    // TODO dedup all this code once I drop gcc 4.6 support
     AString::AString()
     : data{}, special()
     {
@@ -100,78 +99,43 @@ namespace strings
     }
 
     AString::AString(const MString& s)
-    : data{}, special()
+    : AString(s.begin(), s.end())
     {
-        if (s.size() > 255 || s.size() == 0)
-        {
-            new(r_ptr()) RString(s);
-            special = 255;
-        }
-        else
-        {
-            *std::copy(s.begin(), s.end(), data) = '\0';
-            special = 255 - s.size();
-        }
     }
 
     AString::AString(XPair p)
-    : data{}, special()
+    : AString(p.begin(), p.end())
     {
-        new(r_ptr()) RString();
-        special = 255;
-        *this = XString(p);
     }
 
     AString::AString(const TString& t)
-    : data{}, special()
+    : AString(XString(t))
     {
-        new(r_ptr()) RString();
-        special = 255;
-        *this = XString(t);
     }
     AString::AString(const SString& s)
-    : data{}, special()
+    : AString(XString(s))
     {
-        new(r_ptr()) RString();
-        special = 255;
-        *this = XString(s);
     }
     AString::AString(ZString z)
-    : data{}, special()
+    : AString(XString(z))
     {
-        new(r_ptr()) RString();
-        special = 255;
-        *this = XString(z);
     }
     AString::AString(XString x)
-    : data{}, special()
+    : AString()
     {
         if (const RString *r = x.base())
         {
             if (&*r->begin() == &*x.begin() && &*r->end() == &*x.end())
             {
-                new(r_ptr()) RString(*r);
-                special = 255;
+                *this = *r;
                 return;
             }
         }
-        if (x.size() > 255 || x.size() == 0)
-        {
-            new(r_ptr()) RString(x);
-            special = 255;
-        }
-        else
-        {
-            *std::copy(x.begin(), x.end(), data) = '\0';
-            special = 255 - x.size();
-        }
+        *this = AString(x.begin(), x.end());
     }
     AString::AString(LString l)
-    : data{}, special()
+    : AString(RString(l))
     {
-        new(r_ptr()) RString();
-        special = 255;
-        *this = XString(l);
     }
 
     AString::iterator AString::begin() const

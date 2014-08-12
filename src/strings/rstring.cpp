@@ -36,45 +36,46 @@ namespace tmwa
 {
 namespace strings
 {
-    static_assert(sizeof(RString) == sizeof(const char *), "RString");
-
-    uint8_t RString::empty_string_rep[sizeof(Rep) + 1];
-
     RString::RString()
-    : owned(reinterpret_cast<Rep *>(&empty_string_rep))
+    : u{.begin= ""}, maybe_end(u.begin)
     {
-        owned->count++;
+    }
+    RString::RString(LString l)
+    : u{.begin= &*l.begin()}, maybe_end(&*l.end())
+    {
     }
 
     RString::RString(const RString& r)
-    : owned(r.owned)
+    : u(r.u), maybe_end(r.maybe_end)
     {
-        owned->count++;
+        if (!maybe_end)
+            u.owned->count++;
     }
     RString::RString(RString&& r)
-    : owned(reinterpret_cast<Rep *>(&empty_string_rep))
+    : RString()
     {
-        std::swap(owned, r.owned);
-        r.owned->count++;
+        *this = std::move(r);
     }
     RString& RString::operator = (const RString& r)
     {
         // order important for self-assign
-        r.owned->count++;
-        // owned can be nullptr from ctors
-        // TODO do ctors *properly* (requires gcc 4.7 to stay sane)
-        if (owned && !owned->count--)
-            ::operator delete(owned);
-        owned = r.owned;
+        if (!r.maybe_end)
+            r.u.owned->count++;
+        if (!maybe_end && !u.owned->count--)
+            ::operator delete(u.owned);
+        u = r.u;
+        maybe_end = r.maybe_end;
         return *this;
     }
     RString& RString::operator = (RString&& r)
     {
-        std::swap(owned, r.owned);
+        std::swap(u, r.u);
+        std::swap(maybe_end, r.maybe_end);
         return *this;
     }
+
     RString::RString(AString a)
-    : owned(nullptr)
+    : RString()
     {
         if (RString *r = const_cast<RString *>(a.base()))
         {
@@ -87,41 +88,36 @@ namespace strings
     }
     RString::~RString()
     {
-        if (owned && !owned->count--)
-            ::operator delete(owned);
-        owned = nullptr;
+        if (!maybe_end && !u.owned->count--)
+            ::operator delete(u.owned);
     }
 
     RString::RString(const MString& s)
-    : owned(nullptr)
+    : RString(s.begin(), s.end())
     {
-        _assign(s.begin(), s.end());
     }
 
     RString::RString(XPair p)
-    : owned(nullptr)
+    : RString(p.begin(), p.end())
     {
-        _assign(p.begin(), p.end());
     }
 
     RString::RString(const TString& t)
-    : owned(nullptr)
+    : RString(XString(t))
     {
-        *this = XString(t);
     }
     RString::RString(const SString& s)
-    : owned(nullptr)
+    : RString(XString(s))
     {
-        *this = XString(s);
     }
     RString::RString(ZString z)
-    : owned(nullptr)
+    : RString(XString(z))
     {
-        *this = XString(z);
     }
     RString::RString(XString x)
-    : owned(nullptr)
+    : RString()
     {
+        // long term this stuff will change again
         const RString *f = x.base();
         const char *xb = &*x.begin();
         const char *xe = &*x.end();
@@ -130,21 +126,20 @@ namespace strings
         if (f && xb == fb && xe == fe)
             *this = *f;
         else
-            _assign(x.begin(), x.end());
-    }
-    RString::RString(LString l)
-    : owned(nullptr)
-    {
-        *this = XString(l);
+            *this = RString(x.begin(), x.end());
     }
 
     RString::iterator RString::begin() const
     {
-        return owned->body;
+        if (maybe_end)
+            return u.begin;
+        return u.owned->body;
     }
     RString::iterator RString::end() const
     {
-        return owned->body + owned->size;
+        if (maybe_end)
+            return maybe_end;
+        return u.owned->body + u.owned->size;
     }
     const RString *RString::base() const
     {

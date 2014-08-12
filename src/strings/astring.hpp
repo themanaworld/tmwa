@@ -35,7 +35,7 @@ namespace strings
 #ifdef __clang__
         __attribute__((unused))
 #endif
-        RString *align[0];
+        RString align[0];
         char data[255];
         unsigned char special;
         RString *r_ptr() { return reinterpret_cast<RString *>(data); }

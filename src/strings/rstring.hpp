@@ -39,15 +39,17 @@ namespace strings
             size_t size;
             char body[];
         };
-        static
-        uint8_t empty_string_rep[sizeof(Rep) + 1];
 
-        Rep *owned;
+        union
+        {
+            Rep *owned;
+            const char *begin;
+        } u;
+        const char *maybe_end;
 
-        template<class It>
-        void _assign(It b, It e);
     public:
         RString();
+        RString(LString s);
         RString(const RString&);
         RString(RString&&);
         RString& operator = (const RString&);
@@ -68,7 +70,6 @@ namespace strings
         RString(XString);
         template<uint8_t n>
         RString(const VString<n>& v);
-        RString(LString s);
 
         iterator begin() const;
         iterator end() const;

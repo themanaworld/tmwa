@@ -337,7 +337,9 @@ vpath %.py ${SRC_DIR}
 .DELETE_ON_ERROR:
 .DEFAULT_GOAL := all
 # main goals
-all: ${BINARIES}
+all: bin lib
+bin: ${BINARIES}
+lib: $(patsubst %.so,%.${SO_LONG},${LIBRARIES})
 ii: ${PREPROCESSED}
 ll: ${IRS}
 bc: ${BITCODES}
