@@ -1,6 +1,4 @@
 class VString(object):
-    ''' print a VString
-    '''
     __slots__ = ('_value')
     name = 'tmwa::strings::VString'
     enabled = True
@@ -15,3 +13,14 @@ class VString(object):
         s = self._value['_special']
         d = n - s
         return b.lazy_string(length=d)
+
+    str256 = '0123456789abcdef' * 16
+
+    tests = [
+            ('tmwa::VString<255>(""_s)', '""'),
+            ('tmwa::VString<255>("Hello"_s)', '"Hello"'),
+            ('tmwa::VString<255>("' + str256[:-2] + '"_s)', '"' + str256[:-2] + '"'),
+            ('tmwa::VString<255>("' + str256[:-1] + '"_s)', '"' + str256[:-1] + '"'),
+            ('tmwa::VString<255>("' + str256 + '"_s)', '"' + str256[:-1] + '"'),
+            ('tmwa::VString<255>("' + str256 + 'x"_s)', '"' + str256[:-1] + '"'),
+    ]

@@ -106,7 +106,7 @@ void sig_proc(int)
  */
 } // namespace tmwa
 
-int main(int argc, char **argv)
+int tmwa_main(int argc, char **argv)
 {
     using namespace tmwa;
 
@@ -156,4 +156,6 @@ int main(int argc, char **argv)
         do_sendrecv(next);
         do_parsepacket();
     }
+
+    return 0;
 }

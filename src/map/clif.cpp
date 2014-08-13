@@ -3697,6 +3697,7 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
             send_fpacket<0x0095, 30>(s, fixed_95);
         }
             break;
+        // case BL::SPELL
         default:
             if (battle_config.error_log)
                 PRINTF("clif_parse_GetCharNameRequest : bad type %d (%d)\n"_fmt,

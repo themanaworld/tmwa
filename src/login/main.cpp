@@ -1,6 +1,6 @@
-//    login/main.cpp - dummy file to make Make dependencies work
+//    login/main.cpp - entry point to tmwa-login server
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -17,6 +17,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "../mmo/core.hpp"
+
 #include "login.hpp"
 
 #include "../poison.hpp"
@@ -25,3 +27,8 @@
 namespace tmwa
 {
 } // namespace tmwa
+
+int main(int argc, char **argv)
+{
+    return tmwa_main(argc, argv);
+}

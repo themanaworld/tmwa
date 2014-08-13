@@ -1,59 +1,21 @@
-class ByteCode:
-    ''' print a ByteCode
-        (workaround for gcc bug 58150)
-    '''
-    __slots__ = ('_value')
-    name = 'tmwa::ByteCode'
-    enabled = True
-
-    def __init__(self, value):
-        self._value = value
-
-    def to_string(self):
-        val = int(self._value)
-        try:
-            return 'ByteCode::' + self.types[val]
-        except IndexError:
-            return 'ByteCode(%x)' % val
-
-    types = [
-        'NOP', 'POS', 'INT', 'PARAM', 'FUNC', 'STR', 'CONSTSTR', 'ARG',
-        'VARIABLE', 'EOL', 'RETINFO',
-
-        'LOR', 'LAND', 'LE', 'LT', 'GE', 'GT', 'EQ', 'NE',
-        'XOR', 'OR', 'AND', 'ADD', 'SUB', 'MUL', 'DIV', 'MOD',
-        'NEG', 'LNOT', 'NOT', 'R_SHIFT', 'L_SHIFT',
-
-        'FUNC_REF',
-    ]
-for i, n in enumerate(ByteCode.types):
-    setattr(ByteCode, n, i)
-del i, n
-
 class script_data(object):
-    ''' print a script_data
-    '''
-    __slots__ = ('_value')
-    name = 'tmwa::script_data'
     enabled = True
 
-    def __init__(self, value):
-        self._value = value
-
-    def children(self):
-        v = self._value
-        t = v['type']
-        yield 'type', ByteCode(t).to_string() # why does this not work?
-        v = v['u']
-        t = int(t)
-        if t == ByteCode.PARAM:
-            yield 'reg', v['reg']
-        elif t == ByteCode.RETINFO:
-            yield 'script', v['script']
-        elif t in (ByteCode.STR, ByteCode.CONSTSTR):
-            yield 'str', v['str']
-        else:
-            yield 'numi', v['numi']
-
-    def to_string(self):
-        return None
+    tests = [
+    ('tmwa::script_data(tmwa::ScriptDataPos{42})',
+                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataPos) = {numi = 42}}, <No data fields>}'),
+    ('tmwa::script_data(tmwa::ScriptDataInt{123})',
+                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataInt) = {numi = 123}}, <No data fields>}'),
+    ('tmwa::script_data(tmwa::ScriptDataParam{tmwa::SIR()})',
+                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataParam) = {reg = {impl = 0}}}, <No data fields>}'),
+    ('tmwa::script_data(tmwa::ScriptDataStr{"Hello"_s})',
+                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataStr) = {str = "Hello"}}, <No data fields>}'),
+    ('tmwa::script_data(tmwa::ScriptDataArg{0})',
+                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataArg) = {numi = 0}}, <No data fields>}'),
+    ('tmwa::script_data(tmwa::ScriptDataVariable{tmwa::SIR()})',
+                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataVariable) = {reg = {impl = 0}}}, <No data fields>}'),
+    ('tmwa::script_data(tmwa::ScriptDataRetInfo{static_cast<const tmwa::ScriptBuffer *>(nullptr)})',
+                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataRetInfo) = {script = 0x0}}, <No data fields>}'),
+    ('tmwa::script_data(tmwa::ScriptDataFuncRef{404})',
+                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataFuncRef) = {numi = 404}}, <No data fields>}'),
+    ]

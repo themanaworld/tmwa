@@ -43,3 +43,7 @@ extern int do_init(Slice<ZString>);
 /// or when if we manage to exit() gracefully.
 extern void term_func(void);
 } // namespace tmwa
+
+/// grumble grumble stupid intertwined includes mumble mumble
+__attribute__((warn_unused_result))
+extern int tmwa_main(int argc, char **argv);

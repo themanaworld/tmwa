@@ -36,8 +36,8 @@ namespace magic
 {
 struct op_t
 {
-    ZString name;
-    ZString signature;
+    LString name;
+    LString signature;
     int (*op)(dumb_ptr<env_t> env, Slice<val_t> arga);
 };
 

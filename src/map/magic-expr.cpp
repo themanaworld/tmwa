@@ -75,22 +75,22 @@ dumb_ptr<area_t> dup_area(dumb_ptr<area_t> area)
     {
         CASE (const location_t&, loc)
         {
-            return dumb_ptr<area_t>::make(loc, area->size);
+            return dumb_ptr<area_t>::make(loc);
         }
         CASE (const AreaUnion&, a)
         {
             AreaUnion u;
             u.a_union[0] = dup_area(a.a_union[0]);
             u.a_union[1] = dup_area(a.a_union[1]);
-            return dumb_ptr<area_t>::make(u, area->size);
+            return dumb_ptr<area_t>::make(u);
         }
         CASE (const AreaRect&, rect)
         {
-            return dumb_ptr<area_t>::make(rect, area->size);
+            return dumb_ptr<area_t>::make(rect);
         }
         CASE (const AreaBar&, bar)
         {
-            return dumb_ptr<area_t>::make(bar, area->size);
+            return dumb_ptr<area_t>::make(bar);
         }
     }
 
@@ -290,8 +290,7 @@ dumb_ptr<area_t> area_union(dumb_ptr<area_t> area, dumb_ptr<area_t> other_area)
     AreaUnion a;
     a.a_union[0] = area;
     a.a_union[1] = other_area;
-    int size = area->size + other_area->size;   /* Assume no overlap */
-    return dumb_ptr<area_t>::make(a, size);
+    return dumb_ptr<area_t>::make(a);
 }
 
 /**
@@ -302,7 +301,7 @@ void make_area(val_t *v)
 {
     if (ValLocation *l = v->get_if<ValLocation>())
     {
-        auto a = dumb_ptr<area_t>::make(l->v_location, 1);
+        auto a = dumb_ptr<area_t>::make(l->v_location);
         *v = ValArea{a};
     }
 }
@@ -1211,7 +1210,7 @@ int fun_rbox(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     a_rect.loc.y = loc.y - radius;
     a_rect.width = radius * 2 + 1;
     a_rect.height = radius * 2 + 1;
-    *result = ValArea{dumb_ptr<area_t>::make(a_rect, a_rect.width * a_rect.height)};
+    *result = ValArea{dumb_ptr<area_t>::make(a_rect)};
 
     return 0;
 }
@@ -1539,14 +1538,13 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
         CASE (const e_location_t&, a_loc)
         {
             location_t loc;
-            int size = 1;
             if (eval_location(env, &loc, &a_loc))
             {
                 return nullptr;
             }
             else
             {
-                return dumb_ptr<area_t>::make(loc, size);
+                return dumb_ptr<area_t>::make(loc);
             }
         }
         CASE (const ExprAreaUnion&, a)
@@ -1569,8 +1567,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
                 }
                 return nullptr;
             }
-            int size = u.a_union[0]->size + u.a_union[1]->size;
-            return dumb_ptr<area_t>::make(u, size);
+            return dumb_ptr<area_t>::make(u);
         }
         CASE (const ExprAreaRect&, a_rect)
         {
@@ -1587,10 +1584,9 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
                 a_rect_.width = width.get_if<ValInt>()->v_int;
                 a_rect_.height = height.get_if<ValInt>()->v_int;
 
-                int size = a_rect_.width * a_rect_.height;
                 magic_clear_var(&width);
                 magic_clear_var(&height);
-                return dumb_ptr<area_t>::make(a_rect_, size);
+                return dumb_ptr<area_t>::make(a_rect_);
             }
             else
             {
@@ -1617,11 +1613,10 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
                 a_bar_.depth = depth.get_if<ValInt>()->v_int;
                 a_bar_.dir = dir.get_if<ValDir>()->v_dir;
 
-                int size = (a_bar_.width * 2 + 1) * a_bar_.depth;
                 magic_clear_var(&width);
                 magic_clear_var(&depth);
                 magic_clear_var(&dir);
-                return dumb_ptr<area_t>::make(a_bar_, size);
+                return dumb_ptr<area_t>::make(a_bar_);
             }
             else
             {

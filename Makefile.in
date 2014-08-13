@@ -169,10 +169,17 @@ export PATH:=$(realpath ${SRC_DIR}/tools):${PATH}
 # needs to *and* fails when it needs to. Just use bash.
 SHELL=bash
 
+# need to generate source files before path lists
+$(shell make -f ${SRC_DIR}/generate.make >&2)
+obj/generated.stamp:
+	# if you get here, the shell above failed
+	false
+
 # path lists
 REAL_SOURCES := $(shell cd ${SRC_DIR}; find src/ -name '*.cpp')
 REAL_HEADERS := $(shell cd ${SRC_DIR}; find include/ src/ -name '*.hpp' -o -name '*.tcc')
 PIES := $(shell cd ${SRC_DIR}; find src/ -name '*.py')
+PIES := $(filter-out src/main-gdb-%.py,${PIES})
 SOURCES := ${REAL_SOURCES}
 HEADERS := ${REAL_HEADERS}
 PATTERN_ROOTS := $(patsubst src/%.cpp,%,${SOURCES})
@@ -288,7 +295,9 @@ endif
 
 # first pass, include silently, but force rebuild
 ifndef MAKE_RESTARTS
--include ${DEPENDS}
+# disabled due to bad interaction with generating dependencies that fail
+#-include ${DEPENDS}
+include ${DEPENDS}
 else
 include ${DEPENDS}
 endif
@@ -306,7 +315,9 @@ $(foreach root,${PATTERN_ROOTS},$(eval obj/${root}.ii obj/${root}.ll obj/${root}
 
 # test.o implicitly (NOT explicitly) depends on all (nonexistent) test_*.hpp
 # TODO actually have more than one test.o, each with its own set of files
-$(foreach test,${PATTERN_TESTS},$(eval ${test}/test += $(patsubst %,src/%.hpp,$(filter %_test,${PATTERN_ROOTS}))))
+#$(foreach test,${PATTERN_TESTS},$(eval ${test}/test += $(patsubst %,src/%.hpp,$(filter %_test,${PATTERN_ROOTS}))))
+# FIXME find a better way
+$(foreach test,tests,$(eval ${test}/test += $(patsubst %,src/%.hpp,$(filter %_test,${PATTERN_ROOTS}))))
 
 
 $(foreach main,${PATTERN_MAINS},$(eval main-${main} := $(strip $(call RECURSIVE_DEPS,${main}/main))) $(eval main-${main}-libs := ${lib_deps}))
@@ -362,10 +373,13 @@ mostlyclean: clean-conf
 clean: mostlyclean
 	$l rm -rf bin lib
 distclean: clean gen-clean
-gen-clean: ;
+gen-clean:
+	$l rm -f obj/generated.stamp
+	$l rm -rf ${SRC_DIR}/src/proto2/
+	$l rm -rf ${SRC_DIR}/src/debug-debug/
 
 ifndef MAKE_RESTARTS
-obj/%.d: src/%.cpp
+obj/%.d: src/%.cpp | obj/generated.stamp
 	$(MKDIR_FIRST)
 # Not using $c because it's slow and this should be fast
 	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM \
@@ -392,11 +406,11 @@ obj/%.pic.o: src/%.cpp
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -fPIC -c -o $@ $<
 
-bin/%-gdb.py:
+bin/%-gdb.py: src/main-gdb-head.py src/main-gdb-tail.py
 	$(MKDIR_FIRST)
-	cat ${SRC_DIR}/src/main-gdb-head.py \
-	    $^ \
-	    ${SRC_DIR}/src/main-gdb-tail.py \
+	cat $(filter %/main-gdb-head.py,$^) \
+	    $(filter-out %/main-gdb-head.py %/main-gdb-tail.py,$^) \
+	    $(filter %/main-gdb-tail.py,$^) \
 	    > $@
 bin/%: bin/%-gdb.py
 	$(MKDIR_FIRST)
@@ -414,7 +428,8 @@ lib/%.${SO_LONG}: lib/%.${SO_LONG}-gdb.py
 	$c ln -sf $*.${SO_LONG} lib/$*.${SO_SHORT}
 	$c ln -sf $*.${SO_SHORT} lib/$*.so
 
-${TEST_BINARIES}: obj/gtest-all.pdc.o
+#${TEST_BINARIES}: obj/gtest-all.pdc.o
+bin/test-tests: obj/gtest-all.pdc.o
 
 # This isn't perfect.
 $(filter %_test.pdc.o,${PDC_OBJECTS}) obj/gtest-all.pdc.o: override CPPFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
@@ -423,9 +438,14 @@ obj/gtest-all.pdc.o: ${GTEST_DIR}/src/gtest-all.cc
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
-test: $(patsubst bin/%,.run-%,${TEST_BINARIES})
-.run-%: bin/%
+obj/debug-debug/test.o: override CXXFLAGS += -g -O0
+obj/run-test-debug-debug.stamp: TESTER=gdb -return-child-result -nx -batch -iex 'set auto-load safe-path /' -x ${SRC_DIR}/tools/debug-debug.gdb
+obj/run-test-debug-debug.stamp: tools/debug-debug.gdb
+
+test: $(patsubst bin/%,obj/run-%.stamp,${TEST_BINARIES})
+obj/run-%.stamp: bin/%
 	${TESTER} $< ${TEST_ARGS}
+	touch $@
 
 install := install --backup=${ENABLE_BACKUPS_DURING_INSTALL}
 install_exe := ${install}

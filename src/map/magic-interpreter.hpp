@@ -87,10 +87,10 @@ struct area_t : AreaVariantBase
     area_t& operator = (area_t&&) = default;
     area_t& operator = (const area_t&) = delete;
 
-    area_t(location_t v, int sz) : AreaVariantBase(std::move(v)), size(sz) {}
-    area_t(AreaUnion v, int sz) : AreaVariantBase(std::move(v)), size(sz) {}
-    area_t(AreaRect v, int sz) : AreaVariantBase(std::move(v)), size(sz) {}
-    area_t(AreaBar v, int sz) : AreaVariantBase(std::move(v)), size(sz) {}
+    area_t(location_t v) : AreaVariantBase(std::move(v)), size(1) {}
+    area_t(AreaUnion v) : AreaVariantBase(std::move(v)), size(v.a_union[0]->size + v.a_union[1]->size) {}
+    area_t(AreaRect v) : AreaVariantBase(std::move(v)), size(v.width * v.height) {}
+    area_t(AreaBar v) : AreaVariantBase(std::move(v)), size((v.width * 2 + 1) * v.depth) {}
 };
 
 struct ValUndef
