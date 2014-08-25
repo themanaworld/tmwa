@@ -97,6 +97,7 @@ namespace io
             dat += rv;
             len -= rv;
         }
+        std::copy(dat, dat + len, buf);
         buflen = len;
 
     maybe_linebuffered:

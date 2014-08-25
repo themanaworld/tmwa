@@ -16,6 +16,8 @@ v14.6.30:
   - drop gcc 4.6 support
   - completely remove flex/bison dependency
   - fix duplication in npctalk
+v14.4.20:
+  - fix potential file corruption with partial writes
 v14.4.19:
   - emergency backport of security fix, since v14.7.1 is too buggy
 v14.4.18:
