@@ -27,7 +27,7 @@
 #include "../strings/mstring.hpp"
 #include "../strings/xstring.hpp"
 
-#include "../poison.hpp"
+//#include "../poison.hpp"
 
 static
 io::FD pipew(io::FD& rfd)
@@ -99,4 +99,37 @@ TEST(io, write2)
     EXPECT_EQ("Hello, World!\n", pw.slurp());
     EXPECT_TRUE(wf.close());
     EXPECT_EQ("XXX", pw.slurp());
+}
+
+TEST(io, write3)
+{
+    // TODO see if it's possible to get the real value
+    constexpr size_t PIPE_CAPACITY = 65536;
+    char buf[PIPE_CAPACITY];
+
+    PipeWriter pw(false);
+    io::WriteFile& wf = pw.wf;
+
+    memset(buf, 'a', sizeof(buf));
+    wf.really_put(buf, 1);
+    EXPECT_EQ("", pw.slurp());
+
+    memset(buf, 'b', sizeof(buf));
+    wf.really_put(buf, sizeof(buf));
+
+    // write 1 + PIPE_CAPACITY
+    // read 1 + N + (PIPE_CAPACITY - N)
+    size_t remaining;
+    {
+        AString a = pw.slurp();
+        XString x = a.xslice_t(1);
+        EXPECT_EQ(a.front(), 'a');
+        EXPECT_EQ(x.front(), 'b');
+        EXPECT_EQ(x.back(), 'b');
+        EXPECT_EQ(x, XString(buf, buf + x.size(), nullptr));
+        remaining = sizeof(buf) - x.size();
+    }
+
+    EXPECT_TRUE(wf.close());
+    EXPECT_EQ(pw.slurp(), XString(buf, buf + remaining, nullptr));
 }

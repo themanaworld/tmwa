@@ -1,3 +1,5 @@
+v14.4.20:
+  - fix potential file corruption with partial writes
 v14.4.19:
   - emergency backport of security fix, since v14.7.1 is too buggy
 v14.4.18:
