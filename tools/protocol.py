@@ -1926,6 +1926,11 @@ def main():
             at(2, u8, 'flag'),
         ],
         fixed_size=3,
+        pre=[0x3802],
+        post=[],
+        desc='''
+            Send Wisp/Page result to client.
+        ''',
     )
     map_user.s(0x009a, 'gm announcement',
         head=[
@@ -1937,6 +1942,11 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
+        pre=[0x3800],
+        post=[],
+        desc='''
+            Send message to all GMs.
+        ''',
     )
     map_user.r(0x009b, 'change player direction',
         fixed=[
@@ -3168,6 +3178,11 @@ def main():
             at(2, u32, 'users'),
         ],
         fixed_size=6,
+        pre=[],
+        post=[],
+        desc='''
+            Receive number of users on tmwa-map (every few seconds.)
+        ''',
     )
     login_char.r(0x2716, 'email limit request',
         fixed=[
@@ -3833,6 +3848,11 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
+        pre=[],
+        post=[0x3800],
+        desc='''
+            Receive message for all GMs from tmwa-map.
+        ''',
     )
     char_map.r(0x3001, 'whisper forward',
         head=[
@@ -3846,6 +3866,11 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
+        pre=[0x3001],
+        post=[0x3802],
+        desc='''
+            Receive Wisp/Page from tmwa-map to retransmit.
+        ''',
     )
     char_map.r(0x3002, 'whisper forward result',
         fixed=[
@@ -4002,6 +4027,11 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
+        pre=[0x3800],
+        post=[0x009a],
+        desc='''
+            Send message for all GMs to map servers.
+        ''',
     )
     char_map.s(0x3801, 'whisper forward',
         head=[
@@ -4024,6 +4054,11 @@ def main():
             at(26, u8, 'flag'),
         ],
         fixed_size=27,
+        pre=[0x3001],
+        post=[],
+        desc='''
+            Send Wisp/Page result to tmwa-char.
+        ''',
     )
     # 0x3003
     char_map.s(0x3803, 'whisper gm',
