@@ -1195,15 +1195,29 @@ RString conv_str(ScriptState *st, struct script_data *data)
 static __attribute__((warn_unused_result))
 int conv_num(ScriptState *st, struct script_data *data)
 {
+    int rv = 0;
     get_val(st, data);
     assert (!data->is<ScriptDataRetInfo>());
-    if (auto *u = data->get_if<ScriptDataStr>())
+    MATCH (*data)
     {
-        RString p = u->str;
-        *data = ScriptDataInt{atoi(p.c_str())};
+        default:
+            abort();
+        CASE (const ScriptDataStr&, u)
+        {
+            RString p = u.str;
+            rv = atoi(p.c_str());
+        }
+        CASE (const ScriptDataInt&, u)
+        {
+            return u.numi;
+        }
+        CASE (const ScriptDataPos&, u)
+        {
+            return u.numi;
+        }
     }
-    // TODO see if I also need to return for other types?
-    return data->get_if<ScriptDataInt>()->numi;
+    *data = ScriptDataInt{rv};
+    return rv;
 }
 
 static __attribute__((warn_unused_result))

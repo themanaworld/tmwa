@@ -360,6 +360,8 @@ o: ${PDC_OBJECTS}
 # duplicates, and PDC is more common, and also some override rules are only
 # currently defined for PDC
 
+clean-stamp:
+	-$l find obj -name '*.stamp' -delete
 clean-deps:
 	-$l find obj -name '*.d' -delete
 clean-format:
