@@ -1818,16 +1818,18 @@ int getarraysize(ScriptState *st, SIR reg)
             {
                 if (u.str[0])
                     c = i;
-                continue;
+                goto continue_outer;
             }
             CASE (const ScriptDataInt&, u)
             {
                 if (u.numi)
                     c = i;
-                continue;
+                goto continue_outer;
             }
         }
         abort();
+    continue_outer:
+        ;
     }
     return c + 1;
 }
@@ -4362,46 +4364,38 @@ void run_func(ScriptState *st)
                 CASE (const ScriptDataInt&, u)
                 {
                     PRINTF(" int(%d)"_fmt, u.numi);
-                    break;
                 }
                 CASE (const ScriptDataRetInfo&, u)
                 {
                     PRINTF(" retinfo(%p)"_fmt, static_cast<const void *>(u.script));
-                    break;
                 }
                 CASE (const ScriptDataParam&, u)
                 {
                     PRINTF(" param(%d)"_fmt, u.reg.sp());
-                    break;
                 }
                 CASE (const ScriptDataVariable&, u)
                 {
                     PRINTF(" name(%s)[%d]"_fmt, variable_names.outtern(u.reg.base()), u.reg.index());
-                    break;
                 }
                 CASE (const ScriptDataArg&, u)
                 {
                     (void)u;
                     PRINTF(" arg"_fmt);
-                    break;
                 }
                 CASE (const ScriptDataPos&, u)
                 {
                     (void)u;
                     PRINTF(" pos(%d)"_fmt, u.numi);
-                    break;
                 }
                 CASE (const ScriptDataStr&, u)
                 {
                     (void)u;
                     PRINTF(" str(%s)"_fmt, u.str);
-                    break;
                 }
                 CASE (const ScriptDataFuncRef&, u)
                 {
                     (void)u;
                     PRINTF(" func(%s)"_fmt, builtin_functions[u.numi].name);
-                    break;
                 }
             }
         }

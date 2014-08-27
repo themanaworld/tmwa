@@ -255,7 +255,6 @@ void stringify(val_t *v)
         CASE (const ValSpell&, x)
         {
             buf = x.v_spell->name;
-            break;
         }
         CASE (const ValInvocationInt&, x)
         {
