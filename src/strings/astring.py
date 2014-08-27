@@ -23,6 +23,11 @@ class AString(object):
 
     str256 = '0123456789abcdef' * 16
 
+    test_extra = '''
+    using tmwa::operator "" _s;
+    #include "../src/strings/zstring.hpp"
+    '''
+
     tests = [
             ('tmwa::AString(""_s)', '{allocated = ""}'),
             ('tmwa::AString(tmwa::ZString(""_s))', '{allocated = ""}'),

@@ -29,6 +29,11 @@ class RString(object):
 
     str256 = '0123456789abcdef' * 16
 
+    test_extra = '''
+    using tmwa::operator "" _s;
+    #include "../src/strings/zstring.hpp"
+    '''
+
     tests = [
             ('tmwa::RString(""_s)', '""'),
             ('tmwa::RString(tmwa::ZString(""_s))', '""'),

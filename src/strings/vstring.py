@@ -16,6 +16,10 @@ class VString(object):
 
     str256 = '0123456789abcdef' * 16
 
+    test_extra = '''
+    using tmwa::operator "" _s;
+    '''
+
     tests = [
             ('tmwa::VString<255>(""_s)', '""'),
             ('tmwa::VString<255>("Hello"_s)', '"Hello"'),

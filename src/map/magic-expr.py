@@ -26,6 +26,10 @@ class fun_t(object):
         yield '->ret_ty', value['ret_ty']
         yield '->fun', value['fun']
 
+    test_extra = '''
+    using tmwa::operator "" _s;
+    '''
+
     tests = [
             ('static_cast<tmwa::magic::fun_t *>(nullptr)', '(fun_t *) nullptr'),
             ('new tmwa::magic::fun_t{"name"_s, "sig"_s, \'\\0\', nullptr}', '(fun_t *) = {->name = "name", ->signature = "sig", ->ret_ty = 0 \'\\000\', ->fun = 0x0}'),

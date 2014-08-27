@@ -96,6 +96,8 @@ class map_abstract(object):
     ]
 
     test_extra = '''
+    using tmwa::operator ""_s;
+
     inline
     tmwa::map_local *fake_map_local(tmwa::ZString name, int xs, int ys)
     {

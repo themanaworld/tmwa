@@ -1,4 +1,6 @@
 # vim: ft=python
+set auto-load safe-path /
+file bin/test-debug-debug
 set logging file /dev/null
 set logging redirect on
 set logging off

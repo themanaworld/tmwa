@@ -441,7 +441,7 @@ obj/gtest-all.pdc.o: ${GTEST_DIR}/src/gtest-all.cc
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
 obj/debug-debug/test.o: override CXXFLAGS += -g -O0
-obj/run-test-debug-debug.stamp: TESTER=gdb -return-child-result -nx -batch -iex 'set auto-load safe-path /' -x ${SRC_DIR}/tools/debug-debug.gdb
+obj/run-test-debug-debug.stamp: TESTER=gdb -return-child-result -nx -batch -x ${SRC_DIR}/tools/debug-debug.gdb --args false
 obj/run-test-debug-debug.stamp: tools/debug-debug.gdb
 
 test: $(patsubst bin/%,obj/run-%.stamp,${TEST_BINARIES})

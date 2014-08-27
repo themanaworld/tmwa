@@ -17,6 +17,10 @@ class ZString(object):
 
     str256 = '0123456789abcdef' * 16
 
+    test_extra = '''
+    using tmwa::operator "" _s;
+    '''
+
     tests = [
             ('tmwa::ZString(""_s)', '"" = {base = 0x0}'),
             ('tmwa::ZString("Hello"_s)', '"Hello" = {base = 0x0}'),

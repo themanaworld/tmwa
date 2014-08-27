@@ -1,6 +1,10 @@
 class script_data(object):
     enabled = True
 
+    test_extra = '''
+    using tmwa::operator "" _s;
+    '''
+
     tests = [
     ('tmwa::script_data(tmwa::ScriptDataPos{42})',
                 '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataPos) = {numi = 42}}, <No data fields>}'),

@@ -25,6 +25,10 @@ class op_t(object):
         yield '->signature', value['signature']
         yield '->op', value['op']
 
+    test_extra = '''
+    using tmwa::operator "" _s;
+    '''
+
     tests = [
             ('static_cast<tmwa::magic::op_t *>(nullptr)', '(op_t *) nullptr'),
             ('new tmwa::magic::op_t{"name"_s, "sig"_s, nullptr}', '(op_t *) = {->name = "name", ->signature = "sig", ->op = 0x0}'),
