@@ -3698,7 +3698,8 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             break;
         case SP::CLASS:
             sd->status.species = wrap<Species>(val);
-            break;
+            clif_changelook(sd, LOOK::BASE, val);
+            return 0;
         case SP::SKILLPOINT:
             sd->status.skill_point = val;
             break;
