@@ -1,18 +1,32 @@
 # vim: ft=python
-set auto-load safe-path /
+# set auto-load safe-path /
+python
+try:
+    gdb.execute('set auto-load safe-path /')
+except:
+    pass
+end
 file bin/test-debug-debug
 set logging file /dev/null
 set logging redirect on
 set logging off
 
 python
+import re
 import sys
 
 def hit_breakpoint():
     sys.stdout.write('.')
     value = str(gdb.parse_and_eval('*&value'))
     expected = gdb.parse_and_eval('expected').string()
-    if value != expected:
+    if expected.startswith('regex:'):
+        def compare(value, expected):
+            m = re.match(expected[6:], value)
+            return m and m.end() == m.endpos
+    else:
+        def compare(value, expected):
+            return value == expected
+    if not compare(value, expected):
         print 'Error: mismatch, aborting ...'
         print 'actual: %r' % value
         print 'expect: %r' % str(expected)
@@ -23,7 +37,7 @@ end
 # register a pretty-printer for 'char *' instead
 #set print address off
 set print static-members off
-set print elements unlimited
+set print elements 9999
 set print frame-arguments none
 
 set logging on

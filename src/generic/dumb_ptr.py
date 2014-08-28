@@ -7,7 +7,7 @@ class dumb_ptr(object):
         self._value = value
 
     def to_string(self):
-        return '0x%x' % self._value['impl'].cast(gdb.parse_and_eval('(long *)0').type)
+        return '0x%x' % long(self._value['impl'].cast(gdb.parse_and_eval('(long *)0').type))
 
     def children(self):
         try:

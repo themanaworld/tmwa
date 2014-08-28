@@ -18,7 +18,11 @@ for s in [
             value = self._value
             fields = value.type.fields()
             field0 = fields[-1]
-            return '%s' % (value[field0])
+            if field0.is_base_class:
+                w = value.cast(field0.type)
+            else:
+                w = value[field0.name]
+            return '%s' % w
 
         tests = [
                 ('tmwa::wrap<tmwa::%s>(123)' % s, '123'),
