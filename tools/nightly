@@ -48,12 +48,14 @@ config64() {
 
 first=true
 
+set -x
 for config in ${ALL_CONFIGS[@]}
 do
     $config
     mkdir -p build-$HOST
     cd build-$HOST
     ../configure --host=$HOST CXX="$CXX -Wno-deprecated-declarations" --prefix=/. --enable-rpath=relative
+    rm -rf bin lib
     make -j3 all
     make -j3 test
     if $first

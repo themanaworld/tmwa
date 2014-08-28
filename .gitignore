@@ -12,3 +12,6 @@
 /Makefile
 /config.status
 /lib
+# nightlies
+/build-x86_64-linux-gnu/
+/build-i586-linux-gnu/
