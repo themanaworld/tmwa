@@ -2,6 +2,7 @@ SRC_DIR = @SRC_DIR@
 CONFIG_HASH = @CONFIG_HASH@
 
 PACKAGE = @PACKAGE@
+tmwa = ${PACKAGE}
 PACKAGE_NAME = @PACKAGE_NAME@
 
 PREFIX = @PREFIX@
@@ -18,6 +19,7 @@ LOCALSTATEDIR = @LOCALSTATEDIR@
 PACKAGELOCALSTATEDIR := ${LOCALSTATEDIR}/${PACKAGE}
 LIBDIR = @LIBDIR@
 INCLUDEDIR = @INCLUDEDIR@
+PACKAGEINCLUDEDIR := ${INCLUDEDIR}/${PACKAGE}
 OLDINCLUDEDIR = @OLDINCLUDEDIR@
 DATAROOTDIR = @DATAROOTDIR@
 DATADIR = @DATADIR@
@@ -43,11 +45,9 @@ CXX = @CXX@
 CXXFLAGS = @CXXFLAGS@
 GTEST_DIR = @GTEST_DIR@
 
-ENABLE_BACKUPS_DURING_INSTALL = @ENABLE_BACKUPS_DURING_INSTALL@
 ENABLE_WARNINGS = @ENABLE_WARNINGS@
 ENABLE_ABI6 = @ENABLE_ABI6@
 ENABLE_CYGWIN_HACKS = @ENABLE_CYGWIN_HACKS@
-ENABLE_COMPAT_SYMLINKS = @ENABLE_COMPAT_SYMLINKS@
 ENABLE_DEBUG = @ENABLE_DEBUG@
 ENABLE_RPATH = @ENABLE_RPATH@
 
@@ -196,8 +196,8 @@ PIC_OBJECTS := $(patsubst %.d,%.pic.o,${DEPENDS})
 MAIN_SOURCES := $(filter %/main.cpp,${SOURCES})
 LIB_SOURCES := $(filter %/lib.cpp,${SOURCES})
 TEST_SOURCES := $(filter %/test.cpp,${SOURCES})
-BINARIES := $(patsubst src/%/main.cpp,bin/tmwa-%,${MAIN_SOURCES})
-LIBRARIES := $(patsubst src/%/lib.cpp,lib/libtmwa-%.so,${LIB_SOURCES})
+BINARIES := $(patsubst src/%/main.cpp,bin/${tmwa}-%,${MAIN_SOURCES})
+LIBRARIES := $(patsubst src/%/lib.cpp,lib/lib${tmwa}-%.so,${LIB_SOURCES})
 TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
 
 # tricky part
@@ -213,7 +213,7 @@ TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
 define RECURSIVE_DEPS_IMPL
 $(eval more_deps := $(value ${1}))
 $(eval more_deps := $(patsubst src/%.hpp,%,${more_deps}))
-$(eval lib_deps += $(patsubst include/tmwa/%.hpp,lib/libtmwa-%.${SO_LONG},$(filter include/tmwa/%.hpp,${more_deps})))
+$(eval lib_deps += $(patsubst include/${tmwa}/%.hpp,lib/lib${tmwa}-%.${SO_LONG},$(filter include/${tmwa}/%.hpp,${more_deps})))
 $(eval more_deps := $(filter ${PATTERN_ROOTS},${more_deps}))
 $(eval more_deps := $(filter-out ${cur_deps},${more_deps}))
 $(eval cur_deps += ${more_deps})
@@ -322,14 +322,14 @@ $(foreach test,tests,$(eval ${test}/test += $(patsubst %,src/%.hpp,$(filter %_te
 
 $(foreach main,${PATTERN_MAINS},$(eval main-${main} := $(strip $(call RECURSIVE_DEPS,${main}/main))) $(eval main-${main}-libs := ${lib_deps}))
 # actual rule deps
-$(foreach main,${PATTERN_MAINS},$(eval bin/tmwa-${main} : $(patsubst %,obj/%.pdc.o,$(value main-${main})) $(value main-${main}-libs)))
-$(foreach main,${PATTERN_MAINS},$(eval bin/tmwa-${main}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value main-${main})))))
+$(foreach main,${PATTERN_MAINS},$(eval bin/${tmwa}-${main} : $(patsubst %,obj/%.pdc.o,$(value main-${main})) $(value main-${main}-libs)))
+$(foreach main,${PATTERN_MAINS},$(eval bin/${tmwa}-${main}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value main-${main})))))
 #$(foreach main,${PATTERN_MAINS},$(info post-main: main-${main}: $(value main-${main})) $(info post-main: main-${main}-libs: $(value main-${main}-libs)) $(info ))
 
 $(foreach lib,${PATTERN_LIBS},$(eval lib-${lib} := $(strip $(call RECURSIVE_DEPS,${lib}/lib))) $(eval lib-${lib}-libs := ${lib_deps}))
 # actual rule deps
-$(foreach lib,${PATTERN_LIBS},$(eval lib/libtmwa-${lib}.${SO_LONG} : $(patsubst %,obj/%.pic.o,$(value lib-${lib})) $(filter-out lib/libtmwa-${lib}.${SO_LONG},$(value lib-${lib}-libs))))
-$(foreach lib,${PATTERN_LIBS},$(eval lib/libtmwa-${lib}.${SO_LONG}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value lib-${lib})))))
+$(foreach lib,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${lib}.${SO_LONG} : $(patsubst %,obj/%.pic.o,$(value lib-${lib})) $(filter-out lib/lib${tmwa}-${lib}.${SO_LONG},$(value lib-${lib}-libs))))
+$(foreach lib,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${lib}.${SO_LONG}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value lib-${lib})))))
 #$(foreach lib,${PATTERN_LIBS},$(info post-lib: lib-${lib}: $(value lib-${lib})) $(info post-lib: lib-${lib}-libs: $(value lib-${lib}-libs)) $(info ))
 
 $(foreach test,${PATTERN_TESTS},$(eval test-${test} := $(strip $(call RECURSIVE_DEPS,${test}/test))) $(eval test-${test}-libs := ${lib_deps}))
@@ -449,14 +449,15 @@ obj/run-%.stamp: bin/%
 	${TESTER} $< ${TEST_ARGS}
 	touch $@
 
-install := install --backup=${ENABLE_BACKUPS_DURING_INSTALL}
+install := install
 install_exe := ${install}
 install_dir := ${install} -d
 install_data := ${install} -m 0644
-install_symlink := ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf
 
 install:
 	@echo = Done installing
+uninstall:
+	@echo = Done uninstalling
 
 install: install-bin
 install-bin:
@@ -464,23 +465,14 @@ install-bin:
 	${install_dir} ${DESTDIR}${BINDIR}
 	${install_exe} -t ${DESTDIR}${BINDIR} \
 	    ${BINARIES}
-install-bin: install-bin-compat
-install-bin-compat:
-ifeq (${ENABLE_COMPAT_SYMLINKS},yes)
-	@echo + Installing compatibility symlinks
-	${install_dir} ${DESTDIR}${BINDIR}
-	${install_symlink} tmwa-login ${DESTDIR}${BINDIR}/login-server
-	${install_symlink} tmwa-char ${DESTDIR}${BINDIR}/char-server
-	${install_symlink} tmwa-map ${DESTDIR}${BINDIR}/map-server
-	${install_symlink} tmwa-admin ${DESTDIR}${BINDIR}/ladmin
-	${install_symlink} tmwa-monitor ${DESTDIR}${BINDIR}/eathena-monitor
-else
-	@echo - Not installing compatibility symlinks
-endif
+uninstall: uninstall-bin
+uninstall-bin:
+	@echo - Uninstalling binaries
+	-rm ${DESTDIR}${BINDIR}/${tmwa}-*
 
 install: install-lib
 install-lib:
-	@echo + Install libraries
+	@echo + Installing libraries
 	${install_dir} ${DESTDIR}${LIBDIR}
 	${install_data} -t ${DESTDIR}${LIBDIR} \
 	    $(patsubst %.so,%.${SO_LONG},${LIBRARIES})
@@ -488,6 +480,10 @@ install-lib:
 	    ln -sf $$lib.${SO_LONG} ${DESTDIR}${LIBDIR}/$$lib.${SO_SHORT}; \
 	    ln -sf $$lib.${SO_SHORT} ${DESTDIR}${LIBDIR}/$$lib.so; \
 	done
+uninstall: uninstall-lib
+uninstall-lib:
+	@echo - Uninstalling libraries
+	-rm ${DESTDIR}${LIBDIR}/lib${tmwa}-*
 
 install: install-debug
 install-debug:
@@ -502,33 +498,58 @@ ifeq (${ENABLE_DEBUG},yes)
 else
 	@echo - Not installing debug files
 endif
+uninstall: uninstall-debug
+uninstall-debug: uninstall-lib uninstall-bin
+	@echo - Maybe uninstalling debug files
+	-rm ${DESTDIR}${DEBUGDIR}${BINDIR}/${tmwa}-*
+	-rm ${DESTDIR}${DEBUGDIR}${LIBDIR}/lib${tmwa}-*
 
 install: install-include
 install-include:
-	@echo + Install headers
-	${install_dir} ${DESTDIR}${INCLUDEDIR}
-	${install_data} -t ${DESTDIR}${INCLUDEDIR} \
+	@echo + Installing headers
+	${install_dir} ${DESTDIR}${PACKAGEINCLUDEDIR}
+	${install_data} -t ${DESTDIR}${PACKAGEINCLUDEDIR} \
 	    $(addprefix ${SRC_DIR}/,$(filter include/%,${HEADERS}))
+
+uninstall: uninstall-include
+uninstall-include:
+	@echo - Uninstalling headers
+	-rm -r ${DESTDIR}${PACKAGEINCLUDEDIR}
 
 install: install-state
 install-state:
-	@echo + Install statedir
+	@echo + Installing statedir
 	${install_dir} ${DESTDIR}${PACKAGELOCALSTATEDIR}
 	touch ${DESTDIR}${PACKAGELOCALSTATEDIR}/.keep
 
+uninstall: uninstall-state
+uninstall-state:
+	@echo '*' Not uninstalling statedir
+	: ${DESTDIR}${PACKAGELOCALSTATEDIR}
+
 install: install-data
 install-data:
-	@echo + Install data
+	@echo + Installing data
 	${install_dir} ${DESTDIR}${PACKAGEDATADIR}
 	${install_data} -t ${DESTDIR}${PACKAGEDATADIR} \
 	    ${SRC_DIR}/share/tmwa/*
 
+uninstall: uninstall-data
+uninstall-data:
+	@echo - Uninstalling data
+	-rm -r ${DESTDIR}${PACKAGEDATADIR}
+
 install: install-conf
 install-conf:
-	@echo + Install config files
+	@echo + Installing config files
 	${install_dir} ${DESTDIR}${PACKAGESYSCONFDIR}
 	${install_data} -t ${DESTDIR}${PACKAGESYSCONFDIR} \
 	    ${SRC_DIR}/etc/tmwa/*
+
+uninstall: uninstall-conf
+uninstall-conf:
+	@echo Not uninstalling config files
+	: ${DESTDIR}${PACKAGESYSCONFDIR}
 
 tags: ${SOURCES} ${HEADERS}
 	$l ctags --totals -h .tcc --langmap=C++:+.tcc --c-kinds=+px -f $@ $^
@@ -579,9 +600,9 @@ dist/%-bin-${HOST}.tar: all
 	tar cf $@ -C dist/${HOST} $*
 	rm -r dist/${HOST}/
 
-dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
+dist: dist/${tmwa}-${VERSION_FULL}-src.tar dist/${tmwa}-${VERSION_FULL}-bundled.tar
 ifneq '' '${HOST}'
-bindist: dist/tmwa-${VERSION_FULL}-bin-${HOST}.tar
+bindist: dist/${tmwa}-${VERSION_FULL}-bin-${HOST}.tar
 else
 bindist:
 	@echo
@@ -628,6 +649,6 @@ obj/%.tcc.formatted: src/%.tcc tools/indenter
 	touch $@
 .PHONY: format format-cpp format-hpp
 
-most: $(filter-out bin/tmwa-map,${BINARIES})
+most: $(filter-out bin/${tmwa}-map,${BINARIES})
 magic: $(filter obj/map/magic%,${PDC_OBJECTS})
 common: $(filter-out %/lib.pdc.o %_test.pdc.o obj/login/% obj/char/% obj/map/% obj/admin/% obj/monitor/%,${PDC_OBJECTS})

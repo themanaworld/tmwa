@@ -63,12 +63,6 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
 
     def features(self):
         super(Configuration, self).features()
-        # TODO: check VERSION_CONTROL environment variable?
-        # not really important: this option is only to make Frost happy
-        self.add_option('--enable-backups-during-install', init='none',
-                type=enum('none', 'numbered', 'existing', 'simple'), check=lambda build, CONTROL: None,
-                help='Back up existing files during \'make install\'', hidden=True,
-                help_var='CONTROL')
         self.add_bool_feature('warnings', init='no',
                 check=lambda build, ENABLE_WARNINGS: None,
                 help='Enable warnings (for development)')
@@ -78,9 +72,6 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
         self.add_bool_feature('cygwin-hacks', init='no',
                 check=lambda build, ENABLE_CYGWIN_HACKS: None,
                 help='Work around bugs in certain cygwin versions')
-        self.add_bool_feature('compat-symlinks', init='no',
-                check=lambda build, ENABLE_COMPAT_SYMLINKS: None,
-                help='Install symlinks to avoid breaking old scripts')
         self.add_bool_feature('debug', init='yes',
                 check=lambda build, ENABLE_DEBUG: None,
                 help='Install extra files useful for debugging')
