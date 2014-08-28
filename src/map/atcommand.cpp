@@ -4552,6 +4552,8 @@ ATCE atcommand_magic_info(Session *s, dumb_ptr<map_session_data>,
 static
 void set_skill(dumb_ptr<map_session_data> sd, SkillID i, int level)
 {
+    level = std::min(level, MAX_SKILL_LEVEL);
+    level = std::max(level, 0);
     sd->status.skill[i].lv = level;
 }
 

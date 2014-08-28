@@ -2414,6 +2414,8 @@ void builtin_setskill(ScriptState *st)
     level = conv_num(st, &AARGO2(3));
     sd = script_rid2sd(st);
 
+    level = std::min(level, MAX_SKILL_LEVEL);
+    level = std::max(level, 0);
     sd->status.skill[id].lv = level;
     clif_skillinfoblock(sd);
 }
