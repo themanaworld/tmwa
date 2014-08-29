@@ -1945,7 +1945,7 @@ def main():
         pre=[0x3800],
         post=[],
         desc='''
-            Send message to all GMs.
+            Broadcast message.
         ''',
     )
     map_user.r(0x009b, 'change player direction',
@@ -3305,6 +3305,11 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
+        pre=[0x794e],
+        post=[0x3800],
+        desc="""
+            Broadcast message to all map servers.
+        """,
     )
     login_char.r(0x2727, 'change sex request',
         fixed=[
@@ -3354,6 +3359,11 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[0x7932],
+        post=[0x2b13],
+        desc="""
+            Account deletion notification.
+        """,
     )
     login_char.s(0x2731, 'status or ban changed',
         fixed=[
@@ -3363,7 +3373,7 @@ def main():
             at(7, time32, 'status or ban until'),
         ],
         fixed_size=11,
-        pre=[0x2724, 0x2725],
+        pre=[0x2724, 0x2725, 0x794c, 0x794a],
         post=[0x2b14],
         desc='''
             Response from tmwa-login about account ban/block status.
@@ -3793,6 +3803,11 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[0x7930],
+        post=[],
+        desc="""
+            Disconnect player due to deletion.
+        """,
     )
     char_map.s(0x2b14, 'status or ban notify',
         fixed=[
@@ -4027,10 +4042,10 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[0x3800],
+        pre=[0x3800, 0x2726],
         post=[0x009a],
         desc='''
-            Send message for all GMs to map servers.
+            Broadcast message.
         ''',
     )
     char_map.s(0x3801, 'whisper forward',
@@ -4203,7 +4218,7 @@ def main():
         pre=[],
         post=[0x7531],
         desc='''
-            Request from client for server version.
+            Request from client or ladmin for server version.
         ''',
     )
     any_user.s(0x7531, 'version reply',
@@ -4218,7 +4233,7 @@ def main():
             Response to client's request for server version.
         ''',
     )
-    any_user.r(0x7532, 'shutdown please',
+    any_user.r(0x7532, 'End of connection',
         fixed=[
             at(0, u16, 'packet id'),
         ],
@@ -4226,7 +4241,7 @@ def main():
         pre=[],
         post=[],
         desc='''
-            Request from client to disconnect.
+            Request from client or ladmin to disconnect.
         ''',
     )
 
@@ -4253,6 +4268,11 @@ def main():
             at(6, account_id, 'end account id'),
         ],
         fixed_size=10,
+        pre=[],
+        post=[0x7921],
+        desc="""
+            Request accounts list.
+        """,
     )
     login_admin.s(0x7921, 'account list reply',
         head=[
@@ -4269,6 +4289,11 @@ def main():
             at(34, u32, 'status'),
         ],
         repeat_size=38,
+        pre=[0x7920],
+        post=[],
+        desc="""
+            Account list response.
+        """,
     )
     login_admin.r(0x7924, 'itemfrob',
         fixed=[
@@ -4277,12 +4302,22 @@ def main():
             at(6, item_name_id4, 'dest item id'),
         ],
         fixed_size=10,
+        pre=[],
+        post=[0x7925],
+        desc="""
+            Frobnicate item.
+        """,
     )
     login_admin.s(0x7925, 'itemfrob ok',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+        pre=[0x7924],
+        post=[],
+        desc="""
+            Frobnicate OK.
+        """,
     )
     login_admin.r(0x7930, 'account create request',
         fixed=[
@@ -4293,6 +4328,11 @@ def main():
             at(51, account_email, 'email'),
         ],
         fixed_size=91,
+        pre=[],
+        post=[0x7931],
+        desc="""
+            Account creation request.
+        """,
     )
     login_admin.s(0x7931, 'account create result',
         fixed=[
@@ -4301,6 +4341,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x7930, 0x7936],
+        post=[0x2b14],
+        desc="""
+            Account creation response.
+        """,
     )
     login_admin.r(0x7932, 'account delete request',
         fixed=[
@@ -4308,6 +4353,11 @@ def main():
             at(2, account_name, 'account name'),
         ],
         fixed_size=26,
+        pre=[],
+        post=[0x7933, 0x2730],
+        desc="""
+            Account deletion request.
+        """,
     )
     login_admin.s(0x7933, 'account delete reply',
         fixed=[
@@ -4316,6 +4366,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x7932],
+        post=[],
+        desc="""
+            Account deletion response.
+        """,
     )
     login_admin.r(0x7934, 'password change request',
         fixed=[
@@ -4324,6 +4379,11 @@ def main():
             at(26, account_pass, 'password'),
         ],
         fixed_size=50,
+        pre=[],
+        post=[0x7935],
+        desc="""
+            Change password request.
+        """,
     )
     login_admin.s(0x7935, 'password change result',
         fixed=[
@@ -4332,6 +4392,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x7934],
+        post=[],
+        desc="""
+            Change password response.
+        """,
     )
     login_admin.r(0x7936, 'account state change request',
         fixed=[
@@ -4341,6 +4406,11 @@ def main():
             at(30, seconds, 'error message'),
         ],
         fixed_size=50,
+        pre=[],
+        post=[0x7937, 0x2731],
+        desc="""
+            Account state change request.
+        """,
     )
     login_admin.s(0x7937, 'account state change result',
         fixed=[
@@ -4350,12 +4420,22 @@ def main():
             at(30, u32, 'status'),
         ],
         fixed_size=34,
+        pre=[],
+        post=[],
+        desc="""
+            Account state change response.
+        """,
     )
     login_admin.r(0x7938, 'server list request',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+        pre=[],
+        post=[0x7939],
+        desc="""
+            Server list and player count request.
+        """,
     )
     login_admin.s(0x7939, 'server list result',
         head=[
@@ -4372,6 +4452,11 @@ def main():
             at(30, u16, 'is new'),
         ],
         repeat_size=32,
+        pre=[0x7938],
+        post=[],
+        desc="""
+            Server list and player count response.
+        """,
     )
     login_admin.r(0x793a, 'password check request',
         fixed=[
@@ -4380,6 +4465,11 @@ def main():
             at(26, account_pass, 'password'),
         ],
         fixed_size=50,
+        pre=[],
+        post=[0x793b],
+        desc="""
+            Password check request.
+        """,
     )
     login_admin.s(0x793b, 'password check result',
         fixed=[
@@ -4388,6 +4478,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x793a],
+        post=[],
+        desc="""
+            Password check response.
+        """,
     )
     login_admin.r(0x793c, 'change sex request',
         fixed=[
@@ -4396,6 +4491,11 @@ def main():
             at(26, sex_char, 'sex'),
         ],
         fixed_size=27,
+        pre=[],
+        post=[0x793d],
+        desc="""
+            Modify sex request.
+        """,
     )
     login_admin.s(0x793d, 'change sex result',
         fixed=[
@@ -4404,6 +4504,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x793c],
+        post=[],
+        desc="""
+            Modify sex response.
+        """,
     )
     login_admin.r(0x793e, 'adjust gm level request',
         fixed=[
@@ -4412,6 +4517,11 @@ def main():
             at(26, gm1, 'gm level'),
         ],
         fixed_size=27,
+        pre=[],
+        post=[0x793f],
+        desc="""
+            Modify GM level request.
+        """,
     )
     login_admin.s(0x793f, 'adjust gm level result',
         fixed=[
@@ -4420,6 +4530,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x793e],
+        post=[],
+        desc="""
+            Modify GM level response.
+        """,
     )
     login_admin.r(0x7940, 'change email request',
         fixed=[
@@ -4428,6 +4543,11 @@ def main():
             at(26, account_email, 'email'),
         ],
         fixed_size=66,
+        pre=[],
+        post=[0x7941],
+        desc="""
+            Modify e-mail request.
+        """,
     )
     login_admin.s(0x7941, 'change email result',
         fixed=[
@@ -4436,6 +4556,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x7940],
+        post=[],
+        desc="""
+            Modify e-mail response.
+        """,
     )
     # this packet is insane
     login_admin.r(0x7942, 'change memo request',
@@ -4449,6 +4574,11 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
+        pre=[],
+        post=[0x7943],
+        desc="""
+            Modify memo request.
+        """,
     )
     login_admin.s(0x7943, 'change memo result',
         fixed=[
@@ -4457,6 +4587,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x7942],
+        post=[],
+        desc="""
+            Modify memo response.
+        """,
     )
     login_admin.r(0x7944, 'account id lookup request',
         fixed=[
@@ -4464,6 +4599,11 @@ def main():
             at(2, account_name, 'account name'),
         ],
         fixed_size=26,
+        pre=[],
+        post=[0x7945],
+        desc="""
+            Find account id request.
+        """,
     )
     login_admin.s(0x7945, 'account id lookup result',
         fixed=[
@@ -4472,6 +4612,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x7944],
+        post=[],
+        desc="""
+            Find account id response.
+        """,
     )
     login_admin.r(0x7946, 'account name lookup request',
         fixed=[
@@ -4479,6 +4624,11 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[],
+        post=[0x7947],
+        desc="""
+            Find account name request.
+        """,
     )
     login_admin.s(0x7947, 'account name lookup result',
         fixed=[
@@ -4487,6 +4637,11 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
+        pre=[0x7946],
+        post=[],
+        desc="""
+            Find account name response.
+        """,
     )
     login_admin.r(0x7948, 'validity absolute request',
         fixed=[
@@ -4495,6 +4650,11 @@ def main():
             at(26, time32, 'valid until'),
         ],
         fixed_size=30,
+        pre=[],
+        post=[0x7949],
+        desc="""
+            Validity limit change request.
+        """,
     )
     login_admin.s(0x7949, 'validity absolute result',
         fixed=[
@@ -4504,6 +4664,11 @@ def main():
             at(30, time32, 'valid until'),
         ],
         fixed_size=34,
+        pre=[0x7948],
+        post=[],
+        desc="""
+            Validity limit change response.
+        """,
     )
     login_admin.r(0x794a, 'ban absolute request',
         fixed=[
@@ -4512,6 +4677,11 @@ def main():
             at(26, time32, 'ban until'),
         ],
         fixed_size=30,
+        pre=[],
+        post=[0x794b, 0x2731],
+        desc="""
+            Ban date end change request.
+        """,
     )
     login_admin.s(0x794b, 'ban absolute result',
         fixed=[
@@ -4521,6 +4691,11 @@ def main():
             at(30, time32, 'ban until'),
         ],
         fixed_size=34,
+        pre=[0x794a],
+        post=[],
+        desc="""
+            Ban date end change response.
+        """,
     )
     login_admin.r(0x794c, 'ban relative request',
         fixed=[
@@ -4529,6 +4704,11 @@ def main():
             at(26, human_time_diff, 'ban add'),
         ],
         fixed_size=38,
+        pre=[],
+        post=[0x794d, 0x2731],
+        desc="""
+            Ban date end change request (2).
+        """,
     )
     login_admin.s(0x794d, 'ban relative result',
         fixed=[
@@ -4538,6 +4718,11 @@ def main():
             at(30, time32, 'ban until'),
         ],
         fixed_size=34,
+        pre=[0x794c],
+        post=[],
+        desc="""
+            Ban date end change response (2).
+        """,
     )
     # evil packet (see also 0x2726)
     login_admin.r(0x794e, 'broadcast message request',
@@ -4551,6 +4736,11 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
+        pre=[],
+        post=[0x794f, 0x2726],
+        desc="""
+            Send broadcast message request.
+        """,
     )
     login_admin.s(0x794f, 'broadcast message result',
         fixed=[
@@ -4558,6 +4748,11 @@ def main():
             at(2, u16, 'error'),
         ],
         fixed_size=4,
+        pre=[0x794e],
+        post=[],
+        desc="""
+            Send broadcast message response.
+        """,
     )
     login_admin.r(0x7950, 'validity relative request',
         fixed=[
@@ -4566,6 +4761,11 @@ def main():
             at(26, human_time_diff, 'valid add'),
         ],
         fixed_size=38,
+        pre=[],
+        post=[0x7951],
+        desc="""
+            Relative validity ilmit change request.
+        """,
     )
     login_admin.s(0x7951, 'validity relative result',
         fixed=[
@@ -4575,6 +4775,11 @@ def main():
             at(30, time32, 'valid until'),
         ],
         fixed_size=34,
+        pre=[0x7950],
+        post=[],
+        desc="""
+            Relative validity limit change response.
+        """,
     )
     login_admin.r(0x7952, 'account name info request',
         fixed=[
@@ -4582,6 +4787,11 @@ def main():
             at(2, account_name, 'account name'),
         ],
         fixed_size=26,
+        pre=[],
+        post=[0x7953],
+        desc="""
+            Account information by name request.
+        """,
     )
     # this packet is insane
     login_admin.s(0x7953, 'account info result',
@@ -4606,6 +4816,11 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
+        pre=[0x7952, 0x7954],
+        post=[],
+        desc="""
+            Account information by name or id response.
+        """,
     )
     login_admin.r(0x7954, 'account id info request',
         fixed=[
@@ -4613,12 +4828,22 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
+        pre=[],
+        post=[0x7953],
+        desc="""
+            Account information by id request.
+        """,
     )
     login_admin.r(0x7955, 'reload gm signal',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
+        pre=[],
+        post=[],
+        desc="""
+            Reload GM file request.
+        """,
     )
 
     ## new-style packets
