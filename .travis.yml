@@ -76,23 +76,23 @@ env:
 matrix:
   allow_failures:
     - compiler: clang
-      env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.2
+      env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE="clang-3.2 libstdc++6-4.6-dbg"
   exclude:
     - env: ignore=this
   include:
     - compiler: clang
-      env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.2
+      env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE="clang-3.2 libstdc++6-4.6-dbg"
     - compiler: clang
-      env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.3
+      env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE="clang-3.3 libstdc++6-4.6-dbg
     - compiler: clang
-      env: REAL_CC=clang-3.4 REAL_CXX=clang++-3.4 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.4
+      env: REAL_CC=clang-3.4 REAL_CXX=clang++-3.4 PPA=ppa:h-rayflood/llvm         PACKAGE="clang-3.4 libstdc++6-4.6-dbg
     - compiler: gcc
-      env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7
+      env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE="g++-4.7 libstdc++6-4.7-dbg"
     - compiler: gcc
-      env: REAL_CC=gcc-4.8   REAL_CXX=g++-4.8     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.8
+      env: REAL_CC=gcc-4.8   REAL_CXX=g++-4.8     PPA=ppa:ubuntu-toolchain-r/test PACKAGE="g++-4.8 libstdc++6-4.8-dbg"
 
     - compiler: gcc
-      env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7 EXTRA_CONFIGURE_ARGS=--disable-warnings
+      env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE="g++-4.7 libstdc++6-4.7-dbg" EXTRA_CONFIGURE_ARGS=--disable-warnings
 
 # everything that was pushed to stable was already on 'master', except
 # the version change and some doc changes.

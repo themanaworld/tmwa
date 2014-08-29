@@ -443,6 +443,11 @@ obj/gtest-all.pdc.o: ${GTEST_DIR}/src/gtest-all.cc
 obj/debug-debug/test.o: override CXXFLAGS += -g -O0
 obj/run-test-debug-debug.stamp: override TESTER=gdb -return-child-result -nx -batch -x ${SRC_DIR}/tools/debug-debug.gdb --args false
 obj/run-test-debug-debug.stamp: tools/debug-debug.gdb
+ifeq '$(findstring clang,${CXX})' 'clang'
+obj/run-test-debug-debug.stamp:
+	@echo "Error: sorry, but clang can't be used with gdb"
+	-false
+endif
 
 test: $(patsubst bin/%,obj/run-%.stamp,${TEST_BINARIES})
 obj/run-%.stamp: bin/%
