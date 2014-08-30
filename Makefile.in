@@ -440,7 +440,7 @@ obj/gtest-all.pdc.o: ${GTEST_DIR}/src/gtest-all.cc
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
-obj/debug-debug/test.o: override CXXFLAGS += -g -O0
+obj/debug-debug/test.pdc.o: override CXXFLAGS += -g -O0 -gdwarf-3
 obj/run-test-debug-debug.stamp: override TESTER=gdb -return-child-result -nx -batch -x ${SRC_DIR}/tools/debug-debug.gdb --args false
 obj/run-test-debug-debug.stamp: tools/debug-debug.gdb
 ifeq '$(findstring clang,${CXX})' 'clang'
