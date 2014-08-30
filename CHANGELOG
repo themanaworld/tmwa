@@ -1,3 +1,26 @@
+v14.8.29:
+  - fix testsuite
+  - add missing changelog
+v14.8.28:
+  - stop meko from crashing the test server
+  - support updating race without relogin (manaplus is still bitchy)
+  - build infrastructure to debug debug scripts
+  - bust up all the unions
+  - burn the strings with fire
+  - use more namespaces
+  - safety-pin all enum -> integer conversions
+  - check for statement/function mismatches in scripts
+  - quieten the makefile when doing nothing
+  - use/check more of the configured build dirs
+  - support shared libraries in build system and rpath
+  - bump attoconf
+  - implement 'make bindist' and write a blessed nightly script
+  - revert breakage, go back to signed numbers
+  - fix compile failure with --disable-warnings (the default, but no CI)
+v14.7.1:
+  - avoid this and the previous release at all costs
+  - keep one less rotating backup to avoid going insane
+  - attempt to fix signedness breakage from the network change
 v14.6.30:
   - packet names (thanks evets)
   - silence secondary output from tests
