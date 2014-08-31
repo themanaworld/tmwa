@@ -1515,6 +1515,11 @@ def main():
             at(30, u16, 'is new'),
         ],
         repeat_size=32,
+        pre=[0x0064],
+        post=[],
+        desc='''
+            
+        ''',
     )
     login_user.s(0x006a, 'login error',
         fixed=[
@@ -1523,6 +1528,11 @@ def main():
             at(3, seconds, 'error message'),
         ],
         fixed_size=23,
+        pre=[0x0064],
+        post=[],
+        desc='''
+            
+        ''',
     )
     char_user.s(0x006b, 'update character list',
         head=[
@@ -1760,7 +1770,7 @@ def main():
             at(2, u8, 'error code'),
         ],
         fixed_size=3,
-        pre=[0x0066, 0x2afe],
+        pre=[0x0066, 0x2afe, 0x0064],
         post=[],
         desc='''
             
@@ -3129,6 +3139,11 @@ def main():
             at(84, u16, 'is new'),
         ],
         fixed_size=86,
+        pre=[],
+        post=[0x2711],
+        desc='''
+            Tmwa-char connection request.
+        ''',
     )
     login_char.s(0x2711, 'add char server result',
         fixed=[
@@ -3136,6 +3151,11 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
+        pre=[0x2710],
+        post=[],
+        desc='''
+            Tmwa-char connection result.
+        ''',
     )
     login_char.r(0x2712, 'account auth request',
         fixed=[
@@ -4253,6 +4273,11 @@ def main():
             at(4, account_pass, 'account pass'),
         ],
         fixed_size=28,
+        pre=[],
+        post=[0x7919],
+        desc='''
+            ladmin connection request.
+        ''',
     )
     login_admin.s(0x7919, 'admin auth result',
         fixed=[
@@ -4260,6 +4285,11 @@ def main():
             at(2, u8, 'error'),
         ],
         fixed_size=3,
+        pre=[0x7918],
+        post=[],
+        desc='''
+            ladmin connection response.
+        ''',
     )
     login_admin.r(0x7920, 'account list request',
         fixed=[
