@@ -729,15 +729,15 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
     }
     sd->sc_count = 0;
     {
-        Option old_option = sd->status.option;
-        sd->status.option = Option::ZERO;
+        Opt0 old_option = sd->status.option;
+        sd->status.option = Opt0::ZERO;
 
         // This would leak information.
         // It's better to make it obvious that players can see you.
-        if (false && bool(old_option & Option::INVISIBILITY))
+        if (false && bool(old_option & Opt0::INVISIBILITY))
             is_atcommand(sd->sess, sd, "@invisible"_s, GmLevel());
 
-        if (bool(old_option & Option::HIDE))
+        if (bool(old_option & Opt0::HIDE))
             is_atcommand(sd->sess, sd, "@hide"_s, GmLevel());
         // atcommand_hide might already send it, but also might not
         clif_changeoption(sd);
@@ -2764,8 +2764,8 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     if (sd->opt1 != Opt1::ZERO)
         return;
 
-    Option *opt = battle_get_option(bl);
-    if (opt != nullptr && bool(*opt & Option::REAL_ANY_HIDE))
+    Opt0 *opt = battle_get_option(bl);
+    if (opt != nullptr && bool(*opt & Opt0::REAL_ANY_HIDE))
         return;
 
     if (!battle_config.skill_delay_attack_enable)
@@ -3266,7 +3266,7 @@ int pc_resetlvl(dumb_ptr<map_session_data> sd, int type)
         sd->status.job_level = 1;
         sd->status.base_exp = 0;
         sd->status.job_exp = 0;
-        sd->status.option = Option::ZERO;
+        sd->status.option = Opt0::ZERO;
 
         for (ATTR attr : ATTRs)
             sd->status.attrs[attr] = 1;
@@ -4047,7 +4047,7 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
  * 付属品(鷹,ペコ,カート)設定
  *------------------------------------------
  */
-int pc_setoption(dumb_ptr<map_session_data> sd, Option type)
+int pc_setoption(dumb_ptr<map_session_data> sd, Opt0 type)
 {
     nullpo_retz(sd);
 
@@ -5240,15 +5240,15 @@ void pc_cleanup(dumb_ptr<map_session_data> sd)
 
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)
 {
-    if (enabled && !bool(sd->status.option & Option::INVISIBILITY))
+    if (enabled && !bool(sd->status.option & Opt0::INVISIBILITY))
     {
         clif_clearchar(sd, BeingRemoveWhy::WARPED);
-        sd->status.option |= Option::INVISIBILITY;
+        sd->status.option |= Opt0::INVISIBILITY;
         clif_status_change(sd, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 1);
     }
     else if (!enabled)
     {
-        sd->status.option &= ~Option::INVISIBILITY;
+        sd->status.option &= ~Opt0::INVISIBILITY;
         clif_status_change(sd, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 0);
         pc_setpos(sd, sd->bl_m->name_, sd->bl_x, sd->bl_y, BeingRemoveWhy::WARPED);
     }

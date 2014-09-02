@@ -62,7 +62,7 @@ void pc_setdir(dumb_ptr<map_session_data> sd, DIR b)
 inline
 bool pc_isinvisible(dumb_ptr<map_session_data> sd)
 {
-    return bool(sd->status.option & Option::HIDE);
+    return bool(sd->status.option & Opt0::HIDE);
 }
 inline
 bool pc_is90overweight(dumb_ptr<map_session_data> sd)
@@ -145,7 +145,7 @@ int pc_damage(dumb_ptr<block_list>, dumb_ptr<map_session_data>, int);
 int pc_heal(dumb_ptr<map_session_data>, int, int);
 int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp);
 int pc_percentheal(dumb_ptr<map_session_data> sd, int, int);
-int pc_setoption(dumb_ptr<map_session_data>, Option);
+int pc_setoption(dumb_ptr<map_session_data>, Opt0);
 int pc_changelook(dumb_ptr<map_session_data>, LOOK, int);
 
 int pc_readparam(dumb_ptr<map_session_data>, SP);

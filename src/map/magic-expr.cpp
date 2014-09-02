@@ -1228,7 +1228,7 @@ int fun_running_status_update(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_status_option(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    *result = ValInt{(bool((ARGPC(0))->status.option & static_cast<Option>(ARGINT(1))))};
+    *result = ValInt{(bool((ARGPC(0))->status.option & static_cast<Opt0>(ARGINT(1))))};
     return 0;
 }
 

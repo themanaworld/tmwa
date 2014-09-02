@@ -40,7 +40,7 @@ namespace e
 {
 // [Fate] status.option properties.  These are persistent status changes.
 // IDs that are not listed are not used in the code (to the best of my knowledge)
-enum class Option : uint16_t
+enum class Opt0 : uint16_t
 {
     ZERO            = 0x0000,
 
@@ -88,11 +88,11 @@ enum class Opt3 : uint16_t
     _assumptio      = 0x0800,
 };
 
-ENUM_BITWISE_OPERATORS(Option)
+ENUM_BITWISE_OPERATORS(Opt0)
 ENUM_BITWISE_OPERATORS(Opt2)
 ENUM_BITWISE_OPERATORS(Opt3)
 }
-using e::Option;
+using e::Opt0;
 using e::Opt1;
 using e::Opt2;
 using e::Opt3;

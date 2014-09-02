@@ -305,7 +305,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
         if (bl->bl_type == BL::PC)
         {
             dumb_ptr<map_session_data> sd2 = bl->is_player();
-            if (bool(sd2->status.option & Option::INVISIBILITY))
+            if (bool(sd2->status.option & Opt0::INVISIBILITY))
             {
                 // Obscure hidden GMs
 
@@ -1000,7 +1000,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
     fixed_7c.speed = interval_t();
     fixed_7c.opt1 = Opt1::ZERO;
     fixed_7c.opt2 = Opt2::ZERO;
-    fixed_7c.option = Option::ZERO;
+    fixed_7c.option = Opt0::ZERO;
     fixed_7c.species = FAKE_NPC_CLASS;
     fixed_7c.pos.x = sd->bl_x;
     fixed_7c.pos.y = sd->bl_y;
@@ -1011,7 +1011,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
     fixed_78.speed = interval_t();
     fixed_78.opt1 = Opt1::ZERO;
     fixed_78.opt2 = Opt2::ZERO;
-    fixed_78.option = Option::ZERO;
+    fixed_78.option = Opt0::ZERO;
     fixed_78.species = FAKE_NPC_CLASS;
     fixed_78.unused_head_bottom_or_species_again = unwrap<Species>(FAKE_NPC_CLASS);
     fixed_78.pos.x = sd->bl_x;
@@ -1829,7 +1829,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
     if (bl->bl_type == BL::PC)
         sd = bl->is_player();
 
-    if (sd && bool(sd->status.option & Option::INVISIBILITY))
+    if (sd && bool(sd->status.option & Opt0::INVISIBILITY))
         return 0;
 
     if (sd
@@ -2072,7 +2072,7 @@ int clif_changeoption(dumb_ptr<block_list> bl)
 
     nullpo_retz(bl);
 
-    Option option = *battle_get_option(bl);
+    Opt0 option = *battle_get_option(bl);
     sc_data = battle_get_sc_data(bl);
 
     Packet_Fixed<0x0119> fixed_119;
@@ -2355,7 +2355,7 @@ static
 void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
                           dumb_ptr<map_session_data> dstsd)
 {
-    if (bool(dstsd->status.option & Option::INVISIBILITY))
+    if (bool(dstsd->status.option & Opt0::INVISIBILITY))
         return;
 
     nullpo_retv(sd);
@@ -3902,7 +3902,7 @@ RecvResult clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
     {
         case DamageType::NORMAL:
         case DamageType::CONTINUOUS:
-            if (bool(sd->status.option & Option::HIDE))
+            if (bool(sd->status.option & Opt0::HIDE))
                 return rv;
             if (!battle_config.skill_delay_attack_enable)
             {
@@ -4764,7 +4764,7 @@ RecvResult clif_parse_RemovePartyMember(Session *s, dumb_ptr<map_session_data> s
  *------------------------------------------
  */
 static
-RecvResult clif_parse_PartyChangeOption(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_PartyChangeOpt0(Session *s, dumb_ptr<map_session_data> sd)
 {
     Packet_Fixed<0x0102> fixed;
     RecvResult rv = recv_fpacket<0x0102, 6>(s, fixed);
@@ -5074,7 +5074,7 @@ func_table clif_parse_func_table[0x0220] =
     {0,     10, clif_parse_ReplyPartyInvite,    },  // 0x00ff
     {0,     2,  clif_parse_LeaveParty,          },  // 0x0100
     {0,     6,  nullptr,                        },  // 0x0101
-    {0,     6,  clif_parse_PartyChangeOption,   },  // 0x0102
+    {0,     6,  clif_parse_PartyChangeOpt0,     },  // 0x0102
     {0,     30, clif_parse_RemovePartyMember,   },  // 0x0103
     {0,     79, nullptr,                        },  // 0x0104
     {0,     31, nullptr,                        },  // 0x0105

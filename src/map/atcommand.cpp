@@ -645,7 +645,7 @@ ATCE atcommand_where(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = character.to__actual() ? map_nick2sd(character) : sd;
     if (pl_sd != nullptr &&
         !((battle_config.hide_GM_session
-           || bool(pl_sd->status.option & Option::HIDE))
+           || bool(pl_sd->status.option & Opt0::HIDE))
           && !(pc_isGM(sd).detects(pc_isGM(pl_sd)))))
     {
         // you can look only lower or same level
@@ -768,7 +768,7 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
             GmLevel pl_gm_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
-                  || bool(pl_sd->status.option & Option::HIDE))
+                  || bool(pl_sd->status.option & Opt0::HIDE))
                  && !(gm_level.detects(pl_gm_level))))
             {
                 // you can look only lower or same level
@@ -830,7 +830,7 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
             GmLevel pl_gm_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
-                  || bool(pl_sd->status.option & Option::HIDE))
+                  || bool(pl_sd->status.option & Opt0::HIDE))
                  && (!(gm_level.detects(pl_gm_level)))))
             {
                 // you can look only lower or same level
@@ -893,7 +893,7 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
             GmLevel pl_gm_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
-                  || bool(pl_sd->status.option & Option::HIDE))
+                  || bool(pl_sd->status.option & Opt0::HIDE))
                  && (!(gm_level.detects(pl_gm_level)))))
             {
                 // you can look only lower or same level
@@ -953,7 +953,7 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
             GmLevel pl_gm_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
-                  || bool(pl_sd->status.option & Option::HIDE))
+                  || bool(pl_sd->status.option & Opt0::HIDE))
                  && (!(gm_level.detects(pl_gm_level)))))
             {
                 // you can look only lower or same level
@@ -1014,7 +1014,7 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
             {
                 if (!
                     ((battle_config.hide_GM_session
-                      || bool(pl_sd->status.option & Option::HIDE))
+                      || bool(pl_sd->status.option & Opt0::HIDE))
                      && (!(gm_level.detects(pl_gm_level)))))
                 {
                     // you can look only lower or same level
@@ -1174,7 +1174,7 @@ ATCE atcommand_option(Session *s, dumb_ptr<map_session_data> sd,
 {
     Opt1 param1 = Opt1::ZERO;
     Opt2 param2 = Opt2::ZERO;
-    Option param3 = Option::ZERO;
+    Opt0 param3 = Opt0::ZERO;
 
     if (!extract(message, record<',', 1>(&param1, &param2, &param3)))
         return ATCE::USAGE;
@@ -1194,14 +1194,14 @@ static
 ATCE atcommand_hide(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    if (bool(sd->status.option & Option::HIDE))
+    if (bool(sd->status.option & Opt0::HIDE))
     {
-        sd->status.option &= ~Option::HIDE;
+        sd->status.option &= ~Opt0::HIDE;
         clif_displaymessage(s, "Invisible: Off."_s);
     }
     else
     {
-        sd->status.option |= Option::HIDE;
+        sd->status.option |= Opt0::HIDE;
         clif_displaymessage(s, "Invisible: On."_s);
     }
     clif_changeoption(sd);
@@ -2257,7 +2257,7 @@ ATCE atcommand_character_option(Session *s, dumb_ptr<map_session_data> sd,
 {
     Opt1 opt1;
     Opt2 opt2;
-    Option opt3;
+    Opt0 opt3;
     CharName character;
     if (!asplit(message, &opt1, &opt2, &opt3, &character))
         return ATCE::USAGE;

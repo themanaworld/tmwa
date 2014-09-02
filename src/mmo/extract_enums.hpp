@@ -33,7 +33,7 @@ enum class EPOS : uint16_t;
 enum class MobMode : uint16_t;
 enum class Opt1 : uint16_t;
 enum class Opt2 : uint16_t;
-enum class Option : uint16_t;
+enum class Opt0 : uint16_t;
 
 inline
 bool extract(XString str, EPOS *iv) { return extract_as_int(str, iv); }
@@ -44,7 +44,7 @@ bool extract(XString str, Opt1 *iv) { return extract_as_int(str, iv); }
 inline
 bool extract(XString str, Opt2 *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, Option *iv) { return extract_as_int(str, iv); }
+bool extract(XString str, Opt0 *iv) { return extract_as_int(str, iv); }
 }
 
 enum class ItemLook : uint16_t;

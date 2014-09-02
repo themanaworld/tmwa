@@ -71,7 +71,7 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 {
     if (pc_isdead(caster))
         return 0;
-    if (bool(caster->status.option & Option::HIDE))
+    if (bool(caster->status.option & Opt0::HIDE))
         return 0;           // No spellcasting while hidden
 
     int power = caster->matk1;

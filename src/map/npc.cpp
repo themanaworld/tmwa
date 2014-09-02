@@ -1043,7 +1043,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
     else
         nd->npc_class = WARP_DEBUG_CLASS;
     nd->speed = 200_ms;
-    nd->option = Option::ZERO;
+    nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
@@ -1158,7 +1158,7 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
     nd->name = w3;
     nd->npc_class = npc_class;
     nd->speed = 200_ms;
-    nd->option = Option::ZERO;
+    nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
@@ -1340,7 +1340,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     nd->npc_class = npc_class;
     nd->speed = 200_ms;
     nd->scr.script = std::move(script);
-    nd->option = Option::ZERO;
+    nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;

@@ -66,14 +66,14 @@ enum class SkillFlags : uint16_t;
 }
 using e::SkillFlags;
 
-// Option and Opt1..3 in map.hpp
+// Opt0 and Opt1..3 in map.hpp
 namespace e
 {
-enum class Option : uint16_t;
-constexpr Option get_enum_min_value(Option) { return Option(0x0000); }
-constexpr Option get_enum_max_value(Option) { return Option(0xffff); }
+enum class Opt0 : uint16_t;
+constexpr Opt0 get_enum_min_value(Opt0) { return Opt0(0x0000); }
+constexpr Opt0 get_enum_max_value(Opt0) { return Opt0(0xffff); }
 }
-using e::Option;
+using e::Opt0;
 
 enum class ATTR
 {

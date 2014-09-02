@@ -1182,7 +1182,7 @@ int mob_spawn(BlockId id)
     md->opt1 = Opt1::ZERO;
     md->opt2 = Opt2::ZERO;
     md->opt3 = Opt3::ZERO;
-    md->option = Option::ZERO;
+    md->option = Opt0::ZERO;
 
     md->hp = battle_get_max_hp(md);
     if (md->hp <= 0)
@@ -1342,7 +1342,7 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
     nullpo_retz(bl);
 
     sc_data = battle_get_sc_data(bl);
-    Option *option = battle_get_option(bl);
+    Opt0 *option = battle_get_option(bl);
     Race race = get_mob_db(md->mob_class).race;
 
     if (md->mode == MobMode::ZERO)

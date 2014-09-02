@@ -105,7 +105,7 @@ short *battle_get_sc_count(dumb_ptr<block_list> bl);
 Opt1 *battle_get_opt1(dumb_ptr<block_list> bl);
 Opt2 *battle_get_opt2(dumb_ptr<block_list> bl);
 Opt3 *battle_get_opt3(dumb_ptr<block_list> bl);
-Option *battle_get_option(dumb_ptr<block_list> bl);
+Opt0 *battle_get_option(dumb_ptr<block_list> bl);
 
 bool battle_check_undead(Race race, Element element);
 int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,

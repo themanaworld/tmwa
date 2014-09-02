@@ -2966,7 +2966,7 @@ void builtin_getmapusers(ScriptState *st)
 static
 void builtin_getareausers_sub(dumb_ptr<block_list> bl, int *users)
 {
-    if (bool(bl->is_player()->status.option & Option::HIDE))
+    if (bool(bl->is_player()->status.option & Opt0::HIDE))
         return;
     (*users)++;
 }
@@ -2974,7 +2974,7 @@ void builtin_getareausers_sub(dumb_ptr<block_list> bl, int *users)
 static
 void builtin_getareausers_living_sub(dumb_ptr<block_list> bl, int *users)
 {
-    if (bool(bl->is_player()->status.option & Option::HIDE))
+    if (bool(bl->is_player()->status.option & Opt0::HIDE))
         return;
     if (!pc_isdead(bl->is_player()))
         (*users)++;

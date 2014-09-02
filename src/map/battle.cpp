@@ -930,7 +930,7 @@ Opt3 *battle_get_opt3(dumb_ptr<block_list> bl)
     return nullptr;
 }
 
-Option *battle_get_option(dumb_ptr<block_list> bl)
+Opt0 *battle_get_option(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
     if (bl->bl_type == BL::MOB)

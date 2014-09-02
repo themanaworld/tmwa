@@ -1283,7 +1283,7 @@ void send_users_tochar(TimerData *, tick_t)
         if (sd && sd->state.auth &&
             !((battle_config.hide_GM_session
                || sd->state.shroud_active
-               || bool(sd->status.option & Option::HIDE)) && pc_isGM(sd)))
+               || bool(sd->status.option & Opt0::HIDE)) && pc_isGM(sd)))
         {
             Packet_Repeat<0x2aff> info;
             info.char_id = sd->status_key.char_id;

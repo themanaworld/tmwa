@@ -807,7 +807,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     cd.sp = cd.max_sp;
     cd.status_point = 0;
     cd.skill_point = 0;
-    cd.option = static_cast<Option>(0x0000); // Option is only declared
+    cd.option = static_cast<Opt0>(0x0000); // Opt0 is only declared
     cd.karma = 0;
     cd.manner = 0;
     cd.party_id = PartyId();
@@ -2608,7 +2608,7 @@ void parse_char(Session *s)
                 fixed_6d.char_select.gloves = ItemNameId();
                 fixed_6d.char_select.cape = ItemNameId();
                 fixed_6d.char_select.misc1 = ItemNameId();
-                fixed_6d.char_select.option = Option();
+                fixed_6d.char_select.option = Opt0();
                 fixed_6d.char_select.unused = 0;
 
                 // this was buggy until the protocol became generated

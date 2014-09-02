@@ -355,7 +355,7 @@ struct npc_data : block_list
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;
-    Option option;
+    Opt0 option;
     short flag;
 
     std::list<RString> eventqueuel;
@@ -482,7 +482,7 @@ struct mob_data : block_list
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;
-    Option option;
+    Opt0 option;
     short min_chase;
     Timer deletetimer;
 

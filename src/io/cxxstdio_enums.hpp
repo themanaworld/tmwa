@@ -32,7 +32,7 @@ namespace e
 enum class BF : uint16_t;
 enum class EPOS : uint16_t;
 enum class MapCell : uint8_t;
-enum class Option : uint16_t;
+enum class Opt0 : uint16_t;
 
 inline
 auto decay_for_printf(BF v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
@@ -41,7 +41,7 @@ auto decay_for_printf(EPOS v) -> typename remove_enum<decltype(v)>::type { retur
 inline
 auto decay_for_printf(MapCell v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
-auto decay_for_printf(Option v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+auto decay_for_printf(Opt0 v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 }
 
 namespace magic

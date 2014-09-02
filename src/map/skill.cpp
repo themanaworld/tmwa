@@ -713,7 +713,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int opt_flag = 0, calc_flag = 0;
     short *sc_count;
-    Option *option;
+    Opt0 *option;
     Opt1 *opt1;
     Opt2 *opt2;
     Opt3 *opt3;
@@ -937,7 +937,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     dumb_ptr<map_session_data> sd = nullptr;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short *sc_count;
-    Option *option;
+    Opt0 *option;
     Opt1 *opt1;
     Opt2 *opt2;
     Opt3 *opt3;
@@ -1111,7 +1111,7 @@ int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short *sc_count;
-    Option *option;
+    Opt0 *option;
     Opt1 *opt1;
     Opt2 *opt2;
     Opt3 *opt3;
@@ -1142,7 +1142,7 @@ int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
     *opt1 = Opt1::ZERO;
     *opt2 = Opt2::ZERO;
     *opt3 = Opt3::ZERO;
-    *option = Option::ZERO;
+    *option = Opt0::ZERO;
 
     if (type == 0 || type & 2)
         clif_changeoption(bl);

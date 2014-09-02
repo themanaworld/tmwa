@@ -885,7 +885,7 @@ def main():
     Little64 = endians_h.network('Little64')
 
     SEX = enums_h.native('SEX')
-    Option = enums_h.native('Option')
+    Opt0 = enums_h.native('Opt0')
     EPOS = enums_h.native('EPOS')
     ItemLook = enums_h.native('ItemLook')
 
@@ -997,7 +997,7 @@ def main():
     interval16 = ctx.provided(interval_t, Little16)
 
     sex = ctx.enum(SEX, u8)
-    option = ctx.enum(Option, u16)
+    option = ctx.enum(Opt0, u16)
     epos = ctx.enum(EPOS, u16)
     item_look = ctx.enum(ItemLook, u16)
 
