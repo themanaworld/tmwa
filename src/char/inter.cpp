@@ -369,6 +369,7 @@ RecvResult mapif_parse_WisReply(Session *tms)
     CharName from = smcs->key.name;
     Session *sms = server_for(smcs);
 
+    if (sms)
     {
         mapif_wis_end(sms, from, flag);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
     }

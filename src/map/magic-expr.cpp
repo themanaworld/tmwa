@@ -1339,7 +1339,7 @@ int fun_dir_towards(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     dx = ARGLOCATION(1).x - ARGLOCATION(0).x;
     dy = ARGLOCATION(1).y - ARGLOCATION(0).y;
 
-    if (ARGINT(1))
+    if (ARGINT(2))
     {
         /* 8-direction mode */
         if (abs(dx) > abs(dy) * 2)
