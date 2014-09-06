@@ -1382,7 +1382,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
                     if (recipient->npc_id
                         && recipient->npc_id != invocation_->bl_id)
-                        break;  /* Don't send multiple message boxes at once */
+                        goto break_match;  /* Don't send multiple message boxes at once */
 
                     if (!invocation_->script_pos)    // first time running this script?
                         clif_spawn_fake_npc_for_player(recipient,
@@ -1438,6 +1438,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
             }
         }
 
+    break_match:
         if (!next)
             next = return_to_stack(invocation_);
 
