@@ -2955,6 +2955,21 @@ def main():
         ],
         fixed_size=16,
     )
+    map_user.s(0x0225, 'being move 3',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, block_id, 'id'),
+            at(8, interval16, 'speed'),
+            at(10, u16, 'x position'),
+            at(12, u16, 'y position'),
+        ],
+        head_size=14,
+        repeat=[
+            at(0, u8, 'move'),
+        ],
+        repeat_size=1,
+    )
 
     # login char
     login_char.r(0x2709, 'reload gm accounts request',
