@@ -36,6 +36,7 @@
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
 #include "../io/write.hpp"
 
 #include "../net/ip.hpp"
@@ -885,6 +886,36 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
     buf = create_fpacket<0x007b, 60>(fixed_7b);
 }
 
+/*==========================================
+ * THIS IS A ****ING TEST
+ * -----------------------------------------
+ */
+int clif_0225_being_move3(dumb_ptr<mob_data> md)
+{
+    //nullpo_retz(sd);
+
+    //Session *s = sd->sess;
+
+    Packet_Head<0x0225> head_225;
+    std::vector<Packet_Repeat<0x0225>> repeat_225;
+
+    head_225.magic_packet_length = md->walkpath.path_len + 14;
+    head_225.id = md->bl_id;
+    head_225.speed = battle_get_speed(md);
+    head_225.x_position = md->bl_x;
+    head_225.y_position = md->bl_y;
+    for (int i = 0; i <  md->walkpath.path_len; i++)
+    {
+        Packet_Repeat<0x0225> move_225;
+        move_225.move = uint8_t (md->walkpath.path[i]);
+        repeat_225.push_back(move_225);
+    }
+
+    Buffer buf = create_vpacket<0x0225, 14, 1>(head_225, repeat_225);
+    clif_send(buf, md, SendWho::AREA);
+
+    return 0;
+}
 /*==========================================
  *
  *------------------------------------------
@@ -2408,6 +2439,7 @@ int clif_movemob(dumb_ptr<mob_data> md)
     Buffer buf;
     clif_mob007b(md, buf);
     clif_send(buf, md, SendWho::AREA);
+    clif_0225_being_move3(md);
 
     return 0;
 }
@@ -3696,6 +3728,7 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
             send_fpacket<0x0095, 30>(s, fixed_95);
         }
             break;
+        // case BL::SPELL
         default:
             if (battle_config.error_log)
                 PRINTF("clif_parse_GetCharNameRequest : bad type %d (%d)\n"_fmt,
@@ -3731,7 +3764,7 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
     if (is_atcommand(s, sd, mbuf, GmLevel()))
         return rv;
 
-    if (!magic_message(sd, mbuf))
+    if (!magic::magic_message(sd, mbuf))
     {
         /* Don't send chat that results in an automatic ban. */
         if (tmw_CheckChatSpam(sd, mbuf))
@@ -4095,7 +4128,7 @@ RecvResult clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
         return rv;                 // too far away to pick up
 
     if (sd->state.shroud_active && sd->state.shroud_disappears_on_pickup)
-        magic_unshroud(sd);
+        magic::magic_unshroud(sd);
 
     pc_takeitem(sd, fitem);
 

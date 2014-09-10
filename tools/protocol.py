@@ -451,18 +451,16 @@ class Include(object):
 
 
 class FixedPacket(object):
-    __slots__ = ('fixed_struct', 'comment')
+    __slots__ = ('fixed_struct')
 
-    def __init__(self, fixed_struct, comment):
+    def __init__(self, fixed_struct):
         self.fixed_struct = fixed_struct
-        self.comment = comment
 
     def dump_fwd(self, fwd):
         self.fixed_struct.dump_fwd(fwd)
         fwd.write('\n')
 
     def dump_native(self, f):
-        f.write(self.comment)
         self.fixed_struct.dump_native(f)
         f.write('\n')
 
@@ -475,12 +473,11 @@ class FixedPacket(object):
         f.write('\n')
 
 class VarPacket(object):
-    __slots__ = ('head_struct', 'repeat_struct', 'comment')
+    __slots__ = ('head_struct', 'repeat_struct')
 
-    def __init__(self, head_struct, repeat_struct, comment):
+    def __init__(self, head_struct, repeat_struct):
         self.head_struct = head_struct
         self.repeat_struct = repeat_struct
-        self.comment = comment
 
     def dump_fwd(self, fwd):
         self.head_struct.dump_fwd(fwd)
@@ -488,7 +485,6 @@ class VarPacket(object):
         fwd.write('\n')
 
     def dump_native(self, f):
-        f.write(self.comment)
         self.head_struct.dump_native(f)
         self.repeat_struct.dump_native(f)
         f.write('\n')
@@ -503,72 +499,38 @@ class VarPacket(object):
         self.repeat_struct.dump_convert(f)
         f.write('\n')
 
-def sanitize_line(line, n):
-    if not line:
-        return line
-    m = len(line) - len(line.lstrip(' '))
-    assert m >= n, 'not %d: %r' % (n, line)
-    return line[n:]
-
-def sanitize_multiline(text):
-    text = text.strip('\n').rstrip(' ')
-    assert '\r' not in text
-    assert '\t' not in text
-    n = len(text) - len(text.lstrip(' '))
-    return '\n'.join(sanitize_line(l, n) for l in text.split('\n'))
-
 def packet(id, name,
         fixed=None, fixed_size=None,
         payload=None, payload_size=None,
         head=None, head_size=None,
         repeat=None, repeat_size=None,
         option=None, option_size=None,
-        pre=None, post=None, desc=None,
 ):
     assert (fixed is None) <= (fixed_size is None)
     assert (payload is None) <= (payload_size is None)
     assert (head is None) <= (head_size is None)
     assert (repeat is None) <= (repeat_size is None)
     assert (option is None) <= (option_size is None)
-    assert (pre is None) == (post is None) == (not desc)
-
-    comment = 'Packet 0x%04x: "%s"\n' % (id, name)
-    if desc:
-        desc = sanitize_multiline(desc)
-        pre = ', '.join('packet 0x%04x' % x for x in pre) or 'none'
-        post = ', '.join('packet 0x%04x' % x for x in post) or 'none'
-        comment += 'pre:  ' + pre + '\n'
-        comment += 'post: ' + post + '\n'
-        comment += desc
-    comment = ''.join('// ' + c + '\n' if c else '//\n' for c in comment.split('\n'))
 
     if fixed is not None:
         assert not head and not repeat and not option and not payload
         return FixedPacket(
-                StructType(id, 'Packet_Fixed<0x%04x>' % id, fixed, fixed_size),
-                comment=comment,
-        )
+                StructType(id, 'Packet_Fixed<0x%04x>' % id, fixed, fixed_size))
     elif payload is not None:
         assert not head and not repeat and not option
         return FixedPacket(
-                StructType(id, 'Packet_Payload<0x%04x>' % id, payload, payload_size),
-                comment=comment,
-        )
+                StructType(id, 'Packet_Payload<0x%04x>' % id, payload, payload_size))
     else:
         assert head
         if option:
             return VarPacket(
                     StructType(id, 'Packet_Head<0x%04x>' % id, head, head_size),
-                    StructType(id, 'Packet_Option<0x%04x>' % id, option, option_size),
-                    comment=comment,
-            )
+                    StructType(id, 'Packet_Option<0x%04x>' % id, option, option_size))
         else:
             assert repeat
             return VarPacket(
                     StructType(id, 'Packet_Head<0x%04x>' % id, head, head_size),
-                    StructType(id, 'Packet_Repeat<0x%04x>' % id, repeat, repeat_size),
-                    comment=comment,
-            )
+                    StructType(id, 'Packet_Repeat<0x%04x>' % id, repeat, repeat_size))
 
 
 class Channel(object):
@@ -1379,11 +1341,6 @@ def main():
             at(26, account_pass, 'new pass'),
         ],
         fixed_size=50,
-        pre=[],
-        post=[0x2740],
-        desc='''
-            Sent by a client to the character server to request a password change.
-        ''',
     )
     char_user.s(0x0062, 'change password response',
         fixed=[
@@ -1391,17 +1348,6 @@ def main():
             at(2, u8, 'status'),
         ],
         fixed_size=3,
-        pre=[0x2741],
-        post=[],
-        desc='''
-            Sent by the character server with the response of a password change request.
-
-            Status:
-                0: The account was not found.
-                1: Success.
-                2: The old password was incorrect.
-                3: The new password was too short.
-        ''',
     )
     login_user.r(0x0063, 'update host',
         head=[
@@ -1411,13 +1357,6 @@ def main():
         head_size=4,
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
-        pre=[0x0064],
-        post=[],
-        desc='''
-            This packet gives the client the location of the update server URL, such as http://tmwdata.org/updates/
-
-            It is only sent if an update host is specified for the server (there is one in the default configuration) and the client identifies as accepting an update host (which all supported clients do).
-        ''',
     )
     login_user.r(0x0064, 'login request',
         fixed=[
@@ -1428,15 +1367,8 @@ def main():
             at(54, version_2, 'version 2 flags'),
         ],
         fixed_size=55,
-        pre=[0x7531],
-        post=[0x006a, 0x0081, 0x0063, 0x0069],
-        desc='''
-            Registers login credentials.
-
-            All clients must now set both defined version 2 flags.
-        ''',
     )
-    char_user.r(0x0065, 'tmwa-char connection request',
+    char_user.r(0x0065, 'char-server connection request',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -1446,11 +1378,6 @@ def main():
             at(16, sex, 'sex'),
         ],
         fixed_size=17,
-        pre=[],
-        post=[0x8000, 0x2716, 0x006c, 0x2712, 0x006b],
-        desc='''
-            Connect request from client.
-        ''',
     )
     char_user.r(0x0066, 'select character request',
         fixed=[
@@ -1458,11 +1385,6 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
-        pre=[],
-        post=[0x0081, 0x0071],
-        desc='''
-            Request from cilent for character location and map server IP.
-        ''',
     )
     char_user.r(0x0067, 'create character request',
         fixed=[
@@ -1474,11 +1396,6 @@ def main():
             at(35, u16, 'hair style'),
         ],
         fixed_size=37,
-        pre=[],
-        post=[0x006d],
-        desc='''
-            Request from client to create a character.
-        ''',
     )
     char_user.r(0x0068, 'delete character request',
         fixed=[
@@ -1487,11 +1404,6 @@ def main():
             at(6, account_email, 'email'),
         ],
         fixed_size=46,
-        pre=[],
-        post=[0x006f, 0x0070, 0x2afe],
-        desc='''
-            Request from client to delete a character.
-        ''',
     )
     login_user.r(0x0069, 'login data',
         head=[
@@ -1515,11 +1427,6 @@ def main():
             at(30, u16, 'is new'),
         ],
         repeat_size=32,
-        pre=[0x0064],
-        post=[],
-        desc='''
-            
-        ''',
     )
     login_user.s(0x006a, 'login error',
         fixed=[
@@ -1528,11 +1435,6 @@ def main():
             at(3, seconds, 'error message'),
         ],
         fixed_size=23,
-        pre=[0x0064],
-        post=[],
-        desc='''
-            
-        ''',
     )
     char_user.s(0x006b, 'update character list',
         head=[
@@ -1545,11 +1447,6 @@ def main():
             at(0, char_select, 'char select'),
         ],
         repeat_size=106,
-        pre=[0x0065, 0x2713],
-        post=[],
-        desc='''
-            Send list of characters to client.
-        ''',
     )
     char_user.s(0x006c, 'login error',
         fixed=[
@@ -1557,15 +1454,6 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
-        pre=[0x0065, 0x2713],
-        post=[],
-        desc='''
-            Refuse connection.
-            
-            Status:
-                0: Overpopulated
-                0x42: Auth failed
-        ''',
     )
     char_user.s(0x006d, 'create character succeeded',
         fixed=[
@@ -1573,11 +1461,6 @@ def main():
             at(2, char_select, 'char select'),
         ],
         fixed_size=108,
-        pre=[0x0067],
-        post=[],
-        desc='''
-            Send new character information to client.
-        ''',
     )
     char_user.s(0x006e, 'create character failed',
         fixed=[
@@ -1591,11 +1474,6 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
-        pre=[0x0068],
-        post=[],
-        desc='''
-            Send deletion success to client.
-        ''',
     )
     char_user.s(0x0070, 'delete character failed',
         fixed=[
@@ -1603,11 +1481,6 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
-        pre=[0x0068],
-        post=[],
-        desc='''
-            Send deletion failure to client.
-        ''',
     )
     char_user.s(0x0071, 'char-map info',
         fixed=[
@@ -1618,13 +1491,8 @@ def main():
             at(26, u16, 'port'),
         ],
         fixed_size=28,
-        pre=[0x0066],
-        post=[],
-        desc='''
-            Send character location and IP to client.
-        ''',
     )
-    map_user.r(0x0072, 'tmwa-map connect',
+    map_user.r(0x0072, 'map server connect',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
@@ -1770,11 +1638,6 @@ def main():
             at(2, u8, 'error code'),
         ],
         fixed_size=3,
-        pre=[0x0066, 0x2afe, 0x0064],
-        post=[],
-        desc='''
-            
-        ''',
     )
     map_user.r(0x0085, 'change player destination',
         fixed=[
@@ -1885,11 +1748,6 @@ def main():
             at(26, u16, 'port'),
         ],
         fixed_size=28,
-        pre=[0x2b06],
-        post=[],
-        desc='''
-            Send notification of map server change to client.
-        ''',
     )
     map_user.r(0x0094, 'request being name',
         fixed=[
@@ -1936,11 +1794,6 @@ def main():
             at(2, u8, 'flag'),
         ],
         fixed_size=3,
-        pre=[0x3802],
-        post=[],
-        desc='''
-            Send Wisp/Page result to client.
-        ''',
     )
     map_user.s(0x009a, 'gm announcement',
         head=[
@@ -1952,11 +1805,6 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[0x3800],
-        post=[],
-        desc='''
-            Broadcast message.
-        ''',
     )
     map_user.r(0x009b, 'change player direction',
         fixed=[
@@ -2175,11 +2023,6 @@ def main():
             at(2, u8, 'one'),
         ],
         fixed_size=3,
-        pre=[0x0x2b03],
-        post=[],
-        desc='''
-            Send character select "OK" to client.
-        ''',
     )
     map_user.s(0x00b4, 'npc message',
         head=[
@@ -3112,6 +2955,21 @@ def main():
         ],
         fixed_size=16,
     )
+    map_user.s(0x0225, 'being move 3',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, block_id, 'id'),
+            at(8, interval16, 'speed'),
+            at(10, u16, 'x position'),
+            at(12, u16, 'y position'),
+        ],
+        head_size=14,
+        repeat=[
+            at(0, u8, 'move'),
+        ],
+        repeat_size=1,
+    )
 
     # login char
     login_char.r(0x2709, 'reload gm accounts request',
@@ -3119,11 +2977,6 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
-        pre=[0x2af7],
-        post=[0x2732],
-   	    desc='''
-            Request from tmwa-map via tmwa-char to reload GM accounts. (by Yor)
-        ''',
     )
     login_char.r(0x2710, 'add char server request',
         fixed=[
@@ -3139,11 +2992,6 @@ def main():
             at(84, u16, 'is new'),
         ],
         fixed_size=86,
-        pre=[],
-        post=[0x2711],
-        desc='''
-            Tmwa-char connection request.
-        ''',
     )
     login_char.s(0x2711, 'add char server result',
         fixed=[
@@ -3151,11 +2999,6 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
-        pre=[0x2710],
-        post=[],
-        desc='''
-            Tmwa-char connection result.
-        ''',
     )
     login_char.r(0x2712, 'account auth request',
         fixed=[
@@ -3167,11 +3010,6 @@ def main():
             at(15, ip4, 'ip'),
         ],
         fixed_size=19,
-        pre=[0x0065],
-        post=[0x2729, 0x2713],
-        desc='''
-            Request from tmwa-char to authenticate account.
-        ''',
     )
     login_char.s(0x2713, 'account auth result',
         fixed=[
@@ -3182,15 +3020,6 @@ def main():
             at(47, time32, 'connect until'),
         ],
         fixed_size=51,
-        pre=[0x2712],
-        post=[0x006c, 0x006b],
-        desc='''
-            Send account auth status to tmwa-char.
-            
-            Status:
-                0: good
-                1: bad
-        ''',
     )
     login_char.r(0x2714, 'online count',
         fixed=[
@@ -3198,11 +3027,6 @@ def main():
             at(2, u32, 'users'),
         ],
         fixed_size=6,
-        pre=[],
-        post=[],
-        desc='''
-            Receive number of users on tmwa-map (every few seconds.)
-        ''',
     )
     login_char.r(0x2716, 'email limit request',
         fixed=[
@@ -3210,11 +3034,6 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[0x0065],
-        post=[0x2717],
-        desc='''
-            Request from tmwa-char to obtain e-mail/time limit.
-        ''',
     )
     login_char.s(0x2717, 'email limit result',
         fixed=[
@@ -3224,11 +3043,6 @@ def main():
             at(46, time32, 'connect until'),
         ],
         fixed_size=50,
-        pre=[0x2716],
-        post=[],
-        desc='''
-            Send e-mail/time limite to tmwa-char.
-        ''',
     )
     # 0x2b0a
     login_char.r(0x2720, 'become gm request',
@@ -3240,11 +3054,6 @@ def main():
         head_size=8,
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
-        pre=[0x2b0a],
-        post=[0x2721],
-        desc='''
-            Request from tmwa-map via tmwa-char to give GM status to an account.
-        ''',
     )
     login_char.s(0x2721, 'become gm reply',
         fixed=[
@@ -3253,11 +3062,6 @@ def main():
             at(6, gm, 'gm level'),
         ],
         fixed_size=10,
-        pre=[0x2720],
-        post=[0x2b0b],
-        desc='''
-            Response to tmwa-char of accounts new GM status.
-        ''',
     )
     # 0x2b0c
     login_char.r(0x2722, 'account email change request',
@@ -3268,11 +3072,6 @@ def main():
             at(46, account_email, 'new email'),
         ],
         fixed_size=86,
-        pre=[0x2b0c],
-        post=[],
-        desc='''
-            Request from tmwa-map via tmwa-char to change account email.
-        ''',
     )
     login_char.s(0x2723, 'changesex reply',
         fixed=[
@@ -3281,11 +3080,6 @@ def main():
             at(6, sex, 'sex'),
         ],
         fixed_size=7,
-        pre=[0x272a],
-        post=[0x2b0d],
-        desc='''
-            Response from tmwa-login about account gender swap.
-        ''',
     )
     login_char.r(0x2724, 'block status',
         fixed=[
@@ -3294,11 +3088,6 @@ def main():
             at(6, u32, 'status'),
         ],
         fixed_size=10,
-        pre=[0x2b0e],
-        post=[0x2731],
-        desc='''
-            Request from tmwa-map via tmwa-char to block account.
-        ''',
     )
     login_char.r(0x2725, 'ban add',
         fixed=[
@@ -3307,11 +3096,6 @@ def main():
             at(6, human_time_diff, 'ban add'),
         ],
         fixed_size=18,
-        pre=[0x2b0e],
-        post=[0x2731],
-        desc='''
-            Request from tmwa-map via tmwa-char to ban account.
-        ''',
     )
     # evil packet, see also 0x794e
     login_admin.s(0x2726, 'broadcast',
@@ -3325,11 +3109,6 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[0x794e],
-        post=[0x3800],
-        desc="""
-            Broadcast message to all map servers.
-        """,
     )
     login_char.r(0x2727, 'change sex request',
         fixed=[
@@ -3337,11 +3116,6 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[0x2b0e],
-        post=[],
-        desc='''
-            Request from tmwa-map via tmwa-char to swap account gender.
-        ''',
     )
     # 0x2b10, 0x2b11
     for (id, cat) in [
@@ -3367,11 +3141,6 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[0x2b0e],
-        post=[0x2723],
-        desc='''
-            Request from tmwa-map via tmwa-char to unblock or unban and account.
-        ''',
     )
     login_char.s(0x2730, 'account deleted',
         fixed=[
@@ -3379,11 +3148,6 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[0x7932],
-        post=[0x2b13],
-        desc="""
-            Account deletion notification.
-        """,
     )
     login_char.s(0x2731, 'status or ban changed',
         fixed=[
@@ -3393,11 +3157,6 @@ def main():
             at(7, time32, 'status or ban until'),
         ],
         fixed_size=11,
-        pre=[0x2724, 0x2725, 0x794c, 0x794a],
-        post=[0x2b14],
-        desc='''
-            Response from tmwa-login about account ban/block status.
-        ''',
     )
     login_char.s(0x2732, 'gm account list',
         head=[
@@ -3410,11 +3169,6 @@ def main():
             at(4, gm1, 'gm level'),
         ],
         repeat_size=5,
-        pre=[0x2709],
-        post=[0x2b15],
-        desc='''
-            Send GM accounts to all character servers.
-        ''',
     )
     login_char.r(0x2740, 'change password request',
         fixed=[
@@ -3424,11 +3178,6 @@ def main():
             at(30, account_pass, 'new pass'),
         ],
         fixed_size=54,
-        pre=[0x0061],
-        post=[0x2741],
-        desc='''
-            Change password request from tmwa-char.
-        ''',
     )
     login_char.s(0x2741, 'change password reply',
         fixed=[
@@ -3437,11 +3186,6 @@ def main():
             at(6, u8, 'status'),
         ],
         fixed_size=7,
-        pre=[0x2740],
-        post=[0x0062],
-        desc='''
-            Password change response from tmwa-login.
-        ''',
     )
 
     # char map
@@ -3450,13 +3194,6 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
-        pre=[],
-        post=[0x2709],
-        desc='''
-            Request from tmwa-map to reload GM accounts.
-            
-            Transmission to tmwa-login. (by Yor)
-        ''',
     )
     char_map.r(0x2af8, 'add map server request',
         fixed=[
@@ -3468,11 +3205,6 @@ def main():
             at(58, u16, 'port'),
         ],
         fixed_size=60,
-        pre=[],
-        post=[0x2af9, 0x2b15],
-        desc='''
-            Attempt to connect from tmwa-map.
-        ''',
     )
     char_map.s(0x2af9, 'add map server result',
         fixed=[
@@ -3480,11 +3212,6 @@ def main():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
-        pre=[0x2af8],
-        post=[0x2afa],
-        desc='''
-            Acknowledgement to tmwa-map of connection.
-        ''',
     )
     # wtf duplicate v
     char_map.r(0x2afa, 'map list',
@@ -3497,11 +3224,6 @@ def main():
             at(0, map_name, 'map name'),
         ],
         repeat_size=16,
-        pre=[0x2af9],
-        post=[0x2afb, 0x2b04],
-        desc='''
-            Receive map names list from tmwa-map.
-        ''',
     )
     # wtf duplicate ^
     char_map.s(0x2afa, 'itemfrob',
@@ -3519,11 +3241,6 @@ def main():
             at(3, char_name, 'whisper name'),
         ],
         fixed_size=27,
-        pre=[0x2afa],
-        post=[],
-        desc='''
-            Acknowledgement to tmwa-map that map names list was received.
-        ''',
     )
     char_map.r(0x2afc, 'character auth request',
         fixed=[
@@ -3535,11 +3252,6 @@ def main():
             at(18, ip4, 'ip'),
         ],
         fixed_size=22,
-        pre=[],
-        post=[0x2afd, 0x2afe],
-        desc='''
-            Request from tmwa-map to authenticate an account.
-        ''',
     )
     char_map.s(0x2afd, 'character auth and data',
         payload=[
@@ -3553,11 +3265,6 @@ def main():
             at(None, char_data, 'char data'),
         ],
         payload_size=None,
-        pre=[0x2afc],
-        post=[0x3005],
-        desc='''
-            Send that account authentication succeeded.
-        ''',
     )
     char_map.s(0x2afe, 'character auth error',
         fixed=[
@@ -3565,11 +3272,6 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[0x0068, 0x2afc],
-        post=[0x0081],
-        desc='''
-            Send account id to tmwa-map for disconnection.
-        ''',
     )
     char_map.r(0x2aff, 'user list',
         head=[
@@ -3582,11 +3284,6 @@ def main():
             at(0, char_id, 'char id'),
         ],
         repeat_size=4,
-        pre=[],
-        post=[],
-        desc='''
-            Receive list of users from tmwa-map.
-        ''',
     )
     char_map.s(0x2b00, 'total users',
         fixed=[
@@ -3605,11 +3302,6 @@ def main():
             at(None, char_data, 'char data'),
         ],
         payload_size=None,
-        pre=[],
-        post=[],
-        desc='''
-            Receive character save information from tmwa-map.
-        ''',
     )
     char_map.r(0x2b02, 'char select req',
         fixed=[
@@ -3620,11 +3312,6 @@ def main():
             at(14, ip4, 'ip'),
         ],
         fixed_size=18,
-        pre=[],
-        post=[0x2b03],
-        desc='''
-            Receive character select information from tmwa-map.
-        ''',
     )
     char_map.s(0x2b03, 'char select res',
         fixed=[
@@ -3633,11 +3320,6 @@ def main():
             at(6, u8, 'unknown'),
         ],
         fixed_size=7,
-        pre=[0x2b02],
-        post=[0x00b3],
-        desc='''
-            Send character select "OK" to tmwa-map.
-        ''',
     )
     char_map.s(0x2b04, 'map list broadcast',
         head=[
@@ -3651,11 +3333,6 @@ def main():
             at(0, map_name, 'map name'),
         ],
         repeat_size=16,
-        pre=[0x2afa],
-        post=[],
-        desc='''
-            Send map information to all map servers.
-        ''',
     )
     char_map.r(0x2b05, 'change map server request',
         fixed=[
@@ -3673,11 +3350,6 @@ def main():
             at(45, ip4, 'client ip'),
         ],
         fixed_size=49,
-        pre=[],
-        post=[0x2b06],
-        desc='''
-            Request from tmwa-map to change map server.
-        ''',
     )
     char_map.s(0x2b06, 'change map server ack',
         fixed=[
@@ -3693,11 +3365,6 @@ def main():
             at(42, u16, 'map port'),
         ],
         fixed_size=44,
-        pre=[0x2b05],
-        post=[0x0092],
-        desc='''
-            Send acknowledgement of map server change to tmwa-map. 
-        ''',
     )
     # 0x2720
     char_map.r(0x2b0a, 'become gm request',
@@ -3709,11 +3376,6 @@ def main():
         head_size=8,
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
-        pre=[],
-        post=[0x2720, 0x2b0b],
-        desc='''
-            Request from tmwa-map to give GM status to an account.
-        ''',
     )
     char_map.s(0x2b0b, 'become gm result',
         fixed=[
@@ -3722,11 +3384,6 @@ def main():
             at(6, gm, 'gm level'),
         ],
         fixed_size=10,
-        pre=[0x2b0a],
-        post=[],
-        desc='''
-            Send notification of accounts GM level to tmwa-map.
-        ''',
     )
     # 0x2722
     char_map.r(0x2b0c, 'change email request',
@@ -3737,11 +3394,6 @@ def main():
             at(46, account_email, 'new email'),
         ],
         fixed_size=86,
-        pre=[],
-        post=[0x2722],
-        desc='''
-            Request from tmwa-map to change account email.
-        ''',
     )
     char_map.s(0x2b0d, 'sex changed notify',
         fixed=[
@@ -3750,11 +3402,6 @@ def main():
             at(6, sex, 'sex'),
         ],
         fixed_size=7,
-        pre=[0x2723],
-        post=[],
-        desc='''
-            Response from tmwa-login via tmwa-char about account gender swap.
-        ''',
     )
     char_map.r(0x2b0e, 'named char operation request',
         fixed=[
@@ -3765,11 +3412,6 @@ def main():
             at(32, human_time_diff, 'ban add'),
         ],
         fixed_size=44,
-        pre=[],
-        post=[0x2724, 0x2725, 0x272a, 0x2727, 0x2b0f],
-        desc='''
-            Request from tmwa-map to change account ban status or gender.
-        ''',
     )
     char_map.r(0x2b0f, 'named char operation answer',
         fixed=[
@@ -3780,11 +3422,6 @@ def main():
             at(32, u16, 'error'),
         ],
         fixed_size=34,
-        pre=[0x2b0e],
-        post=[],
-        desc='''
-            Reqponse from tmwa-char about changing account ban/block status or gender.
-        ''',
     )
     # 0x2728, 0x2729
     for (id, cat) in [
@@ -3811,11 +3448,6 @@ def main():
             at(6, char_id, 'partner id'),
         ],
         fixed_size=10,
-        pre=[0x2b12],
-        post=[],
-        desc='''
-            Send notification of character divorce status to tmwa-map.
-        ''',
     )
     char_map.s(0x2b13, 'account delete notify',
         fixed=[
@@ -3823,11 +3455,6 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[0x7930],
-        post=[],
-        desc="""
-            Disconnect player due to deletion.
-        """,
     )
     char_map.s(0x2b14, 'status or ban notify',
         fixed=[
@@ -3837,11 +3464,6 @@ def main():
             at(7, time32, 'status or ban until'),
         ],
         fixed_size=11,
-        pre=[0x2731],
-        post=[],
-        desc='''
-            Response from tmwa-login via tmwa-char about account ban/block status.
-        ''',
     )
     char_map.s(0x2b15, 'gm account list notify',
         head=[
@@ -3854,11 +3476,6 @@ def main():
             at(4, gm1, 'gm level'),
         ],
         repeat_size=5,
-        pre=[0x2732, 0x2af8],
-        post=[],
-        desc='''
-            Send GM accounts to all map servers.
-        ''',
     )
     char_map.r(0x2b16, 'divorce request',
         fixed=[
@@ -3866,11 +3483,6 @@ def main():
             at(2, char_id, 'char id'),
         ],
         fixed_size=6,
-        pre=[],
-        post=[0x2b12],
-        desc='''
-            Request from tmwa-map to divorce a character.
-        ''',
     )
 
     char_map.r(0x3000, 'gm broadcast',
@@ -3883,11 +3495,6 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[],
-        post=[0x3800],
-        desc='''
-            Receive message for all GMs from tmwa-map.
-        ''',
     )
     char_map.r(0x3001, 'whisper forward',
         head=[
@@ -3901,11 +3508,6 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[0x3001],
-        post=[0x3802],
-        desc='''
-            Receive Wisp/Page from tmwa-map to retransmit.
-        ''',
     )
     char_map.r(0x3002, 'whisper forward result',
         fixed=[
@@ -3949,11 +3551,6 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[0x2afd],
-        post=[0x3804],
-        desc='''
-            Request accountreg from tmwa-char.
-        ''',
     )
     char_map.r(0x3010, 'want storage',
         fixed=[
@@ -4062,11 +3659,6 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[0x3800, 0x2726],
-        post=[0x009a],
-        desc='''
-            Broadcast message.
-        ''',
     )
     char_map.s(0x3801, 'whisper forward',
         head=[
@@ -4089,11 +3681,6 @@ def main():
             at(26, u8, 'flag'),
         ],
         fixed_size=27,
-        pre=[0x3001],
-        post=[],
-        desc='''
-            Send Wisp/Page result to tmwa-char.
-        ''',
     )
     # 0x3003
     char_map.s(0x3803, 'whisper gm',
@@ -4122,11 +3709,6 @@ def main():
             at(32, u32, 'value'),
         ],
         repeat_size=36,
-        pre=[0x3005],
-        post=[],
-        desc='''
-            Send account reg status to tmwa-map.
-        ''',
     )
     char_map.s(0x3810, 'load storage',
         payload=[
@@ -4235,11 +3817,6 @@ def main():
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
-        pre=[],
-        post=[0x7531],
-        desc='''
-            Request from client or ladmin for server version.
-        ''',
     )
     any_user.s(0x7531, 'version reply',
         fixed=[
@@ -4247,22 +3824,12 @@ def main():
             at(2, version, 'version'),
         ],
         fixed_size=10,
-        pre=[0x7530],
-        post=[],
-        desc='''
-            Response to client's request for server version.
-        ''',
     )
-    any_user.r(0x7532, 'End of connection',
+    any_user.r(0x7532, 'shutdown please',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
-        pre=[],
-        post=[],
-        desc='''
-            Request from client or ladmin to disconnect.
-        ''',
     )
 
     # login admin
@@ -4273,11 +3840,6 @@ def main():
             at(4, account_pass, 'account pass'),
         ],
         fixed_size=28,
-        pre=[],
-        post=[0x7919],
-        desc='''
-            ladmin connection request.
-        ''',
     )
     login_admin.s(0x7919, 'admin auth result',
         fixed=[
@@ -4285,11 +3847,6 @@ def main():
             at(2, u8, 'error'),
         ],
         fixed_size=3,
-        pre=[0x7918],
-        post=[],
-        desc='''
-            ladmin connection response.
-        ''',
     )
     login_admin.r(0x7920, 'account list request',
         fixed=[
@@ -4298,11 +3855,6 @@ def main():
             at(6, account_id, 'end account id'),
         ],
         fixed_size=10,
-        pre=[],
-        post=[0x7921],
-        desc="""
-            Request accounts list.
-        """,
     )
     login_admin.s(0x7921, 'account list reply',
         head=[
@@ -4319,11 +3871,6 @@ def main():
             at(34, u32, 'status'),
         ],
         repeat_size=38,
-        pre=[0x7920],
-        post=[],
-        desc="""
-            Account list response.
-        """,
     )
     login_admin.r(0x7924, 'itemfrob',
         fixed=[
@@ -4332,22 +3879,12 @@ def main():
             at(6, item_name_id4, 'dest item id'),
         ],
         fixed_size=10,
-        pre=[],
-        post=[0x7925],
-        desc="""
-            Frobnicate item.
-        """,
     )
     login_admin.s(0x7925, 'itemfrob ok',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
-        pre=[0x7924],
-        post=[],
-        desc="""
-            Frobnicate OK.
-        """,
     )
     login_admin.r(0x7930, 'account create request',
         fixed=[
@@ -4358,11 +3895,6 @@ def main():
             at(51, account_email, 'email'),
         ],
         fixed_size=91,
-        pre=[],
-        post=[0x7931],
-        desc="""
-            Account creation request.
-        """,
     )
     login_admin.s(0x7931, 'account create result',
         fixed=[
@@ -4371,11 +3903,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x7930, 0x7936],
-        post=[0x2b14],
-        desc="""
-            Account creation response.
-        """,
     )
     login_admin.r(0x7932, 'account delete request',
         fixed=[
@@ -4383,11 +3910,6 @@ def main():
             at(2, account_name, 'account name'),
         ],
         fixed_size=26,
-        pre=[],
-        post=[0x7933, 0x2730],
-        desc="""
-            Account deletion request.
-        """,
     )
     login_admin.s(0x7933, 'account delete reply',
         fixed=[
@@ -4396,11 +3918,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x7932],
-        post=[],
-        desc="""
-            Account deletion response.
-        """,
     )
     login_admin.r(0x7934, 'password change request',
         fixed=[
@@ -4409,11 +3926,6 @@ def main():
             at(26, account_pass, 'password'),
         ],
         fixed_size=50,
-        pre=[],
-        post=[0x7935],
-        desc="""
-            Change password request.
-        """,
     )
     login_admin.s(0x7935, 'password change result',
         fixed=[
@@ -4422,11 +3934,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x7934],
-        post=[],
-        desc="""
-            Change password response.
-        """,
     )
     login_admin.r(0x7936, 'account state change request',
         fixed=[
@@ -4436,11 +3943,6 @@ def main():
             at(30, seconds, 'error message'),
         ],
         fixed_size=50,
-        pre=[],
-        post=[0x7937, 0x2731],
-        desc="""
-            Account state change request.
-        """,
     )
     login_admin.s(0x7937, 'account state change result',
         fixed=[
@@ -4450,22 +3952,12 @@ def main():
             at(30, u32, 'status'),
         ],
         fixed_size=34,
-        pre=[],
-        post=[],
-        desc="""
-            Account state change response.
-        """,
     )
     login_admin.r(0x7938, 'server list request',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
-        pre=[],
-        post=[0x7939],
-        desc="""
-            Server list and player count request.
-        """,
     )
     login_admin.s(0x7939, 'server list result',
         head=[
@@ -4482,11 +3974,6 @@ def main():
             at(30, u16, 'is new'),
         ],
         repeat_size=32,
-        pre=[0x7938],
-        post=[],
-        desc="""
-            Server list and player count response.
-        """,
     )
     login_admin.r(0x793a, 'password check request',
         fixed=[
@@ -4495,11 +3982,6 @@ def main():
             at(26, account_pass, 'password'),
         ],
         fixed_size=50,
-        pre=[],
-        post=[0x793b],
-        desc="""
-            Password check request.
-        """,
     )
     login_admin.s(0x793b, 'password check result',
         fixed=[
@@ -4508,11 +3990,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x793a],
-        post=[],
-        desc="""
-            Password check response.
-        """,
     )
     login_admin.r(0x793c, 'change sex request',
         fixed=[
@@ -4521,11 +3998,6 @@ def main():
             at(26, sex_char, 'sex'),
         ],
         fixed_size=27,
-        pre=[],
-        post=[0x793d],
-        desc="""
-            Modify sex request.
-        """,
     )
     login_admin.s(0x793d, 'change sex result',
         fixed=[
@@ -4534,11 +4006,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x793c],
-        post=[],
-        desc="""
-            Modify sex response.
-        """,
     )
     login_admin.r(0x793e, 'adjust gm level request',
         fixed=[
@@ -4547,11 +4014,6 @@ def main():
             at(26, gm1, 'gm level'),
         ],
         fixed_size=27,
-        pre=[],
-        post=[0x793f],
-        desc="""
-            Modify GM level request.
-        """,
     )
     login_admin.s(0x793f, 'adjust gm level result',
         fixed=[
@@ -4560,11 +4022,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x793e],
-        post=[],
-        desc="""
-            Modify GM level response.
-        """,
     )
     login_admin.r(0x7940, 'change email request',
         fixed=[
@@ -4573,11 +4030,6 @@ def main():
             at(26, account_email, 'email'),
         ],
         fixed_size=66,
-        pre=[],
-        post=[0x7941],
-        desc="""
-            Modify e-mail request.
-        """,
     )
     login_admin.s(0x7941, 'change email result',
         fixed=[
@@ -4586,11 +4038,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x7940],
-        post=[],
-        desc="""
-            Modify e-mail response.
-        """,
     )
     # this packet is insane
     login_admin.r(0x7942, 'change memo request',
@@ -4604,11 +4051,6 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[],
-        post=[0x7943],
-        desc="""
-            Modify memo request.
-        """,
     )
     login_admin.s(0x7943, 'change memo result',
         fixed=[
@@ -4617,11 +4059,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x7942],
-        post=[],
-        desc="""
-            Modify memo response.
-        """,
     )
     login_admin.r(0x7944, 'account id lookup request',
         fixed=[
@@ -4629,11 +4066,6 @@ def main():
             at(2, account_name, 'account name'),
         ],
         fixed_size=26,
-        pre=[],
-        post=[0x7945],
-        desc="""
-            Find account id request.
-        """,
     )
     login_admin.s(0x7945, 'account id lookup result',
         fixed=[
@@ -4642,11 +4074,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x7944],
-        post=[],
-        desc="""
-            Find account id response.
-        """,
     )
     login_admin.r(0x7946, 'account name lookup request',
         fixed=[
@@ -4654,11 +4081,6 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[],
-        post=[0x7947],
-        desc="""
-            Find account name request.
-        """,
     )
     login_admin.s(0x7947, 'account name lookup result',
         fixed=[
@@ -4667,11 +4089,6 @@ def main():
             at(6, account_name, 'account name'),
         ],
         fixed_size=30,
-        pre=[0x7946],
-        post=[],
-        desc="""
-            Find account name response.
-        """,
     )
     login_admin.r(0x7948, 'validity absolute request',
         fixed=[
@@ -4680,11 +4097,6 @@ def main():
             at(26, time32, 'valid until'),
         ],
         fixed_size=30,
-        pre=[],
-        post=[0x7949],
-        desc="""
-            Validity limit change request.
-        """,
     )
     login_admin.s(0x7949, 'validity absolute result',
         fixed=[
@@ -4694,11 +4106,6 @@ def main():
             at(30, time32, 'valid until'),
         ],
         fixed_size=34,
-        pre=[0x7948],
-        post=[],
-        desc="""
-            Validity limit change response.
-        """,
     )
     login_admin.r(0x794a, 'ban absolute request',
         fixed=[
@@ -4707,11 +4114,6 @@ def main():
             at(26, time32, 'ban until'),
         ],
         fixed_size=30,
-        pre=[],
-        post=[0x794b, 0x2731],
-        desc="""
-            Ban date end change request.
-        """,
     )
     login_admin.s(0x794b, 'ban absolute result',
         fixed=[
@@ -4721,11 +4123,6 @@ def main():
             at(30, time32, 'ban until'),
         ],
         fixed_size=34,
-        pre=[0x794a],
-        post=[],
-        desc="""
-            Ban date end change response.
-        """,
     )
     login_admin.r(0x794c, 'ban relative request',
         fixed=[
@@ -4734,11 +4131,6 @@ def main():
             at(26, human_time_diff, 'ban add'),
         ],
         fixed_size=38,
-        pre=[],
-        post=[0x794d, 0x2731],
-        desc="""
-            Ban date end change request (2).
-        """,
     )
     login_admin.s(0x794d, 'ban relative result',
         fixed=[
@@ -4748,11 +4140,6 @@ def main():
             at(30, time32, 'ban until'),
         ],
         fixed_size=34,
-        pre=[0x794c],
-        post=[],
-        desc="""
-            Ban date end change response (2).
-        """,
     )
     # evil packet (see also 0x2726)
     login_admin.r(0x794e, 'broadcast message request',
@@ -4766,11 +4153,6 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[],
-        post=[0x794f, 0x2726],
-        desc="""
-            Send broadcast message request.
-        """,
     )
     login_admin.s(0x794f, 'broadcast message result',
         fixed=[
@@ -4778,11 +4160,6 @@ def main():
             at(2, u16, 'error'),
         ],
         fixed_size=4,
-        pre=[0x794e],
-        post=[],
-        desc="""
-            Send broadcast message response.
-        """,
     )
     login_admin.r(0x7950, 'validity relative request',
         fixed=[
@@ -4791,11 +4168,6 @@ def main():
             at(26, human_time_diff, 'valid add'),
         ],
         fixed_size=38,
-        pre=[],
-        post=[0x7951],
-        desc="""
-            Relative validity ilmit change request.
-        """,
     )
     login_admin.s(0x7951, 'validity relative result',
         fixed=[
@@ -4805,11 +4177,6 @@ def main():
             at(30, time32, 'valid until'),
         ],
         fixed_size=34,
-        pre=[0x7950],
-        post=[],
-        desc="""
-            Relative validity limit change response.
-        """,
     )
     login_admin.r(0x7952, 'account name info request',
         fixed=[
@@ -4817,11 +4184,6 @@ def main():
             at(2, account_name, 'account name'),
         ],
         fixed_size=26,
-        pre=[],
-        post=[0x7953],
-        desc="""
-            Account information by name request.
-        """,
     )
     # this packet is insane
     login_admin.s(0x7953, 'account info result',
@@ -4846,11 +4208,6 @@ def main():
             at(0, u8, 'c'),
         ],
         repeat_size=1,
-        pre=[0x7952, 0x7954],
-        post=[],
-        desc="""
-            Account information by name or id response.
-        """,
     )
     login_admin.r(0x7954, 'account id info request',
         fixed=[
@@ -4858,22 +4215,12 @@ def main():
             at(2, account_id, 'account id'),
         ],
         fixed_size=6,
-        pre=[],
-        post=[0x7953],
-        desc="""
-            Account information by id request.
-        """,
     )
     login_admin.r(0x7955, 'reload gm signal',
         fixed=[
             at(0, u16, 'packet id'),
         ],
         fixed_size=2,
-        pre=[],
-        post=[],
-        desc="""
-            Reload GM file request.
-        """,
     )
 
     ## new-style packets
@@ -4885,11 +4232,6 @@ def main():
             at(2, u16, 'packet length'),
         ],
         payload_size=4,
-        pre=[0x0065],
-        post=[],
-        desc='''
-            
-        ''',
     )
 
     ## teardown
