@@ -12,6 +12,15 @@
 /Makefile
 /config.status
 /lib
+
 # nightlies
 /build-x86_64-linux-gnu/
 /build-i586-linux-gnu/
+# the rest are not active yet, see comments in tools/nightly
+/build-x86_64-linux-gnux32/
+/build-aarch64-linux-gnu/
+/build-arm-linux-gnueabi/
+/build-arm-linux-gnueabihf/
+/build-mips-linux-gnu/
+/build-mipsel-linux-gnu/
+/build-powerpc-linux-gnu/

@@ -38,7 +38,7 @@ from attoconf.lib.c import Cxx
 from attoconf.lib.install import Install
 from attoconf.lib.config_hash import ConfigHash
 from attoconf.lib.templates import Templates
-from attoconf.types import enum, filepath
+from attoconf.types import enum, filepath, ShellList
 
 
 yesno = enum('yes', 'no')
@@ -85,6 +85,9 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
                 # http://code.google.com/p/googletest/wiki/FAQ#Why_is_it_not_recommended_to_install_a_pre-compiled_copy_of_Goog
                 type=filepath, check=lambda build, GTEST_DIR: None,
                 help='Location of Google Test sources, must contain src/gtest-all.cc (linking to a precompiled library is NOT supported)', hidden=False)
+        self.add_option('GDB', init=['gdb'],
+                type=ShellList, check=lambda build, GDB: None,
+                help='debugger to run tests', hidden=False)
 
     def add_bool_feature(self, arg, hidden=False, **kwargs):
         positive = '--enable-' + arg

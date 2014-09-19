@@ -41,10 +41,10 @@ namespace tmwa
 #endif // __GNUC__ == 4
 
 #if not defined(__i386__) and not defined(__x86_64__)
-// Known platform dependencies:
-// endianness for the [RW]FIFO.* macros
-// possibly, some signal-handling
-// some integer sizes (partially fixed for the x32 ABI)
-# error "Unsupported platform, we use x86 / amd64 only"
+// There are no longer any *known* platform-independent bits,
+// but nothing has been tested yet. It compiles, though, so ship it!
+# ifndef QUIET
+#  warning "Unsupported platform, upstream uses x86 / amd64 only"
+# endif
 #endif // not __i386__
 } // namespace tmwa
