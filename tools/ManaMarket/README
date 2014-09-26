@@ -1,0 +1,5 @@
+To get your own copy of tradey:
+
+cp config.py.template config.py
+cp item.xml data/
+cd data git init

@@ -1,0 +1,8 @@
+server = "server.themanaworld.org"
+port = 6901
+account = ""
+password = ""
+relist_time = 604800 # Time in seconds before an item needs to be relisted.
+character = 0 #slot character is in, 0 for first, 1 for second, 2 for third
+admin = ""
+#nosell = [] # Items which can't be sold - just add the itemid to the list.
