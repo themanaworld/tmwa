@@ -179,6 +179,8 @@ void inter_party_init(void)
                 party_newid = next(pp.party_id);
             party_check_deleted_init(pp);
             party_db.insert(pp.party_id, pm);
+            // note: this is still referring to the noncanonical copy of
+            // the PartyMost pointer. This is okay, though.
             party_check_empty(pp);
         }
         else
@@ -266,7 +268,7 @@ int party_check_exp_share(PartyPair p)
 }
 
 // パーティが空かどうかチェック
-int party_check_empty(PartyPair p)
+int party_check_empty(const PartyPair p)
 {
     int i;
 
@@ -326,7 +328,7 @@ void party_check_conflict(PartyId party_id, AccountId account_id, CharName nick)
 
 // パーティ作成可否
 static
-void mapif_party_created(Session *s, AccountId account_id, PartyPair p)
+void mapif_party_created(Session *s, AccountId account_id, const PartyPair p)
 {
     Packet_Fixed<0x3820> fixed_20;
     fixed_20.account_id = account_id;
@@ -359,7 +361,7 @@ void mapif_party_noinfo(Session *s, PartyId party_id)
 
 // パーティ情報まとめ送り
 static
-void mapif_party_info(Session *s, PartyPair p)
+void mapif_party_info(Session *s, const PartyPair p)
 {
     Packet_Head<0x3821> head_21;
     head_21.party_id = p.party_id;
@@ -518,6 +520,7 @@ void mapif_parse_CreateParty(Session *s, AccountId account_id, PartyName name, C
 
     party_db.insert(pp.party_id, p);
 
+    // pointer to noncanonical version
     mapif_party_created(s, account_id, pp);
     mapif_party_info(s, pp);
 }
@@ -527,6 +530,7 @@ static
 void mapif_parse_PartyInfo(Session *s, PartyId party_id)
 {
     PartyPair p;
+    p.party_id = party_id;
     p.party_most = party_db.search(party_id);
     if (p)
         mapif_party_info(s, p);
@@ -540,6 +544,7 @@ void mapif_parse_PartyAddMember(Session *s, PartyId party_id, AccountId account_
         CharName nick, MapName map, int lv)
 {
     PartyPair p;
+    p.party_id = party_id;
     p.party_most = party_db.search(party_id);
     if (!p)
     {
@@ -581,6 +586,7 @@ void mapif_parse_PartyChangeOption(Session *s, PartyId party_id, AccountId accou
         int exp, int item)
 {
     PartyPair p;
+    p.party_id = party_id;
     p.party_most = party_db.search(party_id);
     if (!p)
         return;
@@ -602,6 +608,7 @@ void mapif_parse_PartyChangeOption(Session *s, PartyId party_id, AccountId accou
 void mapif_parse_PartyLeave(Session *, PartyId party_id, AccountId account_id)
 {
     PartyPair p;
+    p.party_id = party_id;
     p.party_most = party_db.search(party_id);
     if (!p)
         return;
@@ -624,6 +631,7 @@ void mapif_parse_PartyChangeMap(Session *s, PartyId party_id, AccountId account_
         MapName map, int online, int lv)
 {
     PartyPair p;
+    p.party_id = party_id;
     p.party_most = party_db.search(party_id);
     if (!p)
         return;

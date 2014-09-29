@@ -64,6 +64,7 @@ struct PartyPair
     explicit
     operator bool() const { return party_most; }
     bool operator !() const { return !party_most; }
-    PartyMost *operator->() const { return party_most; }
+    PartyMost *operator->() { return party_most; }
+    const PartyMost *operator->() const { return party_most; }
 };
 } // namespace tmwa
