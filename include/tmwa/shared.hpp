@@ -21,8 +21,10 @@
 #include <cstdbool>
 
 
+// TODO also make sure any exception classes are public
+#pragma GCC visibility push(default)
 namespace tmwa
 {
-    __attribute__((visibility("default")))
     void check_paths();
 } // namespace tmwa
+#pragma GCC visibility pop
