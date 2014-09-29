@@ -51,6 +51,7 @@ ENABLE_ABI6 = @ENABLE_ABI6@
 ENABLE_CYGWIN_HACKS = @ENABLE_CYGWIN_HACKS@
 ENABLE_DEBUG = @ENABLE_DEBUG@
 ENABLE_RPATH = @ENABLE_RPATH@
+ENABLE_SHARED = @ENABLE_SHARED@
 
 TESTER =
 TEST_ARGS =
@@ -151,6 +152,18 @@ $(info The Road goes ever on and on ...)
 endif
 endif
 
+include ${SRC_DIR}/version.make
+
+ifeq (${ENABLE_SHARED},yes)
+LIB_SUFFIX_FAKE := so
+LIB_SUFFIX_SHORT := ${SO_SHORT}
+LIB_SUFFIX_LONG := ${SO_LONG}
+else
+LIB_SUFFIX_FAKE := a
+LIB_SUFFIX_SHORT := a
+LIB_SUFFIX_LONG := a
+endif
+
 c = @colorize 6: 2:$< 3:$@ :
 ifneq '$c' ''
 l = @colorize 6: $(patsubst %,2:%,$^) 3:$@ :
@@ -198,7 +211,7 @@ MAIN_SOURCES := $(filter %/main.cpp,${SOURCES})
 LIB_SOURCES := $(filter %/lib.cpp,${SOURCES})
 TEST_SOURCES := $(filter %/test.cpp,${SOURCES})
 BINARIES := $(patsubst src/%/main.cpp,bin/${tmwa}-%,${MAIN_SOURCES})
-LIBRARIES := $(patsubst src/%/lib.cpp,lib/lib${tmwa}-%.so,${LIB_SOURCES})
+LIBRARIES := $(patsubst src/%/lib.cpp,lib/lib${tmwa}-%.${LIB_SUFFIX_FAKE},${LIB_SOURCES})
 TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
 
 # tricky part
@@ -214,7 +227,7 @@ TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
 define RECURSIVE_DEPS_IMPL
 $(eval more_deps := $(value ${1}))
 $(eval more_deps := $(patsubst src/%.hpp,%,${more_deps}))
-$(eval lib_deps += $(patsubst include/${tmwa}/%.hpp,lib/lib${tmwa}-%.${SO_LONG},$(filter include/${tmwa}/%.hpp,${more_deps})))
+$(eval lib_deps += $(patsubst include/${tmwa}/%.hpp,lib/lib${tmwa}-%.${LIB_SUFFIX_LONG},$(filter include/${tmwa}/%.hpp,${more_deps})))
 $(eval more_deps := $(filter ${PATTERN_ROOTS},${more_deps}))
 $(eval more_deps := $(filter-out ${cur_deps},${more_deps}))
 $(eval cur_deps += ${more_deps})
@@ -303,9 +316,6 @@ else
 include ${DEPENDS}
 endif
 
-include ${SRC_DIR}/version.make
-
-
 thisdir := $(abspath .)
 #$(foreach root,${PATTERN_ROOTS},$(info pre-root: ${root} := $(value ${root}))$(info ))
 # can't do $(filter %.hpp yet)
@@ -329,6 +339,8 @@ $(foreach main,${PATTERN_MAINS},$(eval bin/${tmwa}-${main}-gdb.py : $(filter ${P
 
 $(foreach lib,${PATTERN_LIBS},$(eval lib-${lib} := $(strip $(call RECURSIVE_DEPS,${lib}/lib))) $(eval lib-${lib}-libs := ${lib_deps}))
 # actual rule deps
+$(foreach lib,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${lib}.a : $(patsubst %,obj/%.pdc.o,$(value lib-${lib})) $(filter-out lib/lib${tmwa}-${lib}.a,$(value lib-${lib}-libs))))
+# no -gdb.py for static libs
 $(foreach lib,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${lib}.${SO_LONG} : $(patsubst %,obj/%.pic.o,$(value lib-${lib})) $(filter-out lib/lib${tmwa}-${lib}.${SO_LONG},$(value lib-${lib}-libs))))
 $(foreach lib,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${lib}.${SO_LONG}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value lib-${lib})))))
 #$(foreach lib,${PATTERN_LIBS},$(info post-lib: lib-${lib}: $(value lib-${lib})) $(info post-lib: lib-${lib}-libs: $(value lib-${lib}-libs)) $(info ))
@@ -351,7 +363,13 @@ vpath %.py ${SRC_DIR}
 # main goals
 all: bin lib
 bin: ${BINARIES}
-lib: $(patsubst %.so,%.${SO_LONG},${LIBRARIES})
+ifeq (${ENABLE_SHARED},yes)
+lib: sharedlib
+else
+lib: staticlib
+endif
+sharedlib: $(patsubst %.${LIB_SUFFIX_FAKE},%.${SO_LONG},${LIBRARIES})
+staticlib: $(patsubst %.${LIB_SUFFIX_FAKE},%.a,${LIBRARIES})
 ii: ${PREPROCESSED}
 ll: ${IRS}
 bc: ${BITCODES}
@@ -430,6 +448,10 @@ lib/%.${SO_LONG}: lib/%.${SO_LONG}-gdb.py
 	$l ${CXX} -shared -Wl,-soname=$*.${SO_SHORT} ${LDFLAGS} $(filter-out lib/%-gdb.py,$^) ${LDLIBS} -o $@
 	$c ln -sf $*.${SO_LONG} lib/$*.${SO_SHORT}
 	$c ln -sf $*.${SO_SHORT} lib/$*.so
+lib/%.a:
+	$(MKDIR_FIRST)
+	rm -f $@
+	ar cr $@ $^
 
 #${TEST_BINARIES}: obj/gtest-all.pdc.o
 bin/test-tests: obj/gtest-all.pdc.o
@@ -480,12 +502,17 @@ install: install-lib
 install-lib:
 	@echo + Installing libraries
 	${install_dir} ${DESTDIR}${LIBDIR}
+ifeq (${ENABLE_SHARED},yes)
 	${install_data} -t ${DESTDIR}${LIBDIR} \
 	    $(patsubst %.so,%.${SO_LONG},${LIBRARIES})
 	for lib in $(patsubst lib/%.so,%,${LIBRARIES}); do \
 	    ln -sf $$lib.${SO_LONG} ${DESTDIR}${LIBDIR}/$$lib.${SO_SHORT}; \
 	    ln -sf $$lib.${SO_SHORT} ${DESTDIR}${LIBDIR}/$$lib.so; \
 	done
+else
+	${install_data} -t ${DESTDIR}${LIBDIR} \
+	    ${LIBRARIES}
+endif
 uninstall: uninstall-lib
 uninstall-lib:
 	@echo - Uninstalling libraries

@@ -78,6 +78,9 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
         self.add_option('--enable-rpath', init='none',
                 type=enum('none', 'relative', 'absolute'), check=lambda build, ENABLE_RPATH: None,
                 help='Use rpaths to find libraries', hidden=False)
+        self.add_bool_feature('shared', init='yes',
+                check=lambda build, ENABLE_SHARED: None,
+                help='Build shared libraries instead of static (required for debug, DOES NOT WORK WITH CLANG)')
 
     def vars(self):
         super(Configuration, self).vars()
