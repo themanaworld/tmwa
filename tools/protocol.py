@@ -3190,23 +3190,32 @@ def build_context():
         fixed_size=6,
     )
     # 0x2b10, 0x2b11
-    for (id, cat) in [
-        (0x2728, login_char.r),
-        (0x2729, login_char.s),
-    ]:
-        cat(id, 'update account reg2',
-            head=[
-                at(0, u16, 'packet id'),
-                at(2, u16, 'packet length'),
-                at(4, account_id, 'account id'),
-            ],
-            head_size=8,
-            repeat=[
-                at(0, var_name, 'name'),
-                at(32, u32, 'value'),
-            ],
-            repeat_size=36,
-        )
+    login_char.r(0x2728, 'update account reg2',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, var_name, 'name'),
+            at(32, u32, 'value'),
+        ],
+        repeat_size=36,
+    )
+    login_char.s(0x2729, 'update account reg2',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, var_name, 'name'),
+            at(32, u32, 'value'),
+        ],
+        repeat_size=36,
+    )
     login_char.r(0x272a, 'unban request',
         fixed=[
             at(0, u16, 'packet id'),
@@ -3496,23 +3505,32 @@ def build_context():
         fixed_size=34,
     )
     # 0x2728, 0x2729
-    for (id, cat) in [
-        (0x2b10, char_map.r),
-        (0x2b11, char_map.s),
-    ]:
-        cat(id, 'account reg2 update',
-            head=[
-                at(0, u16, 'packet id'),
-                at(2, u16, 'packet length'),
-                at(4, account_id, 'account id'),
-            ],
-            head_size=8,
-            repeat=[
-                at(0, var_name, 'name'),
-                at(32, u32, 'value'),
-            ],
-            repeat_size=36,
-        )
+    char_map.r(0x2b10, 'account reg2 update',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, var_name, 'name'),
+            at(32, u32, 'value'),
+        ],
+        repeat_size=36,
+    )
+    char_map.s(0x2b11, 'account reg2 update',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, var_name, 'name'),
+            at(32, u32, 'value'),
+        ],
+        repeat_size=36,
+    )
     char_map.s(0x2b12, 'divorce notify',
         fixed=[
             at(0, u16, 'packet id'),
