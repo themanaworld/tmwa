@@ -1,7 +1,7 @@
-#pragma once
-//    compat/fwd.hpp - list of type names for compat libs
+#include "borrow.hpp"
+//    borrow.cpp - a non-null, unowned, pointer
 //
-//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2012-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,19 +18,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+#include "../poison.hpp"
 
 
 namespace tmwa
 {
-    namespace option
-    {
-        template<class T>
-        class Option;
-    }
-
-    template<class T>
-    class Borrowed;
-
-// meh, add more when I feel like it
 } // namespace tmwa
