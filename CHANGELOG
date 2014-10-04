@@ -1,3 +1,14 @@
+v14.10.5:
+  - fix the stupid refactoring bug with mob slave summons
+  - officially drop support for clang, all versions are too buggy
+  - implement Option<T> and Borrowed<T> with tests, but don't use them yet
+  - rename enum Option to Opt0 to move it out of the way
+  - add support for static libraries (clang is being retarded again)
+  - critical fix for the bug in parties (thanks Rawng)
+  - add support for cross-builds to the buildbot script
+  - fix a refactoring bug in magic
+  - fix an exposed bug in the magic 'dir_towards' function
+  - fix an exposed bug in char-server whispering
 v14.8.29:
   - fix testsuite
   - add missing changelog
@@ -32,7 +43,7 @@ v14.6.30:
   - play with obscure corners of the C++ standard that no one can interpret
   - replace hand-coded network protocols with generate ones
   - lots source layout and formatting cleanup
-  - faster depedency calculation
+  - faster dependency calculation
   - strict ids (yay less bugs, boo account/block entanglement)
   - beginning of integers
   - support libc++ (experimental)

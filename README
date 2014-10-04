@@ -44,8 +44,8 @@ Important notes:
  - TMWA requires git to build by default, use 'make dist' to get a tarball.
 platform dependencies:
   architecture:
-    tested: x86 and (finally!) amd64; possibly x32
-    required: little-endian (for now)
+    tested: x86, amd64, x32
+    likely to work: all architectures (patches welcome if they don't)
   operating system:
     known bad: Linux 2.6.26 and earlier
     maintained: Linux 3.2 and later
@@ -63,7 +63,7 @@ build dependencies:
   C++ compiler:
     required: g++ 4.7.2 or higher
     recommended: g++ 4.8.1 or higher
-    likely to work: clang++ 3.3 or higher
+    not recommended: clang++ 3.3 or higher (all versions have unfixed bugs)
   C++ library:
     recommended: libstdc++ to match g++; may need patch for clang++
     may work: libc++
@@ -76,7 +76,7 @@ runtime dependencies:
     depends on what it was built against
 instructions:
   configuration:
-    ./configure --disable-compat-symlinks
+    ./configure
     (Takes most of the options GNU Autoconf's configure does - I won't
         repeat the output of ./configure --help here.)
     (--prefix=/usr, not --prefix usr, in order to prevent an ambiguity.
@@ -89,12 +89,16 @@ instructions:
     make -jN
   build test:
     make test
-    (Not really useful yet. Requires source of Google Test.)
+    (Nowhere near complete useful yet. Requires source of Google Test.)
+    make format; git diff --exit-code
   install:
     make install DESTDIR=/whatever
     (See "what is installed" below)
   install test:
     not implemented
+  distribution tarballs:
+    make dist
+    make bindist
 
 Note about attoconf:
   TMWA's ./configure script is implemented using a python package
