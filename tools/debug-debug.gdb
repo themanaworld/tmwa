@@ -39,6 +39,7 @@ end
 set print static-members off
 set print elements 9999
 set print frame-arguments none
+set python print-stack full
 
 set logging on
 rbreak do_breakpoint
