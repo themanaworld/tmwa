@@ -2895,7 +2895,7 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
     map_local *m = md2->bl_m;
 
     Species values[5];
-    for (count = 0; count < 5 && values[count] != Species(); ++count)
+    for (count = 0; count < 5 && value_[count]; ++count)
         values[count] = wrap<Species>(value_[count]);
     if (count < 1)
         return 0;
