@@ -24,6 +24,8 @@
 
 #include <cstdint>
 
+#include "../range/slice.hpp"
+
 #include "../strings/fwd.hpp"
 
 #include "../generic/fwd.hpp"

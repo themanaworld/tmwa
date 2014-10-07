@@ -24,6 +24,8 @@
 #include <map>
 #include <set>
 
+#include "../range/slice.hpp"
+
 #include "../strings/rstring.hpp"
 #include "../strings/literal.hpp"
 

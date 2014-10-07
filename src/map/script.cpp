@@ -80,6 +80,35 @@ namespace tmwa
 constexpr bool DEBUG_DISP = false;
 constexpr bool DEBUG_RUN = false;
 
+enum class VariableCode : uint8_t
+{
+    PARAM,
+    VARIABLE,
+};
+
+enum class StringCode : uint8_t
+{
+    NOP, POS, INT, PARAM, FUNC,
+    VARIABLE,
+};
+
+enum class ByteCode : uint8_t
+{
+    // types and specials
+    // Note that 'INT' is synthetic, and does not occur in the data stream
+    NOP, POS, INT, PARAM, FUNC, STR, ARG,
+    VARIABLE, EOL,
+
+    // unary and binary operators
+    LOR, LAND, LE, LT, GE, GT, EQ, NE,
+    XOR, OR, AND, ADD, SUB, MUL, DIV, MOD,
+    NEG, LNOT, NOT, R_SHIFT, L_SHIFT,
+
+    // additions
+    // needed because FUNC is used for the actual call
+    FUNC_REF,
+};
+
 struct str_data_t
 {
     StringCode type;
@@ -88,6 +117,69 @@ struct str_data_t
     int label_;
     int val;
 };
+
+class ScriptBuffer
+{
+    typedef ZString::iterator ZSit;
+
+    std::vector<ByteCode> script_buf;
+public:
+    // construction methods used only by script.cpp
+    void add_scriptc(ByteCode a);
+    void add_scriptb(uint8_t a);
+    void add_scripti(uint32_t a);
+    void add_scriptl(str_data_t *a);
+    void set_label(str_data_t *ld, int pos_);
+    ZSit parse_simpleexpr(ZSit p);
+    ZSit parse_subexpr(ZSit p, int limit);
+    ZSit parse_expr(ZSit p);
+    ZSit parse_line(ZSit p, bool *canstep);
+    void parse_script(ZString src, int line, bool implicit_end);
+
+    // consumption methods used only by script.cpp
+    ByteCode operator[](size_t i) const { return script_buf[i]; }
+    ZString get_str(size_t i) const
+    {
+        return ZString(strings::really_construct_from_a_pointer, reinterpret_cast<const char *>(&script_buf[i]), nullptr);
+    }
+};
+} // namespace tmwa
+
+void std::default_delete<const tmwa::ScriptBuffer>::operator()(const tmwa::ScriptBuffer *sd)
+{
+    really_delete1 sd;
+}
+
+namespace tmwa
+{
+ByteCode ScriptPointer::peek() const { return (*code)[pos]; }
+ByteCode ScriptPointer::pop() { return (*code)[pos++]; }
+ZString ScriptPointer::pops()
+{
+    ZString rv = code->get_str(pos);
+    pos += rv.size();
+    ++pos;
+    return rv;
+}
+
+struct script_stack
+{
+    std::vector<struct script_data> stack_datav;
+};
+
+enum class ScriptEndState;
+// future improvements coming!
+class ScriptState
+{
+public:
+    struct script_stack *stack;
+    int start, end;
+    ScriptEndState state;
+    BlockId rid, oid;
+    ScriptPointer scriptp, new_scriptp;
+    int defsp, new_defsp;
+};
+
 static
 Map<RString, str_data_t> str_datam;
 static

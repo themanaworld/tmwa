@@ -24,9 +24,10 @@
 
 #include <cstdint>
 
+#include <memory>
 #include <vector>
 
-#include "../range/slice.hpp"
+#include "../range/fwd.hpp"
 
 #include "../strings/zstring.hpp"
 
@@ -36,71 +37,27 @@
 
 #include "../mmo/ids.hpp"
 
-#include "clif.t.hpp"
-#include "map.t.hpp"
-
 
 namespace tmwa
 {
-enum class VariableCode : uint8_t
+enum class ByteCode : uint8_t;
+
+class ScriptBuffer;
+} // namespace tmwa
+
+namespace std
 {
-    PARAM,
-    VARIABLE,
-};
-
-enum class StringCode : uint8_t
+template<>
+struct default_delete<const tmwa::ScriptBuffer>
 {
-    NOP, POS, INT, PARAM, FUNC,
-    VARIABLE,
+    default_delete() {}
+    default_delete(default_delete<tmwa::ScriptBuffer>) {}
+    void operator()(const tmwa::ScriptBuffer *sd);
 };
+} // namespace std
 
-enum class ByteCode : uint8_t
+namespace tmwa
 {
-    // types and specials
-    // Note that 'INT' is synthetic, and does not occur in the data stream
-    NOP, POS, INT, PARAM, FUNC, STR, ARG,
-    VARIABLE, EOL,
-
-    // unary and binary operators
-    LOR, LAND, LE, LT, GE, GT, EQ, NE,
-    XOR, OR, AND, ADD, SUB, MUL, DIV, MOD,
-    NEG, LNOT, NOT, R_SHIFT, L_SHIFT,
-
-    // additions
-    // needed because FUNC is used for the actual call
-    FUNC_REF,
-};
-
-struct str_data_t;
-
-class ScriptBuffer
-{
-    typedef ZString::iterator ZSit;
-
-    std::vector<ByteCode> script_buf;
-public:
-    // construction methods used only by script.cpp
-    void add_scriptc(ByteCode a);
-    void add_scriptb(uint8_t a);
-    void add_scripti(uint32_t a);
-    void add_scriptl(str_data_t *a);
-    void set_label(str_data_t *ld, int pos_);
-    ZSit parse_simpleexpr(ZSit p);
-    ZSit parse_subexpr(ZSit p, int limit);
-    ZSit parse_expr(ZSit p);
-    ZSit parse_line(ZSit p, bool *canstep);
-    void parse_script(ZString src, int line, bool implicit_end);
-
-    // consumption methods used only by script.cpp
-    ByteCode operator[](size_t i) const { return script_buf[i]; }
-    ZString get_str(size_t i) const
-    {
-        return ZString(strings::really_construct_from_a_pointer, reinterpret_cast<const char *>(&script_buf[i]), nullptr);
-    }
-
-    // method used elsewhere
-};
-
 struct ScriptPointer
 {
     const ScriptBuffer *code;
@@ -116,15 +73,9 @@ struct ScriptPointer
     , pos(p)
     {}
 
-    ByteCode peek() const { return (*code)[pos]; }
-    ByteCode pop() { return (*code)[pos++]; }
-    ZString pops()
-    {
-        ZString rv = code->get_str(pos);
-        pos += rv.size();
-        ++pos;
-        return rv;
-    }
+    ByteCode peek() const;
+    ByteCode pop();
+    ZString pops();
 };
 
 // internal
@@ -214,24 +165,6 @@ struct script_data : ScriptDataVariantBase
     script_data(ScriptDataVariable v) : ScriptDataVariantBase(std::move(v)) {}
     script_data(ScriptDataRetInfo v) : ScriptDataVariantBase(std::move(v)) {}
     script_data(ScriptDataFuncRef v) : ScriptDataVariantBase(std::move(v)) {}
-};
-
-struct script_stack
-{
-    std::vector<struct script_data> stack_datav;
-};
-
-enum class ScriptEndState;
-// future improvements coming!
-class ScriptState
-{
-public:
-    struct script_stack *stack;
-    int start, end;
-    ScriptEndState state;
-    BlockId rid, oid;
-    ScriptPointer scriptp, new_scriptp;
-    int defsp, new_defsp;
 };
 
 std::unique_ptr<const ScriptBuffer> parse_script(ZString, int, bool implicit_end);

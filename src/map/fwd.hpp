@@ -20,6 +20,8 @@
 
 #include "../sanity.hpp"
 
+#include <cstdint>
+
 
 namespace tmwa
 {
@@ -39,6 +41,9 @@ class npc_data_message;
 struct NpcEvent;
 
 struct item_data;
+
+enum class SP : uint16_t;
+struct ScriptLabel;
 
 namespace magic
 {
