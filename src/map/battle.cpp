@@ -482,21 +482,6 @@ int battle_get_atk(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 対象の左手Atkを返す(汎用)
- * 戻りは整数で0以上
- *------------------------------------------
- */
-static
-int battle_get_atk_(dumb_ptr<block_list> bl)
-{
-    nullpo_retz(bl);
-    if (bl->bl_type == BL::PC)
-        return bl->is_player()->watk_;
-    else
-        return 0;
-}
-
-/*==========================================
  * 対象のAtk2を返す(汎用)
  * 戻りは整数で0以上
  *------------------------------------------
@@ -517,21 +502,6 @@ int battle_get_atk2(dumb_ptr<block_list> bl)
             atk2 = 0;
         return atk2;
     }
-}
-
-/*==========================================
- * 対象の左手Atk2を返す(汎用)
- * 戻りは整数で0以上
- *------------------------------------------
- */
-static
-int battle_get_atk_2(dumb_ptr<block_list> bl)
-{
-    nullpo_retz(bl);
-    if (bl->bl_type == BL::PC)
-        return bl->is_player()->watk_2;
-    else
-        return 0;
 }
 
 /*==========================================
@@ -1082,7 +1052,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     int def2 = battle_get_def2(target);
     int t_vit = battle_get_vit(target);
     struct Damage wd {};
-    int damage, damage2 = 0;
+    int damage;
     DamageType type;
     int div_;
     BF flag;
@@ -1273,7 +1243,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
 
     if (type == DamageType::NORMAL && !random_::chance({hitrate, 100}))
     {
-        damage = damage2 = 0;
+        damage = 0;
         dmg_lv = ATK::FLEE;
     }
     else
@@ -1312,7 +1282,6 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
             skill_num, skill_lv, flag);
 
     wd.damage = damage;
-    wd.damage2 = 0;
     wd.type = type;
     wd.div_ = div_;
     wd.amotion = battle_get_amotion(src);
@@ -1357,14 +1326,13 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     int def2 = battle_get_def2(target);
     int t_vit = battle_get_vit(target);
     struct Damage wd {};
-    int damage, damage2;
+    int damage;
     DamageType type;
     int div_;
     BF flag;
     ATK dmg_lv = ATK::ZERO;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data, t_sc_data;
-    int atkmax_ = 0, atkmin_ = 0;  //二刀流用
-    int watk, watk_;
+    int watk;
     bool da = false;
     int ac_flag = 0;
     int target_distance;
@@ -1428,13 +1396,12 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     dex = battle_get_dex(src); //DEX
     watk = battle_get_atk(src);    //ATK
-    watk_ = battle_get_atk_(src);  //ATK左手
 
     type = DamageType::NORMAL;
     div_ = 1;                   // single attack
 
     {
-        damage = damage2 = battle_get_baseatk(sd);    //damega,damega2初登場、base_atkの取得
+        damage = battle_get_baseatk(sd);    //damega,damega2初登場、base_atkの取得
     }
     if (sd->attackrange > 2)
     {                           // [fate] ranged weapon?
@@ -1443,22 +1410,15 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
             damage * (256 +
                       ((range_damage_bonus * target_distance) /
                        sd->attackrange)) >> 8;
-        damage2 =
-            damage2 * (256 +
-                       ((range_damage_bonus * target_distance) /
-                        sd->attackrange)) >> 8;
     }
 
-    atkmin = atkmin_ = dex;     //最低ATKはDEXで初期化？
+    atkmin = dex;     //最低ATKはDEXで初期化？
     sd->state.arrow_atk = 0;    //arrow_atk初期化
 
     IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
-    IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
 
     if (widx.ok() && sd->inventory_data[widx])
         atkmin = atkmin * (80 + sd->inventory_data[widx]->wlv * 20) / 100;
-    if (sidx.ok() && sd->inventory_data[sidx])
-        atkmin_ = atkmin_ * (80 + sd->inventory_data[sidx]->wlv * 20) / 100;
     if (sd->status.weapon == ItemLook::BOW)
     {                           //武器が弓矢の場合
         atkmin = watk * ((atkmin < watk) ? atkmin : watk) / 100;    //弓用最低ATK計算
@@ -1468,13 +1428,10 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     {
         atkmax = watk;
-        atkmax_ = watk_;
     }
 
     if (atkmin > atkmax && !(sd->state.arrow_atk))
         atkmin = atkmax;        //弓は最低が上回る場合あり
-    if (atkmin_ > atkmax_)
-        atkmin_ = atkmax_;
 
     if (sd->double_rate > 0 && skill_num == SkillID::ZERO && skill_lv >= 0)
         da = random_::chance({sd->double_rate, 100});
@@ -1486,9 +1443,6 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
         if (sd->state.arrow_atk)
             cri += sd->arrow_cri;
-        if (sd->status.weapon == ItemLook::_16)
-            // カタールの場合、クリティカルを倍に
-            cri <<= 1;
         cri -= battle_get_luk(target) * 3;
         if (ac_flag)
             cri = 1000;
@@ -1503,11 +1457,9 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         && random_::chance({cri, 1000}))
     {
         damage += atkmax;
-        damage2 += atkmax_;
         if (sd->atk_rate != 100)
         {
             damage = (damage * sd->atk_rate) / 100;
-            damage2 = (damage2 * sd->atk_rate) / 100;
         }
         if (sd->state.arrow_atk)
             damage += sd->arrow_atk;
@@ -1521,14 +1473,9 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
             damage += random_::in(atkmin, atkmax);
         else
             damage += atkmin;
-        if (atkmax_ > atkmin_)
-            damage2 += random_::in(atkmin_, atkmax_);
-        else
-            damage2 += atkmin_;
         if (sd->atk_rate != 100)
         {
             damage = (damage * sd->atk_rate) / 100;
-            damage2 = (damage2 * sd->atk_rate) / 100;
         }
 
         if (sd->state.arrow_atk)
@@ -1614,28 +1561,17 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
                             damage -= random_::in(0, vitbonusmax);
                     }
                 }
-                {
-                    {
-                        damage2 = damage2 * (100 - def1) / 100;
-                        damage2 -= t_def;
-                        if (vitbonusmax > 0)
-                            damage2 -= random_::in(0, vitbonusmax);
-                    }
-                }
             }
         }
     }
     // 精錬ダメージの追加
     {                           //DEF, VIT無視
         damage += battle_get_atk2(src);
-        damage2 += battle_get_atk_2(src);
     }
 
     // 0未満だった場合1に補正
     if (damage < 1)
         damage = 1;
-    if (damage2 < 1)
-        damage2 = 1;
 
     // スキル修正２（修練系）
     // 修練ダメージ(右手のみ) ソニックブロー時は別処理（1撃に付き1/8適応)
@@ -1652,7 +1588,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     hitrate = (hitrate < 5) ? 5 : hitrate;
     if (type == DamageType::NORMAL && !random_::chance({hitrate, 100}))
     {
-        damage = damage2 = 0;
+        damage = 0;
         dmg_lv = ATK::FLEE;
     }
     else
@@ -1662,37 +1598,6 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     if (damage < 0)
         damage = 0;
-    if (damage2 < 0)
-        damage2 = 0;
-
-    // >二刀流の左右ダメージ計算誰かやってくれぇぇぇぇえええ！
-    // >map_session_data に左手ダメージ(atk,atk2)追加して
-    // >pc_calcstatus()でやるべきかな？
-    // map_session_data に左手武器(atk,atk2,ele,star,atkmods)追加して
-    // pc_calcstatus()でデータを入力しています
-
-    //左手のみ武器装備
-    if (sd->weapontype1 == ItemLook::NONE
-        && sd->weapontype2 != ItemLook::NONE)
-    {
-        damage = damage2;
-        damage2 = 0;
-    }
-    // 右手、左手修練の適用
-    if (sd->status.weapon >= ItemLook::SINGLE_HANDED_COUNT)
-    {                           // 二刀流か?
-        int dmg = damage, dmg2 = damage2;
-        // 右手修練(60% 〜 100%) 右手全般
-        damage = damage * 50 / 100;
-        if (dmg > 0 && damage < 1)
-            damage = 1;
-        // 左手修練(40% 〜 80%) 左手全般
-        damage2 = damage2 * 30 / 100;
-        if (dmg2 > 0 && damage2 < 1)
-            damage2 = 1;
-    }
-    else                        //二刀流でなければ左手ダメージは0
-        damage2 = 0;
 
     // 右手,短剣のみ
     if (da)
@@ -1702,19 +1607,11 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         type = DamageType::DOUBLED;
     }
 
-    if (sd->status.weapon == ItemLook::_16)
-    {
-        // カタール追撃ダメージ
-        damage2 = damage * 1 / 100;
-        if (damage > 0 && damage2 < 1)
-            damage2 = 1;
-    }
-
     // 完全回避の判定
     if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr && div_ < 255
         && random_::chance({battle_get_flee2(target), 1000}))
     {
-        damage = damage2 = 0;
+        damage = 0;
         type = DamageType::FLEE2;
         dmg_lv = ATK::LUCKY;
     }
@@ -1725,7 +1622,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != nullptr && div_ < 255
             && random_::chance({battle_get_flee2(target), 1000}))
         {
-            damage = damage2 = 0;
+            damage = 0;
             type = DamageType::FLEE2;
             dmg_lv = ATK::LUCKY;
         }
@@ -1736,35 +1633,18 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     {
         if (damage > 0)
             damage = 1;
-        if (damage2 > 0)
-            damage2 = 1;
     }
 
-    if (damage > 0 || damage2 > 0)
+    if (damage > 0)
     {
-        if (damage2 < 1)        // ダメージ最終修正
+        {
             damage =
                 battle_calc_damage(src, target, damage, div_, skill_num,
                                     skill_lv, flag);
-        else if (damage < 1)    // 右手がミス？
-            damage2 =
-                battle_calc_damage(src, target, damage2, div_, skill_num,
-                                    skill_lv, flag);
-        else
-        {                       // 両 手/カタールの場合はちょっと計算ややこしい
-            int d1 = damage + damage2, d2 = damage2;
-            damage =
-                battle_calc_damage(src, target, damage + damage2, div_,
-                                    skill_num, skill_lv, flag);
-            damage2 = (d2 * 100 / d1) * damage / 100;
-            if (damage > 1 && damage2 < 1)
-                damage2 = 1;
-            damage -= damage2;
         }
     }
 
     wd.damage = damage;
-    wd.damage2 = damage2;
     wd.type = type;
     wd.div_ = div_;
     wd.amotion = battle_get_amotion(src);
@@ -1872,7 +1752,6 @@ struct Damage battle_calc_magic_attack(dumb_ptr<block_list> bl,
     md.div_ = div_;
     md.amotion = battle_get_amotion(bl);
     md.dmotion = battle_get_dmotion(target);
-    md.damage2 = 0;
     md.type = DamageType::NORMAL;
     md.flag = aflag;
 
@@ -1937,7 +1816,6 @@ struct Damage battle_calc_misc_attack(dumb_ptr<block_list> bl,
     md.div_ = div_;
     md.amotion = battle_get_amotion(bl);
     md.dmotion = battle_get_dmotion(target);
-    md.damage2 = 0;
     md.type = DamageType::NORMAL;
     md.flag = aflag;
     return md;
@@ -2048,13 +1926,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 
         {
             clif_damage(src, target, tick, wd.amotion, wd.dmotion,
-                         wd.damage, wd.div_, wd.type, wd.damage2);
-            if (sd
-                    && (sd->status.weapon == ItemLook::_16
-                        || sd->status.weapon >= ItemLook::SINGLE_HANDED_COUNT)
-                    && wd.damage2 == 0)
-                clif_damage(src, target, tick + 10_ms,
-                        wd.amotion, wd.dmotion, 0, 1, DamageType::NORMAL, 0);
+                         wd.damage, wd.div_, wd.type);
         }
 
         MapBlockLock lock;
@@ -2074,7 +1946,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                     ? unwrap<CharId>(target->is_player()->status_key.char_id)
                     : unwrap<BlockId>(target->bl_id),
                     battle_get_class(target),
-                    wd.damage + wd.damage2, weapon);
+                    wd.damage, weapon);
         }
 
         if (target->bl_type == BL::PC)
@@ -2087,16 +1959,16 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                     ? unwrap<CharId>(src->is_player()->status_key.char_id)
                     : unwrap<BlockId>(src->bl_id),
                     battle_get_class(src),
-                    wd.damage + wd.damage2);
+                    wd.damage);
         }
 
-        battle_damage(src, target, (wd.damage + wd.damage2), 0);
+        battle_damage(src, target, (wd.damage), 0);
         if (target->bl_prev != nullptr &&
             (target->bl_type != BL::PC
              || (target->bl_type == BL::PC
                  && !pc_isdead(target->is_player()))))
         {
-            if (wd.damage > 0 || wd.damage2 > 0)
+            if (wd.damage > 0)
             {
                 skill_additional_effect(src, target, SkillID::ZERO, 0);
             }
@@ -2105,7 +1977,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         {
             if (bool(wd.flag & BF::WEAPON)
                 && src != target
-                && (wd.damage > 0 || wd.damage2 > 0))
+                && (wd.damage > 0))
             {
                 int hp = 0, sp = 0;
                 if (sd->hp_drain_rate && wd.damage > 0
@@ -2113,20 +1985,10 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                 {
                     hp += (wd.damage * sd->hp_drain_per) / 100;
                 }
-                if (sd->hp_drain_rate_ && wd.damage2 > 0
-                    && random_::chance({sd->hp_drain_rate_, 100}))
-                {
-                    hp += (wd.damage2 * sd->hp_drain_per_) / 100;
-                }
                 if (sd->sp_drain_rate && wd.damage > 0
                     && random_::chance({sd->sp_drain_rate, 100}))
                 {
                     sp += (wd.damage * sd->sp_drain_per) / 100;
-                }
-                if (sd->sp_drain_rate_ && wd.damage2 > 0
-                    && random_::chance({sd->sp_drain_rate_, 100}))
-                {
-                    sp += (wd.damage2 * sd->sp_drain_per_) / 100;
                 }
                 if (hp || sp)
                     pc_heal(sd, hp, sp);

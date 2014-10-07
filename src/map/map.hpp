@@ -156,7 +156,7 @@ struct map_session_data : block_list, SessionData
         unsigned dead_sit:2;
         unsigned skillcastcancel:1;
         unsigned waitingdisconnect:1;
-        unsigned lr_flag:2;
+        unsigned lr_flag_is_arrow_2:1;
         unsigned connect_new:1;
         unsigned arrow_atk:1;
         BF attack_type;//:3;
@@ -235,7 +235,7 @@ struct map_session_data : block_list, SessionData
     short spellpower_bonus_target, spellpower_bonus_current;    // [Fate] Spellpower boni.  _current is the active one.
     //_current slowly approximates _target, and _target is determined by equipment.
 
-    short attackrange, attackrange_;
+    short attackrange;
 
     // [Fate] Used for gradual healing; amount of enqueued regeneration
     struct quick_regeneration quick_regeneration_hp, quick_regeneration_sp;
@@ -249,18 +249,17 @@ struct map_session_data : block_list, SessionData
     interval_t hp_sub, sp_sub;
     interval_t inchealhptick, inchealsptick;
 
-    ItemLook weapontype1, weapontype2;
+    ItemLook weapontype1;
     earray<int, ATTR, ATTR::COUNT> paramb, paramc, parame, paramcard;
     int hit, flee, flee2;
     interval_t aspd, amotion, dmotion;
     int watk, watk2;
     int def, def2, mdef, mdef2, critical, matk1, matk2;
     int hprate, sprate, dsprate;
-    int watk_, watk_2;
     int base_atk, atk_rate;
     int arrow_atk;
     int arrow_cri, arrow_hit, arrow_range;
-    int nhealhp, nhealsp, nshealhp, nshealsp, nsshealhp, nsshealsp;
+    int nhealhp, nhealsp;
     int aspd_rate, speed_rate, hprecov_rate, sprecov_rate, critical_def,
         double_rate;
     int matk_rate;
@@ -269,9 +268,6 @@ struct map_session_data : block_list, SessionData
         mdef_rate, mdef2_rate;
     int double_add_rate, speed_add_rate, aspd_add_rate, perfect_hit_add;
     short hp_drain_rate, hp_drain_per, sp_drain_rate, sp_drain_per;
-    short hp_drain_rate_, hp_drain_per_, sp_drain_rate_, sp_drain_per_;
-    short break_weapon_rate, break_armor_rate;
-    short add_steal_rate;
 
     int die_counter;
 
@@ -298,11 +294,8 @@ struct map_session_data : block_list, SessionData
 
     PartyId partyspy;              // [Syrus22]
 
-    int catch_target_class;
-
     int pvp_point, pvp_rank;
     Timer pvp_timer;
-    int pvp_lastusers;
 
     std::list<NpcEvent> eventqueuel;
     Array<Timer, MAX_EVENTTIMER> eventtimer;

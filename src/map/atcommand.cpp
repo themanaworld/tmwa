@@ -1312,7 +1312,7 @@ ATCE atcommand_heal(Session *s, dumb_ptr<map_session_data> sd,
 
     if (hp < 0)
         // display like damage
-        clif_damage(sd, sd, gettick(), interval_t::zero(), interval_t::zero(), -hp, 0, DamageType::RETURNED, 0);
+        clif_damage(sd, sd, gettick(), interval_t::zero(), interval_t::zero(), -hp, 0, DamageType::RETURNED);
 
     if (hp != 0 || sp != 0)
     {
@@ -1621,7 +1621,6 @@ ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
                     pl_sd->pvp_timer = Timer(gettick() + 200_ms,
                             std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl_id));
                     pl_sd->pvp_rank = 0;
-                    pl_sd->pvp_lastusers = 0;
                     pl_sd->pvp_point = 5;
                 }
             }

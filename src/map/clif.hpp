@@ -87,11 +87,11 @@ void clif_delitem(dumb_ptr<map_session_data>, IOff0, int);    //self
 int clif_updatestatus(dumb_ptr<map_session_data>, SP);    //self
 int clif_damage(dumb_ptr<block_list>, dumb_ptr<block_list>,
         tick_t, interval_t, interval_t,
-        int, int, DamageType, int);    // area
+        int, int, DamageType);    // area
 inline
 int clif_takeitem(dumb_ptr<block_list> src, dumb_ptr<block_list> dst)
 {
-    return clif_damage(src, dst, tick_t(), interval_t::zero(), interval_t::zero(), 0, 0, DamageType::TAKEITEM, 0);
+    return clif_damage(src, dst, tick_t(), interval_t::zero(), interval_t::zero(), 0, 0, DamageType::TAKEITEM);
 }
 int clif_changelook(dumb_ptr<block_list>, LOOK, int);   // area
 void clif_changelook_accessories(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> dst); // area or target; list gloves, boots etc.

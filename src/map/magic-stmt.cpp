@@ -786,7 +786,7 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
     // display damage first, because dealing damage may deallocate the target.
     clif_damage(caster, target,
             gettick(), interval_t::zero(), interval_t::zero(),
-            damage_caused, 0, DamageType::NORMAL, 0);
+            damage_caused, 0, DamageType::NORMAL);
 
     if (caster->bl_type == BL::PC)
     {

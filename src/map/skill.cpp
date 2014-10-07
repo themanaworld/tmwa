@@ -286,7 +286,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
     lv = flag.level;
     dmg = battle_calc_attack(attack_type, src, bl, skillid, skilllv, flag.lo); //ダメージ計算
 
-    damage = dmg.damage + dmg.damage2;
+    damage = dmg.damage;
 
     if (lv == 15)
         lv = -1;
@@ -347,26 +347,16 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
         {
             hp += (dmg.damage * sd->hp_drain_per) / 100;
         }
-        if (sd->hp_drain_rate_ && dmg.damage2 > 0
-            && random_::chance({sd->hp_drain_rate_, 100}))
-        {
-            hp += (dmg.damage2 * sd->hp_drain_per_) / 100;
-        }
         if (sd->sp_drain_rate > 0 && dmg.damage > 0
             && random_::chance({sd->sp_drain_rate, 100}))
         {
             sp += (dmg.damage * sd->sp_drain_per) / 100;
         }
-        if (sd->sp_drain_rate_ > 0 && dmg.damage2 > 0
-            && random_::chance({sd->sp_drain_rate_, 100}))
-        {
-            sp += (dmg.damage2 * sd->sp_drain_per_) / 100;
-        }
         if (hp || sp)
             pc_heal(sd, hp, sp);
     }
 
-    return (dmg.damage + dmg.damage2);  /* 与ダメを返す */
+    return (dmg.damage);  /* 与ダメを返す */
 }
 
 typedef int(*SkillFunc)(dumb_ptr<block_list>, dumb_ptr<block_list>,

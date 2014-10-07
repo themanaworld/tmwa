@@ -2468,7 +2468,7 @@ int clif_fixpcpos(dumb_ptr<map_session_data> sd)
  */
 int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
-        int div, DamageType type, int damage2)
+        int div, DamageType type)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
@@ -2486,7 +2486,7 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
     fixed_8a.damage = (damage > 0x7fff) ? 0x7fff : damage;
     fixed_8a.div = div;
     fixed_8a.damage_type = type;
-    fixed_8a.damage2 = damage2;
+    fixed_8a.damage2 = 0;
     Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
     clif_send(buf, src, SendWho::AREA);
 
@@ -3465,7 +3465,6 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
                     std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
                         sd->bl_id));
             sd->pvp_rank = 0;
-            sd->pvp_lastusers = 0;
             sd->pvp_point = 5;
         }
     }

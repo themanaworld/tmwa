@@ -3299,7 +3299,6 @@ void builtin_pvpon(ScriptState *st)
                             std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
                                 pl_sd->bl_id));
                     pl_sd->pvp_rank = 0;
-                    pl_sd->pvp_lastusers = 0;
                     pl_sd->pvp_point = 5;
                 }
             }

@@ -120,7 +120,7 @@ int sp_coefficient_0 = 100;
 // coefficients for each weapon type
 // (not all used)
 static //const
-earray<interval_t, ItemLook, ItemLook::SINGLE_HANDED_COUNT> aspd_base_0 //=
+earray<interval_t, ItemLook, ItemLook::COUNT> aspd_base_0 //=
 {{
 650_ms,
 700_ms,
@@ -531,40 +531,8 @@ int pc_calcweapontype(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
 
-    if (sd->weapontype1 != ItemLook::NONE
-            && sd->weapontype2 == ItemLook::NONE)
-        sd->status.weapon = sd->weapontype1;
-    if (sd->weapontype1 == ItemLook::NONE
-            && sd->weapontype2 != ItemLook::NONE)
-        sd->status.weapon = sd->weapontype2;
-    else if (sd->weapontype1 == ItemLook::BLADE
-            && sd->weapontype2 == ItemLook::BLADE)
-        sd->status.weapon = ItemLook::DUAL_BLADE;
-    else if (sd->weapontype1 == ItemLook::_2
-            && sd->weapontype2 == ItemLook::_2)
-        sd->status.weapon = ItemLook::DUAL_2;
-    else if (sd->weapontype1 == ItemLook::_6
-            && sd->weapontype2 == ItemLook::_6)
-        sd->status.weapon = ItemLook::DUAL_6;
-    else if ((sd->weapontype1 == ItemLook::BLADE
-                && sd->weapontype2 == ItemLook::_2)
-            || (sd->weapontype1 == ItemLook::_2
-                && sd->weapontype2 == ItemLook::BLADE))
-        sd->status.weapon = ItemLook::DUAL_12;
-    else if (
-            (sd->weapontype1 == ItemLook::BLADE
-                && sd->weapontype2 == ItemLook::_6)
-            || (sd->weapontype1 == ItemLook::_6
-                && sd->weapontype2 == ItemLook::BLADE))
-        sd->status.weapon = ItemLook::DUAL_16;
-    else if (
-            (sd->weapontype1 == ItemLook::_2
-                && sd->weapontype2 == ItemLook::_6)
-            || (sd->weapontype1 == ItemLook::_6
-                && sd->weapontype2 == ItemLook::_2))
-        sd->status.weapon = ItemLook::DUAL_26;
-    else
-        sd->status.weapon = sd->weapontype1;
+    // TODO now that there is no calculation here, store only once
+    sd->status.weapon = sd->weapontype1;
 
     return 0;
 }
@@ -600,15 +568,9 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
                     if (sd->inventory_data[i]->type == ItemType::WEAPON)
                     {
                         if (sd->status.inventory[i].equip == EPOS::SHIELD)
-                            sd->weapontype2 = sd->inventory_data[i]->look;
-                        else
-                            sd->weapontype2 = ItemLook::NONE;
+                            assert(0 && "unreachable - offhand weapons are not supported");
                     }
-                    else
-                        sd->weapontype2 = ItemLook::NONE;
                 }
-                else
-                    sd->weapontype2 = ItemLook::NONE;
             }
         }
     }
@@ -681,7 +643,7 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
     sd->state.connect_new = 1;
     sd->bl_prev = sd->bl_next = nullptr;
 
-    sd->weapontype1 = sd->weapontype2 = ItemLook::NONE;
+    sd->weapontype1 = ItemLook::NONE;
     sd->speed = DEFAULT_WALK_SPEED;
     sd->state.dead_sit = 0;
     sd->dir = DIR::S;
@@ -1005,7 +967,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->status.max_hp = 0;
     sd->status.max_sp = 0;
     sd->attackrange = 0;
-    sd->attackrange_ = 0;
     sd->matk1 = 0;
     sd->matk2 = 0;
     sd->speed = DEFAULT_WALK_SPEED;
@@ -1016,12 +977,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->arrow_atk = 0;
     sd->arrow_hit = 0;
     sd->arrow_range = 0;
-    sd->nhealhp = sd->nhealsp = sd->nshealhp = sd->nshealsp = sd->nsshealhp =
-        sd->nsshealsp = 0;
+    sd->nhealhp = sd->nhealsp = 0;
     really_memzero_this(&sd->special_state);
-
-    sd->watk_ = 0;              //二刀流用(仮)
-    sd->watk_2 = 0;
 
     sd->aspd_rate = 100;
     sd->speed_rate = 100;
@@ -1038,8 +995,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->double_add_rate = sd->perfect_hit_add = 0;
     sd->hp_drain_rate = sd->hp_drain_per = sd->sp_drain_rate =
         sd->sp_drain_per = 0;
-    sd->hp_drain_rate_ = sd->hp_drain_per_ = sd->sp_drain_rate_ =
-        sd->sp_drain_per_ = 0;
 
     sd->spellpower_bonus_target = 0;
 
@@ -1100,23 +1055,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 if (i == EQUIP::SHIELD
                     && sd->status.inventory[index].equip == EPOS::SHIELD)
                 {
-                    //二刀流用データ入力
-                    sd->watk_ += sd->inventory_data[index]->atk;
-                    sd->watk_2 = 0;
-
-                    sd->attackrange_ += sd->inventory_data[index]->range;
-                    sd->state.lr_flag = 1;
-                    {
-                        argrec_t arg[2] =
-                        {
-                            {"@slotId"_s, static_cast<int>(i)},
-                            {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
-                        };
-                        run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
-                                sd->bl_id, BlockId(),
-                                arg);
-                    }
-                    sd->state.lr_flag = 0;
+                    assert(0 && "unreachable - offhand weapons are not supported");
                 }
                 else
                 {
@@ -1153,8 +1092,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     {
         sd->watk += skill_power(sd, SkillID::TMW_BRAWLING) / 3; // +66 for 200
         sd->watk2 += skill_power(sd, SkillID::TMW_BRAWLING) >> 3;   // +25 for 200
-        sd->watk_ += skill_power(sd, SkillID::TMW_BRAWLING) / 3;    // +66 for 200
-        sd->watk_2 += skill_power(sd, SkillID::TMW_BRAWLING) >> 3;  // +25 for 200
     }
 
     IOff0 aidx = sd->equip_index_maybe[EQUIP::ARROW];
@@ -1168,11 +1105,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 {"@slotId"_s, static_cast<int>(EQUIP::ARROW)},
                 {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
             };
-            sd->state.lr_flag = 2;
+            sd->state.lr_flag_is_arrow_2 = 1;
             run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                     sd->bl_id, BlockId(),
                     arg);
-            sd->state.lr_flag = 0;
+            sd->state.lr_flag_is_arrow_2 = 0;
             sd->arrow_atk += sd->inventory_data[index]->atk;
         }
     }
@@ -1180,10 +1117,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     if (sd->attackrange < 1)
         sd->attackrange = 1;
-    if (sd->attackrange_ < 1)
-        sd->attackrange_ = 1;
-    if (sd->attackrange < sd->attackrange_)
-        sd->attackrange = sd->attackrange_;
     if (sd->status.weapon == ItemLook::BOW)
         sd->attackrange += sd->arrow_range;
     sd->double_rate += sd->double_add_rate;
@@ -1201,9 +1134,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     for (ATTR attr : ATTRs)
         sd->paramc[attr] = std::max(0, sd->status.attrs[attr] + sd->paramb[attr] + sd->parame[attr]);
 
-    if (sd->status.weapon == ItemLook::BOW
-            || sd->status.weapon == ItemLook::_13
-            || sd->status.weapon == ItemLook::_14)
+    if (sd->status.weapon == ItemLook::BOW)
     {
         str = sd->paramc[ATTR::DEX];
         dex = sd->paramc[ATTR::STR];
@@ -1291,20 +1222,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->mdef2 = 1;
 
     // 二刀流 ASPD 修正
-    if (sd->status.weapon < ItemLook::SINGLE_HANDED_COUNT)
+    {
         sd->aspd += aspd_base_0[sd->status.weapon]
             - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
             * aspd_base_0[sd->status.weapon] / 1000;
-    else
-        sd->aspd += (
-                (aspd_base_0[sd->weapontype1]
-                    - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
-                    * aspd_base_0[sd->weapontype1] / 1000)
-                + (aspd_base_0[sd->weapontype2]
-                    - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
-                    * aspd_base_0[sd->weapontype2] / 1000)
-                )
-            * 140 / 200;
+    }
 
     aspd_rate = sd->aspd_rate;
 
@@ -1498,122 +1420,116 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
         case SP::INT:
         case SP::DEX:
         case SP::LUK:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->parame[sp_to_attr(type)] += val;
             break;
 #if 0
         case SP::ATK1:
-            if (!sd->state.lr_flag)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->watk += val;
-            else if (sd->state.lr_flag == 1)
-                sd->watk_ += val;
             break;
 #endif
 #if 0
         case SP::ATK2:
-            if (!sd->state.lr_flag)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->watk2 += val;
-            else if (sd->state.lr_flag == 1)
-                sd->watk_2 += val;
             break;
 #endif
 #if 0
         case SP::BASE_ATK:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->base_atk += val;
             break;
 #endif
 #if 0
         case SP::MATK1:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->matk1 += val;
             break;
 #endif
 #if 0
         case SP::MATK2:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->matk2 += val;
             break;
 #endif
 #if 0
         case SP::DEF1:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->def += val;
             break;
 #endif
         case SP::MDEF1:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->mdef += val;
             break;
 #if 0
         case SP::MDEF2:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->mdef += val;
             break;
 #endif
         case SP::HIT:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->hit += val;
             else
                 sd->arrow_hit += val;
             break;
         case SP::FLEE1:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->flee += val;
             break;
 #if 0
         case SP::FLEE2:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->flee2 += val * 10;
             break;
 #endif
         case SP::CRITICAL:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->critical += val * 10;
             else
                 sd->arrow_cri += val * 10;
             break;
         case SP::MAXHP:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->status.max_hp += val;
             break;
         case SP::MAXSP:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->status.max_sp += val;
             break;
         case SP::MAXHPRATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->hprate += val;
             break;
 #if 0
         case SP::MAXSPRATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->sprate += val;
             break;
 #endif
 #if 0
         case SP::SPRATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->dsprate += val;
             break;
 #endif
         case SP::ATTACKRANGE:
-            if (!sd->state.lr_flag)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->attackrange += val;
-            else if (sd->state.lr_flag == 1)
-                sd->attackrange_ += val;
-            else if (sd->state.lr_flag == 2)
+            else
                 sd->arrow_range += val;
             break;
 #if 0
         case SP::ADD_SPEED:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->speed -= val;
             break;
 #endif
 #if 0
         case SP::SPEED_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
             {
                 if (sd->speed_rate > 100 - val)
                     sd->speed_rate = 100 - val;
@@ -1621,17 +1537,17 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             break;
 #endif
         case SP::SPEED_ADDRATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->speed_add_rate = sd->speed_add_rate * (100 - val) / 100;
             break;
 #if 0
         case SP::ASPD:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->aspd -= val * 10;
             break;
 #endif
         case SP::ASPD_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
             {
                 if (sd->aspd_rate > 100 - val)
                     sd->aspd_rate = 100 - val;
@@ -1639,99 +1555,99 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             break;
 #if 0
         case SP::ASPD_ADDRATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->aspd_add_rate = sd->aspd_add_rate * (100 - val) / 100;
             break;
 #endif
         case SP::HP_RECOV_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->hprecov_rate += val;
             break;
 #if 0
         case SP::SP_RECOV_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->sprecov_rate += val;
             break;
 #endif
         case SP::CRITICAL_DEF:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->critical_def += val;
             break;
 #if 0
         case SP::DOUBLE_RATE:
-            if (sd->state.lr_flag == 0 && sd->double_rate < val)
+            if (!sd->state.lr_flag_is_arrow_2 && sd->double_rate < val)
                 sd->double_rate = val;
             break;
 #endif
         case SP::DOUBLE_ADD_RATE:
-            if (sd->state.lr_flag == 0)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->double_add_rate += val;
             break;
 #if 0
         case SP::MATK_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->matk_rate += val;
             break;
 #endif
 #if 0
         case SP::ATK_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->atk_rate += val;
             break;
 #endif
 #if 0
         case SP::PERFECT_HIT_RATE:
-            if (sd->state.lr_flag != 2 && sd->perfect_hit < val)
+            if (!sd->state.lr_flag_is_arrow_2 && sd->perfect_hit < val)
                 sd->perfect_hit = val;
             break;
 #endif
 #if 0
         case SP::PERFECT_HIT_ADD_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->perfect_hit_add += val;
             break;
 #endif
 #if 0
         case SP::CRITICAL_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->critical_rate += val;
             break;
 #endif
 #if 0
         case SP::HIT_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->hit_rate += val;
             break;
 #endif
 #if 0
         case SP::FLEE_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->flee_rate += val;
             break;
 #endif
 #if 0
         case SP::FLEE2_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->flee2_rate += val;
             break;
 #endif
         case SP::DEF_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->def_rate += val;
             break;
         case SP::DEF2_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->def2_rate += val;
             break;
 #if 0
         case SP::MDEF_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->mdef_rate += val;
             break;
 #endif
 #if 0
         case SP::MDEF2_RATE:
-            if (sd->state.lr_flag != 2)
+            if (!sd->state.lr_flag_is_arrow_2)
                 sd->mdef2_rate += val;
             break;
 #endif
@@ -1758,28 +1674,18 @@ int pc_bonus2(dumb_ptr<map_session_data> sd, SP type, int type2, int val)
     switch (type)
     {
         case SP::HP_DRAIN_RATE:
-            if (!sd->state.lr_flag)
+            if (!sd->state.lr_flag_is_arrow_2)
             {
                 sd->hp_drain_rate += type2;
                 sd->hp_drain_per += val;
             }
-            else if (sd->state.lr_flag == 1)
-            {
-                sd->hp_drain_rate_ += type2;
-                sd->hp_drain_per_ += val;
-            }
             break;
 #if 0
         case SP::SP_DRAIN_RATE:
-            if (!sd->state.lr_flag)
+            if (!sd->state.lr_flag_is_arrow_2)
             {
                 sd->sp_drain_rate += type2;
                 sd->sp_drain_per += val;
-            }
-            else if (sd->state.lr_flag == 1)
-            {
-                sd->sp_drain_rate_ += type2;
-                sd->sp_drain_per_ += val;
             }
             break;
 #endif
@@ -4499,20 +4405,16 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
         {
             if (sd->inventory_data[n]->type == ItemType::WEAPON)
             {
-                sd->status.shield = ItemNameId();
-                if (sd->status.inventory[n].equip == EPOS::SHIELD)
-                    sd->weapontype2 = view_l;
+                assert(0 && "unreachable - offhand weapons are not supported");
             }
             else if (sd->inventory_data[n]->type == ItemType::ARMOR)
             {
                 sd->status.shield = view_i;
-                sd->weapontype2 = ItemLook::NONE;
             }
         }
         else
         {
             sd->status.shield = ItemNameId();
-            sd->weapontype2 = ItemLook::NONE;
         }
         pc_calcweapontype(sd);
         clif_changelook(sd, LOOK::SHIELD, unwrap<ItemNameId>(sd->status.shield));
@@ -4563,14 +4465,14 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
         if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
         {
             sd->weapontype1 = ItemLook::NONE;
-            sd->status.weapon = sd->weapontype2;
+            // when reading the diff, think twice about this
+            sd->status.weapon = ItemLook::NONE;
             pc_calcweapontype(sd);
             pc_set_weapon_look(sd);
         }
         if (bool(sd->status.inventory[n].equip & EPOS::SHIELD))
         {
             sd->status.shield = ItemNameId();
-            sd->weapontype2 = ItemLook::NONE;
             pc_calcweapontype(sd);
             clif_changelook(sd, LOOK::SHIELD, unwrap<ItemNameId>(sd->status.shield));
         }
@@ -4936,28 +4838,7 @@ int pc_natural_heal_hp(dumb_ptr<map_session_data> sd)
     if (bhp != sd->status.hp)
         clif_updatestatus(sd, SP::HP);
 
-    if (sd->nshealhp > 0)
-    {
-        if (sd->inchealhptick >= static_cast<interval_t>(battle_config.natural_heal_skill_interval)
-            && sd->status.hp < sd->status.max_hp)
-        {
-            bonus = sd->nshealhp;
-            while (sd->inchealhptick >= static_cast<interval_t>(battle_config.natural_heal_skill_interval))
-            {
-                sd->inchealhptick -= static_cast<interval_t>(battle_config.natural_heal_skill_interval);
-                if (sd->status.hp + bonus <= sd->status.max_hp)
-                    sd->status.hp += bonus;
-                else
-                {
-                    bonus = sd->status.max_hp - sd->status.hp;
-                    sd->status.hp = sd->status.max_hp;
-                    sd->hp_sub = sd->inchealhptick = interval_t::zero();
-                }
-            }
-        }
-    }
-    else
-        sd->inchealhptick = interval_t::zero();
+    sd->inchealhptick = interval_t::zero();
 
     return 0;
 }
@@ -5004,28 +4885,7 @@ int pc_natural_heal_sp(dumb_ptr<map_session_data> sd)
     if (bsp != sd->status.sp)
         clif_updatestatus(sd, SP::SP);
 
-    if (sd->nshealsp > 0)
-    {
-        if (sd->inchealsptick >= static_cast<interval_t>(battle_config.natural_heal_skill_interval)
-            && sd->status.sp < sd->status.max_sp)
-        {
-            bonus = sd->nshealsp;
-            while (sd->inchealsptick >= static_cast<interval_t>(battle_config.natural_heal_skill_interval))
-            {
-                sd->inchealsptick -= static_cast<interval_t>(battle_config.natural_heal_skill_interval);
-                if (sd->status.sp + bonus <= sd->status.max_sp)
-                    sd->status.sp += bonus;
-                else
-                {
-                    bonus = sd->status.max_sp - sd->status.sp;
-                    sd->status.sp = sd->status.max_sp;
-                    sd->sp_sub = sd->inchealsptick = interval_t::zero();
-                }
-            }
-        }
-    }
-    else
-        sd->inchealsptick = interval_t::zero();
+    sd->inchealsptick = interval_t::zero();
     return 0;
 }
 

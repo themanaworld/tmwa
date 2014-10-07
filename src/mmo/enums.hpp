@@ -101,22 +101,10 @@ enum class ItemLook : uint16_t
 {
     NONE = 0,
     BLADE = 1, // or some other common weapons
-    _2,
     SETZER_AND_SCYTHE = 3,
-    _6,
     STAFF = 10,
     BOW = 11,
-    _13 = 13,
-    _14 = 14,
-    _16 = 16,
-    SINGLE_HANDED_COUNT = 17,
-
-    DUAL_BLADE = 0x11,
-    DUAL_2 = 0x12,
-    DUAL_6 = 0x13,
-    DUAL_12 = 0x14,
-    DUAL_16 = 0x15,
-    DUAL_26 = 0x16,
+    COUNT = 17,
 };
 
 enum class SEX : uint8_t
@@ -124,6 +112,7 @@ enum class SEX : uint8_t
     FEMALE = 0,
     MALE = 1,
     // For items. This is also used as error, sometime.
+    // TODO switch to Option<SEX> where appropriate.
     NEUTRAL = 2,
 };
 inline

@@ -40,7 +40,7 @@ namespace tmwa
 // ダメージ
 struct Damage
 {
-    int damage, damage2;
+    int damage;
     DamageType type;
     int div_;
     interval_t amotion, dmotion;
