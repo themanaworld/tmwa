@@ -26,4 +26,11 @@ namespace tmwa
 // meh, add more when I feel like it
 template<class T>
 class dumb_ptr;
+
+template<class K, class V>
+class Map;
+template<class K, class V>
+class DMap;
+template<class K, class V>
+class UPMap;
 } // namespace tmwa

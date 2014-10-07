@@ -1283,8 +1283,8 @@ void pop_stack(struct script_stack *stack, int start, int end)
 }
 
 
-#define AARGO2(n) (st->stack->stack_datav[st->start + (n)])
-#define HARGO2(n) (st->end > st->start + (n))
+#define AARG(n) (st->stack->stack_datav[st->start + 2 + (n)])
+#define HARG(n) (st->end > st->start + 2 + (n))
 
 //
 // 埋め込み関数
@@ -1296,7 +1296,7 @@ void pop_stack(struct script_stack *stack, int start, int end)
 static
 void builtin_mes(ScriptState *st)
 {
-    RString mes = conv_str(st, &AARGO2(2));
+    RString mes = conv_str(st, &AARG(0));
     clif_scriptmes(script_rid2sd(st), st->oid, mes);
 }
 
@@ -1307,14 +1307,14 @@ void builtin_mes(ScriptState *st)
 static
 void builtin_goto(ScriptState *st)
 {
-    if (!AARGO2(2).is<ScriptDataPos>())
+    if (!AARG(0).is<ScriptDataPos>())
     {
         PRINTF("script: goto: not label !\n"_fmt);
         st->state = ScriptEndState::END;
         return;
     }
 
-    st->scriptp.pos = conv_num(st, &AARGO2(2));
+    st->scriptp.pos = conv_num(st, &AARG(0));
     st->state = ScriptEndState::GOTO;
 }
 
@@ -1325,7 +1325,7 @@ void builtin_goto(ScriptState *st)
 static
 void builtin_callfunc(ScriptState *st)
 {
-    RString str = conv_str(st, &AARGO2(2));
+    RString str = conv_str(st, &AARG(0));
     const ScriptBuffer *scr = userfunc_db.get(str);
 
     if (scr)
@@ -1360,7 +1360,7 @@ void builtin_callfunc(ScriptState *st)
 static
 void builtin_callsub(ScriptState *st)
 {
-    int pos_ = conv_num(st, &AARGO2(2));
+    int pos_ = conv_num(st, &AARG(0));
     int j = 0;
     assert (st->start + 3 == st->end);
 #if 0
@@ -1386,7 +1386,7 @@ static
 void builtin_return(ScriptState *st)
 {
 #if 0
-    if (HARGO2(2))
+    if (HARG(0))
     {                           // 戻り値有り
         push_copy(st->stack, st->start + 2);
     }
@@ -1439,9 +1439,9 @@ void builtin_menu(ScriptState *st)
         sd->state.menu_or_input = 1;
 
         MString buf;
-        for (int i = st->start + 2; i < st->end; i += 2)
+        for (int i = 0; i < (st->end - (st->start + 2)) / 2; i++)
         {
-            RString choice_str = conv_str(st, &AARGO2(i - st->start));
+            RString choice_str = conv_str(st, &AARG(i * 2 + 0));
             if (!choice_str)
                 break;
             buf += choice_str;
@@ -1471,12 +1471,12 @@ void builtin_menu(ScriptState *st)
         if (sd->npc_menu > 0 && sd->npc_menu <= menu_choices)
         {
             int arg_index = (sd->npc_menu - 1) * 2 + 1;
-            if (!AARGO2(arg_index + 2).is<ScriptDataPos>())
+            if (!AARG(arg_index).is<ScriptDataPos>())
             {
                 st->state = ScriptEndState::END;
                 return;
             }
-            st->scriptp.pos = AARGO2(arg_index + 2).get_if<ScriptDataPos>()->numi;
+            st->scriptp.pos = AARG(arg_index).get_if<ScriptDataPos>()->numi;
             st->state = ScriptEndState::GOTO;
         }
     }
@@ -1489,17 +1489,17 @@ void builtin_menu(ScriptState *st)
 static
 void builtin_rand(ScriptState *st)
 {
-    if (HARGO2(3))
+    if (HARG(1))
     {
-        int min = conv_num(st, &AARGO2(2));
-        int max = conv_num(st, &AARGO2(3));
+        int min = conv_num(st, &AARG(0));
+        int max = conv_num(st, &AARG(1));
         if (min > max)
             std::swap(max, min);
         push_int<ScriptDataInt>(st->stack, random_::in(min, max));
     }
     else
     {
-        int range = conv_num(st, &AARGO2(2));
+        int range = conv_num(st, &AARG(0));
         push_int<ScriptDataInt>(st->stack, range <= 0 ? 0 : random_::to(range));
     }
 }
@@ -1514,9 +1514,9 @@ void builtin_isat(ScriptState *st)
     int x, y;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x = conv_num(st, &AARGO2(3));
-    y = conv_num(st, &AARGO2(4));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x = conv_num(st, &AARG(1));
+    y = conv_num(st, &AARG(2));
 
     if (!sd)
         return;
@@ -1536,9 +1536,9 @@ void builtin_warp(ScriptState *st)
     int x, y;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x = conv_num(st, &AARGO2(3));
-    y = conv_num(st, &AARGO2(4));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x = conv_num(st, &AARG(1));
+    y = conv_num(st, &AARG(2));
     if (str == "Random"_s)
         pc_randomwarp(sd, BeingRemoveWhy::WARPED);
     else if (str == "SavePoint"_s or str == "Save"_s)
@@ -1573,14 +1573,14 @@ void builtin_areawarp(ScriptState *st)
     int x, y;
     int x0, y0, x1, y1;
 
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x0 = conv_num(st, &AARGO2(3));
-    y0 = conv_num(st, &AARGO2(4));
-    x1 = conv_num(st, &AARGO2(5));
-    y1 = conv_num(st, &AARGO2(6));
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(7))));
-    x = conv_num(st, &AARGO2(8));
-    y = conv_num(st, &AARGO2(9));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x0 = conv_num(st, &AARG(1));
+    y0 = conv_num(st, &AARG(2));
+    x1 = conv_num(st, &AARG(3));
+    y1 = conv_num(st, &AARG(4));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(5))));
+    x = conv_num(st, &AARG(6));
+    y = conv_num(st, &AARG(7));
 
     map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
@@ -1602,8 +1602,8 @@ void builtin_heal(ScriptState *st)
 {
     int hp, sp;
 
-    hp = conv_num(st, &AARGO2(2));
-    sp = conv_num(st, &AARGO2(3));
+    hp = conv_num(st, &AARG(0));
+    sp = conv_num(st, &AARG(1));
     pc_heal(script_rid2sd(st), hp, sp);
 }
 
@@ -1616,8 +1616,8 @@ void builtin_itemheal(ScriptState *st)
 {
     int hp, sp;
 
-    hp = conv_num(st, &AARGO2(2));
-    sp = conv_num(st, &AARGO2(3));
+    hp = conv_num(st, &AARG(0));
+    sp = conv_num(st, &AARG(1));
     pc_itemheal(script_rid2sd(st), hp, sp);
 }
 
@@ -1630,8 +1630,8 @@ void builtin_percentheal(ScriptState *st)
 {
     int hp, sp;
 
-    hp = conv_num(st, &AARGO2(2));
-    sp = conv_num(st, &AARGO2(3));
+    hp = conv_num(st, &AARG(0));
+    sp = conv_num(st, &AARG(1));
     pc_percentheal(script_rid2sd(st), hp, sp);
 }
 
@@ -1643,7 +1643,7 @@ static
 void builtin_input(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
-    script_data& scrd = AARGO2(2);
+    script_data& scrd = AARG(0);
     assert (scrd.is<ScriptDataVariable>());
 
     SIR reg = scrd.get_if<ScriptDataVariable>()->reg;
@@ -1695,7 +1695,7 @@ void builtin_if (ScriptState *st)
 {
     int sel, i;
 
-    sel = conv_num(st, &AARGO2(2));
+    sel = conv_num(st, &AARG(0));
     if (!sel)
         return;
 
@@ -1719,17 +1719,17 @@ static
 void builtin_set(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
-    if (auto *u = AARGO2(2).get_if<ScriptDataParam>())
+    if (auto *u = AARG(0).get_if<ScriptDataParam>())
     {
         SIR reg = u->reg;
         sd = script_rid2sd(st);
 
-        int val = conv_num(st, &AARGO2(3));
+        int val = conv_num(st, &AARG(1));
         set_reg(sd, VariableCode::PARAM, reg, val);
         return;
     }
 
-    SIR reg = AARGO2(2).get_if<ScriptDataVariable>()->reg;
+    SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
 
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
@@ -1741,13 +1741,13 @@ void builtin_set(ScriptState *st)
     if (postfix == '$')
     {
         // 文字列
-        RString str = conv_str(st, &AARGO2(3));
+        RString str = conv_str(st, &AARG(1));
         set_reg(sd, VariableCode::VARIABLE, reg, str);
     }
     else
     {
         // 数値
-        int val = conv_num(st, &AARGO2(3));
+        int val = conv_num(st, &AARG(1));
         set_reg(sd, VariableCode::VARIABLE, reg, val);
     }
 
@@ -1761,7 +1761,7 @@ static
 void builtin_setarray(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
-    SIR reg = AARGO2(2).get_if<ScriptDataVariable>()->reg;
+    SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
@@ -1774,12 +1774,12 @@ void builtin_setarray(ScriptState *st)
     if (prefix != '$')
         sd = script_rid2sd(st);
 
-    for (int j = 0, i = st->start + 3; i < st->end && j < 256; i++, j++)
+    for (int j = 0, i = 1; i < st->end - st->start - 2 && j < 256; i++, j++)
     {
         if (postfix == '$')
-            set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARGO2(i - st->start)));
+            set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARG(i)));
         else
-            set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), conv_num(st, &AARGO2(i - st->start)));
+            set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), conv_num(st, &AARG(i)));
     }
 }
 
@@ -1791,11 +1791,11 @@ static
 void builtin_cleararray(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
-    SIR reg = AARGO2(2).get_if<ScriptDataVariable>()->reg;
+    SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
-    int sz = conv_num(st, &AARGO2(4));
+    int sz = conv_num(st, &AARG(2));
 
     if (prefix != '$' && prefix != '@')
     {
@@ -1808,9 +1808,9 @@ void builtin_cleararray(ScriptState *st)
     for (int i = 0; i < sz; i++)
     {
         if (postfix == '$')
-            set_reg(sd, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARGO2(3)));
+            set_reg(sd, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARG(1)));
         else
-            set_reg(sd, VariableCode::VARIABLE, reg.iplus(i), conv_num(st, &AARGO2(3)));
+            set_reg(sd, VariableCode::VARIABLE, reg.iplus(i), conv_num(st, &AARG(1)));
     }
 
 }
@@ -1851,7 +1851,7 @@ int getarraysize(ScriptState *st, SIR reg)
 static
 void builtin_getarraysize(ScriptState *st)
 {
-    SIR reg = AARGO2(2).get_if<ScriptDataVariable>()->reg;
+    SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
 
@@ -1871,9 +1871,9 @@ void builtin_getarraysize(ScriptState *st)
 static
 void builtin_getelementofarray(ScriptState *st)
 {
-    if (auto *u = AARGO2(2).get_if<ScriptDataVariable>())
+    if (auto *u = AARG(0).get_if<ScriptDataVariable>())
     {
-        int i = conv_num(st, &AARGO2(3));
+        int i = conv_num(st, &AARG(1));
         if (i > 255 || i < 0)
         {
             PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n"_fmt,
@@ -1900,8 +1900,8 @@ void builtin_getelementofarray(ScriptState *st)
 static
 void builtin_setlook(ScriptState *st)
 {
-    LOOK type = LOOK(conv_num(st, &AARGO2(2)));
-    int val = conv_num(st, &AARGO2(3));
+    LOOK type = LOOK(conv_num(st, &AARG(0)));
+    int val = conv_num(st, &AARG(1));
 
     pc_changelook(script_rid2sd(st), type, val);
 
@@ -1922,7 +1922,7 @@ void builtin_countitem(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    data = &AARGO2(2);
+    data = &AARG(0);
     get_val(st, data);
     if (data->is<ScriptDataStr>())
     {
@@ -1965,7 +1965,7 @@ void builtin_checkweight(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    data = &AARGO2(2);
+    data = &AARG(0);
     get_val(st, data);
     if (data->is<ScriptDataStr>())
     {
@@ -1977,7 +1977,7 @@ void builtin_checkweight(ScriptState *st)
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
 
-    amount = conv_num(st, &AARGO2(3));
+    amount = conv_num(st, &AARG(1));
     if (amount <= 0 || !nameid)
     {
         //if get wrong item ID or amount<=0, don't count weight of non existing items
@@ -2010,7 +2010,7 @@ void builtin_getitem(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    data = &AARGO2(2);
+    data = &AARG(0);
     get_val(st, data);
     if (data->is<ScriptDataStr>())
     {
@@ -2023,7 +2023,7 @@ void builtin_getitem(ScriptState *st)
         nameid = wrap<ItemNameId>(conv_num(st, data));
 
     if ((amount =
-         conv_num(st, &AARGO2(3))) <= 0)
+         conv_num(st, &AARG(1))) <= 0)
     {
         return;               //return if amount <=0, skip the useles iteration
     }
@@ -2032,8 +2032,8 @@ void builtin_getitem(ScriptState *st)
     {
         Item item_tmp {};
         item_tmp.nameid = nameid;
-        if (HARGO2(5))    //アイテムを指定したIDに渡す
-            sd = map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(5))));
+        if (HARG(3))    //アイテムを指定したIDに渡す
+            sd = map_id2sd(wrap<BlockId>(conv_num(st, &AARG(3))));
         if (sd == nullptr)         //アイテムを渡す相手がいなかったらお帰り
             return;
         PickupFail flag;
@@ -2063,7 +2063,7 @@ void builtin_makeitem(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    data = &AARGO2(2);
+    data = &AARG(0);
     get_val(st, data);
     if (data->is<ScriptDataStr>())
     {
@@ -2075,10 +2075,10 @@ void builtin_makeitem(ScriptState *st)
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
 
-    amount = conv_num(st, &AARGO2(3));
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(4))));
-    x = conv_num(st, &AARGO2(5));
-    y = conv_num(st, &AARGO2(6));
+    amount = conv_num(st, &AARG(1));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(2))));
+    x = conv_num(st, &AARG(3));
+    y = conv_num(st, &AARG(4));
 
     map_local *m;
     if (sd && mapname == MOB_THIS_MAP)
@@ -2109,7 +2109,7 @@ void builtin_delitem(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    data = &AARGO2(2);
+    data = &AARG(0);
     get_val(st, data);
     if (data->is<ScriptDataStr>())
     {
@@ -2121,7 +2121,7 @@ void builtin_delitem(ScriptState *st)
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
 
-    amount = conv_num(st, &AARGO2(3));
+    amount = conv_num(st, &AARG(1));
 
     if (!nameid || amount <= 0)
     {
@@ -2160,9 +2160,9 @@ void builtin_readparam(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd;
 
-    SP type = SP(conv_num(st, &AARGO2(2)));
-    if (HARGO2(3))
-        sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARGO2(3)))));
+    SP type = SP(conv_num(st, &AARG(0)));
+    if (HARG(1))
+        sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARG(1)))));
     else
         sd = script_rid2sd(st);
 
@@ -2186,9 +2186,9 @@ void builtin_getcharid(ScriptState *st)
     int num;
     dumb_ptr<map_session_data> sd;
 
-    num = conv_num(st, &AARGO2(2));
-    if (HARGO2(3))
-        sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARGO2(3)))));
+    num = conv_num(st, &AARG(0));
+    if (HARG(1))
+        sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARG(1)))));
     else
         sd = script_rid2sd(st);
     if (sd == nullptr)
@@ -2232,7 +2232,7 @@ void builtin_strcharinfo(ScriptState *st)
     int num;
 
     sd = script_rid2sd(st);
-    num = conv_num(st, &AARGO2(2));
+    num = conv_num(st, &AARG(0));
     if (num == 0)
     {
         RString buf = sd->status_key.name.to__actual();
@@ -2289,7 +2289,7 @@ void builtin_getequipid(ScriptState *st)
         PRINTF("getequipid: sd == nullptr\n"_fmt);
         return;
     }
-    num = conv_num(st, &AARGO2(2));
+    num = conv_num(st, &AARG(0));
     IOff0 i = pc_checkequip(sd, equip[num - 1]);
     if (i.ok())
     {
@@ -2319,7 +2319,7 @@ void builtin_getequipname(ScriptState *st)
     AString buf;
 
     sd = script_rid2sd(st);
-    num = conv_num(st, &AARGO2(2));
+    num = conv_num(st, &AARG(0));
     IOff0 i = pc_checkequip(sd, equip[num - 1]);
     if (i.ok())
     {
@@ -2344,8 +2344,8 @@ void builtin_getequipname(ScriptState *st)
 static
 void builtin_statusup2(ScriptState *st)
 {
-    SP type = SP(conv_num(st, &AARGO2(2)));
-    int val = conv_num(st, &AARGO2(3));
+    SP type = SP(conv_num(st, &AARG(0)));
+    int val = conv_num(st, &AARG(1));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     pc_statusup2(sd, type, val);
 
@@ -2358,8 +2358,8 @@ void builtin_statusup2(ScriptState *st)
 static
 void builtin_bonus(ScriptState *st)
 {
-    SP type = SP(conv_num(st, &AARGO2(2)));
-    int val = conv_num(st, &AARGO2(3));
+    SP type = SP(conv_num(st, &AARG(0)));
+    int val = conv_num(st, &AARG(1));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     pc_bonus(sd, type, val);
 
@@ -2372,9 +2372,9 @@ void builtin_bonus(ScriptState *st)
 static
 void builtin_bonus2(ScriptState *st)
 {
-    SP type = SP(conv_num(st, &AARGO2(2)));
-    int type2 = conv_num(st, &AARGO2(3));
-    int val = conv_num(st, &AARGO2(4));
+    SP type = SP(conv_num(st, &AARG(0)));
+    int type2 = conv_num(st, &AARG(1));
+    int val = conv_num(st, &AARG(2));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     pc_bonus2(sd, type, type2, val);
 
@@ -2390,10 +2390,10 @@ void builtin_skill(ScriptState *st)
     int level, flag = 1;
     dumb_ptr<map_session_data> sd;
 
-    SkillID id = SkillID(conv_num(st, &AARGO2(2)));
-    level = conv_num(st, &AARGO2(3));
-    if (HARGO2(4))
-        flag = conv_num(st, &AARGO2(4));
+    SkillID id = SkillID(conv_num(st, &AARG(0)));
+    level = conv_num(st, &AARG(1));
+    if (HARG(2))
+        flag = conv_num(st, &AARG(2));
     sd = script_rid2sd(st);
     pc_skill(sd, id, level, flag);
     clif_skillinfoblock(sd);
@@ -2410,8 +2410,8 @@ void builtin_setskill(ScriptState *st)
     int level;
     dumb_ptr<map_session_data> sd;
 
-    SkillID id = static_cast<SkillID>(conv_num(st, &AARGO2(2)));
-    level = conv_num(st, &AARGO2(3));
+    SkillID id = static_cast<SkillID>(conv_num(st, &AARG(0)));
+    level = conv_num(st, &AARG(1));
     sd = script_rid2sd(st);
 
     level = std::min(level, MAX_SKILL_LEVEL);
@@ -2427,7 +2427,7 @@ void builtin_setskill(ScriptState *st)
 static
 void builtin_getskilllv(ScriptState *st)
 {
-    SkillID id = SkillID(conv_num(st, &AARGO2(2)));
+    SkillID id = SkillID(conv_num(st, &AARG(0)));
     push_int<ScriptDataInt>(st->stack, pc_checkskill(script_rid2sd(st), id));
 }
 
@@ -2477,7 +2477,7 @@ void builtin_setopt2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd;
 
-    Opt2 new_opt2 = Opt2(conv_num(st, &AARGO2(2)));
+    Opt2 new_opt2 = Opt2(conv_num(st, &AARG(0)));
     sd = script_rid2sd(st);
     if (new_opt2 == sd->opt2)
         return;
@@ -2496,9 +2496,9 @@ void builtin_savepoint(ScriptState *st)
 {
     int x, y;
 
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x = conv_num(st, &AARGO2(3));
-    y = conv_num(st, &AARGO2(4));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x = conv_num(st, &AARG(1));
+    y = conv_num(st, &AARG(2));
     pc_setsavepoint(script_rid2sd(st), str, x, y);
 }
 
@@ -2516,7 +2516,7 @@ static
 void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
 {
     int type;
-    type = conv_num(st, &AARGO2(2));
+    type = conv_num(st, &AARG(0));
 
     switch (type)
     {
@@ -2550,7 +2550,7 @@ void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
 static
 void builtin_gettime(ScriptState *st)   /* Asgard Version */
 {
-    int type = conv_num(st, &AARGO2(2));
+    int type = conv_num(st, &AARG(0));
 
     struct tm t = TimeT::now();
 
@@ -2612,8 +2612,8 @@ void builtin_getexp(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int base = 0, job = 0;
 
-    base = conv_num(st, &AARGO2(2));
-    job = conv_num(st, &AARGO2(3));
+    base = conv_num(st, &AARG(0));
+    job = conv_num(st, &AARG(1));
     if (base < 0 || job < 0)
         return;
     if (sd)
@@ -2632,14 +2632,14 @@ void builtin_monster(ScriptState *st)
     int amount, x, y;
     NpcEvent event;
 
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x = conv_num(st, &AARGO2(3));
-    y = conv_num(st, &AARGO2(4));
-    MobName str = stringish<MobName>(ZString(conv_str(st, &AARGO2(5))));
-    mob_class = wrap<Species>(conv_num(st, &AARGO2(6)));
-    amount = conv_num(st, &AARGO2(7));
-    if (HARGO2(8))
-        extract(ZString(conv_str(st, &AARGO2(8))), &event);
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x = conv_num(st, &AARG(1));
+    y = conv_num(st, &AARG(2));
+    MobName str = stringish<MobName>(ZString(conv_str(st, &AARG(3))));
+    mob_class = wrap<Species>(conv_num(st, &AARG(4)));
+    amount = conv_num(st, &AARG(5));
+    if (HARG(6))
+        extract(ZString(conv_str(st, &AARG(6))), &event);
 
     mob_once_spawn(map_id2sd(st->rid), mapname, x, y, str, mob_class, amount,
             event);
@@ -2656,16 +2656,16 @@ void builtin_areamonster(ScriptState *st)
     int amount, x0, y0, x1, y1;
     NpcEvent event;
 
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x0 = conv_num(st, &AARGO2(3));
-    y0 = conv_num(st, &AARGO2(4));
-    x1 = conv_num(st, &AARGO2(5));
-    y1 = conv_num(st, &AARGO2(6));
-    MobName str = stringish<MobName>(ZString(conv_str(st, &AARGO2(7))));
-    mob_class = wrap<Species>(conv_num(st, &AARGO2(8)));
-    amount = conv_num(st, &AARGO2(9));
-    if (HARGO2(10))
-        extract(ZString(conv_str(st, &AARGO2(10))), &event);
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x0 = conv_num(st, &AARG(1));
+    y0 = conv_num(st, &AARG(2));
+    x1 = conv_num(st, &AARG(3));
+    y1 = conv_num(st, &AARG(4));
+    MobName str = stringish<MobName>(ZString(conv_str(st, &AARG(5))));
+    mob_class = wrap<Species>(conv_num(st, &AARG(6)));
+    amount = conv_num(st, &AARG(7));
+    if (HARG(8))
+        extract(ZString(conv_str(st, &AARG(8))), &event);
 
     mob_once_spawn_area(map_id2sd(st->rid), mapname, x0, y0, x1, y1, str, mob_class,
             amount, event);
@@ -2697,8 +2697,8 @@ void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event)
 static
 void builtin_killmonster(ScriptState *st)
 {
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    ZString event_ = ZString(conv_str(st, &AARGO2(3)));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    ZString event_ = ZString(conv_str(st, &AARG(1)));
     NpcEvent event;
     if (event_ != "All"_s)
         extract(event_, &event);
@@ -2722,7 +2722,7 @@ void builtin_killmonsterall_sub(dumb_ptr<block_list> bl)
 static
 void builtin_killmonsterall(ScriptState *st)
 {
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
 
     map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
@@ -2741,7 +2741,7 @@ void builtin_killmonsterall(ScriptState *st)
 static
 void builtin_donpcevent(ScriptState *st)
 {
-    ZString event_ = ZString(conv_str(st, &AARGO2(2)));
+    ZString event_ = ZString(conv_str(st, &AARG(0)));
     NpcEvent event;
     extract(event_, &event);
     npc_event_do(event);
@@ -2754,8 +2754,8 @@ void builtin_donpcevent(ScriptState *st)
 static
 void builtin_addtimer(ScriptState *st)
 {
-    interval_t tick = static_cast<interval_t>(conv_num(st, &AARGO2(2)));
-    ZString event_ = ZString(conv_str(st, &AARGO2(3)));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(0)));
+    ZString event_ = ZString(conv_str(st, &AARG(1)));
     NpcEvent event;
     extract(event_, &event);
     pc_addeventtimer(script_rid2sd(st), tick, event);
@@ -2769,8 +2769,8 @@ static
 void builtin_initnpctimer(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
-    if (HARGO2(2))
-        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
+    if (HARG(0))
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
     else
         nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2788,8 +2788,8 @@ static
 void builtin_startnpctimer(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
-    if (HARGO2(2))
-        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
+    if (HARG(0))
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
     else
         nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2806,8 +2806,8 @@ static
 void builtin_stopnpctimer(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
-    if (HARGO2(2))
-        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
+    if (HARG(0))
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
     else
         nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2824,10 +2824,10 @@ static
 void builtin_getnpctimer(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
-    int type = conv_num(st, &AARGO2(2));
+    int type = conv_num(st, &AARG(0));
     int val = 0;
-    if (HARGO2(3))
-        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(3)))));
+    if (HARG(1))
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(1)))));
     else
         nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2856,9 +2856,9 @@ static
 void builtin_setnpctimer(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
-    interval_t tick = static_cast<interval_t>(conv_num(st, &AARGO2(2)));
-    if (HARGO2(3))
-        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(3)))));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(0)));
+    if (HARG(1))
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(1)))));
     else
         nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2875,8 +2875,8 @@ static
 void builtin_announce(ScriptState *st)
 {
     int flag;
-    ZString str = ZString(conv_str(st, &AARGO2(2)));
-    flag = conv_num(st, &AARGO2(3));
+    ZString str = ZString(conv_str(st, &AARG(0)));
+    flag = conv_num(st, &AARG(1));
 
     if (flag & 0x0f)
     {
@@ -2906,9 +2906,9 @@ void builtin_mapannounce(ScriptState *st)
 {
     int flag;
 
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    ZString str = ZString(conv_str(st, &AARGO2(3)));
-    flag = conv_num(st, &AARGO2(4));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    ZString str = ZString(conv_str(st, &AARG(1)));
+    flag = conv_num(st, &AARG(2));
 
     map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
@@ -2927,7 +2927,7 @@ void builtin_mapannounce(ScriptState *st)
 static
 void builtin_getusers(ScriptState *st)
 {
-    int flag = conv_num(st, &AARGO2(2));
+    int flag = conv_num(st, &AARG(0));
     dumb_ptr<block_list> bl = map_id2bl((flag & 0x08) ? st->oid : st->rid);
     int val = 0;
     switch (flag & 0x07)
@@ -2949,7 +2949,7 @@ void builtin_getusers(ScriptState *st)
 static
 void builtin_getmapusers(ScriptState *st)
 {
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
     {
@@ -2984,16 +2984,16 @@ static
 void builtin_getareausers(ScriptState *st)
 {
     int x0, y0, x1, y1, users = 0;
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x0 = conv_num(st, &AARGO2(3));
-    y0 = conv_num(st, &AARGO2(4));
-    x1 = conv_num(st, &AARGO2(5));
-    y1 = conv_num(st, &AARGO2(6));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x0 = conv_num(st, &AARG(1));
+    y0 = conv_num(st, &AARG(2));
+    x1 = conv_num(st, &AARG(3));
+    y1 = conv_num(st, &AARG(4));
 
     int living = 0;
-    if (HARGO2(7))
+    if (HARG(5))
     {
-        living = conv_num(st, &AARGO2(7));
+        living = conv_num(st, &AARG(5));
     }
     map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
@@ -3043,13 +3043,13 @@ void builtin_getareadropitem(ScriptState *st)
     int x0, y0, x1, y1, amount = 0, delitems = 0;
     struct script_data *data;
 
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x0 = conv_num(st, &AARGO2(3));
-    y0 = conv_num(st, &AARGO2(4));
-    x1 = conv_num(st, &AARGO2(5));
-    y1 = conv_num(st, &AARGO2(6));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x0 = conv_num(st, &AARG(1));
+    y0 = conv_num(st, &AARG(2));
+    x1 = conv_num(st, &AARG(3));
+    y1 = conv_num(st, &AARG(4));
 
-    data = &AARGO2(7);
+    data = &AARG(5);
     get_val(st, data);
     if (data->is<ScriptDataStr>())
     {
@@ -3061,8 +3061,8 @@ void builtin_getareadropitem(ScriptState *st)
     else
         item = wrap<ItemNameId>(conv_num(st, data));
 
-    if (HARGO2(8))
-        delitems = conv_num(st, &AARGO2(8));
+    if (HARG(6))
+        delitems = conv_num(st, &AARG(6));
 
     map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
@@ -3093,7 +3093,7 @@ void builtin_getareadropitem(ScriptState *st)
 static
 void builtin_enablenpc(ScriptState *st)
 {
-    NpcName str = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
+    NpcName str = stringish<NpcName>(ZString(conv_str(st, &AARG(0))));
     npc_enable(str, 1);
 }
 
@@ -3104,7 +3104,7 @@ void builtin_enablenpc(ScriptState *st)
 static
 void builtin_disablenpc(ScriptState *st)
 {
-    NpcName str = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
+    NpcName str = stringish<NpcName>(ZString(conv_str(st, &AARG(0))));
     npc_enable(str, 0);
 }
 
@@ -3117,8 +3117,8 @@ void builtin_sc_start(ScriptState *st)
 {
     dumb_ptr<block_list> bl;
     int val1;
-    StatusChange type = static_cast<StatusChange>(conv_num(st, &AARGO2(2)));
-    interval_t tick = static_cast<interval_t>(conv_num(st, &AARGO2(3)));
+    StatusChange type = static_cast<StatusChange>(conv_num(st, &AARG(0)));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(1)));
     if (tick < 1_s)
         // work around old behaviour of:
         // speed potion
@@ -3128,9 +3128,9 @@ void builtin_sc_start(ScriptState *st)
         // which used to use seconds
         // all others used milliseconds
         tick *= 1000;
-    val1 = conv_num(st, &AARGO2(4));
-    if (HARGO2(5))    //指定したキャラを状態異常にする
-        bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARGO2(5))));
+    val1 = conv_num(st, &AARG(2));
+    if (HARG(3))    //指定したキャラを状態異常にする
+        bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(3))));
     else
         bl = map_id2bl(st->rid);
     skill_status_change_start(bl, type, val1, tick);
@@ -3144,7 +3144,7 @@ static
 void builtin_sc_end(ScriptState *st)
 {
     dumb_ptr<block_list> bl;
-    StatusChange type = StatusChange(conv_num(st, &AARGO2(2)));
+    StatusChange type = StatusChange(conv_num(st, &AARG(0)));
     bl = map_id2bl(st->rid);
     skill_status_change_end(bl, type, nullptr);
 }
@@ -3153,7 +3153,7 @@ static
 void builtin_sc_check(ScriptState *st)
 {
     dumb_ptr<block_list> bl;
-    StatusChange type = StatusChange(conv_num(st, &AARGO2(2)));
+    StatusChange type = StatusChange(conv_num(st, &AARG(0)));
     bl = map_id2bl(st->rid);
 
     push_int<ScriptDataInt>(st->stack, skill_status_change_active(bl, type));
@@ -3167,7 +3167,7 @@ void builtin_sc_check(ScriptState *st)
 static
 void builtin_debugmes(ScriptState *st)
 {
-    RString mes = conv_str(st, &AARGO2(2));
+    RString mes = conv_str(st, &AARG(0));
     PRINTF("script debug : %d %d : %s\n"_fmt,
             st->rid, st->oid, mes);
 }
@@ -3205,7 +3205,7 @@ void builtin_changesex(ScriptState *st)
 static
 void builtin_attachrid(ScriptState *st)
 {
-    st->rid = wrap<BlockId>(conv_num(st, &AARGO2(2)));
+    st->rid = wrap<BlockId>(conv_num(st, &AARG(0)));
     push_int<ScriptDataInt>(st->stack, (map_id2sd(st->rid) != nullptr));
 }
 
@@ -3227,14 +3227,14 @@ static
 void builtin_isloggedin(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack,
-              map_id2sd(wrap<BlockId>(conv_num(st, &AARGO2(2)))) != nullptr);
+              map_id2sd(wrap<BlockId>(conv_num(st, &AARG(0)))) != nullptr);
 }
 
 static
 void builtin_setmapflag(ScriptState *st)
 {
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    int i = conv_num(st, &AARGO2(3));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
@@ -3246,8 +3246,8 @@ void builtin_setmapflag(ScriptState *st)
 static
 void builtin_removemapflag(ScriptState *st)
 {
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    int i = conv_num(st, &AARGO2(3));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
@@ -3261,8 +3261,8 @@ void builtin_getmapflag(ScriptState *st)
 {
     int r = -1;
 
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    int i = conv_num(st, &AARGO2(3));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
@@ -3276,7 +3276,7 @@ void builtin_getmapflag(ScriptState *st)
 static
 void builtin_pvpon(ScriptState *st)
 {
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr && !m->flag.get(MapFlag::PVP) && !m->flag.get(MapFlag::NOPVP))
     {
@@ -3310,7 +3310,7 @@ void builtin_pvpon(ScriptState *st)
 static
 void builtin_pvpoff(ScriptState *st)
 {
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr && m->flag.get(MapFlag::PVP) && m->flag.get(MapFlag::NOPVP))
     {
@@ -3346,7 +3346,7 @@ static
 void builtin_emotion(ScriptState *st)
 {
     int type;
-    type = conv_num(st, &AARGO2(2));
+    type = conv_num(st, &AARG(0));
     if (type < 0 || type > 100)
         return;
     clif_emotion(map_id2bl(st->oid), type);
@@ -3358,15 +3358,15 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
     int x, y;
     int x0, y0, x1, y1;
 
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x0 = 0;
     y0 = 0;
     map_local *m = map_mapname2mapid(mapname);
     x1 = m->xs;
     y1 = m->ys;
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(3))));
-    x = conv_num(st, &AARGO2(4));
-    y = conv_num(st, &AARGO2(5));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
+    x = conv_num(st, &AARG(2));
+    y = conv_num(st, &AARG(3));
 
     if (m == nullptr)
         return;
@@ -3381,8 +3381,8 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 static
 void builtin_cmdothernpc(ScriptState *st)   // Added by RoVeRT
 {
-    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
-    ZString command = ZString(conv_str(st, &AARGO2(3)));
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(0))));
+    ZString command = ZString(conv_str(st, &AARG(1)));
 
     npc_command(map_id2sd(st->rid), npc, command);
 }
@@ -3398,8 +3398,8 @@ static
 void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 {
     int c = 0;
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    ZString event_ = ZString(conv_str(st, &AARGO2(3)));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    ZString event_ = ZString(conv_str(st, &AARG(1)));
     NpcEvent event;
     extract(event_, &event);
 
@@ -3422,7 +3422,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 static
 void builtin_marriage(ScriptState *st)
 {
-    CharName partner = stringish<CharName>(ZString(conv_str(st, &AARGO2(2))));
+    CharName partner = stringish<CharName>(ZString(conv_str(st, &AARG(0))));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     dumb_ptr<map_session_data> p_sd = map_nick2sd(partner);
 
@@ -3462,7 +3462,7 @@ void builtin_getitemname(ScriptState *st)
     struct item_data *i_data;
     struct script_data *data;
 
-    data = &AARGO2(2);
+    data = &AARG(0);
     get_val(st, data);
     if (data->is<ScriptDataStr>())
     {
@@ -3487,7 +3487,7 @@ void builtin_getitemname(ScriptState *st)
 static
 void builtin_getspellinvocation(ScriptState *st)
 {
-    RString name = conv_str(st, &AARGO2(2));
+    RString name = conv_str(st, &AARG(0));
 
     AString invocation = magic::magic_find_invocation(name);
     if (!invocation)
@@ -3598,7 +3598,7 @@ static
 void builtin_poolskill(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    SkillID skill_id = SkillID(conv_num(st, &AARGO2(2)));
+    SkillID skill_id = SkillID(conv_num(st, &AARG(0)));
 
     skill_pool_activate(sd, skill_id);
     clif_skillinfoblock(sd);
@@ -3609,7 +3609,7 @@ static
 void builtin_unpoolskill(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    SkillID skill_id = SkillID(conv_num(st, &AARGO2(2)));
+    SkillID skill_id = SkillID(conv_num(st, &AARG(0)));
 
     skill_pool_deactivate(sd, skill_id);
     clif_skillinfoblock(sd);
@@ -3635,11 +3635,11 @@ void builtin_misceffect(ScriptState *st)
     CharName name;
     dumb_ptr<block_list> bl = nullptr;
 
-    type = conv_num(st, &AARGO2(2));
+    type = conv_num(st, &AARG(0));
 
-    if (HARGO2(3))
+    if (HARG(1))
     {
-        struct script_data *sdata = &AARGO2(3);
+        struct script_data *sdata = &AARG(1);
 
         get_val(st, sdata);
 
@@ -3685,7 +3685,7 @@ void builtin_specialeffect(ScriptState *st)
 
     clif_specialeffect(bl,
                         conv_num(st,
-                                  &AARGO2(2)),
+                                  &AARG(0)),
                         0);
 
 }
@@ -3700,7 +3700,7 @@ void builtin_specialeffect2(ScriptState *st)
 
     clif_specialeffect(sd,
                         conv_num(st,
-                                  &AARGO2(2)),
+                                  &AARG(0)),
                         0);
 
 }
@@ -3740,7 +3740,7 @@ void builtin_unequipbyid(ScriptState *st)
     if (sd == nullptr)
         return;
 
-    EQUIP slot_id = EQUIP(conv_num(st, &AARGO2(2)));
+    EQUIP slot_id = EQUIP(conv_num(st, &AARG(0)));
 
     if (slot_id >= EQUIP() && slot_id < EQUIP::COUNT)
     {
@@ -3766,7 +3766,7 @@ void builtin_gmcommand(ScriptState *st)
     dumb_ptr<map_session_data> sd;
 
     sd = script_rid2sd(st);
-    RString cmd = conv_str(st, &AARGO2(2));
+    RString cmd = conv_str(st, &AARG(0));
 
     is_atcommand(sd->sess, sd, cmd, GmLevel::from(-1U));
 
@@ -3783,9 +3783,9 @@ void builtin_npcwarp(ScriptState *st)
     int x, y;
     dumb_ptr<npc_data> nd = nullptr;
 
-    x = conv_num(st, &AARGO2(2));
-    y = conv_num(st, &AARGO2(3));
-    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARGO2(4))));
+    x = conv_num(st, &AARG(0));
+    y = conv_num(st, &AARG(1));
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(2))));
     nd = npc_name2id(npc);
 
     if (!nd)
@@ -3819,8 +3819,8 @@ void builtin_npcwarp(ScriptState *st)
 static
 void builtin_message(ScriptState *st)
 {
-    CharName player = stringish<CharName>(ZString(conv_str(st, &AARGO2(2))));
-    ZString msg = ZString(conv_str(st, &AARGO2(3)));
+    CharName player = stringish<CharName>(ZString(conv_str(st, &AARG(0))));
+    ZString msg = ZString(conv_str(st, &AARG(1)));
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(player);
     if (pl_sd == nullptr)
@@ -3839,7 +3839,7 @@ static
 void builtin_npctalk(ScriptState *st)
 {
     dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
-    RString str = conv_str(st, &AARGO2(2));
+    RString str = conv_str(st, &AARG(0));
 
     if (nd)
     {
@@ -3856,7 +3856,7 @@ void builtin_getlook(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    LOOK type = LOOK(conv_num(st, &AARGO2(2)));
+    LOOK type = LOOK(conv_num(st, &AARG(0)));
     int val = -1;
     switch (type)
     {
@@ -3903,7 +3903,7 @@ void builtin_getsavepoint(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    type = conv_num(st, &AARGO2(2));
+    type = conv_num(st, &AARG(0));
 
     x = sd->status.save_point.x;
     y = sd->status.save_point.y;
@@ -3939,13 +3939,13 @@ void builtin_areatimer(ScriptState *st)
 {
     int x0, y0, x1, y1;
 
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x0 = conv_num(st, &AARGO2(3));
-    y0 = conv_num(st, &AARGO2(4));
-    x1 = conv_num(st, &AARGO2(5));
-    y1 = conv_num(st, &AARGO2(6));
-    interval_t tick = static_cast<interval_t>(conv_num(st, &AARGO2(7)));
-    ZString event_ = ZString(conv_str(st, &AARGO2(8)));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x0 = conv_num(st, &AARG(1));
+    y0 = conv_num(st, &AARG(2));
+    x1 = conv_num(st, &AARG(3));
+    y1 = conv_num(st, &AARG(4));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(5)));
+    ZString event_ = ZString(conv_str(st, &AARG(6)));
     NpcEvent event;
     extract(event_, &event);
 
@@ -3970,11 +3970,11 @@ void builtin_isin(ScriptState *st)
     int x1, y1, x2, y2;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
-    x1 = conv_num(st, &AARGO2(3));
-    y1 = conv_num(st, &AARGO2(4));
-    x2 = conv_num(st, &AARGO2(5));
-    y2 = conv_num(st, &AARGO2(6));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x1 = conv_num(st, &AARG(1));
+    y1 = conv_num(st, &AARG(2));
+    x2 = conv_num(st, &AARG(3));
+    y2 = conv_num(st, &AARG(4));
 
     if (!sd)
         return;
@@ -3995,7 +3995,7 @@ void builtin_shop(ScriptState *st)
     if (!sd)
         return;
 
-    NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
+    NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARG(0))));
     nd = npc_name2id(name);
     if (!nd)
     {
@@ -4026,9 +4026,9 @@ void builtin_isdead(ScriptState *st)
 static
 void builtin_fakenpcname(ScriptState *st)
 {
-    NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
-    NpcName newname = stringish<NpcName>(ZString(conv_str(st, &AARGO2(3))));
-    Species newsprite = wrap<Species>(static_cast<uint16_t>(conv_num(st, &AARGO2(4))));
+    NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARG(0))));
+    NpcName newname = stringish<NpcName>(ZString(conv_str(st, &AARG(1))));
+    Species newsprite = wrap<Species>(static_cast<uint16_t>(conv_num(st, &AARG(2))));
     dumb_ptr<npc_data> nd = npc_name2id(name);
     if (!nd)
     {

@@ -30,8 +30,7 @@
 
 #include "../strings/zstring.hpp"
 
-#include "../generic/db.hpp"
-#include "../generic/dumb_ptr.hpp"
+#include "../generic/fwd.hpp"
 
 #include "../sexpr/variant.hpp"
 
