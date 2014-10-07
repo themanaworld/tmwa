@@ -43,7 +43,10 @@ struct NpcEvent;
 struct item_data;
 
 enum class SP : uint16_t;
+
+struct ScriptBuffer;
 struct ScriptLabel;
+struct ScriptState;
 
 namespace magic
 {

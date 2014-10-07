@@ -43,6 +43,7 @@
 #include "mob.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
+#include "script-call.hpp"
 #include "skill.hpp"
 
 #include "../poison.hpp"

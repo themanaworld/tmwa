@@ -1,7 +1,11 @@
-#pragma once
-//    login.hpp - dummy header to make Make dependencies work.
+#include "script-persist.hpp"
+//    script-persist.cpp - EAthena script frontend, engine, and library.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © ????-2004 Athena Dev Teams
+//    Copyright © 2004-2011 The Mana World Development Team
+//    Copyright © 2011 Chuck Miller
+//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013 wushin
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,9 +22,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "login.t.hpp"
-
-#include "fwd.hpp"
+#include "../poison.hpp"
 
 
 namespace tmwa

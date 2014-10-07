@@ -33,4 +33,6 @@ template<class K, class V>
 class DMap;
 template<class K, class V>
 class UPMap;
+
+class InternPool;
 } // namespace tmwa

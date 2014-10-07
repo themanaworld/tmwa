@@ -1,7 +1,9 @@
 #pragma once
-//    login.hpp - dummy header to make Make dependencies work.
+//    script-startup-internal.hpp - EAthena script frontend, engine, and library.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © ????-2004 Athena Dev Teams
+//    Copyright © 2004-2011 The Mana World Development Team
+//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,11 +20,25 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "login.t.hpp"
-
+#include "script-startup.hpp"
 #include "fwd.hpp"
+
+#include "../generic/fwd.hpp"
+
+#include "../strings/fwd.hpp"
+
+#include "script-persist.hpp"
 
 
 namespace tmwa
 {
+extern
+DMap<SIR, int> mapreg_db;
+extern
+Map<SIR, RString> mapregstr_db;
+extern
+int mapreg_dirty;
+
+void mapreg_setreg(SIR reg, int val);
+void mapreg_setregstr(SIR reg, XString str);
 } // namespace tmwa

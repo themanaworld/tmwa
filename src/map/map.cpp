@@ -72,7 +72,7 @@
 #include "npc.hpp"
 #include "party.hpp"
 #include "pc.hpp"
-#include "script.hpp"
+#include "script-startup.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 #include "trade.hpp"

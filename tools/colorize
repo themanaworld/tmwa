@@ -12,6 +12,10 @@ def color(i):
         return '\x1b[%dm' % (90 + (i - 8))
 
 def main(argv):
+    # can't change buffering on sys.stdout after creation using python APIs
+    # so do our own buffering
+    buffer = []
+
     colors = {}
     while argv:
         arg0 = argv[0]
@@ -26,12 +30,13 @@ def main(argv):
         arg = argv[0]
         c = colors.get('', '')
         e = c and '\x1b[m'
-        print(c, arg, e, sep='', end=''),
+        buffer.extend([c, arg, e])
     for arg in argv[1:]:
         c = colors.get(arg, '')
         e = c and '\x1b[m'
-        print(' ', c, arg, e, sep='', end=''),
-    print()
+        buffer.extend([' ', c, arg, e])
+    buffer.append('\n')
+    sys.stdout.write(''.join(buffer))
     sys.stdout.flush()
     os.execvp(argv[0], argv)
 

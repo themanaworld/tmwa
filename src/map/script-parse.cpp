@@ -1,0 +1,840 @@
+#include "script-parse-internal.hpp"
+//    script-parse.cpp - EAthena script frontend, engine, and library.
+//
+//    Copyright © ????-2004 Athena Dev Teams
+//    Copyright © 2004-2011 The Mana World Development Team
+//    Copyright © 2011 Chuck Miller
+//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013 wushin
+//
+//    This file is part of The Mana World (Athena server)
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include <set>
+
+#include "../generic/db.hpp"
+#include "../generic/intern-pool.hpp"
+
+#include "../strings/rstring.hpp"
+
+#include "../io/cxxstdio.hpp"
+#include "../io/cxxstdio_enums.hpp"
+
+#include "map.t.hpp"
+#include "script-buffer.hpp"
+#include "script-call.hpp"
+#include "script-fun.hpp"
+
+#include "../poison.hpp"
+
+
+namespace tmwa
+{
+constexpr bool DEBUG_DISP = false;
+
+class ScriptBuffer
+{
+    typedef ZString::iterator ZSit;
+
+    std::vector<ByteCode> script_buf;
+public:
+    // construction methods
+    void add_scriptc(ByteCode a);
+    void add_scriptb(uint8_t a);
+    void add_scripti(uint32_t a);
+    void add_scriptl(str_data_t *a);
+    void set_label(str_data_t *ld, int pos_);
+    ZSit parse_simpleexpr(ZSit p);
+    ZSit parse_subexpr(ZSit p, int limit);
+    ZSit parse_expr(ZSit p);
+    ZSit parse_line(ZSit p, bool *canstep);
+    void parse_script(ZString src, int line, bool implicit_end);
+
+    // consumption methods
+    ByteCode operator[](size_t i) const { return script_buf[i]; }
+    ZString get_str(size_t i) const
+    {
+        return ZString(strings::really_construct_from_a_pointer, reinterpret_cast<const char *>(&script_buf[i]), nullptr);
+    }
+};
+} // namespace tmwa
+
+void std::default_delete<const tmwa::ScriptBuffer>::operator()(const tmwa::ScriptBuffer *sd)
+{
+    really_delete1 sd;
+}
+
+namespace tmwa
+{
+// implemented for script-call.hpp because reasons
+ByteCode ScriptPointer::peek() const { return (*code)[pos]; }
+ByteCode ScriptPointer::pop() { return (*code)[pos++]; }
+ZString ScriptPointer::pops()
+{
+    ZString rv = code->get_str(pos);
+    pos += rv.size();
+    ++pos;
+    return rv;
+}
+
+Map<RString, str_data_t> str_datam;
+static
+str_data_t LABEL_NEXTLINE_;
+
+Map<ScriptLabel, int> scriptlabel_db;
+static
+std::set<ScriptLabel> probable_labels;
+UPMap<RString, const ScriptBuffer> userfunc_db;
+
+static
+struct ScriptConfigParse
+{
+    static const
+    int warn_func_no_comma = 1;
+    static const
+    int warn_cmd_no_comma = 1;
+    static const
+    int warn_func_mismatch_paramnum = 1;
+    static const
+    int warn_cmd_mismatch_paramnum = 1;
+} script_config;
+
+static
+int parse_cmd_if = 0;
+static
+str_data_t *parse_cmdp;
+
+InternPool variable_names;
+
+str_data_t *search_strp(XString p)
+{
+    return str_datam.search(p);
+}
+
+str_data_t *add_strp(XString p)
+{
+    if (str_data_t *rv = search_strp(p))
+        return rv;
+
+    RString p2 = p;
+    str_data_t *datum = str_datam.init(p2);
+    datum->type = StringCode::NOP;
+    datum->strs = p2;
+    datum->backpatch = -1;
+    datum->label_ = -1;
+    return datum;
+}
+
+/*==========================================
+ * スクリプトバッファに１バイト書き込む
+ *------------------------------------------
+ */
+void ScriptBuffer::add_scriptc(ByteCode a)
+{
+    script_buf.push_back(a);
+}
+
+/*==========================================
+ * スクリプトバッファにデータタイプを書き込む
+ *------------------------------------------
+ */
+void ScriptBuffer::add_scriptb(uint8_t a)
+{
+    add_scriptc(static_cast<ByteCode>(a));
+}
+
+/*==========================================
+ * スクリプトバッファに整数を書き込む
+ *------------------------------------------
+ */
+void ScriptBuffer::add_scripti(uint32_t a)
+{
+    while (a >= 0x40)
+    {
+        add_scriptb(a | 0xc0);
+        a = (a - 0x40) >> 6;
+    }
+    add_scriptb(a | 0x80);
+}
+
+/*==========================================
+ * スクリプトバッファにラベル/変数/関数を書き込む
+ *------------------------------------------
+ */
+// 最大16Mまで
+void ScriptBuffer::add_scriptl(str_data_t *ld)
+{
+    int backpatch = ld->backpatch;
+
+    switch (ld->type)
+    {
+        case StringCode::POS:
+            add_scriptc(ByteCode::POS);
+            add_scriptb(static_cast<uint8_t>(ld->label_));
+            add_scriptb(static_cast<uint8_t>(ld->label_ >> 8));
+            add_scriptb(static_cast<uint8_t>(ld->label_ >> 16));
+            break;
+        case StringCode::NOP:
+            // need to set backpatch, because it might become a label later
+            add_scriptc(ByteCode::VARIABLE);
+            ld->backpatch = script_buf.size();
+            add_scriptb(static_cast<uint8_t>(backpatch));
+            add_scriptb(static_cast<uint8_t>(backpatch >> 8));
+            add_scriptb(static_cast<uint8_t>(backpatch >> 16));
+            break;
+        case StringCode::INT:
+            add_scripti(ld->val);
+            break;
+        case StringCode::FUNC:
+            add_scriptc(ByteCode::FUNC_REF);
+            add_scriptb(static_cast<uint8_t>(ld->val));
+            add_scriptb(static_cast<uint8_t>(ld->val >> 8));
+            add_scriptb(static_cast<uint8_t>(ld->val >> 16));
+            break;
+        case StringCode::PARAM:
+            add_scriptc(ByteCode::PARAM);
+            add_scriptb(static_cast<uint8_t>(ld->val));
+            add_scriptb(static_cast<uint8_t>(ld->val >> 8));
+            add_scriptb(static_cast<uint8_t>(ld->val >> 16));
+            break;
+        default:
+            abort();
+    }
+}
+
+/*==========================================
+ * ラベルを解決する
+ *------------------------------------------
+ */
+void ScriptBuffer::set_label(str_data_t *ld, int pos_)
+{
+    int next;
+
+    ld->type = StringCode::POS;
+    ld->label_ = pos_;
+    for (int i = ld->backpatch; i >= 0 && i != 0x00ffffff; i = next)
+    {
+        next = 0;
+        // woot! no longer endian-dependent!
+        next |= static_cast<uint8_t>(script_buf[i + 0]) << 0;
+        next |= static_cast<uint8_t>(script_buf[i + 1]) << 8;
+        next |= static_cast<uint8_t>(script_buf[i + 2]) << 16;
+        script_buf[i - 1] = ByteCode::POS;
+        script_buf[i] = static_cast<ByteCode>(pos_);
+        script_buf[i + 1] = static_cast<ByteCode>(pos_ >> 8);
+        script_buf[i + 2] = static_cast<ByteCode>(pos_ >> 16);
+    }
+}
+
+/*==========================================
+ * スペース/コメント読み飛ばし
+ *------------------------------------------
+ */
+static
+ZString::iterator skip_space(ZString::iterator p)
+{
+    while (1)
+    {
+        while (isspace(*p))
+            p++;
+        if (p[0] == '/' && p[1] == '/')
+        {
+            while (*p && *p != '\n')
+                p++;
+        }
+        else if (p[0] == '/' && p[1] == '*')
+        {
+            p++;
+            while (*p && (p[-1] != '*' || p[0] != '/'))
+                p++;
+            if (*p)
+                p++;
+        }
+        else
+            break;
+    }
+    return p;
+}
+
+/*==========================================
+ * １単語スキップ
+ *------------------------------------------
+ */
+static
+ZString::iterator skip_word(ZString::iterator p)
+{
+    // prefix
+    if (*p == '$')
+        p++;                    // MAP鯖内共有変数用
+    if (*p == '@')
+        p++;                    // 一時的変数用(like weiss)
+    if (*p == '#')
+        p++;                    // account変数用
+    if (*p == '#')
+        p++;                    // ワールドaccount変数用
+
+    while (isalnum(*p) || *p == '_')
+        p++;
+
+    // postfix
+    if (*p == '$')
+        p++;                    // 文字列変数
+
+    return p;
+}
+
+// TODO: replace this whole mess with some sort of input stream that works
+// a line at a time.
+static
+ZString startptr;
+static
+int startline;
+
+int script_errors = 0;
+/*==========================================
+ * エラーメッセージ出力
+ *------------------------------------------
+ */
+static
+void disp_error_message(ZString mes, ZString::iterator pos_)
+{
+    script_errors++;
+
+    assert (startptr.begin() <= pos_ && pos_ <= startptr.end());
+
+    int line;
+    ZString::iterator p;
+
+    for (line = startline, p = startptr.begin(); p != startptr.end(); line++)
+    {
+        ZString::iterator linestart = p;
+        ZString::iterator lineend = std::find(p, startptr.end(), '\n');
+        if (pos_ < lineend)
+        {
+            PRINTF("\n%s\nline %d : "_fmt, mes, line);
+            for (int i = 0; linestart + i != lineend; i++)
+            {
+                if (linestart + i != pos_)
+                    PRINTF("%c"_fmt, linestart[i]);
+                else
+                    PRINTF("\'%c\'"_fmt, linestart[i]);
+            }
+            PRINTF("\a\n"_fmt);
+            return;
+        }
+        p = lineend + 1;
+    }
+}
+
+/*==========================================
+ * 項の解析
+ *------------------------------------------
+ */
+ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
+{
+    p = skip_space(p);
+
+    if (*p == ';' || *p == ',')
+    {
+        disp_error_message("unexpected expr end"_s, p);
+        exit(1);
+    }
+    if (*p == '(')
+    {
+
+        p = parse_subexpr(p + 1, -1);
+        p = skip_space(p);
+        if ((*p++) != ')')
+        {
+            disp_error_message("unmatch ')'"_s, p);
+            exit(1);
+        }
+    }
+    else if (isdigit(*p) || ((*p == '-' || *p == '+') && isdigit(p[1])))
+    {
+        char *np;
+        int i = strtoul(&*p, &np, 0);
+        add_scripti(i);
+        p += np - &*p;
+    }
+    else if (*p == '"')
+    {
+        add_scriptc(ByteCode::STR);
+        p++;
+        while (*p && *p != '"')
+        {
+            if (*p == '\\')
+                p++;
+            else if (*p == '\n')
+            {
+                disp_error_message("unexpected newline @ string"_s, p);
+                exit(1);
+            }
+            add_scriptb(*p++);
+        }
+        if (!*p)
+        {
+            disp_error_message("unexpected eof @ string"_s, p);
+            exit(1);
+        }
+        add_scriptb(0);
+        p++;                    //'"'
+    }
+    else
+    {
+        // label , register , function etc
+        ZString::iterator p2 = skip_word(p);
+        if (p2 == p)
+        {
+            disp_error_message("unexpected character"_s, p);
+            exit(1);
+        }
+        XString word(&*p, &*p2, nullptr);
+        if (word.startswith("On"_s) || word.startswith("L_"_s) || word.startswith("S_"_s))
+            probable_labels.insert(stringish<ScriptLabel>(word));
+        if (parse_cmd_if && (word == "callsub"_s || word == "callfunc"_s || word == "return"_s))
+        {
+            disp_error_message("Sorry, callsub/callfunc/return have never worked properly in an if statement."_s, p);
+        }
+        str_data_t *ld = add_strp(word);
+
+        parse_cmdp = ld;          // warn_*_mismatch_paramnumのために必要
+        // why not just check l->str == "if"_s or std::string(p, p2) == "if"_s?
+        if (ld == search_strp("if"_s)) // warn_cmd_no_commaのために必要
+            parse_cmd_if++;
+        p = p2;
+
+        if (ld->type != StringCode::FUNC && *p == '[')
+        {
+            // array(name[i] => getelementofarray(name,i) )
+            add_scriptl(search_strp("getelementofarray"_s));
+            add_scriptc(ByteCode::ARG);
+            add_scriptl(ld);
+            p = parse_subexpr(p + 1, -1);
+            p = skip_space(p);
+            if (*p != ']')
+            {
+                disp_error_message("unmatch ']'"_s, p);
+                exit(1);
+            }
+            p++;
+            add_scriptc(ByteCode::FUNC);
+        }
+        else
+            add_scriptl(ld);
+
+    }
+
+    return p;
+}
+
+/*==========================================
+ * 式の解析
+ *------------------------------------------
+ */
+ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
+{
+    ByteCode op;
+    int opl, len;
+
+    p = skip_space(p);
+
+    if (*p == '-')
+    {
+        ZString::iterator tmpp = skip_space(p + 1);
+        if (*tmpp == ';' || *tmpp == ',')
+        {
+            --script_errors; disp_error_message("deprecated: implicit 'next statement' label"_s, p);
+            add_scriptl(&LABEL_NEXTLINE_);
+            p++;
+            return p;
+        }
+    }
+    ZString::iterator tmpp = p;
+    if ((op = ByteCode::NEG, *p == '-') || (op = ByteCode::LNOT, *p == '!')
+        || (op = ByteCode::NOT, *p == '~'))
+    {
+        p = parse_subexpr(p + 1, 100);
+        add_scriptc(op);
+    }
+    else
+        p = parse_simpleexpr(p);
+    p = skip_space(p);
+    while (((op = ByteCode::ADD, opl = 6, len = 1, *p == '+') ||
+            (op = ByteCode::SUB, opl = 6, len = 1, *p == '-') ||
+            (op = ByteCode::MUL, opl = 7, len = 1, *p == '*') ||
+            (op = ByteCode::DIV, opl = 7, len = 1, *p == '/') ||
+            (op = ByteCode::MOD, opl = 7, len = 1, *p == '%') ||
+            (op = ByteCode::FUNC, opl = 8, len = 1, *p == '(') ||
+            (op = ByteCode::LAND, opl = 1, len = 2, *p == '&' && p[1] == '&') ||
+            (op = ByteCode::AND, opl = 5, len = 1, *p == '&') ||
+            (op = ByteCode::LOR, opl = 0, len = 2, *p == '|' && p[1] == '|') ||
+            (op = ByteCode::OR, opl = 4, len = 1, *p == '|') ||
+            (op = ByteCode::XOR, opl = 3, len = 1, *p == '^') ||
+            (op = ByteCode::EQ, opl = 2, len = 2, *p == '=' && p[1] == '=') ||
+            (op = ByteCode::NE, opl = 2, len = 2, *p == '!' && p[1] == '=') ||
+            (op = ByteCode::R_SHIFT, opl = 5, len = 2, *p == '>' && p[1] == '>') ||
+            (op = ByteCode::GE, opl = 2, len = 2, *p == '>' && p[1] == '=') ||
+            (op = ByteCode::GT, opl = 2, len = 1, *p == '>') ||
+            (op = ByteCode::L_SHIFT, opl = 5, len = 2, *p == '<' && p[1] == '<') ||
+            (op = ByteCode::LE, opl = 2, len = 2, *p == '<' && p[1] == '=') ||
+            (op = ByteCode::LT, opl = 2, len = 1, *p == '<')) && opl > limit)
+    {
+        p += len;
+        if (op == ByteCode::FUNC)
+        {
+            int i = 0;
+            str_data_t *funcp = parse_cmdp;
+            ZString::iterator plist[128];
+
+            if (funcp->type != StringCode::FUNC)
+            {
+                disp_error_message("expect function"_s, tmpp);
+                exit(0);
+            }
+
+            add_scriptc(ByteCode::ARG);
+            while (*p && *p != ')' && i < 128)
+            {
+                plist[i] = p;
+                p = parse_subexpr(p, -1);
+                p = skip_space(p);
+                if (*p == ',')
+                    p++;
+                else if (*p != ')' && script_config.warn_func_no_comma)
+                {
+                    disp_error_message("expect ',' or ')' at func params"_s,
+                                        p);
+                }
+                p = skip_space(p);
+                i++;
+            }
+            plist[i] = p;
+            if (*p != ')')
+            {
+                disp_error_message("func request '(' ')'"_s, p);
+                exit(1);
+            }
+            p++;
+
+            if (funcp->type == StringCode::FUNC
+                && script_config.warn_func_mismatch_paramnum)
+            {
+                ZString arg = builtin_functions[funcp->val].arg;
+                int j = 0;
+                // TODO handle ? and multiple * correctly
+                for (j = 0; arg[j]; j++)
+                    if (arg[j] == '*' || arg[j] == '?')
+                        break;
+                if ((arg[j] == 0 && i != j) || ((arg[j] == '*' || arg[j] == '?') && i < j))
+                {
+                    disp_error_message("illegal number of parameters"_s,
+                            plist[std::min(i, j)]);
+                }
+                if (!builtin_functions[funcp->val].ret)
+                {
+                    disp_error_message("statement in function context"_s, tmpp);
+                }
+            }
+        }
+        else // not op == ByteCode::FUNC
+        {
+            p = parse_subexpr(p, opl);
+        }
+        add_scriptc(op);
+        p = skip_space(p);
+    }
+    return p;                   /* return first untreated operator */
+}
+
+/*==========================================
+ * 式の評価
+ *------------------------------------------
+ */
+ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
+{
+    switch (*p)
+    {
+        case ')':
+        case ';':
+        case ':':
+        case '[':
+        case ']':
+        case '}':
+            disp_error_message("unexpected char"_s, p);
+            exit(1);
+    }
+    p = parse_subexpr(p, -1);
+    return p;
+}
+
+/*==========================================
+ * 行の解析
+ *------------------------------------------
+ */
+ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
+{
+    int i = 0;
+    ZString::iterator plist[128];
+
+    p = skip_space(p);
+    if (*p == ';')
+        return p;
+
+    parse_cmd_if = 0;           // warn_cmd_no_commaのために必要
+
+    // 最初は関数名
+    ZString::iterator p2 = p;
+    p = parse_simpleexpr(p);
+    p = skip_space(p);
+
+    str_data_t *cmd = parse_cmdp;
+    if (cmd->type != StringCode::FUNC)
+    {
+        disp_error_message("expect command"_s, p2);
+    }
+
+    {
+        // TODO should be LString, but no heterogenous lookup yet
+        static
+        std::set<ZString> terminators =
+        {
+            "goto"_s,
+            "return"_s,
+            "close"_s,
+            "menu"_s,
+            "end"_s,
+            "mapexit"_s,
+            "shop"_s,
+        };
+        *can_step = terminators.count(cmd->strs) == 0;
+    }
+
+    add_scriptc(ByteCode::ARG);
+    while (*p && *p != ';' && i < 128)
+    {
+        plist[i] = p;
+
+        p = parse_expr(p);
+        p = skip_space(p);
+        // 引数区切りの,処理
+        if (*p == ',')
+            p++;
+        else if (*p != ';' && script_config.warn_cmd_no_comma
+                 && parse_cmd_if * 2 <= i)
+        {
+            disp_error_message("expect ',' or ';' at cmd params"_s, p);
+        }
+        p = skip_space(p);
+        i++;
+    }
+    plist[i] = p;
+    if (*(p++) != ';')
+    {
+        disp_error_message("need ';'"_s, p);
+        exit(1);
+    }
+    add_scriptc(ByteCode::FUNC);
+
+    if (cmd->type == StringCode::FUNC
+        && script_config.warn_cmd_mismatch_paramnum)
+    {
+        ZString arg = builtin_functions[cmd->val].arg;
+        int j = 0;
+        // TODO see above
+        for (j = 0; arg[j]; j++)
+            if (arg[j] == '*' || arg[j] == '?')
+                break;
+        if ((arg[j] == 0 && i != j) || ((arg[j] == '*' || arg[j] == '?') && i < j))
+        {
+            disp_error_message("illegal number of parameters"_s,
+                    plist[std::min(i, j)]);
+        }
+        if (builtin_functions[cmd->val].ret)
+        {
+            disp_error_message("function in statement context"_s, p2);
+        }
+    }
+
+    return p;
+}
+
+/*==========================================
+ * 組み込み関数の追加
+ *------------------------------------------
+ */
+static
+void add_builtin_functions(void)
+{
+    for (int i = 0; builtin_functions[i].func; i++)
+    {
+        str_data_t *n = add_strp(builtin_functions[i].name);
+        n->type = StringCode::FUNC;
+        n->val = i;
+    }
+}
+
+std::unique_ptr<const ScriptBuffer> parse_script(ZString src, int line, bool implicit_end)
+{
+    auto script_buf = make_unique<ScriptBuffer>();
+    script_buf->parse_script(src, line, implicit_end);
+    return std::move(script_buf);
+}
+
+/*==========================================
+ * スクリプトの解析
+ *------------------------------------------
+ */
+void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
+{
+    static int first = 1;
+
+    if (first)
+    {
+        add_builtin_functions();
+    }
+    first = 0;
+    LABEL_NEXTLINE_.type = StringCode::NOP;
+    LABEL_NEXTLINE_.backpatch = -1;
+    LABEL_NEXTLINE_.label_ = -1;
+    for (auto& pair : str_datam)
+    {
+        str_data_t& dit = pair.second;
+        if (dit.type == StringCode::POS || dit.type == StringCode::VARIABLE)
+        {
+            dit.type = StringCode::NOP;
+            dit.backpatch = -1;
+            dit.label_ = -1;
+        }
+    }
+
+    // 外部用label dbの初期化
+    scriptlabel_db.clear();
+
+    // for error message
+    startptr = src;
+    startline = line;
+
+    bool can_step = true;
+
+    ZString::iterator p = src.begin();
+    p = skip_space(p);
+    if (*p != '{')
+    {
+        disp_error_message("not found '{'"_s, p);
+        abort();
+    }
+    for (p++; *p && *p != '}';)
+    {
+        p = skip_space(p);
+        if (*skip_space(skip_word(p)) == ':')
+        {
+            if (can_step)
+            {
+                --script_errors; disp_error_message("deprecated: implicit fallthrough"_s, p);
+            }
+            can_step = true;
+
+            ZString::iterator tmpp = skip_word(p);
+            XString str(&*p, &*tmpp, nullptr);
+            str_data_t *ld = add_strp(str);
+            bool e1 = ld->type != StringCode::NOP;
+            bool e2 = ld->type == StringCode::POS;
+            bool e3 = ld->label_ != -1;
+            assert (e1 == e2 && e2 == e3);
+            if (e3)
+            {
+                disp_error_message("dup label "_s, p);
+                exit(1);
+            }
+            set_label(ld, script_buf.size());
+            scriptlabel_db.insert(stringish<ScriptLabel>(str), script_buf.size());
+            p = tmpp + 1;
+            continue;
+        }
+
+        if (!can_step)
+        {
+            --script_errors; disp_error_message("deprecated: unreachable statement"_s, p);
+        }
+        // 他は全部一緒くた
+        p = parse_line(p, &can_step);
+        p = skip_space(p);
+        add_scriptc(ByteCode::EOL);
+
+        set_label(&LABEL_NEXTLINE_, script_buf.size());
+        LABEL_NEXTLINE_.type = StringCode::NOP;
+        LABEL_NEXTLINE_.backpatch = -1;
+        LABEL_NEXTLINE_.label_ = -1;
+    }
+
+    if (can_step && !implicit_end)
+    {
+        --script_errors; disp_error_message("deprecated: implicit end"_s, p);
+    }
+    add_scriptc(ByteCode::NOP);
+
+    // resolve the unknown labels
+    for (auto& pair : str_datam)
+    {
+        str_data_t& sit = pair.second;
+        if (sit.type == StringCode::NOP)
+        {
+            sit.type = StringCode::VARIABLE;
+            sit.label_ = 0; // anything but -1. Shouldn't matter, but helps asserts.
+            size_t pool_index = variable_names.intern(sit.strs);
+            for (int next, j = sit.backpatch; j >= 0 && j != 0x00ffffff; j = next)
+            {
+                next = 0;
+                next |= static_cast<uint8_t>(script_buf[j + 0]) << 0;
+                next |= static_cast<uint8_t>(script_buf[j + 1]) << 8;
+                next |= static_cast<uint8_t>(script_buf[j + 2]) << 16;
+                script_buf[j] = static_cast<ByteCode>(pool_index);
+                script_buf[j + 1] = static_cast<ByteCode>(pool_index >> 8);
+                script_buf[j + 2] = static_cast<ByteCode>(pool_index >> 16);
+            }
+        }
+    }
+
+    for (const auto& pair : scriptlabel_db)
+    {
+        ScriptLabel key = pair.first;
+        if (key.startswith("On"_s))
+            continue;
+        if (!(key.startswith("L_"_s) || key.startswith("S_"_s)))
+            PRINTF("Warning: ugly label: %s\n"_fmt, key);
+        else if (!probable_labels.count(key))
+            PRINTF("Warning: unused label: %s\n"_fmt, key);
+    }
+    for (ScriptLabel used : probable_labels)
+    {
+        if (!scriptlabel_db.search(used))
+            PRINTF("Warning: no such label: %s\n"_fmt, used);
+    }
+    probable_labels.clear();
+
+    if (!DEBUG_DISP)
+        return;
+    for (size_t i = 0; i < script_buf.size(); i++)
+    {
+        if ((i & 15) == 0)
+            PRINTF("%04zx : "_fmt, i);
+        PRINTF("%02x "_fmt, script_buf[i]);
+        if ((i & 15) == 15)
+            PRINTF("\n"_fmt);
+    }
+    PRINTF("\n"_fmt);
+}
+} // namespace tmwa

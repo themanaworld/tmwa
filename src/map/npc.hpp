@@ -35,6 +35,7 @@
 #include "../proto2/fwd.hpp"
 
 #include "map.hpp"
+#include "script-call.t.hpp"
 
 
 namespace tmwa

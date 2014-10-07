@@ -19,9 +19,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "fwd.hpp"
-
 #include "magic-interpreter.t.hpp"
+
+#include "fwd.hpp"
 
 #include <cassert>
 
@@ -40,7 +40,7 @@
 #include "../mmo/utils.hpp"
 
 #include "map.hpp"
-#include "script.hpp"
+#include "script-buffer.hpp"
 #include "skill.t.hpp"
 
 

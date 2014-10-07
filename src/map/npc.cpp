@@ -54,7 +54,8 @@
 #include "map.hpp"
 #include "mob.hpp"
 #include "pc.hpp"
-#include "script.hpp"
+#include "script-call.hpp"
+#include "script-parse.hpp"
 #include "skill.hpp"
 
 #include "../poison.hpp"

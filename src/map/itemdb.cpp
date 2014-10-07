@@ -35,6 +35,8 @@
 #include "../mmo/extract.hpp"
 #include "../mmo/extract_enums.hpp"
 
+#include "script-parse.hpp"
+
 #include "../poison.hpp"
 
 

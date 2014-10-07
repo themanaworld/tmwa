@@ -1,7 +1,9 @@
 #pragma once
-//    login.hpp - dummy header to make Make dependencies work.
+//    script-parse.hpp - EAthena script frontend, engine, and library.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © ????-2004 Athena Dev Teams
+//    Copyright © 2004-2011 The Mana World Development Team
+//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,11 +20,23 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "login.t.hpp"
-
 #include "fwd.hpp"
+
+#include <memory>
+
+#include "../strings/fwd.hpp"
+
+#include "../generic/fwd.hpp"
 
 
 namespace tmwa
 {
+std::unique_ptr<const ScriptBuffer> parse_script(ZString, int, bool implicit_end);
+
+extern
+Map<ScriptLabel, int> scriptlabel_db;
+extern
+UPMap<RString, const ScriptBuffer> userfunc_db;
+
+extern int script_errors;
 } // namespace tmwa

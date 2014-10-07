@@ -41,6 +41,7 @@
 #include "magic-interpreter.hpp"
 #include "magic-interpreter-base.hpp"
 #include "magic-stmt.hpp"
+#include "script-parse.hpp"
 
 #include "../poison.hpp"
 

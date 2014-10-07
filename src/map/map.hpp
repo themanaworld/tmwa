@@ -20,9 +20,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "fwd.hpp"
-
 #include "map.t.hpp"
+
+#include "fwd.hpp"
 
 #include <chrono>
 #include <functional>
@@ -48,7 +48,8 @@
 #include "clif.t.hpp"
 #include "mapflag.hpp"
 #include "mob.t.hpp"
-#include "script.hpp"   // change to script.t.hpp
+#include "script-buffer.hpp"
+#include "script-persist.hpp"
 #include "skill.t.hpp"
 
 

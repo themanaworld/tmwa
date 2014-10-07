@@ -57,7 +57,7 @@
 #include "npc.hpp"
 #include "party.hpp"
 #include "path.hpp"
-#include "script.hpp"
+#include "script-call.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 #include "trade.hpp"

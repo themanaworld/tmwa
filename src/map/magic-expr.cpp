@@ -42,6 +42,7 @@
 #include "magic-interpreter-base.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
+#include "script-call.hpp"
 
 #include "../poison.hpp"
 

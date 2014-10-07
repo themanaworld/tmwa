@@ -1,5 +1,5 @@
 #pragma once
-//    script.hpp - EAthena script frontend, engine, and library.
+//    script-persist.hpp - EAthena script frontend, engine, and library.
 //
 //    Copyright © ????-2004 Athena Dev Teams
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -22,63 +22,13 @@
 
 #include "fwd.hpp"
 
-#include <cstdint>
-
-#include <memory>
-#include <vector>
-
-#include "../range/fwd.hpp"
-
-#include "../strings/zstring.hpp"
-
-#include "../generic/fwd.hpp"
+#include "../strings/rstring.hpp"
 
 #include "../sexpr/variant.hpp"
 
-#include "../mmo/ids.hpp"
-
 
 namespace tmwa
 {
-enum class ByteCode : uint8_t;
-
-class ScriptBuffer;
-} // namespace tmwa
-
-namespace std
-{
-template<>
-struct default_delete<const tmwa::ScriptBuffer>
-{
-    default_delete() {}
-    default_delete(default_delete<tmwa::ScriptBuffer>) {}
-    void operator()(const tmwa::ScriptBuffer *sd);
-};
-} // namespace std
-
-namespace tmwa
-{
-struct ScriptPointer
-{
-    const ScriptBuffer *code;
-    size_t pos;
-
-    ScriptPointer()
-    : code()
-    , pos()
-    {}
-
-    ScriptPointer(const ScriptBuffer *c, size_t p)
-    : code(c)
-    , pos(p)
-    {}
-
-    ByteCode peek() const;
-    ByteCode pop();
-    ZString pops();
-};
-
-// internal
 class SIR
 {
     uint32_t impl;
@@ -166,44 +116,4 @@ struct script_data : ScriptDataVariantBase
     script_data(ScriptDataRetInfo v) : ScriptDataVariantBase(std::move(v)) {}
     script_data(ScriptDataFuncRef v) : ScriptDataVariantBase(std::move(v)) {}
 };
-
-std::unique_ptr<const ScriptBuffer> parse_script(ZString, int, bool implicit_end);
-
-struct argrec_t
-{
-    ZString name;
-    union _aru
-    {
-        int i;
-        ZString s;
-
-        _aru(int n) : i(n) {}
-        _aru(ZString z) : s(z) {}
-    } v;
-
-    argrec_t(ZString n, int i) : name(n), v(i) {}
-    argrec_t(ZString n, ZString z) : name(n), v(z) {}
-};
-int run_script_l(ScriptPointer, BlockId, BlockId, Slice<argrec_t> args);
-int run_script(ScriptPointer, BlockId, BlockId);
-
-extern
-Map<ScriptLabel, int> scriptlabel_db;
-extern
-UPMap<RString, const ScriptBuffer> userfunc_db;
-
-void do_init_script(void);
-void do_final_script(void);
-
-extern AString mapreg_txt;
-
-extern int script_errors;
-
-bool read_constdb(ZString filename);
-
-void set_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e, int val);
-void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString val);
-
-int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e);
-ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e);
 } // namespace tmwa

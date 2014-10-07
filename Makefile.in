@@ -362,6 +362,7 @@ vpath %.py ${SRC_DIR}
 .DEFAULT_GOAL := all
 # main goals
 all: bin lib
+.PHONY: bin lib
 bin: ${BINARIES}
 ifeq (${ENABLE_SHARED},yes)
 lib: sharedlib
