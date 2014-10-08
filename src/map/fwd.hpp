@@ -39,13 +39,16 @@ class npc_data_shop;
 class npc_data_warp;
 class npc_data_message;
 struct NpcEvent;
+struct MobName;
+struct NpcName;
+struct ScriptLabel;
+struct ItemName;
 
 struct item_data;
 
 enum class SP : uint16_t;
 
 struct ScriptBuffer;
-struct ScriptLabel;
 struct ScriptState;
 
 namespace magic

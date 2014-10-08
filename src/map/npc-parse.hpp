@@ -1,7 +1,9 @@
 #pragma once
-//    mmo/fwd.hpp - list of type names for mmo lib
+//    npc-parse.hpp - Noncombatants.
 //
-//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © ????-2004 Athena Dev Teams
+//    Copyright © 2004-2011 The Mana World Development Team
+//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,52 +20,28 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+#include "fwd.hpp"
+
+#include "../generic/fwd.hpp"
+
+#include "../strings/fwd.hpp"
+
+#include "../mmo/fwd.hpp"
 
 
 namespace tmwa
 {
-// meh, add more when I feel like it
-class MapName;
-class CharName;
-class CharPair;
+int npc_parse_warp(XString w1, XString, NpcName w3, XString w4);
 
-class HumanTimeDiff;
+/**
+ * Spawns and installs a talk-only NPC
+ *
+ * \param message The message to speak.  If message is nullptr, the NPC will not do anything at all.
+ */
+dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
+        Species class_, NpcName name, AString message);
 
-class Species;
-class AccountId;
-class CharId;
-class PartyId;
-class ItemNameId;
-class BlockId;
-class GmLevel;
-
-class AccountName;
-class AccountPass;
-class AccountCrypt;
-class AccountEmail;
-class ServerName;
-class PartyName;
-class VarName;
-class MapName;
-class CharName;
-
-class Item;
-#if 0
-class Point;
-class SkillValue;
-#endif
-class GlobalReg;
-#if 0
-class CharKey;
-class CharData;
-class CharPair;
-#endif
-class Storage;
-#if 0
-class GM_Account;
-class PartyMember;
-#endif
-class PartyMost;
-class PartyPair;
+void npc_addsrcfile(AString name);
+void npc_delsrcfile(XString name);
+bool do_init_npc(void);
 } // namespace tmwa

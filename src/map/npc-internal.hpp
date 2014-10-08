@@ -1,7 +1,9 @@
 #pragma once
-//    mmo/fwd.hpp - list of type names for mmo lib
+//    npc-internal.hpp - Noncombatants.
 //
-//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © ????-2004 Athena Dev Teams
+//    Copyright © 2004-2011 The Mana World Development Team
+//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,52 +20,25 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+#include "npc.hpp"
+#include "fwd.hpp"
+
+#include "../generic/fwd.hpp"
 
 
 namespace tmwa
 {
-// meh, add more when I feel like it
-class MapName;
-class CharName;
-class CharPair;
+extern
+BlockId npc_id;
 
-class HumanTimeDiff;
+struct event_data
+{
+    dumb_ptr<npc_data_script> nd;
+    int pos;
+};
 
-class Species;
-class AccountId;
-class CharId;
-class PartyId;
-class ItemNameId;
-class BlockId;
-class GmLevel;
-
-class AccountName;
-class AccountPass;
-class AccountCrypt;
-class AccountEmail;
-class ServerName;
-class PartyName;
-class VarName;
-class MapName;
-class CharName;
-
-class Item;
-#if 0
-class Point;
-class SkillValue;
-#endif
-class GlobalReg;
-#if 0
-class CharKey;
-class CharData;
-class CharPair;
-#endif
-class Storage;
-#if 0
-class GM_Account;
-class PartyMember;
-#endif
-class PartyMost;
-class PartyPair;
+extern
+Map<NpcEvent, struct event_data> ev_db;
+extern
+DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
 } // namespace tmwa

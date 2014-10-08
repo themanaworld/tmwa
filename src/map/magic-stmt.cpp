@@ -42,6 +42,7 @@
 #include "magic-interpreter-base.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
+#include "npc-parse.hpp"
 #include "pc.hpp"
 #include "script-call.hpp"
 #include "skill.hpp"

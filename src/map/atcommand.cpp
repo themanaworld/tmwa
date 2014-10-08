@@ -64,6 +64,7 @@
 #include "map.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
+#include "npc-parse.hpp"
 #include "party.hpp"
 #include "pc.hpp"
 #include "skill.hpp"

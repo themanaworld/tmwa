@@ -58,7 +58,6 @@ int npc_scriptcont(dumb_ptr<map_session_data>, BlockId);
 int npc_buysellsel(dumb_ptr<map_session_data>, BlockId, int);
 int npc_buylist(dumb_ptr<map_session_data>, const std::vector<Packet_Repeat<0x00c8>>&);
 int npc_selllist(dumb_ptr<map_session_data>, const std::vector<Packet_Repeat<0x00c9>>&);
-int npc_parse_warp(XString w1, XString, NpcName w3, XString w4);
 
 int npc_enable(NpcName name, bool flag);
 dumb_ptr<npc_data> npc_name2id(NpcName name);
@@ -66,21 +65,10 @@ dumb_ptr<npc_data> npc_name2id(NpcName name);
 BlockId npc_get_new_npc_id(void);
 
 /**
- * Spawns and installs a talk-only NPC
- *
- * \param message The message to speak.  If message is nullptr, the NPC will not do anything at all.
- */
-dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
-        Species class_, NpcName name, AString message);
-
-/**
  * Uninstalls and frees an NPC
  */
 void npc_free(dumb_ptr<npc_data> npc);
 
-void npc_addsrcfile(AString);
-void npc_delsrcfile(XString);
-bool do_init_npc(void);
 int npc_event_do_oninit(void);
 
 int npc_event_doall_l(ScriptLabel name, BlockId rid, Slice<argrec_t> argv);
