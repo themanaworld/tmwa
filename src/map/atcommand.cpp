@@ -24,8 +24,6 @@
 
 #include <algorithm>
 
-#include "../conf/version.hpp"
-
 #include "../compat/nullpo.hpp"
 #include "../compat/fun.hpp"
 
@@ -4919,14 +4917,10 @@ static
 ATCE atcommand_source(Session *s, dumb_ptr<map_session_data>,
         ZString)
 {
-    clif_displaymessage(s,
-            "This server code consists of Free Software under GPL3&AGPL3"_s);
-    clif_displaymessage(s,
-            "This is commit " VERSION_HASH ", also known as " VERSION_FULL ""_s);
-    clif_displaymessage(s,
-            "The version is " VERSION_STRING ""_s);
-    clif_displaymessage(s,
-            "For source, see " VENDOR_SOURCE ""_s);
+    clif_displaymessage(s, VERSION_INFO_HEADER);
+    clif_displaymessage(s, VERSION_INFO_COMMIT);
+    clif_displaymessage(s, VERSION_INFO_NUMBER);
+    clif_displaymessage(s, VERSION_INFO_URL);
 
     return ATCE::OKAY;
 }

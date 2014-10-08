@@ -90,4 +90,9 @@ extern Version CURRENT_MAP_SERVER_VERSION;
 extern LString CURRENT_VERSION_STRING;
 
 bool extract(XString str, Version *vers);
+
+extern LString VERSION_INFO_HEADER;
+extern LString VERSION_INFO_COMMIT;
+extern LString VERSION_INFO_NUMBER;
+extern LString VERSION_INFO_URL;
 } // namespace tmwa
