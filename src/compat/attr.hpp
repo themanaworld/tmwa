@@ -28,4 +28,10 @@ namespace tmwa
 #else
 # define FALLTHROUGH /* fallthrough */
 #endif
+
+#define JOIN(a, b) a##b
+
+#define WITH_VAR(ty, var, expr)                                 \
+    for (bool JOIN(var, _guard) = true; JOIN(var, _guard); )    \
+        for (ty var = expr; JOIN(var, _guard); JOIN(var, _guard) = false)
 } // namespace tmwa

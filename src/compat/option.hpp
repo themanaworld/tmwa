@@ -24,6 +24,8 @@
 
 #include <utility>
 
+#include "attr.hpp"
+
 
 namespace tmwa
 {
@@ -204,6 +206,10 @@ namespace option
         {
             return repr.is_some() ? repr.ptr() : def;
         }
+        bool is_some() const
+        {
+            return repr.is_some();
+        }
 
         template<class F>
         auto move_map(F&& f) -> Option<decltype(std::forward<F>(f)(std::move(*repr.ptr())))>
@@ -365,9 +371,13 @@ namespace option
 #define TRY_UNWRAP(opt, falsy)                                  \
     ({                                                          \
         tmwa::option::RefWrapper<decltype((opt))> o = {(opt)};  \
-        if (!o.maybe_ref.ptr_or(nullptr)) falsy;                \
+        if (!o.maybe_ref.is_some()) falsy;                      \
         tmwa::option::option_unwrap(std::move(o));              \
     }).maybe_ref_fun()
+// immediately preceded by 'if'; not double-eval-safe
+#define OPTION_IS_SOME(var, expr) \
+    ((expr).is_some()) \
+    WITH_VAR(auto&, var, *(expr).ptr_or(nullptr))
 } // namespace option
 
 using option::Option;

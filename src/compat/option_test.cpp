@@ -324,6 +324,26 @@ TEST(Option, unwrap)
     v = None; TRY_UNWRAP(fcl(), v = Some(1));
     v = None; TRY_UNWRAP(fr(), v = Some(1));
     v = None; TRY_UNWRAP(fcr(), v = Some(1));
+
+    v = None;
+    if OPTION_IS_SOME(o, v)
+    {
+        EXPECT_NE(o, o);
+    }
+    else
+    {
+        SUCCEED();
+    }
+
+    v = Some(1);
+    if OPTION_IS_SOME(o, v)
+    {
+        EXPECT_EQ(o, 1);
+    }
+    else
+    {
+        FAIL();
+    }
 }
 
 TEST(Option, flatten)

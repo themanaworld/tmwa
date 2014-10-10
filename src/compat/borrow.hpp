@@ -36,6 +36,7 @@ namespace tmwa
     {
         T *stupid;
     public:
+        Borrowed() = delete;
         explicit
         Borrowed(T *p) : stupid(p)
         {

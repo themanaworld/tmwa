@@ -23,6 +23,8 @@
 #include <cstddef>
 #include <utility>
 
+#include "../compat/attr.hpp"
+
 #include "union.hpp"
 #include "void.hpp"
 
@@ -33,11 +35,6 @@ namespace tmwa
 {
 namespace sexpr
 {
-#define JOIN(a, b) a##b
-
-#define WITH_VAR(ty, var, expr)                                 \
-    for (bool JOIN(var, _guard) = true; JOIN(var, _guard); )    \
-        for (ty var = expr; JOIN(var, _guard); JOIN(var, _guard) = false)
 #define MATCH(expr)                     \
     WITH_VAR(auto&&, _match_var, expr)  \
     switch (tmwa::sexpr::VariantFriend::get_state(_match_var))
