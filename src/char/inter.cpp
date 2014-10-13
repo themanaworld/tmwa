@@ -264,12 +264,12 @@ void mapif_account_reg(Session *s, AccountId account_id, const std::vector<Packe
 static
 void mapif_account_reg_reply(Session *s, AccountId account_id)
 {
-    struct accreg *reg = accreg_db.search(account_id);
+    Option<P<struct accreg>> reg_ = accreg_db.search(account_id);
 
     Packet_Head<0x3804> head_04;
     head_04.account_id = account_id;
     std::vector<Packet_Repeat<0x3804>> repeat_04;
-    if (reg)
+    if OPTION_IS_SOME(reg, reg_)
     {
         repeat_04.resize(reg->reg_num);
         assert (reg->reg_num < ACCOUNT_REG_NUM);
@@ -408,13 +408,9 @@ RecvResult mapif_parse_AccReg(Session *s)
     if (rv != RecvResult::Complete)
         return rv;
 
-    struct accreg *reg = accreg_db.search(head.account_id);
-
-    if (reg == nullptr)
+    P<struct accreg> reg = accreg_db.init(head.account_id);
     {
-        AccountId account_id = head.account_id;
-        reg = accreg_db.init(account_id);
-        reg->account_id = account_id;
+        reg->account_id = head.account_id;
     }
 
     size_t jlim = std::min(repeat.size(), ACCOUNT_REG_NUM);

@@ -102,7 +102,7 @@ bool read_constdb(ZString filename)
             rv = false;
             continue;
         }
-        str_data_t *n = add_strp(name);
+        P<str_data_t> n = add_strp(name);
         n->type = type ? StringCode::PARAM : StringCode::INT;
         n->val = val;
     }

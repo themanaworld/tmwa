@@ -1251,6 +1251,7 @@ def main():
             size=None,
     )
 
+    # TODO move 'account id' out somehow.
     storage = ctx.struct(
             'Storage',
             [

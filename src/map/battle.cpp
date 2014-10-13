@@ -1417,8 +1417,11 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
 
-    if (widx.ok() && sd->inventory_data[widx])
-        atkmin = atkmin * (80 + sd->inventory_data[widx]->wlv * 20) / 100;
+    if (widx.ok())
+    {
+        if OPTION_IS_SOME(sdidw, sd->inventory_data[widx])
+            atkmin = atkmin * (80 + sdidw->wlv * 20) / 100;
+    }
     if (sd->status.weapon == ItemLook::BOW)
     {                           //武器が弓矢の場合
         atkmin = watk * ((atkmin < watk) ? atkmin : watk) / 100;    //弓用最低ATK計算
@@ -1935,9 +1938,16 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         {
             IOff0 weapon_index = sd->equip_index_maybe[EQUIP::WEAPON];
             ItemNameId weapon;
-            if (weapon_index.ok() && sd->inventory_data[weapon_index]
-                    && bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
-                weapon = sd->inventory_data[weapon_index]->nameid;
+            if (weapon_index.ok())
+            {
+                if OPTION_IS_SOME(sdidw, sd->inventory_data[weapon_index])
+                {
+                    if (bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
+                    {
+                        weapon = sdidw->nameid;
+                    }
+                }
+            }
 
             MAP_LOG("PC%d %s:%d,%d WPNDMG %s%d %d FOR %d WPN %d"_fmt,
                     sd->status_key.char_id, src->bl_m->name_, src->bl_x, src->bl_y,

@@ -28,6 +28,7 @@ namespace tmwa
         template<class T>
         class Option;
     }
+    using option::Option;
 
     template<class T>
     class Borrowed;

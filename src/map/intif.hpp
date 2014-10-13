@@ -22,6 +22,8 @@
 
 #include "fwd.hpp"
 
+#include "../compat/fwd.hpp"
+
 #include "../strings/fwd.hpp"
 
 #include "../generic/fwd.hpp"
@@ -44,7 +46,7 @@ void intif_saveaccountreg(dumb_ptr<map_session_data> sd);
 void intif_request_accountreg(dumb_ptr<map_session_data> sd);
 
 void intif_request_storage(AccountId account_id);
-void intif_send_storage(Storage *stor);
+void intif_send_storage(Borrowed<Storage> stor);
 
 void intif_create_party(dumb_ptr<map_session_data> sd, PartyName name);
 void intif_request_partyinfo(PartyId party_id);

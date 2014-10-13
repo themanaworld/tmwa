@@ -212,10 +212,8 @@ int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
  *------------------------------------------
  */
 static
-bool can_place(struct map_local *m, int x, int y)
+bool can_place(Borrowed<struct map_local> m, int x, int y)
 {
-    nullpo_retz(m);
-
     return !bool(read_gatp(m, x, y) & MapCell::UNWALKABLE);
 }
 
@@ -224,10 +222,8 @@ bool can_place(struct map_local *m, int x, int y)
  *------------------------------------------
  */
 static
-int can_move(struct map_local *m, int x0, int y0, int x1, int y1)
+int can_move(Borrowed<struct map_local> m, int x0, int y0, int x1, int y1)
 {
-    nullpo_retz(m);
-
     if (x0 - x1 < -1 || x0 - x1 > 1 || y0 - y1 < -1 || y0 - y1 > 1)
         return 0;
     if (x1 < 0 || y1 < 0 || x1 >= m->xs || y1 >= m->ys)
@@ -247,7 +243,7 @@ int can_move(struct map_local *m, int x0, int y0, int x1, int y1)
  * path探索 (x0,y0)->(x1,y1)
  *------------------------------------------
  */
-int path_search(struct walkpath_data *wpd, map_local *m, int x0, int y0, int x1, int y1, int flag)
+int path_search(struct walkpath_data *wpd, Borrowed<map_local> m, int x0, int y0, int x1, int y1, int flag)
 {
     int heap[MAX_HEAP + 1];
     int i, rp, x, y;
@@ -256,7 +252,7 @@ int path_search(struct walkpath_data *wpd, map_local *m, int x0, int y0, int x1,
     nullpo_retz(wpd);
 
     assert (m->gat);
-    map_local *md = m;
+    P<map_local> md = m;
     if (x1 < 0 || x1 >= md->xs || y1 < 0 || y1 >= md->ys
         || bool(read_gatp(md, x1, y1) & MapCell::UNWALKABLE))
         return -1;

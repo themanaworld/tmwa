@@ -104,7 +104,7 @@ Map<XString, AtCommandInfo> atcommand_info;
 
 
 static
-AtCommandInfo *atcommand(XString cmd);
+Option<Borrowed<AtCommandInfo>> atcommand(XString cmd);
 
 // These @commands are used within other @commands.
 static
@@ -202,9 +202,7 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
         return;
     timestamp_seconds_buffer tmpstr;
     stamp_time(tmpstr);
-    MapName map = (sd->bl_m
-            ? sd->bl_m->name_
-            : stringish<MapName>("undefined.gat"_s));
+    MapName map = (sd->bl_m->name_);
     FPRINTF(*fp, "[%s] %s(%d,%d) %s(%d) : %s\n"_fmt,
             tmpstr,
             map, sd->bl_x, sd->bl_y,
@@ -259,8 +257,6 @@ bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
     ZString arg;
     asplit(message, &command, &arg);
 
-    AtCommandInfo *info = atcommand(command);
-
     if (!gmlvl)
         gmlvl = pc_isGM(sd);
     if (battle_config.atcommand_gm_only != 0 && !gmlvl)
@@ -270,14 +266,16 @@ bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
         clif_displaymessage(s, output);
         return true;
     }
-    if (!info)
+
+    Option<P<AtCommandInfo>> info_ = atcommand(command);
+    P<AtCommandInfo> info = TRY_UNWRAP(info_,
     {
         AString output = STRPRINTF("GM command not found: %s"_fmt,
                 AString(command));
         clif_displaymessage(s, output);
         return true;
         // don't show in chat
-    }
+    });
     if (!(gmlvl.satisfies(info->level)))
     {
         AString output = STRPRINTF("GM command is level %d, but you are level %d: %s"_fmt,
@@ -319,15 +317,15 @@ bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
     }
 }
 
-AtCommandInfo *atcommand(XString cmd)
+Option<Borrowed<AtCommandInfo>> atcommand(XString cmd)
 {
     if (cmd.startswith('@'))
     {
         XString command = cmd.xslice_t(1);
-        AtCommandInfo *it = atcommand_info.search(command);
+        Option<P<AtCommandInfo>> it = atcommand_info.search(command);
         return it;
     }
-    return nullptr;
+    return None;
 }
 
 static
@@ -343,7 +341,7 @@ void atkillmonster_sub(dumb_ptr<block_list> bl, int flag)
 }
 
 static
-AtCommandInfo *get_atcommandinfo_byname(XString name)
+Option<Borrowed<AtCommandInfo>> get_atcommandinfo_byname(XString name)
 {
     return atcommand_info.search(name);
 }
@@ -371,8 +369,8 @@ bool atcommand_config_read(ZString cfgName)
             rv = false;
             continue;
         }
-        AtCommandInfo *p = get_atcommandinfo_byname(w1);
-        if (p != nullptr)
+        Option<P<AtCommandInfo>> p_ = get_atcommandinfo_byname(w1);
+        if OPTION_IS_SOME(p, p_)
         {
             p->level = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
         }
@@ -420,9 +418,7 @@ ATCE atcommand_help(Session *s, dumb_ptr<map_session_data>,
     if (message.startswith('@'))
     {
         ZString cmd = message.xslice_t(1);
-        const AtCommandInfo *info = atcommand_info.search(cmd);
-        if (!info)
-            return ATCE::EXIST;
+        P<AtCommandInfo> info = TRY_UNWRAP(atcommand_info.search(cmd), return ATCE::EXIST);
         clif_displaymessage(s, STRPRINTF("Usage: @%s %s"_fmt, cmd, info->args));
         clif_displaymessage(s, info->help);
         return ATCE::OKAY;
@@ -533,15 +529,15 @@ ATCE atcommand_charwarp(Session *s, dumb_ptr<map_session_data> sd,
             // you can rura+ only lower or same GM level
             if (x > 0 && x < 800 && y > 0 && y < 800)
             {
-                map_local *m = map_mapname2mapid(map_name);
-                if (m != nullptr && m->flag.get(MapFlag::NOWARPTO)
+                Option<P<map_local>> m = map_mapname2mapid(map_name);
+                if (m.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
                     && !pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level))))
                 {
                     clif_displaymessage(s,
                             "You are not authorised to warp someone to this map."_s);
                     return ATCE::PERM;
                 }
-                if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
+                if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
                     && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
                 {
                     clif_displaymessage(s,
@@ -602,15 +598,15 @@ ATCE atcommand_warp(Session *s, dumb_ptr<map_session_data> sd,
 
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
-        map_local *m = map_mapname2mapid(map_name);
-        if (m != nullptr && m->flag.get(MapFlag::NOWARPTO)
+        Option<P<map_local>> m = map_mapname2mapid(map_name);
+        if (m.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
             && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to this map."_s);
             return ATCE::PERM;
         }
-        if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
+        if (sd->bl_m->flag.get(MapFlag::NOWARP)
             && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
@@ -678,14 +674,14 @@ ATCE atcommand_goto(Session *s, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != nullptr)
     {
-        if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
+        if (pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
             && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to the map of this player."_s);
             return ATCE::PERM;
         }
-        if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
+        if (sd->bl_m->flag.get(MapFlag::NOWARP)
             && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
@@ -719,14 +715,14 @@ ATCE atcommand_jump(Session *s, dumb_ptr<map_session_data> sd,
         y = random_::in(1, 399);
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
-        if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARPTO)
+        if (sd->bl_m->flag.get(MapFlag::NOWARPTO)
             && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to your actual map."_s);
             return ATCE::PERM;
         }
-        if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
+        if (sd->bl_m->flag.get(MapFlag::NOWARP)
             && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
         {
             clif_displaymessage(s,
@@ -811,7 +807,6 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    PartyPair p;
 
     VString<23> match_text = message;
     match_text = match_text.to_lower();
@@ -837,8 +832,8 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
                 if (player_name.contains_seq(match_text))
                 {
                     // search with no case sensitive
-                    p = party_search(pl_sd->status.party_id);
-                    PartyName temp0 = p ? p->name : stringish<PartyName>("None"_s);
+                    Option<PartyPair> p_ = party_search(pl_sd->status.party_id);
+                    PartyName temp0 = p_.pmd_pget(&PartyMost::name).move_or(stringish<PartyName>("None"_s));
                     AString output;
                     if (pl_gm_level)
                         output = STRPRINTF(
@@ -869,15 +864,14 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    map_local *map_id;
 
-    {
+    Borrowed<map_local> map_id =
+    ({
         MapName map_name;
         extract(message, &map_name);
-        map_id = map_mapname2mapid(map_name);
-        if (map_id == nullptr)
-            map_id = sd->bl_m;
-    }
+
+        map_mapname2mapid(map_name).copy_or(sd->bl_m);
+    });
 
     count = 0;
     GmLevel gm_level = pc_isGM(sd);
@@ -928,16 +922,14 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    PartyPair p;
 
-    map_local *map_id;
-    {
+    P<map_local> map_id =
+    ({
         MapName map_name;
         extract(message, &map_name);
-        map_id = map_mapname2mapid(map_name);
-        if (map_id == nullptr)
-            map_id = sd->bl_m;
-    }
+
+        map_mapname2mapid(map_name).copy_or(sd->bl_m);
+    });
 
     count = 0;
     GmLevel gm_level = pc_isGM(sd);
@@ -958,8 +950,8 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
                 // you can look only lower or same level
                 if (pl_sd->bl_m == map_id)
                 {
-                    p = party_search(pl_sd->status.party_id);
-                    PartyName temp0 = p ? p->name : stringish<PartyName>("None"_s);
+                    Option<PartyPair> p_ = party_search(pl_sd->status.party_id);
+                    PartyName temp0 = p_.pmd_pget(&PartyMost::name).copy_or(stringish<PartyName>("None"_s));
                     AString output;
                     if (pl_gm_level)
                         output = STRPRINTF("Name: %s (GM:%d) | Party: '%s'"_fmt,
@@ -993,7 +985,6 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
-    PartyPair p;
 
     VString<23> match_text = message;
     match_text = match_text.to_lower();
@@ -1033,8 +1024,8 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
                                 "Novice/Human"_s,
                                 pl_sd->status.job_level);
                         clif_displaymessage(s, output);
-                        p = party_search(pl_sd->status.party_id);
-                        PartyName temp0 = p ? p->name : stringish<PartyName>("None"_s);
+                        Option<PartyPair> p_ = party_search(pl_sd->status.party_id);
+                        PartyName temp0 = p_.pmd_pget(&PartyMost::name).copy_or(stringish<PartyName>("None"_s));
                         output = STRPRINTF(
                                 "       Party: '%s'"_fmt,
                                 temp0);
@@ -1075,15 +1066,15 @@ static
 ATCE atcommand_load(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    map_local *m = map_mapname2mapid(sd->status.save_point.map_);
-    if (m != nullptr && m->flag.get(MapFlag::NOWARPTO)
+    Option<P<map_local>> m = map_mapname2mapid(sd->status.save_point.map_);
+    if (m.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
         && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
                              "You are not authorised to warp you to your save map."_s);
         return ATCE::PERM;
     }
-    if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
+    if (sd->bl_m->flag.get(MapFlag::NOWARP)
         && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
@@ -1147,16 +1138,13 @@ static
 ATCE atcommand_storage(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    Storage *stor;
-
     if (sd->state.storage_open)
     {
         clif_displaymessage(s, "msg_table[250]"_s);
         return ATCE::EXIST;
     }
 
-    if ((stor = account2storage2(sd->status_key.account_id)) != nullptr
-        && stor->storage_status == 1)
+    if (account2storage2(sd->status_key.account_id).pmd_pget(&Storage::storage_status).copy_or(0) == 1)
     {
         clif_displaymessage(s, "msg_table[250]"_s);
         return ATCE::EXIST;
@@ -1331,13 +1319,27 @@ ATCE atcommand_heal(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+Option<P<struct item_data>> extract_item_opt(XString item_name)
+{
+    Option<P<struct item_data>> item_data = itemdb_searchname(item_name);
+    if (item_data.is_some())
+        return item_data;
+
+    ItemNameId item_id;
+    if (extract(item_name, &item_id))
+    {
+        item_data = itemdb_exists(item_id);
+        return item_data;
+    }
+    return None;
+}
+
+static
 ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     XString item_name;
     int number = 0;
-    ItemNameId item_id;
-    struct item_data *item_data = nullptr;
     int get_count, i;
 
     if (!extract(message, record<' ', 1>(&item_name, &number)))
@@ -1350,14 +1352,10 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
     if (number <= 0)
         number = 1;
 
-    if ((item_data = itemdb_searchname(item_name)) != nullptr)
-        item_id = item_data->nameid;
-    else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != nullptr)
-        item_id = item_data->nameid;
-    else
-        return ATCE::EXIST;
+    P<struct item_data> item_data = TRY_UNWRAP(extract_item_opt(item_name), return ATCE::EXIST);
+    ItemNameId item_id = item_data->nameid;
+    assert (item_id);
 
-    if (item_id)
     {
         get_count = number;
         if (item_data->type == ItemType::WEAPON
@@ -1377,11 +1375,6 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
                 clif_additem(sd, IOff0::from(0), 0, flag);
         }
         clif_displaymessage(s, "Item created."_s);
-    }
-    else
-    {
-        clif_displaymessage(s, "Invalid item ID or name."_s);
-        return ATCE::EXIST;
     }
 
     return ATCE::OKAY;
@@ -1807,14 +1800,13 @@ static
 void atcommand_killmonster_sub(Session *s, dumb_ptr<map_session_data> sd,
         ZString message, const int drop)
 {
-    map_local *map_id;
-    {
+    P<map_local> map_id =
+    ({
         MapName map_name;
         extract(message, &map_name);
-        map_id = map_mapname2mapid(map_name);
-        if (map_id == nullptr)
-            map_id = sd->bl_m;
-    }
+
+        map_mapname2mapid(map_name).copy_or(sd->bl_m);
+    });
 
     map_foreachinarea(std::bind(atkillmonster_sub, ph::_1, drop),
             map_id,
@@ -2078,14 +2070,14 @@ ATCE atcommand_recall(Session *s, dumb_ptr<map_session_data> sd,
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can recall only lower or same level
-            if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARPTO)
+            if (sd->bl_m->flag.get(MapFlag::NOWARPTO)
                 && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
             {
                 clif_displaymessage(s,
                         "You are not authorised to warp somenone to your actual map."_s);
                 return ATCE::PERM;
             }
-            if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
+            if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
                 && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
             {
                 clif_displaymessage(s,
@@ -2401,15 +2393,14 @@ ATCE atcommand_character_save(Session *s, dumb_ptr<map_session_data> sd,
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can change save point only to lower or same gm level
-            map_local *m = map_mapname2mapid(map_name);
-            if (m == nullptr)
+            P<map_local> m = TRY_UNWRAP(map_mapname2mapid(map_name),
             {
                 clif_displaymessage(s, "Map not found."_s);
                 return ATCE::EXIST;
-            }
-            else
+            });
+
             {
-                if (m != nullptr && m->flag.get(MapFlag::NOWARPTO)
+                if (m->flag.get(MapFlag::NOWARPTO)
                     && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
                 {
                     clif_displaymessage(s,
@@ -2974,7 +2965,6 @@ ATCE atcommand_idsearch(Session *s, dumb_ptr<map_session_data>,
 {
     ItemName item_name;
     int match;
-    struct item_data *item;
 
     if (!extract(message, &item_name) || !item_name)
         return ATCE::USAGE;
@@ -2984,8 +2974,8 @@ ATCE atcommand_idsearch(Session *s, dumb_ptr<map_session_data>,
     match = 0;
     for (ItemNameId i = wrap<ItemNameId>(0); i < wrap<ItemNameId>(-1); i = next(i))
     {
-        if ((item = itemdb_exists(i)) != nullptr
-            && item->jname.contains_seq(item_name))
+        P<struct item_data> item = TRY_UNWRAP(itemdb_exists(i), continue);
+        if (item->jname.contains_seq(item_name))
         {
             match++;
             output = STRPRINTF("%s: %d"_fmt, item->jname, item->nameid);
@@ -3348,7 +3338,7 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
 {
     int count;
 
-    if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARPTO)
+    if (sd->bl_m->flag.get(MapFlag::NOWARPTO)
         && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
@@ -3369,7 +3359,7 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can recall only lower or same level
-            if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
+            if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
                 && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
                 count++;
             else
@@ -3394,13 +3384,12 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     PartyName party_name;
-    PartyPair p;
     int count;
 
     if (!extract(message, &party_name) || !party_name)
         return ATCE::USAGE;
 
-    if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARPTO)
+    if (sd->bl_m->flag.get(MapFlag::NOWARPTO)
         && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
@@ -3408,9 +3397,11 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::PERM;
     }
 
-    if ((p = party_searchname(party_name)) ||
-            // name first to avoid error when name begin with a number
-        (p = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))))))
+    // name first to avoid error when name begin with a number
+    Option<PartyPair> p_ = party_searchname(party_name);
+    if (p_.is_none())
+        p_ = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))));
+    if OPTION_IS_SOME(p, p_)
     {
         count = 0;
         for (io::FD i : iter_fds())
@@ -3423,7 +3414,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
                 && sd->status_key.account_id != pl_sd->status_key.account_id
                 && pl_sd->status.party_id == p.party_id)
             {
-                if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
+                if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
                     && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
                     count++;
                 else
@@ -3466,9 +3457,7 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
     if (!map_name)
         map_name = sd->mapname_;
 
-    map_local *m_id = map_mapname2mapid(map_name);
-    if (m_id != nullptr)
-        return ATCE::EXIST;
+    P<map_local> m_id = TRY_UNWRAP(map_mapname2mapid(map_name), return ATCE::EXIST);
 
     clif_displaymessage(s, "------ Map Info ------"_s);
     AString output = STRPRINTF("Map Name: %s"_fmt, map_name);
@@ -3590,10 +3579,11 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
     if (!extract(message, &party_name))
         return ATCE::USAGE;
 
-    PartyPair p;
-    if ((p = party_searchname(party_name)) ||
-            // name first to avoid error when name begin with a number
-        (p = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))))))
+    // name first to avoid error when name begin with a number
+    Option<PartyPair> p_ = party_searchname(party_name);
+    if (p_.is_none())
+        p_ = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))));
+    if OPTION_IS_SOME(p, p_)
     {
         if (sd->partyspy == p.party_id)
         {
@@ -3682,19 +3672,15 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
     CharName character;
     XString item_name;
     int i, number = 0;
-    ItemNameId item_id;
     int count;
-    struct item_data *item_data;
 
     if (!asplit(message, &item_name, &number, &character) || number < 1)
         return ATCE::USAGE;
 
-    if ((item_data = itemdb_searchname(item_name)) != nullptr)
-        item_id = item_data->nameid;
-    else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != nullptr)
-        item_id = item_data->nameid;
+    P<struct item_data> item_data = TRY_UNWRAP(extract_item_opt(item_name), return ATCE::EXIST);
+    ItemNameId item_id = item_data->nameid;
+    assert (item_id);
 
-    if (item_id)
     {
         dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
         if (pl_sd != nullptr)
@@ -3741,11 +3727,6 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
             clif_displaymessage(s, "Character not found."_s);
             return ATCE::EXIST;
         }
-    }
-    else
-    {
-        clif_displaymessage(s, "Invalid item ID or name."_s);
-        return ATCE::RANGE;
     }
 
     return ATCE::OKAY;
@@ -3853,7 +3834,6 @@ static
 ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    struct item_data *item_data = nullptr;
     int count, counter;
     CharName character;
 
@@ -3870,10 +3850,10 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
             count = 0;
             for (IOff0 i : IOff0::iter())
             {
-                if (pl_sd->status.inventory[i].nameid
-                    && (item_data =
-                        itemdb_search(pl_sd->status.inventory[i].nameid)) !=
-                    nullptr)
+                if (!pl_sd->status.inventory[i].nameid)
+                    continue;
+                P<struct item_data> item_data = TRY_UNWRAP(itemdb_exists(pl_sd->status.inventory[i].nameid), continue);
+
                 {
                     counter = counter + pl_sd->status.inventory[i].amount;
                     count++;
@@ -3964,8 +3944,6 @@ static
 ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    Storage *stor;
-    struct item_data *item_data = nullptr;
     int count, counter;
     CharName character;
 
@@ -3978,15 +3956,17 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         if (pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
             // you can look items only lower or same level
-            if ((stor = account2storage2(pl_sd->status_key.account_id)) != nullptr)
+            Option<P<Storage>> stor_ = account2storage2(pl_sd->status_key.account_id);
+            if OPTION_IS_SOME(stor, stor_)
             {
                 counter = 0;
                 count = 0;
                 for (SOff0 i : SOff0::iter())
                 {
-                    if (stor->storage_[i].nameid
-                        && (item_data =
-                            itemdb_search(stor->storage_[i].nameid)) != nullptr)
+                    if (!stor->storage_[i].nameid)
+                        continue;
+                    P<struct item_data> item_data = TRY_UNWRAP(itemdb_exists(stor->storage_[i].nameid), continue);
+
                     {
                         counter = counter + stor->storage_[i].amount;
                         count++;
@@ -4431,9 +4411,9 @@ ATCE atcommand_adjcmdlvl(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
     }
 
-    AtCommandInfo *it = atcommand_info.search(cmd);
+    Option<P<AtCommandInfo>> it_ = atcommand_info.search(cmd);
     {
-        if (it)
+        if OPTION_IS_SOME(it, it_)
         {
             it->level = newlev;
             clif_displaymessage(s, "@command level changed."_s);
@@ -4663,14 +4643,14 @@ ATCE atcommand_jump_iterate(Session *s, dumb_ptr<map_session_data> sd,
             pl_sd = get_start();
     }
 
-    if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
+    if (pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
         && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp you to the map of this player."_s);
         return ATCE::PERM;
     }
-    if (sd->bl_m && sd->bl_m->flag.get(MapFlag::NOWARP)
+    if (sd->bl_m->flag.get(MapFlag::NOWARP)
         && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
     {
         clif_displaymessage(s,

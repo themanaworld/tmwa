@@ -583,7 +583,7 @@ int fun_if_then_else(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     return 0;
 }
 
-void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
+Borrowed<map_local> magic_area_rect(int *x, int *y, int *width, int *height,
         area_t& area_)
 {
     MATCH (area_)
@@ -595,19 +595,21 @@ void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
         }
         CASE (const location_t&, a_loc)
         {
-            *m = a_loc.m;
+            P<map_local> m = a_loc.m;
             *x = a_loc.x;
             *y = a_loc.y;
             *width = 1;
             *height = 1;
+            return m;
         }
         CASE (const AreaRect&, a_rect)
         {
-            *m = a_rect.loc.m;
+            P<map_local> m = a_rect.loc.m;
             *x = a_rect.loc.x;
             *y = a_rect.loc.y;
             *width = a_rect.width;
             *height = a_rect.height;
+            return m;
         }
         CASE (const AreaBar&, a_bar)
         {
@@ -615,7 +617,7 @@ void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
             int ty = a_bar.loc.y;
             int twidth = a_bar.width;
             int tdepth = a_bar.width;
-            *m = a_bar.loc.m;
+            P<map_local> m = a_bar.loc.m;
 
             switch (a_bar.dir)
             {
@@ -654,11 +656,13 @@ void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
                     *y = ty;
                     *width = *height = 1;
             }
+            return m;
         }
     }
+    abort();
 }
 
-int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area)
+int magic_location_in_area(Borrowed<map_local> m, int x, int y, dumb_ptr<area_t> area)
 {
     MATCH (*area)
     {
@@ -671,9 +675,8 @@ int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area)
         {
             (void)a_loc;
             // TODO this can be simplified
-            map_local *am;
             int ax, ay, awidth, aheight;
-            magic_area_rect(&am, &ax, &ay, &awidth, &aheight, *area);
+            P<map_local> am = magic_area_rect(&ax, &ay, &awidth, &aheight, *area);
             return (am == m
                     && (x >= ax) && (y >= ay)
                     && (x < ax + awidth) && (y < ay + aheight));
@@ -682,9 +685,8 @@ int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area)
         {
             (void)a_rect;
             // TODO this is too complicated
-            map_local *am;
             int ax, ay, awidth, aheight;
-            magic_area_rect(&am, &ax, &ay, &awidth, &aheight, *area);
+            P<map_local> am = magic_area_rect(&ax, &ay, &awidth, &aheight, *area);
             return (am == m
                     && (x >= ax) && (y >= ay)
                     && (x < ax + awidth) && (y < ay + aheight));
@@ -693,9 +695,8 @@ int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area)
         {
             (void)a_bar;
             // TODO this is wrong
-            map_local *am;
             int ax, ay, awidth, aheight;
-            magic_area_rect(&am, &ax, &ay, &awidth, &aheight, *area);
+            P<map_local> am = magic_area_rect(&ax, &ay, &awidth, &aheight, *area);
             return (am == m
                     && (x >= ax) && (y >= ay)
                     && (x < ax + awidth) && (y < ay + aheight));
@@ -873,18 +874,17 @@ int fun_hash_entity(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 // ret -1: not a string, ret 1: no such item, ret 0: OK
 int magic_find_item(Slice<val_t> args, int index, Item *item_, int *stackable)
 {
-    struct item_data *item_data;
+    Option<P<struct item_data>> item_data_ = None;
     int must_add_sequentially;
 
     if (args[index].is<ValInt>())
-        item_data = itemdb_exists(wrap<ItemNameId>(static_cast<uint16_t>(ARGINT(index))));
+        item_data_ = itemdb_exists(wrap<ItemNameId>(static_cast<uint16_t>(ARGINT(index))));
     else if (args[index].is<ValString>())
-        item_data = itemdb_searchname(ARGSTR(index));
+        item_data_ = itemdb_searchname(ARGSTR(index));
     else
         return -1;
 
-    if (!item_data)
-        return 1;
+    P<struct item_data> item_data = TRY_UNWRAP(item_data_, return 1);
 
     // Very elegant.
     must_add_sequentially = (
@@ -1096,9 +1096,8 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
         {
             (void)a_loc;
             // TODO this can be simplified
-            map_local *m;
             int x, y, w, h;
-            magic_area_rect(&m, &x, &y, &w, &h, *area);
+            P<map_local> m = magic_area_rect(&x, &y, &w, &h, *area);
 
             if (w <= 1)
                 w = 1;
@@ -1118,9 +1117,8 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
         {
             (void)a_rect;
             // TODO this can be simplified
-            map_local *m;
             int x, y, w, h;
-            magic_area_rect(&m, &x, &y, &w, &h, *area);
+            P<map_local> m = magic_area_rect(&x, &y, &w, &h, *area);
 
             if (w <= 1)
                 w = 1;
@@ -1140,9 +1138,8 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
         {
             (void)a_bar;
             // TODO this is wrong
-            map_local *m;
             int x, y, w, h;
-            magic_area_rect(&m, &x, &y, &w, &h, *area);
+            P<map_local> m = magic_area_rect(&x, &y, &w, &h, *area);
 
             if (w <= 1)
                 w = 1;
@@ -1512,10 +1509,8 @@ int eval_location(dumb_ptr<env_t> env, location_t *dest, const e_location_t *exp
         && x.is<ValInt>() && y.is<ValInt>())
     {
         MapName name = VString<15>(ZString(m.get_if<ValString>()->v_string));
-        map_local *map_id = map_mapname2mapid(name);
         magic_clear_var(&m);
-        if (!map_id)
-            return 1;
+        P<map_local> map_id = TRY_UNWRAP(map_mapname2mapid(name), return 1);
         dest->m = map_id;
         dest->x = x.get_if<ValInt>()->v_int;
         dest->y = y.get_if<ValInt>()->v_int;

@@ -53,24 +53,24 @@ Map<ItemNameId, struct item_data> item_db;
  */
 // name = item alias, so we should find items aliases first. if not found then look for "jname" (full name)
 static
-void itemdb_searchname_sub(struct item_data *item, ItemName str, struct item_data **dst)
+void itemdb_searchname_sub(Borrowed<struct item_data> item, ItemName str, Borrowed<Option<Borrowed<struct item_data>>> dst)
 {
     if (item->name == str)
-        *dst = item;
+        *dst = Some(item);
 }
 
 /*==========================================
  * 名前で検索
  *------------------------------------------
  */
-struct item_data *itemdb_searchname(XString str_)
+Option<Borrowed<struct item_data>> itemdb_searchname(XString str_)
 {
     ItemName str = stringish<ItemName>(str_);
     if (XString(str) != str_)
-        return nullptr;
-    struct item_data *item = nullptr;
+        return None;
+    Option<P<struct item_data>> item = None;
     for (auto& pair : item_db)
-        itemdb_searchname_sub(&pair.second, str, &item);
+        itemdb_searchname_sub(borrow(pair.second), str, borrow(item));
     return item;
 }
 
@@ -78,7 +78,7 @@ struct item_data *itemdb_searchname(XString str_)
  * DBの存在確認
  *------------------------------------------
  */
-struct item_data *itemdb_exists(ItemNameId nameid)
+Option<Borrowed<struct item_data>> itemdb_exists(ItemNameId nameid)
 {
     return item_db.search(nameid);
 }
@@ -87,13 +87,13 @@ struct item_data *itemdb_exists(ItemNameId nameid)
  * DBの検索
  *------------------------------------------
  */
-struct item_data *itemdb_search(ItemNameId nameid)
+Borrowed<struct item_data> itemdb_search(ItemNameId nameid)
 {
-    struct item_data *id = item_db.search(nameid);
-    if (id)
+    Option<P<struct item_data>> id_ = item_db.search(nameid);
+    if OPTION_IS_SOME(id, id_)
         return id;
 
-    id = item_db.init(nameid);
+    P<struct item_data> id = item_db.init(nameid);
 
     id->nameid = nameid;
     id->value_buy = 10;
@@ -125,10 +125,8 @@ int itemdb_isequip(ItemNameId nameid)
  *
  *------------------------------------------
  */
-int itemdb_isequip2(struct item_data *data)
+bool itemdb_isequip2(Borrowed<struct item_data> data)
 {
-    if (!data)
-        return false;
     ItemType type = data->type;
     return !(type == ItemType::USE
         || type == ItemType::_2
@@ -214,7 +212,7 @@ bool itemdb_readdb(ZString filename)
 
             ln++;
 
-            struct item_data *id = itemdb_search(idv.nameid);
+            Borrowed<struct item_data> id = itemdb_search(idv.nameid);
             *id = std::move(idv);
             if (id->value_buy == 0 && id->value_sell == 0)
             {

@@ -119,12 +119,12 @@ int clif_tradecancelled(dumb_ptr<map_session_data> sd);
 int clif_tradecompleted(dumb_ptr<map_session_data> sd, int fail);
 
 // storage
-int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor);
+int clif_storageitemlist(dumb_ptr<map_session_data> sd, Borrowed<Storage> stor);
 int clif_storageequiplist(dumb_ptr<map_session_data> sd,
-        Storage *stor);
+        Borrowed<Storage> stor);
 int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
-        Storage *stor);
-int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
+        Borrowed<Storage> stor);
+int clif_storageitemadded(dumb_ptr<map_session_data> sd, Borrowed<Storage> stor,
         SOff0 index, int amount);
 int clif_storageitemremoved(dumb_ptr<map_session_data> sd, SOff0 index,
         int amount);

@@ -98,11 +98,13 @@ struct NpcEvent
 };
 bool extract(XString str, NpcEvent *ev);
 
+extern map_local undefined_gat;
+
 struct block_list
 {
     dumb_ptr<block_list> bl_next, bl_prev;
     BlockId bl_id;
-    map_local *bl_m;
+    Borrowed<map_local> bl_m = borrow(undefined_gat);
     short bl_x, bl_y;
     BL bl_type;
 
@@ -186,7 +188,19 @@ struct map_session_data : block_list, SessionData
     unsigned char tmw_version;  // tmw client version
     CharKey status_key;
     CharData status;
-    GenericArray<struct item_data *, InventoryIndexing<IOff0, MAX_INVENTORY>> inventory_data;
+    GenericArray<Option<Borrowed<struct item_data>>, InventoryIndexing<IOff0, MAX_INVENTORY>> inventory_data =
+    {{
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+     }}; // explicit is better than implicit
     earray<IOff0, EQUIP, EQUIP::COUNT> equip_index_maybe;
     int weight, max_weight;
     MapName mapname_;
@@ -206,7 +220,7 @@ struct map_session_data : block_list, SessionData
     int npc_amount;
     // I have no idea exactly what these are doing ...
     // but one should probably be replaced with a ScriptPointer ???
-    const ScriptBuffer *npc_script, *npc_scriptroot;
+    Option<Borrowed<const ScriptBuffer>> npc_script = None, npc_scriptroot = None;
     std::vector<struct script_data> npc_stackbuf;
     RString npc_str;
     struct
@@ -433,7 +447,7 @@ struct mob_data : block_list
     MobMode mode;
     struct
     {
-        map_local *m;
+        Borrowed<map_local> m = borrow(undefined_gat);
         short x0, y0, xs, ys;
         interval_t delay1, delay2;
     } spawn;
@@ -508,6 +522,8 @@ struct map_abstract
     // gat is nullptr for map_remote and non-nullptr for map_local
     std::unique_ptr<MapCell[]> gat;
 
+    map_abstract() = default;
+    map_abstract(map_abstract&&) = default;
     virtual ~map_abstract() {}
 };
 extern
@@ -532,7 +548,7 @@ struct map_remote : map_abstract
 };
 
 inline
-MapCell read_gatp(map_local *m, int x, int y)
+MapCell read_gatp(Borrowed<map_local> m, int x, int y)
 {
     assert (0 <= x && x < m->xs);
     assert (0 <= y && y < m->ys);
@@ -574,21 +590,21 @@ public:
 int map_addblock(dumb_ptr<block_list>);
 int map_delblock(dumb_ptr<block_list>);
 void map_foreachinarea(std::function<void(dumb_ptr<block_list>)>,
-        map_local *,
+        Borrowed<map_local>,
         int, int, int, int,
         BL);
 // -- moonsoul (added map_foreachincell)
 void map_foreachincell(std::function<void(dumb_ptr<block_list>)>,
-        map_local *,
+        Borrowed<map_local>,
         int, int,
         BL);
 void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)>,
-        map_local *,
+        Borrowed<map_local>,
         int, int, int, int,
         int, int,
         BL);
 //block関連に追加
-int map_count_oncell(map_local *m, int x, int y);
+int map_count_oncell(Borrowed<map_local> m, int x, int y);
 // 一時的object関連
 BlockId map_addobject(dumb_ptr<block_list>);
 void map_delobject(BlockId, BL type);
@@ -598,7 +614,7 @@ void map_foreachobject(std::function<void(dumb_ptr<block_list>)>,
 //
 void map_quit(dumb_ptr<map_session_data>);
 // npc
-int map_addnpc(map_local *, dumb_ptr<npc_data>);
+int map_addnpc(Borrowed<map_local>, dumb_ptr<npc_data>);
 
 void map_log(XString line);
 #define MAP_LOG(format, ...)    \
@@ -606,7 +622,7 @@ void map_log(XString line);
 
 #define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
-            sd->status_key.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat"_s)), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
+            sd->status_key.char_id, (sd->bl_m->name_), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, BlockId);
@@ -616,11 +632,11 @@ void map_clearflooritem(BlockId id)
     map_clearflooritem_timer(nullptr, tick_t(), id);
 }
 BlockId map_addflooritem_any(Item *, int amount,
-        map_local *m, int x, int y,
+        Borrowed<map_local> m, int x, int y,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal);
 BlockId map_addflooritem(Item *, int,
-        map_local *, int, int,
+        Borrowed<map_local>, int, int,
         dumb_ptr<map_session_data>, dumb_ptr<map_session_data>,
         dumb_ptr<map_session_data>);
 
@@ -665,8 +681,8 @@ dumb_ptr<magic::invocation> map_id_is_spell(BlockId id)
 }
 
 
-map_local *map_mapname2mapid(MapName);
-int map_mapname2ipport(MapName, IP4Address *, int *);
+Option<Borrowed<map_local>> map_mapname2mapid(MapName);
+int map_mapname2ipport(MapName, Borrowed<IP4Address>, Borrowed<int>);
 int map_setipport(MapName name, IP4Address ip, int port);
 void map_addiddb(dumb_ptr<block_list>);
 void map_deliddb(dumb_ptr<block_list> bl);
@@ -683,14 +699,14 @@ dumb_ptr<map_session_data> map_get_prev_session(
         dumb_ptr<map_session_data> current);
 
 // gat関連
-MapCell map_getcell(map_local *, int, int);
-void map_setcell(map_local *, int, int, MapCell);
+MapCell map_getcell(Borrowed<map_local>, int, int);
+void map_setcell(Borrowed<map_local>, int, int, MapCell);
 
 // その他
 bool map_check_dir(DIR s_dir, DIR t_dir);
 DIR map_calc_dir(dumb_ptr<block_list> src, int x, int y);
 
-std::pair<uint16_t, uint16_t> map_randfreecell(map_local *m,
+std::pair<uint16_t, uint16_t> map_randfreecell(Borrowed<map_local> m,
         uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
 inline dumb_ptr<map_session_data> block_list::as_player() { return dumb_ptr<map_session_data>(static_cast<map_session_data *>(this)) ; }

@@ -57,7 +57,7 @@ void push_reg(struct script_stack *stack, SIR reg)
 }
 
 template<class T>
-void push_script(struct script_stack *stack, const ScriptBuffer *code)
+void push_script(struct script_stack *stack, Borrowed<const ScriptBuffer> code)
 {
     static_assert(first_type_is_any<T, ScriptDataRetInfo>(), "not scriptbuf type");
 

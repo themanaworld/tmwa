@@ -97,14 +97,14 @@ int magic_find_item(Slice<val_t> args, int index, Item *item, int *stackable);
         default: break;                                         \
     }
 
-int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area);
+int magic_location_in_area(Borrowed<map_local> m, int x, int y, dumb_ptr<area_t> area);
 
 /* Helper definitions for dealing with functions and operations */
 
 int magic_signature_check(ZString opname, ZString funname, ZString signature,
         Slice<val_t> args, int line, int column);
 
-void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
+Borrowed<map_local> magic_area_rect(int *x, int *y, int *width, int *height,
         area_t& area);
 } // namespace magic
 } // namespace tmwa

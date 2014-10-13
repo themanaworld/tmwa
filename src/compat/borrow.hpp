@@ -68,6 +68,15 @@ namespace tmwa
             static_assert(!std::is_same<T, U>::value, "same check");
             return Borrowed<U>(stupid);
         }
+
+        friend bool operator == (Borrowed l, Borrowed r)
+        {
+            return l.stupid == r.stupid;
+        }
+        friend bool operator != (Borrowed l, Borrowed r)
+        {
+            return !(l == r);
+        }
     };
 
     namespace option

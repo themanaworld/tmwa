@@ -106,8 +106,8 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
                 }
                 else if (prefix == '$')
                 {
-                    RString *s = mapregstr_db.search(u.reg);
-                    if (s)
+                    Option<P<RString>> s_ = mapregstr_db.search(u.reg);
+                    if OPTION_IS_SOME(s, s_)
                         str = *s;
                 }
                 else
@@ -289,7 +289,7 @@ int conv_num(ScriptState *st, struct script_data *data)
     return rv;
 }
 
-const ScriptBuffer *conv_script(ScriptState *st, struct script_data *data)
+Borrowed<const ScriptBuffer> conv_script(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
     return data->get_if<ScriptDataRetInfo>()->script;
@@ -603,7 +603,7 @@ void run_func(ScriptState *st)
                 }
                 CASE (const ScriptDataRetInfo&, u)
                 {
-                    PRINTF(" retinfo(%p)"_fmt, static_cast<const void *>(u.script));
+                    PRINTF(" retinfo(%p)"_fmt, static_cast<const void *>(&*u.script));
                 }
                 CASE (const ScriptDataParam&, u)
                 {
@@ -655,7 +655,7 @@ void run_func(ScriptState *st)
             return;
         }
         assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
-        st->scriptp.code = conv_script(st, &st->stack->stack_datav[olddefsp - 1]);   // スクリプトを復元
+        st->scriptp.code = Some(conv_script(st, &st->stack->stack_datav[olddefsp - 1]));   // スクリプトを復元
         st->scriptp.pos = conv_num(st, &st->stack->stack_datav[olddefsp - 2]);   // スクリプト位置の復元
         st->defsp = conv_num(st, &st->stack->stack_datav[olddefsp - 3]); // 基準スタックポインタを復元
         // Number of arguments.
@@ -669,11 +669,11 @@ void run_func(ScriptState *st)
 }
 
 // pretend it's external so this can be called in the debugger
-void dump_script(const ScriptBuffer *script);
-void dump_script(const ScriptBuffer *script)
+void dump_script(Borrowed<const ScriptBuffer> script);
+void dump_script(Borrowed<const ScriptBuffer> script)
 {
     ScriptPointer scriptp(script, 0);
-    while (scriptp.pos < reinterpret_cast<const std::vector<ByteCode> *>(script)->size())
+    while (scriptp.pos < reinterpret_cast<const std::vector<ByteCode> *>(&*script)->size())
     {
         PRINTF("%6zu: "_fmt, scriptp.pos);
         switch (ByteCode c = get_com(&scriptp))
@@ -803,7 +803,7 @@ void dump_script(const ScriptBuffer *script)
  *------------------------------------------
  */
 static
-void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
+void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
 {
     int cmdcount = script_config.check_cmdcount;
     int gotocount = script_config.check_gotocount;
@@ -936,7 +936,7 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
         case ScriptEndState::END:
         {
             dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
-            st->scriptp.code = nullptr;
+            st->scriptp.code = None;
             st->scriptp.pos = -1;
             if (sd && sd->npc_id == st->oid)
                 npc_event_dequeue(sd);
@@ -956,7 +956,7 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
             sd->npc_stackbuf = stack->stack_datav;
             sd->npc_script = st->scriptp.code;
             // sd->npc_pos is set later ... ???
-            sd->npc_scriptroot = rootscript;
+            sd->npc_scriptroot = Some(rootscript);
         }
     }
 }
@@ -976,12 +976,12 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     struct script_stack stack;
     ScriptState st;
     dumb_ptr<map_session_data> sd = map_id2sd(rid);
-    const ScriptBuffer *rootscript = sp.code;
+    P<const ScriptBuffer> rootscript = TRY_UNWRAP(sp.code, return -1);
     int i;
-    if (sp.code == nullptr || sp.pos >> 24)
+    if (sp.pos >> 24)
         return -1;
 
-    if (sd && !sd->npc_stackbuf.empty() && sd->npc_scriptroot == rootscript)
+    if (sd && !sd->npc_stackbuf.empty() && sd->npc_scriptroot == Some(rootscript))
     {
         // 前回のスタックを復帰
         sp.code = sd->npc_script;

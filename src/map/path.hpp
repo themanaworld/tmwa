@@ -22,8 +22,10 @@
 
 #include "fwd.hpp"
 
+#include "../compat/fwd.hpp"
+
 
 namespace tmwa
 {
-int path_search(struct walkpath_data *, map_local *, int, int, int, int, int);
+int path_search(struct walkpath_data *, Borrowed<map_local>, int, int, int, int, int);
 } // namespace tmwa

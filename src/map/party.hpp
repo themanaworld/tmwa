@@ -24,6 +24,8 @@
 
 #include <functional>
 
+#include "../compat/fwd.hpp"
+
 #include "../strings/fwd.hpp"
 
 #include "../generic/fwd.hpp"
@@ -34,8 +36,8 @@
 namespace tmwa
 {
 void do_init_party(void);
-PartyPair party_search(PartyId party_id);
-PartyPair party_searchname(PartyName str);
+Option<PartyPair> party_search(PartyId party_id);
+Option<PartyPair> party_searchname(PartyName str);
 
 int party_create(dumb_ptr<map_session_data> sd, PartyName name);
 void party_created(AccountId account_id, int fail, PartyId party_id, PartyName name);
@@ -65,7 +67,7 @@ void party_recv_message(PartyId party_id, AccountId account_id, XString mes);
 void party_send_xy_clear(PartyPair p);
 void party_send_hp_check(dumb_ptr<block_list> bl, PartyId party_id, int *flag);
 
-int party_exp_share(PartyPair p, map_local *map, int base_exp, int job_exp);
+int party_exp_share(PartyPair p, Borrowed<map_local> map, int base_exp, int job_exp);
 
 void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<map_session_data> sd, int type);

@@ -22,6 +22,8 @@
 
 #include "fwd.hpp"
 
+#include "../compat/fwd.hpp"
+
 #include "../generic/fwd.hpp"
 
 #include "../strings/fwd.hpp"
@@ -38,7 +40,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4);
  *
  * \param message The message to speak.  If message is nullptr, the NPC will not do anything at all.
  */
-dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
+dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
         Species class_, NpcName name, AString message);
 
 void npc_addsrcfile(AString name);

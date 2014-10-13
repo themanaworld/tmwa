@@ -50,8 +50,14 @@ namespace magic
 {
 struct location_t
 {
-    map_local *m;
+    Borrowed<map_local> m;
     int x, y;
+
+    // This constructor exists solely to work around the design constraints
+    // of sexpr::Variant<>. See comments in variant.tcc for future plans.
+    __attribute__((deprecated))
+    location_t() noexcept : m(borrow(undefined_gat)), x(), y() {}
+    location_t(Borrowed<map_local> m_, int x_, int y_) : m(m_), x(x_), y(y_) {}
 };
 
 struct AreaUnion

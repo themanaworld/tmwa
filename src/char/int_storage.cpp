@@ -117,14 +117,10 @@ bool extract(XString str, Storage *p)
 }
 
 // アカウントから倉庫データインデックスを得る（新規倉庫追加可能）
-Storage *account2storage(AccountId account_id)
+Borrowed<Storage> account2storage(AccountId account_id)
 {
-    Storage *s = storage_db.search(account_id);
-    if (s == nullptr)
-    {
-        s = storage_db.init(account_id);
-        s->account_id = account_id;
-    }
+    P<Storage> s = storage_db.init(account_id);
+    s->account_id = account_id;
     return s;
 }
 
@@ -196,7 +192,7 @@ void inter_storage_delete(AccountId account_id)
 static
 void mapif_load_storage(Session *ss, AccountId account_id)
 {
-    Storage *st = account2storage(account_id);
+    P<Storage> st = account2storage(account_id);
     Packet_Payload<0x3810> payload_10;
     payload_10.account_id = account_id;
     payload_10.storage = *st;
@@ -240,11 +236,10 @@ RecvResult mapif_parse_SaveStorage(Session *ss)
     if (rv != RecvResult::Complete)
         return rv;
 
-    Storage *st;
     AccountId account_id = payload.account_id;
 
     {
-        st = account2storage(account_id);
+        P<Storage> st = account2storage(account_id);
         *st = payload.storage;
         mapif_save_storage_ack(ss, account_id);
     }

@@ -54,8 +54,8 @@ public:
     void add_scriptc(ByteCode a);
     void add_scriptb(uint8_t a);
     void add_scripti(uint32_t a);
-    void add_scriptl(str_data_t *a);
-    void set_label(str_data_t *ld, int pos_);
+    void add_scriptl(Borrowed<str_data_t> a);
+    void set_label(Borrowed<str_data_t> ld, int pos_);
     ZSit parse_simpleexpr(ZSit p);
     ZSit parse_subexpr(ZSit p, int limit);
     ZSit parse_expr(ZSit p);
@@ -79,11 +79,11 @@ void std::default_delete<const tmwa::ScriptBuffer>::operator()(const tmwa::Scrip
 namespace tmwa
 {
 // implemented for script-call.hpp because reasons
-ByteCode ScriptPointer::peek() const { return (*code)[pos]; }
-ByteCode ScriptPointer::pop() { return (*code)[pos++]; }
+ByteCode ScriptPointer::peek() const { return (*TRY_UNWRAP(code, abort()))[pos]; }
+ByteCode ScriptPointer::pop() { return (*TRY_UNWRAP(code, abort()))[pos++]; }
 ZString ScriptPointer::pops()
 {
-    ZString rv = code->get_str(pos);
+    ZString rv = TRY_UNWRAP(code, abort())->get_str(pos);
     pos += rv.size();
     ++pos;
     return rv;
@@ -114,22 +114,23 @@ struct ScriptConfigParse
 static
 int parse_cmd_if = 0;
 static
-str_data_t *parse_cmdp;
+Option<Borrowed<str_data_t>> parse_cmdp = None;
 
 InternPool variable_names;
 
-str_data_t *search_strp(XString p)
+Option<Borrowed<str_data_t>> search_strp(XString p)
 {
     return str_datam.search(p);
 }
 
-str_data_t *add_strp(XString p)
+Borrowed<str_data_t> add_strp(XString p)
 {
-    if (str_data_t *rv = search_strp(p))
+    Option<P<str_data_t>> rv_ = search_strp(p);
+    if OPTION_IS_SOME(rv, rv_)
         return rv;
 
     RString p2 = p;
-    str_data_t *datum = str_datam.init(p2);
+    P<str_data_t> datum = str_datam.init(p2);
     datum->type = StringCode::NOP;
     datum->strs = p2;
     datum->backpatch = -1;
@@ -174,7 +175,7 @@ void ScriptBuffer::add_scripti(uint32_t a)
  *------------------------------------------
  */
 // 最大16Mまで
-void ScriptBuffer::add_scriptl(str_data_t *ld)
+void ScriptBuffer::add_scriptl(P<str_data_t> ld)
 {
     int backpatch = ld->backpatch;
 
@@ -218,7 +219,7 @@ void ScriptBuffer::add_scriptl(str_data_t *ld)
  * ラベルを解決する
  *------------------------------------------
  */
-void ScriptBuffer::set_label(str_data_t *ld, int pos_)
+void ScriptBuffer::set_label(Borrowed<str_data_t> ld, int pos_)
 {
     int next;
 
@@ -408,18 +409,18 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
         {
             disp_error_message("Sorry, callsub/callfunc/return have never worked properly in an if statement."_s, p);
         }
-        str_data_t *ld = add_strp(word);
+        P<str_data_t> ld = add_strp(word);
 
-        parse_cmdp = ld;          // warn_*_mismatch_paramnumのために必要
+        parse_cmdp = Some(ld);          // warn_*_mismatch_paramnumのために必要
         // why not just check l->str == "if"_s or std::string(p, p2) == "if"_s?
-        if (ld == search_strp("if"_s)) // warn_cmd_no_commaのために必要
+        if (Some(ld) == search_strp("if"_s)) // warn_cmd_no_commaのために必要
             parse_cmd_if++;
         p = p2;
 
         if (ld->type != StringCode::FUNC && *p == '[')
         {
             // array(name[i] => getelementofarray(name,i) )
-            add_scriptl(search_strp("getelementofarray"_s));
+            add_scriptl(TRY_UNWRAP(search_strp("getelementofarray"_s), abort()));
             add_scriptc(ByteCode::ARG);
             add_scriptl(ld);
             p = parse_subexpr(p + 1, -1);
@@ -457,7 +458,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         if (*tmpp == ';' || *tmpp == ',')
         {
             --script_errors; disp_error_message("deprecated: implicit 'next statement' label"_s, p);
-            add_scriptl(&LABEL_NEXTLINE_);
+            add_scriptl(borrow(LABEL_NEXTLINE_));
             p++;
             return p;
         }
@@ -496,7 +497,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         if (op == ByteCode::FUNC)
         {
             int i = 0;
-            str_data_t *funcp = parse_cmdp;
+            P<str_data_t> funcp = TRY_UNWRAP(parse_cmdp, abort());
             ZString::iterator plist[128];
 
             if (funcp->type != StringCode::FUNC)
@@ -600,7 +601,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
     p = parse_simpleexpr(p);
     p = skip_space(p);
 
-    str_data_t *cmd = parse_cmdp;
+    P<str_data_t> cmd = TRY_UNWRAP(parse_cmdp, abort());
     if (cmd->type != StringCode::FUNC)
     {
         disp_error_message("expect command"_s, p2);
@@ -680,7 +681,7 @@ void add_builtin_functions(void)
 {
     for (int i = 0; builtin_functions[i].func; i++)
     {
-        str_data_t *n = add_strp(builtin_functions[i].name);
+        P<str_data_t> n = add_strp(builtin_functions[i].name);
         n->type = StringCode::FUNC;
         n->val = i;
     }
@@ -749,7 +750,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
 
             ZString::iterator tmpp = skip_word(p);
             XString str(&*p, &*tmpp, nullptr);
-            str_data_t *ld = add_strp(str);
+            P<str_data_t> ld = add_strp(str);
             bool e1 = ld->type != StringCode::NOP;
             bool e2 = ld->type == StringCode::POS;
             bool e3 = ld->label_ != -1;
@@ -774,7 +775,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         p = skip_space(p);
         add_scriptc(ByteCode::EOL);
 
-        set_label(&LABEL_NEXTLINE_, script_buf.size());
+        set_label(borrow(LABEL_NEXTLINE_), script_buf.size());
         LABEL_NEXTLINE_.type = StringCode::NOP;
         LABEL_NEXTLINE_.backpatch = -1;
         LABEL_NEXTLINE_.label_ = -1;
@@ -820,7 +821,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
     }
     for (ScriptLabel used : probable_labels)
     {
-        if (!scriptlabel_db.search(used))
+        if (scriptlabel_db.search(used).is_none())
             PRINTF("Warning: no such label: %s\n"_fmt, used);
     }
     probable_labels.clear();

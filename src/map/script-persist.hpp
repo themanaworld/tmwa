@@ -22,6 +22,8 @@
 
 #include "fwd.hpp"
 
+#include "../compat/borrow.hpp"
+
 #include "../strings/rstring.hpp"
 
 #include "../sexpr/variant.hpp"
@@ -81,7 +83,7 @@ struct ScriptDataRetInfo
 {
     // Not a ScriptPointer - pos is stored in a separate slot,
     // to avoid exploding the struct for everyone.
-    const ScriptBuffer *script;
+    Borrowed<const ScriptBuffer> script;
 };
 struct ScriptDataFuncRef
 {

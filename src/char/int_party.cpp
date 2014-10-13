@@ -171,8 +171,7 @@ void inter_party_init(void)
         }
 
         PartyMost pm;
-        PartyPair pp;
-        pp.party_most = &pm;
+        PartyPair pp{PartyId(), borrow(pm)};
         if (extract(line, &pp) && pp.party_id)
         {
             if (party_newid < next(pp.party_id))
@@ -212,9 +211,7 @@ int inter_party_save(void)
     }
     for (auto& pair : party_db)
     {
-        PartyPair tmp;
-        tmp.party_id = pair.first;
-        tmp.party_most = &pair.second;
+        PartyPair tmp{pair.first, borrow(pair.second)};
         inter_party_save_sub(tmp, fp);
     }
 
@@ -223,23 +220,21 @@ int inter_party_save(void)
 
 // パーティ名検索用
 static
-void search_partyname_sub(PartyPair p, PartyName str, PartyPair *dst)
+void search_partyname_sub(PartyPair p, PartyName str, Borrowed<Option<PartyPair>> dst)
 {
     if (p->name == str)
-        *dst = p;
+        *dst = Some(p);
 }
 
 // パーティ名検索
 static
-PartyPair search_partyname(PartyName str)
+Option<PartyPair> search_partyname(PartyName str)
 {
-    PartyPair p;
+    Option<PartyPair> p = None;
     for (auto& pair : party_db)
     {
-        PartyPair tmp;
-        tmp.party_id = pair.first;
-        tmp.party_most = &pair.second;
-        search_partyname_sub(tmp, str, &p);
+        PartyPair tmp{pair.first, borrow(pair.second)};
+        search_partyname_sub(tmp, str, borrow(p));
     }
 
     return p;
@@ -315,9 +310,7 @@ void party_check_conflict(PartyId party_id, AccountId account_id, CharName nick)
 {
     for (auto& pair : party_db)
     {
-        PartyPair tmp;
-        tmp.party_id = pair.first;
-        tmp.party_most = &pair.second;
+        PartyPair tmp{pair.first, borrow(pair.second)};
         party_check_conflict_sub(tmp,
                 party_id, account_id, nick);
     }
@@ -328,11 +321,11 @@ void party_check_conflict(PartyId party_id, AccountId account_id, CharName nick)
 
 // パーティ作成可否
 static
-void mapif_party_created(Session *s, AccountId account_id, const PartyPair p)
+void mapif_party_created(Session *s, AccountId account_id, Option<PartyPair> p_)
 {
     Packet_Fixed<0x3820> fixed_20;
     fixed_20.account_id = account_id;
-    if (p)
+    if OPTION_IS_SOME(p, p_)
     {
         fixed_20.error = 0;
         fixed_20.party_id = p.party_id;
@@ -492,22 +485,21 @@ void mapif_parse_CreateParty(Session *s, AccountId account_id, PartyName name, C
         if (!name.is_print())
         {
             PRINTF("int_party: illegal party name [%s]\n"_fmt, name);
-            mapif_party_created(s, account_id, PartyPair());
+            mapif_party_created(s, account_id, None);
             return;
         }
     }
 
-    if (search_partyname(name))
+    if (search_partyname(name).is_some())
     {
         PRINTF("int_party: same name party exists [%s]\n"_fmt, name);
-        mapif_party_created(s, account_id, PartyPair());
+        mapif_party_created(s, account_id, None);
         return;
     }
+
     PartyMost p {};
-    PartyPair pp;
-    pp.party_most = &p;
     party_newid = next(party_newid);
-    pp.party_id = party_newid;
+    PartyPair pp{party_newid, borrow(p)};
     p.name = name;
     p.exp = 0;
     p.item = 0;
@@ -521,7 +513,7 @@ void mapif_parse_CreateParty(Session *s, AccountId account_id, PartyName name, C
     party_db.insert(pp.party_id, p);
 
     // pointer to noncanonical version
-    mapif_party_created(s, account_id, pp);
+    mapif_party_created(s, account_id, Some(pp));
     mapif_party_info(s, pp);
 }
 
@@ -529,11 +521,9 @@ void mapif_parse_CreateParty(Session *s, AccountId account_id, PartyName name, C
 static
 void mapif_parse_PartyInfo(Session *s, PartyId party_id)
 {
-    PartyPair p;
-    p.party_id = party_id;
-    p.party_most = party_db.search(party_id);
-    if (p)
-        mapif_party_info(s, p);
+    Option<P<PartyMost>> maybe_party_most = party_db.search(party_id);
+    if OPTION_IS_SOME(party_most, maybe_party_most)
+        mapif_party_info(s, PartyPair{party_id, party_most});
     else
         mapif_party_noinfo(s, party_id);
 }
@@ -543,14 +533,13 @@ static
 void mapif_parse_PartyAddMember(Session *s, PartyId party_id, AccountId account_id,
         CharName nick, MapName map, int lv)
 {
-    PartyPair p;
-    p.party_id = party_id;
-    p.party_most = party_db.search(party_id);
-    if (!p)
-    {
-        mapif_party_memberadded(s, party_id, account_id, 1);
-        return;
-    }
+    Option<P<PartyMost>> maybe_party_most = party_db.search(party_id);
+    P<PartyMost> party_most = TRY_UNWRAP(maybe_party_most,
+            {
+                mapif_party_memberadded(s, party_id, account_id, 1);
+                return;
+            });
+    PartyPair p{party_id, party_most};
 
     for (int i = 0; i < MAX_PARTY; i++)
     {
@@ -585,11 +574,7 @@ static
 void mapif_parse_PartyChangeOption(Session *s, PartyId party_id, AccountId account_id,
         int exp, int item)
 {
-    PartyPair p;
-    p.party_id = party_id;
-    p.party_most = party_db.search(party_id);
-    if (!p)
-        return;
+    PartyPair p{party_id, TRY_UNWRAP(party_db.search(party_id), return)};
 
     p->exp = exp;
     int flag = 0;
@@ -607,11 +592,8 @@ void mapif_parse_PartyChangeOption(Session *s, PartyId party_id, AccountId accou
 // パーティ脱退要求
 void mapif_parse_PartyLeave(Session *, PartyId party_id, AccountId account_id)
 {
-    PartyPair p;
-    p.party_id = party_id;
-    p.party_most = party_db.search(party_id);
-    if (!p)
-        return;
+    PartyPair p{party_id, TRY_UNWRAP(party_db.search(party_id), return)};
+
     for (int i = 0; i < MAX_PARTY; i++)
     {
         if (p->member[i].account_id != account_id)
@@ -630,11 +612,7 @@ static
 void mapif_parse_PartyChangeMap(Session *s, PartyId party_id, AccountId account_id,
         MapName map, int online, int lv)
 {
-    PartyPair p;
-    p.party_id = party_id;
-    p.party_most = party_db.search(party_id);
-    if (!p)
-        return;
+    PartyPair p{party_id, TRY_UNWRAP(party_db.search(party_id), return)};
 
     for (int i = 0; i < MAX_PARTY; i++)
     {

@@ -117,9 +117,9 @@ static
 void builtin_callfunc(ScriptState *st)
 {
     RString str = conv_str(st, &AARG(0));
-    const ScriptBuffer *scr = userfunc_db.get(str);
+    Option<P<const ScriptBuffer>> scr_ = userfunc_db.get(str);
 
-    if (scr)
+    if OPTION_IS_SOME(scr, scr_)
     {
         int j = 0;
         assert (st->start + 3 == st->end);
@@ -131,7 +131,7 @@ void builtin_callfunc(ScriptState *st)
         push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
         push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
         push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-        push_script<ScriptDataRetInfo>(st->stack, st->scriptp.code);  // 現在のスクリプトをプッシュ
+        push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
 
         st->scriptp = ScriptPointer(scr, 0);
         st->defsp = st->start + 4 + j;
@@ -162,7 +162,7 @@ void builtin_callsub(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
     push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
     push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-    push_script<ScriptDataRetInfo>(st->stack, st->scriptp.code);  // 現在のスクリプトをプッシュ
+    push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
 
     st->scriptp.pos = pos_;
     st->defsp = st->start + 4 + j;
@@ -373,9 +373,7 @@ void builtin_areawarp(ScriptState *st)
     x = conv_num(st, &AARG(6));
     y = conv_num(st, &AARG(7));
 
-    map_local *m = map_mapname2mapid(mapname);
-    if (m == nullptr)
-        return;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
 
     map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
             m,
@@ -718,8 +716,8 @@ void builtin_countitem(ScriptState *st)
     if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
-        struct item_data *item_data = itemdb_searchname(name);
-        if (item_data != nullptr)
+        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+        if OPTION_IS_SOME(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -761,8 +759,8 @@ void builtin_checkweight(ScriptState *st)
     if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
-        struct item_data *item_data = itemdb_searchname(name);
-        if (item_data)
+        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+        if OPTION_IS_SOME(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -806,8 +804,8 @@ void builtin_getitem(ScriptState *st)
     if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
-        struct item_data *item_data = itemdb_searchname(name);
-        if (item_data != nullptr)
+        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+        if OPTION_IS_SOME(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -859,8 +857,8 @@ void builtin_makeitem(ScriptState *st)
     if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
-        struct item_data *item_data = itemdb_searchname(name);
-        if (item_data)
+        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+        if OPTION_IS_SOME(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -871,11 +869,9 @@ void builtin_makeitem(ScriptState *st)
     x = conv_num(st, &AARG(3));
     y = conv_num(st, &AARG(4));
 
-    map_local *m;
-    if (sd && mapname == MOB_THIS_MAP)
-        m = sd->bl_m;
-    else
-        m = map_mapname2mapid(mapname);
+    P<map_local> m = ((sd && mapname == MOB_THIS_MAP)
+            ? sd->bl_m
+            : TRY_UNWRAP(map_mapname2mapid(mapname), return));
 
     if (nameid)
     {
@@ -905,8 +901,8 @@ void builtin_delitem(ScriptState *st)
     if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
-        struct item_data *item_data = itemdb_searchname(name);
-        if (item_data)
+        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+        if OPTION_IS_SOME(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -1004,12 +1000,9 @@ void builtin_getcharid(ScriptState *st)
 static
 RString builtin_getpartyname_sub(PartyId party_id)
 {
-    PartyPair p = party_search(party_id);
+    Option<PartyPair> p = party_search(party_id);
 
-    if (p)
-        return p->name;
-
-    return RString();
+    return p.pmd_pget(&PartyMost::name).copy_or(PartyName());
 }
 
 /*==========================================
@@ -1072,7 +1065,6 @@ void builtin_getequipid(ScriptState *st)
 {
     int num;
     dumb_ptr<map_session_data> sd;
-    struct item_data *item;
 
     sd = script_rid2sd(st);
     if (sd == nullptr)
@@ -1084,8 +1076,8 @@ void builtin_getequipid(ScriptState *st)
     IOff0 i = pc_checkequip(sd, equip[num - 1]);
     if (i.ok())
     {
-        item = sd->inventory_data[i];
-        if (item)
+        Option<P<struct item_data>> item_ = sd->inventory_data[i];
+        if OPTION_IS_SOME(item, item_)
             push_int<ScriptDataInt>(st->stack, unwrap<ItemNameId>(item->nameid));
         else
             push_int<ScriptDataInt>(st->stack, 0);
@@ -1105,7 +1097,6 @@ void builtin_getequipname(ScriptState *st)
 {
     int num;
     dumb_ptr<map_session_data> sd;
-    struct item_data *item;
 
     AString buf;
 
@@ -1114,8 +1105,8 @@ void builtin_getequipname(ScriptState *st)
     IOff0 i = pc_checkequip(sd, equip[num - 1]);
     if (i.ok())
     {
-        item = sd->inventory_data[i];
-        if (item)
+        Option<P<struct item_data>> item_ = sd->inventory_data[i];
+        if OPTION_IS_SOME(item, item_)
             buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], item->jname);
         else
             buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
@@ -1494,9 +1485,7 @@ void builtin_killmonster(ScriptState *st)
     if (event_ != "All"_s)
         extract(event_, &event);
 
-    map_local *m = map_mapname2mapid(mapname);
-    if (m == nullptr)
-        return;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
     map_foreachinarea(std::bind(builtin_killmonster_sub, ph::_1, event),
             m,
             0, 0,
@@ -1515,9 +1504,7 @@ void builtin_killmonsterall(ScriptState *st)
 {
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
 
-    map_local *m = map_mapname2mapid(mapname);
-    if (m == nullptr)
-        return;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
     map_foreachinarea(builtin_killmonsterall_sub,
             m,
             0, 0,
@@ -1701,9 +1688,7 @@ void builtin_mapannounce(ScriptState *st)
     ZString str = ZString(conv_str(st, &AARG(1)));
     flag = conv_num(st, &AARG(2));
 
-    map_local *m = map_mapname2mapid(mapname);
-    if (m == nullptr)
-        return;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
     map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, flag & 0x10),
             m,
             0, 0,
@@ -1741,12 +1726,11 @@ static
 void builtin_getmapusers(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-    map_local *m = map_mapname2mapid(str);
-    if (m == nullptr)
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str),
     {
         push_int<ScriptDataInt>(st->stack, -1);
         return;
-    }
+    });
     push_int<ScriptDataInt>(st->stack, m->users);
 }
 
@@ -1786,12 +1770,11 @@ void builtin_getareausers(ScriptState *st)
     {
         living = conv_num(st, &AARG(5));
     }
-    map_local *m = map_mapname2mapid(str);
-    if (m == nullptr)
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str),
     {
         push_int<ScriptDataInt>(st->stack, -1);
         return;
-    }
+    });
     map_foreachinarea(std::bind(living ? builtin_getareausers_living_sub: builtin_getareausers_sub, ph::_1, &users),
             m,
             x0, y0,
@@ -1845,8 +1828,8 @@ void builtin_getareadropitem(ScriptState *st)
     if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
-        struct item_data *item_data = itemdb_searchname(name);
-        if (item_data)
+        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+        if OPTION_IS_SOME(item_data, item_data_)
             item = item_data->nameid;
     }
     else
@@ -1855,12 +1838,11 @@ void builtin_getareadropitem(ScriptState *st)
     if (HARG(6))
         delitems = conv_num(st, &AARG(6));
 
-    map_local *m = map_mapname2mapid(str);
-    if (m == nullptr)
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str),
     {
         push_int<ScriptDataInt>(st->stack, -1);
         return;
-    }
+    });
     if (delitems)
         map_foreachinarea(std::bind(builtin_getareadropitem_sub_anddelete, ph::_1, item, &amount),
                 m,
@@ -2027,8 +2009,8 @@ void builtin_setmapflag(ScriptState *st)
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
-    map_local *m = map_mapname2mapid(str);
-    if (m != nullptr)
+    Option<P<map_local>> m_ = map_mapname2mapid(str);
+    if OPTION_IS_SOME(m, m_)
     {
         m->flag.set(mf, 1);
     }
@@ -2040,8 +2022,8 @@ void builtin_removemapflag(ScriptState *st)
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
-    map_local *m = map_mapname2mapid(str);
-    if (m != nullptr)
+    Option<P<map_local>> m_ = map_mapname2mapid(str);
+    if OPTION_IS_SOME(m, m_)
     {
         m->flag.set(mf, 0);
     }
@@ -2055,8 +2037,8 @@ void builtin_getmapflag(ScriptState *st)
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
-    map_local *m = map_mapname2mapid(str);
-    if (m != nullptr)
+    Option<P<map_local>> m_ = map_mapname2mapid(str);
+    if OPTION_IS_SOME(m, m_)
     {
         r = m->flag.get(mf);
     }
@@ -2068,8 +2050,8 @@ static
 void builtin_pvpon(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-    map_local *m = map_mapname2mapid(str);
-    if (m != nullptr && !m->flag.get(MapFlag::PVP) && !m->flag.get(MapFlag::NOPVP))
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str), return);
+    if (!m->flag.get(MapFlag::PVP) && !m->flag.get(MapFlag::NOPVP))
     {
         m->flag.set(MapFlag::PVP, 1);
 
@@ -2095,15 +2077,14 @@ void builtin_pvpon(ScriptState *st)
             }
         }
     }
-
 }
 
 static
 void builtin_pvpoff(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-    map_local *m = map_mapname2mapid(str);
-    if (m != nullptr && m->flag.get(MapFlag::PVP) && m->flag.get(MapFlag::NOPVP))
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str), return);
+    if (m->flag.get(MapFlag::PVP) && m->flag.get(MapFlag::NOPVP))
     {
         m->flag.set(MapFlag::PVP, 0);
 
@@ -2125,7 +2106,6 @@ void builtin_pvpoff(ScriptState *st)
             }
         }
     }
-
 }
 
 /*==========================================
@@ -2152,15 +2132,12 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x0 = 0;
     y0 = 0;
-    map_local *m = map_mapname2mapid(mapname);
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
     x1 = m->xs;
     y1 = m->ys;
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
     x = conv_num(st, &AARG(2));
     y = conv_num(st, &AARG(3));
-
-    if (m == nullptr)
-        return;
 
     map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
             m,
@@ -2194,12 +2171,11 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
     NpcEvent event;
     extract(event_, &event);
 
-    map_local *m = map_mapname2mapid(mapname);
-    if (m == nullptr)
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname),
     {
         push_int<ScriptDataInt>(st->stack, -1);
         return;
-    }
+    });
     map_foreachinarea(std::bind(builtin_mobcount_sub, ph::_1, event, &c),
             m,
             0, 0,
@@ -2250,7 +2226,7 @@ void builtin_divorce(ScriptState *st)
 static
 void builtin_getitemname(ScriptState *st)
 {
-    struct item_data *i_data;
+    Option<P<struct item_data>> i_data = None;
     struct script_data *data;
 
     data = &AARG(0);
@@ -2263,14 +2239,10 @@ void builtin_getitemname(ScriptState *st)
     else
     {
         ItemNameId item_id = wrap<ItemNameId>(conv_num(st, data));
-        i_data = itemdb_search(item_id);
+        i_data = Some(itemdb_search(item_id));
     }
 
-    RString item_name;
-    if (i_data)
-        item_name = i_data->jname;
-    else
-        item_name = "Unknown Item"_s;
+    RString item_name = i_data.pmd_pget(&item_data::jname).copy_or(stringish<ItemName>("Unknown Item"_s));
 
     push_str<ScriptDataStr>(st->stack, item_name);
 }
@@ -2585,10 +2557,10 @@ void builtin_npcwarp(ScriptState *st)
         return;
     }
 
-    map_local *m = nd->bl_m;
+    P<map_local> m = nd->bl_m;
 
     /* Crude sanity checks. */
-    if (m == nullptr || !nd->bl_prev
+    if (!nd->bl_prev
             || x < 0 || x > m->xs -1
             || y < 0 || y > m->ys - 1)
         return;
@@ -2740,9 +2712,7 @@ void builtin_areatimer(ScriptState *st)
     NpcEvent event;
     extract(event_, &event);
 
-    map_local *m = map_mapname2mapid(mapname);
-    if (m == nullptr)
-        return;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
 
     map_foreachinarea(std::bind(builtin_areatimer_sub, ph::_1, tick, event),
             m,

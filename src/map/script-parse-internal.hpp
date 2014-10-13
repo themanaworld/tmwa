@@ -23,6 +23,8 @@
 #include "script-parse.hpp"
 #include "fwd.hpp"
 
+#include "../compat/fwd.hpp"
+
 #include "../strings/rstring.hpp"
 
 
@@ -64,6 +66,6 @@ Map<RString, str_data_t> str_datam;
 extern
 InternPool variable_names;
 
-str_data_t *search_strp(XString p);
-str_data_t *add_strp(XString p);
+Option<Borrowed<str_data_t>> search_strp(XString p);
+Borrowed<str_data_t> add_strp(XString p);
 } // namespace tmwa

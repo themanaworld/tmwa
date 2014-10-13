@@ -22,6 +22,7 @@
 
 #include "fwd.hpp"
 
+#include "../compat/borrow.hpp"
 #include "../compat/memory.hpp"
 
 #include "../proto2/types.hpp"
@@ -58,13 +59,10 @@ struct GM_Account
 
 struct PartyPair
 {
-    PartyId party_id = {};
-    PartyMost *party_most = {};
+    PartyId party_id;
+    Borrowed<PartyMost> party_most;
 
-    explicit
-    operator bool() const { return party_most; }
-    bool operator !() const { return !party_most; }
-    PartyMost *operator->() { return party_most; }
-    const PartyMost *operator->() const { return party_most; }
+    PartyMost& operator *() const { return *party_most; }
+    Borrowed<PartyMost> operator->() const { return party_most; }
 };
 } // namespace tmwa

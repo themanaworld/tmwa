@@ -120,6 +120,9 @@ namespace sexpr
         }
         catch (...)
         {
+            // TODO switch from requiring nothrow default construct, to
+            // instead require nothrow moves, and offer the strong exception
+            // guarantee (which is actually easier that the basic one)
 #if GCC != 407 // apparent compiler bug, not reduced
             // 4.7.2 from wheezy is bad
             // 4.7.3 from jessie is good

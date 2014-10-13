@@ -1506,7 +1506,7 @@ void parse_tologin(Session *ls)
                     CharKey *k = &cp.key;
                     CharData& cd = *cp.data.get();
                     CharData *c = &cd;
-                    Storage *s = account2storage(k->account_id);
+                    Borrowed<Storage> s = account2storage(k->account_id);
                     int changes = 0;
 #define FIX(v) if (v == source_id) {v = dest_id; ++changes; }
                     for (IOff0 j : IOff0::iter())
@@ -1520,7 +1520,6 @@ void parse_tologin(Session *ls)
                     FIX(c->head_mid);
                     FIX(c->head_bottom);
 
-                    if (s)
                     {
                         for (SOff0 j : SOff0::iter())
                         {

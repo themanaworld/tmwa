@@ -129,7 +129,6 @@ void trade_tradeack(dumb_ptr<map_session_data> sd, int type)
 void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
 {
     dumb_ptr<map_session_data> target_sd;
-    struct item_data *id;
     int trade_i;
     int trade_weight = 0;
     int free_ = 0;
@@ -156,7 +155,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
             for (IOff0 i : IOff0::iter())
             {
                 if (!target_sd->status.inventory[i].nameid
-                    && target_sd->inventory_data[i] == nullptr)
+                    && target_sd->inventory_data[i].is_none())
                     free_++;
             }
             for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
@@ -164,17 +163,19 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
                 if (sd->deal_item_amount[trade_i] == 0)
                 {
                     // calculate trade weight
+                    // note: 'abort' branch is protected by 'amount' check above
                     trade_weight +=
-                        sd->inventory_data[index.unshift()]->weight * amount;
+                        TRY_UNWRAP(sd->inventory_data[index.unshift()], abort())->weight * amount;
 
                     // determine if item is a stackable already in receivers inventory, and up free count
                     for (IOff0 i : IOff0::iter())
                     {
-                        if (target_sd->status.inventory[i].nameid ==
-                            sd->status.inventory[index.unshift()].nameid
-                            && target_sd->inventory_data[i] != nullptr)
+                        if (target_sd->status.inventory[i].nameid !=
+                            sd->status.inventory[index.unshift()].nameid)
+                            continue;
+
+                        if OPTION_IS_SOME(id, target_sd->inventory_data[i])
                         {
-                            id = target_sd->inventory_data[i];
                             if (id->type != ItemType::WEAPON
                                 && id->type != ItemType::ARMOR
                                 && id->type != ItemType::_7
@@ -218,19 +219,20 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
                 else
                 {
                     // calculate weight for stored deal
+                    // note: 'abort' branch is protected by 'amount' check above
                     trade_weight +=
-                        sd->inventory_data[sd->deal_item_index[trade_i].unshift()
-                                           ]->weight *
+                        TRY_UNWRAP(sd->inventory_data[sd->deal_item_index[trade_i].unshift()
+                                           ], abort())->weight *
                         sd->deal_item_amount[trade_i];
                     // count free stackables in stored deal
                     for (IOff0 i : IOff0::iter())
                     {
-                        if (target_sd->status.inventory[i].nameid ==
+                        if (target_sd->status.inventory[i].nameid !=
                             sd->status.
-                            inventory[sd->deal_item_index[trade_i].unshift()].nameid
-                            && target_sd->inventory_data[i] != nullptr)
+                            inventory[sd->deal_item_index[trade_i].unshift()].nameid)
+                            continue;
+                        if OPTION_IS_SOME(id, target_sd->inventory_data[i])
                         {
-                            id = target_sd->inventory_data[i];
                             if (id->type != ItemType::WEAPON
                                 && id->type != ItemType::ARMOR
                                 && id->type != ItemType::_7

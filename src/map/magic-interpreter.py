@@ -27,11 +27,11 @@ class area_t(object):
     using tmwa::operator "" _s;
 
     inline
-    tmwa::map_local *fake_map_local_x_dup_for_area_t(tmwa::ZString name)
+    tmwa::Borrowed<tmwa::map_local> fake_map_local_x_dup_for_area_t(tmwa::ZString name)
     {
         auto *p = new tmwa::map_local{};
         p->name_ = tmwa::stringish<tmwa::MapName>(name);
-        return p;
+        return tmwa::borrow(*p);
     }
     '''
 
@@ -55,11 +55,11 @@ class val_t(object):
     using tmwa::operator "" _s;
 
     inline
-    tmwa::map_local *fake_map_local_x_dup_for_val_t(tmwa::ZString name)
+    tmwa::Borrowed<tmwa::map_local> fake_map_local_x_dup_for_val_t(tmwa::ZString name)
     {
         auto *p = new tmwa::map_local{};
         p->name_ = tmwa::stringish<tmwa::MapName>(name);
-        return p;
+        return tmwa::borrow(*p);
     }
     '''
 

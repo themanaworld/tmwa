@@ -23,6 +23,8 @@
 #include <map>
 #include <memory>
 
+#include "../compat/borrow.hpp"
+
 
 namespace tmwa
 {
@@ -45,19 +47,19 @@ public:
     const_iterator begin() const { return impl.begin(); }
     const_iterator end() const { return impl.end(); }
 
-    V *search(const K& k)
+    Option<Borrowed<V>> search(const K& k)
     {
         iterator it = impl.find(k);
         if (it == impl.end())
-            return nullptr;
-        return &it->second;
+            return None;
+        return Some(borrow(it->second));
     }
-    const V *search(const K& k) const
+    Option<Borrowed<const V>> search(const K& k) const
     {
         const_iterator it = impl.find(k);
         if (it == impl.end())
-            return nullptr;
-        return &it->second;
+            return None;
+        return Some(borrow(it->second));
     }
     void insert(const K& k, V v)
     {
@@ -72,9 +74,9 @@ public:
         return (void)&it->second;
 
     }
-    V *init(const K& k)
+    Borrowed<V> init(const K& k)
     {
-        return &impl[k];
+        return borrow(impl[k]);
     }
     void erase(const K& k)
     {
@@ -112,8 +114,12 @@ public:
     // const V& ? with a static default V?
     V get(const K& k)
     {
-        V *vp = impl.search(k);
-        return vp ? *vp : V();
+        Option<Borrowed<V>> vp = impl.search(k);
+        if OPTION_IS_SOME(v, vp)
+        {
+            return *v;
+        }
+        return V();
     }
     void put(const K& k, V v)
     {
@@ -153,10 +159,14 @@ public:
     const_iterator end() const { return impl.end(); }
 
     // const V& ? with a static default V?
-    V *get(const K& k)
+    Option<Borrowed<V>> get(const K& k)
     {
-        U *up = impl.search(k);
-        return up ? up->get() : nullptr;
+        Option<Borrowed<U>> up = impl.search(k);
+        if OPTION_IS_SOME(u, up)
+        {
+            return Some(borrow(*u->get()));
+        }
+        return None;
     }
     void put(const K& k, U v)
     {

@@ -156,9 +156,8 @@ void intif_request_storage(AccountId account_id)
 }
 
 // 倉庫データ送信
-void intif_send_storage(Storage *stor)
+void intif_send_storage(Borrowed<Storage> stor)
 {
-    nullpo_retv(stor);
     if (!char_session)
         return;
 
@@ -386,7 +385,6 @@ int intif_parse_AccountReg(Session *, const Packet_Head<0x3804>& head, const std
 static
 int intif_parse_LoadStorage(Session *, const Packet_Payload<0x3810>& payload)
 {
-    Storage *stor;
     dumb_ptr<map_session_data> sd;
 
     sd = map_id2sd(account_to_block(payload.account_id));
@@ -397,7 +395,7 @@ int intif_parse_LoadStorage(Session *, const Packet_Payload<0x3810>& payload)
                     payload.account_id);
         return 1;
     }
-    stor = account2storage(payload.account_id);
+    P<Storage> stor = account2storage(payload.account_id);
     if (stor->storage_status == 1)
     {                           // Already open.. lets ignore this update
         if (battle_config.error_log)
@@ -463,9 +461,7 @@ void intif_parse_PartyInfo(Session *, const Packet_Head<0x3821>& head, bool has_
 
     PartyId pi = head.party_id;
     PartyMost pm = option.party_most;
-    PartyPair pp;
-    pp.party_id = pi;
-    pp.party_most = &pm;
+    PartyPair pp{pi, borrow(pm)};
     party_recv_info(pp);
 }
 

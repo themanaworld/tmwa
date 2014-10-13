@@ -464,7 +464,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
     // セーブ禁止マップだったので指定位置に移動
     if (sd->bl_m->flag.get(MapFlag::NOSAVE))
     {
-        map_local *m = sd->bl_m;
+        P<map_local> m = sd->bl_m;
         if (m->save.map_ == "SavePoint"_s)
             sd->status.last_point = sd->status.save_point;
         else
@@ -505,12 +505,7 @@ EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n)
 {
     nullpo_retr(EPOS::ZERO, sd);
 
-    if (!sd->inventory_data[n])
-        return EPOS::ZERO;
-
-    EPOS ep = sd->inventory_data[n]->equip;
-
-    return ep;
+    return sd->inventory_data[n].pmd_pget(&item_data::equip).copy_or(EPOS::ZERO);
 }
 
 static
@@ -521,7 +516,11 @@ int pc_setinventorydata(dumb_ptr<map_session_data> sd)
     for (IOff0 i : IOff0::iter())
     {
         ItemNameId id = sd->status.inventory[i].nameid;
-        sd->inventory_data[i] = itemdb_search(id);
+        // If you think you understand this line, you're wrong.
+        // It does not do what you think it does. Rather, you need to
+        // understand it in the context in which it is used. Despite this,
+        // it is quite common for elements to be None.
+        sd->inventory_data[i] = Some(itemdb_search(id));
     }
     return 0;
 }
@@ -556,16 +555,16 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
                     sd->equip_index_maybe[j] = i;
             if (bool(sd->status.inventory[i].equip & EPOS::WEAPON))
             {
-                if (sd->inventory_data[i])
-                    sd->weapontype1 = sd->inventory_data[i]->look;
+                if OPTION_IS_SOME(sdidi, sd->inventory_data[i])
+                    sd->weapontype1 = sdidi->look;
                 else
                     sd->weapontype1 = ItemLook::NONE;
             }
             if (bool(sd->status.inventory[i].equip & EPOS::SHIELD))
             {
-                if (sd->inventory_data[i])
+                if OPTION_IS_SOME(sdidi, sd->inventory_data[i])
                 {
-                    if (sd->inventory_data[i]->type == ItemType::WEAPON)
+                    if (sdidi->type == ItemType::WEAPON)
                     {
                         if (sd->status.inventory[i].equip == EPOS::SHIELD)
                             assert(0 && "unreachable - offhand weapons are not supported");
@@ -582,21 +581,18 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
 static
 int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
 {
-    struct item_data *item;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     //転生や養子の場合の元の職業を算出する
 
     nullpo_retz(sd);
 
-    item = sd->inventory_data[n];
     sc_data = battle_get_sc_data(sd);
 
     GmLevel gm_all_equipment = GmLevel::from(static_cast<uint32_t>(battle_config.gm_all_equipment));
     if (gm_all_equipment && pc_isGM(sd).satisfies(gm_all_equipment))
         return 1;
 
-    if (item == nullptr)
-        return 0;
+    P<struct item_data> item = TRY_UNWRAP(sd->inventory_data[n], return 0);
     if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
@@ -615,7 +611,6 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
 {
     dumb_ptr<map_session_data> sd = nullptr;
 
-    PartyPair p;
     tick_t tick = gettick();
 
     sd = map_id2sd(account_to_block(id));
@@ -721,7 +716,7 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
 
     // パーティ、ギルドデータの要求
     if (sd->status.party_id
-        && !(p = party_search(sd->status.party_id)))
+        && party_search(sd->status.party_id).is_none())
         party_request_info(sd->status.party_id);
 
     // pvpの設定
@@ -938,11 +933,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->weight = 0;
         for (IOff0 i : IOff0::iter())
         {
-            if (!sd->status.inventory[i].nameid
-                || sd->inventory_data[i] == nullptr)
+            if (!sd->status.inventory[i].nameid)
                 continue;
+            P<struct item_data> sdidi = TRY_UNWRAP(sd->inventory_data[i], continue);
             sd->weight +=
-                sd->inventory_data[i]->weight *
+                sdidi->weight *
                 sd->status.inventory[i].amount;
         }
         // used to fill cart
@@ -1012,10 +1007,10 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 || sd->equip_index_maybe[EQUIP::LEGS] == index))
             continue;
 
-        if (sd->inventory_data[index])
+        if OPTION_IS_SOME(sdidi, sd->inventory_data[index])
         {
             sd->spellpower_bonus_target +=
-                sd->inventory_data[index]->magic_bonus;
+                sdidi->magic_bonus;
 
             // used to apply cards
         }
@@ -1047,10 +1042,10 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             && (sd->equip_index_maybe[EQUIP::TORSO] == index
                 || sd->equip_index_maybe[EQUIP::LEGS] == index))
             continue;
-        if (sd->inventory_data[index])
+        if OPTION_IS_SOME(sdidi, sd->inventory_data[index])
         {
-            sd->def += sd->inventory_data[index]->def;
-            if (sd->inventory_data[index]->type == ItemType::WEAPON)
+            sd->def += sdidi->def;
+            if (sdidi->type == ItemType::WEAPON)
             {
                 if (i == EQUIP::SHIELD
                     && sd->status.inventory[index].equip == EPOS::SHIELD)
@@ -1063,25 +1058,25 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     argrec_t arg[2] =
                     {
                         {"@slotId"_s, static_cast<int>(i)},
-                        {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
+                        {"@itemId"_s, unwrap<ItemNameId>(sdidi->nameid)},
                     };
-                    sd->watk += sd->inventory_data[index]->atk;
+                    sd->watk += sdidi->atk;
 
-                    sd->attackrange += sd->inventory_data[index]->range;
-                    run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
+                    sd->attackrange += sdidi->range;
+                    run_script_l(ScriptPointer(borrow(*sdidi->equip_script), 0),
                             sd->bl_id, BlockId(),
                             arg);
                 }
             }
-            else if (sd->inventory_data[index]->type == ItemType::ARMOR)
+            else if (sdidi->type == ItemType::ARMOR)
             {
                 argrec_t arg[2] =
                 {
                     {"@slotId"_s, static_cast<int>(i)},
-                    {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
+                    {"@itemId"_s, unwrap<ItemNameId>(sdidi->nameid)},
                 };
-                sd->watk += sd->inventory_data[index]->atk;
-                run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
+                sd->watk += sdidi->atk;
+                run_script_l(ScriptPointer(borrow(*sdidi->equip_script), 0),
                         sd->bl_id, BlockId(),
                         arg);
             }
@@ -1098,19 +1093,19 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (aidx.ok())
     {
         IOff0 index = aidx;
-        if (sd->inventory_data[index])
+        if OPTION_IS_SOME(sdidi, sd->inventory_data[index])
         {                       //まだ属性が入っていない
             argrec_t arg[2] =
             {
                 {"@slotId"_s, static_cast<int>(EQUIP::ARROW)},
-                {"@itemId"_s, unwrap<ItemNameId>(sd->inventory_data[index]->nameid)},
+                {"@itemId"_s, unwrap<ItemNameId>(sdidi->nameid)},
             };
             sd->state.lr_flag_is_arrow_2 = 1;
-            run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
+            run_script_l(ScriptPointer(borrow(*sdidi->equip_script), 0),
                     sd->bl_id, BlockId(),
                     arg);
             sd->state.lr_flag_is_arrow_2 = 0;
-            sd->arrow_atk += sd->inventory_data[index]->atk;
+            sd->arrow_atk += sdidi->atk;
         }
     }
     sd->def += (refinedef + 50) / 100;
@@ -1877,7 +1872,6 @@ int pc_remove_items(dumb_ptr<map_session_data> player, ItemNameId item_id, int c
 PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
                 int amount)
 {
-    struct item_data *data;
     int w;
 
     MAP_LOG_PC(sd, "PICKUP %d %d"_fmt, item_data->nameid, amount);
@@ -1887,7 +1881,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
 
     if (!item_data->nameid || amount <= 0)
         return PickupFail::BAD_ITEM;
-    data = itemdb_search(item_data->nameid);
+    P<struct item_data> data = itemdb_search(item_data->nameid);
     if ((w = data->weight * amount) + sd->weight > sd->max_weight)
         return PickupFail::TOO_HEAVY;
 
@@ -1919,7 +1913,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
                 sd->status.inventory[i].equip = EPOS::ZERO;
 
             sd->status.inventory[i].amount = amount;
-            sd->inventory_data[i] = data;
+            sd->inventory_data[i] = Some(data);
             clif_additem(sd, i, amount, PickupFail::OKAY);
         }
         else
@@ -1943,18 +1937,18 @@ int pc_delitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, int type)
         trade_tradecancel(sd);
 
     if (!sd->status.inventory[n].nameid || amount <= 0
-        || sd->status.inventory[n].amount < amount
-        || sd->inventory_data[n] == nullptr)
+        || sd->status.inventory[n].amount < amount)
         return 1;
+    P<struct item_data> sdidn = TRY_UNWRAP(sd->inventory_data[n], return 1);
 
     sd->status.inventory[n].amount -= amount;
-    sd->weight -= sd->inventory_data[n]->weight * amount;
+    sd->weight -= sdidn->weight * amount;
     if (sd->status.inventory[n].amount <= 0)
     {
         if (bool(sd->status.inventory[n].equip))
             pc_unequipitem(sd, n, CalcStatus::NOW);
         sd->status.inventory[n] = Item{};
-        sd->inventory_data[n] = nullptr;
+        sd->inventory_data[n] = None;
     }
     if (!(type & 1))
         clif_delitem(sd, n, amount);
@@ -2003,8 +1997,6 @@ int pc_dropitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount)
 static
 int can_pick_item_up_from(dumb_ptr<map_session_data> self, BlockId other_id)
 {
-    PartyPair p = party_search(self->status.party_id);
-
     /* From ourselves or from no-one? */
     if (!self || self->bl_id == other_id || !other_id)
         return 1;
@@ -2020,9 +2012,10 @@ int can_pick_item_up_from(dumb_ptr<map_session_data> self, BlockId other_id)
         return 1;
 
     /* From a party member? */
+    Option<PartyPair> p = party_search(self->status.party_id);
     if (self->status.party_id
         && self->status.party_id == other->status.party_id
-        && p && p->item != 0)
+        && p.pmd_pget(&PartyMost::item).copy_or(0) != 0)
         return 1;
 
     /* From someone who is far away? */
@@ -2098,16 +2091,13 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
 static
 int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
 {
-    struct item_data *item;
     ItemNameId nameid;
 
     nullpo_retz(sd);
 
-    item = sd->inventory_data[n];
+    P<struct item_data> item = TRY_UNWRAP(sd->inventory_data[n], return 0);
     nameid = sd->status.inventory[n].nameid;
 
-    if (item == nullptr)
-        return 0;
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
 
@@ -2129,7 +2119,9 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 
     nullpo_retr(1, sd);
 
-    if (n.ok() && sd->inventory_data[n])
+    if (!n.ok())
+        return 0;
+    if OPTION_IS_SOME(sdidn, sd->inventory_data[n])
     {
         amount = sd->status.inventory[n].amount;
         if (!sd->status.inventory[n].nameid
@@ -2140,7 +2132,7 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
             return 1;
         }
 
-        const ScriptBuffer *script = sd->inventory_data[n]->use_script.get();
+        P<const ScriptBuffer> script = borrow(*sdidn->use_script);
         clif_useitemack(sd, n, amount - 1, 1);
         pc_delitem(sd, n, 1, 1);
 
@@ -2183,18 +2175,19 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
 
     mapname_ = mapname_org;
 
-    map_local *m = map_mapname2mapid(mapname_);
-    if (!m)
+    Option<P<map_local>> m_ = map_mapname2mapid(mapname_);
+    if (m_.is_none())
     {
         if (sd->mapname_)
         {
             IP4Address ip;
             int port;
-            if (map_mapname2ipport(mapname_, &ip, &port) == 0)
+            if (map_mapname2ipport(mapname_, borrow(ip), borrow(port)) == 0)
             {
                 skill_stop_dancing(sd, 1);
                 clif_clearchar(sd, clrtype);
                 map_delblock(sd);
+                // *cringe*
                 sd->mapname_ = mapname_;
                 sd->bl_x = x;
                 sd->bl_y = y;
@@ -2216,6 +2209,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
 #endif
         return 1;
     }
+    P<map_local> m = TRY_UNWRAP(m_, abort());
 
     if (x < 0 || x >= m->xs || y < 0 || y >= m->ys)
         x = y = 0;
@@ -2268,7 +2262,7 @@ int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type)
 
     nullpo_retz(sd);
 
-    map_local *m = sd->bl_m;
+    P<map_local> m = sd->bl_m;
 
     if (sd->bl_m->flag.get(MapFlag::NOTELEPORT))  // テレポート禁止
         return 0;
@@ -2410,8 +2404,8 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
 
         if (sd->status.party_id)
         {                       // パーティのＨＰ情報通知検査
-            PartyPair p = party_search(sd->status.party_id);
-            if (p)
+            Option<PartyPair> p = party_search(sd->status.party_id);
+            if (p.is_some())
             {
                 int p_flag = 0;
                 map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &p_flag),
@@ -2584,8 +2578,8 @@ int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
 
     if (sd->status.party_id)
     {                           // パーティのＨＰ情報通知検査
-        PartyPair p = party_search(sd->status.party_id);
-        if (p)
+        Option<PartyPair> p = party_search(sd->status.party_id);
+        if (p.is_some())
         {
             int flag = 0;
             map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &flag),
@@ -3341,8 +3335,8 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
 
         if (sd->status.party_id)
         {                       // on-the-fly party hp updates [Valaris]
-            PartyPair p = party_search(sd->status.party_id);
-            if (p)
+            Option<PartyPair> p_ = party_search(sd->status.party_id);
+            if OPTION_IS_SOME(p, p_)
                 clif_party_hp(p, sd);
         }                       // end addition [Valaris]
 
@@ -3709,8 +3703,8 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
 
     if (sd->status.party_id)
     {                           // on-the-fly party hp updates [Valaris]
-        PartyPair p = party_search(sd->status.party_id);
-        if (p)
+        Option<PartyPair> p_ = party_search(sd->status.party_id);
+        if OPTION_IS_SOME(p, p_)
             clif_party_hp(p, sd);
     }                           // end addition [Valaris]
 
@@ -3994,11 +3988,8 @@ ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
 {
     nullpo_retr(ZString(), sd);
 
-    RString *s = sd->regstrm.search(reg);
-    if (s)
-        return *s;
-
-    return ZString();
+    Option<P<RString>> s = sd->regstrm.search(reg);
+    return s.map([](P<RString> s_) -> ZString { return *s_; }).copy_or(""_s);
 }
 
 /*==========================================
@@ -4306,7 +4297,6 @@ int pc_signal_advanced_equipment_change(dumb_ptr<map_session_data> sd, IOff0 n)
 int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
 {
     ItemNameId nameid;
-    struct item_data *id;
     //ｿｽ]ｿｽｿｽｿｽｿｽｿｽ{ｿｽqｿｽﾌ場合ｿｽﾌ鯉ｿｽｿｽﾌ職ｿｽﾆゑｿｽｿｽZｿｽoｿｽｿｽｿｽｿｽ
 
     nullpo_retz(sd);
@@ -4318,9 +4308,8 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
     }
 
     nameid = sd->status.inventory[n].nameid;
-    id = sd->inventory_data[n];
-    if (!id) // can't actually happen - the only caller checks this.
-        return 0;
+    // can't actually happen - the only caller checks this.
+    P<struct item_data> id = TRY_UNWRAP(sd->inventory_data[n], return 0);
     EPOS pos = pc_equippoint(sd, n);
 
     if (battle_config.battle_log)
@@ -4381,16 +4370,16 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
     ItemNameId view_i;
     ItemLook view_l = ItemLook::NONE;
     // TODO: This is ugly.
-    if (sd->inventory_data[n])
+    if OPTION_IS_SOME(sdidn, sd->inventory_data[n])
     {
-        bool look_not_weapon = sd->inventory_data[n]->look == ItemLook::NONE;
+        bool look_not_weapon = sdidn->look == ItemLook::NONE;
         bool equip_is_weapon = bool(sd->status.inventory[n].equip & EPOS::WEAPON);
         assert (look_not_weapon != equip_is_weapon);
 
         if (look_not_weapon)
-            view_i = sd->inventory_data[n]->nameid;
+            view_i = sdidn->nameid;
         else
-            view_l = sd->inventory_data[n]->look;
+            view_l = sdidn->look;
     }
 
     if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
@@ -4401,15 +4390,15 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
     }
     if (bool(sd->status.inventory[n].equip & EPOS::SHIELD))
     {
-        if (sd->inventory_data[n])
+        if OPTION_IS_SOME(sdidn, sd->inventory_data[n])
         {
-            if (sd->inventory_data[n]->type == ItemType::WEAPON)
+            if (sdidn->type == ItemType::WEAPON)
             {
                 sd->status.shield = ItemNameId();
                 if (sd->status.inventory[n].equip == EPOS::SHIELD)
                     assert(0 && "unreachable - offhand weapons are not supported");
             }
-            else if (sd->inventory_data[n]->type == ItemType::ARMOR)
+            else if (sdidn->type == ItemType::ARMOR)
             {
                 sd->status.shield = view_i;
             }
@@ -4632,8 +4621,7 @@ void pc_calc_pvprank_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd2
 int pc_calc_pvprank(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
-    map_local *m = sd->bl_m;
-    nullpo_retz(m);
+    P<map_local> m = sd->bl_m;
 
     if (!(m->flag.get(MapFlag::PVP)))
         return 0;

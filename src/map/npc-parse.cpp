@@ -160,7 +160,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
         return 1;
     }
 
-    map_local *m = map_mapname2mapid(mapname);
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return 1);
 
     nd.new_();
     nd->bl_id = npc_get_new_npc_id();
@@ -222,21 +222,20 @@ bool extract(XString xs, npc_item_list *itv)
     XString name_or_id;
     if (!extract(xs, record<':'>(&name_or_id, &itv->value)))
         return false;
-    struct item_data *id = nullptr;
-    if (extract(name_or_id, &itv->nameid) && itv->nameid)
-        goto return_true;
 
-    id = itemdb_searchname(name_or_id.rstrip());
-    if (id == nullptr)
-        return false;
-    itv->nameid = id->nameid;
-    goto return_true;
+    P<struct item_data> id = ((extract(name_or_id, &itv->nameid) && itv->nameid)
+    ? ({
+        P<struct item_data> id_ = itemdb_search(itv->nameid);
+        id_;
+    })
+    : ({
+        P<struct item_data> id_ = TRY_UNWRAP(itemdb_searchname(name_or_id.rstrip()), return false);
+        itv->nameid = id_->nameid;
+        id_;
+    }));
 
-return_true:
     if (itv->value < 0)
     {
-        if (id == nullptr)
-            id = itemdb_search(itv->nameid);
         itv->value = id->value_buy * abs(itv->value);
     }
     return true;
@@ -266,7 +265,7 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
         return 1;
     }
     dir = static_cast<DIR>(dir_);
-    map_local *m = map_mapname2mapid(mapname);
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return 1);
 
     nd.new_();
     ZString w4b = w4a.xislice_t(w4comma + 1);
@@ -335,7 +334,6 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
 {
     int x, y;
     DIR dir = DIR::S;
-    map_local *m;
     int xs = 0, ys = 0;   // [Valaris] thanks to fov
     Species npc_class;
     MapName mapname;
@@ -343,11 +341,12 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     dumb_ptr<npc_data_script> nd;
     int evflag = 0;
 
+    P<map_local> m = borrow(undefined_gat);
     if (w1 == "-"_s)
     {
         x = 0;
         y = 0;
-        m = nullptr;
+        m = borrow(undefined_gat);
     }
     else
     {
@@ -360,7 +359,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
             return 1;
         }
         dir = static_cast<DIR>(dir_);
-        m = map_mapname2mapid(mapname);
+        m = map_mapname2mapid(mapname).copy_or(borrow(undefined_gat));
     }
 
     if (w2 == "script"_s)
@@ -408,7 +407,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
 
     nd.new_();
 
-    if (m == nullptr)
+    if (m == borrow(undefined_gat))
     {
     }
     else if (extract(w4, record<','>(&npc_class, &xs, &ys)))
@@ -451,7 +450,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         nd->scr.ys = 0;
     }
 
-    if (npc_class == NEGATIVE_SPECIES && m != nullptr)
+    if (npc_class == NEGATIVE_SPECIES && m != borrow(undefined_gat))
     {
         evflag = 1;
     }
@@ -484,7 +483,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     npc_script++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
-    if (m != nullptr)
+    if (m != borrow(undefined_gat))
     {
         nd->n = map_addnpc(m, nd);
         map_addblock(nd);
@@ -627,7 +626,7 @@ int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
     interval_t delay1 = std::chrono::milliseconds(delay1_);
     interval_t delay2 = std::chrono::milliseconds(delay2_);
 
-    map_local *m = map_mapname2mapid(mapname);
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return 1);
 
     if (num > 1 && battle_config.mob_count_rate != 100)
     {
@@ -695,9 +694,7 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
     if (!mapname)
         return 1;
 
-    map_local *m = map_mapname2mapid(mapname);
-    if (m == nullptr)
-        return 1;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return 1);
 
     MapFlag mf;
     if (!extract(w3, &mf))
@@ -739,7 +736,7 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
     return 0;
 }
 
-dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
+dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
         Species npc_class, NpcName name, AString message)
 {
     dumb_ptr<npc_data_message> retval;
@@ -813,8 +810,8 @@ bool do_init_npc(void)
             {
                 auto comma = std::find(w1.begin(), w1.end(), ',');
                 MapName mapname = stringish<MapName>(w1.xislice_h(comma));
-                map_local *m = map_mapname2mapid(mapname);
-                if (m == nullptr)
+                Option<P<map_local>> m = map_mapname2mapid(mapname);
+                if (m.is_none())
                 {
                     // "mapname" is not assigned to this server
                     FPRINTF(stderr, "%s:%d: Map not found: %s\n"_fmt, nsl, lines, mapname);
@@ -825,35 +822,35 @@ bool do_init_npc(void)
             if (w2 == "warp"_s)
             {
                 NpcName npcname = stringish<NpcName>(w3);
-                npc_parse_warp(w1, w2, npcname, w4z);
+                rv &= !npc_parse_warp(w1, w2, npcname, w4z);
             }
             else if (w2 == "shop"_s)
             {
                 NpcName npcname = stringish<NpcName>(w3);
-                npc_parse_shop(w1, w2, npcname, w4z);
+                rv &= !npc_parse_shop(w1, w2, npcname, w4z);
             }
             else if (w2 == "script"_s)
             {
                 if (w1 == "function"_s)
                 {
-                    npc_parse_function(w1, w2, w3, w4z,
+                    rv &= !npc_parse_function(w1, w2, w3, w4z,
                             w4x, fp, &lines);
                 }
                 else
                 {
                     NpcName npcname = stringish<NpcName>(w3);
-                    npc_parse_script(w1, w2, npcname, w4z,
+                    rv &= !npc_parse_script(w1, w2, npcname, w4z,
                             w4x, fp, &lines);
                 }
             }
             else if (w2 == "monster"_s)
             {
                 MobName mobname = stringish<MobName>(w3);
-                npc_parse_mob(w1, w2, mobname, w4z);
+                rv &= !npc_parse_mob(w1, w2, mobname, w4z);
             }
             else if (w2 == "mapflag"_s)
             {
-                npc_parse_mapflag(w1, w2, w3, w4z);
+                rv &= !npc_parse_mapflag(w1, w2, w3, w4z);
             }
             else
             {

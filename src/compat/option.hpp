@@ -66,6 +66,7 @@ namespace option
         return rv;
     }
 
+    // TODO all *_or and *_set methods should have a lazy version too
     template<class T>
     class Option
     {
@@ -210,6 +211,10 @@ namespace option
         {
             return repr.is_some();
         }
+        bool is_none() const
+        {
+            return !is_some();
+        }
 
         template<class F>
         auto move_map(F&& f) -> Option<decltype(std::forward<F>(f)(std::move(*repr.ptr())))>
@@ -260,6 +265,47 @@ namespace option
             else
             {
                 return None;
+            }
+        }
+        // wanting members is *so* common
+        template<class M, class B>
+        Option<M> pmd_get(const M B::*pmd) const
+        {
+            if (repr.is_some())
+            {
+                return Some((*repr.ptr()).*pmd);
+            }
+            else
+            {
+                return None;
+            }
+        }
+        template<class M, class B>
+        void pmd_set(M B::*pmd, M value)
+        {
+            if (repr.is_some())
+            {
+                ((*repr.ptr()).*pmd) = std::move(value);
+            }
+        }
+        template<class M, class B>
+        Option<M> pmd_pget(const M B::*pmd) const
+        {
+            if (repr.is_some())
+            {
+                return Some((**repr.ptr()).*pmd);
+            }
+            else
+            {
+                return None;
+            }
+        }
+        template<class M, class B>
+        void pmd_pset(M B::*pmd, M value)
+        {
+            if (repr.is_some())
+            {
+                ((**repr.ptr()).*pmd) = std::move(value);
             }
         }
     };
@@ -371,16 +417,16 @@ namespace option
 #define TRY_UNWRAP(opt, falsy)                                  \
     ({                                                          \
         tmwa::option::RefWrapper<decltype((opt))> o = {(opt)};  \
-        if (!o.maybe_ref.is_some()) falsy;                      \
+        if (o.maybe_ref.is_none()) falsy;                       \
         tmwa::option::option_unwrap(std::move(o));              \
     }).maybe_ref_fun()
 // immediately preceded by 'if'; not double-eval-safe
-#define OPTION_IS_SOME(var, expr) \
-    ((expr).is_some()) \
+#define OPTION_IS_SOME(var, expr)   \
+    ((expr).is_some())              \
     WITH_VAR(auto&, var, *(expr).ptr_or(nullptr))
 } // namespace option
 
-using option::Option;
+//using option::Option;
 using option::None;
 using option::Some;
 } // namespace tmwa

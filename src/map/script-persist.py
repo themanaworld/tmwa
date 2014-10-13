@@ -3,6 +3,7 @@ class script_data(object):
 
     test_extra = '''
     using tmwa::operator "" _s;
+    #include "../map/script-parse.hpp"
     '''
 
     tests = [
@@ -18,8 +19,10 @@ class script_data(object):
                 '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataArg) = {numi = 0}}, <No data fields>}'),
     ('tmwa::script_data(tmwa::ScriptDataVariable{tmwa::SIR()})',
                 '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataVariable) = {reg = {impl = 0}}}, <No data fields>}'),
-    ('tmwa::script_data(tmwa::ScriptDataRetInfo{static_cast<const tmwa::ScriptBuffer *>(nullptr)})',
-                '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataRetInfo) = {script = 0x0}}, <No data fields>}'),
+    # the {script = } is almost certainly a bug in gdb's 'set print address'
+    # but the most I can do is check for changes.
+    ('tmwa::script_data(tmwa::ScriptDataRetInfo{tmwa::borrow(*tmwa::parse_script("{}"_s, 1, true).release())})',
+        'regex:\{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = \{\(tmwa::ScriptDataRetInfo\) = \{script = \}\}, <No data fields>\}'),
     ('tmwa::script_data(tmwa::ScriptDataFuncRef{404})',
                 '{<tmwa::sexpr::Variant<tmwa::ScriptDataPos, tmwa::ScriptDataInt, tmwa::ScriptDataParam, tmwa::ScriptDataStr, tmwa::ScriptDataArg, tmwa::ScriptDataVariable, tmwa::ScriptDataRetInfo, tmwa::ScriptDataFuncRef>> = {(tmwa::ScriptDataFuncRef) = {numi = 404}}, <No data fields>}'),
     ]

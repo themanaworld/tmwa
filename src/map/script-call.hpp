@@ -24,6 +24,8 @@
 
 #include "fwd.hpp"
 
+#include "../compat/borrow.hpp"
+
 #include "../range/fwd.hpp"
 
 #include "../generic/fwd.hpp"
@@ -38,16 +40,15 @@ enum class ByteCode : uint8_t;
 // implemented in script-parse.cpp because reasons
 struct ScriptPointer
 {
-    const ScriptBuffer *code;
+    Option<Borrowed<const ScriptBuffer>> code;
     size_t pos;
 
     ScriptPointer()
-    : code()
+    : code(None)
     , pos()
     {}
-
-    ScriptPointer(const ScriptBuffer *c, size_t p)
-    : code(c)
+    ScriptPointer(Borrowed<const ScriptBuffer> c, size_t p)
+    : code(Some(c))
     , pos(p)
     {}
 

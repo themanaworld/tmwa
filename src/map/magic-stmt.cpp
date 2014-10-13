@@ -220,7 +220,7 @@ BlockId trigger_spell(BlockId subject, BlockId spell)
 }
 
 static
-void entity_warp(dumb_ptr<block_list> target, map_local *destm, int destx, int desty);
+void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int destx, int desty);
 
 static
 void char_update(dumb_ptr<map_session_data> character)
@@ -263,7 +263,7 @@ void timer_callback_effect_npc_delete(TimerData *, tick_t, BlockId npc_id)
 }
 
 static
-dumb_ptr<npc_data> local_spell_effect(map_local *m, int x, int y, int effect,
+dumb_ptr<npc_data> local_spell_effect(Borrowed<map_local> m, int x, int y, int effect,
         interval_t tdelay)
 {
     /* 1 minute should be enough for all interesting spell effects, I hope */
@@ -423,7 +423,7 @@ int op_messenger_npc(dumb_ptr<env_t>, Slice<val_t> args)
 }
 
 static
-void entity_warp(dumb_ptr<block_list> target, map_local *destm, int destx, int desty)
+void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int destx, int desty)
 {
     if (target->bl_type == BL::PC || target->bl_type == BL::MOB)
     {
@@ -1146,9 +1146,8 @@ void find_entities_in_area(area_t& area_,
         {
             (void)a_loc;
             // TODO this can be simplified
-            map_local *m;
             int x, y, width, height;
-            magic_area_rect(&m, &x, &y, &width, &height, area_);
+            Borrowed<map_local> m = magic_area_rect(&x, &y, &width, &height, area_);
             map_foreachinarea(std::bind(find_entities_in_area_c, ph::_1, entities_vp, filter),
                     m,
                     x, y,
@@ -1159,9 +1158,8 @@ void find_entities_in_area(area_t& area_,
         {
             (void)a_rect;
             // TODO this can be simplified
-            map_local *m;
             int x, y, width, height;
-            magic_area_rect(&m, &x, &y, &width, &height, area_);
+            Borrowed<map_local> m = magic_area_rect(&x, &y, &width, &height, area_);
             map_foreachinarea(std::bind(find_entities_in_area_c, ph::_1, entities_vp, filter),
                     m,
                     x, y,
@@ -1172,9 +1170,8 @@ void find_entities_in_area(area_t& area_,
         {
             (void)a_bar;
             // TODO this is wrong
-            map_local *m;
             int x, y, width, height;
-            magic_area_rect(&m, &x, &y, &width, &height, area_);
+            Borrowed<map_local> m = magic_area_rect(&x, &y, &width, &height, area_);
             map_foreachinarea(std::bind(find_entities_in_area_c, ph::_1, entities_vp, filter),
                     m,
                     x, y,
@@ -1393,7 +1390,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                     // dealing with an NPC
 
                     int newpos = run_script_l(
-                            ScriptPointer(&*e_.e_script, invocation_->script_pos),
+                            ScriptPointer(borrow(*e_.e_script), invocation_->script_pos),
                             message_recipient, invocation_->bl_id,
                             arg);
                     /* Returns the new script position, or -1 once the script is finished */

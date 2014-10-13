@@ -79,14 +79,14 @@ RString conv_str(ScriptState *st, struct script_data *data);
 __attribute__((warn_unused_result))
 int conv_num(ScriptState *st, struct script_data *data);
 __attribute__((warn_unused_result))
-const ScriptBuffer *conv_script(ScriptState *st, struct script_data *data);
+Borrowed<const ScriptBuffer> conv_script(ScriptState *st, struct script_data *data);
 
 template<class T>
 void push_int(struct script_stack *stack, int val);
 template<class T>
 void push_reg(struct script_stack *stack, SIR reg);
 template<class T>
-void push_script(struct script_stack *stack, const ScriptBuffer *code);
+void push_script(struct script_stack *stack, Borrowed<const ScriptBuffer> code);
 template<class T>
 void push_str(struct script_stack *stack, RString str);
 

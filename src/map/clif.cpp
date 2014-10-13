@@ -295,7 +295,6 @@ void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
 static
 int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
 {
-    PartyPair p;
     int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
 
     if (type != SendWho::ALL_CLIENT)
@@ -384,20 +383,22 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
         case SendWho::PARTY_WOS:        // 自分以外の全パーティーメンバに送信
         case SendWho::PARTY_SAMEMAP:    // 同じマップの全パーティーメンバに送信
         case SendWho::PARTY_SAMEMAP_WOS:    // 自分以外の同じマップの全パーティーメンバに送信
+        {
+            Option<PartyPair> p_ = None;
             if (bl->bl_type == BL::PC)
             {
                 dumb_ptr<map_session_data> sd = bl->is_player();
                 if (sd->partyspy)
                 {
-                    p = party_search(sd->partyspy);
+                    p_ = party_search(sd->partyspy);
                 }
                 else
                 {
                     if (sd->status.party_id)
-                        p = party_search(sd->status.party_id);
+                        p_ = party_search(sd->status.party_id);
                 }
             }
-            if (p)
+            if OPTION_IS_SOME(p, p_)
             {
                 for (int i = 0; i < MAX_PARTY; i++)
                 {
@@ -436,6 +437,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
                     }
                 }
             }
+        }
             break;
         case SendWho::SELF:
         {
@@ -684,14 +686,14 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
         fixed_1d8.weapon = sd->attack_spell_look_override;
     else
     {
-        if (widx.ok() && sd->inventory_data[widx])
+        if (widx.ok() && sd->inventory_data[widx].is_some())
         {
             fixed_1d8.weapon = sd->status.inventory[widx].nameid;
         }
         else
             fixed_1d8.weapon = ItemNameId();
     }
-    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx])
+    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx].is_some())
     {
         fixed_1d8.shield = sd->status.inventory[sidx].nameid;
     }
@@ -738,14 +740,14 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
         fixed_1d8.weapon = sd->attack_spell_look_override;
     else
     {
-        if (widx.ok() && sd->inventory_data[widx])
+        if (widx.ok() && sd->inventory_data[widx].is_some())
         {
             fixed_1d8.weapon = sd->status.inventory[widx].nameid;
         }
         else
             fixed_1d8.weapon = ItemNameId();
     }
-    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx])
+    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx].is_some())
     {
         fixed_1d8.shield = sd->status.inventory[sidx].nameid;
     }
@@ -791,13 +793,13 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1da.hair_style = sd->status.hair;
     IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
     IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
-    if (widx.ok() && sd->inventory_data[widx])
+    if (widx.ok() && sd->inventory_data[widx].is_some())
     {
         fixed_1da.weapon = sd->status.inventory[widx].nameid;
     }
     else
         fixed_1da.weapon = ItemNameId();
-    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx])
+    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx].is_some())
     {
         fixed_1da.shield = sd->status.inventory[sidx].nameid;
     }
@@ -1222,7 +1224,6 @@ int clif_npcbuysell(dumb_ptr<map_session_data> sd, BlockId id)
  */
 int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
 {
-    struct item_data *id;
     int i, val;
 
     nullpo_retz(sd);
@@ -1232,7 +1233,7 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
     std::vector<Packet_Repeat<0x00c6>> repeat_c6(nd->shop_items.size());
     for (i = 0; i < nd->shop_items.size(); i++)
     {
-        id = itemdb_search(nd->shop_items[i].nameid);
+        P<struct item_data> id = itemdb_search(nd->shop_items[i].nameid);
         val = nd->shop_items[i].value;
         repeat_c6[i].base_price = val; // base price
         repeat_c6[i].actual_price = val; // actual price
@@ -1256,9 +1257,11 @@ int clif_selllist(dumb_ptr<map_session_data> sd)
     std::vector<Packet_Repeat<0x00c7>> repeat_c7;
     for (IOff0 i : IOff0::iter())
     {
-        if (sd->status.inventory[i].nameid && sd->inventory_data[i])
+        if (!sd->status.inventory[i].nameid)
+            continue;
+        if OPTION_IS_SOME(sdidi, sd->inventory_data[i])
         {
-            int val = sd->inventory_data[i]->value_sell;
+            int val = sdidi->value_sell;
             if (val < 0)
                 continue;
             Packet_Repeat<0x00c7> info;
@@ -1377,9 +1380,9 @@ int clif_additem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, PickupFail 
     }
     else
     {
-        if (!n.ok() || !sd->status.inventory[n].nameid
-            || sd->inventory_data[n] == nullptr)
+        if (!n.ok() || !sd->status.inventory[n].nameid)
             return 1;
+        auto sdidn = TRY_UNWRAP(sd->inventory_data[n], return 1);
 
         fixed_a0.ioff2 = n.shift();
         fixed_a0.amount = amount;
@@ -1394,9 +1397,9 @@ int clif_additem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, PickupFail 
             fixed_a0.card3 = 0;
         }
         fixed_a0.epos = pc_equippoint(sd, n);
-        fixed_a0.item_type = (sd->inventory_data[n]->type == ItemType::_7
+        fixed_a0.item_type = (sdidn->type == ItemType::_7
             ? ItemType::WEAPON
-            : sd->inventory_data[n]->type);
+            : sdidn->type);
         fixed_a0.pickup_fail = fail;
     }
 
@@ -1433,17 +1436,18 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
     std::vector<Packet_Repeat<0x01ee>> repeat_1ee;
     for (IOff0 i : IOff0::iter())
     {
-        if (!sd->status.inventory[i].nameid
-            || sd->inventory_data[i] == nullptr
-            || itemdb_isequip2(sd->inventory_data[i]))
+        if (!sd->status.inventory[i].nameid)
+            continue;
+        auto sdidi = TRY_UNWRAP(sd->inventory_data[i], continue);
+        if (itemdb_isequip2(sdidi))
             continue;
         Packet_Repeat<0x01ee> info;
         info.ioff2 = i.shift();
         info.name_id = sd->status.inventory[i].nameid;
-        info.item_type = sd->inventory_data[i]->type;
+        info.item_type = sdidi->type;
         info.identify = 1;
         info.amount = sd->status.inventory[i].amount;
-        if (sd->inventory_data[i]->equip == EPOS::ARROW)
+        if (sdidi->equip == EPOS::ARROW)
         {
             info.epos = EPOS::ARROW;
             if (bool(sd->status.inventory[i].equip))
@@ -1477,17 +1481,18 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
     std::vector<Packet_Repeat<0x00a4>> repeat_a4;
     for (IOff0 i : IOff0::iter())
     {
-        if (!sd->status.inventory[i].nameid
-            || sd->inventory_data[i] == nullptr
-            || !itemdb_isequip2(sd->inventory_data[i]))
+        if (!sd->status.inventory[i].nameid)
+            continue;
+        P<struct item_data> sdidi = TRY_UNWRAP(sd->inventory_data[i], continue);
+        if (!itemdb_isequip2(sdidi))
             continue;
         Packet_Repeat<0x00a4> info;
         info.ioff2 = i.shift();
         info.name_id = sd->status.inventory[i].nameid;
         info.item_type = (
-                sd->inventory_data[i]->type == ItemType::_7
+                sdidi->type == ItemType::_7
                 ? ItemType::WEAPON
-                : sd->inventory_data[i]->type);
+                : sdidi->type);
         info.identify = 0;
         info.epos_pc = pc_equippoint(sd, i);
         info.epos_inv = sd->status.inventory[i].equip;
@@ -1511,10 +1516,9 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
  * カプラさんに預けてある消耗品&収集品リスト
  *------------------------------------------
  */
-int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
+int clif_storageitemlist(dumb_ptr<map_session_data> sd, Borrowed<Storage> stor)
 {
     nullpo_retz(sd);
-    nullpo_retz(stor);
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x01f0>> repeat_1f0;
@@ -1523,9 +1527,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
         if (!stor->storage_[i].nameid)
             continue;
 
-        struct item_data *id;
-        id = itemdb_search(stor->storage_[i].nameid);
-        nullpo_retz(id);
+        P<struct item_data> id = itemdb_search(stor->storage_[i].nameid);
         if (itemdb_isequip2(id))
             continue;
 
@@ -1553,10 +1555,9 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, Storage *stor)
  * カプラさんに預けてある装備リスト
  *------------------------------------------
  */
-int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
+int clif_storageequiplist(dumb_ptr<map_session_data> sd, Borrowed<Storage> stor)
 {
     nullpo_retz(sd);
-    nullpo_retz(stor);
 
     Session *s = sd->sess;
     std::vector<Packet_Repeat<0x00a6>> repeat_a6;
@@ -1565,9 +1566,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Storage *stor)
         if (!stor->storage_[i].nameid)
             continue;
 
-        struct item_data *id;
-        id = itemdb_search(stor->storage_[i].nameid);
-        nullpo_retz(id);
+        P<struct item_data> id = itemdb_search(stor->storage_[i].nameid);
         if (!itemdb_isequip2(id))
             continue;
         Packet_Repeat<0x00a6> info;
@@ -1843,7 +1842,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
 
             fixed_1d7.look_type = type;
             IOff0 idx = sd->equip_index_maybe[equip_point];
-            if (idx.ok() && sd->inventory_data[idx])
+            if (idx.ok() && sd->inventory_data[idx].is_some())
             {
                 fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->status.inventory[idx].nameid);
             }
@@ -1860,14 +1859,14 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
                 fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->attack_spell_look_override);
             else
             {
-                if (widx.ok() && sd->inventory_data[widx])
+                if (widx.ok() && sd->inventory_data[widx].is_some())
                 {
                     fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(sd->status.inventory[widx].nameid);
                 }
                 else
                     fixed_1d7.weapon_or_name_id_or_value = unwrap<ItemNameId>(ItemNameId());
             }
-            if (sidx.ok() && sidx != widx && sd->inventory_data[sidx])
+            if (sidx.ok() && sidx != widx && sd->inventory_data[sidx].is_some())
             {
                 fixed_1d7.shield = sd->status.inventory[sidx].nameid;
             }
@@ -2261,10 +2260,9 @@ int clif_tradecompleted(dumb_ptr<map_session_data> sd, int fail)
  *------------------------------------------
  */
 int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
-                              Storage *stor)
+        Borrowed<Storage> stor)
 {
     nullpo_retz(sd);
-    nullpo_retz(stor);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f2> fixed_f2;
@@ -2279,11 +2277,10 @@ int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
  * カプラ倉庫にアイテムを追加する
  *------------------------------------------
  */
-int clif_storageitemadded(dumb_ptr<map_session_data> sd, Storage *stor,
+int clif_storageitemadded(dumb_ptr<map_session_data> sd, Borrowed<Storage> stor,
         SOff0 index, int amount)
 {
     nullpo_retz(sd);
-    nullpo_retz(stor);
 
     Session *s = sd->sess;
     Packet_Fixed<0x00f4> fixed_f4;
@@ -2969,8 +2966,6 @@ int clif_party_info(PartyPair p, Session *s)
     int i;
     dumb_ptr<map_session_data> sd = nullptr;
 
-    nullpo_retz(p);
-
     Packet_Head<0x00fb> head_fb;
     std::vector<Packet_Repeat<0x00fb>> repeat_fb;
     head_fb.party_name = p->name;
@@ -3016,15 +3011,12 @@ int clif_party_info(PartyPair p, Session *s)
 void clif_party_invite(dumb_ptr<map_session_data> sd,
                        dumb_ptr<map_session_data> tsd)
 {
-    PartyPair p;
-
     nullpo_retv(sd);
     nullpo_retv(tsd);
 
     Session *s = tsd->sess;
 
-    if (!(p = party_search(sd->status.party_id)))
-        return;
+    PartyPair p = TRY_UNWRAP(party_search(sd->status.party_id), return);
 
     Packet_Fixed<0x00fe> fixed_fe;
     fixed_fe.account_id = sd->status_key.account_id;
@@ -3066,8 +3058,6 @@ void clif_party_inviteack(dumb_ptr<map_session_data> sd, CharName nick, int flag
  */
 void clif_party_option(PartyPair p, dumb_ptr<map_session_data> sd, int flag)
 {
-    nullpo_retv(p);
-
     if (sd == nullptr && flag == 0)
     {
         int i;
@@ -3099,8 +3089,6 @@ void clif_party_leaved(PartyPair p, dumb_ptr<map_session_data> sd,
         AccountId account_id, CharName name, int flag)
 {
     int i;
-
-    nullpo_retv(p);
 
     Packet_Fixed<0x0105> fixed_105;
     fixed_105.account_id = account_id;
@@ -3137,8 +3125,6 @@ void clif_party_message(PartyPair p, AccountId account_id, XString mes)
     // always set, but clang is not smart enough
     dumb_ptr<map_session_data> sd = nullptr;
     int i;
-
-    nullpo_retv(p);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -3639,16 +3625,19 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
                 fixed_95.char_name = ssd->status_key.name;
             send_fpacket<0x0095, 30>(s, fixed_95);
 
-            PartyPair p;
-
             PartyName party_name;
 
             int send = 0;
 
-            if (ssd->status.party_id && (p = party_search(ssd->status.party_id)))
+            if (ssd->status.party_id)
             {
-                party_name = p->name;
-                send = 1;
+                Option<PartyPair> p_ = party_search(ssd->status.party_id);
+
+                if OPTION_IS_SOME(p, p_)
+                {
+                    party_name = p->name;
+                    send = 1;
+                }
             }
 
             if (send)
@@ -4196,10 +4185,10 @@ RecvResult clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
     if (sd->npc_id)
         return rv;
 
-    if (sd->inventory_data[index])
+    if OPTION_IS_SOME(sdidi, sd->inventory_data[index])
     {
         EPOS epos = fixed.epos_ignored;
-        if (sd->inventory_data[index]->type == ItemType::ARROW)
+        if (sdidi->type == ItemType::ARROW)
             epos = EPOS::ARROW;
 
         // Note: the EPOS argument to pc_equipitem is actually ignored

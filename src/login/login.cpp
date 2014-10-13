@@ -231,6 +231,7 @@ AString gm_pass;
 static
 GmLevel level_new_gm = GmLevel::from(60u);
 
+// TODO make this just be Map<AccountId, GmLevel>
 static
 Map<AccountId, GM_Account> gm_account_db;
 
@@ -287,10 +288,8 @@ void delete_admin(Session *s)
 static
 GmLevel isGM(AccountId account_id)
 {
-    GM_Account *p = gm_account_db.search(account_id);
-    if (p == nullptr)
-        return GmLevel();
-    return p->level;
+    Option<P<GM_Account>> p = gm_account_db.search(account_id);
+    return TRY_UNWRAP(p, return GmLevel())->level;
 }
 
 //-------------------------------------------------------

@@ -410,15 +410,15 @@ BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
         NpcEvent event)
 {
     dumb_ptr<mob_data> md = nullptr;
-    map_local *m;
     int count;
 
-    if (sd && mapname == MOB_THIS_MAP)
-        m = sd->bl_m;
-    else
-        m = map_mapname2mapid(mapname);
+    P<map_local> m = (
+        (sd && mapname == MOB_THIS_MAP)
+        ? sd->bl_m
+        : TRY_UNWRAP(map_mapname2mapid(mapname), return BlockId())
+    );
 
-    if (m == nullptr || amount <= 0 || mobdb_checkid(mob_class) == Species())
+    if (amount <= 0 || mobdb_checkid(mob_class) == Species())
         return BlockId();
 
     if (sd)
@@ -470,18 +470,18 @@ BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
 {
     int x, y, i, max, lx = -1, ly = -1;
     BlockId id;
-    map_local *m;
 
-    if (mapname == MOB_THIS_MAP)
-        m = sd->bl_m;
-    else
-        m = map_mapname2mapid(mapname);
+    P<map_local> m = (
+        (mapname == MOB_THIS_MAP)
+        ? sd->bl_m
+        : TRY_UNWRAP(map_mapname2mapid(mapname), return BlockId())
+    );
 
     max = (y1 - y0 + 1) * (x1 - x0 + 1) * 3;
     if (max > 1000)
         max = 1000;
 
-    if (m == nullptr || amount <= 0 || (mobdb_checkid(mob_class) == Species()))  // A summon is stopped if a value is unusual
+    if (amount <= 0 || (mobdb_checkid(mob_class) == Species()))  // A summon is stopped if a value is unusual
         return BlockId();
 
     for (i = 0; i < amount; i++)
@@ -1572,7 +1572,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     // Since it is in the map on which the master is not, teleport is carried out and it pursues.
     if (mmd->bl_m != md->bl_m)
     {
-        mob_warp(md, mmd->bl_m, mmd->bl_x, mmd->bl_y, BeingRemoveWhy::WARPED);
+        mob_warp(md, Some(mmd->bl_m), mmd->bl_x, mmd->bl_y, BeingRemoveWhy::WARPED);
         md->state.master_check = 1;
         return 0;
     }
@@ -1584,7 +1584,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     // Since the master was in near immediately before, teleport is carried out and it pursues.
     if (old_dist < 10 && md->master_dist > 18)
     {
-        mob_warp(md, nullptr, mmd->bl_x, mmd->bl_y, BeingRemoveWhy::WARPED);
+        mob_warp(md, None, mmd->bl_x, mmd->bl_y, BeingRemoveWhy::WARPED);
         md->state.master_check = 1;
         return 0;
     }
@@ -2177,7 +2177,7 @@ void mob_ai_lazy(TimerData *, tick_t tick)
  */
 struct delay_item_drop
 {
-    map_local *m;
+    Borrowed<map_local> m = borrow(undefined_gat);
     int x, y;
     ItemNameId nameid;
     int amount;
@@ -2186,7 +2186,7 @@ struct delay_item_drop
 
 struct delay_item_drop2
 {
-    map_local *m;
+    Borrowed<map_local> m = borrow(undefined_gat);
     int x, y;
     Item item_data;
     dumb_ptr<map_session_data> first_sd, second_sd, third_sd;
@@ -2541,7 +2541,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
             int base_exp, job_exp, flag = 1;
             double per;
-            PartyPair p;
 
             // [Fate] The above is the old formula.  We do a more involved computation below.
             // [o11c] Look in git history for old code, you idiot!
@@ -2592,15 +2591,15 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 );
                 if (it == ptv.end())
                 {
-                    p = party_search(pid);
-                    if (p && p->exp != 0)
+                    Option<PartyPair> p_ = party_search(pid);
+                    if OPTION_IS_SOME(p, p_)
                     {
-                        DmgLogParty pn {};
-                        pn.p = p;
-                        pn.base_exp = base_exp;
-                        pn.job_exp = job_exp;
-                        ptv.push_back(pn);
-                        flag = 0;
+                        if (p->exp != 0)
+                        {
+                            DmgLogParty pn{p, base_exp, job_exp};
+                            ptv.push_back(pn);
+                            flag = 0;
+                        }
                     }
                 }
                 else
@@ -2763,7 +2762,7 @@ int mob_warpslave(dumb_ptr<mob_data> md, int x, int y)
  * mobワープ
  *------------------------------------------
  */
-int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy type)
+int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m_, int x, int y, BeingRemoveWhy type)
 {
     int i = 0, xs = 0, ys = 0, bx = x, by = y;
 
@@ -2772,8 +2771,7 @@ int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy t
     if (md->bl_prev == nullptr)
         return 0;
 
-    if (m == nullptr)
-        m = md->bl_m;
+    P<map_local> m = m_.copy_or(md->bl_m);
 
     if (type != BeingRemoveWhy::NEGATIVE1)
     {
@@ -2892,7 +2890,7 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
 
     bx = md2->bl_x;
     by = md2->bl_y;
-    map_local *m = md2->bl_m;
+    P<map_local> m = md2->bl_m;
 
     Species values[5];
     for (count = 0; count < 5 && value_[count]; ++count)

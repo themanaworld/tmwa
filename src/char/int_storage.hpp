@@ -22,6 +22,8 @@
 
 #include "fwd.hpp"
 
+#include "../compat/fwd.hpp"
+
 #include "../strings/fwd.hpp"
 
 #include "../net/fwd.hpp"
@@ -34,7 +36,7 @@ namespace tmwa
 void inter_storage_init(void);
 int inter_storage_save(void);
 void inter_storage_delete(AccountId account_id);
-Storage *account2storage(AccountId account_id);
+Borrowed<Storage> account2storage(AccountId account_id);
 
 RecvResult inter_storage_parse_frommap(Session *ms, uint16_t);
 

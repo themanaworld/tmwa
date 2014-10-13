@@ -578,9 +578,9 @@ namespace magic_v2
         {
             count = 1;
 
-            item_data *item = itemdb_searchname(s._str);
-            if (!item)
-                return fail(s, "no such item"_s);
+            Borrowed<item_data> item = TRY_UNWRAP(itemdb_searchname(s._str),
+                return fail(s, "no such item"_s)
+            );
             id = item->nameid;
             return true;
         }
@@ -594,9 +594,9 @@ namespace magic_v2
         if (s._list[1]._type != sexpr::STRING)
             return fail(s._list[1], "item pair second not name"_s);
 
-        item_data *item = itemdb_searchname(s._list[1]._str);
-        if (!item)
-            return fail(s, "no such item"_s);
+        Borrowed<item_data> item = TRY_UNWRAP(itemdb_searchname(s._list[1]._str),
+            return fail(s, "no such item"_s)
+        );
         id = item->nameid;
         return true;
     }

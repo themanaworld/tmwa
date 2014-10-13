@@ -113,6 +113,8 @@ AString motd_txt = "conf/motd.txt"_s;
 
 CharName wisp_server_name = stringish<CharName>("Server"_s);   // can be modified in char-server configuration file
 
+map_local undefined_gat = [](){ map_local rv {}; rv.name_ = stringish<MapName>("undefined.gat"_s); return rv; }();
+
 static
 void map_delmap(MapName mapname);
 
@@ -203,10 +205,10 @@ int map_addblock(dumb_ptr<block_list> bl)
         return 0;
     }
 
-    map_local *m = bl->bl_m;
+    P<map_local> m = bl->bl_m;
     int x = bl->bl_x;
     int y = bl->bl_y;
-    if (!m ||
+    if (m == borrow(undefined_gat) ||
         x < 0 || x >= m->xs || y < 0 || y >= m->ys)
         return 1;
 
@@ -284,7 +286,7 @@ int map_delblock(dumb_ptr<block_list> bl)
  * セル上のPCとMOBの数を数える (グランドクロス用)
  *------------------------------------------
  */
-int map_count_oncell(map_local *m, int x, int y)
+int map_count_oncell(Borrowed<map_local> m, int x, int y)
 {
     int bx, by;
     dumb_ptr<block_list> bl = nullptr;
@@ -319,14 +321,12 @@ int map_count_oncell(map_local *m, int x, int y)
  *------------------------------------------
  */
 void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
-        map_local *m,
+        Borrowed<map_local> m,
         int x0, int y0, int x1, int y1,
         BL type)
 {
     std::vector<dumb_ptr<block_list>> bl_list;
 
-    if (!m)
-        return;
     if (x0 < 0)
         x0 = 0;
     if (y0 < 0)
@@ -382,7 +382,7 @@ void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
  *------------------------------------------
  */
 void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
-        map_local *m,
+        Borrowed<map_local> m,
         int x0, int y0, int x1, int y1,
         int dx, int dy,
         BL type)
@@ -502,7 +502,7 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
 //           area radius - may be more useful in some instances)
 //
 void map_foreachincell(std::function<void(dumb_ptr<block_list>)> func,
-        map_local *m,
+        Borrowed<map_local> m,
         int x, int y,
         BL type)
 {
@@ -675,7 +675,7 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, BlockId id)
     map_delobject(fitem->bl_id, BL::ITEM);
 }
 
-std::pair<uint16_t, uint16_t> map_randfreecell(map_local *m,
+std::pair<uint16_t, uint16_t> map_randfreecell(Borrowed<map_local> m,
         uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
     for (int itr : random_::iterator(w * h))
@@ -690,7 +690,7 @@ std::pair<uint16_t, uint16_t> map_randfreecell(map_local *m,
 
 /// Return a randomly selected passable cell within a given range.
 static
-std::pair<uint16_t, uint16_t> map_searchrandfreecell(map_local *m, int x, int y, int range)
+std::pair<uint16_t, uint16_t> map_searchrandfreecell(Borrowed<map_local> m, int x, int y, int range)
 {
     int whole_range = 2 * range + 1;
     return map_randfreecell(m, x - range, y - range, whole_range, whole_range);
@@ -703,7 +703,7 @@ std::pair<uint16_t, uint16_t> map_searchrandfreecell(map_local *m, int x, int y,
  *------------------------------------------
  */
 BlockId map_addflooritem_any(Item *item_data, int amount,
-        map_local *m, int x, int y,
+        Borrowed<map_local> m, int x, int y,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal)
 {
@@ -768,7 +768,7 @@ BlockId map_addflooritem_any(Item *item_data, int amount,
 }
 
 BlockId map_addflooritem(Item *item_data, int amount,
-        map_local *m, int x, int y,
+        Borrowed<map_local> m, int x, int y,
         dumb_ptr<map_session_data> first_sd,
         dumb_ptr<map_session_data> second_sd,
         dumb_ptr<map_session_data> third_sd)
@@ -793,9 +793,7 @@ BlockId map_addflooritem(Item *item_data, int amount,
  */
 void map_addchariddb(CharId charid, CharName name)
 {
-    struct charid2nick *p = charid_db.search(charid);
-    if (p == nullptr)
-        p = charid_db.init(charid);
+    P<struct charid2nick> p = charid_db.init(charid);
 
     p->nick = name;
     p->req_id = 0;
@@ -930,13 +928,17 @@ dumb_ptr<map_session_data> map_id2sd(BlockId id)
  */
 CharName map_charid2nick(CharId id)
 {
-    struct charid2nick *p = charid_db.search(id);
+    Option<P<struct charid2nick>> p_ = charid_db.search(id);
 
-    if (p == nullptr)
-        return CharName();
-    if (p->req_id != 0)
-        return CharName();
-    return p->nick;
+    return p_.cmap(
+            [](P<struct charid2nick> p)
+            {
+                return p->req_id == 0;
+            },
+            [](P<struct charid2nick> p)
+            {
+                return p->nick;
+            }).move_or(CharName());
 }
 
 /*========================================*/
@@ -1048,11 +1050,9 @@ dumb_ptr<block_list> map_id2bl(BlockId id)
  * map.npcへ追加 (warp等の領域持ちのみ)
  *------------------------------------------
  */
-int map_addnpc(map_local *m, dumb_ptr<npc_data> nd)
+int map_addnpc(Borrowed<map_local> m, dumb_ptr<npc_data> nd)
 {
     int i;
-    if (!m)
-        return -1;
     for (i = 0; i < m->npc_num && i < MAX_NPC_PER_MAP; i++)
         if (m->npc[i] == nullptr)
             break;
@@ -1110,27 +1110,39 @@ void map_removenpc(void)
  * map名からmap番号へ変換
  *------------------------------------------
  */
-map_local *map_mapname2mapid(MapName name)
+Option<Borrowed<map_local>> map_mapname2mapid(MapName name)
 {
-    map_abstract *md = maps_db.get(name);
-    if (md == nullptr || md->gat == nullptr)
-        return nullptr;
-    return static_cast<map_local *>(md);
+    Option<P<map_abstract>> md_ = maps_db.get(name);
+    return md_.cmap(
+            [](P<map_abstract> md)
+            {
+                return bool(md->gat);
+            },
+            [](P<map_abstract> md)
+            {
+                return md.downcast_to<map_local>();
+            });
 }
 
 /*==========================================
  * 他鯖map名からip,port変換
  *------------------------------------------
  */
-int map_mapname2ipport(MapName name, IP4Address *ip, int *port)
+int map_mapname2ipport(MapName name, Borrowed<IP4Address> ip, Borrowed<int> port)
 {
-    map_abstract *md = maps_db.get(name);
-    if (md == nullptr || md->gat)
-        return -1;
-    map_remote *mdos = static_cast<map_remote *>(md);
-    *ip = mdos->ip;
-    *port = mdos->port;
-    return 0;
+    Option<P<map_abstract>> md_ = maps_db.get(name);
+    return md_.cmap(
+            [](P<map_abstract> md)
+            {
+                return !md->gat;
+            },
+            [ip, port](P<map_abstract> md)
+            {
+                auto mdos = md.downcast_to<map_remote>();
+                *ip = mdos->ip;
+                *port = mdos->port;
+                return 0;
+            }).copy_or(-1);
 }
 
 /// Check compatibility of directions.
@@ -1209,7 +1221,7 @@ DIR map_calc_dir(dumb_ptr<block_list> src, int x, int y)
  * (m,x,y)の状態を調べる
  *------------------------------------------
  */
-MapCell map_getcell(map_local *m, int x, int y)
+MapCell map_getcell(Borrowed<map_local> m, int x, int y)
 {
     if (x < 0 || x >= m->xs - 1 || y < 0 || y >= m->ys - 1)
         return MapCell::UNWALKABLE;
@@ -1220,7 +1232,7 @@ MapCell map_getcell(map_local *m, int x, int y)
  * (m,x,y)の状態をtにする
  *------------------------------------------
  */
-void map_setcell(map_local *m, int x, int y, MapCell t)
+void map_setcell(Borrowed<map_local> m, int x, int y, MapCell t)
 {
     if (x < 0 || x >= m->xs || y < 0 || y >= m->ys)
         return;
@@ -1233,18 +1245,8 @@ void map_setcell(map_local *m, int x, int y, MapCell t)
  */
 int map_setipport(MapName name, IP4Address ip, int port)
 {
-    map_abstract *md = maps_db.get(name);
-    if (md == nullptr)
-    {
-        // not exist -> add new data
-        auto mdos = make_unique<map_remote>();
-        mdos->name_ = name;
-        mdos->gat = nullptr;
-        mdos->ip = ip;
-        mdos->port = port;
-        maps_db.put(mdos->name_, std::move(mdos));
-    }
-    else
+    Option<P<map_abstract>> md_ = maps_db.get(name);
+    if OPTION_IS_SOME(md, md_)
     {
         if (md->gat)
         {
@@ -1259,10 +1261,20 @@ int map_setipport(MapName name, IP4Address ip, int port)
         else
         {
             // update
-            map_remote *mdos = static_cast<map_remote *>(md);
+            P<map_remote> mdos = md.downcast_to<map_remote>();
             mdos->ip = ip;
             mdos->port = port;
         }
+    }
+    else
+    {
+        // not exist -> add new data
+        auto mdos = make_unique<map_remote>();
+        mdos->name_ = name;
+        mdos->gat = nullptr;
+        mdos->ip = ip;
+        mdos->port = port;
+        maps_db.put(mdos->name_, std::move(mdos));
     }
     return 0;
 }
@@ -1640,7 +1652,7 @@ void term_func(void)
     {
         if (!mit.second->gat)
             continue;
-        map_local *map_id = static_cast<map_local *>(mit.second.get());
+        P<map_local> map_id = borrow(*mit.second).downcast_to<map_local>();
 
         map_foreachinarea(cleanup_sub,
                 map_id,

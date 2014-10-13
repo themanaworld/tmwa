@@ -47,19 +47,15 @@ void do_final_storage(void)
     storage_db.clear();
 }
 
-Storage *account2storage(AccountId account_id)
+Borrowed<Storage> account2storage(AccountId account_id)
 {
-    Storage *stor = storage_db.search(account_id);
-    if (stor == nullptr)
-    {
-        stor = storage_db.init(account_id);
-        stor->account_id = account_id;
-    }
+    P<Storage> stor = storage_db.init(account_id);
+    stor->account_id = account_id;
     return stor;
 }
 
 // Just to ask storage, without creation
-Storage *account2storage2(AccountId account_id)
+Option<Borrowed<Storage>> account2storage2(AccountId account_id)
 {
     return storage_db.search(account_id);
 }
@@ -81,12 +77,11 @@ int storage_storageopen(dumb_ptr<map_session_data> sd)
     if (sd->state.storage_open)
         return 1;               //Already open?
 
-    Storage *stor = storage_db.search(sd->status_key.account_id);
-    if (stor == nullptr)
+    P<Storage> stor = TRY_UNWRAP(storage_db.search(sd->status_key.account_id),
     {                           //Request storage.
         intif_request_storage(sd->status_key.account_id);
         return 1;
-    }
+    });
 
     if (stor->storage_status)
         return 1;               //Already open/player already has it open...
@@ -104,15 +99,13 @@ int storage_storageopen(dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 static
-int storage_additem(dumb_ptr<map_session_data> sd, Storage *stor,
+int storage_additem(dumb_ptr<map_session_data> sd, P<Storage> stor,
                             Item *item_data, int amount)
 {
-    struct item_data *data;
-
     if (!item_data->nameid || amount <= 0)
         return 1;
 
-    data = itemdb_search(item_data->nameid);
+    P<struct item_data> data = itemdb_search(item_data->nameid);
 
     if (!itemdb_isequip2(data))
     {                           //Stackable
@@ -152,7 +145,7 @@ int storage_additem(dumb_ptr<map_session_data> sd, Storage *stor,
  *------------------------------------------
  */
 static
-int storage_delitem(dumb_ptr<map_session_data> sd, Storage *stor,
+int storage_delitem(dumb_ptr<map_session_data> sd, P<Storage> stor,
         SOff0 n, int amount)
 {
 
@@ -178,11 +171,8 @@ int storage_delitem(dumb_ptr<map_session_data> sd, Storage *stor,
  */
 int storage_storageadd(dumb_ptr<map_session_data> sd, IOff0 index, int amount)
 {
-    Storage *stor;
-
     nullpo_retz(sd);
-    stor = account2storage2(sd->status_key.account_id);
-    nullpo_retz(stor);
+    P<Storage> stor = TRY_UNWRAP(account2storage2(sd->status_key.account_id), return 0);
 
     if ((stor->storage_amount > MAX_STORAGE) || !stor->storage_status)
         return 0;               // storage full / storage closed
@@ -213,12 +203,10 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, IOff0 index, int amount)
  */
 int storage_storageget(dumb_ptr<map_session_data> sd, SOff0 index, int amount)
 {
-    Storage *stor;
     PickupFail flag;
 
     nullpo_retz(sd);
-    stor = account2storage2(sd->status_key.account_id);
-    nullpo_retz(stor);
+    P<Storage> stor = TRY_UNWRAP(account2storage2(sd->status_key.account_id), return 0);
 
     if (!index.ok())
         return 0;
@@ -243,11 +231,8 @@ int storage_storageget(dumb_ptr<map_session_data> sd, SOff0 index, int amount)
  */
 int storage_storageclose(dumb_ptr<map_session_data> sd)
 {
-    Storage *stor;
-
     nullpo_retz(sd);
-    stor = account2storage2(sd->status_key.account_id);
-    nullpo_retz(stor);
+    P<Storage> stor = TRY_UNWRAP(account2storage2(sd->status_key.account_id), return 0);
 
     clif_storageclose(sd);
     if (stor->storage_status)
@@ -275,12 +260,9 @@ int storage_storageclose(dumb_ptr<map_session_data> sd)
  */
 int storage_storage_quit(dumb_ptr<map_session_data> sd)
 {
-    Storage *stor;
-
     nullpo_retz(sd);
 
-    stor = account2storage2(sd->status_key.account_id);
-    if (stor)
+    P<Storage> stor = TRY_UNWRAP(account2storage2(sd->status_key.account_id), return 0);
     {
         chrif_save(sd);        //Invokes the storage saving as well.
         stor->storage_status = 0;
@@ -292,11 +274,7 @@ int storage_storage_quit(dumb_ptr<map_session_data> sd)
 
 int storage_storage_save(AccountId account_id, int final)
 {
-    Storage *stor;
-
-    stor = account2storage2(account_id);
-    if (!stor)
-        return 0;
+    P<Storage> stor = TRY_UNWRAP(account2storage2(account_id), return 0);
 
     if (stor->dirty)
     {
@@ -320,9 +298,8 @@ int storage_storage_save(AccountId account_id, int final)
 //Ack from Char-server indicating the storage was saved. [Skotlex]
 int storage_storage_saved(AccountId account_id)
 {
-    Storage *stor = account2storage2(account_id);
+    P<Storage> stor = TRY_UNWRAP(account2storage2(account_id), return 0);
 
-    if (stor)
     {
         //Only mark it clean if it's not in use. [Skotlex]
         if (stor->dirty && stor->storage_status == 0)

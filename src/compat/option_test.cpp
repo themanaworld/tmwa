@@ -255,6 +255,43 @@ TEST(Option, map)
     }
 }
 
+TEST(Option, member)
+{
+    struct Foo
+    {
+        int bar = 404;
+    };
+
+    Option<Foo> vng = None;
+    EXPECT_EQ(vng.pmd_get(&Foo::bar).copy_or(42), 42);
+    Option<Foo> vsg = Some(Foo());
+    EXPECT_EQ(vsg.pmd_get(&Foo::bar).copy_or(42), 404);
+
+    Option<Foo> vns = None;
+    vns.pmd_set(&Foo::bar, 42);
+    EXPECT_EQ(vns.copy_or(Foo()).bar, 404);
+    Option<Foo> vss = Some(Foo());
+    vss.pmd_set(&Foo::bar, 42);
+    EXPECT_EQ(vss.copy_or(Foo()).bar, 42);
+
+    Foo foo, alt;
+
+    Option<P<Foo>> png = None;
+    EXPECT_EQ(png.pmd_pget(&Foo::bar).copy_or(42), 42);
+    Option<P<Foo>> psg = Some(borrow(foo));
+    EXPECT_EQ(psg.pmd_pget(&Foo::bar).copy_or(42), 404);
+
+    Option<P<Foo>> pns = None;
+    pns.pmd_pset(&Foo::bar, 42);
+    EXPECT_EQ(pns.copy_or(borrow(alt))->bar, 404);
+    EXPECT_EQ(foo.bar, 404);
+    Option<P<Foo>> pss = Some(borrow(foo));
+    pss.pmd_pset(&Foo::bar, 42);
+    EXPECT_EQ(pss.copy_or(borrow(alt))->bar, 42);
+    EXPECT_EQ(foo.bar, 42);
+    EXPECT_EQ(alt.bar, 404);
+}
+
 #if __cplusplus >= 201300 // c++14 as given by gcc 4.9
 # define DECLTYPE_AUTO decltype(auto)
 #else

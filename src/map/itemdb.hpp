@@ -59,11 +59,11 @@ struct random_item_data
 };
 
 inline
-struct item_data *itemdb_searchname(ItemName) = delete;
-struct item_data *itemdb_searchname(XString name);
+Option<Borrowed<struct item_data>> itemdb_searchname(ItemName) = delete;
+Option<Borrowed<struct item_data>> itemdb_searchname(XString name);
 // TODO this function should die
-struct item_data *itemdb_search(ItemNameId nameid);
-struct item_data *itemdb_exists(ItemNameId nameid);
+Borrowed<struct item_data> itemdb_search(ItemNameId nameid);
+Option<Borrowed<struct item_data>> itemdb_exists(ItemNameId nameid);
 
 inline
 ItemType itemdb_type(ItemNameId n)
@@ -97,7 +97,7 @@ int itemdb_value_sell(ItemNameId n)
 }
 
 int itemdb_isequip(ItemNameId);
-int itemdb_isequip2(struct item_data *);
+bool itemdb_isequip2(Borrowed<struct item_data>);
 int itemdb_isequip3(ItemNameId);
 
 void itemdb_reload(void);

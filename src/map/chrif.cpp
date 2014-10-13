@@ -960,7 +960,6 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameI
         case BL::PC:
         {
             dumb_ptr<map_session_data> pc = bl->is_player();
-            Storage *stor = account2storage2(pc->status_key.account_id);
 
             for (IOff0 j : IOff0::iter())
                 IFIX(pc->status.inventory[j].nameid);
@@ -971,7 +970,8 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameI
             IFIX(pc->status.head_mid);
             IFIX(pc->status.head_bottom);
 
-            if (stor)
+            Option<P<Storage>> stor_ = account2storage2(pc->status_key.account_id);
+            if OPTION_IS_SOME(stor, stor_)
             {
                 for (SOff0 j : SOff0::iter())
                     FIX(stor->storage_[j]);
@@ -979,8 +979,8 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameI
 
             for (IOff0 j : IOff0::iter())
             {
-                struct item_data *item = pc->inventory_data[j];
-                if (item && item->nameid == source_id)
+                P<struct item_data> item = TRY_UNWRAP(pc->inventory_data[j], continue);
+                if (item->nameid == source_id)
                 {
                     item->nameid = dest_id;
                     if (bool(item->equip))

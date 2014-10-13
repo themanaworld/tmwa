@@ -66,32 +66,30 @@ void do_init_party(void)
 }
 
 // 検索
-PartyPair party_search(PartyId party_id)
+Option<PartyPair> party_search(PartyId party_id)
 {
-    PartyPair p;
-    p.party_most = party_db.search(party_id);
-    if (p)
-        p.party_id = party_id;
-    return p;
+    Option<P<PartyMost>> party_most_ = party_db.search(party_id);
+    return party_most_.map([party_id](P<PartyMost> party_most)
+            {
+                return PartyPair{party_id, party_most};
+            });
 }
 
 static
-void party_searchname_sub(PartyPair p, PartyName str, PartyPair *dst)
+void party_searchname_sub(PartyPair p, PartyName str, Borrowed<Option<PartyPair>> dst)
 {
     if (p->name == str)
-        *dst = p;
+        *dst = Some(p);
 }
 
 // パーティ名検索
-PartyPair party_searchname(PartyName str)
+Option<PartyPair> party_searchname(PartyName str)
 {
-    PartyPair p;
+    Option<PartyPair> p = None;
     for (auto& pair : party_db)
     {
-        PartyPair tmp;
-        tmp.party_id = pair.first;
-        tmp.party_most = &pair.second;
-        party_searchname_sub(tmp, str, &p);
+        PartyPair tmp{pair.first, borrow(pair.second)};
+        party_searchname_sub(tmp, str, borrow(p));
     }
     return p;
 }
@@ -129,15 +127,13 @@ void party_created(AccountId account_id, int fail, PartyId party_id, PartyName n
     {
         sd->status.party_id = party_id;
 
-        PartyPair p = party_search(party_id);
-        if (p)
+        if (party_search(party_id).is_some())
         {
             PRINTF("party_created(): ID already exists!\n"_fmt);
             exit(1);
         }
 
-        p.party_most = party_db.init(party_id);
-        p.party_id = party_id;
+        Borrowed<PartyMost> p = party_db.init(party_id);
         p->name = name;
 
         /* The party was created successfully. */
@@ -158,8 +154,6 @@ void party_request_info(PartyId party_id)
 static
 int party_check_member(PartyPair p)
 {
-    nullpo_retz(p);
-
     for (io::FD i : iter_fds())
     {
         Session *s = get_session(i);
@@ -215,24 +209,31 @@ int party_recv_noinfo(PartyId party_id)
     return 0;
 }
 
+static
+PartyPair handle_info(const PartyPair sp)
+{
+    Option<PartyPair> p_ = party_search(sp.party_id);
+    if OPTION_IS_SOME(p, p_)
+    {
+        *p.party_most = *sp.party_most;
+        return p;
+    }
+    {
+        PartyPair p{sp.party_id, party_db.init(sp.party_id)};
+
+        // 最初のロードなのでユーザーのチェックを行う
+        *p.party_most = *sp.party_most;
+        party_check_member(p);
+        return p;
+    }
+}
+
 // 情報所得
 int party_recv_info(const PartyPair sp)
 {
     int i;
 
-    nullpo_retz(sp);
-
-    PartyPair p = party_search(sp.party_id);
-    if (!p)
-    {
-        p.party_most = party_db.init(sp.party_id);
-
-        // 最初のロードなのでユーザーのチェックを行う
-        *p.party_most = *sp.party_most;
-        party_check_member(p);
-    }
-    else
-        *p.party_most = *sp.party_most;
+    PartyPair p = handle_info(sp);
 
     for (i = 0; i < MAX_PARTY; i++)
     {                           // sdの設定
@@ -261,13 +262,13 @@ int party_recv_info(const PartyPair sp)
 int party_invite(dumb_ptr<map_session_data> sd, AccountId account_id)
 {
     dumb_ptr<map_session_data> tsd = map_id2sd(account_to_block(account_id));
-    PartyPair p = party_search(sd->status.party_id);
+    PartyPair p = TRY_UNWRAP(party_search(sd->status.party_id), return 0);
     int i;
     int full = 1; /* Indicates whether or not there's room for one more. */
 
     nullpo_retz(sd);
 
-    if (!tsd || !p || !tsd->sess)
+    if (!tsd || !tsd->sess)
         return 0;
 
     if (!battle_config.invite_request_check)
@@ -359,7 +360,6 @@ int party_reply_invite(dumb_ptr<map_session_data> sd, AccountId account_id, int 
 int party_member_added(PartyId party_id, AccountId account_id, int flag)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(account_id)), sd2;
-    PartyPair p = party_search(party_id);
 
     if (sd == nullptr)
     {
@@ -376,12 +376,12 @@ int party_member_added(PartyId party_id, AccountId account_id, int flag)
     sd->party_invite = PartyId();
     sd->party_invite_account = AccountId();
 
-    if (!p)
+    PartyPair p = TRY_UNWRAP(party_search(party_id),
     {
         PRINTF("party_member_added: party %d not found.\n"_fmt, party_id);
         intif_party_leave(party_id, account_id);
         return 0;
-    }
+    });
 
     if (flag == 1)
     {                           // 失敗
@@ -408,13 +408,11 @@ int party_member_added(PartyId party_id, AccountId account_id, int flag)
 // パーティ除名要求
 int party_removemember(dumb_ptr<map_session_data> sd, AccountId account_id)
 {
-    PartyPair p;
     int i;
 
     nullpo_retz(sd);
 
-    if (!(p = party_search(sd->status.party_id)))
-        return 0;
+    PartyPair p = TRY_UNWRAP(party_search(sd->status.party_id), return 0);
 
     for (i = 0; i < MAX_PARTY; i++)
     {                           // リーダーかどうかチェック
@@ -439,13 +437,11 @@ int party_removemember(dumb_ptr<map_session_data> sd, AccountId account_id)
 // パーティ脱退要求
 int party_leave(dumb_ptr<map_session_data> sd)
 {
-    PartyPair p;
     int i;
 
     nullpo_retz(sd);
 
-    if (!(p = party_search(sd->status.party_id)))
-        return 0;
+    PartyPair p = TRY_UNWRAP(party_search(sd->status.party_id), return 0);
 
     for (i = 0; i < MAX_PARTY; i++)
     {                           // 所属しているか
@@ -462,8 +458,8 @@ int party_leave(dumb_ptr<map_session_data> sd)
 int party_member_leaved(PartyId party_id, AccountId account_id, CharName name)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(account_id));
-    PartyPair p = party_search(party_id);
-    if (p)
+    Option<PartyPair> p_ = party_search(party_id);
+    if OPTION_IS_SOME(p, p_)
     {
         int i;
         for (i = 0; i < MAX_PARTY; i++)
@@ -485,10 +481,8 @@ int party_member_leaved(PartyId party_id, AccountId account_id, CharName name)
 // パーティ解散通知
 int party_broken(PartyId party_id)
 {
-    PartyPair p;
     int i;
-    if (!(p = party_search(party_id)))
-        return 0;
+    PartyPair p = TRY_UNWRAP(party_search(party_id), return 0);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -508,12 +502,11 @@ int party_broken(PartyId party_id)
 // パーティの設定変更要求
 int party_changeoption(dumb_ptr<map_session_data> sd, int exp, int item)
 {
-    PartyPair p;
-
     nullpo_retz(sd);
 
-    if (!sd->status.party_id
-        || !(p = party_search(sd->status.party_id)))
+    if (!sd->status.party_id)
+        return 0;
+    if (party_search(sd->status.party_id).is_none())
         return 0;
     intif_party_changeoption(sd->status.party_id, sd->status_key.account_id, exp,
                               item);
@@ -524,10 +517,8 @@ int party_changeoption(dumb_ptr<map_session_data> sd, int exp, int item)
 int party_optionchanged(PartyId party_id, AccountId account_id, int exp, int item,
                          int flag)
 {
-    PartyPair p;
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(account_id));
-    if (!(p = party_search(party_id)))
-        return 0;
+    PartyPair p = TRY_UNWRAP(party_search(party_id), return 0);
 
     if (!(flag & 0x01))
         p->exp = exp;
@@ -541,10 +532,8 @@ int party_optionchanged(PartyId party_id, AccountId account_id, int exp, int ite
 void party_recv_movemap(PartyId party_id, AccountId account_id, MapName mapname,
         int online, int lv)
 {
-    PartyPair p;
     int i;
-    if (!(p = party_search(party_id)))
-        return;
+    PartyPair p = TRY_UNWRAP(party_search(party_id), return);
     for (i = 0; i < MAX_PARTY; i++)
     {
         PartyMember *m = &p->member[i];
@@ -584,8 +573,6 @@ void party_recv_movemap(PartyId party_id, AccountId account_id, MapName mapname,
 // パーティメンバの移動
 int party_send_movemap(dumb_ptr<map_session_data> sd)
 {
-    PartyPair p;
-
     nullpo_retz(sd);
 
     if (!sd->status.party_id)
@@ -599,7 +586,7 @@ int party_send_movemap(dumb_ptr<map_session_data> sd)
     party_check_conflict(sd);
 
     // あるならパーティ情報送信
-    if ((p = party_search(sd->status.party_id)))
+    PartyPair p = TRY_UNWRAP(party_search(sd->status.party_id), return 0);
     {
         party_check_member(p); // 所属を確認する
         if (sd->status.party_id == p.party_id)
@@ -616,15 +603,13 @@ int party_send_movemap(dumb_ptr<map_session_data> sd)
 // パーティメンバのログアウト
 int party_send_logout(dumb_ptr<map_session_data> sd)
 {
-    PartyPair p;
-
     nullpo_retz(sd);
 
     if (sd->status.party_id)
         intif_party_changemap(sd, 0);
 
     // sdが無効になるのでパーティ情報から削除
-    if ((p = party_search(sd->status.party_id)))
+    PartyPair p = TRY_UNWRAP(party_search(sd->status.party_id), return 0);
     {
         int i;
         for (i = 0; i < MAX_PARTY; i++)
@@ -646,9 +631,7 @@ void party_send_message(dumb_ptr<map_session_data> sd, XString mes)
 // パーティメッセージ受信
 void party_recv_message(PartyId party_id, AccountId account_id, XString mes)
 {
-    PartyPair p;
-    if (!(p = party_search(party_id)))
-        return;
+    PartyPair p = TRY_UNWRAP(party_search(party_id), return);
     clif_party_message(p, account_id, mes);
 }
 
@@ -666,8 +649,6 @@ static
 void party_send_xyhp_timer_sub(PartyPair p)
 {
     int i;
-
-    nullpo_retv(p);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -697,9 +678,7 @@ void party_send_xyhp_timer(TimerData *, tick_t)
 {
     for (auto& pair : party_db)
     {
-        PartyPair tmp;
-        tmp.party_id = pair.first;
-        tmp.party_most = &pair.second;
+        PartyPair tmp{pair.first, borrow(pair.second)};
         party_send_xyhp_timer_sub(tmp);
     }
 }
@@ -708,8 +687,6 @@ void party_send_xyhp_timer(TimerData *, tick_t)
 void party_send_xy_clear(PartyPair p)
 {
     int i;
-
-    nullpo_retv(p);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -739,12 +716,10 @@ void party_send_hp_check(dumb_ptr<block_list> bl, PartyId party_id, int *flag)
 }
 
 // 経験値公平分配
-int party_exp_share(PartyPair p, map_local *mapid, int base_exp, int job_exp)
+int party_exp_share(PartyPair p, Borrowed<map_local> mapid, int base_exp, int job_exp)
 {
     dumb_ptr<map_session_data> sd;
     int i, c;
-
-    nullpo_retz(p);
 
     for (i = c = 0; i < MAX_PARTY; i++)
     {
@@ -770,7 +745,6 @@ int party_exp_share(PartyPair p, map_local *mapid, int base_exp, int job_exp)
 void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<map_session_data> sd, int type)
 {
-    PartyPair p;
     int i;
     int x0, y0, x1, y1;
     dumb_ptr<map_session_data> list[MAX_PARTY];
@@ -778,8 +752,7 @@ void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
 
     nullpo_retv(sd);
 
-    if (!(p = party_search(sd->status.party_id)))
-        return;
+    PartyPair p = TRY_UNWRAP(party_search(sd->status.party_id), return);
 
     x0 = sd->bl_x - AREA_SIZE;
     y0 = sd->bl_y - AREA_SIZE;
