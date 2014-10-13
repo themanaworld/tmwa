@@ -4405,7 +4405,9 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
         {
             if (sd->inventory_data[n]->type == ItemType::WEAPON)
             {
-                assert(0 && "unreachable - offhand weapons are not supported");
+                sd->status.shield = ItemNameId();
+                if (sd->status.inventory[n].equip == EPOS::SHIELD)
+                    assert(0 && "unreachable - offhand weapons are not supported");
             }
             else if (sd->inventory_data[n]->type == ItemType::ARMOR)
             {
