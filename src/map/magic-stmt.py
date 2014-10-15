@@ -33,5 +33,5 @@ class op_t(object):
             ('static_cast<tmwa::magic::op_t *>(nullptr)',
                 '(op_t *) nullptr'),
             ('new tmwa::magic::op_t{"name"_s, "sig"_s, nullptr}',
-                'regex:\(op_t \*\) = \{->name = "name", ->signature = "sig", ->op = (0x)?0}'),
+                '(op_t *) = {->name = "name", ->signature = "sig", ->op = nullptr}'),
     ]

@@ -33,5 +33,5 @@ class Option(object):
             ('tmwa::None<int>()', 'None<int>'),
             ('tmwa::Some(1)', 'Some<int>(1)'),
             ('tmwa::Option<tmwa::Borrowed<int>>(tmwa::None)', 'None<tmwa::Borrowed<int>>'),
-            ('tmwa::Some(tmwa::borrow(option_borrow_thingy))', 'regex:Some<tmwa::Borrowed<int>>\(0x[0-9a-f]* <option_borrow_thingy>\)'),
+            ('tmwa::Some(tmwa::borrow(option_borrow_thingy))', 'Some<tmwa::Borrowed<int>>(<option_borrow_thingy>)'),
     ]

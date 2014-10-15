@@ -19,7 +19,7 @@ def hit_breakpoint():
     sys.stdout.write('.')
     value = str(gdb.parse_and_eval('*&value'))
     expected = gdb.parse_and_eval('expected').string()
-    if expected.startswith('regex:'):
+    if False and expected.startswith('regex:'):
         def compare(value, expected):
             m = re.match(expected[6:], value)
             return m and m.end() == m.endpos

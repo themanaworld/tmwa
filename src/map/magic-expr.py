@@ -34,5 +34,5 @@ class fun_t(object):
             ('static_cast<tmwa::magic::fun_t *>(nullptr)',
                 '(fun_t *) nullptr'),
             ('new tmwa::magic::fun_t{"name"_s, "sig"_s, \'\\0\', nullptr}',
-                'regex:\(fun_t \*\) = \{->name = "name", ->signature = "sig", ->ret_ty = 0 \'\\\\000\', ->fun = (0x)?0}'),
+                '(fun_t *) = {->name = "name", ->signature = "sig", ->ret_ty = 0 \'\\000\', ->fun = nullptr}'),
     ]

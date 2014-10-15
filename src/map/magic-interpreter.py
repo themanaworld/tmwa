@@ -177,7 +177,7 @@ class effect_t(object):
             ('tmwa::magic::effect_t(tmwa::magic::EffectEnd{}, tmwa::dumb_ptr<tmwa::magic::effect_t>())',
                 '{<tmwa::sexpr::Variant<tmwa::magic::EffectSkip, tmwa::magic::EffectAbort, tmwa::magic::EffectAssign, tmwa::magic::EffectForEach, tmwa::magic::EffectFor, tmwa::magic::EffectIf, tmwa::magic::EffectSleep, tmwa::magic::EffectScript, tmwa::magic::EffectBreak, tmwa::magic::EffectOp, tmwa::magic::EffectEnd, tmwa::magic::EffectCall>> = {(tmwa::magic::EffectEnd) = {<No data fields>}}, next = 0x0}'),
             ('tmwa::magic::effect_t(tmwa::magic::EffectCall{nullptr, tmwa::dumb_ptr<std::vector<tmwa::dumb_ptr<tmwa::magic::expr_t>>>(), tmwa::dumb_ptr<tmwa::magic::effect_t>()}, tmwa::dumb_ptr<tmwa::magic::effect_t>())',
-                '{<tmwa::sexpr::Variant<tmwa::magic::EffectSkip, tmwa::magic::EffectAbort, tmwa::magic::EffectAssign, tmwa::magic::EffectForEach, tmwa::magic::EffectFor, tmwa::magic::EffectIf, tmwa::magic::EffectSleep, tmwa::magic::EffectScript, tmwa::magic::EffectBreak, tmwa::magic::EffectOp, tmwa::magic::EffectEnd, tmwa::magic::EffectCall>> = {(tmwa::magic::EffectCall) = {formalv = 0x0, actualvp = 0x0, body = 0x0}}, next = 0x0}'),
+                '{<tmwa::sexpr::Variant<tmwa::magic::EffectSkip, tmwa::magic::EffectAbort, tmwa::magic::EffectAssign, tmwa::magic::EffectForEach, tmwa::magic::EffectFor, tmwa::magic::EffectIf, tmwa::magic::EffectSleep, tmwa::magic::EffectScript, tmwa::magic::EffectBreak, tmwa::magic::EffectOp, tmwa::magic::EffectEnd, tmwa::magic::EffectCall>> = {(tmwa::magic::EffectCall) = {formalv = nullptr, actualvp = 0x0, body = 0x0}}, next = 0x0}'),
     ]
 
 
@@ -211,5 +211,5 @@ class cont_activation_record_t(object):
             ('tmwa::magic::cont_activation_record_t(tmwa::magic::CarFor{42, tmwa::dumb_ptr<tmwa::magic::effect_t>(), 123, 456}, tmwa::dumb_ptr<tmwa::magic::effect_t>())',
                 '{<tmwa::sexpr::Variant<tmwa::magic::CarForEach, tmwa::magic::CarFor, tmwa::magic::CarProc>> = {(tmwa::magic::CarFor) = {id = 42, body = 0x0, current = 123, stop = 456}}, return_location = 0x0}'),
             ('tmwa::magic::cont_activation_record_t(tmwa::magic::CarProc{123, nullptr, tmwa::dumb_ptr<tmwa::magic::val_t[]>()}, tmwa::dumb_ptr<tmwa::magic::effect_t>())',
-                '{<tmwa::sexpr::Variant<tmwa::magic::CarForEach, tmwa::magic::CarFor, tmwa::magic::CarProc>> = {(tmwa::magic::CarProc) = {args_nr = 123, formalap = 0x0, old_actualpa = 0x0 = {sz = 0}}}, return_location = 0x0}'),
+                '{<tmwa::sexpr::Variant<tmwa::magic::CarForEach, tmwa::magic::CarFor, tmwa::magic::CarProc>> = {(tmwa::magic::CarProc) = {args_nr = 123, formalap = nullptr, old_actualpa = 0x0 = {sz = 0}}}, return_location = 0x0}'),
     ]

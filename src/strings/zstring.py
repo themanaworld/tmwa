@@ -22,10 +22,10 @@ class ZString(object):
     '''
 
     tests = [
-            ('tmwa::ZString(""_s)', '"" = {base = 0x0}'),
-            ('tmwa::ZString("Hello"_s)', '"Hello" = {base = 0x0}'),
-            ('tmwa::ZString("' + str256[:-2] + '"_s)', '"' + str256[:-2] + '" = {base = 0x0}'),
-            ('tmwa::ZString("' + str256[:-1] + '"_s)', '"' + str256[:-1] + '" = {base = 0x0}'),
-            ('tmwa::ZString("' + str256 + '"_s)', '"' + str256 + '" = {base = 0x0}'),
-            ('tmwa::ZString("' + str256 + 'x"_s)', '"' + str256 + 'x" = {base = 0x0}'),
+            ('tmwa::ZString(""_s)', '"" = {base = nullptr}'),
+            ('tmwa::ZString("Hello"_s)', '"Hello" = {base = nullptr}'),
+            ('tmwa::ZString("' + str256[:-2] + '"_s)', '"' + str256[:-2] + '" = {base = nullptr}'),
+            ('tmwa::ZString("' + str256[:-1] + '"_s)', '"' + str256[:-1] + '" = {base = nullptr}'),
+            ('tmwa::ZString("' + str256 + '"_s)', '"' + str256 + '" = {base = nullptr}'),
+            ('tmwa::ZString("' + str256 + 'x"_s)', '"' + str256 + 'x" = {base = nullptr}'),
     ]

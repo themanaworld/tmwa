@@ -29,22 +29,55 @@ def get_basic_type(type_):
             type_ = type_.strip_typedefs()
     return type_.unqualified()
 
+def info_symbol(addr):
+    ''' returns (symbol, offset, section, lib or None) or None?
+    '''
+    info = gdb.execute('info symbol %d' % addr, to_string=True)
+    try:
+        sym_and_off, sec_and_lib = info.split(' in section ')
+    except ValueError:
+        return None
+    try:
+        sym, off = sym_and_off.split(' + ')
+    except ValueError:
+        sym = sym_and_off
+        off = 0
+    else:
+        off = int(off, 10)
+    try:
+        sec, lib = sec_and_lib.split(' of ')
+    except ValueError:
+        sec = sec_and_lib
+        lib = None
+    return (sym, off, sec, lib)
+
 def finish():
-    global finish, initial_globals, FastPrinters, EnumPrinter
+    global finish, initial_globals, FastPrinters, EnumPrinter, PointerPrinter
 
     final_globals = {id(v):v for v in globals().values()}
     diff = set(final_globals.keys()) - set(initial_globals.keys()) \
-            - {'finish', 'initial_globals', 'FastPrinters'}
+            - {
+                    'finish',
+                    'initial_globals',
+                    'FastPrinters',
+                    'EnumPrinter',
+                    'PointerPrinter',
+            }
     fp = FastPrinters()
     ep = EnumPrinter
+    ptrp = PointerPrinter
 
     # After this, don't access any more globals in this function.
-    del finish, initial_globals, FastPrinters, EnumPrinter
+    del finish, initial_globals, FastPrinters, EnumPrinter, PointerPrinter
 
     for i in diff:
         v = final_globals[i]
         if hasattr(v, 'children') or hasattr(v, 'to_string'):
             fp.add_printer(v)
+        # TODO see if there's a way to detect the top-level printers too
+        # the problem is that some of them collide and the order *is*
+        # important, but sets and dicts don't preserve order.
+        # Particularly, 'PointerPrinter' must come after 'FastPrinters'.
 
     obj = gdb.current_objfile()
     if obj is None:
@@ -53,9 +86,12 @@ def finish():
     else:
         filename = obj.filename
     obj.pretty_printers.append(fp)
+    n = len(obj.pretty_printers)
     obj.pretty_printers.append(ep)
-    print('Added %d+1 custom printers for %s'
-            % (len(fp.printers), filename))
+    obj.pretty_printers.append(ptrp)
+    n = len(obj.pretty_printers) - n
+    print('Added %d+%d custom printers for %s'
+            % (len(fp.printers), n, filename))
 
 class EnumPrinter(object):
     __slots__ = ('_value')
@@ -81,6 +117,39 @@ class EnumPrinter(object):
         name = name.split('::')[-1]
         scope = get_basic_type(v.type).tag
         return '%s::%s' % (scope, name)
+
+class PointerPrinter(object):
+    __slots__ = ('_value')
+    name = 'any-symbol-pointer'
+    enabled = True
+
+    def __new__(cls, v):
+        type = get_basic_type(v.type)
+        if type.code != gdb.TYPE_CODE_PTR:
+            return None
+        return object.__new__(cls)
+
+    def __init__(self, v):
+        self._value = v
+
+    def to_string(self):
+        v = self._value
+        addr = int(v.cast(gdb.lookup_type('uintptr_t')))
+        if not addr:
+            s = 'nullptr'
+        else:
+            try:
+                sym, off, sec, lib = info_symbol(addr)
+            except:
+                s = '<heap 0x%x>' % addr
+            else:
+                if off:
+                    s = '<%s+%d>' % off
+                else:
+                    s = '<%s>' % sym
+        # TODO should I add (type *) ?
+        return s
+
 
 class FastPrinters(object):
     ''' printer dispatch the way gdb *should* have done it
