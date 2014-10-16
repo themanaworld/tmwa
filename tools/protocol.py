@@ -414,22 +414,6 @@ class Include(object):
         self.path = path
         self._types = []
 
-    def testcase(self, outdir):
-        basename = os.path.basename(self.path.strip('<">'))
-        root = os.path.splitext(basename)[0]
-        filename = 'include_%s_test.cpp' % root.replace('.', '_')
-        desc = 'testsuite for protocol includes'
-        poison = relpath('src/poison.hpp', outdir)
-        with OpenWrite(os.path.join(outdir, filename)) as f:
-            f.write(self.pp(0))
-            f.write(copyright.format(filename=filename, description=desc))
-            f.write('\n')
-            f.write('#include "%s"\n\nnamespace tmwa\n{\n' % poison)
-
-            for t in self._types:
-                f.write('using %s = %s;\n' % ('Test_' + ident(t.name), t.name))
-            f.write('} // namespace tmwa\n')
-
     def pp(self, n):
         return '#%*sinclude %s\n' % (n, '', self.path)
 
@@ -550,7 +534,6 @@ class Channel(object):
         server = self.server
         client = self.client
         header = '%s-%s.hpp' % (server, client)
-        test = '%s-%s_test.cpp' % (server, client)
         desc = 'TMWA network protocol: %s/%s' % (server, client)
         with OpenWrite(os.path.join(outdir, header)) as f:
             proto2 = relpath(outdir, 'src')
@@ -579,16 +562,6 @@ class Channel(object):
             f.write('\n')
             for p in self.packets:
                 p.dump_convert(f)
-            f.write('} // namespace tmwa\n')
-
-        with OpenWrite(os.path.join(outdir, test)) as f:
-            poison = relpath('src/poison.hpp', outdir)
-            f.write('#include "%s"\n' % header)
-            f.write(copyright.format(filename=test, description=desc))
-            f.write('\n')
-            f.write(generated)
-            f.write('\n')
-            f.write('#include "%s"\n\nnamespace tmwa\n{\n' % poison)
             f.write('} // namespace tmwa\n')
 
 
@@ -670,8 +643,6 @@ class Context(object):
             f.write('\n//TODO split the includes\n')
             for inc in self._includes:
                 f.write(inc.pp(0))
-                # this is writing another file
-                inc.testcase(outdir)
             f.write('\n')
             f.write('namespace tmwa\n{\n')
 

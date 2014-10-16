@@ -196,6 +196,7 @@ PIES := $(shell cd ${SRC_DIR}; find src/ -name '*.py')
 PIES := $(filter-out src/main-gdb-%.py,${PIES})
 SOURCES := ${REAL_SOURCES}
 HEADERS := ${REAL_HEADERS}
+CHECK_HEADERS := $(patsubst src/%.hpp,obj/%.hpp.check,$(filter %.hpp,${REAL_HEADERS}))
 PATTERN_ROOTS := $(patsubst src/%.cpp,%,${SOURCES})
 PATTERN_MAINS := $(patsubst %/main,%,$(filter %/main,${PATTERN_ROOTS}))
 PATTERN_LIBS := $(patsubst %/lib,%,$(filter %/lib,${PATTERN_ROOTS}))
@@ -427,6 +428,10 @@ obj/%.pdc.o: src/%.cpp
 obj/%.pic.o: src/%.cpp
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -fPIC -c -o $@ $<
+obj/%.hpp.check: src/%.hpp
+	$(MKDIR_FIRST)
+	echo '#include "$<"' | ${CXX} ${CPPFLAGS} ${CXXFLAGS} -x c++ -fsyntax-only -
+	touch $@
 
 bin/%-gdb.py: src/main-gdb-head.py src/main-gdb-tail.py
 	$(MKDIR_FIRST)
@@ -474,9 +479,11 @@ obj/run-test-debug-debug.stamp:
 endif
 
 test: $(patsubst bin/%,obj/run-%.stamp,${TEST_BINARIES})
+test: test-headers
 obj/run-%.stamp: bin/%
 	${TESTER} $< ${TEST_ARGS}
 	touch $@
+test-headers: ${CHECK_HEADERS}
 
 install := install
 install_exe := ${install}

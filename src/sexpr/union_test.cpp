@@ -1,7 +1,7 @@
-#include "little.hpp"
-//    little.cpp - integers of known endianness
+#include "union.hpp"
+//    union_test.cpp - Just include the header file and try to instantiate.
 //
-//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -23,4 +23,22 @@
 
 namespace tmwa
 {
+namespace sexpr
+{
+namespace
+{
+    struct Foo
+    {
+        Foo();
+        Foo(const Foo&);
+        Foo& operator = (const Foo&);
+        ~Foo();
+    };
+} // anonymous namespace
+static Union<int, Foo> u;
+
+static_assert(u.index<int>() == 0, "int");
+static_assert(u.index<Foo>() == 1, "Foo");
+static_assert(u.index<char>() == size_t(-1), "char");
+} // namespace sexpr
 } // namespace tmwa
