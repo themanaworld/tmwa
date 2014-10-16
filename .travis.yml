@@ -78,6 +78,8 @@ matrix:
   allow_failures:
     - compiler: clang
       env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.3 DEBUGPACKAGE=libstdc++6-4.6-dbg
+    - compiler: clang
+      env: REAL_CC=clang-3.5 REAL_CXX=clang++-3.5 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.5 DEBUGPACKAGE=libstdc++6-4.6-dbg
   exclude:
     - env: ignore=this
   include:
