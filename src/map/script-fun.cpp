@@ -35,6 +35,8 @@
 
 #include "../mmo/core.hpp"
 
+#include "../proto2/net-HumanTimeDiff.hpp"
+
 #include "atcommand.hpp"
 #include "battle.hpp"
 #include "chrif.hpp"

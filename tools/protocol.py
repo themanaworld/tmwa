@@ -20,6 +20,8 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
 import glob
 import itertools
 import os
@@ -81,13 +83,17 @@ class OpenWrite(object):
         os.system(frag)
 
 class LowType(object):
-    __slots__ = ()
+    __slots__ = ('includes')
+
+    def __repr__(self):
+        return '%s(%s)' % (type(self).__name__, self.name)
 
 class NativeType(LowType):
     __slots__ = ('name')
 
-    def __init__(self, name):
+    def __init__(self, name, include):
         self.name = name
+        self.includes = frozenset({include}) if include else frozenset()
 
     def a_tag(self):
         return self.name
@@ -95,21 +101,33 @@ class NativeType(LowType):
 class NetworkType(LowType):
     __slots__ = ('name')
 
-    def __init__(self, name):
+    def __init__(self, name, include):
         self.name = name
+        self.includes = frozenset({include}) if include else frozenset()
 
     def e_tag(self):
         return self.name
 
 
 class Type(object):
-    __slots__ = ()
+    __slots__ = ('includes', 'do_dump')
+
+    def __new__(cls, *args):
+        rv = object.__new__(cls)
+        rv.do_dump = True
+        return rv
 
 class NeutralType(Type):
     __slots__ = ('name')
 
-    def __init__(self, name):
+    def __init__(self, name, include):
         self.name = name
+        identity = '#include "../proto-base/net-neutral.hpp"\n'
+        self.includes = frozenset({include, identity}) if include else frozenset({identity})
+
+    def __repr__(self):
+        return 'NeutralType(%r)' % (self.name)
+
 
     def native_tag(self):
         return self.name
@@ -119,11 +137,44 @@ class NeutralType(Type):
 
     e_tag = network_tag
 
+class PolyFakeType(object):
+    __slots__ = ('already', 'do_dump', 'nat_tag')
+
+    def __init__(self, already):
+        self.already = already = tuple(already)
+        self.do_dump = True
+
+        assert len(already) >= 2
+        self.nat_tag = nat_tag = already[0].native_tag()
+        for a in self.already:
+            a.do_dump = False
+            assert nat_tag == a.native_tag()
+
+    def __repr__(self):
+        return 'PolyFakeType(*%r)' % (self.already,)
+
+
+    def native_tag(self):
+        return self.nat_tag
+
+    def add_headers_to(self, headers):
+        for a in self.already:
+            a.add_headers_to(headers)
+
+    def dump(self, f):
+        for a in self.already:
+            a.dump(f)
+
 class StringType(Type):
     __slots__ = ('native')
 
     def __init__(self, native):
         self.native = native
+        self.includes = native.includes | {'#include "../proto-base/net-string.hpp"\n'}
+
+    def __repr__(self):
+        return 'StringType(%r)' % (self.native)
+
 
     def native_tag(self):
         return self.native.a_tag()
@@ -131,9 +182,9 @@ class StringType(Type):
     def network_tag(self):
         return 'NetString<sizeof(%s)>' % self.native.a_tag()
 
-    def dump(self, f):
-        # not implemented properly, uses a template in the meta instead
-        pass
+    # not implemented properly, uses a template in net-string.hpp instead
+    #do_dump = False
+    # in Context.string() instead because reasons
 
 class ProvidedType(Type):
     __slots__ = ('native', 'network')
@@ -141,6 +192,11 @@ class ProvidedType(Type):
     def __init__(self, native, network):
         self.native = native
         self.network = network
+        self.includes = native.includes | network.includes
+
+    def __repr__(self):
+        return 'ProvidedType(%r, %r)' % (self.native, self.network)
+
 
     def native_tag(self):
         return self.native.a_tag()
@@ -154,12 +210,22 @@ class EnumType(Type):
     def __init__(self, native, under):
         self.native = native
         self.under = under
+        name = native.a_tag()
+        self.includes = frozenset({'#include "net-%s.hpp"\n' % name})
+
+    def __repr__(self):
+        return 'EnumType(%r, %r)' % (self.native, self.under)
+
 
     def native_tag(self):
         return self.native.a_tag()
 
     def network_tag(self):
         return self.under.network_tag()
+
+    def add_headers_to(self, headers):
+        headers.update(self.native.includes)
+        headers.update(self.under.includes)
 
     def dump(self, f):
         native = self.native_tag()
@@ -189,12 +255,22 @@ class WrappedType(Type):
     def __init__(self, native, under):
         self.native = native
         self.under = under
+        name = self.native.a_tag()
+        self.includes = native.includes | under.includes | {'#include "net-%s.hpp"\n' % name}
+
+    def __repr__(self):
+        return 'WrappedType(%r, %r)' % (self.native, self.under)
+
 
     def native_tag(self):
         return self.native.a_tag()
 
     def network_tag(self):
         return self.under.network_tag()
+
+    def add_headers_to(self, headers):
+        headers.update(self.native.includes)
+        headers.update(self.under.includes)
 
     def dump(self, f):
         native = self.native_tag()
@@ -223,6 +299,11 @@ class SkewLengthType(Type):
     def __init__(self, ty, skew):
         self.type = ty
         self.skew = skew
+        self.includes = ty.includes | {'#include "../proto-base/net-skewed-length.hpp"\n'}
+
+    def __repr__(self):
+        return 'SkewLengthType(%r, %r)' % (self.ty, self.skew)
+
 
     def native_tag(self):
         return self.type.native_tag()
@@ -246,12 +327,26 @@ class StructType(Type):
         self.fields = fields
         self.size = size
         self.ctor = ctor
+        # only used if id is None
+        # internally uses add_headers_to()
+        self.includes = frozenset({'#include "net-%s.hpp"\n' % name})
+
+    def __repr__(self):
+        return '<StructType(%r) with %d fields>' % (self.name, len(self.fields))
+
 
     def native_tag(self):
         return self.name
 
     def network_tag(self):
         return 'Net' + self.name
+
+    def add_headers_to(self, headers):
+        # only used directly if id is not None
+        # used indirectly if id is None
+        for (o, l, n) in self.fields:
+            headers.update(l.includes)
+        headers.add('#include <cstddef>\n') # for offsetof
 
     def dump(self, f):
         self.dump_native(f)
@@ -331,12 +426,23 @@ class PartialStructType(Type):
     def __init__(self, native, body):
         self.native = native
         self.body = body
+        name = native.a_tag()
+        self.includes = frozenset({'#include "../proto2/net-%s.hpp"\n' % name})
+
+    def __repr__(self):
+        return '<PartialStructType(%r) with %d fields>' % (self.native, len(self.body))
+
 
     def native_tag(self):
         return self.native.a_tag()
 
     def network_tag(self):
         return 'Net%s' % self.native_tag()
+
+    def add_headers_to(self, headers):
+        headers.update(self.native.includes)
+        for n, t in self.body:
+            headers.update(t.includes)
 
     def dump(self, f):
         f.write('struct %s\n{\n' % self.network_tag())
@@ -371,6 +477,11 @@ class ArrayType(Type):
     def __init__(self, element, count):
         self.element = element
         self.count = count
+        self.includes = element.includes | {'#include "../proto-base/net-array.hpp"\n'}
+
+    def __repr__(self):
+        return 'ArrayType(%r, %r)' % (self.element, self.count)
+
 
     def native_tag(self):
         return 'Array<%s, %s>' % (self.element.native_tag(), self.count)
@@ -385,6 +496,11 @@ class EArrayType(Type):
         self.element = element
         self.index = index
         self.count = count
+        self.includes = element.includes | {'#include "../proto-base/net-array.hpp"\n'}
+
+    def __repr__(self):
+        return 'EArrayType(%r, %r)' % (self.element, self.index, self.count)
+
 
     def native_tag(self):
         return 'earray<%s, %s, %s>' % (self.element.native_tag(), self.index, self.count)
@@ -399,6 +515,15 @@ class InvArrayType(Type):
         self.element = element
         self.index = index
         self.count = count
+        self.includes = element.includes | {
+                '#include "../proto-base/net-array.hpp"\n',
+                '#include "../map/clif.t.hpp"\n',
+                '#include "../mmo/consts.hpp"\n',
+        }
+
+    def __repr__(self):
+        return 'InvArrayType(%r, %r)' % (self.element, self.index, self.count)
+
 
     def native_tag(self):
         return 'GenericArray<%s, InventoryIndexing<%s, %s>>' % (self.element.native_tag(), self.index, self.count)
@@ -414,22 +539,25 @@ class Include(object):
         self.path = path
         self._types = []
 
+    def __repr__(self):
+        return '<Include(%r) with %d types>' % (self.path, len(self._types))
+
+
     def pp(self, n):
         return '#%*sinclude %s\n' % (n, '', self.path)
 
-
     def native(self, name):
-        ty = NativeType(name)
+        ty = NativeType(name, self.pp(0))
         self._types.append(ty)
         return ty
 
     def network(self, name):
-        ty = NetworkType(name)
+        ty = NetworkType(name, self.pp(0))
         self._types.append(ty)
         return ty
 
     def neutral(self, name):
-        ty = NeutralType(name)
+        ty = NeutralType(name, self.pp(0))
         self._types.append(ty)
         return ty
 
@@ -439,6 +567,13 @@ class FixedPacket(object):
 
     def __init__(self, fixed_struct):
         self.fixed_struct = fixed_struct
+
+    def __repr__(self):
+        return 'FixedPacket(%r)' % (self.fixed_struct)
+
+
+    def add_headers_to(self, headers):
+        self.fixed_struct.add_headers_to(headers)
 
     def dump_fwd(self, fwd):
         self.fixed_struct.dump_fwd(fwd)
@@ -462,6 +597,14 @@ class VarPacket(object):
     def __init__(self, head_struct, repeat_struct):
         self.head_struct = head_struct
         self.repeat_struct = repeat_struct
+
+    def __repr__(self):
+        return 'VarPacket(%r, %r)' % (self.head_struct, self.repeat_struct)
+
+
+    def add_headers_to(self, headers):
+        self.head_struct.add_headers_to(headers)
+        self.repeat_struct.add_headers_to(headers)
 
     def dump_fwd(self, fwd):
         self.head_struct.dump_fwd(fwd)
@@ -525,6 +668,10 @@ class Channel(object):
         self.client = client
         self.packets = []
 
+    def __repr__(self):
+        return '<Channel(%r, %r) with %d packets>' % (self.server, self.client, len(self.packets))
+
+
     def x(self, id, name, **kwargs):
         self.packets.append(packet(id, name, **kwargs))
     r = x
@@ -536,6 +683,10 @@ class Channel(object):
         header = '%s-%s.hpp' % (server, client)
         desc = 'TMWA network protocol: %s/%s' % (server, client)
         with OpenWrite(os.path.join(outdir, header)) as f:
+            type_headers = set()
+            for p in self.packets:
+                p.add_headers_to(type_headers)
+            type_headers = sorted(type_headers)
             proto2 = relpath(outdir, 'src')
             f.write('#pragma once\n')
             f.write(copyright.format(filename=header, description=desc))
@@ -543,7 +694,9 @@ class Channel(object):
             f.write(generated)
             f.write('\n')
             f.write('#include "fwd.hpp"\n\n')
-            f.write('#include "types.hpp"\n')
+            f.write('// sorry these are not ordered by hierarchy\n')
+            for h in type_headers:
+                f.write(h)
             f.write('\n')
             f.write('namespace tmwa\n{\n')
             if client == 'user':
@@ -588,6 +741,11 @@ class Context(object):
         self._channels = []
         self._types = []
 
+    def __repr__(self):
+        return '<Context with %d includes, %d channels, %d types>' % (
+                len(self._includes), len(self._channels), len(self._types),
+        )
+
 
     def sysinclude(self, name):
         rv = Include('<%s>' % name)
@@ -630,135 +788,47 @@ class Context(object):
 
             f.write('} // namespace tmwa\n')
 
-        with OpenWrite(os.path.join(outdir, 'types.hpp')) as f:
-            header = '%s/types.hpp' % proto2
-            desc = 'Forward declarations of packet component types'
-            f.write('#pragma once\n')
-            f.write(copyright.format(filename=header, description=desc))
-            f.write('\n')
-            f.write('#include "fwd.hpp"\n\n')
-            f.write('#include "../generic/array.hpp"\n')
-            f.write('#include "../mmo/consts.hpp"\n')
+        for ty in self._types:
+            header = 'net-%s.hpp' % ty.native_tag()
+            if not ty.do_dump:
+                continue
+            type_headers = set()
+            ty.add_headers_to(type_headers)
+            type_headers = sorted(type_headers)
+            with OpenWrite(os.path.join(outdir, header)) as f:
+                header = '%s/%s' % (proto2, header)
+                desc = 'Packet structures and conversions'
+                f.write('#pragma once\n')
+                f.write(copyright.format(filename=header, description=desc))
+                f.write('\n')
+                f.write('#include "fwd.hpp"\n\n')
 
-            f.write('\n//TODO split the includes\n')
-            for inc in self._includes:
-                f.write(inc.pp(0))
-            f.write('\n')
-            f.write('namespace tmwa\n{\n')
-
-            f.write('template<class T>\n')
-            f.write('bool native_to_network(T *network, T native)\n{\n')
-            f.write('    *network = native;\n')
-            f.write('    return true;\n')
-            f.write('}\n')
-            f.write('template<class T>\n')
-            f.write('bool network_to_native(T *native, T network)\n{\n')
-            f.write('    *native = network;\n')
-            f.write('    return true;\n')
-            f.write('}\n')
-
-            f.write('template<class T, size_t N>\n')
-            f.write('struct NetArray\n{\n')
-            f.write('    T data[N];\n')
-            f.write('};\n')
-            f.write('template<class T, class U, class I>\n')
-            f.write('bool native_to_network(NetArray<T, I::alloc_size> *network, GenericArray<U, I> native)\n{\n')
-            f.write('    for (size_t i = 0; i < I::alloc_size; ++i)\n')
-            f.write('    {\n')
-            f.write('        if (!native_to_network(&(*network).data[i], native[I::offset_to_index(i)]))\n')
-            f.write('            return false;\n')
-            f.write('    }\n')
-            f.write('    return true;\n')
-            f.write('}\n')
-            f.write('template<class T, class U, class I>\n')
-            f.write('bool network_to_native(GenericArray<U, I> *native, NetArray<T, I::alloc_size> network)\n{\n')
-            f.write('    for (size_t i = 0; i < I::alloc_size; ++i)\n')
-            f.write('    {\n')
-            f.write('        if (!network_to_native(&(*native)[I::offset_to_index(i)], network.data[i]))\n')
-            f.write('            return false;\n')
-            f.write('    }\n')
-            f.write('    return true;\n')
-            f.write('}\n')
-            f.write('\n')
-
-            f.write('template<size_t N>\n')
-            f.write('struct NetString\n{\n')
-            f.write('    char data[N];\n')
-            f.write('};\n')
-            f.write('template<size_t N>\n')
-            f.write('bool native_to_network(NetString<N> *network, VString<N-1> native)\n{\n')
-            f.write('    // basically WBUF_STRING\n')
-            f.write('    char *const begin = network->data;\n')
-            f.write('    char *const end = begin + N;\n')
-            f.write('    char *const mid = std::copy(native.begin(), native.end(), begin);\n')
-            f.write('    std::fill(mid, end, \'\\0\');\n')
-            f.write('    return true;\n')
-            f.write('}\n')
-            f.write('template<size_t N>\n')
-            f.write('bool network_to_native(VString<N-1> *native, NetString<N> network)\n{\n')
-            f.write('    // basically RBUF_STRING\n')
-            f.write('    const char *const begin = network.data;\n')
-            f.write('    const char *const end = begin + N;\n')
-            f.write('    const char *const mid = std::find(begin, end, \'\\0\');\n')
-            f.write('    *native = XString(begin, mid, nullptr);\n')
-            f.write('    return true;\n')
-            f.write('}\n')
-            f.write('\n')
-            f.write('inline\n')
-            f.write('bool native_to_network(NetString<24> *network, CharName native)\n{\n')
-            f.write('    VString<23> tmp = native.to__actual();\n')
-            f.write('    bool rv = native_to_network(network, tmp);\n')
-            f.write('    return rv;\n')
-            f.write('}\n')
-            f.write('inline\n')
-            f.write('bool network_to_native(CharName *native, NetString<24> network)\n{\n')
-            f.write('    VString<23> tmp;\n')
-            f.write('    bool rv = network_to_native(&tmp, network);\n')
-            f.write('    *native = stringish<CharName>(tmp);\n')
-            f.write('    return rv;\n')
-            f.write('}\n')
-            f.write('\n')
-            f.write('inline\n')
-            f.write('bool native_to_network(NetString<16> *network, MapName native)\n{\n')
-            f.write('    XString tmp = native;\n')
-            f.write('    bool rv = native_to_network(network, VString<15>(tmp));\n')
-            f.write('    return rv;\n')
-            f.write('}\n')
-            f.write('inline\n')
-            f.write('bool network_to_native(MapName *native, NetString<16> network)\n{\n')
-            f.write('    VString<15> tmp;\n')
-            f.write('    bool rv = network_to_native(&tmp, network);\n')
-            f.write('    *native = stringish<MapName>(tmp);\n')
-            f.write('    return rv;\n')
-            f.write('}\n')
-            f.write('\n')
-
-            f.write('template<class T, size_t N>\n')
-            f.write('struct SkewedLength\n{\n')
-            f.write('    T data;\n')
-            f.write('};\n')
-            f.write('template<class T, size_t N, class U>\n')
-            f.write('bool native_to_network(SkewedLength<T, N> *network, U native)\n{\n')
-            f.write('    native -= N;\n')
-            f.write('    return native_to_network(&network->data, native);\n')
-            f.write('}\n')
-            f.write('template<class T, size_t N, class U>\n')
-            f.write('bool network_to_native(U *native, SkewedLength<T, N> network)\n{\n')
-            f.write('    bool rv = network_to_native(native, network.data);\n')
-            f.write('    *native += N;\n')
-            f.write('    return rv;\n')
-            f.write('}\n')
-            f.write('\n')
-
-            for ty in self._types:
+                for inc in type_headers:
+                    f.write(inc)
+                f.write('\n')
+                f.write('namespace tmwa\n{\n')
                 ty.dump(f)
-            f.write('} // namespace tmwa\n')
+                f.write('} // namespace tmwa\n')
 
         for g in glob.glob(os.path.join(outdir, '*.old')):
             print('Obsolete: %s' % g)
             os.remove(g)
 
+    def finish_types(self):
+        s = set()
+        for t in self._types:
+            if not t.do_dump:
+                continue
+            n = t.native_tag()
+            assert n not in s, n
+            s.add(n)
+
     # types
+
+    def poly(self, *already):
+        rv = PolyFakeType(already)
+        self._types.append(rv)
+        return rv
 
     def provided(self, native, network):
         # the whole point of 'provided' is to not be implemented
@@ -776,6 +846,7 @@ class Context(object):
 
     def string(self, native):
         rv = StringType(native)
+        rv.do_dump = False
         self._types.append(rv)
         return rv
 
@@ -804,7 +875,7 @@ class Context(object):
         return rv
 
 
-def main():
+def build_context():
 
     ## setup
 
@@ -836,8 +907,8 @@ def main():
     skill_th = ctx.include('src/map/skill.t.hpp')
 
     ## primitive types
-    char = NeutralType('char')
-    bit = NeutralType('bool')
+    char = NeutralType('char', None)
+    bit = NeutralType('bool', None)
 
     ## included types
 
@@ -978,14 +1049,19 @@ def main():
     party_id = ctx.wrap(PartyId, u32)
     item_name_id = ctx.wrap(ItemNameId, u16)
     item_name_id4 = ctx.wrap(ItemNameId, u32)
+    ctx.poly(item_name_id, item_name_id4)
     block_id = ctx.wrap(BlockId, u32)
 
     time32 = ctx.provided(TimeT, Little32)
     time64 = ctx.provided(TimeT, Little64)
+    #ctx.poly(time32, time32)
 
     gm1 = ctx.provided(GmLevel, Byte)
     gm2 = ctx.provided(GmLevel, Little16)
     gm = ctx.provided(GmLevel, Little32)
+    #ctx.poly(gm1, gm2, gm)
+
+    # poly is not currently needed for ProvidedType
 
     str16 = ctx.string(VString16)
     str20 = ctx.string(VString20)
@@ -1234,6 +1310,8 @@ def main():
             ],
             size=None,
     )
+
+    ctx.finish_types()
 
 
     ## packet channels
@@ -4190,7 +4268,10 @@ def main():
         ],
         payload_size=4,
     )
+    return ctx
 
+def main():
+    ctx = build_context()
     ## teardown
     ctx.dump()
 

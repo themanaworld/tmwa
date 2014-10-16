@@ -28,6 +28,8 @@
 
 #include "../mmo/fwd.hpp"
 
+#include "../proto2/net-Storage.hpp"
+
 #include "clif.t.hpp"
 
 
