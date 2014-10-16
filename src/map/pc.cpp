@@ -685,20 +685,6 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
         sd->sc_data[i].val1 = 0;
     }
     sd->sc_count = 0;
-    {
-        Opt0 old_option = sd->status.option;
-        sd->status.option = Opt0::ZERO;
-
-        // This would leak information.
-        // It's better to make it obvious that players can see you.
-        if (false && bool(old_option & Opt0::INVISIBILITY))
-            is_atcommand(sd->sess, sd, "@invisible"_s, GmLevel());
-
-        if (bool(old_option & Opt0::HIDE))
-            is_atcommand(sd->sess, sd, "@hide"_s, GmLevel());
-        // atcommand_hide might already send it, but also might not
-        clif_changeoption(sd);
-    }
 
     // パーティー関係の初期化
     sd->party_sended = 0;
@@ -713,6 +699,21 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
     // 位置の設定
     pc_setpos(sd, sd->status.last_point.map_, sd->status.last_point.x,
                sd->status.last_point.y, BeingRemoveWhy::GONE);
+
+    {
+        Opt0 old_option = sd->status.option;
+        sd->status.option = Opt0::ZERO;
+
+        // This would leak information.
+        // It's better to make it obvious that players can see you.
+        if (false && bool(old_option & Opt0::INVISIBILITY))
+            is_atcommand(sd->sess, sd, "@invisible"_s, GmLevel());
+
+        if (bool(old_option & Opt0::HIDE))
+            is_atcommand(sd->sess, sd, "@hide"_s, GmLevel());
+        // atcommand_hide might already send it, but also might not
+        clif_changeoption(sd);
+    }
 
     // パーティ、ギルドデータの要求
     if (sd->status.party_id

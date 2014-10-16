@@ -327,6 +327,11 @@ void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
 {
     std::vector<dumb_ptr<block_list>> bl_list;
 
+    // there are some broadcasts during startup
+    // disable then
+    if (m == borrow(undefined_gat))
+        abort();
+
     if (x0 < 0)
         x0 = 0;
     if (y0 < 0)
