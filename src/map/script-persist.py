@@ -2,6 +2,7 @@ class script_data(object):
     enabled = True
 
     test_extra = '''
+    #include "../strings/literal.hpp"
     using tmwa::operator "" _s;
 
     #include "../map/script-parse-internal.hpp"

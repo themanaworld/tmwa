@@ -9,5 +9,10 @@ class Wrapped(object):
     def to_string(self):
         return self._value['_value']
 
+    test_extra = '''
+    void do_breakpoint();
+    void do_breakpoint() {}
+    '''
+
     # tests are in src/mmo/ids.py instead
     tests = []

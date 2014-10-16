@@ -26,6 +26,8 @@ class Option(object):
                 return 'None<%s>' % ty
 
     test_extra = '''
+    #include "../compat/borrow.hpp"
+
     static int option_borrow_thingy;
     '''
 

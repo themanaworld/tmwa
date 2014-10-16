@@ -5,8 +5,8 @@ try:
     gdb.execute('set auto-load safe-path /')
 except:
     pass
+gdb.execute('file %s' % file_to_load)
 end
-file bin/test-debug-debug
 set logging file /dev/null
 set logging redirect on
 set logging off

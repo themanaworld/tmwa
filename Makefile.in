@@ -185,7 +185,7 @@ SHELL=bash
 
 # need to generate source files before path lists
 $(shell make -f ${SRC_DIR}/generate.make >&2)
-obj/generated.stamp:
+stamp/generated.stamp:
 	# if you get here, the shell above failed
 	false
 
@@ -196,11 +196,14 @@ PIES := $(shell cd ${SRC_DIR}; find src/ -name '*.py')
 PIES := $(filter-out src/main-gdb-%.py,${PIES})
 SOURCES := ${REAL_SOURCES}
 HEADERS := ${REAL_HEADERS}
-CHECK_HEADERS := $(patsubst src/%.hpp,obj/%.hpp.check,$(filter %.hpp,${REAL_HEADERS}))
+CHECK_HEADERS := $(patsubst src/%.hpp,stamp/%.hpp.check,$(filter %.hpp,${REAL_HEADERS}))
 PATTERN_ROOTS := $(patsubst src/%.cpp,%,${SOURCES})
+PATTERN_PIES := $(patsubst src/%.py,%,${PIES})
 PATTERN_MAINS := $(patsubst %/main,%,$(filter %/main,${PATTERN_ROOTS}))
 PATTERN_LIBS := $(patsubst %/lib,%,$(filter %/lib,${PATTERN_ROOTS}))
 PATTERN_TESTS := $(patsubst %/test,%,$(filter %/test,${PATTERN_ROOTS}))
+PATTERN_GTESTS := $(subst /,--,$(patsubst %_test,%,$(filter %_test,${PATTERN_ROOTS})))
+PATTERN_DTESTS := $(patsubst debug-debug/%,%,$(filter debug-debug/%,${PATTERN_ROOTS}))
 DEPENDS := $(patsubst src/%.cpp,obj/%.d,${SOURCES})
 PREPROCESSED := $(patsubst %.d,%.ii,${DEPENDS})
 IRS := $(patsubst %.d,%.ll,${DEPENDS})
@@ -211,9 +214,13 @@ PIC_OBJECTS := $(patsubst %.d,%.pic.o,${DEPENDS})
 MAIN_SOURCES := $(filter %/main.cpp,${SOURCES})
 LIB_SOURCES := $(filter %/lib.cpp,${SOURCES})
 TEST_SOURCES := $(filter %/test.cpp,${SOURCES})
+GTEST_SOURCES := $(filter %_test.cpp,${SOURCES})
+DTEST_SOURCES := $(filter src/debug-debug/%.cpp,${SOURCES})
 BINARIES := $(patsubst src/%/main.cpp,bin/${tmwa}-%,${MAIN_SOURCES})
 LIBRARIES := $(patsubst src/%/lib.cpp,lib/lib${tmwa}-%.${LIB_SUFFIX_FAKE},${LIB_SOURCES})
-TEST_BINARIES := $(patsubst src/%/test.cpp,bin/test-%,${TEST_SOURCES})
+TEST_BINARIES := $(patsubst src/%/test.cpp,bin/tests/test-%,${TEST_SOURCES})
+GTEST_BINARIES := $(patsubst src--%_test.cpp,bin/tests/gtest-%,$(subst /,--,${GTEST_SOURCES}))
+DTEST_BINARIES := $(patsubst src/debug-debug/%.cpp,bin/tests/dtest-%,${DTEST_SOURCES})
 
 # tricky part
 
@@ -229,7 +236,7 @@ define RECURSIVE_DEPS_IMPL
 $(eval more_deps := $(value ${1}))
 $(eval more_deps := $(patsubst src/%.hpp,%,${more_deps}))
 $(eval lib_deps += $(patsubst include/${tmwa}/%.hpp,lib/lib${tmwa}-%.${LIB_SUFFIX_LONG},$(filter include/${tmwa}/%.hpp,${more_deps})))
-$(eval more_deps := $(filter ${PATTERN_ROOTS},${more_deps}))
+$(eval more_deps := $(filter ${PATTERN_ROOTS} ${PATTERN_PIES},${more_deps}))
 $(eval more_deps := $(filter-out ${cur_deps},${more_deps}))
 $(eval cur_deps += ${more_deps})
 $(foreach dep,${more_deps},${call RECURSIVE_DEPS_IMPL,${dep}})
@@ -244,8 +251,9 @@ define RECURSIVE_DEPS
 $(eval cur_deps := ${1})
 $(eval lib_deps :=)
 $(call RECURSIVE_DEPS_IMPL,${1})
+$(eval py_deps := $(filter ${PATTERN_PIES},${cur_deps}))
 
-${cur_deps}
+$(filter ${PATTERN_ROOTS},${cur_deps})
 endef
 
 # Apply the rules to all the main.cpp files
@@ -332,25 +340,37 @@ $(foreach root,${PATTERN_ROOTS},$(eval obj/${root}.ii obj/${root}.ll obj/${root}
 $(foreach test,tests,$(eval ${test}/test += $(patsubst %,src/%.hpp,$(filter %_test,${PATTERN_ROOTS}))))
 
 
-$(foreach main,${PATTERN_MAINS},$(eval main-${main} := $(strip $(call RECURSIVE_DEPS,${main}/main))) $(eval main-${main}-libs := ${lib_deps}))
+$(foreach it,${PATTERN_MAINS},$(eval main-${it} := $(strip $(call RECURSIVE_DEPS,${it}/main))) $(eval main-${it}-libs := ${lib_deps}) $(eval main-${it}-pies := ${py_deps}))
 # actual rule deps
-$(foreach main,${PATTERN_MAINS},$(eval bin/${tmwa}-${main} : $(patsubst %,obj/%.pdc.o,$(value main-${main})) $(value main-${main}-libs)))
-$(foreach main,${PATTERN_MAINS},$(eval bin/${tmwa}-${main}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value main-${main})))))
-#$(foreach main,${PATTERN_MAINS},$(info post-main: main-${main}: $(value main-${main})) $(info post-main: main-${main}-libs: $(value main-${main}-libs)) $(info ))
+$(foreach it,${PATTERN_MAINS},$(eval bin/${tmwa}-${it} : $(patsubst %,obj/%.pdc.o,$(value main-${it})) $(value main-${it}-libs)))
+$(foreach it,${PATTERN_MAINS},$(eval bin/${tmwa}-${it}-gdb.py : $(patsubst %,src/%.py,$(value main-${it}-pies))))
+#$(foreach it,${PATTERN_MAINS},$(info post-main: main-${it}: $(value main-${it})) $(info post-main: main-${it}-libs: $(value main-${it}-libs)) $(info ))
 
-$(foreach lib,${PATTERN_LIBS},$(eval lib-${lib} := $(strip $(call RECURSIVE_DEPS,${lib}/lib))) $(eval lib-${lib}-libs := ${lib_deps}))
+$(foreach it,${PATTERN_LIBS},$(eval lib-${it} := $(strip $(call RECURSIVE_DEPS,${it}/lib))) $(eval lib-${it}-libs := ${lib_deps}) $(eval lib-${it}-pies := ${py_deps}))
 # actual rule deps
-$(foreach lib,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${lib}.a : $(patsubst %,obj/%.pdc.o,$(value lib-${lib})) $(filter-out lib/lib${tmwa}-${lib}.a,$(value lib-${lib}-libs))))
+$(foreach it,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${it}.a : $(patsubst %,obj/%.pdc.o,$(value lib-${it})) $(filter-out lib/lib${tmwa}-${it}.a,$(value lib-${it}-libs))))
 # no -gdb.py for static libs
-$(foreach lib,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${lib}.${SO_LONG} : $(patsubst %,obj/%.pic.o,$(value lib-${lib})) $(filter-out lib/lib${tmwa}-${lib}.${SO_LONG},$(value lib-${lib}-libs))))
-$(foreach lib,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${lib}.${SO_LONG}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value lib-${lib})))))
-#$(foreach lib,${PATTERN_LIBS},$(info post-lib: lib-${lib}: $(value lib-${lib})) $(info post-lib: lib-${lib}-libs: $(value lib-${lib}-libs)) $(info ))
+$(foreach it,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${it}.${SO_LONG} : $(patsubst %,obj/%.pic.o,$(value lib-${it})) $(filter-out lib/lib${tmwa}-${it}.${SO_LONG},$(value lib-${it}-libs))))
+$(foreach it,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${it}.${SO_LONG}-gdb.py : $(patsubst %,src/%.py,$(value lib-${it}-pies))))
+#$(foreach it,${PATTERN_LIBS},$(info post-lib: lib-${it}: $(value lib-${it})) $(info post-lib: lib-${it}-libs: $(value lib-${it}-libs)) $(info ))
 
-$(foreach test,${PATTERN_TESTS},$(eval test-${test} := $(strip $(call RECURSIVE_DEPS,${test}/test))) $(eval test-${test}-libs := ${lib_deps}))
+$(foreach it,${PATTERN_TESTS},$(eval test-${it} := $(strip $(call RECURSIVE_DEPS,${it}/test))) $(eval test-${it}-libs := ${lib_deps})  $(eval test-${it}-pies := ${py_deps}))
 # actual rule deps
-$(foreach test,${PATTERN_TESTS},$(eval bin/test-${test} : $(patsubst %,obj/%.pdc.o,$(value test-${test})) $(value test-${test}-libs)))
-$(foreach test,${PATTERN_TESTS},$(eval bin/test-${test}-gdb.py : $(filter ${PIES},$(patsubst %,src/%.py,$(value test-${test})))))
-#$(foreach test,${PATTERN_TESTS},$(info post-test: test-${test}: $(value test-${test})) $(info post-test: test-${test}-libs: $(value test-${test}-libs)) $(info ))
+$(foreach it,${PATTERN_TESTS},$(eval bin/tests/test-${it} : $(patsubst %,obj/%.pdc.o,$(value test-${it})) $(value test-${it}-libs)))
+$(foreach it,${PATTERN_TESTS},$(eval bin/tests/test-${it}-gdb.py : $(patsubst %,src/%.py,$(value test-${it}-pies))))
+#$(foreach it,${PATTERN_TESTS},$(info post-test: test-${it}: $(value test-${it})) $(info post-test: test-${it}-libs: $(value test-${it}-libs)) $(info ))
+
+$(foreach it,${PATTERN_GTESTS},$(eval gtest-${it} := $(strip $(call RECURSIVE_DEPS,$(subst --,/,${it})_test))) $(eval gtest-${it}-libs := ${lib_deps}) $(eval gtest-${it}-pies := ${py_deps}))
+# actual rule deps
+$(foreach it,${PATTERN_GTESTS},$(eval bin/tests/gtest-${it} : $(patsubst %,obj/%.pdc.o,$(value gtest-${it})) $(value gtest-${it}-libs)))
+$(foreach it,${PATTERN_GTESTS},$(eval bin/tests/gtest-${it}-gdb.py : $(patsubst %,src/%.py,$(value gtest-${it}-pies))))
+#$(foreach it,${PATTERN_GTESTS},$(info post-gtest: gtest-${it}: $(value gtest-${it})) $(info post-gtest: gtest-${it}-libs: $(value gtest-${it}-libs)) $(info ))
+
+$(foreach it,${PATTERN_DTESTS},$(eval dtest-${it} := $(strip $(call RECURSIVE_DEPS,debug-debug/${it}))) $(eval dtest-${it}-libs := ${lib_deps}) $(eval dtest-${it}-pies := ${py_deps}))
+# actual rule deps
+$(foreach it,${PATTERN_DTESTS},$(eval bin/tests/dtest-${it} : $(patsubst %,obj/%.pdc.o,$(value dtest-${it})) $(value dtest-${it}-libs)))
+$(foreach it,${PATTERN_DTESTS},$(eval bin/tests/dtest-${it}-gdb.py : $(patsubst %,src/%.py,$(value dtest-${it}-pies))))
+#$(foreach it,${PATTERN_DTESTS},$(info post-dtest: dtest-${it}: $(value dtest-${it})) $(info post-dtest: dtest-${it}-libs: $(value dtest-${it}-libs)) $(info ))
 
 
 vpath %.cpp ${SRC_DIR}
@@ -382,7 +402,7 @@ o: ${PDC_OBJECTS}
 # currently defined for PDC
 
 clean-stamp:
-	-$l find obj -name '*.stamp' -delete
+	$l rm -rf stamp
 clean-deps:
 	-$l find obj -name '*.d' -delete
 clean-format:
@@ -397,12 +417,12 @@ clean: mostlyclean
 	$l rm -rf bin lib
 distclean: clean gen-clean
 gen-clean:
-	$l rm -f obj/generated.stamp
+	$l rm -f stamp/generated.stamp
 	$l rm -rf ${SRC_DIR}/src/proto2/
 	$l rm -rf ${SRC_DIR}/src/debug-debug/
 
 ifndef MAKE_RESTARTS
-obj/%.d: src/%.cpp | obj/generated.stamp
+obj/%.d: src/%.cpp | stamp/generated.stamp
 	$(MKDIR_FIRST)
 # Not using $c because it's slow and this should be fast
 	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM \
@@ -428,9 +448,9 @@ obj/%.pdc.o: src/%.cpp
 obj/%.pic.o: src/%.cpp
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -fPIC -c -o $@ $<
-obj/%.hpp.check: src/%.hpp
+stamp/%.hpp.check: src/%.hpp
 	$(MKDIR_FIRST)
-	echo '#include "$<"' | ${CXX} ${CPPFLAGS} ${CXXFLAGS} -x c++ -fsyntax-only -
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -x c++ -fsyntax-only - <<< '#include "$<"'
 	touch $@
 
 bin/%-gdb.py: src/main-gdb-head.py src/main-gdb-tail.py
@@ -459,30 +479,38 @@ lib/%.a:
 	rm -f $@
 	ar cr $@ $^
 
-#${TEST_BINARIES}: obj/gtest-all.pdc.o
-bin/test-tests: obj/gtest-all.pdc.o
+${GTEST_BINARIES}: obj/gtest_main.pdc.o obj/gtest-all.pdc.o
 
 # This isn't perfect.
-$(filter %_test.pdc.o,${PDC_OBJECTS}) obj/gtest-all.pdc.o: override CPPFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
-obj/gtest-all.pdc.o: override WARNINGS :=
-obj/gtest-all.pdc.o: ${GTEST_DIR}/src/gtest-all.cc
+$(filter %_test.pdc.o,${PDC_OBJECTS}) obj/gtest_main.pdc.o obj/gtest-all.pdc.o: override CPPFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
+obj/gtest-all.pdc.o obj/gtest_main.pdc.o: override WARNINGS :=
+obj/gtest%.pdc.o: ${GTEST_DIR}/src/gtest%.cc
 	$(MKDIR_FIRST)
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
-obj/debug-debug/test.pdc.o: override CXXFLAGS += -g -O0 -gdwarf-3
-obj/run-test-debug-debug.stamp: override TESTER=${GDB} -return-child-result -nx -batch -x ${SRC_DIR}/tools/debug-debug.gdb --args false
-obj/run-test-debug-debug.stamp: tools/debug-debug.gdb
+DTEST_OBJS := $(filter obj/debug-debug/%.pdc.o,${PDC_OBJECTS})
+DTEST_STAMPS := $(patsubst bin/tests/%,stamp/run-%.stamp,${DTEST_BINARIES})
+${DTEST_OBJS}: override CXXFLAGS += -g -O0 -gdwarf-3
+${DTEST_STAMPS}: override TESTER=${GDB} -return-child-result -nx -batch -ex 'python file_to_load = "$<"' -x ${SRC_DIR}/tools/debug-debug.gdb --args false
+${DTEST_STAMPS}: tools/debug-debug.gdb
 ifeq '$(findstring clang,${CXX})' 'clang'
-obj/run-test-debug-debug.stamp:
+${DTEST_STAMPS}:
 	@echo "Error: sorry, but clang can't be used with gdb"
 	-false
 endif
 
-test: $(patsubst bin/%,obj/run-%.stamp,${TEST_BINARIES})
-test: test-headers
-obj/run-%.stamp: bin/%
+test: test-direct
+test-direct: $(patsubst bin/tests/%,stamp/run-%.stamp,${TEST_BINARIES})
+test: test-gtest
+test-gtest: $(patsubst bin/tests/%,stamp/run-%.stamp,${GTEST_BINARIES})
+test: test-dtest
+test-dtest: $(patsubst bin/tests/%,stamp/run-%.stamp,${DTEST_BINARIES})
+stamp/run-%.stamp: bin/tests/%
+	$(MKDIR_FIRST)
+	ln -sf ../lib bin/lib
 	${TESTER} $< ${TEST_ARGS}
 	touch $@
+test: test-headers
 test-headers: ${CHECK_HEADERS}
 
 install := install
@@ -658,9 +686,9 @@ endif
 .PHONY: dist
 
 format: format-cpp format-hpp
-format-cpp: $(patsubst src/%,obj/%.formatted,${REAL_SOURCES})
-format-hpp: $(patsubst src/%,obj/%.formatted,${REAL_HEADERS})
-obj/%.cpp.formatted: src/%.cpp tools/indenter
+format-cpp: $(patsubst src/%,stamp/%.formatted,${REAL_SOURCES})
+format-hpp: $(patsubst src/%,stamp/%.formatted,${REAL_HEADERS})
+stamp/%.cpp.formatted: src/%.cpp tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
 	fgrep -q Copyright $<
@@ -669,7 +697,7 @@ obj/%.cpp.formatted: src/%.cpp tools/indenter
 	grep -q '^namespace tmwa$$' $<
 	grep -q '^} // namespace tmwa$$' $<
 	touch $@
-obj/%.hpp.formatted: src/%.hpp tools/indenter
+stamp/%.hpp.formatted: src/%.hpp tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
 	fgrep -q Copyright $<
@@ -680,7 +708,7 @@ obj/%.hpp.formatted: src/%.hpp tools/indenter
 	grep -q '^} // namespace tmwa$$' $<
 	grep -q '^#pragma once$$' $<
 	touch $@
-obj/%.tcc.formatted: src/%.tcc tools/indenter
+stamp/%.tcc.formatted: src/%.tcc tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
 	fgrep -q Copyright $<
@@ -692,4 +720,4 @@ obj/%.tcc.formatted: src/%.tcc tools/indenter
 
 most: $(filter-out bin/${tmwa}-map,${BINARIES})
 magic: $(filter obj/map/magic%,${PDC_OBJECTS})
-common: $(filter-out %/lib.pdc.o %_test.pdc.o obj/login/% obj/char/% obj/map/% obj/admin/% obj/monitor/%,${PDC_OBJECTS})
+common: $(filter-out %/lib.pdc.o obj/debug-debug/% %_test.pdc.o obj/login/% obj/char/% obj/map/% obj/admin/% obj/monitor/%,${PDC_OBJECTS})

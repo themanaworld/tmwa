@@ -13,21 +13,22 @@ vpath %.tcc ${SRC_DIR}
 vpath tools/% ${SRC_DIR}
 vpath %.py ${SRC_DIR}
 
-obj/generated.stamp:
+stamp/generated.stamp:
 	$(MKDIR_FIRST)
 	touch $@
-obj/generated.stamp: obj/generate-proto2.stamp
-obj/generate-proto2.stamp: tools/protocol.py
+stamp/generated.stamp: stamp/generate-proto2.stamp
+stamp/generate-proto2.stamp: tools/protocol.py
 	$(MKDIR_FIRST)
-	rm -f obj/generated.stamp
+	rm -f stamp/generated.stamp
 	mkdir -p ${SRC_DIR}/src/proto2
 	cd ${SRC_DIR} && protocol.py
 	touch $@
-obj/generated.stamp: obj/generate-debug-debug.stamp
-obj/generate-debug-debug.stamp: tools/debug-debug-scripts ${PIES}
+stamp/generated.stamp: stamp/generate-debug-debug.stamp
+stamp/generate-debug-debug.stamp: tools/debug-debug-scripts ${PIES}
 	$(MKDIR_FIRST)
-	rm -f obj/generated.stamp
+	rm -f stamp/generated.stamp
 	mkdir -p ${SRC_DIR}/src/debug-debug
-	debug-debug-scripts $(wordlist 2,$(words $^),$^) > ${SRC_DIR}/src/debug-debug/test.cpp
+	rm -f ${SRC_DIR}/src/debug-debug/test.cpp
+	debug-debug-scripts ${SRC_DIR}/src/debug-debug/ $(wordlist 2,$(words $^),$^)
 	touch $@
 
