@@ -77,16 +77,16 @@ env:
 matrix:
   allow_failures:
     - compiler: clang
-      env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.2 DEBUGPACKAGE=libstdc++6-4.6-dbg
+      env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.3 DEBUGPACKAGE=libstdc++6-4.6-dbg
   exclude:
     - env: ignore=this
   include:
     - compiler: clang
-      env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.2 DEBUGPACKAGE=libstdc++6-4.6-dbg
-    - compiler: clang
       env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.3 DEBUGPACKAGE=libstdc++6-4.6-dbg
     - compiler: clang
       env: REAL_CC=clang-3.4 REAL_CXX=clang++-3.4 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.4 DEBUGPACKAGE=libstdc++6-4.6-dbg
+    - compiler: clang
+      env: REAL_CC=clang-3.5 REAL_CXX=clang++-3.5 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.5 DEBUGPACKAGE=libstdc++6-4.6-dbg
     - compiler: gcc
       env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7 DEBUGPACKAGE=libstdc++6-4.8-dbg
     - compiler: gcc

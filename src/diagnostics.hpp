@@ -600,7 +600,8 @@ namespace tmwa
 
 /// Warn about maybe uninitialized automatic variables
 #define DIAG_maybe_uninitialized "-Wmaybe-uninitialized"
-#if GCC >= 407
+// buggy in 4.7 with tmwa::Option<>
+#if GCC >= 408
 # define HAS_DIAG_maybe_uninitialized 1
 #else
 # define HAS_DIAG_maybe_uninitialized 0

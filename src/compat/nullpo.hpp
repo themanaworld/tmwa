@@ -52,7 +52,7 @@ bool nullpo_chk(const char *file, int line, const char *func,
         const void *target);
 
 template<class T>
-bool nullpo_chk(const char *file, int line, const char *func, Borrowed<T> target) = delete;
+bool nullpo_chk(const char *, int, const char *, Borrowed<T>) = delete;
 template<class T>
 bool nullpo_chk(const char *file, int line, const char *func, T target)
 {
