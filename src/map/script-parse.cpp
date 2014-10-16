@@ -592,7 +592,11 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
 
     p = skip_space(p);
     if (*p == ';')
+    {
+        disp_error_message("Double semi-colon"_s, p);
+        ++p;
         return p;
+    }
 
     parse_cmd_if = 0;           // warn_cmd_no_commaのために必要
 
