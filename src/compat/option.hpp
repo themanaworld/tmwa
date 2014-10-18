@@ -171,7 +171,10 @@ namespace option
         }
         ~Option()
         {
-            do_destruct();
+            if (repr.is_some())
+            {
+                do_destruct();
+            }
         }
 
         T move_or(T def)

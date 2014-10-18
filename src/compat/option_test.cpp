@@ -117,6 +117,41 @@ TEST(Option, customrepr)
     }
 }
 
+TEST(Option, destruct)
+{
+    struct BugCheck
+    {
+        bool *destroyed;
+
+        BugCheck(bool *d)
+        : destroyed(d)
+        {}
+        BugCheck(BugCheck&& r)
+        : destroyed(r.destroyed)
+        {
+            r.destroyed = nullptr;
+        }
+        BugCheck& operator = (BugCheck&& r)
+        {
+            std::swap(destroyed, r.destroyed);
+            return *this;
+        }
+        ~BugCheck()
+        {
+            if (!destroyed)
+                return;
+            if (*destroyed)
+                abort();
+            *destroyed = true;
+        }
+    };
+
+    bool destroyed = false;
+
+    Option<BugCheck> bug = Some(BugCheck(&destroyed));
+    bug = None;
+}
+
 TEST(Option, def)
 {
     struct Tracked
