@@ -24,6 +24,7 @@
 #include <cstdlib>
 
 #include <algorithm>
+#include <chrono>
 #include <vector>
 
 #include "../ints/wrap.hpp"
@@ -93,7 +94,7 @@ bool extract_as_int(XString str, T *iv)
 }
 
 bool extract(XString str, XString *rv);
-
+bool extract(XString str, RString *rv);
 bool extract(XString str, AString *rv);
 
 template<uint8_t N>
@@ -228,4 +229,12 @@ bool extract(XString str, Wrapped<R> *w)
 {
     return extract(str, &w->_value);
 }
+
+bool extract(XString str, std::chrono::nanoseconds *ns);
+bool extract(XString str, std::chrono::microseconds *us);
+bool extract(XString str, std::chrono::milliseconds *ms);
+bool extract(XString str, std::chrono::seconds *s);
+bool extract(XString str, std::chrono::minutes *min);
+bool extract(XString str, std::chrono::hours *h);
+bool extract(XString str, std::chrono::duration<int, std::ratio<60*60*24>> *d);
 } // namespace tmwa

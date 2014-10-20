@@ -24,6 +24,8 @@
 #include "../strings/zstring.hpp"
 #include "../strings/literal.hpp"
 
+#include "../tests/fdhack.hpp"
+
 #include "../poison.hpp"
 
 
@@ -47,6 +49,7 @@ io::FD string_pipe(ZString sz)
 
 TEST(io, read1)
 {
+    QuietFd q;
     io::ReadFile rf(string_pipe("Hello"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));
@@ -63,6 +66,7 @@ TEST(io, read2)
 }
 TEST(io, read3)
 {
+    QuietFd q;
     io::ReadFile rf(string_pipe("Hello\r"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));
@@ -71,6 +75,7 @@ TEST(io, read3)
 }
 TEST(io, read4)
 {
+    QuietFd q;
     io::ReadFile rf(string_pipe("Hello\r\n"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));
@@ -79,6 +84,7 @@ TEST(io, read4)
 }
 TEST(io, read5)
 {
+    QuietFd q;
     io::ReadFile rf(string_pipe("Hello\n\r"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));

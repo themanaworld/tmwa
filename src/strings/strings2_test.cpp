@@ -228,4 +228,13 @@ TEST(StringTests, rlong)
     EXPECT_EQ(&*r.begin(), &*r3.begin());
     EXPECT_EQ(&*a.begin(), &*a3.begin());
 }
+
+TEST(StringTest, rself)
+{
+    // force dynamic allocation; valgrind will check for memory errors
+    RString r = XString("foo bar baz"_s);
+    RString r2 = r;
+    r = r;
+    r = r2;
+}
 } // namespace tmwa

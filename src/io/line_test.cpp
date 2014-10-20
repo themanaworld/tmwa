@@ -23,6 +23,8 @@
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
+#include "../tests/fdhack.hpp"
+
 #include "../poison.hpp"
 
 
@@ -57,6 +59,7 @@ TEST(io, line1)
 }
 TEST(io, line2)
 {
+    QuietFd q;
     io::LineReader lr("<string2>"_s, string_pipe("Hello\nWorld"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
@@ -73,6 +76,7 @@ TEST(io, line2)
 }
 TEST(io, line3)
 {
+    QuietFd q;
     io::LineReader lr("<string3>"_s, string_pipe("Hello\rWorld"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
@@ -89,6 +93,7 @@ TEST(io, line3)
 }
 TEST(io, line4)
 {
+    QuietFd q;
     io::LineReader lr("<string4>"_s, string_pipe("Hello\r\nWorld"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
@@ -105,6 +110,7 @@ TEST(io, line4)
 }
 TEST(io, line5)
 {
+    QuietFd q;
     io::LineReader lr("<string5>"_s, string_pipe("Hello\n\rWorld"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
@@ -175,6 +181,7 @@ TEST(io, linechar1)
 }
 TEST(io, linechar2)
 {
+    QuietFd q;
     io::LineCharReader lr("<stringchar2>"_s, string_pipe("Hi\nWu"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
@@ -223,6 +230,7 @@ TEST(io, linechar2)
 }
 TEST(io, linechar3)
 {
+    QuietFd q;
     io::LineCharReader lr("<stringchar3>"_s, string_pipe("Hi\rWu"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
@@ -271,6 +279,7 @@ TEST(io, linechar3)
 }
 TEST(io, linechar4)
 {
+    QuietFd q;
     io::LineCharReader lr("<stringchar4>"_s, string_pipe("Hi\r\nWu"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
@@ -319,6 +328,7 @@ TEST(io, linechar4)
 }
 TEST(io, linechar5)
 {
+    QuietFd q;
     io::LineCharReader lr("<stringchar5>"_s, string_pipe("Hi\n\rWu"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
@@ -402,17 +412,17 @@ TEST(io, linespan)
     }
     while (span.end.ch() != 'r');
 
-    EXPECT_EQ(span.begin.message_str("note"_s, "foo"_s),
+    EXPECT_EQ(span.begin.note_str("foo"_s),
             "<span>:1:5: note: foo\n"
             "Hello,\n"
             "    ^\n"_s
     );
-    EXPECT_EQ(span.end.message_str("warning"_s, "bar"_s),
+    EXPECT_EQ(span.end.warning_str("bar"_s),
             "<span>:2:3: warning: bar\n"
             "World!\n"
             "  ^\n"_s
     );
-    EXPECT_EQ(span.message_str("error"_s, "qux"_s),
+    EXPECT_EQ(span.error_str("qux"_s),
             "<span>:1:5: error: qux\n"
             "Hello,\n"
             "    ^~ ...\n"

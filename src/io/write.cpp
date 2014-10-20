@@ -37,6 +37,8 @@ namespace io
 {
     WriteFile::WriteFile(FD f, bool linebuffered)
     : fd(f), lb(linebuffered), buflen(0)
+    // only for debug-sanity
+    , buf{}
     {}
     WriteFile::WriteFile(ZString name, bool linebuffered)
     : fd(FD::open(name, O_WRONLY | O_CREAT | O_TRUNC, 0666)), lb(linebuffered), buflen(0)

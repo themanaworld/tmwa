@@ -41,6 +41,9 @@ namespace io
         uint16_t line, column;
 
         AString message_str(ZString cat, ZString msg) const;
+        AString note_str(ZString msg) const { return message_str("note"_s, msg); }
+        AString warning_str(ZString msg) const { return message_str("warning"_s, msg); }
+        AString error_str(ZString msg) const { return message_str("error"_s, msg); }
         void message(ZString cat, ZString msg) const;
         void note(ZString msg) const { message("note"_s, msg); }
         void warning(ZString msg) const { message("warning"_s, msg); }
@@ -64,10 +67,20 @@ namespace io
         LineChar begin, end;
 
         AString message_str(ZString cat, ZString msg) const;
+        AString note_str(ZString msg) const { return message_str("note"_s, msg); }
+        AString warning_str(ZString msg) const { return message_str("warning"_s, msg); }
+        AString error_str(ZString msg) const { return message_str("error"_s, msg); }
         void message(ZString cat, ZString msg) const;
         void note(ZString msg) const { message("note"_s, msg); }
         void warning(ZString msg) const { message("warning"_s, msg); }
         void error(ZString msg) const { message("error"_s, msg); }
+    };
+
+    template<class T>
+    struct Spanned
+    {
+        T data;
+        LineSpan span;
     };
 
     class LineReader

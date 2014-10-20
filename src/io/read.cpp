@@ -36,6 +36,8 @@ namespace io
 {
     ReadFile::ReadFile(FD f)
     : fd(f), start(0), end(0)
+    // only for debug-sanity
+    , buf{}
     {
     }
     ReadFile::ReadFile(ZString name)

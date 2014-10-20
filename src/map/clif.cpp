@@ -5675,4 +5675,38 @@ void do_init_clif(void)
 {
     make_listen_port(map_port, SessionParsers{.func_parse= clif_parse, .func_delete= clif_delete});
 }
+
+bool extract(XString str, DIR *d)
+{
+    unsigned di;
+    if (extract(str, &di) && di < 8)
+    {
+        *d = static_cast<DIR>(di);
+        return true;
+    }
+    const struct
+    {
+        LString str;
+        DIR d;
+    } dirs[] =
+    {
+        {"S"_s, DIR::S},
+        {"SW"_s, DIR::SW},
+        {"W"_s, DIR::W},
+        {"NW"_s, DIR::NW},
+        {"N"_s, DIR::N},
+        {"NE"_s, DIR::NE},
+        {"E"_s, DIR::E},
+        {"SE"_s, DIR::SE},
+    };
+    for (auto& pair : dirs)
+    {
+        if (str == pair.str)
+        {
+            *d = pair.d;
+            return true;
+        }
+    }
+    return false;
+}
 } // namespace tmwa

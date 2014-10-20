@@ -58,13 +58,18 @@ namespace strings
     }
     RString& RString::operator = (const RString& r)
     {
-        // order important for self-assign
-        if (!r.maybe_end)
-            r.u.owned->count++;
-        if (!maybe_end && !u.owned->count--)
-            ::operator delete(u.owned);
-        u = r.u;
-        maybe_end = r.maybe_end;
+        // this turns out to be a win
+        // certain callers end up needing to do self-assignment a *lot*,
+        // leading to pointless ++,--s
+        if (this->u.owned != r.u.owned)
+        {
+            if (!r.maybe_end)
+                r.u.owned->count++;
+            if (!maybe_end && !u.owned->count--)
+                ::operator delete(u.owned);
+            u = r.u;
+            maybe_end = r.maybe_end;
+        }
         return *this;
     }
     RString& RString::operator = (RString&& r)

@@ -20,6 +20,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../tests/fdhack.hpp"
+
 #include "../poison.hpp"
 
 
@@ -90,6 +92,7 @@ TEST(sexpr, parselist)
 
 TEST(sexpr, parsebad)
 {
+    QuietFd q;
     for (LString bad : {
             "(\n"_s,
             ")\n"_s,

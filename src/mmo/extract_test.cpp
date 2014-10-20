@@ -357,4 +357,92 @@ TEST(extract, mapname)
     EXPECT_TRUE(extract("abcdefghijklmno.gat"_s, &map));
     EXPECT_EQ(map, "abcdefghijklmno"_s);
 }
+
+TEST(extract, chrono)
+{
+    std::chrono::nanoseconds ns;
+    std::chrono::microseconds us;
+    std::chrono::milliseconds ms;
+    std::chrono::seconds s;
+    std::chrono::minutes min;
+    std::chrono::hours h;
+    std::chrono::duration<int, std::ratio<60*60*24>> d;
+
+    EXPECT_TRUE(extract("1"_s, &ns));
+    EXPECT_EQ(ns, 1_ns);
+    EXPECT_TRUE(extract("3ns"_s, &ns));
+    EXPECT_EQ(ns, 3_ns);
+    EXPECT_TRUE(extract("4us"_s, &ns));
+    EXPECT_EQ(ns, 4_us);
+    EXPECT_TRUE(extract("5ms"_s, &ns));
+    EXPECT_EQ(ns, 5_ms);
+    EXPECT_TRUE(extract("6s"_s, &ns));
+    EXPECT_EQ(ns, 6_s);
+    EXPECT_TRUE(extract("7min"_s, &ns));
+    EXPECT_EQ(ns, 7_min);
+    EXPECT_TRUE(extract("8h"_s, &ns));
+    EXPECT_EQ(ns, 8_h);
+    EXPECT_TRUE(extract("9d"_s, &ns));
+    EXPECT_EQ(ns, 9_d);
+
+    EXPECT_TRUE(extract("1"_s, &us));
+    EXPECT_EQ(us, 1_us);
+    EXPECT_TRUE(extract("4us"_s, &us));
+    EXPECT_EQ(us, 4_us);
+    EXPECT_TRUE(extract("5ms"_s, &us));
+    EXPECT_EQ(us, 5_ms);
+    EXPECT_TRUE(extract("6s"_s, &us));
+    EXPECT_EQ(us, 6_s);
+    EXPECT_TRUE(extract("7min"_s, &us));
+    EXPECT_EQ(us, 7_min);
+    EXPECT_TRUE(extract("8h"_s, &us));
+    EXPECT_EQ(us, 8_h);
+    EXPECT_TRUE(extract("9d"_s, &us));
+    EXPECT_EQ(us, 9_d);
+
+    EXPECT_TRUE(extract("1"_s, &ms));
+    EXPECT_EQ(ms, 1_ms);
+    EXPECT_TRUE(extract("5ms"_s, &ms));
+    EXPECT_EQ(ms, 5_ms);
+    EXPECT_TRUE(extract("6s"_s, &ms));
+    EXPECT_EQ(ms, 6_s);
+    EXPECT_TRUE(extract("7min"_s, &ms));
+    EXPECT_EQ(ms, 7_min);
+    EXPECT_TRUE(extract("8h"_s, &ms));
+    EXPECT_EQ(ms, 8_h);
+    EXPECT_TRUE(extract("9d"_s, &ms));
+    EXPECT_EQ(ms, 9_d);
+
+    EXPECT_TRUE(extract("1"_s, &s));
+    EXPECT_EQ(s, 1_s);
+    EXPECT_TRUE(extract("6s"_s, &s));
+    EXPECT_EQ(s, 6_s);
+    EXPECT_TRUE(extract("7min"_s, &s));
+    EXPECT_EQ(s, 7_min);
+    EXPECT_TRUE(extract("8h"_s, &s));
+    EXPECT_EQ(s, 8_h);
+    EXPECT_TRUE(extract("9d"_s, &s));
+    EXPECT_EQ(s, 9_d);
+
+    EXPECT_TRUE(extract("1"_s, &min));
+    EXPECT_EQ(min, 1_min);
+    EXPECT_TRUE(extract("7min"_s, &min));
+    EXPECT_EQ(min, 7_min);
+    EXPECT_TRUE(extract("8h"_s, &min));
+    EXPECT_EQ(min, 8_h);
+    EXPECT_TRUE(extract("9d"_s, &min));
+    EXPECT_EQ(min, 9_d);
+
+    EXPECT_TRUE(extract("1"_s, &h));
+    EXPECT_EQ(h, 1_h);
+    EXPECT_TRUE(extract("8h"_s, &h));
+    EXPECT_EQ(h, 8_h);
+    EXPECT_TRUE(extract("9d"_s, &h));
+    EXPECT_EQ(h, 9_d);
+
+    EXPECT_TRUE(extract("1"_s, &d));
+    EXPECT_EQ(d, 1_d);
+    EXPECT_TRUE(extract("9d"_s, &d));
+    EXPECT_EQ(d, 9_d);
+}
 } // namespace tmwa

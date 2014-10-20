@@ -76,21 +76,21 @@ TEST(sexpr, lexer)
     sexpr::Lexer lexer("<lexer-test1>"_s, string_pipe(" foo( ) 123\"\" \n"_s));
     EXPECT_EQ(lexer.peek(), sexpr::TOK_TOKEN);
     EXPECT_EQ(lexer.val_string(), "foo"_s);
-    EXPECT_EQ(lexer.span().message_str("error"_s, "test"_s),
+    EXPECT_EQ(lexer.span().error_str("test"_s),
             "<lexer-test1>:1:2: error: test\n"
             " foo( ) 123\"\" \n"
             " ^~~\n"_s
     );
     lexer.adv();
     EXPECT_EQ(lexer.peek(), sexpr::TOK_OPEN);
-    EXPECT_EQ(lexer.span().message_str("error"_s, "test"_s),
+    EXPECT_EQ(lexer.span().error_str("test"_s),
             "<lexer-test1>:1:5: error: test\n"
             " foo( ) 123\"\" \n"
             "    ^\n"_s
     );
     lexer.adv();
     EXPECT_EQ(lexer.peek(), sexpr::TOK_CLOSE);
-    EXPECT_EQ(lexer.span().message_str("error"_s, "test"_s),
+    EXPECT_EQ(lexer.span().error_str("test"_s),
             "<lexer-test1>:1:7: error: test\n"
             " foo( ) 123\"\" \n"
             "      ^\n"_s
@@ -98,7 +98,7 @@ TEST(sexpr, lexer)
     lexer.adv();
     EXPECT_EQ(lexer.peek(), sexpr::TOK_TOKEN);
     EXPECT_EQ(lexer.val_string(), "123"_s);
-    EXPECT_EQ(lexer.span().message_str("error"_s, "test"_s),
+    EXPECT_EQ(lexer.span().error_str("test"_s),
             "<lexer-test1>:1:9: error: test\n"
             " foo( ) 123\"\" \n"
             "        ^~~\n"_s
@@ -106,7 +106,7 @@ TEST(sexpr, lexer)
     lexer.adv();
     EXPECT_EQ(lexer.peek(), sexpr::TOK_STRING);
     EXPECT_EQ(lexer.val_string(), ""_s);
-    EXPECT_EQ(lexer.span().message_str("error"_s, "test"_s),
+    EXPECT_EQ(lexer.span().error_str("test"_s),
             "<lexer-test1>:1:12: error: test\n"
             " foo( ) 123\"\" \n"
             "           ^~\n"_s
