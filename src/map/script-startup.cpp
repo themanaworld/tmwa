@@ -28,12 +28,11 @@
 #include "../generic/intern-pool.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 #include "../io/read.hpp"
 #include "../io/lock.hpp"
 
 #include "../net/timer.hpp"
-
-#include "../mmo/extract.hpp"
 
 #include "map.hpp"
 #include "script-parse-internal.hpp"

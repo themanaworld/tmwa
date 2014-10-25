@@ -20,6 +20,13 @@
 
 #include "../sanity.hpp"
 
+#include "../ints/fwd.hpp" // rank 1
+#include "../strings/fwd.hpp" // rank 1
+#include "../compat/fwd.hpp" // rank 2
+#include "../generic/fwd.hpp" // rank 3
+#include "../io/fwd.hpp" // rank 4
+// net/fwd.hpp is rank 5
+
 
 namespace tmwa
 {
@@ -28,6 +35,4 @@ class Session;
 class IP4Address;
 
 class TimerData;
-
-enum class RecvResult;
 } // namespace tmwa

@@ -45,19 +45,20 @@
 #include "../generic/random2.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/cxxstdio_enums.hpp"
+#include "../io/extract.hpp"
 #include "../io/read.hpp"
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
+#include "../net/timestamp-utils.hpp"
 
 #include "../mmo/config_parse.hpp"
-#include "../mmo/core.hpp"
-#include "../mmo/extract.hpp"
-#include "../mmo/utils.hpp"
+#include "../mmo/cxxstdio_enums.hpp"
 #include "../mmo/version.hpp"
+
+#include "../high/core.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -126,11 +127,6 @@ void SessionDeleter::operator()(SessionData *sd)
 VString<49> convert_for_printf(NpcEvent ev)
 {
     return STRNPRINTF(50, "%s::%s"_fmt, ev.npc, ev.label);
-}
-bool extract(XString str, NpcEvent *ev)
-{
-    XString mid;
-    return extract(str, record<':'>(&ev->npc, &mid, &ev->label)) && !mid;
 }
 
 /*==========================================

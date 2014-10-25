@@ -30,8 +30,8 @@
 
 #include "../generic/enum.hpp"
 
-#include "../mmo/consts.hpp"
-#include "../mmo/enums.hpp"
+#include "consts.hpp"
+#include "enums.hpp"
 
 
 namespace tmwa

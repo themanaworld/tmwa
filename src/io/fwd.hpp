@@ -20,6 +20,12 @@
 
 #include "../sanity.hpp"
 
+#include "../ints/fwd.hpp" // rank 1
+#include "../strings/fwd.hpp" // rank 1
+#include "../compat/fwd.hpp" // rank 2
+#include "../generic/fwd.hpp" // rank 3
+// io/fwd.hpp is rank 4
+
 
 namespace tmwa
 {

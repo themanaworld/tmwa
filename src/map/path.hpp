@@ -22,8 +22,6 @@
 
 #include "fwd.hpp"
 
-#include "../compat/fwd.hpp"
-
 
 namespace tmwa
 {

@@ -23,8 +23,6 @@
 #include "npc.hpp"
 #include "fwd.hpp"
 
-#include "../generic/fwd.hpp"
-
 
 namespace tmwa
 {

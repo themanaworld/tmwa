@@ -25,7 +25,7 @@ class AString(object):
 
     test_extra = '''
     using tmwa::operator "" _s;
-    #include "../src/strings/zstring.hpp"
+    #include "../strings/zstring.hpp"
     '''
 
     tests = [

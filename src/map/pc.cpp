@@ -37,12 +37,12 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/cxxstdio_enums.hpp"
 #include "../io/read.hpp"
 
-#include "../net/timer.hpp"
+#include "../mmo/cxxstdio_enums.hpp"
 
-#include "../mmo/utils.hpp"
+#include "../net/timer.hpp"
+#include "../net/timestamp-utils.hpp"
 
 #include "../proto2/char-map.hpp"
 

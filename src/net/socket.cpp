@@ -34,10 +34,6 @@
 
 #include "../io/cxxstdio.hpp"
 
-// TODO get rid of ordering violations
-#include "../mmo/utils.hpp"
-#include "../mmo/core.hpp"
-
 #include "timer.hpp"
 
 #include "../poison.hpp"
@@ -399,7 +395,7 @@ void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size)
     }
 }
 
-void do_sendrecv(interval_t next_ms)
+bool do_sendrecv(interval_t next_ms)
 {
     bool any = false;
     io::FD_Set rfd = readfds, wfd;
@@ -419,9 +415,9 @@ void do_sendrecv(interval_t next_ms)
         {
             PRINTF("Shutting down - nothing to do\n"_fmt);
             // TODO hoist this
-            runflag = false;
+            return false;
         }
-        return;
+        return true;
     }
     struct timeval timeout;
     {
@@ -431,7 +427,7 @@ void do_sendrecv(interval_t next_ms)
         timeout.tv_usec = next_us.count();
     }
     if (io::FD_Set::select(fd_max, &rfd, &wfd, nullptr, &timeout) <= 0)
-        return;
+        return true;
     for (io::FD i : iter_fds())
     {
         Session *s = get_session(i);
@@ -451,9 +447,10 @@ void do_sendrecv(interval_t next_ms)
                 s->func_recv(s);
         }
     }
+    return true;
 }
 
-void do_parsepacket(void)
+bool do_parsepacket(void)
 {
     for (io::FD i : iter_fds())
     {
@@ -483,5 +480,6 @@ void do_parsepacket(void)
         /// Reclaim buffer space for what was read
         RFIFOFLUSH(s);
     }
+    return true;
 }
 } // namespace tmwa

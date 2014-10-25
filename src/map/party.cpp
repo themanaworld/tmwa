@@ -32,7 +32,7 @@
 #include "../net/timer.hpp"
 
 #include "../mmo/ids.hpp"
-#include "../mmo/mmo.hpp"
+#include "../high/mmo.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

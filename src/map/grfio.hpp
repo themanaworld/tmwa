@@ -26,10 +26,6 @@
 
 #include <vector>
 
-#include "../strings/fwd.hpp"
-
-#include "../mmo/fwd.hpp"
-
 
 namespace tmwa
 {

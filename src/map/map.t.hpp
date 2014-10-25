@@ -29,7 +29,7 @@
 #include "../generic/enum.hpp"
 
 #include "../mmo/ids.hpp"
-#include "../mmo/mmo.hpp"
+#include "../high/mmo.hpp"
 
 
 namespace tmwa
@@ -190,11 +190,6 @@ enum class MapCell : uint8_t
 ENUM_BITWISE_OPERATORS(MapCell)
 }
 using e::MapCell;
-
-struct MobName : VString<23> {};
-struct NpcName : VString<23> {};
-struct ScriptLabel : VString<23> {};
-struct ItemName : VString<23> {};
 
 inline
 BlockId account_to_block(AccountId a) { return wrap<BlockId>(unwrap<AccountId>(a)); }

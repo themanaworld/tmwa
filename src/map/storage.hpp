@@ -22,15 +22,9 @@
 
 #include "fwd.hpp"
 
-#include "../compat/fwd.hpp"
-
-#include "../generic/fwd.hpp"
-
-#include "../mmo/fwd.hpp"
-
 #include "../proto2/net-Storage.hpp"
 
-#include "clif.t.hpp"
+#include "../mmo/clif.t.hpp"
 
 
 namespace tmwa

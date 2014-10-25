@@ -31,7 +31,7 @@
 
 #include "../net/ip.hpp"
 
-#include "../mmo/mmo.hpp"
+#include "mmo.hpp"
 
 #include "../poison.hpp"
 

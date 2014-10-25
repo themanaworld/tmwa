@@ -22,16 +22,13 @@
 
 #include <vector>
 
-#include "../compat/cast.hpp"
-
 #include "../ints/little.hpp"
 
-#include "../io/fwd.hpp"
+#include "../compat/cast.hpp"
 
-// TODO ordering violation, should invert
 #include "../proto2/fwd.hpp"
 
-#include "socket.hpp"
+#include "../net/socket.hpp"
 
 
 namespace tmwa

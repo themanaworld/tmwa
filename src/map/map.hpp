@@ -30,7 +30,6 @@
 
 #include "../ints/udl.hpp"
 
-#include "../strings/fwd.hpp"
 #include "../strings/rstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/vstring.hpp"
@@ -42,15 +41,13 @@
 #include "../net/socket.hpp"
 #include "../net/timer.t.hpp"
 
-#include "../mmo/utils.hpp"
-
 #include "battle.t.hpp"
-#include "clif.t.hpp"
+#include "../mmo/clif.t.hpp"
 #include "mapflag.hpp"
 #include "mob.t.hpp"
 #include "script-buffer.hpp"
 #include "script-persist.hpp"
-#include "skill.t.hpp"
+#include "../mmo/skill.t.hpp"
 
 
 namespace tmwa
@@ -68,35 +65,6 @@ constexpr int MAX_WALKPATH = 48;
 constexpr int MAX_DROP_PER_MAP = 48;
 
 constexpr interval_t DEFAULT_AUTOSAVE_INTERVAL = 1_min;
-
-// formerly VString<49>, as name::label
-struct NpcEvent
-{
-    NpcName npc;
-    ScriptLabel label;
-
-    explicit operator bool()
-    {
-        return npc || label;
-    }
-    bool operator !()
-    {
-        return !bool(*this);
-    }
-
-    friend bool operator == (const NpcEvent& l, const NpcEvent& r)
-    {
-        return l.npc == r.npc && l.label == r.label;
-    }
-
-    friend bool operator < (const NpcEvent& l, const NpcEvent& r)
-    {
-        return l.npc < r.npc || (l.npc == r.npc && l.label < r.label);
-    }
-
-    friend VString<49> convert_for_printf(NpcEvent ev);
-};
-bool extract(XString str, NpcEvent *ev);
 
 extern map_local undefined_gat;
 

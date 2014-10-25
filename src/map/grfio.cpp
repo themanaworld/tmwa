@@ -33,10 +33,11 @@
 #include "../strings/zstring.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 #include "../io/read.hpp"
 
-#include "../mmo/extract.hpp"
-#include "../mmo/mmo.hpp"
+#include "../high/extract_mmo.hpp"
+#include "../high/mmo.hpp"
 
 #include "../poison.hpp"
 

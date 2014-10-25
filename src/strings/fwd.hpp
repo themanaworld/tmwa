@@ -23,6 +23,8 @@
 #include <cstddef>
 #include <cstdint>
 
+// strings/fwd.hpp is rank 1
+
 
 namespace tmwa
 {

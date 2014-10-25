@@ -22,7 +22,9 @@
 
 #include <cstdint>
 
-#include "extract.hpp"
+#include "../io/extract.hpp"
+
+#include "clif.t.hpp"
 
 
 namespace tmwa
@@ -66,4 +68,6 @@ inline
 bool extract(XString str, SkillID *iv) { return extract_as_int(str, iv); }
 inline
 bool extract(XString str, StatusChange *iv) { return extract_as_int(str, iv); }
+
+bool extract(XString, DIR *);
 } // namespace tmwa

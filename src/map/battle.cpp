@@ -32,10 +32,12 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/cxxstdio_enums.hpp"
 #include "../io/read.hpp"
 
 #include "../mmo/config_parse.hpp"
+#include "../mmo/cxxstdio_enums.hpp"
+
+#include "../high/utils.hpp"
 
 #include "clif.hpp"
 #include "itemdb.hpp"

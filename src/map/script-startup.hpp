@@ -22,8 +22,6 @@
 
 #include "fwd.hpp"
 
-#include "../strings/fwd.hpp"
-
 namespace tmwa
 {
 void do_init_script(void);

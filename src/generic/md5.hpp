@@ -24,7 +24,6 @@
 
 #include <array>
 
-#include "../strings/fwd.hpp"
 #include "../strings/vstring.hpp"
 
 

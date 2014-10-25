@@ -25,8 +25,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "../strings/fwd.hpp"
-
 
 namespace tmwa
 {

@@ -1,9 +1,7 @@
 #pragma once
-//    md5more.hpp - Non-basic MD5 functions.
+//    extract_mmo.hpp - a simple, hierarchical, tokenizer
 //
-//    Copyright © ????-2004 Athena Dev Teams
-//    Copyright © 2004-2011 The Mana World Development Team
-//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2012-2013 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -22,27 +20,13 @@
 
 #include "fwd.hpp"
 
-#include "../generic/md5.hpp"
-
-#include "../io/fwd.hpp"
-
-#include "../net/fwd.hpp"
-
 
 namespace tmwa
 {
-MD5_state MD5_from_FILE(io::ReadFile& in);
+bool extract(XString str, GlobalReg *var);
+bool extract(XString str, Item *it);
+bool extract(XString str, MapName *m);
+bool extract(XString str, CharName *out);
 
-// whoever wrote this fails basic understanding of
-AccountCrypt MD5_saltcrypt(AccountPass key, SaltString salt);
-
-/// return some random characters
-// Currently, returns a 5-char string
-SaltString make_salt(void);
-
-/// check plaintext password against saved saltcrypt
-bool pass_ok(AccountPass password, AccountCrypt crypted);
-
-/// This returns an IP4Address because it is configurable whether it gets called at all
-IP4Address MD5_ip(IP4Address ip);
+bool extract(XString str, NpcEvent *ev);
 } // namespace tmwa

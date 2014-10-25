@@ -23,10 +23,6 @@
 #include "script-startup.hpp"
 #include "fwd.hpp"
 
-#include "../generic/fwd.hpp"
-
-#include "../strings/fwd.hpp"
-
 #include "script-persist.hpp"
 
 

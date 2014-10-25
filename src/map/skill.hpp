@@ -20,17 +20,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "skill.t.hpp"
+#include "../mmo/skill.t.hpp"
 
 #include "fwd.hpp"
 
 #include "skill-pools.hpp"
 
-#include "../strings/fwd.hpp"
 #include "../strings/rstring.hpp"
 #include "../strings/literal.hpp"
 
-#include "../generic/fwd.hpp"
 #include "../generic/array.hpp"
 
 #include "map.hpp"

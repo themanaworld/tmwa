@@ -161,6 +161,10 @@ class PolyFakeType(object):
         for a in self.already:
             a.add_headers_to(headers)
 
+    def dump_fwd(self, f):
+        for a in self.already:
+            a.dump_fwd(f)
+
     def dump(self, f):
         for a in self.already:
             a.dump(f)
@@ -227,6 +231,10 @@ class EnumType(Type):
         headers.update(self.native.includes)
         headers.update(self.under.includes)
 
+    def dump_fwd(self, f):
+        # nothing to see here
+        pass
+
     def dump(self, f):
         native = self.native_tag()
         under = self.under.native_tag()
@@ -272,6 +280,10 @@ class WrappedType(Type):
         headers.update(self.native.includes)
         headers.update(self.under.includes)
 
+    def dump_fwd(self, f):
+        # nothing to see here
+        pass
+
     def dump(self, f):
         native = self.native_tag()
         under = self.under.native_tag()
@@ -310,6 +322,10 @@ class SkewLengthType(Type):
 
     def network_tag(self):
         return 'SkewedLength<%s, %d>' % (self.type.network_tag(), self.skew)
+
+    def dumpx_fwd(self, f):
+        # nothing to see here
+        pass
 
     def dumpx(self):
         # not registered properly, so the method name is wrong
@@ -357,7 +373,9 @@ class StructType(Type):
     def dump_fwd(self, fwd):
         if self.id is not None:
             fwd.write('template<>\n')
+            assert False
         fwd.write('struct %s;\n' % self.name)
+        return
         if self.id is not None:
             fwd.write('template<>\n')
         fwd.write('struct Net%s;\n' % self.name)
@@ -427,7 +445,7 @@ class PartialStructType(Type):
         self.native = native
         self.body = body
         name = native.a_tag()
-        self.includes = frozenset({'#include "../proto2/net-%s.hpp"\n' % name})
+        self.includes = frozenset({'#include "net-%s.hpp"\n' % name})
 
     def __repr__(self):
         return '<PartialStructType(%r) with %d fields>' % (self.native, len(self.body))
@@ -443,6 +461,10 @@ class PartialStructType(Type):
         headers.update(self.native.includes)
         for n, t in self.body:
             headers.update(t.includes)
+
+    def dump_fwd(self, f):
+        # nothing to see here
+        pass
 
     def dump(self, f):
         f.write('struct %s\n{\n' % self.network_tag())
@@ -517,7 +539,7 @@ class InvArrayType(Type):
         self.count = count
         self.includes = element.includes | {
                 '#include "../proto-base/net-array.hpp"\n',
-                '#include "../map/clif.t.hpp"\n',
+                '#include "../mmo/clif.t.hpp"\n',
                 '#include "../mmo/consts.hpp"\n',
         }
 
@@ -677,7 +699,7 @@ class Channel(object):
     r = x
     s = x
 
-    def dump(self, outdir, fwd):
+    def dump(self, outdir):
         server = self.server
         client = self.client
         header = '%s-%s.hpp' % (server, client)
@@ -704,9 +726,6 @@ class Channel(object):
             else:
                 f.write('// This is an internal protocol, and can be changed without notice\n')
             f.write('\n')
-            for p in self.packets:
-                p.dump_fwd(fwd)
-            fwd.write('\n')
             for p in self.packets:
                 p.dump_native(f)
             f.write('\n')
@@ -769,13 +788,25 @@ class Context(object):
         proto2 = relpath(outdir, 'src')
         with OpenWrite(os.path.join(outdir, 'fwd.hpp')) as f:
             header = '%s/fwd.hpp' % proto2
-            desc = 'Forward declarations of network packets'
+            desc = 'Forward declarations of network packet body structs'
             sanity = relpath('src/sanity.hpp', outdir)
+
             f.write('#pragma once\n')
             f.write(copyright.format(filename=header, description=desc))
             f.write('\n')
+
             f.write('#include "%s"\n\n' % sanity)
             f.write('#include <cstdint>\n\n')
+
+            f.write('#include "../ints/fwd.hpp" // rank 1\n')
+            f.write('#include "../strings/fwd.hpp" // rank 1\n')
+            f.write('#include "../compat/fwd.hpp" // rank 2\n')
+            f.write('#include "../net/fwd.hpp" // rank 5\n')
+            f.write('#include "../mmo/fwd.hpp" // rank 6\n')
+            f.write('#include "../proto-base/fwd.hpp" // rank 7\n')
+            f.write('// proto2/fwd.hpp is rank 8\n')
+            f.write('\n\n')
+
             f.write('namespace tmwa\n{\n')
             for b in ['Fixed', 'Payload', 'Head', 'Repeat', 'Option']:
                 c = 'Packet_' + b
@@ -783,8 +814,12 @@ class Context(object):
                 f.write('template<uint16_t PACKET_ID> class Net%s;\n' % c)
             f.write('\n')
 
+            for ty in self._types:
+                if not ty.do_dump:
+                    continue
+                ty.dump_fwd(f)
             for ch in self._channels:
-                ch.dump(outdir, f)
+                ch.dump(outdir)
 
             f.write('} // namespace tmwa\n')
 
@@ -890,6 +925,8 @@ def build_context():
 
     vstring_h = ctx.include('src/strings/vstring.hpp')
 
+    timet_h = ctx.include('src/compat/time_t.hpp')
+
     ip_h = ctx.include('src/net/ip.hpp')
     timer_th = ctx.include('src/net/timer.t.hpp')
 
@@ -898,13 +935,13 @@ def build_context():
     human_time_diff_h = ctx.include('src/mmo/human_time_diff.hpp')
     ids_h = ctx.include('src/mmo/ids.hpp')
     strs_h = ctx.include('src/mmo/strs.hpp')
-    utils_h = ctx.include('src/mmo/utils.hpp')
+    utils_h = ctx.include('src/net/timestamp-utils.hpp')
     version_h = ctx.include('src/mmo/version.hpp')
 
-    login_th = ctx.include('src/login/login.t.hpp')
+    login_th = ctx.include('src/mmo/login.t.hpp')
 
-    clif_th = ctx.include('src/map/clif.t.hpp')
-    skill_th = ctx.include('src/map/skill.t.hpp')
+    clif_th = ctx.include('src/mmo/clif.t.hpp')
+    skill_th = ctx.include('src/mmo/skill.t.hpp')
 
     ## primitive types
     char = NeutralType('char', None)
@@ -947,7 +984,7 @@ def build_context():
 
     ip4 = ip_h.neutral('IP4Address')
 
-    TimeT = utils_h.native('TimeT')
+    TimeT = timet_h.native('TimeT')
 
     VString16 = vstring_h.native('VString<15>')
     VString20 = vstring_h.native('VString<19>')

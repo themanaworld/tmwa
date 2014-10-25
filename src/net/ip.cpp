@@ -22,8 +22,7 @@
 #include "../strings/vstring.hpp"
 
 #include "../io/cxxstdio.hpp"
-
-#include "../mmo/extract.hpp"
+#include "../io/extract.hpp"
 
 #include "../poison.hpp"
 

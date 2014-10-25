@@ -22,19 +22,18 @@
 
 #include "fwd.hpp"
 
-#include <algorithm>
-
 #include <sys/select.h>
 
+#include <algorithm>
 #include <memory>
-
-#include "../compat/iter.hpp"
-#include "../compat/rawmem.hpp"
-#include "../compat/time_t.hpp"
 
 #include "../strings/astring.hpp"
 #include "../strings/vstring.hpp"
 #include "../strings/xstring.hpp"
+
+#include "../compat/iter.hpp"
+#include "../compat/rawmem.hpp"
+#include "../compat/time_t.hpp"
 
 #include "../generic/dumb_ptr.hpp"
 
@@ -125,8 +124,8 @@ public:
 
     io::FD fd;
 
-    friend void do_sendrecv(interval_t next);
-    friend void do_parsepacket(void);
+    friend bool do_sendrecv(interval_t next);
+    friend bool do_parsepacket(void);
     friend void delete_session(Session *);
 };
 
@@ -171,7 +170,7 @@ void delete_session(Session *);
 /// Make a the internal queues bigger
 void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size);
 /// Update all sockets that can be read/written from the queues
-void do_sendrecv(interval_t next);
+bool do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
-void do_parsepacket(void);
+bool do_parsepacket(void);
 } // namespace tmwa

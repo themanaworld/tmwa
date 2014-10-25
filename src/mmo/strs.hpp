@@ -123,4 +123,37 @@ CharName stringish<CharName>(VString<23> iv)
 {
     return CharName(iv);
 }
+
+struct MobName : VString<23> {};
+struct NpcName : VString<23> {};
+struct ScriptLabel : VString<23> {};
+struct ItemName : VString<23> {};
+
+// formerly VString<49>, as name::label
+struct NpcEvent
+{
+    NpcName npc;
+    ScriptLabel label;
+
+    explicit operator bool()
+    {
+        return npc || label;
+    }
+    bool operator !()
+    {
+        return !bool(*this);
+    }
+
+    friend bool operator == (const NpcEvent& l, const NpcEvent& r)
+    {
+        return l.npc == r.npc && l.label == r.label;
+    }
+
+    friend bool operator < (const NpcEvent& l, const NpcEvent& r)
+    {
+        return l.npc < r.npc || (l.npc == r.npc && l.label < r.label);
+    }
+
+    friend VString<49> convert_for_printf(NpcEvent ev);
+};
 } // namespace tmwa

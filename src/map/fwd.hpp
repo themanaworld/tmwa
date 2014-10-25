@@ -22,11 +22,24 @@
 
 #include <cstdint>
 
+#include "../ints/fwd.hpp" // rank 1
+#include "../range/fwd.hpp" // rank 1
+#include "../strings/fwd.hpp" // rank 1
+#include "../compat/fwd.hpp" // rank 2
+#include "../generic/fwd.hpp" // rank 3
+#include "../io/fwd.hpp" // rank 4
+#include "../net/fwd.hpp" // rank 5
+#include "../sexpr/fwd.hpp" // rank 5
+#include "../mmo/fwd.hpp" // rank 6
+#include "../proto2/fwd.hpp" // rank 8
+#include "../high/fwd.hpp" // rank 9
+#include "../wire/fwd.hpp" // rank 9
+// map/fwd.hpp is rank ∞ because it is an executable
+
 
 namespace tmwa
 {
 // meh, add more when I feel like it
-class BlockId;
 struct block_list;
 struct map_session_data;
 struct npc_data;
@@ -38,11 +51,6 @@ class npc_data_script;
 class npc_data_shop;
 class npc_data_warp;
 class npc_data_message;
-struct NpcEvent;
-struct MobName;
-struct NpcName;
-struct ScriptLabel;
-struct ItemName;
 
 struct item_data;
 

@@ -29,10 +29,10 @@
 #include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 #include "../io/read.hpp"
 
 #include "../mmo/config_parse.hpp"
-#include "../mmo/extract.hpp"
 #include "../mmo/extract_enums.hpp"
 
 #include "script-parse.hpp"

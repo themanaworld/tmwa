@@ -37,7 +37,8 @@
 #include "../io/read.hpp"
 
 #include "../mmo/config_parse.hpp"
-#include "../mmo/utils.hpp"
+
+#include "../net/timestamp-utils.hpp"
 
 #include "../poison.hpp"
 

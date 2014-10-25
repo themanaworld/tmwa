@@ -20,8 +20,6 @@
 
 #include "fwd.hpp"
 
-#include "../strings/fwd.hpp"
-
 #include "dir.hpp"
 #include "fd.hpp"
 

@@ -18,11 +18,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "../compat/memory.hpp"
+
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 
-#include "../mmo/extract.hpp"
+#include "../mmo/extract_enums.hpp"
 
-#include "../map/clif.hpp"
+#include "../high/extract_mmo.hpp"
 
 #include "../poison.hpp"
 

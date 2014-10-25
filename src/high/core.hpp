@@ -24,8 +24,6 @@
 
 #include "../range/slice.hpp"
 
-#include "../strings/fwd.hpp"
-
 
 namespace tmwa
 {

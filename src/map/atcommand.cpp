@@ -37,22 +37,25 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/cxxstdio_enums.hpp"
+#include "../io/extract.hpp"
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
+#include "../net/timestamp-utils.hpp"
 
 #include "../mmo/config_parse.hpp"
-#include "../mmo/core.hpp"
-#include "../mmo/extract.hpp"
+#include "../mmo/cxxstdio_enums.hpp"
 #include "../mmo/extract_enums.hpp"
 #include "../mmo/human_time_diff.hpp"
 #include "../mmo/ids.hpp"
-#include "../mmo/mmo.hpp"
-#include "../mmo/utils.hpp"
 #include "../mmo/version.hpp"
+
+#include "../high/core.hpp"
+#include "../high/extract_mmo.hpp"
+#include "../high/mmo.hpp"
+#include "../high/utils.hpp"
 
 #include "battle.hpp"
 #include "chrif.hpp"

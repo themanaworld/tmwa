@@ -30,7 +30,8 @@
 #include "../strings/rstring.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/cxxstdio_enums.hpp"
+
+#include "../mmo/cxxstdio_enums.hpp"
 
 #include "map.t.hpp"
 #include "script-buffer.hpp"

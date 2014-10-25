@@ -33,9 +33,10 @@
 
 #include "../net/timer.hpp"
 
-#include "../mmo/core.hpp"
-
 #include "../proto2/net-HumanTimeDiff.hpp"
+
+#include "../high/core.hpp"
+#include "../high/extract_mmo.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"

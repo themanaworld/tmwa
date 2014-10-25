@@ -29,7 +29,6 @@
 #include "../io/cxxstdio.hpp"
 
 #include "../mmo/human_time_diff.hpp"
-#include "../mmo/utils.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"

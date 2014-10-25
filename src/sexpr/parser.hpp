@@ -22,8 +22,6 @@
 
 #include <cstdlib>
 
-#include "../strings/fwd.hpp"
-
 #include "../io/line.hpp"
 
 #include "lexer.hpp"

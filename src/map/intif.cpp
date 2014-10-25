@@ -29,12 +29,13 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "../net/packets.hpp"
 #include "../net/socket.hpp"
 
-#include "../mmo/mmo.hpp"
+#include "../high/mmo.hpp"
 
 #include "../proto2/char-map.hpp"
+
+#include "../wire/packets.hpp"
 
 #include "battle.hpp"
 #include "chrif.hpp"

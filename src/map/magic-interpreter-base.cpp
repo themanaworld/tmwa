@@ -25,7 +25,8 @@
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/cxxstdio_enums.hpp"
+
+#include "../mmo/cxxstdio_enums.hpp"
 
 #include "../net/timer.hpp"
 

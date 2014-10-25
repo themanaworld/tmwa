@@ -27,21 +27,17 @@
 
 #include <memory>
 
-#include "../strings/fwd.hpp"
 #include "../strings/rstring.hpp"
-
-#include "../generic/fwd.hpp"
 
 #include "../sexpr/variant.hpp"
 
 #include "../net/timer.t.hpp"
 
 #include "../mmo/ids.hpp"
-#include "../mmo/utils.hpp"
 
 #include "map.hpp"
 #include "script-buffer.hpp"
-#include "skill.t.hpp"
+#include "../mmo/skill.t.hpp"
 
 
 namespace tmwa

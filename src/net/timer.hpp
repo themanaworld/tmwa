@@ -21,10 +21,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "timer.t.hpp"
-
 #include "fwd.hpp"
-
-#include "../strings/fwd.hpp"
 
 
 namespace tmwa

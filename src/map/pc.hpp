@@ -24,15 +24,9 @@
 
 #include "fwd.hpp"
 
-#include "../strings/fwd.hpp"
-
 #include "../generic/dumb_ptr.hpp"
 
-#include "../mmo/utils.hpp"
-
-#include "../proto2/fwd.hpp"
-
-#include "clif.t.hpp"
+#include "../mmo/clif.t.hpp"
 #include "map.hpp"
 
 

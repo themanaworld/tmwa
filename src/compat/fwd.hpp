@@ -20,6 +20,10 @@
 
 #include "../sanity.hpp"
 
+#include "../ints/fwd.hpp" // rank 1
+#include "../strings/fwd.hpp" // rank 1
+// compat/fwd.hpp is rank 2
+
 
 namespace tmwa
 {
@@ -33,5 +37,6 @@ namespace tmwa
     template<class T>
     class Borrowed;
 
+    struct TimeT;
 // meh, add more when I feel like it
 } // namespace tmwa

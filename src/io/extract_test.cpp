@@ -22,7 +22,11 @@
 
 #include "../strings/xstring.hpp"
 
-#include "mmo.hpp"
+#include "../net/timer.t.hpp"
+
+#include "../mmo/strs.hpp"
+
+#include "../high/extract_mmo.hpp"
 
 #include "../poison.hpp"
 

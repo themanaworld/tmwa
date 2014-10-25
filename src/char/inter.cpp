@@ -34,16 +34,17 @@
 #include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
-#include "../net/packets.hpp"
-
 #include "../proto2/char-map.hpp"
 
-#include "../mmo/extract.hpp"
-#include "../mmo/mmo.hpp"
+#include "../high/extract_mmo.hpp"
+#include "../high/mmo.hpp"
+
+#include "../wire/packets.hpp"
 
 #include "char.hpp"
 #include "int_party.hpp"

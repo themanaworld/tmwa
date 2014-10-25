@@ -31,9 +31,9 @@
 
 #include "../strings/xstring.hpp"
 
-#include "../generic/enum.hpp"
+#include "../compat/time_t.hpp"
 
-#include "utils.hpp"
+#include "../generic/enum.hpp"
 
 
 namespace tmwa
@@ -209,14 +209,6 @@ bool extract(XString str, VRecord<split, T> rec)
     return extract(str.xislice_h(s), &rec.arr->back())
         && extract(str.xislice_t(s + 1), rec);
 }
-
-bool extract(XString str, GlobalReg *var);
-
-bool extract(XString str, Item *it);
-
-bool extract(XString str, MapName *m);
-
-bool extract(XString str, CharName *out);
 
 template<class T>
 bool do_extract(XString str, T t)

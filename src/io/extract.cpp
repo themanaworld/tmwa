@@ -1,7 +1,7 @@
 #include "extract.hpp"
 //    extract.cpp - a simple, hierarchical, tokenizer
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -24,15 +24,10 @@
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
-#include "extract_enums.hpp"
-#include "mmo.hpp"
-
 #include "../poison.hpp"
 
 
-// TODO move this whole file to io/ or something.
-// It needs to be lower in the include hierarchy so it can be implemented
-// for library types. Also it should pass an io::LineSpan around.
+// TODO also pass an io::LineSpan around.
 namespace tmwa
 {
 bool extract(XString str, XString *rv)
@@ -51,61 +46,6 @@ bool extract(XString str, AString *rv)
 {
     *rv = str;
     return true;
-}
-
-bool extract(XString str, GlobalReg *var)
-{
-    return extract(str,
-            record<','>(&var->str, &var->value));
-}
-
-bool extract(XString str, Item *it)
-{
-    XString ignored;
-    XString corruption_hack_amount;
-    bool rv = extract(str,
-            record<',', 11>(
-                &ignored,
-                &it->nameid,
-                &corruption_hack_amount,
-                &it->equip,
-                &ignored,
-                &ignored,
-                &ignored,
-                &ignored,
-                &ignored,
-                &ignored,
-                &ignored,
-                &ignored));
-    if (rv)
-    {
-        if (corruption_hack_amount == "-1"_s)
-            it->amount = 0;
-        else
-            rv = extract(corruption_hack_amount, &it->amount);
-    }
-    return rv;
-}
-
-bool extract(XString str, MapName *m)
-{
-    XString::iterator it = std::find(str.begin(), str.end(), '.');
-    str = str.xislice_h(it);
-    VString<15> tmp;
-    bool rv = extract(str, &tmp);
-    *m = tmp;
-    return rv;
-}
-
-bool extract(XString str, CharName *out)
-{
-    VString<23> tmp;
-    if (extract(str, &tmp))
-    {
-        *out = CharName(tmp);
-        return true;
-    }
-    return false;
 }
 
 bool extract(XString str, std::chrono::nanoseconds *ns)

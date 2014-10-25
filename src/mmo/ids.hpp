@@ -23,8 +23,6 @@
 #include "../ints/little.hpp"
 #include "../ints/wrap.hpp"
 
-#include "extract.hpp"
-
 
 namespace tmwa
 {
@@ -32,17 +30,7 @@ class Species : public Wrapped<uint16_t> { public: explicit operator bool() cons
 
 constexpr Species NEGATIVE_SPECIES = Species();
 
-inline
-bool extract(XString str, Species *w)
-{
-    // lots of data files use this
-    if (str == "-1"_s)
-    {
-        *w = NEGATIVE_SPECIES;
-        return true;
-    }
-    return extract(str, &w->_value);
-}
+bool extract(XString str, Species *w);
 
 
 class AccountId : public Wrapped<uint32_t> { public: constexpr AccountId() : Wrapped<uint32_t>() {} protected: constexpr explicit AccountId(uint32_t a) : Wrapped<uint32_t>(a) {} };
@@ -53,11 +41,12 @@ class ItemNameId : public Wrapped<uint16_t> { public: constexpr ItemNameId() : W
 
 class BlockId : public Wrapped<uint32_t> { public: constexpr BlockId() : Wrapped<uint32_t>() {} protected: constexpr explicit BlockId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 
+bool extract(XString str, GmLevel *lvl);
 class GmLevel
 {
     uint32_t bits;
 
-    friend bool extract(XString str, GmLevel *lvl) { return extract(str, &lvl->bits); }
+    friend bool extract(XString str, GmLevel *lvl);
     constexpr explicit
     GmLevel(uint32_t b) : bits(b) {}
     constexpr explicit

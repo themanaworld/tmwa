@@ -20,25 +20,20 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "clif.t.hpp"
+#include "../mmo/clif.t.hpp"
 
 #include "fwd.hpp"
 
 #include <functional>
 
-#include "../strings/fwd.hpp"
-
-#include "../generic/fwd.hpp"
+#include "../high/mmo.hpp"
 
 #include "../net/timer.t.hpp"
-
-#include "../mmo/fwd.hpp"
-#include "../mmo/mmo.hpp"
 
 #include "battle.t.hpp"
 #include "map.t.hpp"
 #include "pc.t.hpp"
-#include "skill.t.hpp"
+#include "../mmo/skill.t.hpp"
 
 
 namespace tmwa
@@ -189,6 +184,4 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
 int clif_foreachclient(std::function<void(dumb_ptr<map_session_data>)>);
 
 void do_init_clif(void);
-
-bool extract(XString, DIR *);
 } // namespace tmwa

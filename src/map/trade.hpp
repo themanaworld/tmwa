@@ -22,9 +22,7 @@
 
 #include "fwd.hpp"
 
-#include "../generic/fwd.hpp"
-
-#include "clif.t.hpp"
+#include "../mmo/clif.t.hpp"
 
 
 namespace tmwa

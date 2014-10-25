@@ -21,14 +21,8 @@
 
 #include "fwd.hpp"
 
-#include "../generic/fwd.hpp"
-
-#include "../range/fwd.hpp"
-
 #include "../strings/zstring.hpp"
 #include "../strings/literal.hpp"
-
-#include "../mmo/fwd.hpp"
 
 #include "magic-interpreter.t.hpp"
 

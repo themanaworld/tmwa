@@ -31,9 +31,12 @@
 #include "../generic/enum.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 #include "../io/read.hpp"
 
 #include "../mmo/config_parse.hpp"
+
+#include "../high/extract_mmo.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

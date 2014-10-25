@@ -20,13 +20,20 @@
 
 #include "../sanity.hpp"
 
+#include "../ints/fwd.hpp" // rank 1
+#include "../strings/fwd.hpp" // rank 1
+#include "../compat/fwd.hpp" // rank 2
+#include "../generic/fwd.hpp" // rank 3
+#include "../io/fwd.hpp" // rank 4
+#include "../net/fwd.hpp" // rank 5
+// mmo/fwd.hpp is rank 6
+
 
 namespace tmwa
 {
 // meh, add more when I feel like it
 class MapName;
 class CharName;
-class CharPair;
 
 class HumanTimeDiff;
 
@@ -48,22 +55,9 @@ class VarName;
 class MapName;
 class CharName;
 
-class Item;
-#if 0
-class Point;
-class SkillValue;
-#endif
-class GlobalReg;
-#if 0
-class CharKey;
-class CharData;
-class CharPair;
-#endif
-class Storage;
-#if 0
-class GM_Account;
-class PartyMember;
-#endif
-class PartyMost;
-class PartyPair;
+struct MobName;
+struct NpcName;
+struct ScriptLabel;
+struct ItemName;
+struct NpcEvent;
 } // namespace tmwa

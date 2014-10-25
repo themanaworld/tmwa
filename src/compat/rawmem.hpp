@@ -22,6 +22,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include <type_traits>
+
 #include "fwd.hpp"
 
 
@@ -49,4 +51,23 @@ void really_memset0(uint8_t *dest, size_t n)
 {
     memset(dest, '\0', n);
 }
+
+template<class T>
+struct is_trivially_copyable
+: std::integral_constant<bool,
+    // come back when GCC actually implements the public traits properly
+    __has_trivial_copy(T)
+    && __has_trivial_assign(T)
+    && __has_trivial_destructor(T)>
+{};
+
+template<class T>
+void really_memzero_this(T *v)
+{
+    static_assert(is_trivially_copyable<T>::value, "only for mostly-pod types");
+    static_assert(std::is_class<T>::value || std::is_union<T>::value, "Only for user-defined structures (for now)");
+    memset(v, '\0', sizeof(*v));
+}
+template<class T, size_t n>
+void really_memzero_this(T (&)[n]) = delete;
 } // namespace tmwa

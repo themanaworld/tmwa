@@ -24,10 +24,6 @@
 
 #include <memory>
 
-#include "../strings/fwd.hpp"
-
-#include "../generic/fwd.hpp"
-
 
 namespace tmwa
 {

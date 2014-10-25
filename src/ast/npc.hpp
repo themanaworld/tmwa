@@ -20,12 +20,15 @@
 
 #include "fwd.hpp"
 
+#include <memory>
+
 #include "../compat/result.hpp"
 
+#include "../mmo/clif.t.hpp"
 #include "../mmo/ids.hpp"
 #include "../mmo/strs.hpp"
 
-#include "../map/map.hpp"
+#include "../net/timer.t.hpp"
 
 #include "script.hpp"
 

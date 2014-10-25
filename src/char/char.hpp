@@ -22,13 +22,11 @@
 
 #include "fwd.hpp"
 
-#include "../strings/fwd.hpp"
-
 #include "../generic/array.hpp"
 
 #include "../net/ip.hpp"
 
-#include "../mmo/mmo.hpp"
+#include "../high/mmo.hpp"
 
 
 namespace tmwa

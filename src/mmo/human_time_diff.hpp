@@ -24,8 +24,6 @@
 
 #include "../strings/xstring.hpp"
 
-#include "extract.hpp"
-
 
 namespace tmwa
 {
@@ -44,46 +42,5 @@ struct HumanTimeDiff
         return !bool(*this);
     }
 };
-
-inline
-bool extract(XString str, HumanTimeDiff *iv)
-{
-    // str is a sequence of [-+]?[0-9]+([ay]|m|[jd]|h|mn|s)
-    // there are NO spaces here
-    // parse by counting the number starts
-    auto is_num = [](char c)
-    { return c == '-' || c == '+' || ('0' <= c && c <= '9'); };
-    if (!str || !is_num(str.front()))
-        return false;
-    *iv = HumanTimeDiff{};
-    while (str)
-    {
-        auto it = std::find_if_not(str.begin(), str.end(), is_num);
-        auto it2 = std::find_if(it, str.end(), is_num);
-        XString number = str.xislice_h(it);
-        XString suffix = str.xislice(it, it2);
-        str = str.xislice_t(it2);
-
-        short *ptr = nullptr;
-        if (suffix == "y"_s || suffix == "a"_s)
-            ptr = &iv->year;
-        else if (suffix == "m"_s)
-            ptr = &iv->month;
-        else if (suffix == "j"_s || suffix == "d"_s)
-            ptr = &iv->day;
-        else if (suffix == "h"_s)
-            ptr = &iv->hour;
-        else if (suffix == "mn"_s)
-            ptr = &iv->minute;
-        else if (suffix == "s"_s)
-            ptr = &iv->second;
-        else
-            return false;
-        if (number.startswith('+') && !number.startswith("+-"_s))
-            number = number.xslice_t(1);
-        if (*ptr || !extract(number, ptr))
-            return false;
-    }
-    return true;
-}
+bool extract(XString str, HumanTimeDiff *iv);
 } // namespace tmwa

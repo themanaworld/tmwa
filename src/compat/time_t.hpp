@@ -20,10 +20,90 @@
 
 #include "fwd.hpp"
 
-// TODO fix this ordering violation by promoting TimeT here
-#include "../mmo/utils.hpp"
+#include <ctime>
+
+#include "../ints/little.hpp"
+
+#include "operators.hpp"
 
 
 namespace tmwa
 {
+// Exists in place of time_t, to give it a predictable printf-format.
+// (on x86 and amd64, time_t == long, but not on x32)
+static_assert(sizeof(long long) >= sizeof(time_t), "long long >= time_t");
+struct TimeT : Comparable
+{
+    long long value;
+
+    // conversion
+    TimeT(time_t t=0) : value(t) {}
+    TimeT(struct tm t) : value(timegm(&t)) {}
+    operator time_t() const { return value; }
+    operator struct tm() const { time_t v = value; return *gmtime(&v); }
+
+    explicit operator bool() const { return value; }
+    bool operator !() const { return !value; }
+
+    // prevent surprises
+    template<class T>
+    TimeT(T) = delete;
+    template<class T>
+    operator T() const = delete;
+
+    static
+    TimeT now()
+    {
+        // poisoned, but this is still in header-land
+        return time(nullptr);
+    }
+
+    bool error() const
+    {
+        return value == -1;
+    }
+    bool okay() const
+    {
+        return !error();
+    }
+};
+
+inline
+long long convert_for_printf(TimeT t)
+{
+    return t.value;
+}
+
+// 2038 problem
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little32 *net, TimeT nat)
+{
+    time_t tmp = nat;
+    return native_to_network(net, static_cast<uint32_t>(tmp));
+}
+
+inline __attribute__((warn_unused_result))
+bool network_to_native(TimeT *nat, Little32 net)
+{
+    uint32_t tmp;
+    bool rv = network_to_native(&tmp, net);
+    *nat = static_cast<time_t>(tmp);
+    return rv;
+}
+
+inline __attribute__((warn_unused_result))
+bool native_to_network(Little64 *net, TimeT nat)
+{
+    time_t tmp = nat;
+    return native_to_network(net, static_cast<uint64_t>(tmp));
+}
+
+inline __attribute__((warn_unused_result))
+bool network_to_native(TimeT *nat, Little64 net)
+{
+    uint64_t tmp;
+    bool rv = network_to_native(&tmp, net);
+    *nat = static_cast<time_t>(tmp);
+    return rv;
+}
 } // namespace tmwa

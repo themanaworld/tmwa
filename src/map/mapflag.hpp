@@ -22,8 +22,6 @@
 
 #include <cstdint>
 
-#include "../mmo/extract.hpp" // TODO remove this (requires specializing the *other* half)
-
 
 namespace tmwa
 {

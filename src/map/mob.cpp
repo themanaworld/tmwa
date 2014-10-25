@@ -36,14 +36,14 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/cxxstdio_enums.hpp"
+#include "../io/extract.hpp"
 #include "../io/read.hpp"
 
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
 
 #include "../mmo/config_parse.hpp"
-#include "../mmo/extract.hpp"
+#include "../mmo/cxxstdio_enums.hpp"
 #include "../mmo/extract_enums.hpp"
 
 #include "battle.hpp"

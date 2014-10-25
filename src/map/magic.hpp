@@ -21,12 +21,8 @@
 
 #include "fwd.hpp"
 
-#include "../strings/fwd.hpp"
-
-#include "../generic/fwd.hpp"
-
 #include "map.t.hpp"
-#include "skill.t.hpp"
+#include "../mmo/skill.t.hpp"
 
 
 namespace tmwa

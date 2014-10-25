@@ -22,7 +22,6 @@
 
 #include <vector>
 
-#include "../strings/fwd.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 

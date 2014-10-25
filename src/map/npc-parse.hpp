@@ -22,14 +22,6 @@
 
 #include "fwd.hpp"
 
-#include "../compat/fwd.hpp"
-
-#include "../generic/fwd.hpp"
-
-#include "../strings/fwd.hpp"
-
-#include "../mmo/fwd.hpp"
-
 
 namespace tmwa
 {

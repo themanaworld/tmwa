@@ -153,8 +153,8 @@ int tmwa_main(int argc, char **argv)
         // may wait too long in sendrecv
         tick_t now = milli_clock::now();
         interval_t next = do_timer(now);
-        do_sendrecv(next);
-        do_parsepacket();
+        runflag &= do_sendrecv(next);
+        runflag &= do_parsepacket();
     }
 
     return 0;

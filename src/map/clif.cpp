@@ -36,21 +36,24 @@
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/cxxstdio_enums.hpp"
+#include "../io/extract.hpp"
 #include "../io/write.hpp"
 
 #include "../net/ip.hpp"
-#include "../net/packets.hpp"
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
+#include "../net/timestamp-utils.hpp"
 
 #include "../proto2/any-user.hpp"
 #include "../proto2/char-map.hpp"
 #include "../proto2/map-user.hpp"
 
-#include "../mmo/md5more.hpp"
-#include "../mmo/utils.hpp"
+#include "../mmo/cxxstdio_enums.hpp"
 #include "../mmo/version.hpp"
+
+#include "../high/md5more.hpp"
+
+#include "../wire/packets.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -5674,39 +5677,5 @@ unknown_packet:
 void do_init_clif(void)
 {
     make_listen_port(map_port, SessionParsers{.func_parse= clif_parse, .func_delete= clif_delete});
-}
-
-bool extract(XString str, DIR *d)
-{
-    unsigned di;
-    if (extract(str, &di) && di < 8)
-    {
-        *d = static_cast<DIR>(di);
-        return true;
-    }
-    const struct
-    {
-        LString str;
-        DIR d;
-    } dirs[] =
-    {
-        {"S"_s, DIR::S},
-        {"SW"_s, DIR::SW},
-        {"W"_s, DIR::W},
-        {"NW"_s, DIR::NW},
-        {"N"_s, DIR::N},
-        {"NE"_s, DIR::NE},
-        {"E"_s, DIR::E},
-        {"SE"_s, DIR::SE},
-    };
-    for (auto& pair : dirs)
-    {
-        if (str == pair.str)
-        {
-            *d = pair.d;
-            return true;
-        }
-    }
-    return false;
 }
 } // namespace tmwa

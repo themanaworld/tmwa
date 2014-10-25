@@ -20,6 +20,10 @@
 
 #include "../sanity.hpp"
 
+#include "../strings/fwd.hpp" // rank 1
+#include "../io/fwd.hpp" // rank 4
+// tests/fwd.hpp is rank 5, but gtests do not require rank
+
 
 namespace tmwa
 {

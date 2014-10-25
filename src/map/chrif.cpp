@@ -29,15 +29,16 @@
 #include "../io/cxxstdio.hpp"
 
 #include "../net/ip.hpp"
-#include "../net/packets.hpp"
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
+#include "../net/timestamp-utils.hpp"
 
 #include "../proto2/char-map.hpp"
 
 #include "../mmo/human_time_diff.hpp"
-#include "../mmo/mmo.hpp"
-#include "../mmo/utils.hpp"
+#include "../high/mmo.hpp"
+
+#include "../wire/packets.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

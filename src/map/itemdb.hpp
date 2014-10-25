@@ -23,7 +23,7 @@
 #include "fwd.hpp"
 
 #include "../mmo/ids.hpp"
-#include "../mmo/mmo.hpp"
+#include "../high/mmo.hpp"
 
 #include "map.t.hpp"
 #include "script-buffer.hpp"

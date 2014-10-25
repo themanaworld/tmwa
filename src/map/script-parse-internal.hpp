@@ -23,8 +23,6 @@
 #include "script-parse.hpp"
 #include "fwd.hpp"
 
-#include "../compat/fwd.hpp"
-
 #include "../strings/rstring.hpp"
 
 

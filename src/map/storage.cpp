@@ -25,7 +25,7 @@
 #include "../generic/db.hpp"
 
 #include "../mmo/ids.hpp"
-#include "../mmo/mmo.hpp"
+#include "../high/mmo.hpp"
 
 #include "chrif.hpp"
 #include "clif.hpp"

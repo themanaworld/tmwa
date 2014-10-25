@@ -38,11 +38,9 @@
 #include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 
 #include "../net/timer.hpp"
-
-#include "../mmo/extract.hpp"
-#include "../mmo/utils.hpp"
 
 #include "../proto2/map-user.hpp"
 

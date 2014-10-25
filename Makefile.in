@@ -197,6 +197,8 @@ PIES := $(filter-out src/main-gdb-%.py,${PIES})
 SOURCES := ${REAL_SOURCES}
 HEADERS := ${REAL_HEADERS}
 CHECK_HEADERS := $(patsubst src/%.hpp,stamp/%.hpp.check,$(filter %.hpp,${REAL_HEADERS}))
+CHECK_RANK_FWDS := $(patsubst src/%,stamp/%.rank,${REAL_HEADERS} $(filter-out %_test.cpp,${REAL_SOURCES}))
+CHECK_FWDS := $(patsubst src/%/fwd.hpp,stamp/%.fwdcheck,$(filter %/fwd.hpp,${REAL_HEADERS}))
 PATTERN_ROOTS := $(patsubst src/%.cpp,%,${SOURCES})
 PATTERN_PIES := $(patsubst src/%.py,%,${PIES})
 PATTERN_MAINS := $(patsubst %/main,%,$(filter %/main,${PATTERN_ROOTS}))
@@ -501,17 +503,39 @@ endif
 
 test: test-direct
 test-direct: $(patsubst bin/tests/%,stamp/run-%.stamp,${TEST_BINARIES})
+
 test: test-gtest
 test-gtest: $(patsubst bin/tests/%,stamp/run-%.stamp,${GTEST_BINARIES})
+
 test: test-dtest
 test-dtest: $(patsubst bin/tests/%,stamp/run-%.stamp,${DTEST_BINARIES})
+
 stamp/run-%.stamp: bin/tests/%
 	$(MKDIR_FIRST)
 	ln -sf ../lib bin/lib
 	${TESTER} $< ${TEST_ARGS}
 	touch $@
+
 test: test-headers
 test-headers: ${CHECK_HEADERS}
+
+test: test-rank-fwd
+test-rank-fwd: ${CHECK_RANK_FWDS}
+stamp/%.rank: src/%
+	$(MKDIR_FIRST)
+	includes=$$(grep '#include.*".*/.*"' $< | sed 's/^[^"]*"//;s/"[^"]*$$//;s:/[^/]*$$::' | sort -u | fgrep -vx -e '..' -e 'conf-raw' -e '../conf'); \
+	    for inc in $$includes; do if ! test -f ${<D}/fwd.hpp; then continue; fi; echo fgrep -q $${inc}/fwd.hpp ${<D}/fwd.hpp; fgrep -q $${inc}/fwd.hpp ${<D}/fwd.hpp || { echo ${<D}/fwd.hpp:''23: error: No $${inc}/fwd.hpp; exit 1; }; done
+	touch $@
+
+test: test-check-fwd
+test-check-fwd: ${CHECK_FWDS}
+stamp/%.fwdcheck: src/%/fwd.hpp
+	$(MKDIR_FIRST)
+	types=$$(grep -o '\(enum \|class \| struct \|union \)\+[A-Za-z_0-9]\+;$$' $< | sed 's/\(;\|enum \|class \|struct \|union \)//g'); \
+	    for t in $$types; do echo grep -q $$t $(filter-out %/fwd.hpp,$(wildcard ${<D}/*.hpp)); grep -qw '\(enum \|class \|struct \|union \)'$$t $(filter-out %/fwd.hpp,$(wildcard ${<D}/*.hpp)) || { grep -Hnw $$t';$$' $<; exit 1; }; done
+	includes=$$(grep -o '#include.*".*/fwd\.hpp"' $< | sed 's:^[^"]*"::;s:/[^/]*"$$:/:'); \
+	    for inc in $$includes; do echo fgrep -q $$inc $(filter-out %/fwd.hpp,$(wildcard ${<D}/*.hpp ${<D}/*.tcc ${<D}/*.cpp)); fgrep -q $$inc $(filter-out %/fwd.hpp,$(wildcard ${<D}/*.hpp ${<D}/*.tcc ${<D}/*.cpp)) || { grep -Hn $$inc $<; exit 1; }; done
+	touch $@
 
 install := install
 install_exe := ${install}

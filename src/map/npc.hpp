@@ -26,13 +26,7 @@
 
 #include "../range/slice.hpp"
 
-#include "../strings/fwd.hpp"
-
-#include "../generic/fwd.hpp"
-
 #include "../net/timer.t.hpp"
-
-#include "../proto2/fwd.hpp"
 
 #include "map.hpp"
 #include "script-call.t.hpp"

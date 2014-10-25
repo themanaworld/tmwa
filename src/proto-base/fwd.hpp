@@ -20,6 +20,11 @@
 
 #include "../sanity.hpp"
 
+#include "../strings/fwd.hpp" // rank 1
+#include "../generic/fwd.hpp" // rank 3
+#include "../mmo/fwd.hpp" // rank 6
+// proto-base/fwd.hpp is rank 7
+
 
 namespace tmwa
 {

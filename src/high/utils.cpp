@@ -28,9 +28,7 @@
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/write.hpp"
-
-#include "extract.hpp"
+#include "../io/extract.hpp"
 
 #include "../poison.hpp"
 
@@ -84,40 +82,5 @@ int config_switch(ZString str)
         return rv;
     FPRINTF(stderr, "Fatal: bad option value %s"_fmt, str);
     abort();
-}
-
-static_assert(sizeof(timestamp_seconds_buffer) == 20, "seconds buffer");
-static_assert(sizeof(timestamp_milliseconds_buffer) == 24, "millis buffer");
-
-void stamp_time(timestamp_seconds_buffer& out, const TimeT *t)
-{
-    struct tm when = t ? *t : TimeT::now();
-    char buf[20];
-    strftime(buf, 20, "%Y-%m-%d %H:%M:%S", &when);
-    out = stringish<timestamp_seconds_buffer>(VString<19>(strings::really_construct_from_a_pointer, buf));
-}
-void stamp_time(timestamp_milliseconds_buffer& out)
-{
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    struct tm when = TimeT(tv.tv_sec);
-    char buf[24];
-    strftime(buf, 20, "%Y-%m-%d %H:%M:%S", &when);
-    sprintf(buf + 19, ".%03d", static_cast<int>(tv.tv_usec / 1000));
-    out = stringish<timestamp_milliseconds_buffer>(VString<23>(strings::really_construct_from_a_pointer, buf));
-}
-
-void log_with_timestamp(io::WriteFile& out, XString line)
-{
-    if (!line)
-    {
-        out.put('\n');
-        return;
-    }
-    timestamp_milliseconds_buffer tmpstr;
-    stamp_time(tmpstr);
-    out.really_put(tmpstr.data(), tmpstr.size());
-    out.really_put(": ", 2);
-    out.put_line(line);
 }
 } // namespace tmwa

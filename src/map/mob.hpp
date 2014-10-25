@@ -24,16 +24,15 @@
 
 #include "fwd.hpp"
 
-#include "../generic/fwd.hpp"
 #include "../generic/enum.hpp"
 #include "../generic/random.t.hpp"
 
 #include "../net/timer.t.hpp"
 
 #include "battle.t.hpp"
-#include "clif.t.hpp"
+#include "../mmo/clif.t.hpp"
 #include "map.hpp"
-#include "skill.t.hpp"
+#include "../mmo/skill.t.hpp"
 
 
 namespace tmwa
