@@ -5,9 +5,6 @@
 
 WWW=${HOME}/www/
 
-# the cross-toolchain repo doesn't have gcc-defaults, so we have
-# to specify the suffix.
-CROSS_VERSION_SUFFIX=-4.9
 BUILD=x86_64-linux-gnu
 
 ALL_HOSTS=(
@@ -17,10 +14,9 @@ ALL_HOSTS=(
 # On Debian, boot with 'syscall.x32=y' on the kernel command line
 # (see GRUB_CMDLINE_LINUX in /etc/default/grub)
     #x86_64-linux-gnux32
-# Cross arches can be built by enabling multiarch, then installing from the
-# toolchain repo at http://toolchains.secretsauce.net/
-# Executables can be run via qemu-user, but tests that require gdb fail
-# (NYI: implement configure with GDB=/bin/true)
+# Cross arches can be built by enabling multiarch, then installing
+# the g++-$ARCH package.
+# Executables can be run via qemu-user, but gdb tests must be disabled.
 # Bug 762073 notes impossible coinstallation of mips, mipsel, and powerpc.
 # dpkg-divert can only fix *one* of them.
     #aarch64-linux-gnu
@@ -49,7 +45,7 @@ config---help() {
 
 common-config() {
     # HOST is set by the calling function
-    CXX=$HOST-g++$CROSS_VERSION_SUFFIX
+    CXX=$HOST-g++
     EXTRA_LIBS=(
         /lib/$HOST/libc.so.6
         /lib/$HOST/libm.so.6
@@ -61,7 +57,7 @@ common-config() {
 
 
 config-x86_64-linux-gnu () {
-    CROSS_VERSION_SUFFIX='' common-config
+    common-config
     GDB=gdb
 }
 
