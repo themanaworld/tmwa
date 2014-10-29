@@ -24,6 +24,8 @@
 
 #include "../compat/result.hpp"
 
+#include "../io/span.hpp"
+
 #include "../mmo/clif.t.hpp"
 #include "../mmo/ids.hpp"
 #include "../mmo/strs.hpp"
@@ -35,9 +37,9 @@
 
 namespace tmwa
 {
-namespace npc
+namespace ast
 {
-namespace parse
+namespace npc
 {
     using io::Spanned;
 
@@ -100,7 +102,7 @@ namespace parse
     {
         io::LineSpan key_span;
         // see src/script/parser.hpp
-        script::parse::ScriptBody body;
+        ast::script::ScriptBody body;
     };
     struct ScriptFunction : Script
     {
@@ -133,6 +135,6 @@ namespace parse
     // other Script subclasses elsewhere? (for item and magic scripts)
 
     Result<std::unique_ptr<TopLevel>> parse_top(io::LineCharReader& in);
-} // namespace parse
 } // namespace npc
+} // namespace ast
 } // namespace tmwa

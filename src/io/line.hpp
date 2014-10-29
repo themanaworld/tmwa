@@ -21,68 +21,15 @@
 #include "fwd.hpp"
 
 #include "../strings/rstring.hpp"
-#include "../strings/zstring.hpp"
-#include "../strings/literal.hpp"
 
 #include "read.hpp"
+#include "span.hpp"
 
 
 namespace tmwa
 {
 namespace io
 {
-    // TODO split this out
-    struct Line
-    {
-        RString text;
-
-        RString filename;
-        // 1-based
-        uint16_t line, column;
-
-        AString message_str(ZString cat, ZString msg) const;
-        AString note_str(ZString msg) const { return message_str("note"_s, msg); }
-        AString warning_str(ZString msg) const { return message_str("warning"_s, msg); }
-        AString error_str(ZString msg) const { return message_str("error"_s, msg); }
-        void message(ZString cat, ZString msg) const;
-        void note(ZString msg) const { message("note"_s, msg); }
-        void warning(ZString msg) const { message("warning"_s, msg); }
-        void error(ZString msg) const { message("error"_s, msg); }
-    };
-
-    // psst, don't tell anyone
-    struct LineChar : Line
-    {
-        char ch()
-        {
-            size_t c = column - 1;
-            if (c == text.size())
-                return '\n';
-            return text[c];
-        }
-    };
-
-    struct LineSpan
-    {
-        LineChar begin, end;
-
-        AString message_str(ZString cat, ZString msg) const;
-        AString note_str(ZString msg) const { return message_str("note"_s, msg); }
-        AString warning_str(ZString msg) const { return message_str("warning"_s, msg); }
-        AString error_str(ZString msg) const { return message_str("error"_s, msg); }
-        void message(ZString cat, ZString msg) const;
-        void note(ZString msg) const { message("note"_s, msg); }
-        void warning(ZString msg) const { message("warning"_s, msg); }
-        void error(ZString msg) const { message("error"_s, msg); }
-    };
-
-    template<class T>
-    struct Spanned
-    {
-        T data;
-        LineSpan span;
-    };
-
     class LineReader
     {
     protected:
@@ -96,6 +43,8 @@ namespace io
         LineReader& operator = (LineReader&&) = delete;
         // needed for unit tests
         LineReader(ZString name, FD fd);
+        LineReader(read_file_from_string, ZString name, XString content, int startline=1, FD fd=FD());
+        LineReader(read_file_from_string, ZString name, LString content, int startline=1, FD fd=FD());
 
         bool read_line(Line& l);
         bool is_open();
@@ -110,6 +59,8 @@ namespace io
         LineCharReader(LineCharReader&&) = delete;
         LineCharReader& operator = (LineCharReader&&) = delete;
         LineCharReader(ZString name, FD fd);
+        LineCharReader(read_file_from_string, ZString name, XString content, int startline=1, int startcol=1, FD fd=FD());
+        LineCharReader(read_file_from_string, ZString name, LString content, int startline=1, int startcol=1, FD fd=FD());
 
         bool get(LineChar& c);
         void adv();

@@ -22,6 +22,7 @@
 
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
+#include "../io/line.hpp"
 
 #include "../mmo/extract_enums.hpp"
 
@@ -32,10 +33,12 @@
 
 namespace tmwa
 {
+namespace ast
+{
 namespace npc
 {
-namespace parse
-{
+    using io::respan;
+
     // separate file because virtual
     TopLevel::~TopLevel() {}
 
@@ -285,7 +288,10 @@ namespace parse
         script_function.key_span = bits[1].data[0].span;
         TRY_EXTRACT(bits[2].data[0], script_function.name);
         // also expect '{' and parse real script
-        script_function.body = TRY(script::parse::parse_script_body(lr));
+        ast::script::ScriptOptions opt;
+        opt.implicit_start = true;
+        opt.default_label = "OnCall"_s;
+        script_function.body = TRY(ast::script::parse_script_body(lr, opt));
         return Ok(std::move(script_function));
     }
     static
@@ -317,7 +323,10 @@ namespace parse
         TRY_EXTRACT(bits[2].data[0], script_none.name);
         script_none.key4_span = bits[3].data[0].span;
         // also expect '{' and parse real script
-        script_none.body = TRY(script::parse::parse_script_body(lr));
+        ast::script::ScriptOptions opt;
+        opt.implicit_start = true;
+        opt.no_start = true;
+        script_none.body = TRY(ast::script::parse_script_body(lr, opt));
         return Ok(std::move(script_none));
     }
     static
@@ -353,7 +362,10 @@ namespace parse
         TRY_EXTRACT(bits[2].data[0], script_map_none.name);
         script_map_none.key4_span = bits[3].data[0].span;
         // also expect '{' and parse real script
-        script_map_none.body = TRY(script::parse::parse_script_body(lr));
+        ast::script::ScriptOptions opt;
+        opt.implicit_start = true;
+        opt.no_start = true;
+        script_map_none.body = TRY(ast::script::parse_script_body(lr, opt));
         return Ok(std::move(script_map_none));
     }
     static
@@ -391,7 +403,10 @@ namespace parse
         TRY_EXTRACT(bits[3].data[1], script_map.xs);
         TRY_EXTRACT(bits[3].data[2], script_map.ys);
         // also expect '{' and parse real script
-        script_map.body = TRY(script::parse::parse_script_body(lr));
+        ast::script::ScriptOptions opt;
+        opt.implicit_start = true;
+        opt.default_label = "OnClick"_s;
+        script_map.body = TRY(ast::script::parse_script_body(lr, opt));
         return Ok(std::move(script_map));
     }
     static
@@ -428,6 +443,9 @@ namespace parse
     static
     Option<Spanned<RString>> lex(io::LineCharReader& lr, bool first)
     {
+        // you know, I just realized a lot of the if (.get()) checks are not
+        // actually going to fail, since LineCharReader guarantees the \n
+        // occurs before EOF
         io::LineChar c;
         // at start of line, skip whitespace
         if (first)
@@ -445,12 +463,8 @@ namespace parse
         // separators are simple
         if (c.ch() == '|' || c.ch() == ',')
         {
-            Spanned<RString> bit;
-            bit.span.begin = c;
-            bit.span.end = c;
-            bit.data = RString(VString<1>(c.ch()));
             lr.adv();
-            return Some(bit);
+            return Some(respan({c, c}, RString(VString<1>(c.ch()))));
         }
         io::LineSpan span;
         MString accum;
@@ -464,10 +478,7 @@ namespace parse
         // if one-char token followed by an end-of-line or separator, stop
         if (!lr.get(c) || c.ch() == '\n' || c.ch() == '{' || c.ch() == ',' || c.ch() == '|')
         {
-            Spanned<RString> bit;
-            bit.span = span;
-            bit.data = RString(accum);
-            return Some(bit);
+            return Some(respan(span, RString(accum)));
         }
 
         accum += c.ch();
@@ -483,10 +494,7 @@ namespace parse
                 span.end = c;
                 lr.adv();
             }
-            Spanned<RString> bit;
-            bit.span = span;
-            bit.data = RString(accum);
-            return Some(bit);
+            return Some(respan(span, RString(accum)));
         }
         // otherwise, collect until an end of line or separator
         while (lr.get(c) && c.ch() != '\n' && c.ch() != '{' && c.ch() != ',' && c.ch() != '|')
@@ -495,10 +503,7 @@ namespace parse
             span.end = c;
             lr.adv();
         }
-        Spanned<RString> bit;
-        bit.span = span;
-        bit.data = RString(accum);
-        return Some(std::move(bit));
+        return Some(respan(span, RString(accum)));
     }
 
     Result<std::unique_ptr<TopLevel>> parse_top(io::LineCharReader& in)
@@ -592,6 +597,6 @@ namespace parse
         }
         return Ok(std::move(rv));
     }
-} // namespace parse
 } // namespace npc
+} // namespace ast
 } // namespace tmwa

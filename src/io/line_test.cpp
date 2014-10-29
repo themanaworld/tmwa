@@ -130,6 +130,20 @@ TEST(io, line5)
     EXPECT_EQ(hi.column, 0);
     EXPECT_FALSE(lr.read_line(hi));
 }
+TEST(io, line1text)
+{
+    io::LineReader lr(io::from_string, "<string1text>"_s, "Hello\nWorld"_s, 2);
+    io::Line hi;
+    EXPECT_TRUE(lr.read_line(hi));
+    EXPECT_EQ(hi.text, "Hello"_s);
+    EXPECT_EQ(hi.line, 2);
+    EXPECT_EQ(hi.column, 0);
+    EXPECT_TRUE(lr.read_line(hi));
+    EXPECT_EQ(hi.text, "World"_s);
+    EXPECT_EQ(hi.line, 3);
+    EXPECT_EQ(hi.column, 0);
+    EXPECT_FALSE(lr.read_line(hi));
+}
 
 TEST(io, linechar1)
 {
@@ -377,6 +391,42 @@ TEST(io, linechar5)
     EXPECT_EQ(c.ch(), '\n');
     EXPECT_EQ(c.text, "Wu"_s);
     EXPECT_EQ(c.filename, "<stringchar5>"_s);
+    EXPECT_EQ(c.line, 3);
+    EXPECT_EQ(c.column, 3);
+    lr.adv();
+    EXPECT_FALSE(lr.get(c));
+}
+TEST(io, linechar1text)
+{
+    io::LineCharReader lr(io::from_string, "<stringchar1text>"_s, "Hi\nWu\n"_s, 2, 3);
+    io::LineChar c;
+    EXPECT_TRUE(lr.get(c));
+    EXPECT_EQ(c.ch(), 'H');
+    EXPECT_EQ(c.line, 2);
+    EXPECT_EQ(c.column, 3);
+    lr.adv();
+    EXPECT_TRUE(lr.get(c));
+    EXPECT_EQ(c.ch(), 'i');
+    EXPECT_EQ(c.line, 2);
+    EXPECT_EQ(c.column, 4);
+    lr.adv();
+    EXPECT_TRUE(lr.get(c));
+    EXPECT_EQ(c.ch(), '\n');
+    EXPECT_EQ(c.line, 2);
+    EXPECT_EQ(c.column, 5);
+    lr.adv();
+    EXPECT_TRUE(lr.get(c));
+    EXPECT_EQ(c.ch(), 'W');
+    EXPECT_EQ(c.line, 3);
+    EXPECT_EQ(c.column, 1);
+    lr.adv();
+    EXPECT_TRUE(lr.get(c));
+    EXPECT_EQ(c.ch(), 'u');
+    EXPECT_EQ(c.line, 3);
+    EXPECT_EQ(c.column, 2);
+    lr.adv();
+    EXPECT_TRUE(lr.get(c));
+    EXPECT_EQ(c.ch(), '\n');
     EXPECT_EQ(c.line, 3);
     EXPECT_EQ(c.column, 3);
     lr.adv();

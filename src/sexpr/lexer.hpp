@@ -58,10 +58,13 @@ namespace sexpr
         Lexer(ZString filename)
         : _in(filename), _current(TOK_EOF), _span(), _depth()
         { adv(); }
-        // for unit tests
-        Lexer(ZString fake, io::FD fd)
-        : _in(fake, fd), _current(TOK_EOF), _span(), _depth()
+        Lexer(io::read_file_from_string, ZString name, XString str)
+        : _in(io::from_string, name, str), _current(TOK_EOF), _span(), _depth()
         { adv(); }
+        Lexer(io::read_file_from_string, ZString name, LString str)
+        : _in(io::from_string, name, str), _current(TOK_EOF), _span(), _depth()
+        { adv(); }
+
         Lexeme peek() { return _current; }
         void adv() { _current = _adv(); }
         ZString val_string() { return _string; }

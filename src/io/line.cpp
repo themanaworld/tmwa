@@ -19,9 +19,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "../strings/astring.hpp"
-#include "../strings/mstring.hpp"
 #include "../strings/zstring.hpp"
-#include "../strings/xstring.hpp"
 
 #include "cxxstdio.hpp"
 
@@ -32,77 +30,20 @@ namespace tmwa
 {
 namespace io
 {
-    AString Line::message_str(ZString cat, ZString msg) const
-    {
-        MString out;
-        if (column)
-            out += STRPRINTF("%s:%u:%u: %s: %s\n"_fmt,
-                    filename, line, column, cat, msg);
-        else
-            out += STRPRINTF("%s:%u: %s: %s\n"_fmt,
-                    filename, line, cat, msg);
-        out += STRPRINTF("%s\n"_fmt, text);
-        out += STRPRINTF("%*c\n"_fmt, column, '^');
-        return AString(out);
-    }
-
-    void Line::message(ZString cat, ZString msg) const
-    {
-        if (column)
-            FPRINTF(stderr, "%s:%u:%u: %s: %s\n"_fmt,
-                    filename, line, column, cat, msg);
-        else
-            FPRINTF(stderr, "%s:%u: %s: %s\n"_fmt,
-                    filename, line, cat, msg);
-        FPRINTF(stderr, "%s\n"_fmt, text);
-        FPRINTF(stderr, "%*c\n"_fmt, column, '^');
-    }
-
-    AString LineSpan::message_str(ZString cat, ZString msg) const
-    {
-        assert (begin.column);
-        assert (end.column);
-        assert (begin.line < end.line || begin.column <= end.column);
-
-        MString out;
-        if (begin.line == end.line)
-        {
-            out += STRPRINTF("%s:%u:%u: %s: %s\n"_fmt,
-                    begin.filename, begin.line, begin.column, cat, msg);
-            out += STRPRINTF("%s\n"_fmt, begin.text);
-            out += STRPRINTF("%*c"_fmt, begin.column, '^');
-            for (unsigned c = begin.column; c != end.column; ++c)
-                out += '~';
-            out += '\n';
-        }
-        else
-        {
-            out += STRPRINTF("%s:%u:%u: %s: %s\n"_fmt,
-                    begin.filename, begin.line, begin.column, cat, msg);
-            out += STRPRINTF("%s\n"_fmt, begin.text);
-            out += STRPRINTF("%*c"_fmt, begin.column, '^');
-            for (unsigned c = begin.column; c != begin.text.size(); ++c)
-                out += '~';
-            out += " ...\n"_s;
-            out += STRPRINTF("%s\n"_fmt, end.text);
-            for (unsigned c = 0; c != end.column; ++c)
-                out += '~';
-            out += '\n';
-        }
-        return AString(out);
-    }
-
-    void LineSpan::message(ZString cat, ZString msg) const
-    {
-        FPRINTF(stderr, "%s"_fmt, message_str(cat, msg));
-    }
-
     LineReader::LineReader(ZString name)
     : filename(name), line(0), column(0), rf(name)
     {}
 
     LineReader::LineReader(ZString name, FD fd)
     : filename(name), line(0), column(0), rf(fd)
+    {}
+
+    LineReader::LineReader(read_file_from_string, ZString name, XString content, int startline, FD fd)
+    : filename(name), line(startline-1), column(0), rf(from_string, content, fd)
+    {}
+
+    LineReader::LineReader(read_file_from_string, ZString name, LString content, int startline, FD fd)
+    : filename(name), line(startline-1), column(0), rf(from_string, content, fd)
     {}
 
     bool LineReader::read_line(Line& l)
@@ -143,6 +84,38 @@ namespace io
             adv();
         if (!line)
             column = 0;
+    }
+
+    LineCharReader::LineCharReader(read_file_from_string, ZString name, XString content, int startline, int startcol, FD fd)
+    : LineReader(from_string, name, content, 1, fd)
+    {
+        column = 1; // not 0, not whole line
+        if (rf.is_open())
+            adv();
+        if (!line)
+            column = 0;
+        else
+        {
+            line = startline;
+            column = startcol;
+            line_text = STRPRINTF("%*s"_fmt, static_cast<int>(column-1 + line_text.size()), line_text);
+        }
+    }
+
+    LineCharReader::LineCharReader(read_file_from_string, ZString name, LString content, int startline, int startcol, FD fd)
+    : LineReader(from_string, name, content, 1, fd)
+    {
+        column = 1; // not 0, not whole line
+        if (rf.is_open())
+            adv();
+        if (!line)
+            column = 0;
+        else
+        {
+            line = startline;
+            column = startcol;
+            line_text = STRPRINTF("%*s"_fmt, static_cast<int>(column-1 + line_text.size()), line_text);
+        }
     }
 
     bool LineCharReader::get(LineChar& c)

@@ -18,16 +18,18 @@
 //    You should have received a copy of the GNU Affero General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "../io/line.hpp"
+
 #include "../poison.hpp"
 
 
 namespace tmwa
 {
+namespace ast
+{
 namespace script
 {
-namespace parse
-{
-    Result<ScriptBody> parse_script_body(io::LineCharReader& lr)
+    Result<ScriptBody> parse_script_body(io::LineCharReader& lr, ScriptOptions opt)
     {
         io::LineSpan span;
         io::LineChar c;
@@ -37,7 +39,7 @@ namespace parse
             {
                 return Err("error: unexpected EOF before '{' in parse_script_body"_s);
             }
-            if (c.ch() == ' ' || c.ch() == '\n')
+            if (c.ch() == ' ' || (!opt.one_line && c.ch() == '\n'))
             {
                 lr.adv();
                 continue;
@@ -57,6 +59,8 @@ namespace parse
         {
             if (!lr.get(c))
                 return Err(c.error_str("unexpected EOF before '}' in parse_script_body"_s));
+            if (opt.one_line && c.ch() == '\n')
+                return Err(c.error_str("unexpected EOL before '}' in parse_script_body"_s));
             accum += c.ch();
             span.end = c;
             lr.adv();
@@ -66,6 +70,6 @@ namespace parse
             }
         }
     }
-} // namespace parse
 } // namespace script
+} // namespace ast
 } // namespace tmwa

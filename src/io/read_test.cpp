@@ -93,4 +93,65 @@ TEST(io, read5)
     EXPECT_FALSE(hi);
     EXPECT_FALSE(rf.getline(hi));
 }
+
+#define S15     "0123456789abcde"_s
+#define S16     "0123456789abcdef"_s
+#define S255    S16 S16 S16 S16  S16 S16 S16 S16   S16 S16 S16 S16  S16 S16 S16 S15
+#define S256    S16 S16 S16 S16  S16 S16 S16 S16   S16 S16 S16 S16  S16 S16 S16 S16
+#define S4095   S256 S256 S256 S256  S256 S256 S256 S256   S256 S256 S256 S256  S256 S256 S256 S255
+#define S4096   S256 S256 S256 S256  S256 S256 S256 S256   S256 S256 S256 S256  S256 S256 S256 S256
+
+TEST(io, readstringr)
+{
+    LString tests[] =
+    {
+        S15,
+        S16,
+        S255,
+        S256,
+        S4095,
+        S4096,
+        S4096 S16,
+    };
+    for (RString test : tests)
+    {
+        char buf[test.size() + 1];
+
+        io::ReadFile rf(io::from_string, test);
+        EXPECT_EQ(rf.get(buf, sizeof(buf)), test.size());
+        EXPECT_EQ(test, XString(buf + 0, buf + test.size(), nullptr));
+
+        io::ReadFile rf2(io::from_string, test, string_pipe("\na"_s));
+        EXPECT_EQ(rf2.get(buf, sizeof(buf)), test.size() + 1);
+        EXPECT_EQ(test, XString(buf + 0, buf + test.size(), nullptr));
+        EXPECT_EQ('\n', buf[test.size()]);
+    }
+}
+
+TEST(io, readstringx)
+{
+    LString tests[] =
+    {
+        S15,
+        S16,
+        S255,
+        S256,
+        S4095,
+        S4096,
+        S4096 S16,
+    };
+    for (XString test : tests)
+    {
+        char buf[test.size() + 1];
+
+        io::ReadFile rf(io::from_string, test);
+        EXPECT_EQ(rf.get(buf, sizeof(buf)), test.size());
+        EXPECT_EQ(test, XString(buf + 0, buf + test.size(), nullptr));
+
+        io::ReadFile rf2(io::from_string, test, string_pipe("\na"_s));
+        EXPECT_EQ(rf2.get(buf, sizeof(buf)), test.size() + 1);
+        EXPECT_EQ(test, XString(buf + 0, buf + test.size(), nullptr));
+        EXPECT_EQ('\n', buf[test.size()]);
+    }
+}
 } // namespace tmwa

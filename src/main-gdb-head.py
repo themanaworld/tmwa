@@ -141,7 +141,7 @@ class PointerPrinter(object):
             try:
                 sym, off, sec, lib = info_symbol(addr)
             except:
-                s = '<heap 0x%x>' % addr
+                s = '(%s)<heap/stack 0x%x>' % (v.type, addr)
             else:
                 if off:
                     s = '<%s+%d>' % off

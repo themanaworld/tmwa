@@ -27,27 +27,11 @@
 
 namespace tmwa
 {
-static
-io::FD string_pipe(ZString sz)
-{
-    io::FD rfd, wfd;
-    if (-1 == io::FD::pipe(rfd, wfd))
-        return io::FD();
-    if (sz.size() != wfd.write(sz.c_str(), sz.size()))
-    {
-        rfd.close();
-        wfd.close();
-        return io::FD();
-    }
-    wfd.close();
-    return rfd;
-}
-
 TEST(sexpr, parser)
 {
     sexpr::SExpr s;
     io::LineSpan span;
-    sexpr::Lexer lexer("<parser-test1>"_s, string_pipe(" foo( ) 123\"\" \n"_s));
+    sexpr::Lexer lexer(io::from_string, "<parser-test1>"_s, " foo( ) 123\"\" \n"_s);
 
     EXPECT_TRUE(sexpr::parse(lexer, s));
     EXPECT_EQ(s._type, sexpr::TOKEN);
@@ -72,7 +56,7 @@ TEST(sexpr, parser)
 TEST(sexpr, parselist)
 {
     sexpr::SExpr s;
-    sexpr::Lexer lexer("<parser-test1>"_s, string_pipe("(foo)(bar)\n"_s));
+    sexpr::Lexer lexer(io::from_string, "<parser-test1>"_s, "(foo)(bar)\n"_s);
 
     EXPECT_TRUE(sexpr::parse(lexer, s));
     EXPECT_EQ(s._type, sexpr::LIST);
@@ -108,7 +92,7 @@ TEST(sexpr, parsebad)
     {
         sexpr::SExpr s;
         io::LineSpan span;
-        sexpr::Lexer lexer("<parse-bad>"_s, string_pipe(bad));
+        sexpr::Lexer lexer(io::from_string, "<parse-bad>"_s, bad);
         EXPECT_FALSE(sexpr::parse(lexer, s));
         EXPECT_EQ(lexer.peek(), sexpr::TOK_ERROR);
     }

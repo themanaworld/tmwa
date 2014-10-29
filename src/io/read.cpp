@@ -1,7 +1,7 @@
 #include "read.hpp"
 //    io/read.cpp - Input from files
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -48,6 +48,32 @@ namespace io
     : fd(dir.open_fd(name, O_RDONLY | O_CLOEXEC)), start(0), end(0)
     {
     }
+    ReadFile::ReadFile(read_file_from_string, XString content, FD f)
+    : fd(f), start(0), end(), extra()
+    {
+        if (content.size() <= 4096)
+        {
+            end = content.size();
+            auto z = std::copy(content.begin(), content.end(), buf);
+            // only for debug sanity
+            std::fill(z, std::end(buf), 0);
+            return;
+        }
+        auto base = content.base();
+        if (!base)
+        {
+            extra = content;
+            end = content.size();
+            return;
+        }
+        start = &*content.begin() - &*base->begin();
+        end = &*content.end() - &*base->begin();
+        extra = *base;
+    }
+    ReadFile::ReadFile(read_file_from_string, LString content, FD f)
+    : ReadFile(from_string, RString(content), f)
+    {
+    }
     ReadFile::~ReadFile()
     {
         fd.close();
@@ -56,6 +82,14 @@ namespace io
 
     bool ReadFile::get(char& c)
     {
+        if (extra)
+        {
+            c = extra[start];
+            ++start;
+            if (start == end)
+                extra = ""_s;
+            return true;
+        }
         if (start == end)
         {
             if (fd == FD())
@@ -125,7 +159,7 @@ namespace io
 
     bool ReadFile::is_open()
     {
-        return fd != FD();
+        return fd != FD() || start != end;
     }
 } // namespace io
 } // namespace tmwa

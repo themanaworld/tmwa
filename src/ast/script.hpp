@@ -22,14 +22,14 @@
 
 #include "../compat/result.hpp"
 
-#include "../io/line.hpp"
+#include "../io/span.hpp"
 
 
 namespace tmwa
 {
-namespace script
+namespace ast
 {
-namespace parse
+namespace script
 {
     using io::Spanned;
 
@@ -39,7 +39,21 @@ namespace parse
         io::LineSpan span;
     };
 
-    Result<ScriptBody> parse_script_body(io::LineCharReader& lr);
+    struct ScriptOptions
+    {
+        // don't require a label at the beginning
+        bool implicit_start = false;
+        // label to generate at the beginning if not already present
+        RString default_label;
+        // beginning must be only 'end;'
+        bool no_start;
+        // don't requite an 'end;' at the end
+        bool implicit_end = false;
+        // forbid newlines anywhere between { and }
+        bool one_line = false;
+    };
+
+    Result<ScriptBody> parse_script_body(io::LineCharReader& lr, ScriptOptions opt);
 
     /*
     (-- First bare-body-chunk only allowed for npcs, items, magic, functions.
@@ -89,6 +103,6 @@ namespace parse
     simple-expr: variable ("[" expr "]")?
     simple-expr: function // no longer command/label though
     */
-} // namespace parse
 } // namespace script
+} // namespace ast
 } // namespace tmwa

@@ -1,7 +1,7 @@
 #pragma once
 //    io/read.hpp - Input from files.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -20,6 +20,8 @@
 
 #include "fwd.hpp"
 
+#include "../strings/rstring.hpp"
+
 #include "dir.hpp"
 #include "fd.hpp"
 
@@ -27,18 +29,28 @@ namespace tmwa
 {
 namespace io
 {
+    enum read_file_from_string
+    {
+        from_string,
+    };
+
+    // TODO - for internal warnings, it would be convenient if this class
+    // didn't exist at all, and instead everything was done with line info.
     class ReadFile
     {
     private:
         FD fd;
         unsigned short start, end;
         char buf[4096];
+        RString extra;
     public:
         explicit
         ReadFile(FD fd);
         explicit
         ReadFile(ZString name);
         ReadFile(const DirFd& dir, ZString name);
+        ReadFile(read_file_from_string, XString content, FD fd=FD());
+        ReadFile(read_file_from_string, LString content, FD fd=FD());
 
         ReadFile& operator = (ReadFile&&) = delete;
         ReadFile(ReadFile&&) = delete;

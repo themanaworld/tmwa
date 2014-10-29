@@ -20,6 +20,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../io/line.hpp"
+
 #include "../tests/fdhack.hpp"
 
 //#include "../poison.hpp"
@@ -27,26 +29,10 @@
 
 namespace tmwa
 {
+namespace ast
+{
 namespace npc
 {
-namespace parse
-{
-    static
-    io::FD string_pipe(ZString sz)
-    {
-        io::FD rfd, wfd;
-        if (-1 == io::FD::pipe(rfd, wfd))
-            return io::FD();
-        if (sz.size() != wfd.write(sz.c_str(), sz.size()))
-        {
-            rfd.close();
-            wfd.close();
-            return io::FD();
-        }
-        wfd.close();
-        return rfd;
-    }
-
 #define EXPECT_SPAN(span, bl,bc, el,ec)     \
     ({                                      \
         EXPECT_EQ((span).begin.line, bl);   \
@@ -55,7 +41,7 @@ namespace parse
         EXPECT_EQ((span).end.column, ec);   \
     })
 
-    TEST(ast, eof)
+    TEST(npcast, eof)
     {
         QuietFd q;
         LString inputs[] =
@@ -66,12 +52,12 @@ namespace parse
         };
         for (auto input : inputs)
         {
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_EQ(res.get_success(), Some(std::unique_ptr<TopLevel>(nullptr)));
         }
     }
-    TEST(ast, comment)
+    TEST(npcast, comment)
     {
         QuietFd q;
         LString inputs[] =
@@ -83,10 +69,12 @@ namespace parse
         };
         for (auto input : inputs)
         {
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,8);
             auto p = dynamic_cast<Comment *>(top.get());
             EXPECT_TRUE(p);
@@ -96,7 +84,7 @@ namespace parse
             }
         }
     }
-    TEST(ast, warp)
+    TEST(npcast, warp)
     {
         QuietFd q;
         LString inputs[] =
@@ -110,10 +98,12 @@ namespace parse
         };
         for (auto input : inputs)
         {
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,47);
             auto p = dynamic_cast<Warp *>(top.get());
             EXPECT_TRUE(p);
@@ -141,7 +131,7 @@ namespace parse
             }
         }
     }
-    TEST(ast, shop)
+    TEST(npcast, shop)
     {
         QuietFd q;
         LString inputs[] =
@@ -155,10 +145,12 @@ namespace parse
         };
         for (auto input : inputs)
         {
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,54);
             auto p = dynamic_cast<Shop *>(top.get());
             EXPECT_TRUE(p);
@@ -197,7 +189,7 @@ namespace parse
             }
         }
     }
-    TEST(ast, monster)
+    TEST(npcast, monster)
     {
         QuietFd q;
         LString inputs[] =
@@ -220,10 +212,12 @@ namespace parse
             bool second = input.startswith('M');
             bool third = input.startswith('n');
             assert(first + second + third == 1);
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,first?65:54);
             auto p = dynamic_cast<Monster *>(top.get());
             EXPECT_TRUE(p);
@@ -302,7 +296,7 @@ namespace parse
             }
         }
     }
-    TEST(ast, mapflag)
+    TEST(npcast, mapflag)
     {
         QuietFd q;
         LString inputs[] =
@@ -319,10 +313,12 @@ namespace parse
         for (auto input : inputs)
         {
             bool second = input.startswith('M');
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,!second?24:31);
             auto p = dynamic_cast<MapFlag *>(top.get());
             EXPECT_TRUE(p);
@@ -354,7 +350,7 @@ namespace parse
         }
     }
 
-    TEST(ast, scriptfun)
+    TEST(npcast, scriptfun)
     {
         QuietFd q;
         LString inputs[] =
@@ -369,10 +365,12 @@ namespace parse
         };
         for (auto input : inputs)
         {
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,24);
             auto p = dynamic_cast<ScriptFunction *>(top.get());
             EXPECT_TRUE(p);
@@ -402,7 +400,7 @@ namespace parse
             }
         }
     }
-    TEST(ast, scriptnone)
+    TEST(npcast, scriptnone)
     {
         QuietFd q;
         LString inputs[] =
@@ -417,10 +415,12 @@ namespace parse
         };
         for (auto input : inputs)
         {
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,19);
             auto p = dynamic_cast<ScriptNone *>(top.get());
             EXPECT_TRUE(p);
@@ -451,7 +451,7 @@ namespace parse
             }
         }
     }
-    TEST(ast, scriptmapnone)
+    TEST(npcast, scriptmapnone)
     {
         QuietFd q;
         LString inputs[] =
@@ -464,10 +464,12 @@ namespace parse
         };
         for (auto input : inputs)
         {
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,28);
             auto p = dynamic_cast<ScriptMapNone *>(top.get());
             EXPECT_TRUE(p);
@@ -505,7 +507,7 @@ namespace parse
             }
         }
     }
-    TEST(ast, scriptmap)
+    TEST(npcast, scriptmap)
     {
         QuietFd q;
         LString inputs[] =
@@ -518,10 +520,12 @@ namespace parse
         };
         for (auto input : inputs)
         {
-            io::LineCharReader lr("<string>"_s, string_pipe(input));
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            if (!top)
+                FAIL();
             EXPECT_SPAN(top->span, 1,1, 1,31);
             auto p = dynamic_cast<ScriptMap *>(top.get());
             EXPECT_TRUE(p);
@@ -564,6 +568,6 @@ namespace parse
             }
         }
     }
-} // namespace parse
 } // namespace npc
+} // namespace ast
 } // namespace tmwa

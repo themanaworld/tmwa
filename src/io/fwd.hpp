@@ -34,5 +34,7 @@ namespace io
     class ReadFile;
     class WriteFile;
     class AppendFile;
+    class LineReader;
+    class LineCharReader;
 } // namespace io
 } // namespace tmwa
