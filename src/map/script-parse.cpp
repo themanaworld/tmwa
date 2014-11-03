@@ -33,6 +33,8 @@
 
 #include "../mmo/cxxstdio_enums.hpp"
 
+#include "../ast/script.hpp"
+
 #include "map.t.hpp"
 #include "script-buffer.hpp"
 #include "script-call.hpp"
@@ -692,10 +694,10 @@ void add_builtin_functions(void)
     }
 }
 
-std::unique_ptr<const ScriptBuffer> parse_script(ZString src, int line, bool implicit_end)
+std::unique_ptr<const ScriptBuffer> compile_script(const ast::script::ScriptBody& body, bool implicit_end)
 {
     auto script_buf = make_unique<ScriptBuffer>();
-    script_buf->parse_script(src, line, implicit_end);
+    script_buf->parse_script(body.braced_body, body.span.begin.line, implicit_end);
     return std::move(script_buf);
 }
 

@@ -1295,7 +1295,7 @@ bool map_readmap(map_local *m, size_t num, MapName fn)
 
     int xs = m->xs = gat_v[0] | gat_v[1] << 8;
     int ys = m->ys = gat_v[2] | gat_v[3] << 8;
-    PRINTF("\rLoading Maps [%zu/%zu]: %-30s  (%i, %i)"_fmt,
+    PRINTF("Loading Maps [%zu/%zu]: %-30s  (%i, %i)\r"_fmt,
             num, maps_db.size(),
             fn, xs, ys);
     fflush(stdout);
@@ -1348,7 +1348,7 @@ bool map_readallmap(void)
         }
     }
 
-    PRINTF("\rMaps Loaded: %-65zu\n"_fmt, maps_db.size());
+    PRINTF("Maps Loaded: %-65zu\n"_fmt, maps_db.size());
     if (maps_removed)
     {
         PRINTF("Cowardly refusing to keep going after removing %d maps.\n"_fmt,

@@ -134,20 +134,30 @@ class PointerPrinter(object):
 
     def to_string(self):
         v = self._value
-        addr = int(v.cast(gdb.lookup_type('uintptr_t')))
+        uptr = gdb.lookup_type('uintptr_t')
+        addr = int(v.cast(uptr))
         if not addr:
             s = 'nullptr'
         else:
             try:
                 sym, off, sec, lib = info_symbol(addr)
-            except:
-                s = '(%s)<heap/stack 0x%x>' % (v.type, addr)
+            except TypeError:
+                sp = gdb.parse_and_eval('$sp')
+                sp = int(sp.cast(uptr))
+                LOTS = 8 * 1024 * 1024
+                diff = addr - sp
+                if +diff >= 0 and +diff <= LOTS:
+                    a = '<$sp+0x%x>' % +diff
+                elif -diff >= 0 and -diff <= LOTS:
+                    a = '<$sp-0x%x>' % -diff
+                else:
+                    a = '<heap 0x%x>' % addr
+                s = '(%s)%s' % (v.type, a)
             else:
                 if off:
                     s = '<%s+%d>' % off
                 else:
                     s = '<%s>' % sym
-        # TODO should I add (type *) ?
         return s
 
 

@@ -24,7 +24,7 @@
 
 #include "../tests/fdhack.hpp"
 
-//#include "../poison.hpp"
+#include "../poison.hpp"
 
 
 namespace tmwa
@@ -54,7 +54,7 @@ namespace npc
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_top(lr);
-            EXPECT_EQ(res.get_success(), Some(std::unique_ptr<TopLevel>(nullptr)));
+            EXPECT_TRUE(res.is_none());
         }
     }
     TEST(npcast, comment)
@@ -70,13 +70,11 @@ namespace npc
         for (auto input : inputs)
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,8);
-            auto p = dynamic_cast<Comment *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,8);
+            auto p = top.get_if<Comment>();
             EXPECT_TRUE(p);
             if (p)
             {
@@ -91,21 +89,19 @@ namespace npc
         {
             //        1         2         3         4
             //234567890123456789012345678901234567890123456789
-            "map.gat,1,2|warp|To Other Map|3,4,other.gat,5,6"_s,
-            "map.gat,1,2|warp|To Other Map|3,4,other.gat,5,6\n"_s,
-            "map.gat,1,2|warp|To Other Map|3,4,other.gat,5,6{"_s,
+            "map.gat,1,2|warp|To Other Map|3,4,other.gat,7,8"_s,
+            "map.gat,1,2|warp|To Other Map|3,4,other.gat,7,8\n"_s,
+            "map.gat,1,2|warp|To Other Map|3,4,other.gat,7,8{"_s,
             // no optional fields in warp
         };
         for (auto input : inputs)
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,47);
-            auto p = dynamic_cast<Warp *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,47);
+            auto p = top.get_if<Warp>();
             EXPECT_TRUE(p);
             if (p)
             {
@@ -119,15 +115,15 @@ namespace npc
                 EXPECT_SPAN(p->name.span, 1,18, 1,29);
                 EXPECT_EQ(p->name.data, stringish<NpcName>("To Other Map"_s));
                 EXPECT_SPAN(p->xs.span, 1,31, 1,31);
-                EXPECT_EQ(p->xs.data, 3);
+                EXPECT_EQ(p->xs.data, 5);
                 EXPECT_SPAN(p->ys.span, 1,33, 1,33);
-                EXPECT_EQ(p->ys.data, 4);
+                EXPECT_EQ(p->ys.data, 6);
                 EXPECT_SPAN(p->to_m.span, 1,35, 1,43);
                 EXPECT_EQ(p->to_m.data, stringish<MapName>("other"_s));
                 EXPECT_SPAN(p->to_x.span, 1,45, 1,45);
-                EXPECT_EQ(p->to_x.data, 5);
+                EXPECT_EQ(p->to_x.data, 7);
                 EXPECT_SPAN(p->to_y.span, 1,47, 1,47);
-                EXPECT_EQ(p->to_y.data, 6);
+                EXPECT_EQ(p->to_y.data, 8);
             }
         }
     }
@@ -146,13 +142,11 @@ namespace npc
         for (auto input : inputs)
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,54);
-            auto p = dynamic_cast<Shop *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,54);
+            auto p = top.get_if<Shop>();
             EXPECT_TRUE(p);
             if (p)
             {
@@ -213,13 +207,11 @@ namespace npc
             bool third = input.startswith('n');
             assert(first + second + third == 1);
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,first?65:54);
-            auto p = dynamic_cast<Monster *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,first?65:54);
+            auto p = top.get_if<Monster>();
             EXPECT_TRUE(p);
             if (p)
             {
@@ -309,42 +301,63 @@ namespace npc
             "Map.gat|mapflag|flagname|optval"_s,
             "Map.gat|mapflag|flagname|optval\n"_s,
             "Map.gat|mapflag|flagname|optval{"_s,
+            "nap.gat|mapflag|flagname|aa,b,c"_s,
+            "nap.gat|mapflag|flagname|aa,b,c\n"_s,
+            "nap.gat|mapflag|flagname|aa,b,c{"_s,
         };
         for (auto input : inputs)
         {
+            bool first = input.startswith('m');
             bool second = input.startswith('M');
+            bool third = input.startswith('n');
+            EXPECT_EQ(first + second + third, 1);
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,!second?24:31);
-            auto p = dynamic_cast<MapFlag *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,first?24:31);
+            auto p = top.get_if<MapFlag>();
             EXPECT_TRUE(p);
             if (p)
             {
                 EXPECT_SPAN(p->m.span, 1,1, 1,7);
-                if (!second)
+                if (first)
                 {
                     EXPECT_EQ(p->m.data, stringish<MapName>("map"_s));
                 }
-                else
+                if (second)
                 {
                     EXPECT_EQ(p->m.data, stringish<MapName>("Map"_s));
+                }
+                if (third)
+                {
+                    EXPECT_EQ(p->m.data, stringish<MapName>("nap"_s));
                 }
                 EXPECT_SPAN(p->key_span, 1,9, 1,15);
                 EXPECT_SPAN(p->name.span, 1,17, 1,24);
                 EXPECT_EQ(p->name.data, "flagname"_s);
-                if (!second)
+                if (first)
                 {
-                    EXPECT_SPAN(p->opt_extra.span, 1,25, 1,25);
-                    EXPECT_EQ(p->opt_extra.data, ""_s);
+                    EXPECT_SPAN(p->vec_extra.span, 1,25, 1,25);
+                    EXPECT_EQ(p->vec_extra.data.size(), 0);
                 }
-                else
+                if (second)
                 {
-                    EXPECT_SPAN(p->opt_extra.span, 1,26, 1,31);
-                    EXPECT_EQ(p->opt_extra.data, "optval"_s);
+                    EXPECT_SPAN(p->vec_extra.span, 1,26, 1,31);
+                    EXPECT_EQ(p->vec_extra.data.size(), 1);
+                    EXPECT_SPAN(p->vec_extra.data[0].span, 1,26, 1,31);
+                    EXPECT_EQ(p->vec_extra.data[0].data, "optval"_s);
+                }
+                if (third)
+                {
+                    EXPECT_SPAN(p->vec_extra.span, 1,26, 1,31);
+                    EXPECT_EQ(p->vec_extra.data.size(), 3);
+                    EXPECT_SPAN(p->vec_extra.data[0].span, 1,26, 1,27);
+                    EXPECT_EQ(p->vec_extra.data[0].data, "aa"_s);
+                    EXPECT_SPAN(p->vec_extra.data[1].span, 1,29, 1,29);
+                    EXPECT_EQ(p->vec_extra.data[1].data, "b"_s);
+                    EXPECT_SPAN(p->vec_extra.data[2].span, 1,31, 1,31);
+                    EXPECT_EQ(p->vec_extra.data[2].data, "c"_s);
                 }
             }
         }
@@ -366,37 +379,37 @@ namespace npc
         for (auto input : inputs)
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,24);
-            auto p = dynamic_cast<ScriptFunction *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,24);
+            auto script = top.get_if<Script>();
+            EXPECT_TRUE(script);
+            auto p = script->get_if<ScriptFunction>();
             EXPECT_TRUE(p);
             if (p)
             {
                 EXPECT_SPAN(p->key1_span, 1,1, 1,8);
-                EXPECT_SPAN(p->key_span, 1,10, 1,15);
+                EXPECT_SPAN(script->key_span, 1,10, 1,15);
                 EXPECT_SPAN(p->name.span, 1,17, 1,24);
                 EXPECT_EQ(p->name.data, "Fun Name"_s);
                 if (input.endswith('}'))
                 {
-                    EXPECT_SPAN(p->body.span, 1,25, 1,30);
+                    EXPECT_SPAN(script->body.span, 1,25, 1,30);
                 }
                 else if (input.endswith('\n'))
                 {
-                    EXPECT_SPAN(p->body.span, 2,1, 2,6);
+                    EXPECT_SPAN(script->body.span, 2,1, 2,6);
                 }
                 else if (input.endswith(' '))
                 {
-                    EXPECT_SPAN(p->body.span, 3,2, 3,7);
+                    EXPECT_SPAN(script->body.span, 3,2, 3,7);
                 }
                 else
                 {
                     FAIL();
                 }
-                EXPECT_EQ(p->body.braced_body, "{end;}"_s);
+                EXPECT_EQ(script->body.braced_body, "{end;}"_s);
             }
         }
     }
@@ -416,38 +429,38 @@ namespace npc
         for (auto input : inputs)
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,19);
-            auto p = dynamic_cast<ScriptNone *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,19);
+            auto script = top.get_if<Script>();
+            EXPECT_TRUE(script);
+            auto p = script->get_if<ScriptNone>();
             EXPECT_TRUE(p);
             if (p)
             {
                 EXPECT_SPAN(p->key1_span, 1,1, 1,1);
-                EXPECT_SPAN(p->key_span, 1,3, 1,8);
+                EXPECT_SPAN(script->key_span, 1,3, 1,8);
                 EXPECT_SPAN(p->name.span, 1,10, 1,16);
                 EXPECT_EQ(p->name.data, stringish<NpcName>("#config"_s));
                 EXPECT_SPAN(p->key4_span, 1,18, 1,19);
                 if (input.endswith('}'))
                 {
-                    EXPECT_SPAN(p->body.span, 1,20, 1,25);
+                    EXPECT_SPAN(script->body.span, 1,20, 1,25);
                 }
                 else if (input.endswith('\n'))
                 {
-                    EXPECT_SPAN(p->body.span, 2,1, 2,6);
+                    EXPECT_SPAN(script->body.span, 2,1, 2,6);
                 }
                 else if (input.endswith(' '))
                 {
-                    EXPECT_SPAN(p->body.span, 3,2, 3,7);
+                    EXPECT_SPAN(script->body.span, 3,2, 3,7);
                 }
                 else
                 {
                     FAIL();
                 }
-                EXPECT_EQ(p->body.braced_body, "{end;}"_s);
+                EXPECT_EQ(script->body.braced_body, "{end;}"_s);
             }
         }
     }
@@ -465,13 +478,13 @@ namespace npc
         for (auto input : inputs)
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,28);
-            auto p = dynamic_cast<ScriptMapNone *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,28);
+            auto script = top.get_if<Script>();
+            EXPECT_TRUE(script);
+            auto p = script->get_if<ScriptMapNone>();
             EXPECT_TRUE(p);
             if (p)
             {
@@ -483,27 +496,27 @@ namespace npc
                 EXPECT_EQ(p->y.data, 2);
                 EXPECT_SPAN(p->d.span, 1,13, 1,13);
                 EXPECT_EQ(p->d.data, DIR::NW);
-                EXPECT_SPAN(p->key_span, 1,15, 1,20);
+                EXPECT_SPAN(script->key_span, 1,15, 1,20);
                 EXPECT_SPAN(p->name.span, 1,22, 1,25);
                 EXPECT_EQ(p->name.data, stringish<NpcName>("Init"_s));
                 EXPECT_SPAN(p->key4_span, 1,27, 1,28);
                 if (input.endswith('}'))
                 {
-                    EXPECT_SPAN(p->body.span, 1,29, 1,34);
+                    EXPECT_SPAN(script->body.span, 1,29, 1,34);
                 }
                 else if (input.endswith('\n'))
                 {
-                    EXPECT_SPAN(p->body.span, 2,1, 2,6);
+                    EXPECT_SPAN(script->body.span, 2,1, 2,6);
                 }
                 else if (input.endswith(' '))
                 {
-                    EXPECT_SPAN(p->body.span, 3,2, 3,7);
+                    EXPECT_SPAN(script->body.span, 3,2, 3,7);
                 }
                 else
                 {
                     FAIL();
                 }
-                EXPECT_EQ(p->body.braced_body, "{end;}"_s);
+                EXPECT_EQ(script->body.braced_body, "{end;}"_s);
             }
         }
     }
@@ -517,54 +530,77 @@ namespace npc
             "map.gat,1,2,3|script|Asdf|4,5,6{end;}"_s,
             "map.gat,1,2,3|script|Asdf|4,5,6\n{end;}\n"_s,
             "map.gat,1,2,3|script|Asdf|4,5,6\n \n {end;} "_s,
+            "Map.gat,1,2,3|script|Asdf|40506{end;}"_s,
+            "Map.gat,1,2,3|script|Asdf|40506\n{end;}\n"_s,
+            "Map.gat,1,2,3|script|Asdf|40506\n \n {end;} "_s,
         };
         for (auto input : inputs)
         {
+            bool second = input.startswith('M');
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_top(lr);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            if (!top)
-                FAIL();
-            EXPECT_SPAN(top->span, 1,1, 1,31);
-            auto p = dynamic_cast<ScriptMap *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,31);
+            auto script = top.get_if<Script>();
+            EXPECT_TRUE(script);
+            auto p = script->get_if<ScriptMap>();
             EXPECT_TRUE(p);
             if (p)
             {
                 EXPECT_SPAN(p->m.span, 1,1, 1,7);
-                EXPECT_EQ(p->m.data, stringish<MapName>("map"_s));
+                if (!second)
+                {
+                    EXPECT_EQ(p->m.data, stringish<MapName>("map"_s));
+                }
+                else
+                {
+                    EXPECT_EQ(p->m.data, stringish<MapName>("Map"_s));
+                }
                 EXPECT_SPAN(p->x.span, 1,9, 1,9);
                 EXPECT_EQ(p->x.data, 1);
                 EXPECT_SPAN(p->y.span, 1,11, 1,11);
                 EXPECT_EQ(p->y.data, 2);
                 EXPECT_SPAN(p->d.span, 1,13, 1,13);
                 EXPECT_EQ(p->d.data, DIR::NW);
-                EXPECT_SPAN(p->key_span, 1,15, 1,20);
+                EXPECT_SPAN(script->key_span, 1,15, 1,20);
                 EXPECT_SPAN(p->name.span, 1,22, 1,25);
                 EXPECT_EQ(p->name.data, stringish<NpcName>("Asdf"_s));
-                EXPECT_SPAN(p->npc_class.span, 1,27, 1,27);
-                EXPECT_EQ(p->npc_class.data, wrap<Species>(4));
-                EXPECT_SPAN(p->xs.span, 1,29, 1,29);
-                EXPECT_EQ(p->xs.data, 5);
-                EXPECT_SPAN(p->ys.span, 1,31, 1,31);
-                EXPECT_EQ(p->ys.data, 6);
+                if (!second)
+                {
+                    EXPECT_SPAN(p->npc_class.span, 1,27, 1,27);
+                    EXPECT_EQ(p->npc_class.data, wrap<Species>(4));
+                    EXPECT_SPAN(p->xs.span, 1,29, 1,29);
+                    EXPECT_EQ(p->xs.data, 11);
+                    EXPECT_SPAN(p->ys.span, 1,31, 1,31);
+                    EXPECT_EQ(p->ys.data, 13);
+                }
+                else
+                {
+                    EXPECT_SPAN(p->npc_class.span, 1,27, 1,31);
+                    EXPECT_EQ(p->npc_class.data, wrap<Species>(40506));
+                    EXPECT_SPAN(p->xs.span, 1,32, 1,32);
+                    EXPECT_EQ(p->xs.data, 0);
+                    EXPECT_SPAN(p->ys.span, 1,32, 1,32);
+                    EXPECT_EQ(p->ys.data, 0);
+                }
                 if (input.endswith('}'))
                 {
-                    EXPECT_SPAN(p->body.span, 1,32, 1,37);
+                    EXPECT_SPAN(script->body.span, 1,32, 1,37);
                 }
                 else if (input.endswith('\n'))
                 {
-                    EXPECT_SPAN(p->body.span, 2,1, 2,6);
+                    EXPECT_SPAN(script->body.span, 2,1, 2,6);
                 }
                 else if (input.endswith(' '))
                 {
-                    EXPECT_SPAN(p->body.span, 3,2, 3,7);
+                    EXPECT_SPAN(script->body.span, 3,2, 3,7);
                 }
                 else
                 {
                     FAIL();
                 }
-                EXPECT_EQ(p->body.braced_body, "{end;}"_s);
+                EXPECT_EQ(script->body.braced_body, "{end;}"_s);
             }
         }
     }

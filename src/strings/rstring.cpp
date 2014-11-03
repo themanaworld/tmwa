@@ -36,7 +36,7 @@ namespace tmwa
 {
 namespace strings
 {
-    RString::RString()
+    RString::RString() noexcept
     : u{.begin= ""}, maybe_end(u.begin)
     {
     }

@@ -118,6 +118,7 @@ namespace io
     }
     bool ReadFile::getline(AString& line)
     {
+        bool was_real_file = fd != FD();
         MString tmp;
         char c;
         bool anything = false;
@@ -151,8 +152,10 @@ namespace io
             else
                 FPRINTF(stderr, "warning: file contains bare CR\n"_fmt);
         }
-        else if (!happy && anything)
+        else if (!happy && anything && was_real_file)
+        {
             FPRINTF(stderr, "warning: file does not contain a trailing newline\n"_fmt);
+        }
         line = AString(tmp);
         return anything;
     }

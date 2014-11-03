@@ -34,6 +34,7 @@
 #include "../proto2/fwd.hpp" // rank 8
 #include "../high/fwd.hpp" // rank 9
 #include "../wire/fwd.hpp" // rank 9
+#include "../ast/fwd.hpp" // rank 10
 // map/fwd.hpp is rank ∞ because it is an executable
 
 

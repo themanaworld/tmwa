@@ -20,17 +20,17 @@
 
 #include "fwd.hpp"
 
-#include <memory>
-
 #include "../compat/result.hpp"
 
 #include "../io/span.hpp"
 
+#include "../net/timer.t.hpp"
+
+#include "../sexpr/variant.hpp"
+
 #include "../mmo/clif.t.hpp"
 #include "../mmo/ids.hpp"
 #include "../mmo/strs.hpp"
-
-#include "../net/timer.t.hpp"
 
 #include "script.hpp"
 
@@ -43,17 +43,11 @@ namespace npc
 {
     using io::Spanned;
 
-    struct TopLevel
-    {
-        io::LineSpan span;
-
-        virtual ~TopLevel();
-    };
-    struct Comment : TopLevel
+    struct Comment
     {
         RString comment;
     };
-    struct Warp : TopLevel
+    struct Warp
     {
         Spanned<MapName> m;
         Spanned<unsigned> x, y;
@@ -66,9 +60,10 @@ namespace npc
     struct ShopItem
     {
         Spanned<ItemName> name;
+        bool value_multiply;
         Spanned<int> value;
     };
-    struct Shop : TopLevel
+    struct Shop
     {
         Spanned<MapName> m;
         Spanned<unsigned> x, y;
@@ -78,7 +73,7 @@ namespace npc
         Spanned<Species> npc_class;
         Spanned<std::vector<Spanned<ShopItem>>> items;
     };
-    struct Monster : TopLevel
+    struct Monster
     {
         Spanned<MapName> m;
         Spanned<unsigned> x, y;
@@ -90,32 +85,25 @@ namespace npc
         Spanned<interval_t> delay1, delay2;
         Spanned<NpcEvent> event;
     };
-    struct MapFlag : TopLevel
+    struct MapFlag
     {
         Spanned<MapName> m;
         io::LineSpan key_span;
-        // TODO should this extract all the way?
         Spanned<RString> name;
-        Spanned<RString> opt_extra;
+        Spanned<std::vector<Spanned<RString>>> vec_extra;
     };
-    struct Script : TopLevel
-    {
-        io::LineSpan key_span;
-        // see src/script/parser.hpp
-        ast::script::ScriptBody body;
-    };
-    struct ScriptFunction : Script
+    struct ScriptFunction
     {
         io::LineSpan key1_span;
         Spanned<RString> name;
     };
-    struct ScriptNone : Script
+    struct ScriptNone
     {
         io::LineSpan key1_span;
         Spanned<NpcName> name;
         io::LineSpan key4_span;
     };
-    struct ScriptMapNone : Script
+    struct ScriptMapNone
     {
         Spanned<MapName> m;
         Spanned<unsigned> x, y;
@@ -123,7 +111,7 @@ namespace npc
         Spanned<NpcName> name;
         io::LineSpan key4_span;
     };
-    struct ScriptMap : Script
+    struct ScriptMap
     {
         Spanned<MapName> m;
         Spanned<unsigned> x, y;
@@ -132,9 +120,32 @@ namespace npc
         Spanned<Species> npc_class;
         Spanned<unsigned> xs, ys;
     };
-    // other Script subclasses elsewhere? (for item and magic scripts)
+    using ScriptBase = Variant<ScriptFunction, ScriptNone, ScriptMapNone, ScriptMap>;
+    struct Script : ScriptBase
+    {
+        Script() = default;
+        Script(ScriptFunction s) : ScriptBase(std::move(s)) {}
+        Script(ScriptNone s) : ScriptBase(std::move(s)) {}
+        Script(ScriptMapNone s) : ScriptBase(std::move(s)) {}
+        Script(ScriptMap s) : ScriptBase(std::move(s)) {}
 
-    Result<std::unique_ptr<TopLevel>> parse_top(io::LineCharReader& in);
+        io::LineSpan key_span;
+        ast::script::ScriptBody body;
+    };
+    using TopLevelBase = Variant<Comment, Warp, Shop, Monster, MapFlag, Script>;
+    struct TopLevel : TopLevelBase
+    {
+        TopLevel() = default;
+        TopLevel(Comment t) : TopLevelBase(std::move(t)) {}
+        TopLevel(Warp t) : TopLevelBase(std::move(t)) {}
+        TopLevel(Shop t) : TopLevelBase(std::move(t)) {}
+        TopLevel(Monster t) : TopLevelBase(std::move(t)) {}
+        TopLevel(MapFlag t) : TopLevelBase(std::move(t)) {}
+        TopLevel(Script t) : TopLevelBase(std::move(t)) {}
+        io::LineSpan span;
+    };
+
+    Option<Result<TopLevel>> parse_top(io::LineCharReader& in);
 } // namespace npc
 } // namespace ast
 } // namespace tmwa

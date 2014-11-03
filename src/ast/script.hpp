@@ -51,6 +51,10 @@ namespace script
         bool implicit_end = false;
         // forbid newlines anywhere between { and }
         bool one_line = false;
+        // forbid the OnTouch event
+        bool no_touch = false;
+        // forbid all events
+        bool no_event = false;
     };
 
     Result<ScriptBody> parse_script_body(io::LineCharReader& lr, ScriptOptions opt);

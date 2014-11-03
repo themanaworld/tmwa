@@ -24,7 +24,7 @@
 
 #include "../tests/fdhack.hpp"
 
-//#include "../poison.hpp"
+#include "../poison.hpp"
 
 
 namespace tmwa
@@ -54,7 +54,7 @@ namespace item
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
             auto res = parse_item(lr);
-            EXPECT_EQ(res.get_success(), Some(std::unique_ptr<ItemOrComment>(nullptr)));
+            EXPECT_TRUE(res.is_none());
         }
     }
     TEST(itemast, comment)
@@ -70,11 +70,11 @@ namespace item
         for (auto input : inputs)
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_item(lr);
+            auto res = TRY_UNWRAP(parse_item(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            EXPECT_SPAN(top->span, 1,1, 1,8);
-            auto p = dynamic_cast<Comment *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,8);
+            auto p = top.get_if<Comment>();
             EXPECT_TRUE(p);
             if (p)
             {
@@ -96,11 +96,11 @@ namespace item
         for (auto input : inputs)
         {
             io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = parse_item(lr);
+            auto res = TRY_UNWRAP(parse_item(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            EXPECT_SPAN(top->span, 1,1, 1,58);
-            auto p = dynamic_cast<Item *>(top.get());
+            EXPECT_SPAN(top.span, 1,1, 1,58);
+            auto p = top.get_if<Item>();
             EXPECT_TRUE(p);
             if (p)
             {

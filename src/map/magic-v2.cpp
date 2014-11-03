@@ -36,6 +36,8 @@
 
 #include "../sexpr/parser.hpp"
 
+#include "../ast/script.hpp"
+
 #include "itemdb.hpp"
 #include "magic-expr.hpp"
 #include "magic-interpreter.hpp"
@@ -785,7 +787,20 @@ namespace magic_v2
             if (s._list[1]._type != sexpr::STRING)
                 return fail(s._list[1], "not string"_s);
             ZString body = s._list[1]._str;
-            std::unique_ptr<const ScriptBuffer> script = parse_script(body, s._list[1]._span.begin.line, true);
+            auto begin = s._list[1]._span.begin;
+            io::LineCharReader lr(io::from_string, begin.filename, body, begin.line, begin.column);
+            ast::script::ScriptOptions opt;
+            opt.implicit_start = true;
+            opt.implicit_end = true;
+            opt.no_event = true;
+            auto code_res = ast::script::parse_script_body(lr, opt);
+            if (code_res.get_failure())
+            {
+                PRINTF("%s\n"_fmt, code_res.get_failure());
+            }
+            auto code = TRY_UNWRAP(code_res.get_success(),
+                    return fail(s._list[1], "script does not compile"_s));
+            std::unique_ptr<const ScriptBuffer> script = compile_script(code, true);
             if (!script)
                 return fail(s._list[1], "script does not compile"_s);
             EffectScript e;

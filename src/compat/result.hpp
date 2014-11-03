@@ -66,7 +66,23 @@ namespace tmwa
             {
                 return Result<T>(magic_flag, message);
             }
+            template<class T>
+            operator Option<Result<T>>()
+            {
+                return Some(Result<T>(magic_flag, message));
+            }
         };
+
+        template<class T>
+        bool operator == (const Result<T>& l, const Result<T>& r)
+        {
+            return l.get_success() == r.get_success() && l.get_failure() == r.get_failure();
+        }
+        template<class T>
+        bool operator != (const Result<T>& l, const Result<T>& r)
+        {
+            return !(l == r);
+        }
     } // namespace result
     using result::Result;
     using result::Ok;

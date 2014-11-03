@@ -18,8 +18,6 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../compat/memory.hpp"
-
 #include "../io/extract.hpp"
 #include "../io/line.hpp"
 
@@ -35,9 +33,6 @@ namespace ast
 namespace item
 {
     using io::respan;
-
-    // separate file because virtual
-    ItemOrComment::~ItemOrComment() {}
 
     static
     void skip_comma_space(io::LineCharReader& lr)
@@ -107,6 +102,7 @@ namespace item
         opt.implicit_start = true;
         opt.implicit_end = true;
         opt.one_line = true;
+        opt.no_event = true;
         auto rv = ast::script::parse_script_body(lr, opt);
         if (rv.get_success().is_some())
         {
@@ -115,20 +111,19 @@ namespace item
         return rv;
     }
 
-#define SPAN_EXTRACT(bitexpr, var) ({ auto bit = bitexpr; if (!extract(bit.data, &var.data)) return Err(bit.span.error_str("failed to extract"_s #var)); var.span = bit.span; })
+#define SPAN_EXTRACT(bitexpr, var) ({ auto bit = bitexpr; if (!extract(bit.data, &var.data)) return Err(bit.span.error_str("failed to extract "_s #var)); var.span = bit.span; })
 
 #define EOL_ERROR(lr) ({ io::LineChar c; lr.get(c) ? Err(c.error_str("unexpected EOL"_s)) : Err("unexpected EOF before unexpected EOL"_s); })
-    Result<std::unique_ptr<ItemOrComment>> parse_item(io::LineCharReader& lr)
+    Option<Result<ItemOrComment>> parse_item(io::LineCharReader& lr)
     {
-        std::unique_ptr<ItemOrComment> rv = nullptr;
-        Spanned<RString> first = TRY_UNWRAP(lex_nonscript(lr, true), return Ok(std::move(rv)));
+        Spanned<RString> first = TRY_UNWRAP(lex_nonscript(lr, true), return None);
         if (first.data.startswith("//"_s))
         {
             Comment comment;
-            comment.span = first.span;
             comment.comment = first.data;
-            rv = make_unique<Comment>(std::move(comment));
-            return Ok(std::move(rv));
+            ItemOrComment rv = std::move(comment);
+            rv.span = first.span;
+            return Some(Ok(std::move(rv)));
         }
         Item item;
         SPAN_EXTRACT(first, item.id);
@@ -150,10 +145,10 @@ namespace item
         SPAN_EXTRACT(TRY_UNWRAP(lex_nonscript(lr, false), return EOL_ERROR(lr)), item.view);
         item.use_script = TRY(lex_script(lr));
         item.equip_script = TRY(lex_script(lr));
-        item.span.begin = item.id.span.begin;
-        item.span.end = item.equip_script.span.end;
-        rv = make_unique<Item>(std::move(item));
-        return Ok(std::move(rv));
+        ItemOrComment rv = std::move(item);
+        rv.span.begin = item.id.span.begin;
+        rv.span.end = item.equip_script.span.end;
+        return Some(Ok(std::move(rv)));
     }
 } // namespace item
 } // namespace ast

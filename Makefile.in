@@ -474,8 +474,8 @@ lib/%.${SO_LONG}-gdb.py:
 lib/%.${SO_LONG}: lib/%.${SO_LONG}-gdb.py
 	$(MKDIR_FIRST)
 	$l ${CXX} -shared -Wl,-soname=$*.${SO_SHORT} ${LDFLAGS} $(filter-out lib/%-gdb.py,$^) ${LDLIBS} -o $@
-	$c ln -sf $*.${SO_LONG} lib/$*.${SO_SHORT}
-	$c ln -sf $*.${SO_SHORT} lib/$*.so
+	$c ln -sfT $*.${SO_LONG} lib/$*.${SO_SHORT}
+	$c ln -sfT $*.${SO_SHORT} lib/$*.so
 lib/%.a:
 	$(MKDIR_FIRST)
 	rm -f $@
@@ -510,9 +510,14 @@ test-gtest: $(patsubst bin/tests/%,stamp/run-%.stamp,${GTEST_BINARIES})
 test: test-dtest
 test-dtest: $(patsubst bin/tests/%,stamp/run-%.stamp,${DTEST_BINARIES})
 
+$(patsubst bin/tests/%,stamp/run-%.stamp,${TEST_BINARIES} ${GTEST_BINARIES} ${DTEST_BINARIES}): stamp/symlink-test-lib-dir.stamp
+stamp/symlink-test-lib-dir.stamp:
+	@mkdir -p bin
+	ln -sfT ../lib bin/lib
+	touch $@
+
 stamp/run-%.stamp: bin/tests/%
 	$(MKDIR_FIRST)
-	ln -sf ../lib bin/lib
 	${TESTER} $< ${TEST_ARGS}
 	touch $@
 
@@ -566,8 +571,8 @@ ifeq (${ENABLE_SHARED},yes)
 	${install_data} -t ${DESTDIR}${LIBDIR} \
 	    $(patsubst %.so,%.${SO_LONG},${LIBRARIES})
 	for lib in $(patsubst lib/%.so,%,${LIBRARIES}); do \
-	    ln -sf $$lib.${SO_LONG} ${DESTDIR}${LIBDIR}/$$lib.${SO_SHORT}; \
-	    ln -sf $$lib.${SO_SHORT} ${DESTDIR}${LIBDIR}/$$lib.so; \
+	    ln -sfT $$lib.${SO_LONG} ${DESTDIR}${LIBDIR}/$$lib.${SO_SHORT}; \
+	    ln -sfT $$lib.${SO_SHORT} ${DESTDIR}${LIBDIR}/$$lib.so; \
 	done
 else
 	${install_data} -t ${DESTDIR}${LIBDIR} \

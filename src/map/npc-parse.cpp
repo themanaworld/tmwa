@@ -32,11 +32,13 @@
 
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
-#include "../io/read.hpp"
+#include "../io/line.hpp"
 
 #include "../mmo/config_parse.hpp"
 
 #include "../high/extract_mmo.hpp"
+
+#include "../ast/npc.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
@@ -57,24 +59,12 @@ std::list<AString> npc_srcs;
 static
 int npc_warp, npc_shop, npc_script, npc_mob;
 
-//
-// 初期化関係
-//
-
-/*==========================================
- * 読み込むnpcファイルのクリア
- *------------------------------------------
- */
 static
 void npc_clearsrcfile(void)
 {
     npc_srcs.clear();
 }
 
-/*==========================================
- * 読み込むnpcファイルの追加
- *------------------------------------------
- */
 void npc_addsrcfile(AString name)
 {
     if (name == "clear"_s)
@@ -86,10 +76,6 @@ void npc_addsrcfile(AString name)
     npc_srcs.push_back(name);
 }
 
-/*==========================================
- * 読み込むnpcファイルの削除
- *------------------------------------------
- */
 void npc_delsrcfile(XString name)
 {
     if (name == "all"_s)
@@ -145,26 +131,19 @@ void register_npc_name(dumb_ptr<npc_data> nd)
     npcs_by_name.put(nd->name, nd);
 }
 
-/*==========================================
- * warp行解析
- *------------------------------------------
- */
-int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
+// extern for atcommand @addwarp
+bool npc_load_warp(ast::npc::Warp& warp)
 {
-    int x, y, xs, ys, to_x, to_y;
-    int i, j;
-    MapName mapname, to_mapname;
+    MapName mapname = warp.m.data;
+    int x = warp.x.data, y = warp.y.data;
+
+    int xs = warp.xs.data, ys = warp.ys.data;
+    MapName to_mapname = warp.to_m.data;
+    int to_x = warp.to_x.data, to_y = warp.to_y.data;
+
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), abort());
+
     dumb_ptr<npc_data_warp> nd;
-
-    if (!extract(w1, record<','>(&mapname, &x, &y)) ||
-        !extract(w4, record<','>(&xs, &ys, &to_mapname, &to_x, &to_y)))
-    {
-        PRINTF("bad warp line : %s\n"_fmt, w3);
-        return 1;
-    }
-
-    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return 1);
-
     nd.new_();
     nd->bl_id = npc_get_new_npc_id();
     nd->n = map_addnpc(m, nd);
@@ -175,7 +154,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
     nd->bl_y = y;
     nd->dir = DIR::S;
     nd->flag = 0;
-    nd->name = w3;
+    nd->name = warp.name.data;
 
     if (!battle_config.warp_point_debug)
         nd->npc_class = WARP_CLASS;
@@ -187,16 +166,14 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
     nd->warp.name = to_mapname;
-    xs += 2;
-    ys += 2;
     nd->warp.x = to_x;
     nd->warp.y = to_y;
     nd->warp.xs = xs;
     nd->warp.ys = ys;
 
-    for (i = 0; i < ys; i++)
+    for (int i = 0; i < ys; i++)
     {
-        for (j = 0; j < xs; j++)
+        for (int j = 0; j < xs; j++)
         {
             int x_lo = x - xs / 2;
             int y_lo = y - ys / 2;
@@ -216,74 +193,42 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
     clif_spawnnpc(nd);
     register_npc_name(nd);
 
-    return 0;
-}
-
-static
-bool extract(XString xs, npc_item_list *itv)
-{
-    XString name_or_id;
-    if (!extract(xs, record<':'>(&name_or_id, &itv->value)))
-        return false;
-
-    P<struct item_data> id = ((extract(name_or_id, &itv->nameid) && itv->nameid)
-    ? ({
-        P<struct item_data> id_ = itemdb_search(itv->nameid);
-        id_;
-    })
-    : ({
-        P<struct item_data> id_ = TRY_UNWRAP(itemdb_searchname(name_or_id.rstrip()), return false);
-        itv->nameid = id_->nameid;
-        id_;
-    }));
-
-    if (itv->value < 0)
-    {
-        itv->value = id->value_buy * abs(itv->value);
-    }
     return true;
 }
 
-/*==========================================
- * shop行解析
- *------------------------------------------
- */
 static
-int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
+bool npc_load_shop(ast::npc::Shop& shop)
 {
-    int x, y;
-    DIR dir;
-    MapName mapname;
+    MapName mapname = shop.m.data;
+    int x = shop.x.data, y = shop.y.data;
+    DIR dir = shop.d.data;
     dumb_ptr<npc_data_shop> nd;
-    ZString::iterator w4comma;
-    Species npc_class;
+    Species npc_class = shop.npc_class.data;
 
-    int dir_; // TODO use enum directly in extract
-    if (!extract(w1, record<','>(&mapname, &x, &y, &dir_))
-        || dir_ < 0 || dir_ >= 8
-        || (w4comma = std::find(w4a.begin(), w4a.end(), ',')) == w4a.end()
-        || !extract(w4a.xislice_h(w4comma), &npc_class))
-    {
-        PRINTF("bad shop line : %s\n"_fmt, w3);
-        return 1;
-    }
-    dir = static_cast<DIR>(dir_);
-    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return 1);
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), abort());
 
     nd.new_();
-    ZString w4b = w4a.xislice_t(w4comma + 1);
-
-    if (!extract(w4b, vrec<','>(&nd->shop_items)))
+    nd->shop_items.reserve(shop.items.data.size());
+    for (auto& it : shop.items.data)
     {
-        PRINTF("bad shop items : %s\n"_fmt, w3);
-        PRINTF("   somewhere --> %s\n"_fmt, w4b);
-        nd->shop_items.clear();
-    }
+        nd->shop_items.emplace_back();
+        auto& back = nd->shop_items.back();
+        P<item_data> id = ((extract(it.data.name.data, &back.nameid) && back.nameid)
+            ? ({
+                P<item_data> id_ = TRY_UNWRAP(itemdb_exists(back.nameid), { it.data.name.span.error("No item with this numerical id"_s); return false; });
+                id_;
+            })
+            : ({
+                P<item_data> id_ = TRY_UNWRAP(itemdb_searchname(XString(it.data.name.data)), { it.data.name.span.error("No item with this name"_s); return false; });
+                back.nameid = id_->nameid;
+                id_;
+        }));
 
-    if (nd->shop_items.empty())
-    {
-        nd.delete_();
-        return 1;
+        if (it.data.value_multiply)
+        {
+            back.value = id->value_buy * back.value;
+        }
+        return true;
     }
 
     nd->bl_prev = nd->bl_next = nullptr;
@@ -293,7 +238,7 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
     nd->bl_id = npc_get_new_npc_id();
     nd->dir = dir;
     nd->flag = 0;
-    nd->name = w3;
+    nd->name = shop.name.data;
     nd->npc_class = npc_class;
     nd->speed = 200_ms;
     nd->option = Opt0::ZERO;
@@ -309,13 +254,160 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
     clif_spawnnpc(nd);
     register_npc_name(nd);
 
-    return 0;
+    return true;
 }
 
-/*==========================================
- * NPCのラベルデータコンバート
- *------------------------------------------
- */
+static
+bool npc_load_monster(ast::npc::Monster& monster)
+{
+    MapName mapname = monster.m.data;
+    int x = monster.x.data, y = monster.y.data;
+    int xs = monster.xs.data, ys = monster.ys.data;
+
+    Species mob_class = monster.mob_class.data;
+    int num = monster.num.data;
+    interval_t delay1 = monster.delay1.data;
+    interval_t delay2 = monster.delay2.data;
+    NpcEvent eventname = monster.event.data;
+
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), abort());
+
+    if (num > 1 && battle_config.mob_count_rate != 100)
+    {
+        num = num * battle_config.mob_count_rate / 100;
+        if (num < 1)
+            num = 1;
+    }
+
+    for (int i = 0; i < num; i++)
+    {
+        dumb_ptr<mob_data> md;
+        md.new_();
+
+        md->bl_prev = nullptr;
+        md->bl_next = nullptr;
+        md->bl_m = m;
+        md->bl_x = x;
+        md->bl_y = y;
+        MobName expected = get_mob_db(mob_class).jname;
+        if (monster.name.data != expected)
+        {
+            monster.name.span.warning(STRPRINTF("Visible label/jname should match: %s"_fmt, expected));
+        }
+        if (monster.name.data == ENGLISH_NAME)
+            md->name = get_mob_db(mob_class).name;
+        else if (monster.name.data == JAPANESE_NAME)
+            md->name = get_mob_db(mob_class).jname;
+        else
+            md->name = monster.name.data;
+
+        md->n = i;
+        md->mob_class = mob_class;
+        md->bl_id = npc_get_new_npc_id();
+        md->spawn.m = m;
+        md->spawn.x0 = x;
+        md->spawn.y0 = y;
+        md->spawn.xs = xs;
+        md->spawn.ys = ys;
+        md->spawn.delay1 = delay1;
+        md->spawn.delay2 = delay2;
+
+        really_memzero_this(&md->state);
+        // md->timer = nullptr;
+        md->target_id = BlockId();
+        md->attacked_id = BlockId();
+
+        md->lootitemv.clear();
+
+        md->npc_event = eventname;
+
+        md->bl_type = BL::MOB;
+        map_addiddb(md);
+        mob_spawn(md->bl_id);
+
+        npc_mob++;
+    }
+
+    return true;
+}
+
+static
+bool npc_load_mapflag(ast::npc::MapFlag& mapflag)
+{
+    MapName mapname = mapflag.m.data;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), abort());
+
+    MapFlag mf;
+    if (!extract(mapflag.name.data, &mf))
+    {
+        mapflag.name.span.error("No such mapflag"_s);
+        return false;
+    }
+
+    if (battle_config.pk_mode && mf == MapFlag::NOPVP)
+    {
+        if (mapflag.vec_extra.data.size())
+        {
+            mapflag.vec_extra.span.error("No extra argument expected for mapflag 'nopvp'"_s);
+            return false;
+        }
+        m->flag.set(MapFlag::NOPVP, 1);
+        m->flag.set(MapFlag::PVP, 0);
+        return true;
+    }
+
+    MapName savemap;
+    int savex, savey;
+
+    if (mf == MapFlag::NOSAVE)
+    {
+        if (mapflag.vec_extra.data.size() == 3
+                && extract(mapflag.vec_extra.data[0].data, &savemap)
+                && extract(mapflag.vec_extra.data[1].data, &savex)
+                && extract(mapflag.vec_extra.data[2].data, &savey)
+                && map_mapname2mapid(savemap).is_some())
+        {
+            m->save.map_ = savemap;
+            m->save.x = savex;
+            m->save.y = savey;
+        }
+        else
+        {
+            mapflag.vec_extra.span.error("Unable to extract nosave savepoint"_s);
+            return false;
+        }
+    }
+    else if (mf == MapFlag::RESAVE)
+    {
+        if (mapflag.vec_extra.data.size() == 3
+                && extract(mapflag.vec_extra.data[0].data, &savemap)
+                && extract(mapflag.vec_extra.data[1].data, &savex)
+                && extract(mapflag.vec_extra.data[2].data, &savey)
+                && map_mapname2mapid(savemap).is_some())
+        {
+            m->resave.map_ = savemap;
+            m->resave.x = savex;
+            m->resave.y = savey;
+        }
+        else
+        {
+            mapflag.vec_extra.span.error("Unable to extract resave savepoint"_s);
+            return false;
+        }
+    }
+    else
+    {
+        if (mapflag.vec_extra.data.size())
+        {
+            mapflag.vec_extra.span.error("No extra argument expected for mapflag"_s);
+            return false;
+        }
+    }
+    m->flag.set(mf, true);
+
+    return true;
+}
+
 static
 void npc_convertlabel_db(ScriptLabel lname, int pos, dumb_ptr<npc_data_script> nd)
 {
@@ -327,155 +419,38 @@ void npc_convertlabel_db(ScriptLabel lname, int pos, dumb_ptr<npc_data_script> n
     nd->scr.label_listv.push_back(std::move(eln));
 }
 
-/*==========================================
- * script行解析
- *------------------------------------------
- */
 static
-int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
-        XString first_line, io::ReadFile& fp, int *lines)
+bool npc_load_script_function(ast::script::ScriptBody& body, ast::npc::ScriptFunction& script_function)
 {
-    int x, y;
-    DIR dir = DIR::S;
-    int xs = 0, ys = 0;   // [Valaris] thanks to fov
-    Species npc_class;
-    MapName mapname;
-    std::unique_ptr<const ScriptBuffer> script = nullptr;
+    std::unique_ptr<const ScriptBuffer> script = compile_script(body, false);
+    if (script == nullptr)
+        return false;
+
+    userfunc_db.put(script_function.name.data, std::move(script));
+
+    return true;
+}
+
+static
+bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& script_none)
+{
+    std::unique_ptr<const ScriptBuffer> script = compile_script(body, false);
+    if (script == nullptr)
+        return false;
+
     dumb_ptr<npc_data_script> nd;
-    int evflag = 0;
-
-    P<map_local> m = borrow(undefined_gat);
-    if (w1 == "-"_s)
-    {
-        x = 0;
-        y = 0;
-        m = borrow(undefined_gat);
-    }
-    else
-    {
-        int dir_; // TODO use enum directly in extract
-        if (!extract(w1, record<','>(&mapname, &x, &y, &dir_))
-            || dir_ < 0 || dir_ >= 8
-            || (w2 == "script"_s && !w4.contains(',')))
-        {
-            PRINTF("bad script line : %s\n"_fmt, w3);
-            return 1;
-        }
-        dir = static_cast<DIR>(dir_);
-        m = map_mapname2mapid(mapname).copy_or(borrow(undefined_gat));
-    }
-
-    if (w2 == "script"_s)
-    {
-        // may be empty
-        MString srcbuf;
-        srcbuf += first_line.xislice_t(std::find(first_line.begin(), first_line.end(), '{'));
-        // Note: it was a bug that this was missing. I think.
-        int startline = *lines;
-
-        // while (!srcbuf.rstrip().endswith('}'))
-        while (true)
-        {
-            auto it = std::find_if_not(srcbuf.rbegin(), srcbuf.rend(), [](char c){ return c == ' ' || c == '\n'; });
-            if (it != srcbuf.rend() && *it == '}')
-                break;
-
-            AString line;
-            if (!fp.getline(line))
-                // eof
-                break;
-            (*lines)++;
-            if (!srcbuf)
-            {
-                // may be a no-op
-                srcbuf += line.xislice_t(std::find(line.begin(), line.end(), '{'));
-                // safe to execute more than once
-                // But will usually only happen once
-                startline = *lines;
-            }
-            else
-                srcbuf += line;
-            srcbuf += '\n';
-        }
-        script = parse_script(AString(srcbuf), startline, false);
-        if (script == nullptr)
-            // script parse error?
-            return 1;
-    }
-    else
-    {
-        assert(0 && "duplicate() is no longer supported!\n"_s);
-        return 0;
-    }
-
     nd.new_();
 
-    if (m == borrow(undefined_gat))
-    {
-    }
-    else if (extract(w4, record<','>(&npc_class, &xs, &ys)))
-    {
-        if (xs >= 0)
-            xs = xs * 2 + 1;
-        if (ys >= 0)
-            ys = ys * 2 + 1;
-
-        if (npc_class != NEGATIVE_SPECIES)
-        {
-
-            for (int i = 0; i < ys; i++)
-            {
-                for (int j = 0; j < xs; j++)
-                {
-                    int x_lo = x - xs / 2;
-                    int y_lo = y - ys / 2;
-                    int xc = x_lo + j;
-                    int yc = y_lo + i;
-                    MapCell t = map_getcell(m, xc, yc);
-                    if (bool(t & MapCell::UNWALKABLE))
-                        continue;
-                    map_setcell(m, xc, yc, t | MapCell::NPC_NEAR);
-                }
-            }
-        }
-
-        nd->scr.xs = xs;
-        nd->scr.ys = ys;
-    }
-    else
-    {
-        XString w4x = w4;
-        if (w4x.endswith(','))
-            w4x = w4x.xrslice_h(1);
-        if (!extract(w4x, &npc_class))
-            abort();
-        nd->scr.xs = 0;
-        nd->scr.ys = 0;
-    }
-
-    if (npc_class == NEGATIVE_SPECIES && m != borrow(undefined_gat))
-    {
-        evflag = 1;
-    }
-
-    if (w3.contains(':'))
-    {
-        assert(false && "feature removed"_s);
-        abort();
-    }
-
-    {
-        nd->name = w3;
-    }
+    nd->name = script_none.name.data;
 
     nd->bl_prev = nd->bl_next = nullptr;
-    nd->bl_m = m;
-    nd->bl_x = x;
-    nd->bl_y = y;
+    nd->bl_m = borrow(undefined_gat);
+    nd->bl_x = 0;
+    nd->bl_y = 0;
     nd->bl_id = npc_get_new_npc_id();
-    nd->dir = dir;
+    nd->dir = DIR::S;
     nd->flag = 0;
-    nd->npc_class = npc_class;
+    nd->npc_class = NEGATIVE_SPECIES;
     nd->speed = 200_ms;
     nd->scr.script = std::move(script);
     nd->option = Opt0::ZERO;
@@ -486,24 +461,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     npc_script++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
-    if (m != borrow(undefined_gat))
-    {
-        nd->n = map_addnpc(m, nd);
-        map_addblock(nd);
 
-        if (evflag)
-        {
-            struct event_data ev {};
-            ev.nd = nd;
-            ev.pos = 0;
-            NpcEvent npcev;
-            npcev.npc = nd->name;
-            npcev.label = ScriptLabel();
-            ev_db.insert(npcev, ev);
-        }
-        else
-            clif_spawnnpc(nd);
-    }
     register_npc_name(nd);
 
     for (auto& pair : scriptlabel_db)
@@ -526,8 +484,6 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         }
     }
 
-    //-----------------------------------------
-    // ラベルデータからタイマーイベント取り込み
     for (npc_label_list& el : nd->scr.label_listv)
     {
         int t_ = 0;
@@ -558,185 +514,279 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     nd->scr.next_event = nd->scr.timer_eventv.begin();
     // nd->scr.timerid = nullptr;
 
-    return 0;
+    return true;
 }
 
-/*==========================================
- * function行解析
- *------------------------------------------
- */
 static
-int npc_parse_function(XString, XString, XString w3, ZString,
-        XString first_line, io::ReadFile& fp, int *lines)
+bool npc_load_script_map_none(ast::script::ScriptBody& body, ast::npc::ScriptMapNone& script_map_none)
 {
-    MString srcbuf;
-    srcbuf += first_line.xislice_t(std::find(first_line.begin(), first_line.end(), '{'));
-    int startline = *lines;
+    MapName mapname = script_map_none.m.data;
+    int x = script_map_none.x.data, y = script_map_none.y.data;
+    DIR dir = script_map_none.d.data;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname),
+            {
+                script_map_none.m.span.error("No such map"_s);
+                return false;
+            });
 
-    while (true)
-    {
-        auto it = std::find_if_not(srcbuf.rbegin(), srcbuf.rend(), [](char c){ return c == ' ' || c == '\n'; });
-        if (it != srcbuf.rend() && *it == '}')
-            break;
-
-        AString line;
-        if (!fp.getline(line))
-            break;
-        (*lines)++;
-        if (!srcbuf)
-        {
-            srcbuf += line.xislice_t(std::find(line.begin(), line.end(), '{'));
-            startline = *lines;
-        }
-        else
-            srcbuf += line;
-        srcbuf += '\n';
-    }
-    std::unique_ptr<const ScriptBuffer> script = parse_script(AString(srcbuf), startline, false);
+    std::unique_ptr<const ScriptBuffer> script = compile_script(body, false);
     if (script == nullptr)
+        return false;
+
+    dumb_ptr<npc_data_script> nd;
+    nd.new_();
+
+    nd->name = script_map_none.name.data;
+
+    nd->bl_prev = nd->bl_next = nullptr;
+    nd->bl_m = m;
+    nd->bl_x = x;
+    nd->bl_y = y;
+    nd->bl_id = npc_get_new_npc_id();
+    nd->dir = dir;
+    nd->flag = 0;
+    nd->npc_class = NEGATIVE_SPECIES;
+    nd->speed = 200_ms;
+    nd->scr.script = std::move(script);
+    nd->option = Opt0::ZERO;
+    nd->opt1 = Opt1::ZERO;
+    nd->opt2 = Opt2::ZERO;
+    nd->opt3 = Opt3::ZERO;
+
+    npc_script++;
+    nd->bl_type = BL::NPC;
+    nd->npc_subtype = NpcSubtype::SCRIPT;
+
+    nd->n = map_addnpc(m, nd);
+    map_addblock(nd);
+
     {
-        // script parse error?
-        return 1;
+        struct event_data ev {};
+        ev.nd = nd;
+        ev.pos = 0;
+        NpcEvent npcev;
+        npcev.npc = nd->name;
+        npcev.label = ScriptLabel();
+        ev_db.insert(npcev, ev);
     }
 
-    userfunc_db.put(w3, std::move(script));
+    register_npc_name(nd);
 
-    return 0;
+    for (auto& pair : scriptlabel_db)
+        npc_convertlabel_db(pair.first, pair.second, nd);
+
+    for (npc_label_list& el : nd->scr.label_listv)
+    {
+        ScriptLabel lname = el.name;
+        int pos = el.pos;
+
+        if (lname.startswith("On"_s))
+        {
+            struct event_data ev {};
+            ev.nd = nd;
+            ev.pos = pos;
+            NpcEvent buf;
+            buf.npc = nd->name;
+            buf.label = lname;
+            ev_db.insert(buf, ev);
+        }
+    }
+
+    for (npc_label_list& el : nd->scr.label_listv)
+    {
+        int t_ = 0;
+        ScriptLabel lname = el.name;
+        int pos = el.pos;
+        if (lname.startswith("OnTimer"_s) && extract(lname.xslice_t(7), &t_) && t_ > 0)
+        {
+            interval_t t = static_cast<interval_t>(t_);
+
+            npc_timerevent_list tel {};
+            tel.timer = t;
+            tel.pos = pos;
+
+            auto it = std::lower_bound(nd->scr.timer_eventv.begin(), nd->scr.timer_eventv.end(), tel,
+                    [](const npc_timerevent_list& l, const npc_timerevent_list& r)
+                    {
+                        return l.timer < r.timer;
+                    }
+            );
+            assert (it == nd->scr.timer_eventv.end() || it->timer != tel.timer);
+
+            nd->scr.timer_eventv.insert(it, std::move(tel));
+        }
+    }
+    // The counter starts stopped with 0 ticks, which is the first event,
+    // unless there is none, in which case begin == end.
+    nd->scr.timer = interval_t::zero();
+    nd->scr.next_event = nd->scr.timer_eventv.begin();
+    // nd->scr.timerid = nullptr;
+
+    return true;
 }
 
-/*==========================================
- * mob行解析
- *------------------------------------------
- */
 static
-int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
+bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& script_map)
 {
-    int x, y, xs, ys, num;
-    Species mob_class;
-    int i;
-    MapName mapname;
-    NpcEvent eventname;
-    dumb_ptr<mob_data> md;
+    MapName mapname = script_map.m.data;
+    int x = script_map.x.data, y = script_map.y.data;
+    DIR dir = script_map.d.data;
 
-    xs = ys = 0;
-    int delay1_ = 0, delay2_ = 0;
-    if (!extract(w1, record<',', 3>(&mapname, &x, &y, &xs, &ys)) ||
-        !extract(w4, record<',', 2>(&mob_class, &num, &delay1_, &delay2_, &eventname)))
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname),
+            {
+                script_map.m.span.error("No such map"_s);
+                return false;
+            });
+
+    std::unique_ptr<const ScriptBuffer> script = compile_script(body, false);
+    if (script == nullptr)
+        return false;
+
+
+    dumb_ptr<npc_data_script> nd;
+    nd.new_();
+
+    Species npc_class = script_map.npc_class.data;
+    int xs = script_map.xs.data, ys = script_map.ys.data;
+
     {
-        PRINTF("bad monster line : %s\n"_fmt, w3);
-        return 1;
-    }
-    interval_t delay1 = std::chrono::milliseconds(delay1_);
-    interval_t delay2 = std::chrono::milliseconds(delay2_);
+        for (int i = 0; i < ys; i++)
+        {
+            for (int j = 0; j < xs; j++)
+            {
+                int x_lo = x - xs / 2;
+                int y_lo = y - ys / 2;
+                int xc = x_lo + j;
+                int yc = y_lo + i;
+                MapCell t = map_getcell(m, xc, yc);
+                if (bool(t & MapCell::UNWALKABLE))
+                    continue;
+                map_setcell(m, xc, yc, t | MapCell::NPC_NEAR);
+            }
+        }
 
-    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return 1);
-
-    if (num > 1 && battle_config.mob_count_rate != 100)
-    {
-        if ((num = num * battle_config.mob_count_rate / 100) < 1)
-            num = 1;
-    }
-
-    for (i = 0; i < num; i++)
-    {
-        md.new_();
-
-        md->bl_prev = nullptr;
-        md->bl_next = nullptr;
-        md->bl_m = m;
-        md->bl_x = x;
-        md->bl_y = y;
-        if (w3 == ENGLISH_NAME)
-            md->name = get_mob_db(mob_class).name;
-        else if (w3 == JAPANESE_NAME)
-            md->name = get_mob_db(mob_class).jname;
-        else
-            md->name = w3;
-
-        md->n = i;
-        md->mob_class = mob_class;
-        md->bl_id = npc_get_new_npc_id();
-        md->spawn.m = m;
-        md->spawn.x0 = x;
-        md->spawn.y0 = y;
-        md->spawn.xs = xs;
-        md->spawn.ys = ys;
-        md->spawn.delay1 = delay1;
-        md->spawn.delay2 = delay2;
-
-        really_memzero_this(&md->state);
-        // md->timer = nullptr;
-        md->target_id = BlockId();
-        md->attacked_id = BlockId();
-
-        md->lootitemv.clear();
-
-        md->npc_event = eventname;
-
-        md->bl_type = BL::MOB;
-        map_addiddb(md);
-        mob_spawn(md->bl_id);
-
-        npc_mob++;
+        nd->scr.xs = xs;
+        nd->scr.ys = ys;
     }
 
-    return 0;
+    nd->name = script_map.name.data;
+
+    nd->bl_prev = nd->bl_next = nullptr;
+    nd->bl_m = m;
+    nd->bl_x = x;
+    nd->bl_y = y;
+    nd->bl_id = npc_get_new_npc_id();
+    nd->dir = dir;
+    nd->flag = 0;
+    nd->npc_class = npc_class;
+    nd->speed = 200_ms;
+    nd->scr.script = std::move(script);
+    nd->option = Opt0::ZERO;
+    nd->opt1 = Opt1::ZERO;
+    nd->opt2 = Opt2::ZERO;
+    nd->opt3 = Opt3::ZERO;
+
+    npc_script++;
+    nd->bl_type = BL::NPC;
+    nd->npc_subtype = NpcSubtype::SCRIPT;
+
+    nd->n = map_addnpc(m, nd);
+    map_addblock(nd);
+
+    clif_spawnnpc(nd);
+
+    register_npc_name(nd);
+
+    for (auto& pair : scriptlabel_db)
+        npc_convertlabel_db(pair.first, pair.second, nd);
+
+    for (npc_label_list& el : nd->scr.label_listv)
+    {
+        ScriptLabel lname = el.name;
+        int pos = el.pos;
+
+        if (lname.startswith("On"_s))
+        {
+            struct event_data ev {};
+            ev.nd = nd;
+            ev.pos = pos;
+            NpcEvent buf;
+            buf.npc = nd->name;
+            buf.label = lname;
+            ev_db.insert(buf, ev);
+        }
+    }
+
+    for (npc_label_list& el : nd->scr.label_listv)
+    {
+        int t_ = 0;
+        ScriptLabel lname = el.name;
+        int pos = el.pos;
+        if (lname.startswith("OnTimer"_s) && extract(lname.xslice_t(7), &t_) && t_ > 0)
+        {
+            interval_t t = static_cast<interval_t>(t_);
+
+            npc_timerevent_list tel {};
+            tel.timer = t;
+            tel.pos = pos;
+
+            auto it = std::lower_bound(nd->scr.timer_eventv.begin(), nd->scr.timer_eventv.end(), tel,
+                    [](const npc_timerevent_list& l, const npc_timerevent_list& r)
+                    {
+                        return l.timer < r.timer;
+                    }
+            );
+            assert (it == nd->scr.timer_eventv.end() || it->timer != tel.timer);
+
+            nd->scr.timer_eventv.insert(it, std::move(tel));
+        }
+    }
+    // The counter starts stopped with 0 ticks, which is the first event,
+    // unless there is none, in which case begin == end.
+    nd->scr.timer = interval_t::zero();
+    nd->scr.next_event = nd->scr.timer_eventv.begin();
+    // nd->scr.timerid = nullptr;
+
+    return true;
 }
 
-/*==========================================
- * マップフラグ行の解析
- *------------------------------------------
- */
 static
-int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
+bool npc_load_script_any(ast::npc::Script *script)
 {
-    MapName mapname, savemap;
-    int savex, savey;
-
-    mapname = stringish<MapName>(w1);
-    if (!mapname)
-        return 1;
-
-    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return 1);
-
-    MapFlag mf;
-    if (!extract(w3, &mf))
-        return 1;
-
-    if (battle_config.pk_mode && mf == MapFlag::NOPVP)
+    MATCH (*script)
     {
-        m->flag.set(MapFlag::NOPVP, 1);
-        m->flag.set(MapFlag::PVP, 0);
-        return 0;
-    }
-
-    if (mf == MapFlag::NOSAVE)
-    {
-        if (w4 == "SavePoint"_s)
+        CASE (ast::npc::ScriptFunction&, script_function)
         {
-            m->save.map_ = stringish<MapName>("SavePoint"_s);
-            m->save.x = -1;
-            m->save.y = -1;
+            return npc_load_script_function(script->body, script_function);
         }
-        else if (extract(w4, record<','>(&savemap, &savex, &savey)))
+        CASE (ast::npc::ScriptNone&, script_none)
         {
-            m->save.map_ = savemap;
-            m->save.x = savex;
-            m->save.y = savey;
+            return npc_load_script_none(script->body, script_none);
+        }
+        CASE (ast::npc::ScriptMapNone&, script_map_none)
+        {
+            auto& mapname = script_map_none.m;
+            Option<P<map_local>> m = map_mapname2mapid(mapname.data);
+            if (m.is_none())
+            {
+                mapname.span.error(STRPRINTF("Map not found: %s"_fmt, mapname.data));
+                return false;
+            }
+            return npc_load_script_map_none(script->body, script_map_none);
+        }
+        CASE (ast::npc::ScriptMap&, script_map)
+        {
+            auto& mapname = script_map.m;
+            Option<P<map_local>> m = map_mapname2mapid(mapname.data);
+            if (m.is_none())
+            {
+                mapname.span.error(STRPRINTF("Map not found: %s"_fmt, mapname.data));
+                return false;
+            }
+            return npc_load_script_map(script->body, script_map);
         }
     }
-    if (mf == MapFlag::RESAVE)
-    {
-        if (extract(w4, record<','>(&savemap, &savex, &savey)))
-        {
-            m->resave.map_ = savemap;
-            m->resave.x = savex;
-            m->resave.y = savey;
-        }
-    }
-    m->flag.set(mf, true);
-
-    return 0;
+    abort();
 }
 
 dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
@@ -766,10 +816,93 @@ dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
     return retval;
 }
 
-/*==========================================
- * npc初期化
- *------------------------------------------
- */
+static
+bool load_one_npc(io::LineCharReader& fp, bool& done)
+{
+    auto res = TRY_UNWRAP(ast::npc::parse_top(fp), { done = true; return true; });
+    if (res.get_failure())
+        PRINTF("%s\n"_fmt, res.get_failure());
+    ast::npc::TopLevel tl = TRY_UNWRAP(std::move(res.get_success()), return false);
+
+    MATCH (tl)
+    {
+        CASE (ast::npc::Comment&, c)
+        {
+            return true;
+        }
+        CASE (ast::npc::Warp&, warp)
+        {
+            auto& mapname = warp.m;
+            Option<P<map_local>> m = map_mapname2mapid(mapname.data);
+            if (m.is_none())
+            {
+                mapname.span.error(STRPRINTF("Map not found: %s"_fmt, mapname.data));
+                return false;
+            }
+            return npc_load_warp(warp);
+        }
+        CASE (ast::npc::Shop&, shop)
+        {
+            auto& mapname = shop.m;
+            Option<P<map_local>> m = map_mapname2mapid(mapname.data);
+            if (m.is_none())
+            {
+                mapname.span.error(STRPRINTF("Map not found: %s"_fmt, mapname.data));
+                return false;
+            }
+            return npc_load_shop(shop);
+        }
+        CASE (ast::npc::Monster&, monster)
+        {
+            auto& mapname = monster.m;
+            Option<P<map_local>> m = map_mapname2mapid(mapname.data);
+            if (m.is_none())
+            {
+                mapname.span.error(STRPRINTF("Map not found: %s"_fmt, mapname.data));
+                return false;
+            }
+            return npc_load_monster(monster);
+        }
+        CASE (ast::npc::MapFlag&, mapflag)
+        {
+            auto& mapname = mapflag.m;
+            Option<P<map_local>> m = map_mapname2mapid(mapname.data);
+            if (m.is_none())
+            {
+                mapname.span.error(STRPRINTF("Map not found: %s"_fmt, mapname.data));
+                return false;
+            }
+            return npc_load_mapflag(mapflag);
+        }
+        CASE (ast::npc::Script&, script)
+        {
+            return npc_load_script_any(&script);
+        }
+    }
+    abort();
+}
+
+static
+bool load_npc_file(ZString nsl)
+{
+    io::LineCharReader fp(nsl);
+    if (!fp.is_open())
+    {
+        PRINTF("file not found : %s\n"_fmt, nsl);
+        return false;
+    }
+    PRINTF("Loading NPCs [%d]: %-54s\r"_fmt, unwrap<BlockId>(npc_id) - unwrap<BlockId>(START_NPC_NUM),
+            nsl);
+
+    bool done = false;
+    while (!done)
+    {
+        if (!load_one_npc(fp, done))
+            return false;
+    }
+    return true;
+}
+
 bool do_init_npc(void)
 {
     bool rv = true;
@@ -777,93 +910,9 @@ bool do_init_npc(void)
     for (; !npc_srcs.empty(); npc_srcs.pop_front())
     {
         AString nsl = npc_srcs.front();
-        io::ReadFile fp(nsl);
-        if (!fp.is_open())
-        {
-            PRINTF("file not found : %s\n"_fmt, nsl);
-            rv = false;
-            continue;
-        }
-        PRINTF("\rLoading NPCs [%d]: %-54s"_fmt, unwrap<BlockId>(npc_id) - unwrap<BlockId>(START_NPC_NUM),
-                nsl);
-        int lines = 0;
-        AString zline;
-        while (fp.getline(zline))
-        {
-            XString w1, w2, w3, w4x;
-            ZString w4z;
-            lines++;
-
-            if (is_comment(zline))
-                continue;
-
-            if (!extract(zline, record<'|', 3>(&w1, &w2, &w3, &w4x)) || !w1 || !w2 || !w3)
-            {
-                FPRINTF(stderr, "%s:%d: Broken script line: %s\n"_fmt, nsl, lines, zline);
-                rv = false;
-                continue;
-            }
-            if (&*w4x.end() == &*zline.end())
-            {
-                w4z = zline.xrslice_t(w4x.size());
-            }
-            assert(bool(w4x) == bool(w4z));
-
-            if (w1 != "-"_s && w1 != "function"_s)
-            {
-                auto comma = std::find(w1.begin(), w1.end(), ',');
-                MapName mapname = stringish<MapName>(w1.xislice_h(comma));
-                Option<P<map_local>> m = map_mapname2mapid(mapname);
-                if (m.is_none())
-                {
-                    // "mapname" is not assigned to this server
-                    FPRINTF(stderr, "%s:%d: Map not found: %s\n"_fmt, nsl, lines, mapname);
-                    rv = false;
-                    continue;
-                }
-            }
-            if (w2 == "warp"_s)
-            {
-                NpcName npcname = stringish<NpcName>(w3);
-                rv &= !npc_parse_warp(w1, w2, npcname, w4z);
-            }
-            else if (w2 == "shop"_s)
-            {
-                NpcName npcname = stringish<NpcName>(w3);
-                rv &= !npc_parse_shop(w1, w2, npcname, w4z);
-            }
-            else if (w2 == "script"_s)
-            {
-                if (w1 == "function"_s)
-                {
-                    rv &= !npc_parse_function(w1, w2, w3, w4z,
-                            w4x, fp, &lines);
-                }
-                else
-                {
-                    NpcName npcname = stringish<NpcName>(w3);
-                    rv &= !npc_parse_script(w1, w2, npcname, w4z,
-                            w4x, fp, &lines);
-                }
-            }
-            else if (w2 == "monster"_s)
-            {
-                MobName mobname = stringish<MobName>(w3);
-                rv &= !npc_parse_mob(w1, w2, mobname, w4z);
-            }
-            else if (w2 == "mapflag"_s)
-            {
-                rv &= !npc_parse_mapflag(w1, w2, w3, w4z);
-            }
-            else
-            {
-                PRINTF("odd script line: %s\n"_fmt, zline);
-                script_errors++;
-            }
-        }
-        fflush(stdout);
+        rv &= load_npc_file(nsl);
     }
-    PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n"_fmt,
+    PRINTF("NPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n"_fmt,
             unwrap<BlockId>(npc_id) - unwrap<BlockId>(START_NPC_NUM), npc_warp, npc_shop, npc_script, npc_mob, ""_s);
 
     if (script_errors)

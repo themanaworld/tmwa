@@ -25,7 +25,7 @@
 
 namespace tmwa
 {
-int npc_parse_warp(XString w1, XString, NpcName w3, XString w4);
+bool npc_load_warp(ast::npc::Warp& warp);
 
 /**
  * Spawns and installs a talk-only NPC

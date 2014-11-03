@@ -30,10 +30,12 @@
 
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
-#include "../io/read.hpp"
+#include "../io/line.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/extract_enums.hpp"
+
+#include "../ast/item.hpp"
 
 #include "script-parse.hpp"
 
@@ -149,99 +151,63 @@ int itemdb_isequip3(ItemNameId nameid)
 
 bool itemdb_readdb(ZString filename)
 {
-    bool rv = true;
+    io::LineCharReader in(filename);
 
-    int ln = 0, lines = 0;
-
+    if (!in.is_open())
     {
-        io::ReadFile in(filename);
-
-        if (!in.is_open())
-        {
-            PRINTF("can't read %s\n"_fmt, filename);
-            return false;
-        }
-
-        lines = 0;
-
-        AString line;
-        while (in.getline(line))
-        {
-            lines++;
-            if (is_comment(line))
-                continue;
-            // a line is 17 normal fields followed by 2 {} fields
-            // the fields are separated by ", *", but there may be ,
-            // in the {}.
-
-            auto it = std::find(line.begin(), line.end(), '{');
-            XString main_part = line.xislice_h(it).rstrip();
-            // According to the code, tail_part may be empty. See later.
-            ZString tail_part = line.xislice_t(it);
-
-            XString unused_slot_count;
-            item_data idv {};
-            if (!extract(
-                        main_part, record<','>(
-                            &idv.nameid,
-                            lstripping(&idv.name),
-                            lstripping(&idv.jname),
-                            lstripping(&idv.type),
-                            lstripping(&idv.value_buy),
-                            lstripping(&idv.value_sell),
-                            lstripping(&idv.weight),
-                            lstripping(&idv.atk),
-                            lstripping(&idv.def),
-                            lstripping(&idv.range),
-                            lstripping(&idv.magic_bonus),
-                            lstripping(&unused_slot_count),
-                            lstripping(&idv.sex),
-                            lstripping(&idv.equip),
-                            lstripping(&idv.wlv),
-                            lstripping(&idv.elv),
-                            lstripping(&idv.look)
-                        )
-                    )
-            )
-            {
-                PRINTF("%s:%d: error: bad item line: %s\n"_fmt,
-                        filename, lines, line);
-                rv = false;
-                continue;
-            }
-
-            ln++;
-
-            Borrowed<struct item_data> id = itemdb_search(idv.nameid);
-            *id = std::move(idv);
-            if (id->value_buy == 0 && id->value_sell == 0)
-            {
-            }
-            else if (id->value_buy == 0)
-            {
-                id->value_buy = id->value_sell * 2;
-            }
-            else if (id->value_sell == 0)
-            {
-                id->value_sell = id->value_buy / 2;
-            }
-
-            id->use_script = nullptr;
-            id->equip_script = nullptr;
-
-            if (!tail_part)
-                continue;
-            id->use_script = parse_script(tail_part, lines, true);
-
-            tail_part = tail_part.xislice_t(std::find(tail_part.begin() + 1, tail_part.end(), '{'));
-            if (!tail_part)
-                continue;
-            id->equip_script = parse_script(tail_part, lines, true);
-        }
-        PRINTF("read %s done (count=%d)\n"_fmt, filename, ln);
+        PRINTF("can't read %s\n"_fmt, filename);
+        return false;
     }
 
-    return rv;
+    int ln = 0;
+
+    while (true)
+    {
+        auto res = TRY_UNWRAP(ast::item::parse_item(in),
+                {
+                    PRINTF("read %s done (count=%d)\n"_fmt, filename, ln);
+                    return true;
+                });
+        if (res.get_failure())
+            PRINTF("%s\n"_fmt, res.get_failure());
+        ast::item::ItemOrComment ioc = TRY_UNWRAP(std::move(res.get_success()), return false);
+
+        MATCH (ioc)
+        {
+            CASE(const ast::item::Comment&, c)
+            {
+                (void)c;
+            }
+            CASE(const ast::item::Item&, item)
+            {
+                ln++;
+
+                item_data idv {};
+                idv.nameid = item.id.data;
+                idv.name = item.name.data;
+                idv.jname = item.jname.data;
+                idv.type = item.type.data;
+                idv.value_buy = item.buy_price.data ?: item.sell_price.data * 2;
+                idv.value_sell = item.sell_price.data ?: item.buy_price.data / 2;
+                idv.weight = item.weight.data;
+                idv.atk = item.atk.data;
+                idv.def = item.def.data;
+                idv.range = item.range.data;
+                idv.magic_bonus = item.magic_bonus.data;
+                idv.sex = item.gender.data;
+                idv.equip = item.loc.data;
+                idv.wlv = item.wlv.data;
+                idv.elv = item.elv.data;
+                idv.look = item.view.data;
+
+                idv.use_script = compile_script(item.use_script, true);
+                idv.equip_script = compile_script(item.equip_script, true);
+
+                Borrowed<struct item_data> id = itemdb_search(idv.nameid);
+                *id = std::move(idv);
+            }
+        }
+    }
 }
 
 /*==========================================

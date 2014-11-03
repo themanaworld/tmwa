@@ -23,11 +23,23 @@
 #include "../compat/fwd.hpp" // rank 2
 #include "../io/fwd.hpp" // rank 4
 #include "../net/fwd.hpp" // rank 5
+#include "../sexpr/fwd.hpp" // rank 5
 #include "../mmo/fwd.hpp" // rank 6
 #include "../high/fwd.hpp" // rank 9
 // ast/fwd.hpp is rank 10
 
 namespace tmwa
 {
+namespace ast
+{
+namespace npc
+{
+class Warp;
+} // namespace npc
+namespace script
+{
+class ScriptBody;
+} // namespace script
+} // namespace ast
 // meh, add more when I feel like it
 } // namespace tmwa

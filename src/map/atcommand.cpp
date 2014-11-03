@@ -57,6 +57,8 @@
 #include "../high/mmo.hpp"
 #include "../high/utils.hpp"
 
+#include "../ast/npc.hpp"
+
 #include "battle.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
@@ -4136,13 +4138,21 @@ ATCE atcommand_addwarp(Session *s, dumb_ptr<map_session_data> sd,
     if (!extract(message, record<' '>(&mapname, &x, &y)))
         return ATCE::USAGE;
 
-    AString w1 = STRPRINTF("%s,%d,%d"_fmt, sd->mapname_, sd->bl_x, sd->bl_y);
     AString w3 = STRPRINTF("%s%d%d%d%d"_fmt, mapname, sd->bl_x, sd->bl_y, x, y);
-    AString w4 = STRPRINTF("1,1,%s.gat,%d,%d"_fmt, mapname, x, y);
-
     NpcName w3name = stringish<NpcName>(w3);
-    int ret = npc_parse_warp(w1, "warp"_s, w3name, w4);
-    if (ret)
+
+    ast::npc::Warp warp;
+    warp.m.data = sd->mapname_;
+    warp.x.data = sd->bl_x;
+    warp.y.data = sd->bl_y;
+    warp.name.data = w3name;
+    warp.xs.data = 1+2;
+    warp.ys.data = 1+2;
+    warp.to_m.data = mapname;
+    warp.to_x.data = x;
+    warp.to_y.data = y;
+
+    if (!npc_load_warp(warp))
         // warp failed
         return ATCE::RANGE;
 

@@ -48,7 +48,7 @@ namespace strings
         const char *maybe_end;
 
     public:
-        RString();
+        RString() noexcept;
         RString(LString s);
         RString(const RString&);
         RString(RString&&);

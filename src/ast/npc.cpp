@@ -18,8 +18,6 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../compat/memory.hpp"
-
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
 #include "../io/line.hpp"
@@ -39,10 +37,7 @@ namespace npc
 {
     using io::respan;
 
-    // separate file because virtual
-    TopLevel::~TopLevel() {}
-
-#define TRY_EXTRACT(bit, var) ({ if (!extract(bit.data, &var.data)) return Err(bit.span.error_str("failed to extract"_s #var)); var.span = bit.span; })
+#define TRY_EXTRACT(bit, var) ({ if (!extract(bit.data, &var.data)) return Err(bit.span.error_str("failed to extract "_s #var)); var.span = bit.span; })
 
     static
     Result<Warp> parse_warp(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
@@ -53,28 +48,33 @@ namespace npc
         }
         if (bits[0].data.size() != 3)
         {
-            return Err(bits[0].span.error_str("expect 3 ,component,s"_s));
+            return Err(bits[0].span.error_str("in |component 1| expect 3 ,component,s"_s));
         }
         assert(bits[1].data.size() == 1);
         assert(bits[1].data[0].data == "warp"_s);
         if (bits[2].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("expect 1 ,component,s"_s));
+            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
         if (bits[3].data.size() != 5)
         {
-            return Err(bits[3].span.error_str("expect 5 ,component,s"_s));
+            return Err(bits[3].span.error_str("in |component 4| expect 5 ,component,s"_s));
         }
 
         Warp warp;
-        warp.span = span;
         TRY_EXTRACT(bits[0].data[0], warp.m);
         TRY_EXTRACT(bits[0].data[1], warp.x);
         TRY_EXTRACT(bits[0].data[2], warp.y);
         warp.key_span = bits[1].data[0].span;
         TRY_EXTRACT(bits[2].data[0], warp.name);
+        if (bits[3].data[0].data == "-1"_s)
+            bits[3].data[0].data = "4294967295"_s;
         TRY_EXTRACT(bits[3].data[0], warp.xs);
+        warp.xs.data += 2;
+        if (bits[3].data[1].data == "-1"_s)
+            bits[3].data[1].data = "4294967295"_s;
         TRY_EXTRACT(bits[3].data[1], warp.ys);
+        warp.ys.data += 2;
         TRY_EXTRACT(bits[3].data[2], warp.to_m);
         TRY_EXTRACT(bits[3].data[3], warp.to_x);
         TRY_EXTRACT(bits[3].data[4], warp.to_y);
@@ -89,21 +89,20 @@ namespace npc
         }
         if (bits[0].data.size() != 4)
         {
-            return Err(bits[0].span.error_str("expect 4 ,component,s"_s));
+            return Err(bits[0].span.error_str("in |component 1| expect 4 ,component,s"_s));
         }
         assert(bits[1].data.size() == 1);
         assert(bits[1].data[0].data == "shop"_s);
         if (bits[2].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("expect 1 ,component,s"_s));
+            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
         if (bits[3].data.size() < 2)
         {
-            return Err(bits[3].span.error_str("expect at least 2 ,component,s"_s));
+            return Err(bits[3].span.error_str("in |component 4| expect at least 2 ,component,s"_s));
         }
 
         Shop shop;
-        shop.span = span;
         TRY_EXTRACT(bits[0].data[0], shop.m);
         TRY_EXTRACT(bits[0].data[1], shop.x);
         TRY_EXTRACT(bits[0].data[2], shop.y);
@@ -121,8 +120,8 @@ namespace npc
             assert(data.span.begin.line == data.span.end.line);
             item.span = data.span;
 
-            XString name;
-            if (!extract(data.data, record<':'>(&name, &item.data.value.data)))
+            XString name, value;
+            if (!extract(data.data, record<':'>(&name, &value)))
                 return Err(data.span.error_str("Failed to split item:value"_s));
             item.data.name.span = item.span;
             item.data.name.span.end.column = item.data.name.span.begin.column + name.size() - 1;
@@ -138,7 +137,22 @@ namespace npc
                 item.data.name.span.warning("Shop item is an id; should be a name"_s);
             }
             if (!extract(name, &item.data.name.data))
-                return Err("item name problem (too long?)"_s);
+            {
+                return Err(item.data.name.span.error_str("item name problem (too long?)"_s));
+            }
+            if (value.startswith('-'))
+            {
+                item.data.value.span.begin.warning("Shop value multiplier should use '*' instead of '-' now"_s);
+                value = value.xslice_t(1);
+            }
+            else if (value.startswith('*'))
+            {
+                value = value.xslice_t(1);
+            }
+            if (!extract(value, &item.data.value.data))
+            {
+                return Err(item.data.value.span.error_str("invalid item value"_s));
+            }
         }
         return Ok(std::move(shop));
     }
@@ -151,21 +165,20 @@ namespace npc
         }
         if (bits[0].data.size() != 3 && bits[0].data.size() != 5)
         {
-            return Err(bits[0].span.error_str("expect 3 or 5 ,component,s"_s));
+            return Err(bits[0].span.error_str("in |component 1| expect 3 or 5 ,component,s"_s));
         }
         assert(bits[1].data.size() == 1);
         assert(bits[1].data[0].data == "monster"_s);
         if (bits[2].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("expect 1 ,component,s"_s));
+            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
         if (bits[3].data.size() != 2 && bits[3].data.size() != 4 && bits[3].data.size() != 5)
         {
-            return Err(bits[3].span.error_str("expect 2, 4, or 5 ,component,s"_s));
+            return Err(bits[3].span.error_str("in |component 4| expect 2, 4, or 5 ,component,s"_s));
         }
 
         Monster mob;
-        mob.span = span;
         TRY_EXTRACT(bits[0].data[0], mob.m);
         TRY_EXTRACT(bits[0].data[1], mob.x);
         TRY_EXTRACT(bits[0].data[2], mob.y);
@@ -231,42 +244,39 @@ namespace npc
         }
         if (bits[0].data.size() != 1)
         {
-            return Err(bits[0].span.error_str("expect 1 ,component,s"_s));
+            return Err(bits[0].span.error_str("in |component 1| expect 1 ,component,s"_s));
         }
         assert(bits[1].data.size() == 1);
         assert(bits[1].data[0].data == "mapflag"_s);
         if (bits[2].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("expect 1 ,component,s"_s));
-        }
-        if (bits.size() >= 4)
-        {
-            if (bits[3].data.size() != 1)
-            {
-                return Err(bits[3].span.error_str("expect 1 ,component,s"_s));
-            }
+            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
 
         MapFlag mapflag;
-        mapflag.span = span;
         TRY_EXTRACT(bits[0].data[0], mapflag.m);
         mapflag.key_span = bits[1].data[0].span;
         TRY_EXTRACT(bits[2].data[0], mapflag.name);
         if (bits.size() >= 4)
         {
-            TRY_EXTRACT(bits[3].data[0], mapflag.opt_extra);
+            mapflag.vec_extra.span = bits[3].span;
+            for (auto& bit : bits[3].data)
+            {
+                mapflag.vec_extra.data.emplace_back();
+                TRY_EXTRACT(bit, mapflag.vec_extra.data.back());
+            }
         }
         else
         {
-            mapflag.opt_extra.data = ""_s;
-            mapflag.opt_extra.span = bits[2].span;
-            mapflag.opt_extra.span.end.column++;
-            mapflag.opt_extra.span.begin.column = mapflag.opt_extra.span.end.column;
+            mapflag.vec_extra.data = {};
+            mapflag.vec_extra.span = bits[2].span;
+            mapflag.vec_extra.span.end.column++;
+            mapflag.vec_extra.span.begin.column = mapflag.vec_extra.span.end.column;
         }
         return Ok(std::move(mapflag));
     }
     static
-    Result<ScriptFunction> parse_script_function(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits, io::LineCharReader& lr)
+    Result<ScriptFunction> parse_script_function_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
     {
         //  ScriptFunction:     function|script|Fun Name{code}
         if (bits.size() != 3)
@@ -279,23 +289,17 @@ namespace npc
         assert(bits[1].data[0].data == "script"_s);
         if (bits[2].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("expect 1 ,component,s"_s));
+            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
 
         ScriptFunction script_function;
-        script_function.span = span;
         script_function.key1_span = bits[0].data[0].span;
-        script_function.key_span = bits[1].data[0].span;
         TRY_EXTRACT(bits[2].data[0], script_function.name);
-        // also expect '{' and parse real script
-        ast::script::ScriptOptions opt;
-        opt.implicit_start = true;
-        opt.default_label = "OnCall"_s;
-        script_function.body = TRY(ast::script::parse_script_body(lr, opt));
+        // also expect '{' and parse real script (in caller)
         return Ok(std::move(script_function));
     }
     static
-    Result<ScriptNone> parse_script_none(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits, io::LineCharReader& lr)
+    Result<ScriptNone> parse_script_none_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
     {
         //  ScriptNone:         -|script|script name|-1{code}
         if (bits.size() != 4)
@@ -308,29 +312,23 @@ namespace npc
         assert(bits[1].data[0].data == "script"_s);
         if (bits[2].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("expect 1 ,component,s"_s));
+            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
         assert(bits[3].data[0].data == "-1"_s);
         if (bits[3].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("last |component| should be just -1"_s));
+            return Err(bits[3].span.error_str("in |component 4| should be just -1"_s));
         }
 
         ScriptNone script_none;
-        script_none.span = span;
         script_none.key1_span = bits[0].data[0].span;
-        script_none.key_span = bits[1].data[0].span;
         TRY_EXTRACT(bits[2].data[0], script_none.name);
         script_none.key4_span = bits[3].data[0].span;
-        // also expect '{' and parse real script
-        ast::script::ScriptOptions opt;
-        opt.implicit_start = true;
-        opt.no_start = true;
-        script_none.body = TRY(ast::script::parse_script_body(lr, opt));
+        // also expect '{' and parse real script (in caller)
         return Ok(std::move(script_none));
     }
     static
-    Result<ScriptMapNone> parse_script_map_none(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits, io::LineCharReader& lr)
+    Result<ScriptMapNone> parse_script_map_none_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
     {
         //  ScriptMapNone:      m,x,y,d|script|script name|-1{code}
         if (bits.size() != 4)
@@ -339,37 +337,31 @@ namespace npc
         }
         if (bits[0].data.size() != 4)
         {
-            return Err(bits[0].span.error_str("expect 3 ,component,s"_s));
+            return Err(bits[0].span.error_str("in |component 1| expect 3 ,component,s"_s));
         }
         assert(bits[1].data.size() == 1);
         assert(bits[1].data[0].data == "script"_s);
         if (bits[2].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("expect 1 ,component,s"_s));
+            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
         if (bits[3].data.size() != 1 || bits[3].data[0].data != "-1"_s)
         {
-            return Err(bits[2].span.error_str("last |component| should be just -1"_s));
+            return Err(bits[3].span.error_str("in |component 4| should be just -1"_s));
         }
 
         ScriptMapNone script_map_none;
-        script_map_none.span = span;
         TRY_EXTRACT(bits[0].data[0], script_map_none.m);
         TRY_EXTRACT(bits[0].data[1], script_map_none.x);
         TRY_EXTRACT(bits[0].data[2], script_map_none.y);
         TRY_EXTRACT(bits[0].data[3], script_map_none.d);
-        script_map_none.key_span = bits[1].data[0].span;
         TRY_EXTRACT(bits[2].data[0], script_map_none.name);
         script_map_none.key4_span = bits[3].data[0].span;
-        // also expect '{' and parse real script
-        ast::script::ScriptOptions opt;
-        opt.implicit_start = true;
-        opt.no_start = true;
-        script_map_none.body = TRY(ast::script::parse_script_body(lr, opt));
+        // also expect '{' and parse real script (in caller)
         return Ok(std::move(script_map_none));
     }
     static
-    Result<ScriptMap> parse_script_map(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits, io::LineCharReader& lr)
+    Result<ScriptMap> parse_script_map_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
     {
         //  ScriptMap:          m,x,y,d|script|script name|class,xs,ys{code}
         if (bits.size() != 4)
@@ -378,41 +370,48 @@ namespace npc
         }
         if (bits[0].data.size() != 4)
         {
-            return Err(bits[0].span.error_str("expect 3 ,component,s"_s));
+            return Err(bits[0].span.error_str("in |component 1| expect 3 ,component,s"_s));
         }
         assert(bits[1].data.size() == 1);
         assert(bits[1].data[0].data == "script"_s);
         if (bits[2].data.size() != 1)
         {
-            return Err(bits[2].span.error_str("expect 1 ,component,s"_s));
+            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
-        if (bits[3].data.size() != 3)
+        if (bits[3].data.size() != 1 && bits[3].data.size() != 3)
         {
-            return Err(bits[3].span.error_str("expect 3 ,component,s"_s));
+            return Err(bits[3].span.error_str("in |component 4| expect 1 or 3 ,component,s"_s));
         }
 
         ScriptMap script_map;
-        script_map.span = span;
         TRY_EXTRACT(bits[0].data[0], script_map.m);
         TRY_EXTRACT(bits[0].data[1], script_map.x);
         TRY_EXTRACT(bits[0].data[2], script_map.y);
         TRY_EXTRACT(bits[0].data[3], script_map.d);
-        script_map.key_span = bits[1].data[0].span;
         TRY_EXTRACT(bits[2].data[0], script_map.name);
         TRY_EXTRACT(bits[3].data[0], script_map.npc_class);
-        TRY_EXTRACT(bits[3].data[1], script_map.xs);
-        TRY_EXTRACT(bits[3].data[2], script_map.ys);
-        // also expect '{' and parse real script
-        ast::script::ScriptOptions opt;
-        opt.implicit_start = true;
-        opt.default_label = "OnClick"_s;
-        script_map.body = TRY(ast::script::parse_script_body(lr, opt));
+        if (bits[3].data.size() >= 3)
+        {
+            TRY_EXTRACT(bits[3].data[1], script_map.xs);
+            script_map.xs.data = script_map.xs.data * 2 + 1;
+            TRY_EXTRACT(bits[3].data[2], script_map.ys);
+            script_map.ys.data = script_map.ys.data * 2 + 1;
+        }
+        else
+        {
+            script_map.xs.data = 0;
+            script_map.xs.span = script_map.npc_class.span;
+            script_map.xs.span.end.column++;
+            script_map.xs.span.begin = script_map.xs.span.end;
+            script_map.ys.data = 0;
+            script_map.ys.span = script_map.xs.span;
+        }
+        // also expect '{' and parse real script (in caller)
         return Ok(std::move(script_map));
     }
     static
-    Result<std::unique_ptr<Script>> parse_script_any(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits, io::LineCharReader& lr)
+    Result<Script> parse_script_any(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits, io::LineCharReader& lr)
     {
-        std::unique_ptr<Script> rv;
         // 4 cases:
         //  ScriptFunction:     function|script|Fun Name{code}
         //  ScriptNone:         -|script|script name|-1{code}
@@ -420,21 +419,52 @@ namespace npc
         //  ScriptMap:          m,x,y,d|script|script name|class,xs,ys{code}
         if (bits[0].data[0].data == "function"_s)
         {
-            rv = make_unique<ScriptFunction>(TRY(parse_script_function(span, bits, lr)));
+            Script rv = TRY(parse_script_function_head(span, bits));
+            rv.key_span = bits[1].data[0].span;
+
+            ast::script::ScriptOptions opt;
+            opt.implicit_start = true;
+            opt.default_label = "OnCall"_s;
+            opt.no_event = true;
+            rv.body = TRY(ast::script::parse_script_body(lr, opt));
+            return Ok(std::move(rv));
         }
         else if (bits[0].data[0].data == "-"_s)
         {
-            rv = make_unique<ScriptNone>(TRY(parse_script_none(span, bits, lr)));
+            Script rv = TRY(parse_script_none_head(span, bits));
+            rv.key_span = bits[1].data[0].span;
+
+            ast::script::ScriptOptions opt;
+            opt.implicit_start = true;
+            opt.no_start = true;
+            rv.body = TRY(ast::script::parse_script_body(lr, opt));
+            return Ok(std::move(rv));
         }
         else if (bits.size() >= 4 && bits[3].data[0].data == "-1"_s)
         {
-            rv = make_unique<ScriptMapNone>(TRY(parse_script_map_none(span, bits, lr)));
+            Script rv = TRY(parse_script_map_none_head(span, bits));
+            rv.key_span = bits[1].data[0].span;
+
+            ast::script::ScriptOptions opt;
+            opt.implicit_start = true;
+            opt.no_start = true;
+            rv.body = TRY(ast::script::parse_script_body(lr, opt));
+            return Ok(std::move(rv));
         }
         else
         {
-            rv = make_unique<ScriptMap>(TRY(parse_script_map(span, bits, lr)));
+            ScriptMap script_map = TRY(parse_script_map_head(span, bits));
+            bool no_touch = !script_map.xs.data && !script_map.ys.data;
+            Script rv = std::move(script_map);
+            rv.key_span = bits[1].data[0].span;
+
+            ast::script::ScriptOptions opt;
+            opt.implicit_start = true;
+            opt.default_label = "OnClick"_s;
+            opt.no_touch = no_touch;
+            rv.body = TRY(ast::script::parse_script_body(lr, opt));
+            return Ok(std::move(rv));
         }
-        return Ok(std::move(rv));
     }
 
     /// Try to extract a top-level token
@@ -460,10 +490,29 @@ namespace npc
         {
             return None;
         }
-        // separators are simple
+        // separators are simple ... NOT.
+        // Reasonably, we should only ever eat a single char here.
+        // Unfortunately, we aren't dealing with reasonable people here.
         if (c.ch() == '|' || c.ch() == ',')
         {
             lr.adv();
+            while (true)
+            {
+                io::LineChar c2;
+                if (!lr.get(c2) || c2.ch() == '\n' || c2.ch() == '{')
+                {
+                    c.warning("Separator at EOL"_s);
+                    return None;
+                }
+                if (c2.ch() == ',' || c2.ch() == '|')
+                {
+                    lr.adv();
+                    c = c2;
+                    c.warning("Adjacent separators"_s);
+                    continue;
+                }
+                break;
+            }
             return Some(respan({c, c}, RString(VString<1>(c.ch()))));
         }
         io::LineSpan span;
@@ -488,7 +537,7 @@ namespace npc
         // if first token on line, can get comment
         if (first && c.ch() == '/')
         {
-            while (lr.get(c) && c.ch() != '\n' && c.ch() != '{')
+            while (lr.get(c) && c.ch() != '\n')
             {
                 accum += c.ch();
                 span.end = c;
@@ -506,11 +555,11 @@ namespace npc
         return Some(respan(span, RString(accum)));
     }
 
-    Result<std::unique_ptr<TopLevel>> parse_top(io::LineCharReader& in)
+    Option<Result<TopLevel>> parse_top(io::LineCharReader& in)
     {
-        std::unique_ptr<TopLevel> rv;
         Spanned<std::vector<Spanned<std::vector<Spanned<RString>>>>> bits;
 
+        // special logic for the first 'bit'
         {
             Spanned<RString> mayc = TRY_UNWRAP(lex(in, true),
                     {
@@ -519,15 +568,15 @@ namespace npc
                         {
                             return Err(c.error_str("Unexpected script open"_s));
                         }
-                        return Ok(std::move(rv));
+                        return None;
                     });
             if (mayc.data.startswith("//"_s))
             {
                 Comment com;
                 com.comment = std::move(mayc.data);
-                com.span = std::move(mayc.span);
-                rv = make_unique<Comment>(std::move(com));
-                return Ok(std::move(rv));
+                TopLevel rv = std::move(com);
+                rv.span = std::move(mayc.span);
+                return Some(Ok(std::move(rv)));
             }
 
             if (mayc.data == "|"_s || mayc.data == ","_s)
@@ -573,29 +622,38 @@ namespace npc
         Spanned<RString>& w2 = bits.data[1].data[0];
         if (w2.data == "warp"_s)
         {
-            rv = make_unique<Warp>(TRY(parse_warp(bits.span, bits.data)));
+            TopLevel rv = TRY(parse_warp(bits.span, bits.data));
+            rv.span = bits.span;
+            return Some(Ok(std::move(rv)));
         }
         else if (w2.data == "shop"_s)
         {
-            rv = make_unique<Shop>(TRY(parse_shop(bits.span, bits.data)));
+            TopLevel rv = TRY(parse_shop(bits.span, bits.data));
+            rv.span = bits.span;
+            return Some(Ok(std::move(rv)));
         }
         else if (w2.data == "monster"_s)
         {
-            rv = make_unique<Monster>(TRY(parse_monster(bits.span, bits.data)));
+            TopLevel rv = TRY(parse_monster(bits.span, bits.data));
+            rv.span = bits.span;
+            return Some(Ok(std::move(rv)));
         }
         else if (w2.data == "mapflag"_s)
         {
-            rv = make_unique<MapFlag>(TRY(parse_mapflag(bits.span, bits.data)));
+            TopLevel rv = TRY(parse_mapflag(bits.span, bits.data));
+            rv.span = bits.span;
+            return Some(Ok(std::move(rv)));
         }
         else if (w2.data == "script"_s)
         {
-            rv = TRY_MOVE(parse_script_any(bits.span, bits.data, in));
+            TopLevel rv = TRY_MOVE(parse_script_any(bits.span, bits.data, in));
+            rv.span = bits.span;
+            return Some(Ok(std::move(rv)));
         }
         else
         {
             return Err(w2.span.error_str("Unknown type"_s));
         }
-        return Ok(std::move(rv));
     }
 } // namespace npc
 } // namespace ast

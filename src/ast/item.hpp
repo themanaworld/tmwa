@@ -20,11 +20,11 @@
 
 #include "fwd.hpp"
 
-#include <memory>
-
 #include "../compat/result.hpp"
 
 #include "../io/span.hpp"
+
+#include "../sexpr/variant.hpp"
 
 #include "../mmo/clif.t.hpp"
 #include "../mmo/ids.hpp"
@@ -41,17 +41,11 @@ namespace item
 {
     using io::Spanned;
 
-    struct ItemOrComment
-    {
-        io::LineSpan span;
-
-        virtual ~ItemOrComment();
-    };
-    struct Comment : ItemOrComment
+    struct Comment
     {
         RString comment;
     };
-    struct Item : ItemOrComment
+    struct Item
     {
         Spanned<ItemNameId> id;
         Spanned<ItemName> name;
@@ -74,7 +68,15 @@ namespace item
         ast::script::ScriptBody equip_script;
     };
 
-    Result<std::unique_ptr<ItemOrComment>> parse_item(io::LineCharReader& lr);
+    using ItemOrCommentBase = Variant<Comment, Item>;
+    struct ItemOrComment : ItemOrCommentBase
+    {
+        ItemOrComment(Comment o) : ItemOrCommentBase(std::move(o)) {}
+        ItemOrComment(Item o) : ItemOrCommentBase(std::move(o)) {}
+        io::LineSpan span;
+    };
+
+    Option<Result<ItemOrComment>> parse_item(io::LineCharReader& lr);
 } // namespace item
 } // namespace ast
 } // namespace tmwa
