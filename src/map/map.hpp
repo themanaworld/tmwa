@@ -261,7 +261,6 @@ struct map_session_data : block_list, SessionData
     Map<SIR, RString> regstrm;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-    short sc_count;
 
     AccountId trade_partner;
     Array<IOff2, TRADE_MAX> deal_item_index;
@@ -453,7 +452,6 @@ struct mob_data : block_list
     std::vector<Item> lootitemv;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-    short sc_count;
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;

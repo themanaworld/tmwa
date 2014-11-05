@@ -97,7 +97,6 @@ MobMode battle_get_mode(dumb_ptr<block_list> bl);
 int battle_get_stat(SP stat_id, dumb_ptr<block_list> bl);
 
 eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_get_sc_data(dumb_ptr<block_list> bl);
-short *battle_get_sc_count(dumb_ptr<block_list> bl);
 Opt1 *battle_get_opt1(dumb_ptr<block_list> bl);
 Opt2 *battle_get_opt2(dumb_ptr<block_list> bl);
 Opt3 *battle_get_opt3(dumb_ptr<block_list> bl);

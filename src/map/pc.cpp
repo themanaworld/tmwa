@@ -684,7 +684,6 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
         // sd->sc_data[i].timer = nullptr;
         sd->sc_data[i].val1 = 0;
     }
-    sd->sc_count = 0;
 
     // パーティー関係の初期化
     sd->party_sended = 0;
@@ -1284,7 +1283,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     }
 
     // スキルやステータス異常による残りのパラメータ補正
-    if (sd->sc_count)
     {
         // ATK/DEF変化形
         if (sd->sc_data[StatusChange::SC_POISON].timer) // 毒状態

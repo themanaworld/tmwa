@@ -702,7 +702,6 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int opt_flag = 0, calc_flag = 0;
-    short *sc_count;
     Opt0 *option;
     Opt1 *opt1;
     Opt2 *opt2;
@@ -718,8 +717,6 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return;
-    sc_count = battle_get_sc_count(bl);
-    nullpo_retv(sc_count);
     option = battle_get_option(bl);
     nullpo_retv(option);
     opt1 = battle_get_opt1(bl);
@@ -743,8 +740,6 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
     // whether we are the timer or a cancel no longer matters
 
     assert (!sc_data[type].timer);
-    assert ((*sc_count) > 0);
-    (*sc_count)--;
 
     switch (type)
     {                       /* 異常の種類ごとの処理 */
@@ -825,7 +820,6 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
     dumb_ptr<block_list> bl;
     dumb_ptr<map_session_data> sd = nullptr;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-    //short *sc_count; //使ってない？
 
     if ((bl = map_id2bl(id)) == nullptr)
         return;
@@ -836,8 +830,6 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
 
     if (bl->bl_type == BL::PC)
         sd = bl->is_player();
-
-    //sc_count=battle_get_sc_count(bl); //使ってない？
 
     if (sc_data[type].spell_invocation)
     {                           // Must report termination
@@ -926,7 +918,6 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
 {
     dumb_ptr<map_session_data> sd = nullptr;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-    short *sc_count;
     Opt0 *option;
     Opt1 *opt1;
     Opt2 *opt2;
@@ -939,8 +930,6 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return 0;
-    sc_count = battle_get_sc_count(bl);
-    nullpo_retz(sc_count);
     option = battle_get_option(bl);
     nullpo_retz(option);
     opt1 = battle_get_opt1(bl);
@@ -984,7 +973,6 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
 
         /* 継ぎ足しができない状態異常である時は状態異常を行わない */
         {
-            (*sc_count)--;
             sc_data[type].timer.cancel();
         }
     }
@@ -1070,8 +1058,6 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     if (opt_flag)               /* optionの変更 */
         clif_changeoption(bl);
 
-    (*sc_count)++;              /* ステータス異常の数 */
-
     sc_data[type].val1 = val1;
     if (sc_data[type].spell_invocation) // Supplant by newer spell
         magic::spell_effect_report_termination(sc_data[type].spell_invocation,
@@ -1100,7 +1086,6 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
 int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-    short *sc_count;
     Opt0 *option;
     Opt1 *opt1;
     Opt2 *opt2;
@@ -1110,8 +1095,6 @@ int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return 0;
-    sc_count = battle_get_sc_count(bl);
-    nullpo_retz(sc_count);
     option = battle_get_option(bl);
     nullpo_retz(option);
     opt1 = battle_get_opt1(bl);
@@ -1121,14 +1104,11 @@ int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
     opt3 = battle_get_opt3(bl);
     nullpo_retz(opt3);
 
-    if (*sc_count == 0)
-        return 0;
     for (StatusChange i : erange(StatusChange(), StatusChange::MAX_STATUSCHANGE))
     {
         if (sc_data[i].timer)
             skill_status_change_end(bl, i, nullptr);
     }
-    *sc_count = 0;
     *opt1 = Opt1::ZERO;
     *opt2 = Opt2::ZERO;
     *opt3 = Opt3::ZERO;

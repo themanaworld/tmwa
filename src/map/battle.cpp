@@ -856,16 +856,6 @@ eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_
     return nullptr;
 }
 
-short *battle_get_sc_count(dumb_ptr<block_list> bl)
-{
-    nullpo_retr(nullptr, bl);
-    if (bl->bl_type == BL::MOB)
-        return &bl->is_mob()->sc_count;
-    else if (bl->bl_type == BL::PC)
-        return &bl->is_player()->sc_count;
-    return nullptr;
-}
-
 Opt1 *battle_get_opt1(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);

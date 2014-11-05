@@ -1178,7 +1178,6 @@ int mob_spawn(BlockId id)
         assert (!md->sc_data[i].timer);
         md->sc_data[i].val1 = 0;
     }
-    md->sc_count = 0;
     md->opt1 = Opt1::ZERO;
     md->opt2 = Opt2::ZERO;
     md->opt3 = Opt3::ZERO;
