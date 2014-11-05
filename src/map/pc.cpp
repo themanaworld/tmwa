@@ -4709,15 +4709,12 @@ int pc_divorce(dumb_ptr<map_session_data> sd)
         }
         p_sd->status.partner_id = CharId();
         sd->status.partner_id = CharId();
-
-        if (sd->npc_flags.divorce)
-        {
-            sd->npc_flags.divorce = 0;
-            map_scriptcont(sd, sd->npc_id);
-        }
     }
     else
+    {
+        sd->status.partner_id = CharId();
         chrif_send_divorce(sd->status_key.char_id);
+    }
 
     return 0;
 }

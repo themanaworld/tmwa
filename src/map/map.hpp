@@ -194,7 +194,6 @@ struct map_session_data : block_list, SessionData
     struct
     {
         unsigned storage:1;
-        unsigned divorce:1;
     } npc_flags;
 
     Timer attacktimer;

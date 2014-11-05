@@ -2209,10 +2209,6 @@ void builtin_divorce(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    st->state = ScriptEndState::STOP;           // rely on pc_divorce to restart
-
-    sd->npc_flags.divorce = 1;
-
     if (sd == nullptr || pc_divorce(sd) < 0)
     {
         push_int<ScriptDataInt>(st->stack, 0);
