@@ -535,7 +535,7 @@ extern int save_settings;
 
 extern AString motd_txt;
 
-extern CharName wisp_server_name;
+extern const CharName WISP_SERVER_NAME;
 
 // 鯖全体情報
 void map_setusers(int);

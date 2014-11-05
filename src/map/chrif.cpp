@@ -320,8 +320,6 @@ int chrif_sendmapack(Session *, Packet_Fixed<0x2afb> fixed)
         exit(1);
     }
 
-    wisp_server_name = fixed.whisper_name;
-
     chrif_state = 2;
 
     return 0;

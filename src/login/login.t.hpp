@@ -1,7 +1,10 @@
 #pragma once
-//    login.hpp - dummy header to make Make dependencies work.
+//    login.t.hpp - Types for the login server
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © ????-2004 Athena Dev Teams
+//    Copyright © 2004-2011 The Mana World Development Team
+//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 MadCamel
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,11 +21,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "login.t.hpp"
-
 #include "fwd.hpp"
 
 
 namespace tmwa
 {
+enum class ACO
+{
+    DENY_ALLOW,
+    ALLOW_DENY,
+    MUTUAL_FAILURE,
+};
 } // namespace tmwa

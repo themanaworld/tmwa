@@ -112,7 +112,7 @@ int save_settings = 0xFFFF;
 
 AString motd_txt = "conf/motd.txt"_s;
 
-CharName wisp_server_name = stringish<CharName>("Server"_s);   // can be modified in char-server configuration file
+const CharName WISP_SERVER_NAME = stringish<CharName>("Server"_s);
 
 map_local undefined_gat = [](){ map_local rv {}; rv.name_ = stringish<MapName>("undefined.gat"_s); return rv; }();
 

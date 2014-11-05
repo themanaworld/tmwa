@@ -3936,7 +3936,7 @@ RecvResult clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
         if (dstsd->sess == s)
         {
             ZString mes = "You cannot page yourself."_s;
-            clif_wis_message(s, wisp_server_name, mes);
+            clif_wis_message(s, WISP_SERVER_NAME, mes);
         }
         else
         {
@@ -5529,7 +5529,6 @@ unknown_packet:
                 PRINTF("\nclif_parse: session #%d, packet 0x%x, lenght %zu\n"_fmt,
                         s, packet_id, packet_avail(s));
             {
-                ZString packet_txt = "save/packet.txt"_s;
                 if (sd && sd->state.auth)
                 {
                     PRINTF("Unknown packet: Account ID %d, character ID %d, player name %s.\n"_fmt,
@@ -5541,35 +5540,27 @@ unknown_packet:
                 else
                     PRINTF("Unknown packet (unknown)\n"_fmt);
 
-                io::AppendFile fp(packet_txt);
-                if (!fp.is_open())
-                {
-                    PRINTF("clif.c: cant write [%s] !!! data is lost !!!\n"_fmt,
-                            packet_txt);
-                    return;
-                }
-                else
                 {
                     timestamp_seconds_buffer now;
                     stamp_time(now);
                     if (sd && sd->state.auth)
                     {
-                        FPRINTF(fp,
+                        FPRINTF(stderr,
                                 "%s\nPlayer with account ID %d (character ID %d, player name %s) sent wrong packet:\n"_fmt,
                                 now,
                                 sd->status_key.account_id,
                                 sd->status_key.char_id, sd->status_key.name);
                     }
                     else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
-                        FPRINTF(fp,
+                        FPRINTF(stderr,
                                 "%s\nUnauthenticated player with account ID %d sent wrong packet:\n"_fmt,
                                 now, sd->bl_id);
                     else
-                        FPRINTF(fp,
+                        FPRINTF(stderr,
                                 "%s\nUnknown connection sent wrong packet:\n"_fmt,
                                 now);
 
-                    packet_dump(fp, s);
+                    packet_dump(s);
                 }
             }
         }

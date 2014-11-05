@@ -161,7 +161,7 @@ bool tmw_CheckChatLameness(dumb_ptr<map_session_data>, XString message)
 // Sends a whisper to all GMs
 void tmw_GmHackMsg(ZString line)
 {
-    intif_wis_message_to_gm(wisp_server_name,
+    intif_wis_message_to_gm(WISP_SERVER_NAME,
             GmLevel::from(static_cast<uint32_t>(battle_config.hack_info_GM_level)),
             line);
 }

@@ -130,10 +130,6 @@ AString gm_account_filename = "save/gm_account.txt"_s;
 static
 AString login_log_filename = "log/login.log"_s;
 static
-AString login_log_unknown_packets_filename = "log/login_unknown_packets.log"_s;
-static
-int save_unknown_packets = 0;
-static
 tick_t creation_time_GM_account_file;
 static
 std::chrono::seconds gm_account_filename_check_timer = 15_s;
@@ -159,13 +155,6 @@ std::chrono::seconds anti_freeze_interval = 15_s;
 static
 Session *login_session;
 
-enum class ACO
-{
-    DENY_ALLOW,
-    ALLOW_DENY,
-    MUTUAL_FAILURE,
-};
-
 static
 ACO access_order = ACO::DENY_ALLOW;
 static
@@ -174,10 +163,6 @@ access_allow, access_deny, access_ladmin;
 
 static
 GmLevel min_level_to_connect = GmLevel::from(0_u32);  // minimum level of player/GM (0: player, 1-99: gm) to connect on the server
-static
-int add_to_unlimited_account = 0;  // Give possibility or not to adjust (ladmin command: timeadd) the time of an unlimited account.
-static
-int check_ip_flag = 1;         // It's to check IP of a player between login-server and char-server (part of anti-hacking system)
 
 DIAG_PUSH();
 DIAG_I(missing_noreturn);
@@ -643,7 +628,7 @@ void mmo_auth_sync(void)
     FPRINTF(fp,
             "// Accounts file: here are saved all information about the accounts.\n"_fmt);
     FPRINTF(fp,
-            "// Structure: ID, account name, password, last login time, sex, # of logins, state, email, error message for state 7, validity time, last (accepted) login ip, memo field, ban timestamp, repeated(register text, register value)\n"_fmt);
+            "// Structure: ID, account name, password, last login time, sex, # of logins, state, email, error message for state 7, validity time (unused), last (accepted) login ip, memo field, ban timestamp, repeated(register text, register value)\n"_fmt);
     FPRINTF(fp, "// Some explanations:\n"_fmt);
     FPRINTF(fp,
             "//   account name    : between 4 to 23 char for a normal account (standard client can't send less than 4 char).\n"_fmt);
@@ -992,8 +977,7 @@ void parse_fromchar(Session *s)
                             auth_fifo[i].login_id1 == fixed.login_id1 &&
                             auth_fifo[i].login_id2 == fixed.login_id2 &&    // relate to the versions higher than 18
                             auth_fifo[i].sex == fixed.sex &&
-                            (!check_ip_flag
-                                || auth_fifo[i].ip == fixed.ip)
+                            auth_fifo[i].ip == fixed.ip
                             && !auth_fifo[i].delflag)
                         {
                             auth_fifo[i].delflag = 1;
@@ -1566,19 +1550,17 @@ void parse_fromchar(Session *s)
 
             default:
             {
-                io::AppendFile logfp(login_log_unknown_packets_filename);
-                if (logfp.is_open())
                 {
                     timestamp_milliseconds_buffer timestr;
                     stamp_time(timestr);
-                    FPRINTF(logfp,
+                    FPRINTF(stderr,
                             "%s: receiving of an unknown packet -> disconnection\n"_fmt,
                             timestr);
-                    FPRINTF(logfp,
+                    FPRINTF(stderr,
                             "parse_fromchar: connection #%d (ip: %s), packet: 0x%x (with being read: %zu).\n"_fmt,
                             s, ip, packet_id, packet_avail(s));
-                    FPRINTF(logfp, "Detail (in hex):\n"_fmt);
-                    packet_dump(logfp, s);
+                    FPRINTF(stderr, "Detail (in hex):\n"_fmt);
+                    packet_dump(s);
                 }
                 PRINTF("parse_fromchar: Unknown packet 0x%x (from a char-server)! -> disconnection.\n"_fmt,
                         packet_id);
@@ -2379,7 +2361,7 @@ void parse_admin(Session *s)
                             timestamp_seconds_buffer tmpstr = stringish<timestamp_seconds_buffer>("no banishment"_s);
                             if (timestamp)
                                 stamp_time(tmpstr, &timestamp);
-                            LOGIN_LOG("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %lld (%s), ip: %s)\n"_fmt,
+                            LOGIN_LOG("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new ban: %lld (%s), ip: %s)\n"_fmt,
                                     ad->userid,
                                     ban_diff.year, ban_diff.month,
                                     ban_diff.day, ban_diff.hour,
@@ -2588,19 +2570,17 @@ void parse_admin(Session *s)
 
             default:
             {
-                io::AppendFile logfp(login_log_unknown_packets_filename);
-                if (logfp.is_open())
                 {
                     timestamp_milliseconds_buffer timestr;
                     stamp_time(timestr);
-                    FPRINTF(logfp,
+                    FPRINTF(stderr,
                             "%s: receiving of an unknown packet -> disconnection\n"_fmt,
                             timestr);
-                    FPRINTF(logfp,
+                    FPRINTF(stderr,
                             "parse_admin: connection #%d (ip: %s), packet: 0x%x (with being read: %zu).\n"_fmt,
                             s, ip, packet_id, packet_avail(s));
-                    FPRINTF(logfp, "Detail (in hex):\n"_fmt);
-                    packet_dump(logfp, s);
+                    FPRINTF(stderr, "Detail (in hex):\n"_fmt);
+                    packet_dump(s);
                 }
                 LOGIN_LOG("'ladmin': End of connection, unknown packet (ip: %s)\n"_fmt,
                         ip);
@@ -3003,22 +2983,19 @@ void parse_login(Session *s)
 
             default:
             {
-                if (save_unknown_packets)
                 {
-                    io::AppendFile logfp(login_log_unknown_packets_filename);
-                    if (logfp.is_open())
                     {
                         timestamp_milliseconds_buffer timestr;
                         stamp_time(timestr);
-                        FPRINTF(logfp,
+                        FPRINTF(stderr,
                                 "%s: receiving of an unknown packet -> disconnection\n"_fmt,
                                 timestr);
-                        FPRINTF(logfp,
+                        FPRINTF(stderr,
                                 "parse_login: connection #%d (ip: %s), packet: 0x%x (with being read: %zu).\n"_fmt,
                                 s, ip, packet_id,
                                 packet_avail(s));
-                        FPRINTF(logfp, "Detail (in hex):\n"_fmt);
-                        packet_dump(logfp, s);
+                        FPRINTF(stderr, "Detail (in hex):\n"_fmt);
+                        packet_dump(s);
                     }
                 }
                 LOGIN_LOG("End of connection, unknown packet (ip: %s)\n"_fmt, ip);
@@ -3180,14 +3157,6 @@ bool login_config(XString w1, ZString w2)
         {
             login_log_filename = w2;
         }
-        else if (w1 == "login_log_unknown_packets_filename"_s)
-        {
-            login_log_unknown_packets_filename = w2;
-        }
-        else if (w1 == "save_unknown_packets"_s)
-        {
-            save_unknown_packets = config_switch(w2);
-        }
         else if (w1 == "display_parse_login"_s)
         {
             display_parse_login = config_switch(w2);   // 0: no, 1: yes
@@ -3203,14 +3172,6 @@ bool login_config(XString w1, ZString w2)
         else if (w1 == "min_level_to_connect"_s)
         {
             min_level_to_connect = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
-        }
-        else if (w1 == "add_to_unlimited_account"_s)
-        {
-            add_to_unlimited_account = config_switch(w2);
-        }
-        else if (w1 == "check_ip_flag"_s)
-        {
-            check_ip_flag = config_switch(w2);
         }
         else if (w1 == "order"_s)
         {
@@ -3390,13 +3351,6 @@ bool display_conf_warnings(void)
         rv = false;
     }
 
-    if (save_unknown_packets != 0 && save_unknown_packets != 1)
-    {
-        PRINTF("WARNING: Invalid value for save_unknown_packets parameter -> set to 0-no save.\n"_fmt);
-        save_unknown_packets = 0;
-        rv = false;
-    }
-
     if (display_parse_login != 0 && display_parse_login != 1)
     {                           // 0: no, 1: yes
         PRINTF("***WARNING: Invalid value for display_parse_login parameter\n"_fmt);
@@ -3418,22 +3372,6 @@ bool display_conf_warnings(void)
         PRINTF("***WARNING: Invalid value for display_parse_fromchar parameter\n"_fmt);
         PRINTF("            -> set to 0 (no display).\n"_fmt);
         display_parse_fromchar = 0;
-        rv = false;
-    }
-
-    if (add_to_unlimited_account != 0 && add_to_unlimited_account != 1)
-    {                           // 0: no, 1: yes
-        PRINTF("***WARNING: Invalid value for add_to_unlimited_account parameter\n"_fmt);
-        PRINTF("            -> set to 0 (impossible to add a time to an unlimited account).\n"_fmt);
-        add_to_unlimited_account = 0;
-        rv = false;
-    }
-
-    if (check_ip_flag != 0 && check_ip_flag != 1)
-    {                           // 0: no, 1: yes
-        PRINTF("***WARNING: Invalid value for check_ip_flag parameter\n"_fmt);
-        PRINTF("            -> set to 1 (check players ip between login-server & char-server).\n"_fmt);
-        check_ip_flag = 1;
         rv = false;
     }
 
@@ -3540,12 +3478,6 @@ void save_config_in_log(void)
 
     // not necessary to log the 'login_log_filename', we are inside :)
 
-    LOGIN_LOG("- with the unknown packets file name: '%s'.\n"_fmt,
-            login_log_unknown_packets_filename);
-    if (save_unknown_packets)
-        LOGIN_LOG("- to SAVE all unkown packets.\n"_fmt);
-    else
-        LOGIN_LOG("- to SAVE only unkown packets sending by a char-server or a remote administration.\n"_fmt);
     if (display_parse_login)
         LOGIN_LOG("- to display normal parse packets on console.\n"_fmt);
     else
@@ -3564,20 +3496,6 @@ void save_config_in_log(void)
     else
         LOGIN_LOG("- to accept only GM with level %d or more.\n"_fmt,
                 min_level_to_connect);
-
-    if (add_to_unlimited_account)
-        LOGIN_LOG("- to authorize adjustment (with timeadd ladmin) on an unlimited account.\n"_fmt);
-    else
-        LOGIN_LOG("- to refuse adjustment (with timeadd ladmin) on an unlimited account. You must use timeset (ladmin command) before.\n"_fmt);
-
-    {
-        LOGIN_LOG("- to create new accounts with an unlimited time.\n"_fmt);
-    }
-
-    if (check_ip_flag)
-        LOGIN_LOG("- with control of players IP between login-server and char-server.\n"_fmt);
-    else
-        LOGIN_LOG("- to not check players IP between login-server and char-server.\n"_fmt);
 
     if (access_order == ACO::DENY_ALLOW)
     {

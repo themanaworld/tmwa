@@ -5040,7 +5040,7 @@ def build_context():
         fixed=[
             at(0, u16, 'packet id'),
             at(2, u8, 'unknown'),
-            at(3, char_name, 'whisper name'),
+            at(3, char_name, 'unused whisper name'),
         ],
         fixed_size=27,
         pre=[0x2afa],

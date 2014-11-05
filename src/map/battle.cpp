@@ -2212,7 +2212,6 @@ Battle_Config init_battle_config()
         battle_config.skill_min_damage = 0;
         battle_config.natural_healhp_interval = 6000;
         battle_config.natural_healsp_interval = 8000;
-        battle_config.natural_heal_skill_interval = 10000;
         battle_config.natural_heal_weight_rate = 50;
         battle_config.itemheal_regeneration_factor = 1;
         battle_config.arrow_decrement = 1;
@@ -2240,8 +2239,6 @@ Battle_Config init_battle_config()
         battle_config.player_attack_direction_change = 1;
         battle_config.monster_attack_direction_change = 1;
         battle_config.display_delay_skill_fail = 1;
-        battle_config.dead_branch_active = 0;
-        battle_config.show_steal_in_same_party = 0;
         battle_config.hide_GM_session = 0;
         battle_config.invite_request_check = 1;
         battle_config.disp_experience = 0;
@@ -2338,7 +2335,6 @@ bool battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(skill_min_damage),
             BATTLE_CONFIG_VAR(natural_healhp_interval),
             BATTLE_CONFIG_VAR(natural_healsp_interval),
-            BATTLE_CONFIG_VAR(natural_heal_skill_interval),
             BATTLE_CONFIG_VAR(natural_heal_weight_rate),
             BATTLE_CONFIG_VAR(itemheal_regeneration_factor),
             BATTLE_CONFIG_VAR(arrow_decrement),
@@ -2366,8 +2362,6 @@ bool battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(player_attack_direction_change),
             BATTLE_CONFIG_VAR(monster_attack_direction_change),
             BATTLE_CONFIG_VAR(display_delay_skill_fail),
-            BATTLE_CONFIG_VAR(dead_branch_active),
-            BATTLE_CONFIG_VAR(show_steal_in_same_party),
             BATTLE_CONFIG_VAR(hide_GM_session),
             BATTLE_CONFIG_VAR(invite_request_check),
             BATTLE_CONFIG_VAR(disp_experience),
@@ -2452,8 +2446,6 @@ void battle_config_check()
             battle_config.natural_healhp_interval = NATURAL_HEAL_INTERVAL.count();
         if (battle_config.natural_healsp_interval < NATURAL_HEAL_INTERVAL.count())
             battle_config.natural_healsp_interval = NATURAL_HEAL_INTERVAL.count();
-        if (battle_config.natural_heal_skill_interval < NATURAL_HEAL_INTERVAL.count())
-            battle_config.natural_heal_skill_interval = NATURAL_HEAL_INTERVAL.count();
         if (battle_config.natural_heal_weight_rate < 50)
             battle_config.natural_heal_weight_rate = 50;
         if (battle_config.natural_heal_weight_rate > 101)

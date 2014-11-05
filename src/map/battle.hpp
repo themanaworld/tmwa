@@ -141,7 +141,6 @@ extern struct Battle_Config
     int skill_min_damage;
     int natural_healhp_interval;
     int natural_healsp_interval;
-    int natural_heal_skill_interval;
     int natural_heal_weight_rate;
     int arrow_decrement;
     int max_aspd;
@@ -166,8 +165,6 @@ extern struct Battle_Config
     int player_attack_direction_change;
     int monster_attack_direction_change;
     int display_delay_skill_fail;
-    int dead_branch_active;
-    int show_steal_in_same_party;
 
     int prevent_logout;
 

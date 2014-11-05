@@ -53,7 +53,7 @@ enum class SendResult
 
 
 size_t packet_avail(Session *s);
-void packet_dump(io::WriteFile& out, Session *s);
+void packet_dump(Session *s);
 
 bool packet_fetch(Session *s, size_t offset, Byte *data, size_t sz);
 void packet_discard(Session *s, size_t sz);

@@ -65,29 +65,29 @@ bool packet_send(Session *s, const Byte *data, size_t sz)
     return true;
 }
 
-void packet_dump(io::WriteFile& logfp, Session *s)
+void packet_dump(Session *s)
 {
-    FPRINTF(logfp,
+    FPRINTF(stderr,
             "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n"_fmt);
     char tmpstr[16 + 1] {};
     int i;
     for (i = 0; i < packet_avail(s); i++)
     {
         if ((i & 15) == 0)
-            FPRINTF(logfp, "%04X "_fmt, i);
+            FPRINTF(stderr, "%04X "_fmt, i);
         Byte rfifob_ib;
         packet_fetch(s, i, &rfifob_ib, 1);
         uint8_t rfifob_i = rfifob_ib.value;
-        FPRINTF(logfp, "%02x "_fmt, rfifob_i);
+        FPRINTF(stderr, "%02x "_fmt, rfifob_i);
         if (rfifob_i > 0x1f)
             tmpstr[i % 16] = rfifob_i;
         else
             tmpstr[i % 16] = '.';
         if ((i - 7) % 16 == 0)  // -8 + 1
-            FPRINTF(logfp, " "_fmt);
+            FPRINTF(stderr, " "_fmt);
         else if ((i + 1) % 16 == 0)
         {
-            FPRINTF(logfp, " %s\n"_fmt, tmpstr);
+            FPRINTF(stderr, " %s\n"_fmt, tmpstr);
             std::fill(tmpstr + 0, tmpstr + 17, '\0');
         }
     }
@@ -95,12 +95,12 @@ void packet_dump(io::WriteFile& logfp, Session *s)
     {
         for (int j = i; j % 16 != 0; j++)
         {
-            FPRINTF(logfp, "   "_fmt);
+            FPRINTF(stderr, "   "_fmt);
             if ((j - 7) % 16 == 0)  // -8 + 1
-                FPRINTF(logfp, " "_fmt);
+                FPRINTF(stderr, " "_fmt);
         }
-        FPRINTF(logfp, " %s\n"_fmt, tmpstr);
+        FPRINTF(stderr, " %s\n"_fmt, tmpstr);
     }
-    FPRINTF(logfp, "\n"_fmt);
+    FPRINTF(stderr, "\n"_fmt);
 }
 } // namespace tmwa
