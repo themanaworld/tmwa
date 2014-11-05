@@ -2,6 +2,7 @@
 /conf-raw/
 /obj/
 /bin/
+/stamp/
 /dist/
 # Generated source files
 /src/proto2/

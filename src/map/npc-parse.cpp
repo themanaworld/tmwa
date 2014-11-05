@@ -828,6 +828,7 @@ bool load_one_npc(io::LineCharReader& fp, bool& done)
     {
         CASE (ast::npc::Comment&, c)
         {
+            (void)c;
             return true;
         }
         CASE (ast::npc::Warp&, warp)
