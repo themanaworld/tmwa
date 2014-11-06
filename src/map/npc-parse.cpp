@@ -224,11 +224,11 @@ bool npc_load_shop(ast::npc::Shop& shop)
                 id_;
         }));
 
+        back.value = it.data.value.data;
         if (it.data.value_multiply)
         {
             back.value = id->value_buy * back.value;
         }
-        return true;
     }
 
     nd->bl_prev = nd->bl_next = nullptr;
