@@ -422,7 +422,7 @@ void npc_convertlabel_db(ScriptLabel lname, int pos, dumb_ptr<npc_data_script> n
 static
 bool npc_load_script_function(ast::script::ScriptBody& body, ast::npc::ScriptFunction& script_function)
 {
-    std::unique_ptr<const ScriptBuffer> script = compile_script(body, false);
+    std::unique_ptr<const ScriptBuffer> script = compile_script(STRPRINTF("script function \"%s\""_fmt, script_function.name.data), body, false);
     if (script == nullptr)
         return false;
 
@@ -434,7 +434,7 @@ bool npc_load_script_function(ast::script::ScriptBody& body, ast::npc::ScriptFun
 static
 bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& script_none)
 {
-    std::unique_ptr<const ScriptBuffer> script = compile_script(body, false);
+    std::unique_ptr<const ScriptBuffer> script = compile_script(STRPRINTF("script npc \"%s\""_fmt, script_none.name.data), body, false);
     if (script == nullptr)
         return false;
 
@@ -529,7 +529,7 @@ bool npc_load_script_map_none(ast::script::ScriptBody& body, ast::npc::ScriptMap
                 return false;
             });
 
-    std::unique_ptr<const ScriptBuffer> script = compile_script(body, false);
+    std::unique_ptr<const ScriptBuffer> script = compile_script(STRPRINTF("script npc \"%s\""_fmt, script_map_none.name.data), body, false);
     if (script == nullptr)
         return false;
 
@@ -638,7 +638,7 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
                 return false;
             });
 
-    std::unique_ptr<const ScriptBuffer> script = compile_script(body, false);
+    std::unique_ptr<const ScriptBuffer> script = compile_script(STRPRINTF("script npc \"%s\""_fmt, script_map.name.data), body, false);
     if (script == nullptr)
         return false;
 

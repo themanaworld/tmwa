@@ -57,7 +57,6 @@ struct item_data;
 
 enum class SP : uint16_t;
 
-struct ScriptBuffer;
 struct ScriptState;
 
 namespace magic

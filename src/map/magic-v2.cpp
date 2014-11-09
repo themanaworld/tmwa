@@ -800,7 +800,7 @@ namespace magic_v2
             }
             auto code = TRY_UNWRAP(code_res.get_success(),
                     return fail(s._list[1], "script does not compile"_s));
-            std::unique_ptr<const ScriptBuffer> script = compile_script(code, true);
+            std::unique_ptr<const ScriptBuffer> script = compile_script(STRPRINTF("script magic %s:%d"_fmt, begin.filename, begin.line), code, true);
             if (!script)
                 return fail(s._list[1], "script does not compile"_s);
             EffectScript e;

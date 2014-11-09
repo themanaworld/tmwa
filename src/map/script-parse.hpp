@@ -24,10 +24,12 @@
 
 #include <memory>
 
+#include "script-buffer.hpp"
+
 
 namespace tmwa
 {
-std::unique_ptr<const ScriptBuffer> compile_script(const ast::script::ScriptBody& body, bool implicit_end);
+std::unique_ptr<const ScriptBuffer> compile_script(RString debug_name, const ast::script::ScriptBody& body, bool implicit_end);
 
 extern
 Map<ScriptLabel, int> scriptlabel_db;

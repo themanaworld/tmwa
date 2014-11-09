@@ -26,6 +26,8 @@
 
 #include "../compat/borrow.hpp"
 
+#include "script-buffer.hpp"
+
 
 namespace tmwa
 {

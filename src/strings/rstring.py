@@ -1,3 +1,6 @@
+# used by other pretty-printers
+rstring_disable_children = False
+
 class RString(object):
     __slots__ = ('_value')
     name = 'tmwa::strings::RString'
@@ -21,6 +24,8 @@ class RString(object):
             return b.lazy_string(length=d)
 
     def children(self):
+        if rstring_disable_children:
+            return
         v = self._value
         if v['maybe_end']:
             pass

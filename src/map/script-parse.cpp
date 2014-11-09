@@ -52,7 +52,11 @@ class ScriptBuffer
     typedef ZString::iterator ZSit;
 
     std::vector<ByteCode> script_buf;
+    RString debug_name;
+    std::vector<std::pair<ScriptLabel, size_t>> debug_labels;
 public:
+    ScriptBuffer(RString name) : debug_name(std::move(name)) {}
+
     // construction methods
     void add_scriptc(ByteCode a);
     void add_scriptb(uint8_t a);
@@ -694,9 +698,9 @@ void add_builtin_functions(void)
     }
 }
 
-std::unique_ptr<const ScriptBuffer> compile_script(const ast::script::ScriptBody& body, bool implicit_end)
+std::unique_ptr<const ScriptBuffer> compile_script(RString debug_name, const ast::script::ScriptBody& body, bool implicit_end)
 {
-    auto script_buf = make_unique<ScriptBuffer>();
+    auto script_buf = make_unique<ScriptBuffer>(std::move(debug_name));
     script_buf->parse_script(body.braced_body, body.span.begin.line, implicit_end);
     return std::move(script_buf);
 }
@@ -769,6 +773,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
             }
             set_label(ld, script_buf.size());
             scriptlabel_db.insert(stringish<ScriptLabel>(str), script_buf.size());
+            debug_labels.push_back(std::make_pair(stringish<ScriptLabel>(str), script_buf.size()));
             p = tmpp + 1;
             continue;
         }

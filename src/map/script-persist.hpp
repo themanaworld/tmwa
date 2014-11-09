@@ -28,6 +28,8 @@
 
 #include "../sexpr/variant.hpp"
 
+#include "script-buffer.hpp"
+
 
 namespace tmwa
 {

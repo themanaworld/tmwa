@@ -66,6 +66,7 @@ def get_classes_from_file(a):
 
 def c_quote(s):
     s = s.replace('\\', '\\\\')
+    s = s.replace('\n', '\\n')
     s = s.replace('"', '\\"')
     return '"' + s + '"'
 
@@ -73,7 +74,7 @@ def gen_test(name, expr, expected, w):
     print('static', file=w)
     print('void %s()' % name, file=w)
     print('{', file=w)
-    print('    auto value = %s;' % expr, file=w)
+    print('    auto&& value = %s;' % expr, file=w)
     print('    const char *expected = %s;' % c_quote(expected), file=w)
     print('    do_breakpoint(value, expected);', file=w)
     print('}', file=w)

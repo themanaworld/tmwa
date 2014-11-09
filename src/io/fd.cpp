@@ -102,6 +102,11 @@ namespace io
 
     int FD::close()
     {
+        if (fd == -1)
+        {
+            errno = EBADF;
+            return -1;
+        }
         return ::close(fd);
     }
     int FD::shutdown(int how)

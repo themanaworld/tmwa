@@ -200,8 +200,8 @@ bool itemdb_readdb(ZString filename)
                 idv.elv = item.elv.data;
                 idv.look = item.view.data;
 
-                idv.use_script = compile_script(item.use_script, true);
-                idv.equip_script = compile_script(item.equip_script, true);
+                idv.use_script = compile_script(STRPRINTF("use script %d"_fmt, idv.nameid), item.use_script, true);
+                idv.equip_script = compile_script(STRPRINTF("equip script %d"_fmt, idv.nameid), item.equip_script, true);
 
                 Borrowed<struct item_data> id = itemdb_search(idv.nameid);
                 *id = std::move(idv);
