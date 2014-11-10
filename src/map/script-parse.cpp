@@ -24,6 +24,7 @@
 
 #include <set>
 
+#include "../generic/array.hpp"
 #include "../generic/db.hpp"
 #include "../generic/intern-pool.hpp"
 
@@ -505,7 +506,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         {
             int i = 0;
             P<str_data_t> funcp = TRY_UNWRAP(parse_cmdp, abort());
-            ZString::iterator plist[128];
+            Array<ZString::iterator, 128> plist;
 
             if (funcp->type != StringCode::FUNC)
             {
@@ -528,6 +529,11 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
                 }
                 p = skip_space(p);
                 i++;
+            }
+            if (i == 128)
+            {
+                disp_error_message("PANIC: unrecoverable error in function argument list"_s, p);
+                abort();
             }
             plist[i] = p;
             if (*p != ')')
@@ -595,7 +601,7 @@ ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
 ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
 {
     int i = 0;
-    ZString::iterator plist[128];
+    Array<ZString::iterator, 128> plist;
 
     p = skip_space(p);
     if (*p == ';')
@@ -651,6 +657,11 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
         }
         p = skip_space(p);
         i++;
+    }
+    if (i == 128)
+    {
+        disp_error_message("PANIC: unknown error in command argument list"_s, p);
+        abort();
     }
     plist[i] = p;
     if (*(p++) != ';')
