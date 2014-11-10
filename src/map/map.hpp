@@ -357,6 +357,7 @@ public:
         std::unique_ptr<const ScriptBuffer> script;
         // Diameter.
         short xs, ys;
+        bool event_needs_map;
 
         // Whether the timer advances if not beyond end.
         bool timer_active;

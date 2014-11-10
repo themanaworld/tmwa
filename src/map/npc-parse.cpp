@@ -440,6 +440,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
 
     dumb_ptr<npc_data_script> nd;
     nd.new_();
+    nd->scr.event_needs_map = false;
 
     nd->name = script_none.name.data;
 
@@ -535,6 +536,7 @@ bool npc_load_script_map_none(ast::script::ScriptBody& body, ast::npc::ScriptMap
 
     dumb_ptr<npc_data_script> nd;
     nd.new_();
+    nd->scr.event_needs_map = false;
 
     nd->name = script_map_none.name.data;
 
@@ -667,6 +669,7 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
 
         nd->scr.xs = xs;
         nd->scr.ys = ys;
+        nd->scr.event_needs_map = true;
     }
 
     nd->name = script_map.name.data;

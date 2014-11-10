@@ -465,7 +465,6 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
 {
     Option<P<struct event_data>> ev_ = ev_db.search(eventname);
     dumb_ptr<npc_data_script> nd;
-    int xs, ys;
 
     if (sd == nullptr)
     {
@@ -490,10 +489,10 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
         return 0;
     }
 
-    xs = nd->scr.xs;
-    ys = nd->scr.ys;
-    if (xs >= 0 && ys >= 0)
+    if (nd->scr.event_needs_map)
     {
+        int xs = nd->scr.xs;
+        int ys = nd->scr.ys;
         if (nd->bl_m != sd->bl_m)
             return 1;
         if (xs > 0
