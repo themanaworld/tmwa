@@ -99,6 +99,8 @@ def main(args):
             print('// just mention "fwd.hpp" and "../poison.hpp" to make formatter happy', file=w)
             print('namespace tmwa', file=w)
             print('{', file=w)
+            print('    void do_nothing_asan_is_funny_global_constructor();', file=w)
+            print('    void do_nothing_asan_is_funny_global_constructor() {}', file=w)
             print('} // namespace tmwa', file=w)
             print(file=w)
             print('template<class T>', file=w)

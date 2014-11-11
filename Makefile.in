@@ -414,7 +414,7 @@ clean-obj:
 clean-conf:
 	$l rm -rf conf-raw
 mostlyclean: clean-conf
-	$l rm -rf obj
+	$l rm -rf obj stamp
 clean: mostlyclean
 	$l rm -rf bin lib
 distclean: clean gen-clean
