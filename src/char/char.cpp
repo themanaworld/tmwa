@@ -97,10 +97,6 @@ int anti_freeze_enable = 0;
 static
 std::chrono::seconds anti_freeze_interval = 6_s;
 
-constexpr
-std::chrono::milliseconds DEFAULT_AUTOSAVE_INTERVAL =
-        5_min;
-
 static
 Session *login_session, *char_session;
 static

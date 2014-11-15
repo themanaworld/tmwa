@@ -1,7 +1,7 @@
 #pragma once
-//    io/fwd.hpp - Forward declarations of I/O classes
+//    monitor/fwd.hpp - list of type names for monitor nonserver
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -20,26 +20,17 @@
 
 #include "../sanity.hpp"
 
-#include "../ints/fwd.hpp" // rank 1
 #include "../strings/fwd.hpp" // rank 1
-#include "../compat/fwd.hpp" // rank 2
-#include "../generic/fwd.hpp" // rank 3
-// io/fwd.hpp is rank 4
+#include "../io/fwd.hpp" // rank 4
+#include "../net/fwd.hpp" // rank 5
+#include "../mmo/fwd.hpp" // rank 6
+#include "../high/fwd.hpp" // rank 9
+// monitor/fwd.hpp is rank ∞ because it is an executable
 
 
 namespace tmwa
 {
-namespace io
+namespace monitor
 {
-    class ReadFile;
-    class WriteFile;
-    class AppendFile;
-    class LineReader;
-    class LineCharReader;
-    class Line;
-    class LineChar;
-    class LineSpan;
-    template<class T>
-    class Spanned;
-} // namespace io
+} // namespace monitor
 } // namespace tmwa

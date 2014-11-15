@@ -32,6 +32,9 @@
 namespace tmwa
 {
 constexpr int MAX_MAP_SERVERS = 30;
+constexpr
+std::chrono::seconds DEFAULT_AUTOSAVE_INTERVAL = 5_min;
+
 
 struct mmo_map_server
 {

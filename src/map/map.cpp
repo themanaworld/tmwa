@@ -116,9 +116,6 @@ const CharName WISP_SERVER_NAME = stringish<CharName>("Server"_s);
 
 map_local undefined_gat = [](){ map_local rv {}; rv.name_ = stringish<MapName>("undefined.gat"_s); return rv; }();
 
-static
-void map_delmap(MapName mapname);
-
 void SessionDeleter::operator()(SessionData *sd)
 {
     really_delete1 static_cast<map_session_data *>(sd);
@@ -1367,7 +1364,6 @@ bool map_readallmap(void)
  * 読み込むmapを追加する
  *------------------------------------------
  */
-static
 void map_addmap(MapName mapname)
 {
     if (mapname == "clear"_s)

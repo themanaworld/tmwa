@@ -64,7 +64,7 @@ constexpr int MAX_LEVEL = 255;
 constexpr int MAX_WALKPATH = 48;
 constexpr int MAX_DROP_PER_MAP = 48;
 
-constexpr interval_t DEFAULT_AUTOSAVE_INTERVAL = 1_min;
+constexpr std::chrono::seconds DEFAULT_AUTOSAVE_INTERVAL = 1_min;
 
 extern map_local undefined_gat;
 
@@ -698,4 +698,7 @@ inline dumb_ptr<npc_data_script> npc_data::is_script() { return npc_subtype == N
 inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSubtype::SHOP ? as_shop() : nullptr ; }
 inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
 inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }
+
+void map_addmap(MapName mapname);
+void map_delmap(MapName mapname);
 } // namespace tmwa
