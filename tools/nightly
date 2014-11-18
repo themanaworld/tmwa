@@ -120,7 +120,7 @@ do
     mkdir -p build-$HOST
     cd build-$HOST
     ../configure --build=$BUILD --host=$HOST CXX="$CXX -Wno-deprecated-declarations -DQUIET" --prefix=/. --enable-rpath=relative GDB=$GDB
-    rm -rf bin lib
+    rm -rf bin lib stamp
     make -j3 all
     make -j3 test
     if $first
