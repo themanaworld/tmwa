@@ -2574,6 +2574,69 @@ void builtin_npcwarp(ScriptState *st)
 }
 
 /*==========================================
+ * npcareawarp [remoitnane] [wushin]
+ * Move NPC to a new area on the same map.
+ *------------------------------------------
+ */
+static
+void builtin_npcareawarp(ScriptState *st)
+{
+    int x0, y0, x1, y1, x, y, max, cb, lx = -1, ly = -1, j = 0;
+    dumb_ptr<npc_data> nd = nullptr;
+
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(5))));
+    nd = npc_name2id(npc);
+
+    x0 = conv_num(st, &AARG(0));
+    y0 = conv_num(st, &AARG(1));
+    x1 = conv_num(st, &AARG(2));
+    y1 = conv_num(st, &AARG(3));
+    cb = conv_num(st, &AARG(4));
+
+    if (!nd)
+    {
+        PRINTF("builtin_npcareawarp: no such npc: %s\n"_fmt, npc);
+        return;
+    }
+
+    max = (y1 - y0 + 1) * (x1 - x0 + 1) * 3;
+    if (max > 1000)
+        max = 1000;
+
+    P<map_local> m = nd->bl_m;
+    if (cb) {
+        do
+        {
+            x = random_::in(x0, x1);
+            y = random_::in(y0, y1);
+        }
+        while (bool(map_getcell(m, x, y) & MapCell::UNWALKABLE)
+             && (++j) < max);
+        if (j >= max)
+        {
+            if (lx >= 0)
+            {                   // Since reference went wrong, the place which boiled before is used.
+                x = lx;
+                y = ly;
+            }
+            else
+                return;       // Since reference of the place which boils first went wrong, it stops.
+        }
+    }
+    else
+        x = random_::in(x0, x1);
+        y = random_::in(y0, y1);
+
+    npc_enable(npc, 0);
+    map_delblock(nd); /* [Freeyorp] */
+    nd->bl_x = x;
+    nd->bl_y = y;
+    map_addblock(nd);
+    npc_enable(npc, 1);
+
+}
+
+/*==========================================
  * message [MouseJstr]
  *------------------------------------------
  */
@@ -2954,6 +3017,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(unequipbyid, "i"_s, '\0'),
     BUILTIN(gmcommand, "s"_s, '\0'),
     BUILTIN(npcwarp, "xys"_s, '\0'),
+    BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "s"_s, '\0'),
     BUILTIN(getlook, "i"_s, 'i'),
