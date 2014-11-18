@@ -77,5 +77,5 @@ bool extract(XString str, Version *vers)
 LString VERSION_INFO_HEADER = "This server code consists of Free Software under GPL3&AGPL3"_s;
 LString VERSION_INFO_COMMIT = "This is commit " VERSION_HASH ", also known as " VERSION_FULL ""_s;
 LString VERSION_INFO_NUMBER = "The version is " VERSION_STRING ""_s;
-LString VERSION_INFO_URL = "For source, see " VENDOR_SOURCE ""_s;
+LString VERSION_INFO_URL = "For source, see [@@" VENDOR_SOURCE "|" VENDOR_SOURCE "@@]"_s;
 } // namespace tmwa
