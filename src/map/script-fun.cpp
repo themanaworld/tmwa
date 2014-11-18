@@ -2745,6 +2745,24 @@ void builtin_isin(ScriptState *st)
               && (str == sd->bl_m->name_));
 }
 
+/*==========================================
+ * Check whether the coords are collision
+ *------------------------------------------
+ */
+static
+void builtin_iscollision(ScriptState *st)
+{
+    int x, y;
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+
+    x = conv_num(st, &AARG(1));
+    y = conv_num(st, &AARG(2));
+
+    push_int<ScriptDataInt>(st->stack,
+        bool(map_getcell(m, x, y) & MapCell::UNWALKABLE));
+}
+
 // Trigger the shop on a (hopefully) nearby shop NPC
 static
 void builtin_shop(ScriptState *st)
@@ -2960,6 +2978,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getsavepoint, "i"_s, '.'),
     BUILTIN(areatimer, "MxyxytE"_s, '\0'),
     BUILTIN(isin, "Mxyxy"_s, 'i'),
+    BUILTIN(iscollision, "Mxy"_s, 'i'),
     BUILTIN(shop, "s"_s, '\0'),
     BUILTIN(isdead, ""_s, 'i'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
