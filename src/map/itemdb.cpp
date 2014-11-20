@@ -92,7 +92,7 @@ Option<Borrowed<struct item_data>> itemdb_exists(ItemNameId nameid)
 Borrowed<struct item_data> itemdb_search(ItemNameId nameid)
 {
     Option<P<struct item_data>> id_ = item_db.search(nameid);
-    if OPTION_IS_SOME(id, id_)
+    if OPTION_IS_SOME_NOLOOP(id, id_)
         return id;
 
     P<struct item_data> id = item_db.init(nameid);

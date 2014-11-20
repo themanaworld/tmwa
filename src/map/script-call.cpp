@@ -108,7 +108,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
                 else if (prefix == '$')
                 {
                     Option<P<RString>> s_ = mapregstr_db.search(u.reg);
-                    if OPTION_IS_SOME(s, s_)
+                    if OPTION_IS_SOME_NOLOOP(s, s_)
                         str = *s;
                 }
                 else

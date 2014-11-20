@@ -134,7 +134,7 @@ Option<Borrowed<str_data_t>> search_strp(XString p)
 Borrowed<str_data_t> add_strp(XString p)
 {
     Option<P<str_data_t>> rv_ = search_strp(p);
-    if OPTION_IS_SOME(rv, rv_)
+    if OPTION_IS_SOME_NOLOOP(rv, rv_)
         return rv;
 
     RString p2 = p;

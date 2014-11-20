@@ -967,7 +967,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameI
             IFIX(pc->status.head_bottom);
 
             Option<P<Storage>> stor_ = account2storage2(pc->status_key.account_id);
-            if OPTION_IS_SOME(stor, stor_)
+            if OPTION_IS_SOME_NOLOOP(stor, stor_)
             {
                 for (SOff0 j : SOff0::iter())
                     FIX(stor->storage_[j]);

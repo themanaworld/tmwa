@@ -270,7 +270,7 @@ void mapif_account_reg_reply(Session *s, AccountId account_id)
     Packet_Head<0x3804> head_04;
     head_04.account_id = account_id;
     std::vector<Packet_Repeat<0x3804>> repeat_04;
-    if OPTION_IS_SOME(reg, reg_)
+    if OPTION_IS_SOME_NOLOOP(reg, reg_)
     {
         repeat_04.resize(reg->reg_num);
         assert (reg->reg_num < ACCOUNT_REG_NUM);

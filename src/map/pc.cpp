@@ -555,14 +555,14 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
                     sd->equip_index_maybe[j] = i;
             if (bool(sd->status.inventory[i].equip & EPOS::WEAPON))
             {
-                if OPTION_IS_SOME(sdidi, sd->inventory_data[i])
+                if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[i])
                     sd->weapontype1 = sdidi->look;
                 else
                     sd->weapontype1 = ItemLook::NONE;
             }
             if (bool(sd->status.inventory[i].equip & EPOS::SHIELD))
             {
-                if OPTION_IS_SOME(sdidi, sd->inventory_data[i])
+                if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[i])
                 {
                     if (sdidi->type == ItemType::WEAPON)
                     {
@@ -1007,7 +1007,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 || sd->equip_index_maybe[EQUIP::LEGS] == index))
             continue;
 
-        if OPTION_IS_SOME(sdidi, sd->inventory_data[index])
+        if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[index])
         {
             sd->spellpower_bonus_target +=
                 sdidi->magic_bonus;
@@ -1042,7 +1042,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             && (sd->equip_index_maybe[EQUIP::TORSO] == index
                 || sd->equip_index_maybe[EQUIP::LEGS] == index))
             continue;
-        if OPTION_IS_SOME(sdidi, sd->inventory_data[index])
+        if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[index])
         {
             sd->def += sdidi->def;
             if (sdidi->type == ItemType::WEAPON)
@@ -1093,7 +1093,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (aidx.ok())
     {
         IOff0 index = aidx;
-        if OPTION_IS_SOME(sdidi, sd->inventory_data[index])
+        if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[index])
         {                       //まだ属性が入っていない
             argrec_t arg[2] =
             {
@@ -2120,7 +2120,7 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 
     if (!n.ok())
         return 0;
-    if OPTION_IS_SOME(sdidn, sd->inventory_data[n])
+    if OPTION_IS_SOME_NOLOOP(sdidn, sd->inventory_data[n])
     {
         amount = sd->status.inventory[n].amount;
         if (!sd->status.inventory[n].nameid
@@ -3335,7 +3335,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         if (sd->status.party_id)
         {                       // on-the-fly party hp updates [Valaris]
             Option<PartyPair> p_ = party_search(sd->status.party_id);
-            if OPTION_IS_SOME(p, p_)
+            if OPTION_IS_SOME_NOLOOP(p, p_)
                 clif_party_hp(p, sd);
         }                       // end addition [Valaris]
 
@@ -3703,7 +3703,7 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
     if (sd->status.party_id)
     {                           // on-the-fly party hp updates [Valaris]
         Option<PartyPair> p_ = party_search(sd->status.party_id);
-        if OPTION_IS_SOME(p, p_)
+        if OPTION_IS_SOME_NOLOOP(p, p_)
             clif_party_hp(p, sd);
     }                           // end addition [Valaris]
 
@@ -4369,7 +4369,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
     ItemNameId view_i;
     ItemLook view_l = ItemLook::NONE;
     // TODO: This is ugly.
-    if OPTION_IS_SOME(sdidn, sd->inventory_data[n])
+    if OPTION_IS_SOME_NOLOOP(sdidn, sd->inventory_data[n])
     {
         bool look_not_weapon = sdidn->look == ItemLook::NONE;
         bool equip_is_weapon = bool(sd->status.inventory[n].equip & EPOS::WEAPON);
@@ -4389,7 +4389,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
     }
     if (bool(sd->status.inventory[n].equip & EPOS::SHIELD))
     {
-        if OPTION_IS_SOME(sdidn, sd->inventory_data[n])
+        if OPTION_IS_SOME_NOLOOP(sdidn, sd->inventory_data[n])
         {
             if (sdidn->type == ItemType::WEAPON)
             {

@@ -1247,7 +1247,7 @@ void map_setcell(Borrowed<map_local> m, int x, int y, MapCell t)
 int map_setipport(MapName name, IP4Address ip, int port)
 {
     Option<P<map_abstract>> md_ = maps_db.get(name);
-    if OPTION_IS_SOME(md, md_)
+    if OPTION_IS_SOME_NOLOOP(md, md_)
     {
         if (md->gat)
         {

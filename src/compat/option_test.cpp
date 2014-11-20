@@ -398,7 +398,7 @@ TEST(Option, unwrap)
     v = None; TRY_UNWRAP(fcr(), v = Some(1));
 
     v = None;
-    if OPTION_IS_SOME(o, v)
+    if OPTION_IS_SOME_NOLOOP(o, v)
     {
         EXPECT_NE(o, o);
     }
@@ -408,7 +408,7 @@ TEST(Option, unwrap)
     }
 
     v = Some(1);
-    if OPTION_IS_SOME(o, v)
+    if OPTION_IS_SOME_NOLOOP(o, v)
     {
         EXPECT_EQ(o, 1);
     }

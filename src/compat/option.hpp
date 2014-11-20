@@ -424,9 +424,12 @@ namespace option
         tmwa::option::option_unwrap(std::move(o));              \
     }).maybe_ref_fun()
 // immediately preceded by 'if'; not double-eval-safe
-#define OPTION_IS_SOME(var, expr)   \
-    ((expr).is_some())              \
-    WITH_VAR(auto&, var, *(expr).ptr_or(nullptr))
+#define OPTION_IS_SOME_INLOOP(var, expr)    \
+    ((expr).is_some())                      \
+    WITH_VAR_INLOOP(auto&, var, *(expr).ptr_or(nullptr))
+#define OPTION_IS_SOME_NOLOOP(var, expr)    \
+    ((expr).is_some())                      \
+    WITH_VAR_NOLOOP(auto&, var, *(expr).ptr_or(nullptr))
 } // namespace option
 
 //using option::Option;

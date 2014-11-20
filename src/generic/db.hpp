@@ -115,7 +115,7 @@ public:
     V get(const K& k)
     {
         Option<Borrowed<V>> vp = impl.search(k);
-        if OPTION_IS_SOME(v, vp)
+        if OPTION_IS_SOME_NOLOOP(v, vp)
         {
             return *v;
         }
@@ -162,7 +162,7 @@ public:
     Option<Borrowed<V>> get(const K& k)
     {
         Option<Borrowed<U>> up = impl.search(k);
-        if OPTION_IS_SOME(u, up)
+        if OPTION_IS_SOME_NOLOOP(u, up)
         {
             return Some(borrow(*u->get()));
         }
