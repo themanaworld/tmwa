@@ -2292,6 +2292,31 @@ void builtin_getitemname(ScriptState *st)
 }
 
 static
+void builtin_getitemlink(ScriptState *st)
+{
+    struct script_data *data;
+    AString buf;
+    data = &AARG(0);
+    ZString name = conv_str(st, data);
+
+    ItemNameId item_id;
+    Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+    OMATCH_BEGIN (item_data_)
+    {
+        OMATCH_CASE_SOME (item_data)
+        {
+            buf = STRPRINTF("[@@%d|%s@@]"_fmt, item_data->nameid, item_data->jname);
+        }
+        OMATCH_CASE_NONE ()
+        {
+            buf = STRPRINTF("Unknown Item: %s"_fmt, name);
+        }
+    }
+    OMATCH_END ();
+    push_str<ScriptDataStr>(st->stack, buf);
+}
+
+static
 void builtin_getspellinvocation(ScriptState *st)
 {
     RString name = conv_str(st, &AARG(0));
@@ -3066,6 +3091,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(marriage, "P"_s, 'i'),
     BUILTIN(divorce, ""_s, 'i'),
     BUILTIN(getitemname, "I"_s, 's'),
+    BUILTIN(getitemlink, "I"_s, 's'),
     BUILTIN(getspellinvocation, "s"_s, 's'),
     BUILTIN(getpartnerid2, ""_s, 'i'),
     BUILTIN(getinventorylist, ""_s, '\0'),
