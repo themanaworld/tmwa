@@ -4,6 +4,7 @@
 /bin/
 /stamp/
 /dist/
+/doc-gen/
 # Generated source files
 /src/proto2/
 /src/debug-debug/

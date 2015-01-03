@@ -6619,6 +6619,10 @@ def make_dots(ctx):
     # disabled because that's still just too many packets for the 0x0063
     #p = partition({k: ids_only(v.post) for (k, v) in d.items()})
 
+    if not os.path.exists('doc-gen'):
+        # generate.make will succeed if missing the wiki repo
+        # but 'make doc' will fail
+        return
     for g in glob.glob('doc-gen/*.gv'):
         os.rename(g, g + '.old')
     for g in glob.glob('doc-gen/Packet-*.md'):
