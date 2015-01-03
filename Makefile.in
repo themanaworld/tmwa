@@ -218,11 +218,11 @@ LIB_SOURCES := $(filter %/lib.cpp,${SOURCES})
 TEST_SOURCES := $(filter %/test.cpp,${SOURCES})
 GTEST_SOURCES := $(filter %_test.cpp,${SOURCES})
 DTEST_SOURCES := $(filter src/debug-debug/%.cpp,${SOURCES})
-BINARIES := $(patsubst src/%/main.cpp,bin/${tmwa}-%,${MAIN_SOURCES})
+BINARIES := $(patsubst src/%/main.cpp,bin/${tmwa}-%.elf,${MAIN_SOURCES})
 LIBRARIES := $(patsubst src/%/lib.cpp,lib/lib${tmwa}-%.${LIB_SUFFIX_FAKE},${LIB_SOURCES})
-TEST_BINARIES := $(patsubst src/%/test.cpp,bin/tests/test-%,${TEST_SOURCES})
-GTEST_BINARIES := $(patsubst src--%_test.cpp,bin/tests/gtest-%,$(subst /,--,${GTEST_SOURCES}))
-DTEST_BINARIES := $(patsubst src/debug-debug/%.cpp,bin/tests/dtest-%,${DTEST_SOURCES})
+TEST_BINARIES := $(patsubst src/%/test.cpp,bin/tests/test-%.elf,${TEST_SOURCES})
+GTEST_BINARIES := $(patsubst src--%_test.cpp,bin/tests/gtest-%.elf,$(subst /,--,${GTEST_SOURCES}))
+DTEST_BINARIES := $(patsubst src/debug-debug/%.cpp,bin/tests/dtest-%.elf,${DTEST_SOURCES})
 
 DOC_DOTS := $(shell cd ${SRC_DIR}; find doc-gen/ -name '*.gv')
 DOC_PNGS := $(patsubst %.gv,${SRC_DIR}/%.png,${DOC_DOTS})
@@ -349,7 +349,7 @@ $(foreach test,tests,$(eval ${test}/test += $(patsubst %,src/%.hpp,$(filter %_te
 
 $(foreach it,${PATTERN_MAINS},$(eval main-${it} := $(strip $(call RECURSIVE_DEPS,${it}/main))) $(eval main-${it}-libs := ${lib_deps}) $(eval main-${it}-pies := ${py_deps}))
 # actual rule deps
-$(foreach it,${PATTERN_MAINS},$(eval bin/${tmwa}-${it} : $(patsubst %,obj/%.pdc.o,$(value main-${it})) $(value main-${it}-libs)))
+$(foreach it,${PATTERN_MAINS},$(eval bin/${tmwa}-${it}.elf : $(patsubst %,obj/%.pdc.o,$(value main-${it})) $(value main-${it}-libs)))
 $(foreach it,${PATTERN_MAINS},$(eval bin/${tmwa}-${it}-gdb.py : $(patsubst %,src/%.py,$(value main-${it}-pies))))
 #$(foreach it,${PATTERN_MAINS},$(info post-main: main-${it}: $(value main-${it})) $(info post-main: main-${it}-libs: $(value main-${it}-libs)) $(info ))
 
@@ -363,28 +363,29 @@ $(foreach it,${PATTERN_LIBS},$(eval lib/lib${tmwa}-${it}.${SO_LONG}-gdb.py : $(p
 
 $(foreach it,${PATTERN_TESTS},$(eval test-${it} := $(strip $(call RECURSIVE_DEPS,${it}/test))) $(eval test-${it}-libs := ${lib_deps})  $(eval test-${it}-pies := ${py_deps}))
 # actual rule deps
-$(foreach it,${PATTERN_TESTS},$(eval bin/tests/test-${it} : $(patsubst %,obj/%.pdc.o,$(value test-${it})) $(value test-${it}-libs)))
+$(foreach it,${PATTERN_TESTS},$(eval bin/tests/test-${it}.elf : $(patsubst %,obj/%.pdc.o,$(value test-${it})) $(value test-${it}-libs)))
 $(foreach it,${PATTERN_TESTS},$(eval bin/tests/test-${it}-gdb.py : $(patsubst %,src/%.py,$(value test-${it}-pies))))
 #$(foreach it,${PATTERN_TESTS},$(info post-test: test-${it}: $(value test-${it})) $(info post-test: test-${it}-libs: $(value test-${it}-libs)) $(info ))
 
 $(foreach it,${PATTERN_GTESTS},$(eval gtest-${it} := $(strip $(call RECURSIVE_DEPS,$(subst --,/,${it})_test))) $(eval gtest-${it}-libs := ${lib_deps}) $(eval gtest-${it}-pies := ${py_deps}))
 # actual rule deps
-$(foreach it,${PATTERN_GTESTS},$(eval bin/tests/gtest-${it} : $(patsubst %,obj/%.pdc.o,$(value gtest-${it})) $(value gtest-${it}-libs)))
+$(foreach it,${PATTERN_GTESTS},$(eval bin/tests/gtest-${it}.elf : $(patsubst %,obj/%.pdc.o,$(value gtest-${it})) $(value gtest-${it}-libs)))
 $(foreach it,${PATTERN_GTESTS},$(eval bin/tests/gtest-${it}-gdb.py : $(patsubst %,src/%.py,$(value gtest-${it}-pies))))
 #$(foreach it,${PATTERN_GTESTS},$(info post-gtest: gtest-${it}: $(value gtest-${it})) $(info post-gtest: gtest-${it}-libs: $(value gtest-${it}-libs)) $(info ))
 
 $(foreach it,${PATTERN_DTESTS},$(eval dtest-${it} := $(strip $(call RECURSIVE_DEPS,debug-debug/${it}))) $(eval dtest-${it}-libs := ${lib_deps}) $(eval dtest-${it}-pies := ${py_deps}))
 # actual rule deps
-$(foreach it,${PATTERN_DTESTS},$(eval bin/tests/dtest-${it} : $(patsubst %,obj/%.pdc.o,$(value dtest-${it})) $(value dtest-${it}-libs)))
+$(foreach it,${PATTERN_DTESTS},$(eval bin/tests/dtest-${it}.elf : $(patsubst %,obj/%.pdc.o,$(value dtest-${it})) $(value dtest-${it}-libs)))
 $(foreach it,${PATTERN_DTESTS},$(eval bin/tests/dtest-${it}-gdb.py : $(patsubst %,src/%.py,$(value dtest-${it}-pies))))
 #$(foreach it,${PATTERN_DTESTS},$(info post-dtest: dtest-${it}: $(value dtest-${it})) $(info post-dtest: dtest-${it}-libs: $(value dtest-${it}-libs)) $(info ))
 
 
-vpath %.cpp ${SRC_DIR}
-vpath %.hpp ${SRC_DIR}
-vpath %.tcc ${SRC_DIR}
+vpath src/%.cpp ${SRC_DIR}
+vpath src/%.hpp ${SRC_DIR}
+vpath include/%.hpp ${SRC_DIR}
+vpath src/%.tcc ${SRC_DIR}
 vpath tools/% ${SRC_DIR}
-vpath %.py ${SRC_DIR}
+vpath src/%.py ${SRC_DIR}
 
 .DELETE_ON_ERROR:
 .DEFAULT_GOAL := all
@@ -424,7 +425,7 @@ clean: mostlyclean
 	$l rm -rf bin lib
 distclean: clean gen-clean
 gen-clean:
-	$l rm -f stamp/generated.stamp
+	$l rm -f stamp/generate*.stamp
 	$l rm -rf ${SRC_DIR}/src/proto2/
 	$l rm -rf ${SRC_DIR}/src/debug-debug/
 
@@ -466,7 +467,9 @@ bin/%-gdb.py: src/main-gdb-head.py src/main-gdb-tail.py
 	    $(filter-out %/main-gdb-head.py %/main-gdb-tail.py,$^) \
 	    $(filter %/main-gdb-tail.py,$^) \
 	    > $@
-bin/%: bin/%-gdb.py
+	@# aliases to let in-place execution work
+	ln -sf $(notdir $@) $(patsubst %-gdb.py,%.elf-gdb.py,$@)
+bin/%.elf: bin/%-gdb.py
 	$(MKDIR_FIRST)
 	$l ${CXX} ${LDFLAGS} $(filter-out bin/%-gdb.py,$^) ${LDLIBS} -o $@
 
@@ -496,7 +499,7 @@ obj/gtest%.pdc.o: ${GTEST_DIR}/src/gtest%.cc
 	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
 DTEST_OBJS := $(filter obj/debug-debug/%.pdc.o,${PDC_OBJECTS})
-DTEST_STAMPS := $(patsubst bin/tests/%,stamp/run-%.stamp,${DTEST_BINARIES})
+DTEST_STAMPS := $(patsubst bin/tests/%.elf,stamp/run-%.stamp,${DTEST_BINARIES})
 ${DTEST_OBJS}: override CXXFLAGS += -g -O0 -gdwarf-3
 ${DTEST_STAMPS}: override TESTER=${GDB} -return-child-result -nx -batch -ex 'python file_to_load = "$<"' -x ${SRC_DIR}/tools/debug-debug.gdb --args false
 ${DTEST_STAMPS}: tools/debug-debug.gdb
@@ -507,21 +510,21 @@ ${DTEST_STAMPS}:
 endif
 
 test: test-direct
-test-direct: $(patsubst bin/tests/%,stamp/run-%.stamp,${TEST_BINARIES})
+test-direct: $(patsubst bin/tests/%.elf,stamp/run-%.stamp,${TEST_BINARIES})
 
 test: test-gtest
-test-gtest: $(patsubst bin/tests/%,stamp/run-%.stamp,${GTEST_BINARIES})
+test-gtest: $(patsubst bin/tests/%.elf,stamp/run-%.stamp,${GTEST_BINARIES})
 
 test: test-dtest
-test-dtest: $(patsubst bin/tests/%,stamp/run-%.stamp,${DTEST_BINARIES})
+test-dtest: $(patsubst bin/tests/%.elf,stamp/run-%.stamp,${DTEST_BINARIES})
 
-$(patsubst bin/tests/%,stamp/run-%.stamp,${TEST_BINARIES} ${GTEST_BINARIES} ${DTEST_BINARIES}): stamp/symlink-test-lib-dir.stamp
+$(patsubst bin/tests/%.elf,stamp/run-%.stamp,${TEST_BINARIES} ${GTEST_BINARIES} ${DTEST_BINARIES}): stamp/symlink-test-lib-dir.stamp
 stamp/symlink-test-lib-dir.stamp:
 	@mkdir -p bin
 	ln -sfT ../lib bin/lib
 	touch $@
 
-stamp/run-%.stamp: bin/tests/%
+stamp/run-%.stamp: bin/tests/%.elf
 	$(MKDIR_FIRST)
 	${TESTER} $< ${TEST_ARGS}
 	touch $@
@@ -561,8 +564,9 @@ install: install-bin
 install-bin:
 	@echo + Installing binaries
 	${install_dir} ${DESTDIR}${BINDIR}
-	${install_exe} -t ${DESTDIR}${BINDIR} \
-	    ${BINARIES}
+	for exe in $(patsubst bin/%.elf,%,${BINARIES}); do \
+	${install_exe} -T bin/$${exe}.elf ${DESTDIR}${BINDIR}/$${exe}; \
+	done
 uninstall: uninstall-bin
 uninstall-bin:
 	@echo - Uninstalling binaries
@@ -594,7 +598,7 @@ ifeq (${ENABLE_DEBUG},yes)
 	@echo + Installing debug files
 	${install_dir} ${DESTDIR}${DEBUGDIR}${BINDIR}
 	${install_data} -t ${DESTDIR}${DEBUGDIR}${BINDIR} \
-	    $(patsubst %,%-gdb.py,${BINARIES})
+	    $(patsubst %.elf,%-gdb.py,${BINARIES})
 	${install_dir} ${DESTDIR}${DEBUGDIR}${LIBDIR}
 	${install_data} -t ${DESTDIR}${DEBUGDIR}${LIBDIR} \
 	    $(patsubst %.so,%.${SO_LONG}-gdb.py,${LIBRARIES})
@@ -760,6 +764,6 @@ doc: ${DOC_PNGS}
 	rm -f ${DOC_OBSOLETE}
 .PHONY: doc
 
-most: $(filter-out bin/${tmwa}-map,${BINARIES})
+most: $(filter-out bin/${tmwa}-map.elf,${BINARIES})
 magic: $(filter obj/map/magic%,${PDC_OBJECTS})
 common: $(filter-out %/lib.pdc.o obj/debug-debug/% %_test.pdc.o obj/login/% obj/char/% obj/map/% obj/admin/% obj/monitor/%,${PDC_OBJECTS})
