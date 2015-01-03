@@ -145,7 +145,6 @@ struct char_session_data : SessionData
     SEX sex;
     unsigned short packet_tmw_version;
     AccountEmail email;
-    TimeT connect_until_time;
 };
 
 void SessionDeleter::operator()(SessionData *sd)
@@ -162,7 +161,6 @@ struct AuthFifoEntry
     int delflag;
     SEX sex;
     unsigned short packet_tmw_version;
-    TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
 };
 static
 std::array<AuthFifoEntry, 256> auth_fifo;
@@ -1287,7 +1285,6 @@ void parse_tologin(Session *ls)
                             sd->email = stringish<AccountEmail>(fixed.email);
                             if (!e_mail_check(sd->email))
                                 sd->email = DEFAULT_EMAIL;
-                            sd->connect_until_time = fixed.connect_until;
                             // send characters to player
                             mmo_char_send006b(s2, sd);
                         }
@@ -1326,7 +1323,6 @@ void parse_tologin(Session *ls)
                             sd->email = fixed.email;
                             if (!e_mail_check(sd->email))
                                 sd->email = DEFAULT_EMAIL;
-                            sd->connect_until_time = fixed.connect_until;
                             break;
                         }
                     }
@@ -1481,64 +1477,6 @@ void parse_tologin(Session *ls)
                         send_vpacket<0x2b11, 8, 36>(ss, head_11, repeat_11);
                     }
                 }
-                break;
-            }
-
-            case 0x7924:
-            {                   // [Fate] Itemfrob package: forwarded from login-server
-                Packet_Fixed<0x7924> fixed;
-                rv = recv_fpacket<0x7924, 10>(ls, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                ItemNameId source_id = fixed.source_item_id;
-                ItemNameId dest_id = fixed.dest_item_id;
-
-                Packet_Fixed<0x2afa> fixed_fa;
-                fixed_fa.source_item_id = source_id;
-                fixed_fa.dest_item_id = dest_id;
-
-                // forward package to map servers
-                for (Session *ss : iter_map_sessions())
-                {
-                    send_fpacket<0x2afa, 10>(ss, fixed_fa);
-                }
-
-                for (CharPair& cp : char_keys)
-                {
-                    CharKey *k = &cp.key;
-                    CharData& cd = *cp.data.get();
-                    CharData *c = &cd;
-                    Borrowed<Storage> s = account2storage(k->account_id);
-                    int changes = 0;
-#define FIX(v) if (v == source_id) {v = dest_id; ++changes; }
-                    for (IOff0 j : IOff0::iter())
-                    {
-                        FIX(c->inventory[j].nameid);
-                    }
-                    // used to FIX cart, but it's no longer supported
-                    // FIX(c->weapon);
-                    FIX(c->shield);
-                    FIX(c->head_top);
-                    FIX(c->head_mid);
-                    FIX(c->head_bottom);
-
-                    {
-                        for (SOff0 j : SOff0::iter())
-                        {
-                            FIX(s->storage_[j].nameid);
-                        }
-                    }
-#undef FIX
-                    if (changes)
-                        CHAR_LOG("itemfrob(%d -> %d):  `%s'(%d, account %d): changed %d times\n"_fmt,
-                                source_id, dest_id, k->name, k->char_id,
-                                k->account_id, changes);
-
-                }
-
-                mmo_char_sync();
-                inter_storage_save();
                 break;
             }
 
@@ -1739,22 +1677,6 @@ void parse_frommap(Session *ms)
     {
         switch (packet_id)
         {
-                // request from map-server to reload GM accounts. Transmission to login-server (by Yor)
-            case 0x2af7:
-            {
-                Packet_Fixed<0x2af7> fixed;
-                rv = recv_fpacket<0x2af7, 2>(ms, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                if (login_session)
-                {               // don't send request if no login-server
-                    Packet_Fixed<0x2709> fixed_09;
-                    send_fpacket<0x2709, 2>(login_session, fixed_09);
-                }
-                break;
-            }
-
                 // Receiving map names list from the map-server
             case 0x2afa:
             {
@@ -1880,7 +1802,6 @@ void parse_frommap(Session *ms)
                         Packet_Payload<0x2afd> payload_fd; // not file descriptor
                         payload_fd.account_id = account_id;
                         payload_fd.login_id2 = afi.login_id2;
-                        payload_fd.connect_until = afi.connect_until_time;
                         cd->sex = afi.sex;
                         payload_fd.packet_tmw_version = afi.packet_tmw_version;
                         FPRINTF(stderr,
@@ -1986,7 +1907,6 @@ void parse_frommap(Session *ms)
                 auth_fifo_iter->login_id1 = fixed.login_id1;
                 auth_fifo_iter->login_id2 = fixed.login_id2;
                 auth_fifo_iter->delflag = 2;
-                auth_fifo_iter->connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
                 auth_fifo_iter->ip = fixed.ip;
                 auth_fifo_iter++;
 
@@ -2025,7 +1945,6 @@ void parse_frommap(Session *ms)
                 auth_fifo_iter->char_id = fixed.char_id;
                 auth_fifo_iter->delflag = 0;
                 auth_fifo_iter->sex = fixed.sex;
-                auth_fifo_iter->connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
                 auth_fifo_iter->ip = fixed.client_ip;
 
                 // default, if not found in the loop
@@ -2417,7 +2336,6 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             auth_fifo_iter->login_id2 = sd->login_id2;
             auth_fifo_iter->delflag = 0;
             auth_fifo_iter->sex = sd->sex;
-            auth_fifo_iter->connect_until_time = sd->connect_until_time;
             auth_fifo_iter->ip = s->client_ip;
             auth_fifo_iter->packet_tmw_version = sd->packet_tmw_version;
             auth_fifo_iter++;
@@ -2486,7 +2404,6 @@ void parse_char(Session *s)
                         s->session_data = make_unique<char_session_data, SessionDeleter>();
                         sd = static_cast<char_session_data *>(s->session_data.get());
                         sd->email = stringish<AccountEmail>("no mail"_s);  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
-                        sd->connect_until_time = TimeT(); // unknow or illimited (not displaying on map-server)
                     }
                     sd->account_id = account_id;
                     sd->login_id1 = fixed.login_id1;
@@ -2665,9 +2582,6 @@ void parse_char(Session *s)
                     s->set_eof();
                     return;
                 }
-                AccountEmail email = fixed.email;
-                if (!e_mail_check(email))
-                    email = DEFAULT_EMAIL;
 
                 {
                     {

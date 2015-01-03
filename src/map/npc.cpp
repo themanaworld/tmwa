@@ -199,27 +199,6 @@ int npc_delete(dumb_ptr<npc_data> nd)
     return 0;
 }
 
-void npc_timer_event(NpcEvent eventname)
-{
-    P<struct event_data> ev = TRY_UNWRAP(ev_db.search(eventname),
-    {
-        PRINTF("npc_event: event not found [%s]\n"_fmt,
-                eventname);
-        return;
-    });
-
-    dumb_ptr<npc_data_script> nd;
-
-    if ((nd = ev->nd) == nullptr)
-    {
-        PRINTF("npc_event: event not found [%s]\n"_fmt,
-                eventname);
-        return;
-    }
-
-    run_script(ScriptPointer(borrow(*nd->scr.script), ev->pos), nd->bl_id, nd->bl_id);
-}
-
 /*==========================================
  * 全てのNPCのOn*イベント実行
  *------------------------------------------

@@ -47,7 +47,6 @@ void chrif_changeemail(AccountId id, AccountEmail actual_email, AccountEmail new
 void chrif_char_ask_name(AccountId id, CharName character_name, short operation_type,
         HumanTimeDiff modif);
 int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd);
-int chrif_reloadGMdb(void);
 int chrif_send_divorce(CharId char_id);
 
 void do_init_chrif(void);

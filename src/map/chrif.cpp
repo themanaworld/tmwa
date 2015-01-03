@@ -912,126 +912,6 @@ int chrif_recvgmaccounts(Session *s, const std::vector<Packet_Repeat<0x2b15>>& r
     return 0;
 }
 
-/*==========================================
- * Request to reload GM accounts and their levels: send to char-server by [Yor]
- *------------------------------------------
- */
-int chrif_reloadGMdb(void)
-{
-    if (!char_session)
-        return -1;
-
-    Packet_Fixed<0x2af7> fixed_f7;
-    send_fpacket<0x2af7, 2>(char_session, fixed_f7);
-
-    return 0;
-}
-
-/*========================================
- * Map item IDs
- *----------------------------------------
- */
-
-static
-void ladmin_itemfrob_fix_item(ItemNameId source, ItemNameId dest, Item *item)
-{
-    if (item && item->nameid == source)
-    {
-        item->nameid = dest;
-        item->equip = EPOS::ZERO;
-    }
-}
-
-static
-void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameId dest_id)
-{
-#define IFIX(v) if (v == source_id) {v = dest_id; }
-#define FIX(item) ladmin_itemfrob_fix_item(source_id, dest_id, &item)
-
-    if (!bl)
-        return;
-
-    switch (bl->bl_type)
-    {
-        case BL::PC:
-        {
-            dumb_ptr<map_session_data> pc = bl->is_player();
-
-            for (IOff0 j : IOff0::iter())
-                IFIX(pc->status.inventory[j].nameid);
-            // cart is no longer supported
-            // IFIX(pc->status.weapon);
-            IFIX(pc->status.shield);
-            IFIX(pc->status.head_top);
-            IFIX(pc->status.head_mid);
-            IFIX(pc->status.head_bottom);
-
-            Option<P<Storage>> stor_ = account2storage2(pc->status_key.account_id);
-            if OPTION_IS_SOME(stor, stor_)
-            {
-                for (SOff0 j : SOff0::iter())
-                    FIX(stor->storage_[j]);
-            }
-
-            for (IOff0 j : IOff0::iter())
-            {
-                P<struct item_data> item = TRY_UNWRAP(pc->inventory_data[j], continue);
-                if (item->nameid == source_id)
-                {
-                    item->nameid = dest_id;
-                    if (bool(item->equip))
-                        pc_unequipitem(pc, j, CalcStatus::NOW);
-                    item->nameid = dest_id;
-                }
-            }
-
-            break;
-        }
-
-        case BL::MOB:
-        {
-            dumb_ptr<mob_data> mob = bl->is_mob();
-            for (Item& itm : mob->lootitemv)
-                FIX(itm);
-            break;
-        }
-
-        case BL::ITEM:
-        {
-            dumb_ptr<flooritem_data> item = bl->is_item();
-            FIX(item->item_data);
-            break;
-        }
-    }
-#undef FIX
-#undef IFIX
-}
-
-static
-void ladmin_itemfrob_c(dumb_ptr<block_list> bl, ItemNameId source_id, ItemNameId dest_id)
-{
-    ladmin_itemfrob_c2(bl, source_id, dest_id);
-}
-
-static
-void ladmin_itemfrob(Session *, const Packet_Fixed<0x2afa>& fixed)
-{
-    ItemNameId source_id = fixed.source_item_id;
-    ItemNameId dest_id = fixed.dest_item_id;
-    dumb_ptr<block_list> bl = map_get_first_session();
-
-    // flooritems
-    map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id),
-            BL::NUL /* any object */);
-
-    // player characters (and, hopefully, mobs)
-    while (bl->bl_next)
-    {
-        ladmin_itemfrob_c2(bl, source_id, dest_id);
-        bl = bl->bl_next;
-    }
-}
-
 static
 void chrif_delete(Session *s)
 {
@@ -1066,16 +946,6 @@ void chrif_parse(Session *s)
                 chrif_connectack(s, fixed);
                 break;
             }
-            case 0x2afa:
-            {
-                Packet_Fixed<0x2afa> fixed;
-                rv = recv_fpacket<0x2afa, 10>(s, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                ladmin_itemfrob(s, fixed);
-                break;
-            }
             case 0x2afb:
             {
                 Packet_Fixed<0x2afb> fixed;
@@ -1095,12 +965,11 @@ void chrif_parse(Session *s)
 
                 AccountId id = payload.account_id;
                 int login_id2 = payload.login_id2;
-                TimeT connect_until_time = payload.connect_until;
                 short tmw_version = payload.packet_tmw_version;
                 CharKey st_key = payload.char_key;
                 CharData st_data = payload.char_data;
                 pc_authok(id, login_id2,
-                        connect_until_time, tmw_version,
+                        tmw_version,
                         &st_key, &st_data);
                 break;
             }

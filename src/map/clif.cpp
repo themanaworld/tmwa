@@ -622,37 +622,6 @@ int clif_clearchar(dumb_ptr<block_list> bl, BeingRemoveWhy type)
     return 0;
 }
 
-static
-void clif_clearchar_delay_sub(TimerData *, tick_t,
-        dumb_ptr<block_list> bl, BeingRemoveWhy type)
-{
-    clif_clearchar(bl, type);
-    MapBlockLock::freeblock(bl);
-}
-
-int clif_clearchar_delay(tick_t tick,
-        dumb_ptr<block_list> bl, BeingRemoveWhy type)
-{
-    dumb_ptr<block_list> tmpbl;
-    tmpbl.new_();
-
-    // yikes!
-    tmpbl->bl_next = bl->bl_next;
-    tmpbl->bl_prev = bl->bl_prev;
-    tmpbl->bl_id = bl->bl_id;
-    tmpbl->bl_m = bl->bl_m;
-    tmpbl->bl_x = bl->bl_x;
-    tmpbl->bl_y = bl->bl_y;
-    tmpbl->bl_type = bl->bl_type;
-
-    Timer(tick,
-            std::bind(clif_clearchar_delay_sub, ph::_1, ph::_2,
-                tmpbl, type)
-    ).detach();
-
-    return 0;
-}
-
 /*==========================================
  *
  *------------------------------------------
@@ -2684,43 +2653,6 @@ void clif_mobinsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
 }
 
 /*==========================================
- *
- *------------------------------------------
- */
-int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
-                    int range)
-{
-    nullpo_retz(sd);
-
-    Session *s = sd->sess;
-    if (!sd->status.skill[skillid].lv)
-        return 0;
-    Packet_Fixed<0x0147> fixed_147;
-    fixed_147.info.skill_id = skillid;
-    if (type < 0)
-        fixed_147.info.type_or_inf = skill_get_inf(skillid);
-    else
-        fixed_147.info.type_or_inf = type;
-    fixed_147.info.flags = SkillFlags::ZERO;
-    fixed_147.info.level = sd->status.skill[skillid].lv;
-    fixed_147.info.sp = skill_get_sp(skillid, sd->status.skill[skillid].lv);
-    if (range < 0)
-    {
-        range = skill_get_range(skillid, sd->status.skill[skillid].lv);
-        if (range < 0)
-            range = battle_get_range(sd) - (range + 1);
-        fixed_147.info.range = range;
-    }
-    else
-        fixed_147.info.range = range;
-    fixed_147.info.unused = ""_s;
-    fixed_147.info.can_raise = sd->status.skill[skillid].lv < skill_get_max_raise(skillid);
-    send_fpacket<0x0147, 39>(s, fixed_147);
-
-    return 0;
-}
-
-/*==========================================
  * スキルリストを送信する
  *------------------------------------------
  */
@@ -3197,21 +3129,6 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
     fixed_139.sd_y = sd->bl_y;
     fixed_139.range = sd->attackrange;
     send_fpacket<0x0139, 16>(s, fixed_139);
-    return 0;
-}
-
-/*==========================================
- * MVPエフェクト
- *------------------------------------------
- */
-int clif_mvp_effect(dumb_ptr<map_session_data> sd)
-{
-    nullpo_retz(sd);
-
-    Packet_Fixed<0x010c> fixed_10c;
-    fixed_10c.block_id = sd->bl_id;
-    Buffer buf = create_fpacket<0x010c, 6>(fixed_10c);
-    clif_send(buf, sd, SendWho::AREA);
     return 0;
 }
 
@@ -3833,25 +3750,6 @@ RecvResult clif_parse_Emotion(Session *s, dumb_ptr<map_session_data> sd)
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 1);
-
-    return rv;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-RecvResult clif_parse_HowManyConnections(Session *s, dumb_ptr<map_session_data>)
-{
-    Packet_Fixed<0x00c1> fixed;
-    RecvResult rv = recv_fpacket<0x00c1, 2>(s, fixed);
-    if (rv != RecvResult::Complete)
-        return rv;
-
-    Packet_Fixed<0x00c2> fixed_c2;
-    fixed_c2.users = map_getusers();
-    send_fpacket<0x00c2, 6>(s, fixed_c2);
 
     return rv;
 }
@@ -4755,7 +4653,7 @@ RecvResult clif_parse_RemovePartyMember(Session *s, dumb_ptr<map_session_data> s
  *------------------------------------------
  */
 static
-RecvResult clif_parse_PartyChangeOpt0(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_PartyChangeOption(Session *s, dumb_ptr<map_session_data> sd)
 {
     Packet_Fixed<0x0102> fixed;
     RecvResult rv = recv_fpacket<0x0102, 6>(s, fixed);
@@ -5000,7 +4898,7 @@ func_table clif_parse_func_table[0x0220] =
     {0,     5,  nullptr,                        },  // 0x00be
     {1000,  3,  clif_parse_Emotion,             },  // 0x00bf
     {0,     7,  nullptr,                        },  // 0x00c0
-    {0,     2,  clif_parse_HowManyConnections,  },  // 0x00c1
+    {0,     2,  nullptr,                        },  // 0x00c1
     {0,     6,  nullptr,                        },  // 0x00c2
     {0,     8,  nullptr,                        },  // 0x00c3
     {0,     6,  nullptr,                        },  // 0x00c4
@@ -5065,7 +4963,7 @@ func_table clif_parse_func_table[0x0220] =
     {0,     10, clif_parse_ReplyPartyInvite,    },  // 0x00ff
     {0,     2,  clif_parse_LeaveParty,          },  // 0x0100
     {0,     6,  nullptr,                        },  // 0x0101
-    {0,     6,  clif_parse_PartyChangeOpt0,     },  // 0x0102
+    {0,     6,  clif_parse_PartyChangeOption,   },  // 0x0102
     {0,     30, clif_parse_RemovePartyMember,   },  // 0x0103
     {0,     79, nullptr,                        },  // 0x0104
     {0,     31, nullptr,                        },  // 0x0105

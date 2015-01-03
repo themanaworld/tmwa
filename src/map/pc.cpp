@@ -606,7 +606,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
  * char鯖から送られてきたステータスを設定
  *------------------------------------------
  */
-int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
+int pc_authok(AccountId id, int login_id2,
         short tmw_version, const CharKey *st_key, const CharData *st_data)
 {
     dumb_ptr<map_session_data> sd = nullptr;
@@ -760,15 +760,6 @@ int pc_authok(AccountId id, int login_id2, TimeT connect_until_time,
     sd->packet_flood_reset_due = TimeT();
     sd->packet_flood_in = 0;
 
-    // message of the limited time of the account
-    if (connect_until_time)
-    {
-        timestamp_seconds_buffer buffer;
-        stamp_time(buffer, &connect_until_time);
-        AString tmpstr = STRPRINTF("Your account time limit is: %s"_fmt, buffer);
-
-        clif_wis_message(sd->sess, wisp_server_name, tmpstr);
-    }
     pc_calcstatus(sd, 1);
 
     return 0;
@@ -2530,72 +2521,6 @@ void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd)
         sd->areanpc_id = BlockId();
 }
 
-/*==========================================
- *
- *------------------------------------------
- */
-int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
-{
-    int moveblock;
-    int dx, dy;
-
-    struct walkpath_data wpd;
-
-    nullpo_retz(sd);
-
-    if (path_search(&wpd, sd->bl_m, sd->bl_x, sd->bl_y, dst_x, dst_y, 0))
-        return 1;
-
-    sd->dir = sd->head_dir = map_calc_dir(sd, dst_x, dst_y);
-
-    dx = dst_x - sd->bl_x;
-    dy = dst_y - sd->bl_y;
-
-    moveblock = (sd->bl_x / BLOCK_SIZE != dst_x / BLOCK_SIZE
-                 || sd->bl_y / BLOCK_SIZE != dst_y / BLOCK_SIZE);
-
-    map_foreachinmovearea(std::bind(clif_pcoutsight, ph::_1, sd),
-            sd->bl_m,
-            sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
-            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
-            dx, dy,
-            BL::NUL);
-
-    if (moveblock)
-        map_delblock(sd);
-    sd->bl_x = dst_x;
-    sd->bl_y = dst_y;
-    if (moveblock)
-        map_addblock(sd);
-
-    map_foreachinmovearea(std::bind(clif_pcinsight, ph::_1, sd),
-            sd->bl_m,
-            sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
-            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
-            -dx, -dy,
-            BL::NUL);
-
-    if (sd->status.party_id)
-    {                           // パーティのＨＰ情報通知検査
-        Option<PartyPair> p = party_search(sd->status.party_id);
-        if (p.is_some())
-        {
-            int flag = 0;
-            map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &flag),
-                    sd->bl_m,
-                    sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
-                    sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
-                    -dx, -dy,
-                    BL::PC);
-            if (flag)
-                sd->party_hp = -1;
-        }
-    }
-
-    pc_touch_all_relevant_npcs(sd);
-    return 0;
-}
-
 //
 // 武器戦闘
 //
@@ -3141,94 +3066,6 @@ int pc_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
                 skill_num, sd->status.skill[skill_num].lv,
                 skill_power(sd, skill_num));
     }
-
-    return 0;
-}
-
-/*==========================================
- * /resetlvl
- *------------------------------------------
- */
-int pc_resetlvl(dumb_ptr<map_session_data> sd, int type)
-{
-    nullpo_retz(sd);
-
-    for (SkillID i : erange(SkillID(1), MAX_SKILL))
-    {
-        sd->status.skill[i].lv = 0;
-    }
-
-    if (type == 1)
-    {
-        sd->status.skill_point = 0;
-        sd->status.base_level = 1;
-        sd->status.job_level = 1;
-        sd->status.base_exp = 0;
-        sd->status.job_exp = 0;
-        sd->status.option = Opt0::ZERO;
-
-        for (ATTR attr : ATTRs)
-            sd->status.attrs[attr] = 1;
-    }
-
-    if (type == 2)
-    {
-        sd->status.skill_point = 0;
-        sd->status.base_level = 1;
-        sd->status.job_level = 1;
-        sd->status.base_exp = 0;
-        sd->status.job_exp = 0;
-    }
-    if (type == 3)
-    {
-        sd->status.base_level = 1;
-        sd->status.base_exp = 0;
-    }
-    if (type == 4)
-    {
-        sd->status.job_level = 1;
-        sd->status.job_exp = 0;
-    }
-
-    clif_updatestatus(sd, SP::STATUSPOINT);
-    clif_updatestatus(sd, SP::STR);
-    clif_updatestatus(sd, SP::AGI);
-    clif_updatestatus(sd, SP::VIT);
-    clif_updatestatus(sd, SP::INT);
-    clif_updatestatus(sd, SP::DEX);
-    clif_updatestatus(sd, SP::LUK);
-    clif_updatestatus(sd, SP::BASELEVEL);
-    clif_updatestatus(sd, SP::JOBLEVEL);
-    clif_updatestatus(sd, SP::STATUSPOINT);
-    clif_updatestatus(sd, SP::NEXTBASEEXP);
-    clif_updatestatus(sd, SP::NEXTJOBEXP);
-    clif_updatestatus(sd, SP::SKILLPOINT);
-
-    clif_updatestatus(sd, SP::USTR);    // Updates needed stat points - Valaris
-    clif_updatestatus(sd, SP::UAGI);
-    clif_updatestatus(sd, SP::UVIT);
-    clif_updatestatus(sd, SP::UINT);
-    clif_updatestatus(sd, SP::UDEX);
-    clif_updatestatus(sd, SP::ULUK);    // End Addition
-
-    for (EQUIP i : EQUIPs)
-    {
-        // unequip items that can't be equipped by base 1 [Valaris]
-        IOff0 *idx = &sd->equip_index_maybe[i];
-        if ((*idx).ok())
-        {
-            if (!pc_isequip(sd, *idx))
-            {
-                pc_unequipitem(sd, *idx, CalcStatus::LATER);
-                *idx = IOff0::from(-1);
-            }
-        }
-    }
-
-    clif_skillinfoblock(sd);
-    pc_calcstatus(sd, 0);
-
-    MAP_LOG_STATS(sd, "STATRESET"_fmt);
 
     return 0;
 }
@@ -3938,21 +3775,6 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
             break;
     }
     clif_changelook(sd, type, val);
-
-    return 0;
-}
-
-/*==========================================
- * 付属品(鷹,ペコ,カート)設定
- *------------------------------------------
- */
-int pc_setoption(dumb_ptr<map_session_data> sd, Opt0 type)
-{
-    nullpo_retz(sd);
-
-    sd->status.option = type;
-    clif_changeoption(sd);
-    pc_calcstatus(sd, 0);
 
     return 0;
 }

@@ -52,7 +52,6 @@ int clif_charselectok(BlockId);
 int clif_dropflooritem(dumb_ptr<flooritem_data>);
 int clif_clearflooritem(dumb_ptr<flooritem_data>, Session *);
 int clif_clearchar(dumb_ptr<block_list>, BeingRemoveWhy); // area or fd
-int clif_clearchar_delay(tick_t, dumb_ptr<block_list>, BeingRemoveWhy);
 void clif_clearchar_id(BlockId, BeingRemoveWhy, Session *);
 int clif_spawnpc(dumb_ptr<map_session_data>);  //area
 int clif_spawnnpc(dumb_ptr<npc_data>); // area
@@ -131,8 +130,6 @@ void clif_pcoutsight(dumb_ptr<block_list>, dumb_ptr<map_session_data>);
 void clif_mobinsight(dumb_ptr<block_list>, dumb_ptr<mob_data>);
 void clif_moboutsight(dumb_ptr<block_list>, dumb_ptr<mob_data>);
 
-int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
-        int range);
 void clif_skillinfoblock(dumb_ptr<map_session_data> sd);
 int clif_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num);
 
@@ -151,8 +148,6 @@ void clif_wis_end(Session *s, int flag);
 
 void clif_itemlist(dumb_ptr<map_session_data> sd);
 void clif_equiplist(dumb_ptr<map_session_data> sd);
-
-int clif_mvp_effect(dumb_ptr<map_session_data> sd);
 
 int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl);
 

@@ -77,7 +77,7 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
 void pc_makesavestatus(dumb_ptr<map_session_data>);
 int pc_setnewpc(dumb_ptr<map_session_data>, AccountId, CharId, int, uint32_t /*tick_t*/, SEX);
-int pc_authok(AccountId, int, TimeT, short tmw_version, const CharKey *, const CharData *);
+int pc_authok(AccountId, int, short tmw_version, const CharKey *, const CharData *);
 int pc_authfail(AccountId accid);
 
 EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n);
@@ -87,7 +87,6 @@ IOff0 pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos);
 
 int pc_walktoxy(dumb_ptr<map_session_data>, int, int);
 int pc_stop_walking(dumb_ptr<map_session_data>, int);
-int pc_movepos(dumb_ptr<map_session_data>, int, int);
 int pc_setpos(dumb_ptr<map_session_data>, MapName, int, int, BeingRemoveWhy);
 void pc_setsavepoint(dumb_ptr<map_session_data>, MapName, int, int);
 int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type);
@@ -127,7 +126,6 @@ int pc_need_status_point(dumb_ptr<map_session_data>, SP);
 int pc_statusup(dumb_ptr<map_session_data>, SP);
 int pc_statusup2(dumb_ptr<map_session_data>, SP, int);
 int pc_skillup(dumb_ptr<map_session_data>, SkillID);
-int pc_resetlvl(dumb_ptr<map_session_data>, int type);
 int pc_resetstate(dumb_ptr<map_session_data>);
 int pc_resetskill(dumb_ptr<map_session_data>);
 int pc_equipitem(dumb_ptr<map_session_data>, IOff0, EPOS);
@@ -139,7 +137,6 @@ int pc_damage(dumb_ptr<block_list>, dumb_ptr<map_session_data>, int);
 int pc_heal(dumb_ptr<map_session_data>, int, int);
 int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp);
 int pc_percentheal(dumb_ptr<map_session_data> sd, int, int);
-int pc_setoption(dumb_ptr<map_session_data>, Opt0);
 int pc_changelook(dumb_ptr<map_session_data>, LOOK, int);
 
 int pc_readparam(dumb_ptr<map_session_data>, SP);

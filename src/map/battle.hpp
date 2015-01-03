@@ -58,7 +58,6 @@ int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
 
 // 攻撃や移動を止める
 int battle_stopattack(dumb_ptr<block_list> bl);
-int battle_stopwalking(dumb_ptr<block_list> bl, int type);
 
 // 通常攻撃処理まとめ
 ATK battle_weapon_attack(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,

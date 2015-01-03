@@ -77,6 +77,9 @@ enum class SkillID : uint16_t
     // TODO: Remove these!
     NEGATIVE            = 0xffff,
     ZERO                = 0x0000,
+    // this is probably the remains of the 'basic' skill,
+    // which has since been partially split into emote, trade, and party,
+    // but the confusion is caused by the fact that it also covered attacks.
     ONE                 = 0x0001,
 
     // Basic skills.

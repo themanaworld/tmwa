@@ -985,17 +985,6 @@ int battle_stopattack(dumb_ptr<block_list> bl)
     return 0;
 }
 
-// 移動停止
-int battle_stopwalking(dumb_ptr<block_list> bl, int type)
-{
-    nullpo_retz(bl);
-    if (bl->bl_type == BL::MOB)
-        return mob_stop_walking(bl->is_mob(), type);
-    else if (bl->bl_type == BL::PC)
-        return pc_stop_walking(bl->is_player(), type);
-    return 0;
-}
-
 /*==========================================
  * ダメージ最終計算
  *------------------------------------------

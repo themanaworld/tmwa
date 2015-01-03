@@ -224,6 +224,11 @@ TEST_BINARIES := $(patsubst src/%/test.cpp,bin/tests/test-%,${TEST_SOURCES})
 GTEST_BINARIES := $(patsubst src--%_test.cpp,bin/tests/gtest-%,$(subst /,--,${GTEST_SOURCES}))
 DTEST_BINARIES := $(patsubst src/debug-debug/%.cpp,bin/tests/dtest-%,${DTEST_SOURCES})
 
+DOC_DOTS := $(shell cd ${SRC_DIR}; find doc-gen/ -name '*.gv')
+DOC_PNGS := $(patsubst %.gv,${SRC_DIR}/%.png,${DOC_DOTS})
+DOC_OBSOLETE :=
+DOC_OBSOLETE += $(filter-out ${DOC_PNGS},$(wildcard ${SRC_DIR}/doc-gen/*.png))
+
 # tricky part
 
 # We can't put comments in a macro so here goes:
@@ -746,6 +751,14 @@ stamp/%.tcc.formatted: src/%.tcc tools/indenter
 	grep -q '^} // namespace tmwa$$' $<
 	touch $@
 .PHONY: format format-cpp format-hpp
+
+vpath doc-gen/%.gv ${SRC_DIR}
+${SRC_DIR}/doc-gen/%.png: doc-gen/%.gv
+	dot -Tpng $< -o $@
+doc: ${DOC_PNGS}
+	test -e ${SRC_DIR}/doc-gen/.git
+	rm -f ${DOC_OBSOLETE}
+.PHONY: doc
 
 most: $(filter-out bin/${tmwa}-map,${BINARIES})
 magic: $(filter obj/map/magic%,${PDC_OBJECTS})
