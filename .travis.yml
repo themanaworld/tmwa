@@ -49,7 +49,7 @@ script:
   - mkdir build
   - cd build
   - git init
-  - ../configure --build=x86_64-linux-gnu --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi6 --disable-shared` $EXTRA_CONFIGURE_ARGS
+  - ../configure --build=x86_64-linux-gnu --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi6` $EXTRA_CONFIGURE_ARGS
   - make -R -k -j2
   - make -R -k -j2 test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
 
@@ -78,8 +78,6 @@ matrix:
   allow_failures:
     - compiler: clang
       env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.3 DEBUGPACKAGE=libstdc++6-4.6-dbg
-    - compiler: clang
-      env: REAL_CC=clang-3.5 REAL_CXX=clang++-3.5 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.5 DEBUGPACKAGE=libstdc++6-4.6-dbg
   exclude:
     - env: ignore=this
   include:

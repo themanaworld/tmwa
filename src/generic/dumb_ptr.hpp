@@ -35,8 +35,11 @@ class dumb_ptr
     friend class dumb_ptr;
     T *impl;
 public:
+    dumb_ptr() noexcept
+    : impl(nullptr)
+    {}
     explicit
-    dumb_ptr(T *p=nullptr) noexcept
+    dumb_ptr(T *p) noexcept
     : impl(p)
     {}
     template<class U>

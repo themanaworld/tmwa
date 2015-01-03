@@ -22,13 +22,9 @@
 
 
 // TODO also make sure any exception classes are public
-#ifndef __clang__
-# pragma GCC visibility push(default)
-#endif
+#pragma GCC visibility push(default)
 namespace tmwa
 {
     void check_paths();
 } // namespace tmwa
-#ifndef __clang__
-# pragma GCC visibility pop
-#endif
+#pragma GCC visibility pop
