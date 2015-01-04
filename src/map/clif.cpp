@@ -401,7 +401,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
                         p_ = party_search(sd->status.party_id);
                 }
             }
-            if OPTION_IS_SOME(p, p_)
+            if OPTION_IS_SOME_NOLOOP(p, p_)
             {
                 for (int i = 0; i < MAX_PARTY; i++)
                 {
@@ -1231,17 +1231,19 @@ int clif_selllist(dumb_ptr<map_session_data> sd)
     {
         if (!sd->status.inventory[i].nameid)
             continue;
-        if OPTION_IS_SOME(sdidi, sd->inventory_data[i])
+        if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[i])
         {
             int val = sdidi->value_sell;
             if (val < 0)
-                continue;
+                goto continue_outer;
             Packet_Repeat<0x00c7> info;
             info.ioff2 = i.shift();
             info.base_price = val;
             info.actual_price = val;
             repeat_c7.push_back(info);
         }
+    continue_outer:
+        ;
     }
     send_packet_repeatonly<0x00c7, 4, 10>(s, repeat_c7);
 
@@ -3553,7 +3555,7 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
             {
                 Option<PartyPair> p_ = party_search(ssd->status.party_id);
 
-                if OPTION_IS_SOME(p, p_)
+                if OPTION_IS_SOME_NOLOOP(p, p_)
                 {
                     party_name = p->name;
                     send = 1;
@@ -4086,7 +4088,7 @@ RecvResult clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
     if (sd->npc_id)
         return rv;
 
-    if OPTION_IS_SOME(sdidi, sd->inventory_data[index])
+    if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[index])
     {
         EPOS epos = fixed.epos_ignored;
         if (sdidi->type == ItemType::ARROW)

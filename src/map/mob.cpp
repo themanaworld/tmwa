@@ -2591,7 +2591,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 if (it == ptv.end())
                 {
                     Option<PartyPair> p_ = party_search(pid);
-                    if OPTION_IS_SOME(p, p_)
+                    if OPTION_IS_SOME_NOLOOP(p, p_)
                     {
                         if (p->exp != 0)
                         {

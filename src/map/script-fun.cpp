@@ -122,7 +122,7 @@ void builtin_callfunc(ScriptState *st)
     RString str = conv_str(st, &AARG(0));
     Option<P<const ScriptBuffer>> scr_ = userfunc_db.get(str);
 
-    if OPTION_IS_SOME(scr, scr_)
+    if OPTION_IS_SOME_NOLOOP(scr, scr_)
     {
         int j = 0;
         assert (st->start + 3 == st->end);
@@ -720,7 +720,7 @@ void builtin_countitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME(item_data, item_data_)
+        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -763,7 +763,7 @@ void builtin_checkweight(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME(item_data, item_data_)
+        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -808,7 +808,7 @@ void builtin_getitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME(item_data, item_data_)
+        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -861,7 +861,7 @@ void builtin_makeitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME(item_data, item_data_)
+        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -905,7 +905,7 @@ void builtin_delitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME(item_data, item_data_)
+        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
             nameid = item_data->nameid;
     }
     else
@@ -1080,7 +1080,7 @@ void builtin_getequipid(ScriptState *st)
     if (i.ok())
     {
         Option<P<struct item_data>> item_ = sd->inventory_data[i];
-        if OPTION_IS_SOME(item, item_)
+        if OPTION_IS_SOME_NOLOOP(item, item_)
             push_int<ScriptDataInt>(st->stack, unwrap<ItemNameId>(item->nameid));
         else
             push_int<ScriptDataInt>(st->stack, 0);
@@ -1109,7 +1109,7 @@ void builtin_getequipname(ScriptState *st)
     if (i.ok())
     {
         Option<P<struct item_data>> item_ = sd->inventory_data[i];
-        if OPTION_IS_SOME(item, item_)
+        if OPTION_IS_SOME_NOLOOP(item, item_)
             buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], item->jname);
         else
             buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
@@ -1832,7 +1832,7 @@ void builtin_getareadropitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME(item_data, item_data_)
+        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
             item = item_data->nameid;
     }
     else
@@ -2013,7 +2013,7 @@ void builtin_setmapflag(ScriptState *st)
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     Option<P<map_local>> m_ = map_mapname2mapid(str);
-    if OPTION_IS_SOME(m, m_)
+    if OPTION_IS_SOME_NOLOOP(m, m_)
     {
         m->flag.set(mf, 1);
     }
@@ -2026,7 +2026,7 @@ void builtin_removemapflag(ScriptState *st)
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     Option<P<map_local>> m_ = map_mapname2mapid(str);
-    if OPTION_IS_SOME(m, m_)
+    if OPTION_IS_SOME_NOLOOP(m, m_)
     {
         m->flag.set(mf, 0);
     }
@@ -2041,7 +2041,7 @@ void builtin_getmapflag(ScriptState *st)
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     Option<P<map_local>> m_ = map_mapname2mapid(str);
-    if OPTION_IS_SOME(m, m_)
+    if OPTION_IS_SOME_NOLOOP(m, m_)
     {
         r = m->flag.get(mf);
     }

@@ -327,7 +327,7 @@ void mapif_party_created(Session *s, AccountId account_id, Option<PartyPair> p_)
 {
     Packet_Fixed<0x3820> fixed_20;
     fixed_20.account_id = account_id;
-    if OPTION_IS_SOME(p, p_)
+    if OPTION_IS_SOME_NOLOOP(p, p_)
     {
         fixed_20.error = 0;
         fixed_20.party_id = p.party_id;
@@ -524,7 +524,7 @@ static
 void mapif_parse_PartyInfo(Session *s, PartyId party_id)
 {
     Option<P<PartyMost>> maybe_party_most = party_db.search(party_id);
-    if OPTION_IS_SOME(party_most, maybe_party_most)
+    if OPTION_IS_SOME_NOLOOP(party_most, maybe_party_most)
         mapif_party_info(s, PartyPair{party_id, party_most});
     else
         mapif_party_noinfo(s, party_id);

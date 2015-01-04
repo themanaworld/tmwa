@@ -375,7 +375,7 @@ bool atcommand_config_read(ZString cfgName)
             continue;
         }
         Option<P<AtCommandInfo>> p_ = get_atcommandinfo_byname(w1);
-        if OPTION_IS_SOME(p, p_)
+        if OPTION_IS_SOME_NOLOOP(p, p_)
         {
             p->level = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
         }
@@ -3406,7 +3406,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
     Option<PartyPair> p_ = party_searchname(party_name);
     if (p_.is_none())
         p_ = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))));
-    if OPTION_IS_SOME(p, p_)
+    if OPTION_IS_SOME_NOLOOP(p, p_)
     {
         count = 0;
         for (io::FD i : iter_fds())
@@ -3588,7 +3588,7 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
     Option<PartyPair> p_ = party_searchname(party_name);
     if (p_.is_none())
         p_ = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))));
-    if OPTION_IS_SOME(p, p_)
+    if OPTION_IS_SOME_NOLOOP(p, p_)
     {
         if (sd->partyspy == p.party_id)
         {
@@ -3962,7 +3962,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         {
             // you can look items only lower or same level
             Option<P<Storage>> stor_ = account2storage2(pl_sd->status_key.account_id);
-            if OPTION_IS_SOME(stor, stor_)
+            if OPTION_IS_SOME_NOLOOP(stor, stor_)
             {
                 counter = 0;
                 count = 0;
@@ -4426,7 +4426,7 @@ ATCE atcommand_adjcmdlvl(Session *s, dumb_ptr<map_session_data>,
 
     Option<P<AtCommandInfo>> it_ = atcommand_info.search(cmd);
     {
-        if OPTION_IS_SOME(it, it_)
+        if OPTION_IS_SOME_NOLOOP(it, it_)
         {
             it->level = newlev;
             clif_displaymessage(s, "@command level changed."_s);

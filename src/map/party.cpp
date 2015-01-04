@@ -213,7 +213,7 @@ static
 PartyPair handle_info(const PartyPair sp)
 {
     Option<PartyPair> p_ = party_search(sp.party_id);
-    if OPTION_IS_SOME(p, p_)
+    if OPTION_IS_SOME_NOLOOP(p, p_)
     {
         *p.party_most = *sp.party_most;
         return p;
@@ -459,7 +459,7 @@ int party_member_leaved(PartyId party_id, AccountId account_id, CharName name)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(account_id));
     Option<PartyPair> p_ = party_search(party_id);
-    if OPTION_IS_SOME(p, p_)
+    if OPTION_IS_SOME_NOLOOP(p, p_)
     {
         int i;
         for (i = 0; i < MAX_PARTY; i++)

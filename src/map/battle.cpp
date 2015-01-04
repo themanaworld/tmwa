@@ -1400,7 +1400,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     if (widx.ok())
     {
-        if OPTION_IS_SOME(sdidw, sd->inventory_data[widx])
+        if OPTION_IS_SOME_NOLOOP(sdidw, sd->inventory_data[widx])
             atkmin = atkmin * (80 + sdidw->wlv * 20) / 100;
     }
     if (sd->status.weapon == ItemLook::BOW)
@@ -1921,7 +1921,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
             ItemNameId weapon;
             if (weapon_index.ok())
             {
-                if OPTION_IS_SOME(sdidw, sd->inventory_data[weapon_index])
+                if OPTION_IS_SOME_NOLOOP(sdidw, sd->inventory_data[weapon_index])
                 {
                     if (bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
                     {
