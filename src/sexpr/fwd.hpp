@@ -21,7 +21,6 @@
 #include "../sanity.hpp"
 
 #include "../strings/fwd.hpp" // rank 1
-#include "../compat/fwd.hpp" // rank 2
 #include "../io/fwd.hpp" // rank 4
 // sexpr/fwd.hpp is rank 5
 

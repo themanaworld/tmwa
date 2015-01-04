@@ -115,10 +115,11 @@ public:
     V get(const K& k)
     {
         Option<Borrowed<V>> vp = impl.search(k);
-        if OPTION_IS_SOME_NOLOOP(v, vp)
+        OMATCH_BEGIN_SOME (v, vp)
         {
             return *v;
         }
+        OMATCH_END ();
         return V();
     }
     void put(const K& k, V v)
@@ -162,10 +163,11 @@ public:
     Option<Borrowed<V>> get(const K& k)
     {
         Option<Borrowed<U>> up = impl.search(k);
-        if OPTION_IS_SOME_NOLOOP(u, up)
+        OMATCH_BEGIN_SOME (u, up)
         {
             return Some(borrow(*u->get()));
         }
+        OMATCH_END ();
         return None;
     }
     void put(const K& k, U v)

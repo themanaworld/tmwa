@@ -1247,36 +1247,40 @@ void map_setcell(Borrowed<map_local> m, int x, int y, MapCell t)
 int map_setipport(MapName name, IP4Address ip, int port)
 {
     Option<P<map_abstract>> md_ = maps_db.get(name);
-    if OPTION_IS_SOME_NOLOOP(md, md_)
+    OMATCH_BEGIN (md_)
     {
-        if (md->gat)
+        OMATCH_CASE_SOME (md)
         {
-            // local -> check data
-            if (ip != clif_getip() || port != clif_getport())
+            if (md->gat)
             {
-                PRINTF("from char server : %s -> %s:%d\n"_fmt,
-                        name, ip, port);
-                return 1;
+                // local -> check data
+                if (ip != clif_getip() || port != clif_getport())
+                {
+                    PRINTF("from char server : %s -> %s:%d\n"_fmt,
+                            name, ip, port);
+                    return 1;
+                }
+            }
+            else
+            {
+                // update
+                P<map_remote> mdos = md.downcast_to<map_remote>();
+                mdos->ip = ip;
+                mdos->port = port;
             }
         }
-        else
+        OMATCH_CASE_NONE ()
         {
-            // update
-            P<map_remote> mdos = md.downcast_to<map_remote>();
+            // not exist -> add new data
+            auto mdos = make_unique<map_remote>();
+            mdos->name_ = name;
+            mdos->gat = nullptr;
             mdos->ip = ip;
             mdos->port = port;
+            maps_db.put(mdos->name_, std::move(mdos));
         }
     }
-    else
-    {
-        // not exist -> add new data
-        auto mdos = make_unique<map_remote>();
-        mdos->name_ = name;
-        mdos->gat = nullptr;
-        mdos->ip = ip;
-        mdos->port = port;
-        maps_db.put(mdos->name_, std::move(mdos));
-    }
+    OMATCH_END ();
     return 0;
 }
 

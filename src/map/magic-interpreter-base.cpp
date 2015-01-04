@@ -314,22 +314,22 @@ const effect_set_t *spellguard_check_sub(spellguard_check_t *check,
     if (guard == nullptr)
         return nullptr;
 
-    MATCH (*guard)
+    MATCH_BEGIN (*guard)
     {
-        CASE (const GuardCondition&, s)
+        MATCH_CASE (const GuardCondition&, s)
         {
             if (!magic_eval_int(env, s.s_condition))
                 return nullptr;
         }
-        CASE (const GuardComponents&, s)
+        MATCH_CASE (const GuardComponents&, s)
         {
             copy_components(&check->components, s.s_components);
         }
-        CASE (const GuardCatalysts&, s)
+        MATCH_CASE (const GuardCatalysts&, s)
         {
             copy_components(&check->catalysts, s.s_catalysts);
         }
-        CASE (const GuardChoice&, s)
+        MATCH_CASE (const GuardChoice&, s)
         {
             spellguard_check_t altcheck = *check;
             const effect_set_t *retval;
@@ -351,15 +351,15 @@ const effect_set_t *spellguard_check_sub(spellguard_check_t *check,
                 return spellguard_check_sub(check, s.s_alt, caster,
                                              env, near_miss);
         }
-        CASE (const GuardMana&, s)
+        MATCH_CASE (const GuardMana&, s)
         {
             check->mana += magic_eval_int(env, s.s_mana);
         }
-        CASE (const GuardCastTime&, s)
+        MATCH_CASE (const GuardCastTime&, s)
         {
             check->casttime += static_cast<interval_t>(magic_eval_int(env, s.s_casttime));
         }
-        CASE (const effect_set_t&, s_effect)
+        MATCH_CASE (const effect_set_t&, s_effect)
         {
             if (spellguard_can_satisfy(check, caster, env, near_miss))
                 return &s_effect;
@@ -367,6 +367,7 @@ const effect_set_t *spellguard_check_sub(spellguard_check_t *check,
                 return nullptr;
         }
     }
+    MATCH_END ();
 
     return spellguard_check_sub(check, guard->next, caster, env, near_miss);
 }

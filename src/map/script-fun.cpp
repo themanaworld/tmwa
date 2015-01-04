@@ -122,29 +122,33 @@ void builtin_callfunc(ScriptState *st)
     RString str = conv_str(st, &AARG(0));
     Option<P<const ScriptBuffer>> scr_ = userfunc_db.get(str);
 
-    if OPTION_IS_SOME_NOLOOP(scr, scr_)
+    OMATCH_BEGIN (scr_)
     {
-        int j = 0;
-        assert (st->start + 3 == st->end);
+        OMATCH_CASE_SOME (scr)
+        {
+            int j = 0;
+            assert (st->start + 3 == st->end);
 #if 0
-        for (int i = st->start + 3; i < st->end; i++, j++)
-            push_copy(st->stack, i);
+            for (int i = st->start + 3; i < st->end; i++, j++)
+                push_copy(st->stack, i);
 #endif
 
-        push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
-        push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
-        push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-        push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
+            push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
+            push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
+            push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
+            push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
 
-        st->scriptp = ScriptPointer(scr, 0);
-        st->defsp = st->start + 4 + j;
-        st->state = ScriptEndState::GOTO;
+            st->scriptp = ScriptPointer(scr, 0);
+            st->defsp = st->start + 4 + j;
+            st->state = ScriptEndState::GOTO;
+        }
+        OMATCH_CASE_NONE ()
+        {
+            PRINTF("script:callfunc: function not found! [%s]\n"_fmt, str);
+            st->state = ScriptEndState::END;
+        }
     }
-    else
-    {
-        PRINTF("script:callfunc: function not found! [%s]\n"_fmt, str);
-        st->state = ScriptEndState::END;
-    }
+    OMATCH_END ();
 }
 
 /*==========================================
@@ -618,24 +622,23 @@ int getarraysize(ScriptState *st, SIR reg)
     for (; i < 256; i++)
     {
         struct script_data vd = get_val2(st, reg.iplus(i));
-        MATCH (vd)
+        MATCH_BEGIN (vd)
         {
-            CASE (const ScriptDataStr&, u)
+            MATCH_CASE (const ScriptDataStr&, u)
             {
                 if (u.str[0])
                     c = i;
-                goto continue_outer;
+                continue;
             }
-            CASE (const ScriptDataInt&, u)
+            MATCH_CASE (const ScriptDataInt&, u)
             {
                 if (u.numi)
                     c = i;
-                goto continue_outer;
+                continue;
             }
         }
+        MATCH_END ();
         abort();
-    continue_outer:
-        ;
     }
     return c + 1;
 }
@@ -720,8 +723,11 @@ void builtin_countitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
+        OMATCH_BEGIN_SOME (item_data, item_data_)
+        {
             nameid = item_data->nameid;
+        }
+        OMATCH_END ();
     }
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
@@ -763,8 +769,11 @@ void builtin_checkweight(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
+        OMATCH_BEGIN_SOME (item_data, item_data_)
+        {
             nameid = item_data->nameid;
+        }
+        OMATCH_END ();
     }
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
@@ -808,8 +817,11 @@ void builtin_getitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
+        OMATCH_BEGIN_SOME (item_data, item_data_)
+        {
             nameid = item_data->nameid;
+        }
+        OMATCH_END ();
     }
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
@@ -861,8 +873,11 @@ void builtin_makeitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
+        OMATCH_BEGIN_SOME (item_data, item_data_)
+        {
             nameid = item_data->nameid;
+        }
+        OMATCH_END ();
     }
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
@@ -905,8 +920,11 @@ void builtin_delitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
+        OMATCH_BEGIN_SOME (item_data, item_data_)
+        {
             nameid = item_data->nameid;
+        }
+        OMATCH_END ();
     }
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
@@ -1080,10 +1098,18 @@ void builtin_getequipid(ScriptState *st)
     if (i.ok())
     {
         Option<P<struct item_data>> item_ = sd->inventory_data[i];
-        if OPTION_IS_SOME_NOLOOP(item, item_)
-            push_int<ScriptDataInt>(st->stack, unwrap<ItemNameId>(item->nameid));
-        else
-            push_int<ScriptDataInt>(st->stack, 0);
+        OMATCH_BEGIN (item_)
+        {
+            OMATCH_CASE_SOME (item)
+            {
+                push_int<ScriptDataInt>(st->stack, unwrap<ItemNameId>(item->nameid));
+            }
+            OMATCH_CASE_NONE ()
+            {
+                push_int<ScriptDataInt>(st->stack, 0);
+            }
+        }
+        OMATCH_END ();
     }
     else
     {
@@ -1109,10 +1135,18 @@ void builtin_getequipname(ScriptState *st)
     if (i.ok())
     {
         Option<P<struct item_data>> item_ = sd->inventory_data[i];
-        if OPTION_IS_SOME_NOLOOP(item, item_)
-            buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], item->jname);
-        else
-            buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
+        OMATCH_BEGIN (item_)
+        {
+            OMATCH_CASE_SOME (item)
+            {
+                buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], item->jname);
+            }
+            OMATCH_CASE_NONE ()
+            {
+                buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
+            }
+        }
+        OMATCH_END ();
     }
     else
     {
@@ -1832,8 +1866,11 @@ void builtin_getareadropitem(ScriptState *st)
     {
         ZString name = ZString(conv_str(st, data));
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        if OPTION_IS_SOME_NOLOOP(item_data, item_data_)
+        OMATCH_BEGIN_SOME (item_data, item_data_)
+        {
             item = item_data->nameid;
+        }
+        OMATCH_END ();
     }
     else
         item = wrap<ItemNameId>(conv_num(st, data));
@@ -2013,10 +2050,11 @@ void builtin_setmapflag(ScriptState *st)
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     Option<P<map_local>> m_ = map_mapname2mapid(str);
-    if OPTION_IS_SOME_NOLOOP(m, m_)
+    OMATCH_BEGIN_SOME (m, m_)
     {
         m->flag.set(mf, 1);
     }
+    OMATCH_END ();
 }
 
 static
@@ -2026,10 +2064,11 @@ void builtin_removemapflag(ScriptState *st)
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     Option<P<map_local>> m_ = map_mapname2mapid(str);
-    if OPTION_IS_SOME_NOLOOP(m, m_)
+    OMATCH_BEGIN_SOME (m, m_)
     {
         m->flag.set(mf, 0);
     }
+    OMATCH_END ();
 }
 
 static
@@ -2041,10 +2080,11 @@ void builtin_getmapflag(ScriptState *st)
     int i = conv_num(st, &AARG(1));
     MapFlag mf = map_flag_from_int(i);
     Option<P<map_local>> m_ = map_mapname2mapid(str);
-    if OPTION_IS_SOME_NOLOOP(m, m_)
+    OMATCH_BEGIN_SOME (m, m_)
     {
         r = m->flag.get(mf);
     }
+    OMATCH_END ();
 
     push_int<ScriptDataInt>(st->stack, r);
 }

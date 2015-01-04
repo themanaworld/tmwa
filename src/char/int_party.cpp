@@ -327,19 +327,23 @@ void mapif_party_created(Session *s, AccountId account_id, Option<PartyPair> p_)
 {
     Packet_Fixed<0x3820> fixed_20;
     fixed_20.account_id = account_id;
-    if OPTION_IS_SOME_NOLOOP(p, p_)
+    OMATCH_BEGIN (p_)
     {
-        fixed_20.error = 0;
-        fixed_20.party_id = p.party_id;
-        fixed_20.party_name = p->name;
-        PRINTF("int_party: created! %d %s\n"_fmt, p.party_id, p->name);
+        OMATCH_CASE_SOME (p)
+        {
+            fixed_20.error = 0;
+            fixed_20.party_id = p.party_id;
+            fixed_20.party_name = p->name;
+            PRINTF("int_party: created! %d %s\n"_fmt, p.party_id, p->name);
+        }
+        OMATCH_CASE_NONE ()
+        {
+            fixed_20.error = 1;
+            fixed_20.party_id = PartyId();
+            fixed_20.party_name = stringish<PartyName>("error"_s);
+        }
     }
-    else
-    {
-        fixed_20.error = 1;
-        fixed_20.party_id = PartyId();
-        fixed_20.party_name = stringish<PartyName>("error"_s);
-    }
+    OMATCH_END ();
     send_fpacket<0x3820, 35>(s, fixed_20);
 }
 
@@ -524,10 +528,18 @@ static
 void mapif_parse_PartyInfo(Session *s, PartyId party_id)
 {
     Option<P<PartyMost>> maybe_party_most = party_db.search(party_id);
-    if OPTION_IS_SOME_NOLOOP(party_most, maybe_party_most)
-        mapif_party_info(s, PartyPair{party_id, party_most});
-    else
-        mapif_party_noinfo(s, party_id);
+    OMATCH_BEGIN (maybe_party_most)
+    {
+        OMATCH_CASE_SOME (party_most)
+        {
+            mapif_party_info(s, PartyPair{party_id, party_most});
+        }
+        OMATCH_CASE_NONE ()
+        {
+            mapif_party_noinfo(s, party_id);
+        }
+    }
+    OMATCH_END ();
 }
 
 // パーティ追加要求

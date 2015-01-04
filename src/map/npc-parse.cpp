@@ -756,17 +756,17 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
 static
 bool npc_load_script_any(ast::npc::Script *script)
 {
-    MATCH (*script)
+    MATCH_BEGIN (*script)
     {
-        CASE (ast::npc::ScriptFunction&, script_function)
+        MATCH_CASE (ast::npc::ScriptFunction&, script_function)
         {
             return npc_load_script_function(script->body, script_function);
         }
-        CASE (ast::npc::ScriptNone&, script_none)
+        MATCH_CASE (ast::npc::ScriptNone&, script_none)
         {
             return npc_load_script_none(script->body, script_none);
         }
-        CASE (ast::npc::ScriptMapNone&, script_map_none)
+        MATCH_CASE (ast::npc::ScriptMapNone&, script_map_none)
         {
             auto& mapname = script_map_none.m;
             Option<P<map_local>> m = map_mapname2mapid(mapname.data);
@@ -777,7 +777,7 @@ bool npc_load_script_any(ast::npc::Script *script)
             }
             return npc_load_script_map_none(script->body, script_map_none);
         }
-        CASE (ast::npc::ScriptMap&, script_map)
+        MATCH_CASE (ast::npc::ScriptMap&, script_map)
         {
             auto& mapname = script_map.m;
             Option<P<map_local>> m = map_mapname2mapid(mapname.data);
@@ -789,6 +789,7 @@ bool npc_load_script_any(ast::npc::Script *script)
             return npc_load_script_map(script->body, script_map);
         }
     }
+    MATCH_END ();
     abort();
 }
 
@@ -827,14 +828,14 @@ bool load_one_npc(io::LineCharReader& fp, bool& done)
         PRINTF("%s\n"_fmt, res.get_failure());
     ast::npc::TopLevel tl = TRY_UNWRAP(std::move(res.get_success()), return false);
 
-    MATCH (tl)
+    MATCH_BEGIN (tl)
     {
-        CASE (ast::npc::Comment&, c)
+        MATCH_CASE (ast::npc::Comment&, c)
         {
             (void)c;
             return true;
         }
-        CASE (ast::npc::Warp&, warp)
+        MATCH_CASE (ast::npc::Warp&, warp)
         {
             auto& mapname = warp.m;
             Option<P<map_local>> m = map_mapname2mapid(mapname.data);
@@ -845,7 +846,7 @@ bool load_one_npc(io::LineCharReader& fp, bool& done)
             }
             return npc_load_warp(warp);
         }
-        CASE (ast::npc::Shop&, shop)
+        MATCH_CASE (ast::npc::Shop&, shop)
         {
             auto& mapname = shop.m;
             Option<P<map_local>> m = map_mapname2mapid(mapname.data);
@@ -856,7 +857,7 @@ bool load_one_npc(io::LineCharReader& fp, bool& done)
             }
             return npc_load_shop(shop);
         }
-        CASE (ast::npc::Monster&, monster)
+        MATCH_CASE (ast::npc::Monster&, monster)
         {
             auto& mapname = monster.m;
             Option<P<map_local>> m = map_mapname2mapid(mapname.data);
@@ -867,7 +868,7 @@ bool load_one_npc(io::LineCharReader& fp, bool& done)
             }
             return npc_load_monster(monster);
         }
-        CASE (ast::npc::MapFlag&, mapflag)
+        MATCH_CASE (ast::npc::MapFlag&, mapflag)
         {
             auto& mapname = mapflag.m;
             Option<P<map_local>> m = map_mapname2mapid(mapname.data);
@@ -878,11 +879,12 @@ bool load_one_npc(io::LineCharReader& fp, bool& done)
             }
             return npc_load_mapflag(mapflag);
         }
-        CASE (ast::npc::Script&, script)
+        MATCH_CASE (ast::npc::Script&, script)
         {
             return npc_load_script_any(&script);
         }
     }
+    MATCH_END ();
     abort();
 }
 

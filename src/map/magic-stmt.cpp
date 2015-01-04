@@ -61,17 +61,18 @@ constexpr Species INVISIBLE_NPC = wrap<Species>(127);
 static
 void clear_activation_record(cont_activation_record_t *ar)
 {
-    MATCH (*ar)
+    MATCH_BEGIN (*ar)
     {
-        CASE (CarForEach&, c_foreach)
+        MATCH_CASE (CarForEach&, c_foreach)
         {
             c_foreach.entities_vp.delete_();
         }
-        CASE (CarProc&, c_proc)
+        MATCH_CASE (CarProc&, c_proc)
         {
             c_proc.old_actualpa.delete_();
         }
     }
+    MATCH_END ();
 }
 
 static
@@ -998,9 +999,9 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
     {
         cont_activation_record_t *ar =
             &invocation_->stack.back();
-        MATCH (*ar)
+        MATCH_BEGIN (*ar)
         {
-            CASE (const CarProc&, c_proc)
+            MATCH_CASE (const CarProc&, c_proc)
             {
                 dumb_ptr<effect_t> ret = ar->return_location;
                 for (int i = 0; i < c_proc.args_nr; i++)
@@ -1017,7 +1018,7 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
 
                 return ret;
             }
-            CASE (CarForEach&, c_foreach)
+            MATCH_CASE (CarForEach&, c_foreach)
             {
                 BlockId entity_id;
                 val_t *var = &invocation_->env->varu[c_foreach.id];
@@ -1048,7 +1049,7 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
 
                 return c_foreach.body;
             }
-            CASE (CarFor&, c_for)
+            MATCH_CASE (CarFor&, c_for)
             {
                 if (c_for.current > c_for.stop)
                 {
@@ -1065,6 +1066,7 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
                 return c_for.body;
             }
         }
+        MATCH_END ();
         abort();
     }
 }
@@ -1136,14 +1138,14 @@ void find_entities_in_area(area_t& area_,
         std::vector<BlockId> *entities_vp,
         FOREACH_FILTER filter)
 {
-    MATCH (area_)
+    MATCH_BEGIN (area_)
     {
-        CASE (const AreaUnion&, a)
+        MATCH_CASE (const AreaUnion&, a)
         {
             find_entities_in_area(*a.a_union[0], entities_vp, filter);
             find_entities_in_area(*a.a_union[1], entities_vp, filter);
         }
-        CASE (const location_t&, a_loc)
+        MATCH_CASE (const location_t&, a_loc)
         {
             (void)a_loc;
             // TODO this can be simplified
@@ -1155,7 +1157,7 @@ void find_entities_in_area(area_t& area_,
                     x + width, y + height,
                     BL::NUL /* filter elsewhere */);
         }
-        CASE (const AreaRect&, a_rect)
+        MATCH_CASE (const AreaRect&, a_rect)
         {
             (void)a_rect;
             // TODO this can be simplified
@@ -1167,7 +1169,7 @@ void find_entities_in_area(area_t& area_,
                     x + width, y + height,
                     BL::NUL /* filter elsewhere */);
         }
-        CASE (const AreaBar&, a_bar)
+        MATCH_CASE (const AreaBar&, a_bar)
         {
             (void)a_bar;
             // TODO this is wrong
@@ -1180,6 +1182,7 @@ void find_entities_in_area(area_t& area_,
                     BL::NUL /* filter elsewhere */);
         }
     }
+    MATCH_END ();
 }
 
 static
@@ -1312,13 +1315,13 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
         dumb_ptr<effect_t> next = e->next;
         int i;
 
-        MATCH (*e)
+        MATCH_BEGIN (*e)
         {
-            CASE (const EffectSkip&, e_)
+            MATCH_CASE (const EffectSkip&, e_)
             {
                 (void)e_;
             }
-            CASE (const EffectAbort&, e_)
+            MATCH_CASE (const EffectAbort&, e_)
             {
                 (void)e_;
                 invocation_->flags |= INVOCATION_FLAG::ABORTED;
@@ -1326,34 +1329,34 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                 clear_stack(invocation_);
                 next = nullptr;
             }
-            CASE (const EffectEnd&, e_)
+            MATCH_CASE (const EffectEnd&, e_)
             {
                 (void)e_;
                 clear_stack(invocation_);
                 next = nullptr;
             }
-            CASE (const EffectAssign&, e_assign)
+            MATCH_CASE (const EffectAssign&, e_assign)
             {
                 magic_eval(invocation_->env,
                             &invocation_->env->varu[e_assign.id],
                             e_assign.expr);
             }
-            CASE (const EffectForEach&, e_foreach)
+            MATCH_CASE (const EffectForEach&, e_foreach)
             {
                 next = run_foreach(invocation_, &e_foreach, next);
             }
-            CASE (const EffectFor&, e_for)
+            MATCH_CASE (const EffectFor&, e_for)
             {
                 next = run_for (invocation_, &e_for, next);
             }
-            CASE (const EffectIf&, e_if)
+            MATCH_CASE (const EffectIf&, e_if)
             {
                 if (magic_eval_int(invocation_->env, e_if.cond))
                     next = e_if.true_branch;
                 else
                     next = e_if.false_branch;
             }
-            CASE (const EffectSleep&, e_)
+            MATCH_CASE (const EffectSleep&, e_)
             {
                 interval_t sleeptime = static_cast<interval_t>(
                         magic_eval_int(invocation_->env, e_.e_sleep));
@@ -1361,7 +1364,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                 if (sleeptime > interval_t::zero())
                     return sleeptime;
             }
-            CASE (const EffectScript&, e_)
+            MATCH_CASE (const EffectScript&, e_)
             {
                 dumb_ptr<map_session_data> caster = map_id_is_player(invocation_->caster);
                 if (caster)
@@ -1408,12 +1411,12 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                 }
                 REFRESH_INVOCATION; // Script may have killed the caster
             }
-            CASE (const EffectBreak&, e_)
+            MATCH_CASE (const EffectBreak&, e_)
             {
                 (void)e_;
                 next = return_to_stack(invocation_);
             }
-            CASE (const EffectOp&, e_op)
+            MATCH_CASE (const EffectOp&, e_op)
             {
                 op_t *op = e_op.opp;
                 val_t args[MAX_ARGS];
@@ -1432,11 +1435,12 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
                 REFRESH_INVOCATION; // Effect may have killed the caster
             }
-            CASE (const EffectCall&, e_call)
+            MATCH_CASE (const EffectCall&, e_call)
             {
                 next = run_call(invocation_, &e_call, next);
             }
         }
+        MATCH_END ();
 
     break_match:
         if (!next)

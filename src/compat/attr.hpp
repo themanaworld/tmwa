@@ -30,28 +30,4 @@ namespace tmwa
 #endif
 
 #define JOIN(a, b) a##b
-
-//  first loop:
-//      declare flag 'guard' (initially true)
-//      declare flag 'broken' (initially false)
-//      condition is 'guard' must be true, which is the case only for the first iteration
-//      post checks 'broken' and if set, break the loop
-//  second loop:
-//      declare public 'var' variable
-//      condition is that 'guard' must be true
-//      post sets 'guard' to false to make this loop run only once
-//  third loop:
-//      enable broken flag; it will remain set if 'break' is in the loop
-//      condition is that 'broken' must be true
-//      post sets 'broken' to false, which then fails the condition
-//      if user has a 'break' inside, then 'broken' will be true
-//      in either case, go back to the second loop's post
-#define WITH_VAR_INLOOP(ty, var, expr)                                                                                          \
-    for (bool JOIN(var, _guard) = true, JOIN(var, _broken) = false; JOIN(var, _guard); ({if (JOIN(var, _broken)) { break; } })) \
-        for (ty var = expr; JOIN(var, _guard); JOIN(var, _guard) = false)                                                       \
-            for (JOIN(var, _broken) = true; JOIN(var, _broken); JOIN(var, _broken) = false)
-#define WITH_VAR_NOLOOP(ty, var, expr)                                                                                          \
-    for (bool JOIN(var, _guard) = true, JOIN(var, _broken) = false; JOIN(var, _guard); ({if (JOIN(var, _broken)) {abort();} })) \
-        for (ty var = expr; JOIN(var, _guard); JOIN(var, _guard) = false)                                                       \
-            for (JOIN(var, _broken) = true; JOIN(var, _broken); JOIN(var, _broken) = false)
 } // namespace tmwa

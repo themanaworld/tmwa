@@ -74,9 +74,9 @@ dumb_ptr<map_session_data> script_rid2sd(ScriptState *st)
  */
 void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
 {
-    MATCH (*data)
+    MATCH_BEGIN (*data)
     {
-        CASE (const ScriptDataParam&, u)
+        MATCH_CASE (const ScriptDataParam&, u)
         {
             if (sd == nullptr)
                 PRINTF("get_val error param SP::%d\n"_fmt, u.reg.sp());
@@ -85,7 +85,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
                 numi = pc_readparam(sd, u.reg.sp());
             *data = ScriptDataInt{numi};
         }
-        CASE (const ScriptDataVariable&, u)
+        MATCH_CASE (const ScriptDataVariable&, u)
         {
             ZString name_ = variable_names.outtern(u.reg.base());
             VarName name = stringish<VarName>(name_);
@@ -108,8 +108,11 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
                 else if (prefix == '$')
                 {
                     Option<P<RString>> s_ = mapregstr_db.search(u.reg);
-                    if OPTION_IS_SOME_NOLOOP(s, s_)
+                    OMATCH_BEGIN_SOME (s, s_)
+                    {
                         str = *s;
+                    }
+                    OMATCH_END ();
                 }
                 else
                 {
@@ -152,6 +155,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
             }
         }
     }
+    MATCH_END ();
 }
 
 void get_val(ScriptState *st, struct script_data *data)
@@ -268,24 +272,27 @@ int conv_num(ScriptState *st, struct script_data *data)
     int rv = 0;
     get_val(st, data);
     assert (!data->is<ScriptDataRetInfo>());
-    MATCH (*data)
+    MATCH_BEGIN (*data)
     {
-        default:
+        MATCH_DEFAULT ()
+        {
             abort();
-        CASE (const ScriptDataStr&, u)
+        }
+        MATCH_CASE (const ScriptDataStr&, u)
         {
             RString p = u.str;
             rv = atoi(p.c_str());
         }
-        CASE (const ScriptDataInt&, u)
+        MATCH_CASE (const ScriptDataInt&, u)
         {
             return u.numi;
         }
-        CASE (const ScriptDataPos&, u)
+        MATCH_CASE (const ScriptDataPos&, u)
         {
             return u.numi;
         }
     }
+    MATCH_END ()
     *data = ScriptDataInt{rv};
     return rv;
 }
@@ -596,45 +603,46 @@ void run_func(ScriptState *st)
         PRINTF("stack dump :"_fmt);
         for (script_data& d : st->stack->stack_datav)
         {
-            MATCH (d)
+            MATCH_BEGIN (d)
             {
-                CASE (const ScriptDataInt&, u)
+                MATCH_CASE (const ScriptDataInt&, u)
                 {
                     PRINTF(" int(%d)"_fmt, u.numi);
                 }
-                CASE (const ScriptDataRetInfo&, u)
+                MATCH_CASE (const ScriptDataRetInfo&, u)
                 {
                     PRINTF(" retinfo(%p)"_fmt, static_cast<const void *>(&*u.script));
                 }
-                CASE (const ScriptDataParam&, u)
+                MATCH_CASE (const ScriptDataParam&, u)
                 {
                     PRINTF(" param(%d)"_fmt, u.reg.sp());
                 }
-                CASE (const ScriptDataVariable&, u)
+                MATCH_CASE (const ScriptDataVariable&, u)
                 {
                     PRINTF(" name(%s)[%d]"_fmt, variable_names.outtern(u.reg.base()), u.reg.index());
                 }
-                CASE (const ScriptDataArg&, u)
+                MATCH_CASE (const ScriptDataArg&, u)
                 {
                     (void)u;
                     PRINTF(" arg"_fmt);
                 }
-                CASE (const ScriptDataPos&, u)
+                MATCH_CASE (const ScriptDataPos&, u)
                 {
                     (void)u;
                     PRINTF(" pos(%d)"_fmt, u.numi);
                 }
-                CASE (const ScriptDataStr&, u)
+                MATCH_CASE (const ScriptDataStr&, u)
                 {
                     (void)u;
                     PRINTF(" str(%s)"_fmt, u.str);
                 }
-                CASE (const ScriptDataFuncRef&, u)
+                MATCH_CASE (const ScriptDataFuncRef&, u)
                 {
                     (void)u;
                     PRINTF(" func(%s)"_fmt, builtin_functions[u.numi].name);
                 }
             }
+            MATCH_END ();
         }
         PRINTF("\n"_fmt);
     }

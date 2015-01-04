@@ -134,8 +134,11 @@ Option<Borrowed<str_data_t>> search_strp(XString p)
 Borrowed<str_data_t> add_strp(XString p)
 {
     Option<P<str_data_t>> rv_ = search_strp(p);
-    if OPTION_IS_SOME_NOLOOP(rv, rv_)
+    OMATCH_BEGIN_SOME (rv, rv_)
+    {
         return rv;
+    }
+    OMATCH_END ();
 
     RString p2 = p;
     P<str_data_t> datum = str_datam.init(p2);

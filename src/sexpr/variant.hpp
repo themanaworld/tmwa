@@ -23,8 +23,6 @@
 #include <cstddef>
 #include <utility>
 
-#include "../compat/attr.hpp"
-
 #include "union.hpp"
 #include "void.hpp"
 
@@ -35,14 +33,42 @@ namespace tmwa
 {
 namespace sexpr
 {
-#define MATCH(expr)                             \
-    WITH_VAR_NOLOOP(auto&&, _match_var, expr)   \
-    switch (tmwa::sexpr::VariantFriend::get_state(_match_var))
-#define TYPED_CASE(ty, var, look)                                                   \
-    break;                                                                          \
-    case tmwa::sexpr::VariantFriend::get_state_for<look, decltype(_match_var)>():   \
-    WITH_VAR_INLOOP(ty, var, tmwa::sexpr::VariantFriend::unchecked_get<look>(_match_var))
-#define CASE(ty, var) TYPED_CASE(ty, var, std::remove_const<std::remove_reference<ty>::type>::type)
+#define MATCH_BEGIN(expr)                                           \
+    {                                                               \
+        auto&& _match_var = (expr);                                 \
+        switch (tmwa::sexpr::VariantFriend::get_state(_match_var))  \
+        {                                                           \
+            {                                                       \
+                {                                                   \
+    /* }}}} */
+#define MATCH_END()         \
+    /* {{{{ */              \
+                }           \
+            }               \
+        }                   \
+        (void) _match_var;  \
+    }
+
+#define MATCH_CASE(ty, v)                                                                           \
+    /* {{{{ */                                                                                      \
+        }                                                                                           \
+        break;                                                                                      \
+    }                                                                                               \
+    {                                                                                               \
+        using _match_case_type = std::remove_const<std::remove_reference<ty>::type>::type;          \
+        case tmwa::sexpr::VariantFriend::get_state_for<_match_case_type, decltype(_match_var)>():   \
+        {                                                                                           \
+            ty v = tmwa::sexpr::VariantFriend::unchecked_get<_match_case_type>(_match_var);
+    /* }}}} */
+#define MATCH_DEFAULT() \
+    /* {{{{ */          \
+        }               \
+        break;          \
+    }                   \
+    {                   \
+        default:        \
+        {               \
+    /* }}}} */
 
     template<class... T>
     class Variant

@@ -77,42 +77,46 @@ TEST(variant, match)
         : sexpr::Variant<Foo, Bar>(Foo(1))
         {}
     };
+
     Sub v1;
-    MATCH (v1)
+    MATCH_BEGIN (v1)
     {
-        // This is not a public API, it's just for testing.
-    default:
-        FAIL();
-
-        CASE(Foo, f)
+        MATCH_DEFAULT ()
+        {
+            FAIL();
+        }
+        MATCH_CASE (Foo, f)
         {
             (void)f;
             SUCCEED();
         }
-        CASE(Bar, b)
+        MATCH_CASE (Bar, b)
         {
             (void)b;
             FAIL();
         }
     }
+    MATCH_END ();
+
     v1.emplace<Bar>(2);
-    MATCH (v1)
+    MATCH_BEGIN (v1)
     {
-        // This is not a public API, it's just for testing.
-    default:
-        FAIL();
-
-        CASE(Foo, f)
+        MATCH_DEFAULT ()
+        {
+            FAIL();
+        }
+        MATCH_CASE (Foo, f)
         {
             (void)f;
             FAIL();
         }
-        CASE(Bar, b)
+        MATCH_CASE (Bar, b)
         {
             (void)b;
             SUCCEED();
         }
     }
+    MATCH_END ();
 }
 
 TEST(variant, copymove1)

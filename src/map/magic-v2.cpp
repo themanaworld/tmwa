@@ -139,14 +139,15 @@ namespace magic_v2
 
         /* For FOR and FOREACH, we use special stack handlers and thus don't have to set
          * the continuation.  It's only IF that we need to handle in this fashion. */
-        MATCH (*src)
+        MATCH_BEGIN (*src)
         {
-            CASE (EffectIf&, e_if)
+            MATCH_CASE (EffectIf&, e_if)
             {
                 set_effect_continuation(e_if.true_branch, continuation);
                 set_effect_continuation(e_if.false_branch, continuation);
             }
         }
+        MATCH_END ();
 
         if (src->next)
             set_effect_continuation(src->next, continuation);
@@ -177,13 +178,14 @@ namespace magic_v2
         }
 
         /* If the premise is a disjunction, b is the continuation of _all_ branches */
-        MATCH (*a)
+        MATCH_BEGIN (*a)
         {
-            CASE(const GuardChoice&, s)
+            MATCH_CASE (const GuardChoice&, s)
             {
                 spellguard_implication(s.s_alt, b);
             }
         }
+        MATCH_END ();
 
         if (a->next)
             spellguard_implication(a->next, b);

@@ -375,17 +375,24 @@ bool atcommand_config_read(ZString cfgName)
             continue;
         }
         Option<P<AtCommandInfo>> p_ = get_atcommandinfo_byname(w1);
-        if OPTION_IS_SOME_NOLOOP(p, p_)
+        OMATCH_BEGIN (p_)
         {
-            p->level = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
+            OMATCH_CASE_SOME (p)
+            {
+                p->level = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
+            }
+            OMATCH_CASE_NONE ()
+            {
+                if (w1 == "import"_s)
+                    rv &= atcommand_config_read(w2);
+                else
+                {
+                    PRINTF("%s: bad line: %s\n"_fmt, cfgName, line);
+                    rv = false;
+                }
+            }
         }
-        else if (w1 == "import"_s)
-            rv &= atcommand_config_read(w2);
-        else
-        {
-            PRINTF("%s: bad line: %s\n"_fmt, cfgName, line);
-            rv = false;
-        }
+        OMATCH_END ();
     }
 
     return rv;
@@ -3406,41 +3413,45 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
     Option<PartyPair> p_ = party_searchname(party_name);
     if (p_.is_none())
         p_ = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))));
-    if OPTION_IS_SOME_NOLOOP(p, p_)
+    OMATCH_BEGIN (p_)
     {
-        count = 0;
-        for (io::FD i : iter_fds())
+        OMATCH_CASE_SOME (p)
         {
-            Session *s2 = get_session(i);
-            if (!s2)
-                continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
-            if (pl_sd && pl_sd->state.auth
-                && sd->status_key.account_id != pl_sd->status_key.account_id
-                && pl_sd->status.party_id == p.party_id)
+            count = 0;
+            for (io::FD i : iter_fds())
             {
-                if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                    && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
-                    count++;
-                else
-                    pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
+                Session *s2 = get_session(i);
+                if (!s2)
+                    continue;
+                dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+                if (pl_sd && pl_sd->state.auth
+                    && sd->status_key.account_id != pl_sd->status_key.account_id
+                    && pl_sd->status.party_id == p.party_id)
+                {
+                    if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
+                        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+                        count++;
+                    else
+                        pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
+                }
+            }
+            AString output = STRPRINTF("All online characters of the %s party are near you."_fmt, p->name);
+            clif_displaymessage(s, output);
+            if (count)
+            {
+                output = STRPRINTF(
+                        "Because you are not authorised to warp from some maps, %d player(s) have not been recalled."_fmt,
+                        count);
+                clif_displaymessage(s, output);
             }
         }
-        AString output = STRPRINTF("All online characters of the %s party are near you."_fmt, p->name);
-        clif_displaymessage(s, output);
-        if (count)
+        OMATCH_CASE_NONE ()
         {
-            output = STRPRINTF(
-                    "Because you are not authorised to warp from some maps, %d player(s) have not been recalled."_fmt,
-                    count);
-            clif_displaymessage(s, output);
+            clif_displaymessage(s, "Incorrect name or ID, or no one from the party is online."_s);
+            return ATCE::EXIST;
         }
     }
-    else
-    {
-        clif_displaymessage(s, "Incorrect name or ID, or no one from the party is online."_s);
-        return ATCE::EXIST;
-    }
+    OMATCH_END ();
 
     return ATCE::OKAY;
 }
@@ -3588,26 +3599,30 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
     Option<PartyPair> p_ = party_searchname(party_name);
     if (p_.is_none())
         p_ = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(message.c_str()))));
-    if OPTION_IS_SOME_NOLOOP(p, p_)
+    OMATCH_BEGIN (p_)
     {
-        if (sd->partyspy == p.party_id)
+        OMATCH_CASE_SOME (p)
         {
-            sd->partyspy = PartyId();
-            AString output = STRPRINTF("No longer spying on the %s party."_fmt, p->name);
-            clif_displaymessage(s, output);
+            if (sd->partyspy == p.party_id)
+            {
+                sd->partyspy = PartyId();
+                AString output = STRPRINTF("No longer spying on the %s party."_fmt, p->name);
+                clif_displaymessage(s, output);
+            }
+            else
+            {
+                sd->partyspy = p.party_id;
+                AString output = STRPRINTF("Spying on the %s party."_fmt, p->name);
+                clif_displaymessage(s, output);
+            }
         }
-        else
+        OMATCH_CASE_NONE ()
         {
-            sd->partyspy = p.party_id;
-            AString output = STRPRINTF("Spying on the %s party."_fmt, p->name);
-            clif_displaymessage(s, output);
+            clif_displaymessage(s, "Incorrect name or ID, or no one from the party is online."_s);
+            return ATCE::EXIST;
         }
     }
-    else
-    {
-        clif_displaymessage(s, "Incorrect name or ID, or no one from the party is online."_s);
-        return ATCE::EXIST;
-    }
+    OMATCH_END ();
 
     return ATCE::OKAY;
 }
@@ -3962,51 +3977,55 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         {
             // you can look items only lower or same level
             Option<P<Storage>> stor_ = account2storage2(pl_sd->status_key.account_id);
-            if OPTION_IS_SOME_NOLOOP(stor, stor_)
+            OMATCH_BEGIN (stor_)
             {
-                counter = 0;
-                count = 0;
-                for (SOff0 i : SOff0::iter())
+                OMATCH_CASE_SOME (stor)
                 {
-                    if (!stor->storage_[i].nameid)
-                        continue;
-                    P<struct item_data> item_data = TRY_UNWRAP(itemdb_exists(stor->storage_[i].nameid), continue);
-
+                    counter = 0;
+                    count = 0;
+                    for (SOff0 i : SOff0::iter())
                     {
-                        counter = counter + stor->storage_[i].amount;
-                        count++;
-                        if (count == 1)
+                        if (!stor->storage_[i].nameid)
+                            continue;
+                        P<struct item_data> item_data = TRY_UNWRAP(itemdb_exists(stor->storage_[i].nameid), continue);
+
                         {
-                            AString output = STRPRINTF(
-                                    "------ Storage items list of '%s' ------"_fmt,
-                                    pl_sd->status_key.name);
+                            counter = counter + stor->storage_[i].amount;
+                            count++;
+                            if (count == 1)
+                            {
+                                AString output = STRPRINTF(
+                                        "------ Storage items list of '%s' ------"_fmt,
+                                        pl_sd->status_key.name);
+                                clif_displaymessage(s, output);
+                            }
+                            AString output;
+                            if (true)
+                                output = STRPRINTF("%d %s (%s, id: %d)"_fmt,
+                                        stor->storage_[i].amount,
+                                        item_data->name, item_data->jname,
+                                        stor->storage_[i].nameid);
                             clif_displaymessage(s, output);
                         }
-                        AString output;
-                        if (true)
-                            output = STRPRINTF("%d %s (%s, id: %d)"_fmt,
-                                    stor->storage_[i].amount,
-                                    item_data->name, item_data->jname,
-                                    stor->storage_[i].nameid);
+                    }
+                    if (count == 0)
+                        clif_displaymessage(s,
+                                "No item found in the storage of this player."_s);
+                    else
+                    {
+                        AString output = STRPRINTF(
+                                "%d item(s) found in %d kind(s) of items."_fmt,
+                                counter, count);
                         clif_displaymessage(s, output);
                     }
                 }
-                if (count == 0)
-                    clif_displaymessage(s,
-                            "No item found in the storage of this player."_s);
-                else
+                OMATCH_CASE_NONE ()
                 {
-                    AString output = STRPRINTF(
-                            "%d item(s) found in %d kind(s) of items."_fmt,
-                            counter, count);
-                    clif_displaymessage(s, output);
+                    clif_displaymessage(s, "This player has no storage."_s);
+                    return ATCE::OKAY;
                 }
             }
-            else
-            {
-                clif_displaymessage(s, "This player has no storage."_s);
-                return ATCE::OKAY;
-            }
+            OMATCH_END ();
         }
         else
         {
@@ -4426,12 +4445,13 @@ ATCE atcommand_adjcmdlvl(Session *s, dumb_ptr<map_session_data>,
 
     Option<P<AtCommandInfo>> it_ = atcommand_info.search(cmd);
     {
-        if OPTION_IS_SOME_NOLOOP(it, it_)
+        OMATCH_BEGIN_SOME (it, it_)
         {
             it->level = newlev;
             clif_displaymessage(s, "@command level changed."_s);
             return ATCE::OKAY;
         }
+        OMATCH_END ();
     }
 
     clif_displaymessage(s, "@command not found."_s);

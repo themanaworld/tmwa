@@ -58,14 +58,15 @@ void free_area(dumb_ptr<area_t> area)
     if (!area)
         return;
 
-    MATCH (*area)
+    MATCH_BEGIN (*area)
     {
-        CASE (const AreaUnion&, a)
+        MATCH_CASE (const AreaUnion&, a)
         {
             free_area(a.a_union[0]);
             free_area(a.a_union[1]);
         }
     }
+    MATCH_END ();
 
     area.delete_();
 }
@@ -73,109 +74,111 @@ void free_area(dumb_ptr<area_t> area)
 static
 dumb_ptr<area_t> dup_area(dumb_ptr<area_t> area)
 {
-    MATCH (*area)
+    MATCH_BEGIN (*area)
     {
-        CASE (const location_t&, loc)
+        MATCH_CASE (const location_t&, loc)
         {
             return dumb_ptr<area_t>::make(loc);
         }
-        CASE (const AreaUnion&, a)
+        MATCH_CASE (const AreaUnion&, a)
         {
             AreaUnion u;
             u.a_union[0] = dup_area(a.a_union[0]);
             u.a_union[1] = dup_area(a.a_union[1]);
             return dumb_ptr<area_t>::make(u);
         }
-        CASE (const AreaRect&, rect)
+        MATCH_CASE (const AreaRect&, rect)
         {
             return dumb_ptr<area_t>::make(rect);
         }
-        CASE (const AreaBar&, bar)
+        MATCH_CASE (const AreaBar&, bar)
         {
             return dumb_ptr<area_t>::make(bar);
         }
     }
+    MATCH_END ();
 
     abort();
 }
 
 void magic_copy_var(val_t *dest, const val_t *src)
 {
-    MATCH (*src)
+    MATCH_BEGIN (*src)
     {
-        // mumble mumble not a public API ...
-        default:
+        MATCH_DEFAULT ()
         {
             abort();
         }
-        CASE (const ValUndef&, s)
+        MATCH_CASE (const ValUndef&, s)
         {
             *dest = s;
         }
-        CASE (const ValInt&, s)
+        MATCH_CASE (const ValInt&, s)
         {
             *dest = s;
         }
-        CASE (const ValDir&, s)
+        MATCH_CASE (const ValDir&, s)
         {
             *dest = s;
         }
-        CASE (const ValString&, s)
+        MATCH_CASE (const ValString&, s)
         {
             *dest = ValString{s.v_string};
         }
-        CASE (const ValEntityInt&, s)
+        MATCH_CASE (const ValEntityInt&, s)
         {
             *dest = s;
         }
-        CASE (const ValEntityPtr&, s)
+        MATCH_CASE (const ValEntityPtr&, s)
         {
             *dest = s;
         }
-        CASE (const ValLocation&, s)
+        MATCH_CASE (const ValLocation&, s)
         {
             *dest = s;
         }
-        CASE (const ValArea&, s)
+        MATCH_CASE (const ValArea&, s)
         {
             *dest = ValArea{dup_area(s.v_area)};
         }
-        CASE (const ValSpell&, s)
+        MATCH_CASE (const ValSpell&, s)
         {
             *dest = s;
         }
-        CASE (const ValInvocationInt&, s)
+        MATCH_CASE (const ValInvocationInt&, s)
         {
             *dest = s;
         }
-        CASE (const ValInvocationPtr&, s)
+        MATCH_CASE (const ValInvocationPtr&, s)
         {
             *dest = s;
         }
-        CASE (const ValFail&, s)
+        MATCH_CASE (const ValFail&, s)
         {
             *dest = s;
         }
-        CASE (const ValNegative1&, s)
+        MATCH_CASE (const ValNegative1&, s)
         {
             *dest = s;
         }
     }
+    MATCH_END ();
 }
 
 void magic_clear_var(val_t *v)
 {
-    MATCH (*v)
+    MATCH_BEGIN (*v)
     {
-        CASE (ValString&, s)
+        MATCH_CASE (ValString&, s)
         {
             (void)s;
         }
-        CASE (const ValArea&, a)
+        MATCH_CASE (const ValArea&, a)
         {
             free_area(a.v_area);
         }
     }
+    MATCH_END ();
 }
 
 static
@@ -214,63 +217,64 @@ void stringify(val_t *v)
     }};
     AString buf;
 
-    MATCH (*v)
+    MATCH_BEGIN (*v)
     {
-        default:
+        MATCH_DEFAULT ()
         {
             abort();
         }
-        CASE (const ValUndef&, x)
+        MATCH_CASE (const ValUndef&, x)
         {
             (void)x;
             buf = "UNDEF"_s;
         }
-        CASE (const ValInt&, x)
+        MATCH_CASE (const ValInt&, x)
         {
             buf = STRPRINTF("%i"_fmt, x.v_int);
         }
-        CASE (const ValString&, x)
+        MATCH_CASE (const ValString&, x)
         {
             (void)x;
             return;
         }
-        CASE (const ValDir&, x)
+        MATCH_CASE (const ValDir&, x)
         {
             buf = dirs[x.v_dir];
         }
-        CASE (const ValEntityPtr&, x)
+        MATCH_CASE (const ValEntityPtr&, x)
         {
             buf = show_entity(x.v_entity);
         }
-        CASE (const ValLocation&, x)
+        MATCH_CASE (const ValLocation&, x)
         {
             buf = STRPRINTF("<\"%s\", %d, %d>"_fmt,
                     x.v_location.m->name_,
                     x.v_location.x,
                     x.v_location.y);
         }
-        CASE (const ValArea&, x)
+        MATCH_CASE (const ValArea&, x)
         {
             buf = "%area"_s;
             free_area(x.v_area);
         }
-        CASE (const ValSpell&, x)
+        MATCH_CASE (const ValSpell&, x)
         {
             buf = x.v_spell->name;
         }
-        CASE (const ValInvocationInt&, x)
+        MATCH_CASE (const ValInvocationInt&, x)
         {
             dumb_ptr<invocation> invocation_ =
                 map_id2bl(x.v_iid)->is_spell();
             buf = invocation_->spell->name;
         }
-        CASE (const ValInvocationPtr&, x)
+        MATCH_CASE (const ValInvocationPtr&, x)
         {
             dumb_ptr<invocation> invocation_ =
                 x.v_invocation;
             buf = invocation_->spell->name;
         }
     }
+    MATCH_END ();
 
     *v = ValString{buf};
 }
@@ -312,14 +316,15 @@ void make_location(val_t *v)
 {
     if (ValArea *a = v->get_if<ValArea>())
     {
-        MATCH (*a->v_area)
+        MATCH_BEGIN (*a->v_area)
         {
-            CASE (const location_t&, location)
+            MATCH_CASE (const location_t&, location)
             {
                 free_area(a->v_area);
                 *v = ValLocation{location};
             }
         }
+        MATCH_END ();
     }
 }
 
@@ -587,14 +592,14 @@ int fun_if_then_else(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 Borrowed<map_local> magic_area_rect(int *x, int *y, int *width, int *height,
         area_t& area_)
 {
-    MATCH (area_)
+    MATCH_BEGIN (area_)
     {
-        CASE (const AreaUnion&, a)
+        MATCH_CASE (const AreaUnion&, a)
         {
             (void)a;
             abort();
         }
-        CASE (const location_t&, a_loc)
+        MATCH_CASE (const location_t&, a_loc)
         {
             P<map_local> m = a_loc.m;
             *x = a_loc.x;
@@ -603,7 +608,7 @@ Borrowed<map_local> magic_area_rect(int *x, int *y, int *width, int *height,
             *height = 1;
             return m;
         }
-        CASE (const AreaRect&, a_rect)
+        MATCH_CASE (const AreaRect&, a_rect)
         {
             P<map_local> m = a_rect.loc.m;
             *x = a_rect.loc.x;
@@ -612,7 +617,7 @@ Borrowed<map_local> magic_area_rect(int *x, int *y, int *width, int *height,
             *height = a_rect.height;
             return m;
         }
-        CASE (const AreaBar&, a_bar)
+        MATCH_CASE (const AreaBar&, a_bar)
         {
             int tx = a_bar.loc.x;
             int ty = a_bar.loc.y;
@@ -660,19 +665,20 @@ Borrowed<map_local> magic_area_rect(int *x, int *y, int *width, int *height,
             return m;
         }
     }
+    MATCH_END ();
     abort();
 }
 
 int magic_location_in_area(Borrowed<map_local> m, int x, int y, dumb_ptr<area_t> area)
 {
-    MATCH (*area)
+    MATCH_BEGIN (*area)
     {
-        CASE (const AreaUnion&, a)
+        MATCH_CASE (const AreaUnion&, a)
         {
             return magic_location_in_area(m, x, y, a.a_union[0])
                 || magic_location_in_area(m, x, y, a.a_union[1]);
         }
-        CASE (const location_t&, a_loc)
+        MATCH_CASE (const location_t&, a_loc)
         {
             (void)a_loc;
             // TODO this can be simplified
@@ -682,7 +688,7 @@ int magic_location_in_area(Borrowed<map_local> m, int x, int y, dumb_ptr<area_t>
                     && (x >= ax) && (y >= ay)
                     && (x < ax + awidth) && (y < ay + aheight));
         }
-        CASE (const AreaRect&, a_rect)
+        MATCH_CASE (const AreaRect&, a_rect)
         {
             (void)a_rect;
             // TODO this is too complicated
@@ -692,7 +698,7 @@ int magic_location_in_area(Borrowed<map_local> m, int x, int y, dumb_ptr<area_t>
                     && (x >= ax) && (y >= ay)
                     && (x < ax + awidth) && (y < ay + aheight));
         }
-        CASE (const AreaBar&, a_bar)
+        MATCH_CASE (const AreaBar&, a_bar)
         {
             (void)a_bar;
             // TODO this is wrong
@@ -703,6 +709,7 @@ int magic_location_in_area(Borrowed<map_local> m, int x, int y, dumb_ptr<area_t>
                     && (x < ax + awidth) && (y < ay + aheight));
         }
     }
+    MATCH_END ();
     abort();
 }
 
@@ -1084,16 +1091,16 @@ int fun_line_of_sight(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 
 void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
 {
-    MATCH (*area)
+    MATCH_BEGIN (*area)
     {
-        CASE (const AreaUnion&, a)
+        MATCH_CASE (const AreaUnion&, a)
         {
             if (random_::chance({a.a_union[0]->size, area->size}))
                 magic_random_location(dest, a.a_union[0]);
             else
                 magic_random_location(dest, a.a_union[1]);
         }
-        CASE (const location_t&, a_loc)
+        MATCH_CASE (const location_t&, a_loc)
         {
             (void)a_loc;
             // TODO this can be simplified
@@ -1114,7 +1121,7 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
             dest->x = pair.first;
             dest->y = pair.second;
         }
-        CASE (const AreaRect&, a_rect)
+        MATCH_CASE (const AreaRect&, a_rect)
         {
             (void)a_rect;
             // TODO this can be simplified
@@ -1135,7 +1142,7 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
             dest->x = pair.first;
             dest->y = pair.second;
         }
-        CASE (const AreaBar&, a_bar)
+        MATCH_CASE (const AreaBar&, a_bar)
         {
             (void)a_bar;
             // TODO this is wrong
@@ -1157,6 +1164,7 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
             dest->y = pair.second;
         }
     }
+    MATCH_END ();
 }
 
 static
@@ -1529,9 +1537,9 @@ int eval_location(dumb_ptr<env_t> env, location_t *dest, const e_location_t *exp
 static
 dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
 {
-    MATCH (expr_)
+    MATCH_BEGIN (expr_)
     {
-        CASE (const e_location_t&, a_loc)
+        MATCH_CASE (const e_location_t&, a_loc)
         {
             location_t loc;
             if (eval_location(env, &loc, &a_loc))
@@ -1543,7 +1551,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
                 return dumb_ptr<area_t>::make(loc);
             }
         }
-        CASE (const ExprAreaUnion&, a)
+        MATCH_CASE (const ExprAreaUnion&, a)
         {
             AreaUnion u;
             bool fail = false;
@@ -1565,7 +1573,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
             }
             return dumb_ptr<area_t>::make(u);
         }
-        CASE (const ExprAreaRect&, a_rect)
+        MATCH_CASE (const ExprAreaRect&, a_rect)
         {
             val_t width, height;
             magic_eval(env, &width, a_rect.width);
@@ -1591,7 +1599,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
                 return nullptr;
             }
         }
-        CASE (const ExprAreaBar&, a_bar)
+        MATCH_CASE (const ExprAreaBar&, a_bar)
         {
             val_t width, depth, dir;
             magic_eval(env, &width, a_bar.width);
@@ -1623,6 +1631,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, const e_area_t& expr_)
             }
         }
     }
+    MATCH_END ();
     abort();
 }
 
@@ -1741,14 +1750,14 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
 
 void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
 {
-    MATCH (*expr)
+    MATCH_BEGIN (*expr)
     {
-        CASE (const val_t&, e_val)
+        MATCH_CASE (const val_t&, e_val)
         {
             magic_copy_var(dest, &e_val);
         }
 
-        CASE (const e_location_t&, e_location)
+        MATCH_CASE (const e_location_t&, e_location)
         {
             location_t loc;
             if (eval_location(env, &loc, &e_location))
@@ -1756,14 +1765,14 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
             else
                 *dest = ValLocation{loc};
         }
-        CASE (const e_area_t&, e_area)
+        MATCH_CASE (const e_area_t&, e_area)
         {
             if (dumb_ptr<area_t> area = eval_area(env, e_area))
                 *dest = ValArea{area};
             else
                 *dest = ValFail();
         }
-        CASE (const ExprFunApp&, e_funapp)
+        MATCH_CASE (const ExprFunApp&, e_funapp)
         {
             val_t arguments[MAX_ARGS];
             int args_nr = e_funapp.args_nr;
@@ -1797,12 +1806,12 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
             for (i = 0; i < args_nr; ++i)
                 magic_clear_var(&arguments[i]);
         }
-        CASE (const ExprId&, e)
+        MATCH_CASE (const ExprId&, e)
         {
             val_t& v = env->VAR(e.e_id);
             magic_copy_var(dest, &v);
         }
-        CASE (const ExprField&, e_field)
+        MATCH_CASE (const ExprField&, e_field)
         {
             val_t v;
             int id = e_field.id;
@@ -1830,6 +1839,7 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
             }
         }
     }
+    MATCH_END ();
 }
 
 int magic_eval_int(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)

@@ -401,7 +401,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
                         p_ = party_search(sd->status.party_id);
                 }
             }
-            if OPTION_IS_SOME_NOLOOP(p, p_)
+            OMATCH_BEGIN_SOME (p, p_)
             {
                 for (int i = 0; i < MAX_PARTY; i++)
                 {
@@ -440,6 +440,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
                     }
                 }
             }
+            OMATCH_END ();
         }
             break;
         case SendWho::SELF:
@@ -1231,19 +1232,18 @@ int clif_selllist(dumb_ptr<map_session_data> sd)
     {
         if (!sd->status.inventory[i].nameid)
             continue;
-        if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[i])
+        OMATCH_BEGIN_SOME (sdidi, sd->inventory_data[i])
         {
             int val = sdidi->value_sell;
             if (val < 0)
-                goto continue_outer;
+                continue;
             Packet_Repeat<0x00c7> info;
             info.ioff2 = i.shift();
             info.base_price = val;
             info.actual_price = val;
             repeat_c7.push_back(info);
         }
-    continue_outer:
-        ;
+        OMATCH_END ();
     }
     send_packet_repeatonly<0x00c7, 4, 10>(s, repeat_c7);
 
@@ -3555,11 +3555,12 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
             {
                 Option<PartyPair> p_ = party_search(ssd->status.party_id);
 
-                if OPTION_IS_SOME_NOLOOP(p, p_)
+                OMATCH_BEGIN_SOME (p, p_)
                 {
                     party_name = p->name;
                     send = 1;
                 }
+                OMATCH_END ();
             }
 
             if (send)
@@ -4088,7 +4089,7 @@ RecvResult clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
     if (sd->npc_id)
         return rv;
 
-    if OPTION_IS_SOME_NOLOOP(sdidi, sd->inventory_data[index])
+    OMATCH_BEGIN_SOME (sdidi, sd->inventory_data[index])
     {
         EPOS epos = fixed.epos_ignored;
         if (sdidi->type == ItemType::ARROW)
@@ -4097,6 +4098,7 @@ RecvResult clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
         // Note: the EPOS argument to pc_equipitem is actually ignored
         pc_equipitem(sd, index, epos);
     }
+    OMATCH_END ();
 
     return rv;
 }

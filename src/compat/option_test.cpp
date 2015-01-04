@@ -398,24 +398,32 @@ TEST(Option, unwrap)
     v = None; TRY_UNWRAP(fcr(), v = Some(1));
 
     v = None;
-    if OPTION_IS_SOME_NOLOOP(o, v)
+    OMATCH_BEGIN (v)
     {
-        EXPECT_NE(o, o);
+        OMATCH_CASE_SOME (o)
+        {
+            EXPECT_NE(o, o);
+        }
+        OMATCH_CASE_NONE ()
+        {
+            SUCCEED();
+        }
     }
-    else
-    {
-        SUCCEED();
-    }
+    OMATCH_END ();
 
     v = Some(1);
-    if OPTION_IS_SOME_NOLOOP(o, v)
+    OMATCH_BEGIN (v)
     {
-        EXPECT_EQ(o, 1);
+        OMATCH_CASE_SOME (o)
+        {
+            EXPECT_EQ(o, 1);
+        }
+        OMATCH_CASE_NONE ()
+        {
+            FAIL();
+        }
     }
-    else
-    {
-        FAIL();
-    }
+    OMATCH_END ();
 }
 
 TEST(Option, flatten)

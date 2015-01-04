@@ -1400,8 +1400,11 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     if (widx.ok())
     {
-        if OPTION_IS_SOME_NOLOOP(sdidw, sd->inventory_data[widx])
+        OMATCH_BEGIN_SOME (sdidw, sd->inventory_data[widx])
+        {
             atkmin = atkmin * (80 + sdidw->wlv * 20) / 100;
+        }
+        OMATCH_END ();
     }
     if (sd->status.weapon == ItemLook::BOW)
     {                           //武器が弓矢の場合
@@ -1921,13 +1924,14 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
             ItemNameId weapon;
             if (weapon_index.ok())
             {
-                if OPTION_IS_SOME_NOLOOP(sdidw, sd->inventory_data[weapon_index])
+                OMATCH_BEGIN_SOME (sdidw, sd->inventory_data[weapon_index])
                 {
                     if (bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
                     {
                         weapon = sdidw->nameid;
                     }
                 }
+                OMATCH_END ();
             }
 
             MAP_LOG("PC%d %s:%d,%d WPNDMG %s%d %d FOR %d WPN %d"_fmt,

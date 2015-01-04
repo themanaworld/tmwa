@@ -92,8 +92,11 @@ Option<Borrowed<struct item_data>> itemdb_exists(ItemNameId nameid)
 Borrowed<struct item_data> itemdb_search(ItemNameId nameid)
 {
     Option<P<struct item_data>> id_ = item_db.search(nameid);
-    if OPTION_IS_SOME_NOLOOP(id, id_)
+    OMATCH_BEGIN_SOME (id, id_)
+    {
         return id;
+    }
+    OMATCH_END ();
 
     P<struct item_data> id = item_db.init(nameid);
 
@@ -172,13 +175,13 @@ bool itemdb_readdb(ZString filename)
             PRINTF("%s\n"_fmt, res.get_failure());
         ast::item::ItemOrComment ioc = TRY_UNWRAP(std::move(res.get_success()), return false);
 
-        MATCH (ioc)
+        MATCH_BEGIN (ioc)
         {
-            CASE(const ast::item::Comment&, c)
+            MATCH_CASE (const ast::item::Comment&, c)
             {
                 (void)c;
             }
-            CASE(const ast::item::Item&, item)
+            MATCH_CASE (const ast::item::Item&, item)
             {
                 ln++;
 
@@ -207,6 +210,7 @@ bool itemdb_readdb(ZString filename)
                 *id = std::move(idv);
             }
         }
+        MATCH_END ();
     }
 }
 

@@ -24,8 +24,6 @@
 
 #include <utility>
 
-#include "attr.hpp"
-
 
 namespace tmwa
 {
@@ -423,13 +421,46 @@ namespace option
         if (o.maybe_ref.is_none()) falsy;                       \
         tmwa::option::option_unwrap(std::move(o));              \
     }).maybe_ref_fun()
-// immediately preceded by 'if'; not double-eval-safe
-#define OPTION_IS_SOME_INLOOP(var, expr)    \
-    ((expr).is_some())                      \
-    WITH_VAR_INLOOP(auto&, var, *(expr).ptr_or(nullptr))
-#define OPTION_IS_SOME_NOLOOP(var, expr)    \
-    ((expr).is_some())                      \
-    WITH_VAR_NOLOOP(auto&, var, *(expr).ptr_or(nullptr))
+
+#define OMATCH_BEGIN(expr)              \
+    {                                   \
+        auto&& _omatch_var = (expr);    \
+        switch (_omatch_var.is_some())  \
+        {                               \
+            {                           \
+                {                       \
+    /*}}}}*/
+#define OMATCH_END()        \
+    /*{{{{*/                \
+                }           \
+            }               \
+        }                   \
+        (void) _omatch_var; \
+    }
+
+#define OMATCH_BEGIN_SOME(var, expr)    \
+    OMATCH_BEGIN (expr)                 \
+    OMATCH_CASE_SOME (var)
+
+#define OMATCH_CASE_SOME(var)                           \
+    /*{{{{*/                                            \
+        }                                               \
+        break;                                          \
+    }                                                   \
+    {                                                   \
+        case true:                                      \
+        {                                               \
+            auto&& var = *_omatch_var.ptr_or(nullptr);  \
+    /*}}}}*/
+#define OMATCH_CASE_NONE()  \
+    /*{{{{*/                \
+        }                   \
+        break;              \
+    }                       \
+    {                       \
+        case false:         \
+        {                   \
+    /*}}}}*/
 } // namespace option
 
 //using option::Option;

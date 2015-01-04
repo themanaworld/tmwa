@@ -213,11 +213,12 @@ static
 PartyPair handle_info(const PartyPair sp)
 {
     Option<PartyPair> p_ = party_search(sp.party_id);
-    if OPTION_IS_SOME_NOLOOP(p, p_)
+    OMATCH_BEGIN_SOME (p, p_)
     {
         *p.party_most = *sp.party_most;
         return p;
     }
+    OMATCH_END ();
     {
         PartyPair p{sp.party_id, party_db.init(sp.party_id)};
 
@@ -459,7 +460,7 @@ int party_member_leaved(PartyId party_id, AccountId account_id, CharName name)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(account_id));
     Option<PartyPair> p_ = party_search(party_id);
-    if OPTION_IS_SOME_NOLOOP(p, p_)
+    OMATCH_BEGIN_SOME (p, p_)
     {
         int i;
         for (i = 0; i < MAX_PARTY; i++)
@@ -470,6 +471,7 @@ int party_member_leaved(PartyId party_id, AccountId account_id, CharName name)
                 p->member[i].sd = nullptr;
             }
     }
+    OMATCH_END ();
     if (sd != nullptr && sd->status.party_id == party_id)
     {
         sd->status.party_id = PartyId();
