@@ -161,7 +161,10 @@ DIAG_E(trigraphs);
 DIAG_E(type_limits);
 DIAG_E(undef);
 DIAG_E(uninitialized);
+// clang bug, fixed in 3.5
+#ifndef GENERATING_DEPENDENCIES
 DIAG_E(unknown_pragmas);
+#endif
 DIAG_W(unreachable_code);
 DIAG_X(unsafe_loop_optimizations);
 DIAG_E(unused_but_set_parameter);
