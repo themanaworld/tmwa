@@ -351,43 +351,22 @@ Option<Borrowed<AtCommandInfo>> get_atcommandinfo_byname(XString name)
     return atcommand_info.search(name);
 }
 
-bool atcommand_config_read(ZString cfgName)
+static
+bool atcommand_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
-    io::ReadFile in(cfgName);
-    if (!in.is_open())
-    {
-        PRINTF("At commands configuration file not found: %s\n"_fmt, cfgName);
-        return false;
-    }
-
     bool rv = true;
-    AString line;
-    while (in.getline(line))
     {
-        if (is_comment(line))
-            continue;
-        XString w1;
-        ZString w2;
-        if (!config_split(line, &w1, &w2))
-        {
-            PRINTF("Bad config line: %s\n"_fmt, line);
-            rv = false;
-            continue;
-        }
-        Option<P<AtCommandInfo>> p_ = get_atcommandinfo_byname(w1);
+        Option<P<AtCommandInfo>> p_ = get_atcommandinfo_byname(w1.data);
         OMATCH_BEGIN (p_)
         {
             OMATCH_CASE_SOME (p)
             {
-                p->level = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
+                p->level = GmLevel::from(static_cast<uint32_t>(atoi(w2.data.c_str())));
             }
             OMATCH_CASE_NONE ()
             {
-                if (w1 == "import"_s)
-                    rv &= atcommand_config_read(w2);
-                else
                 {
-                    PRINTF("%s: bad line: %s\n"_fmt, cfgName, line);
+                    w1.span.error("Unknown @command for permission level config."_s);
                     rv = false;
                 }
             }
@@ -396,6 +375,11 @@ bool atcommand_config_read(ZString cfgName)
     }
 
     return rv;
+}
+
+bool atcommand_config_read(ZString cfgName)
+{
+    return load_config_file(cfgName, atcommand_config);
 }
 
 /// @ command processing functions

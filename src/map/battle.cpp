@@ -33,6 +33,7 @@
 
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
+#include "../io/span.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/cxxstdio_enums.hpp"
@@ -2278,18 +2279,9 @@ Battle_Config init_battle_config()
     return battle_config;
 }
 
-bool battle_config_read(ZString cfgName)
+static
+bool battle_config_(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
-    bool rv = true;
-    io::ReadFile in(cfgName);
-    if (!in.is_open())
-    {
-        PRINTF("file not found: %s\n"_fmt, cfgName);
-        return false;
-    }
-
-    AString line;
-    while (in.getline(line))
     {
 #define BATTLE_CONFIG_VAR(name) {#name##_s, &battle_config.name}
         const struct
@@ -2395,38 +2387,24 @@ bool battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(mob_splash_radius),
         };
 
-        if (is_comment(line))
-            continue;
-        XString w1;
-        ZString w2;
-        if (!config_split(line, &w1, &w2))
-        {
-            PRINTF("Bad config line: %s\n"_fmt, line);
-            rv = false;
-            continue;
-        }
-
-        if (w1 == "import"_s)
-        {
-            battle_config_read(w2);
-            continue;
-        }
-
         for (auto datum : data)
-            if (w1 == datum.str)
+        {
+            if (w1.data == datum.str)
             {
-                *datum.val = config_switch(w2);
-                goto continue_outer;
+                *datum.val = config_switch(w2.data);
+                return true;
             }
+        }
 
-        PRINTF("WARNING: unknown battle conf key: %s\n"_fmt, AString(w1));
-        rv = false;
+        PRINTF("WARNING: unknown battle conf key: %s\n"_fmt, AString(w1.data));
+        return false;
 
-    continue_outer:
-        ;
     }
+}
 
-    return rv;
+bool battle_config_read(ZString cfgName)
+{
+    return load_config_file(cfgName, battle_config_);
 }
 
 void battle_config_check()

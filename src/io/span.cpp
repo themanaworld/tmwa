@@ -31,6 +31,20 @@ namespace tmwa
 {
 namespace io
 {
+    io::LineSpan Line::to_span() const
+    {
+        io::LineSpan rv;
+        rv.begin.text = this->text;
+        rv.begin.filename = this->filename;
+        rv.begin.line = this->line;
+        rv.begin.column = 1;
+        rv.end.text = this->text;
+        rv.end.filename = this->filename;
+        rv.end.line = this->line;
+        rv.end.column = this->text.size();
+        return rv;
+    }
+
     AString Line::message_str(ZString cat, ZString msg) const
     {
         MString out;

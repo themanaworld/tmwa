@@ -37,6 +37,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
 #include "../io/read.hpp"
+#include "../io/span.hpp"
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
@@ -2495,16 +2496,16 @@ int Connect_login_server(void)
 }
 
 static
-bool admin_confs(XString w1, ZString w2)
+bool admin_confs(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
     {
-        if (w1 == "login_ip"_s)
+        if (w1.data == "login_ip"_s)
         {
-            struct hostent *h = gethostbyname(w2.c_str());
+            struct hostent *h = gethostbyname(w2.data.c_str());
             if (h != nullptr)
             {
                 Iprintf("Login server IP address: %s -> %s\n"_fmt,
-                        w2, login_ip);
+                        w2.data, login_ip);
                 login_ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),
                         static_cast<uint8_t>(h->h_addr[1]),
@@ -2513,21 +2514,21 @@ bool admin_confs(XString w1, ZString w2)
                 });
             }
         }
-        else if (w1 == "login_port"_s)
+        else if (w1.data == "login_port"_s)
         {
-            login_port = atoi(w2.c_str());
+            login_port = atoi(w2.data.c_str());
         }
-        else if (w1 == "admin_pass"_s)
+        else if (w1.data == "admin_pass"_s)
         {
-            admin_pass = stringish<AccountPass>(w2);
+            admin_pass = stringish<AccountPass>(w2.data);
         }
-        else if (w1 == "ladmin_log_filename"_s)
+        else if (w1.data == "ladmin_log_filename"_s)
         {
-            ladmin_log_filename = w2;
+            ladmin_log_filename = w2.data;
         }
         else
         {
-            PRINTF("WARNING: unknown ladmin config key: %s\n"_fmt, AString(w1));
+            PRINTF("WARNING: unknown ladmin config key: %s\n"_fmt, AString(w1.data));
             return false;
         }
     }

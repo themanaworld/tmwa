@@ -48,6 +48,7 @@
 #include "../io/extract.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
+#include "../io/span.hpp"
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
@@ -3012,15 +3013,15 @@ void parse_login(Session *s)
 // Reading Lan Support configuration
 //----------------------------------
 static
-bool login_lan_config(XString w1, ZString w2)
+bool login_lan_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
     struct hostent *h = nullptr;
 
     {
-        if (w1 == "lan_char_ip"_s)
+        if (w1.data == "lan_char_ip"_s)
         {
             // Read Char-Server Lan IP Address
-            h = gethostbyname(w2.c_str());
+            h = gethostbyname(w2.data.c_str());
             if (h != nullptr)
             {
                 lan_char_ip = IP4Address({
@@ -3032,17 +3033,17 @@ bool login_lan_config(XString w1, ZString w2)
             }
             else
             {
-                PRINTF("Bad IP value: %s\n"_fmt, w2);
+                PRINTF("Bad IP value: %s\n"_fmt, w2.data);
                 return false;
             }
             PRINTF("LAN IP of char-server: %s.\n"_fmt, lan_char_ip);
         }
-        else if (w1 == "subnet"_s /*backward compatibility*/
-                || w1 == "lan_subnet"_s)
+        else if (w1.data == "subnet"_s /*backward compatibility*/
+                || w1.data == "lan_subnet"_s)
         {
-            if (!extract(w2, &lan_subnet))
+            if (!extract(w2.data, &lan_subnet))
             {
-                PRINTF("Bad IP mask: %s\n"_fmt, w2);
+                PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
                 return false;
             }
             PRINTF("Sub-network of the char-server: %s.\n"_fmt,
@@ -3083,195 +3084,195 @@ bool lan_check()
 // Reading general configuration file
 //-----------------------------------
 static
-bool login_config(XString w1, ZString w2)
+bool login_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
     {
-        if (w1 == "admin_state"_s)
+        if (w1.data == "admin_state"_s)
         {
-            admin_state = config_switch(w2);
+            admin_state = config_switch(w2.data);
         }
-        else if (w1 == "admin_pass"_s)
+        else if (w1.data == "admin_pass"_s)
         {
-            admin_pass = stringish<AccountPass>(w2);
+            admin_pass = stringish<AccountPass>(w2.data);
         }
-        else if (w1 == "ladminallowip"_s)
+        else if (w1.data == "ladminallowip"_s)
         {
-            if (w2 == "clear"_s)
+            if (w2.data == "clear"_s)
             {
                 access_ladmin.clear();
             }
             else
             {
                 // a.b.c.d/0.0.0.0 (canonically, 0.0.0.0/0) covers all
-                if (w2 == "all"_s)
+                if (w2.data == "all"_s)
                 {
                     // reset all previous values
                     access_ladmin.clear();
                     // set to all
                     access_ladmin.push_back(IP4Mask());
                 }
-                else if (w2
+                else if (w2.data
                         && !(access_ladmin.size() == 1
                             && access_ladmin.front().mask() == IP4Address()))
                 {
                     // don't add IP if already 'all'
                     IP4Mask n;
-                    if (!extract(w2, &n))
+                    if (!extract(w2.data, &n))
                     {
-                        PRINTF("Bad IP mask: %s\n"_fmt, w2);
+                        PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
                         return false;
                     }
                     access_ladmin.push_back(n);
                 }
             }
         }
-        else if (w1 == "gm_pass"_s)
+        else if (w1.data == "gm_pass"_s)
         {
-            gm_pass = w2;
+            gm_pass = w2.data;
         }
-        else if (w1 == "level_new_gm"_s)
+        else if (w1.data == "level_new_gm"_s)
         {
-            level_new_gm = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
+            level_new_gm = GmLevel::from(static_cast<uint32_t>(atoi(w2.data.c_str())));
         }
-        else if (w1 == "new_account"_s)
+        else if (w1.data == "new_account"_s)
         {
-            new_account = config_switch(w2);
+            new_account = config_switch(w2.data);
         }
-        else if (w1 == "login_port"_s)
+        else if (w1.data == "login_port"_s)
         {
-            login_port = atoi(w2.c_str());
+            login_port = atoi(w2.data.c_str());
         }
-        else if (w1 == "account_filename"_s)
+        else if (w1.data == "account_filename"_s)
         {
-            account_filename = w2;
+            account_filename = w2.data;
         }
-        else if (w1 == "gm_account_filename"_s)
+        else if (w1.data == "gm_account_filename"_s)
         {
-            gm_account_filename = w2;
+            gm_account_filename = w2.data;
         }
-        else if (w1 == "gm_account_filename_check_timer"_s)
+        else if (w1.data == "gm_account_filename_check_timer"_s)
         {
-            gm_account_filename_check_timer = std::chrono::seconds(atoi(w2.c_str()));
+            gm_account_filename_check_timer = std::chrono::seconds(atoi(w2.data.c_str()));
         }
-        else if (w1 == "login_log_filename"_s)
+        else if (w1.data == "login_log_filename"_s)
         {
-            login_log_filename = w2;
+            login_log_filename = w2.data;
         }
-        else if (w1 == "display_parse_login"_s)
+        else if (w1.data == "display_parse_login"_s)
         {
-            display_parse_login = config_switch(w2);   // 0: no, 1: yes
+            display_parse_login = config_switch(w2.data);   // 0: no, 1: yes
         }
-        else if (w1 == "display_parse_admin"_s)
+        else if (w1.data == "display_parse_admin"_s)
         {
-            display_parse_admin = config_switch(w2);   // 0: no, 1: yes
+            display_parse_admin = config_switch(w2.data);   // 0: no, 1: yes
         }
-        else if (w1 == "display_parse_fromchar"_s)
+        else if (w1.data == "display_parse_fromchar"_s)
         {
-            display_parse_fromchar = config_switch(w2);    // 0: no, 1: yes (without packet 0x2714), 2: all packets
+            display_parse_fromchar = config_switch(w2.data);    // 0: no, 1: yes (without packet 0x2714), 2: all packets
         }
-        else if (w1 == "min_level_to_connect"_s)
+        else if (w1.data == "min_level_to_connect"_s)
         {
-            min_level_to_connect = GmLevel::from(static_cast<uint32_t>(atoi(w2.c_str())));
+            min_level_to_connect = GmLevel::from(static_cast<uint32_t>(atoi(w2.data.c_str())));
         }
-        else if (w1 == "order"_s)
+        else if (w1.data == "order"_s)
         {
-            if (w2 == "deny,allow"_s || w2 == "deny, allow"_s)
+            if (w2.data == "deny,allow"_s || w2.data == "deny, allow"_s)
                 access_order = ACO::DENY_ALLOW;
-            else if (w2 == "allow,deny"_s || w2 == "allow, deny"_s)
+            else if (w2.data == "allow,deny"_s || w2.data == "allow, deny"_s)
                 access_order = ACO::ALLOW_DENY;
-            else if (w2 == "mutual-failture"_s || w2 == "mutual-failure"_s)
+            else if (w2.data == "mutual-failture"_s || w2.data == "mutual-failure"_s)
                 access_order = ACO::MUTUAL_FAILURE;
             else
             {
-                PRINTF("Bad order: %s\n"_fmt, w2);
+                PRINTF("Bad order: %s\n"_fmt, w2.data);
                 return false;
             }
         }
-        else if (w1 == "allow"_s)
+        else if (w1.data == "allow"_s)
         {
-            if (w2 == "clear"_s)
+            if (w2.data == "clear"_s)
             {
                 access_allow.clear();
             }
             else
             {
-                if (w2 == "all"_s)
+                if (w2.data == "all"_s)
                 {
                     // reset all previous values
                     access_allow.clear();
                     // set to all
                     access_allow.push_back(IP4Mask());
                 }
-                else if (w2
+                else if (w2.data
                         && !(access_allow.size() == 1
                             && access_allow.front().mask() == IP4Address()))
                 {
                     // don't add IP if already 'all'
                     IP4Mask n;
-                    if (!extract(w2, &n))
+                    if (!extract(w2.data, &n))
                     {
-                        PRINTF("Bad IP mask: %s\n"_fmt, w2);
+                        PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
                         return false;
                     }
                     access_allow.push_back(n);
                 }
             }
         }
-        else if (w1 == "deny"_s)
+        else if (w1.data == "deny"_s)
         {
-            if (w2 == "clear"_s)
+            if (w2.data == "clear"_s)
             {
                 access_deny.clear();
             }
             else
             {
-                if (w2 == "all"_s)
+                if (w2.data == "all"_s)
                 {
                     // reset all previous values
                     access_deny.clear();
                     // set to all
                     access_deny.push_back(IP4Mask());
                 }
-                else if (w2
+                else if (w2.data
                         && !(access_deny.size() == 1
                             && access_deny.front().mask() == IP4Address()))
                 {
                     // don't add IP if already 'all'
                     IP4Mask n;
-                    if (!extract(w2, &n))
+                    if (!extract(w2.data, &n))
                     {
-                        PRINTF("Bad IP mask: %s\n"_fmt, w2);
+                        PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
                         return false;
                     }
                     access_deny.push_back(n);
                 }
             }
         }
-        else if (w1 == "anti_freeze_enable"_s)
+        else if (w1.data == "anti_freeze_enable"_s)
         {
-            anti_freeze_enable = config_switch(w2);
+            anti_freeze_enable = config_switch(w2.data);
         }
-        else if (w1 == "anti_freeze_interval"_s)
+        else if (w1.data == "anti_freeze_interval"_s)
         {
             anti_freeze_interval = std::max(
-                    std::chrono::seconds(atoi(w2.c_str())),
+                    std::chrono::seconds(atoi(w2.data.c_str())),
                     5_s);
         }
-        else if (w1 == "update_host"_s)
+        else if (w1.data == "update_host"_s)
         {
-            update_host = w2;
+            update_host = w2.data;
         }
-        else if (w1 == "main_server"_s)
+        else if (w1.data == "main_server"_s)
         {
-            main_server = stringish<ServerName>(w2);
+            main_server = stringish<ServerName>(w2.data);
         }
-        else if (w1 == "userid"_s)
+        else if (w1.data == "userid"_s)
         {
-            userid = stringish<AccountName>(w2);
+            userid = stringish<AccountName>(w2.data);
         }
-        else if (w1 == "passwd"_s)
+        else if (w1.data == "passwd"_s)
         {
-            passwd = stringish<AccountPass>(w2);
+            passwd = stringish<AccountPass>(w2.data);
         }
         else
         {
@@ -3582,14 +3583,16 @@ void term_func(void)
 }
 
 static
-bool login_confs(XString key, ZString value)
+bool login_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
 {
-    unsigned sum = 0;
-    sum += login_config(key, value);
-    sum += login_lan_config(key, value);
-    if (sum >= 2)
-        abort();
-    return sum;
+    bool ok;
+    ok = login_config(key, value);
+    if (!ok)
+        return ok;
+    ok = login_lan_config(key, value);
+    if (!ok)
+        return ok;
+    return ok;
 }
 
 //------------------------------

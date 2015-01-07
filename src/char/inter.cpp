@@ -37,7 +37,10 @@
 #include "../io/extract.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
+#include "../io/span.hpp"
 #include "../io/write.hpp"
+
+#include "../mmo/config_parse.hpp"
 
 #include "../proto2/char-map.hpp"
 
@@ -157,24 +160,24 @@ int inter_accreg_save(void)
     return 0;
 }
 
-bool inter_config(XString w1, ZString w2)
+bool inter_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
     {
-        if (w1 == "storage_txt"_s)
+        if (w1.data == "storage_txt"_s)
         {
-            storage_txt = w2;
+            storage_txt = w2.data;
         }
-        else if (w1 == "party_txt"_s)
+        else if (w1.data == "party_txt"_s)
         {
-            party_txt = w2;
+            party_txt = w2.data;
         }
-        else if (w1 == "accreg_txt"_s)
+        else if (w1.data == "accreg_txt"_s)
         {
-            accreg_txt = w2;
+            accreg_txt = w2.data;
         }
-        else if (w1 == "party_share_level"_s)
+        else if (w1.data == "party_share_level"_s)
         {
-            party_share_level = atoi(w2.c_str());
+            party_share_level = atoi(w2.data.c_str());
             if (party_share_level < 0)
                 party_share_level = 0;
         }

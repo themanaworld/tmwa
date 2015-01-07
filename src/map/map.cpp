@@ -47,6 +47,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
 #include "../io/read.hpp"
+#include "../io/span.hpp"
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
@@ -1477,49 +1478,25 @@ void map_log(XString line)
     log_with_timestamp(*map_logfile, line);
 }
 
-/*==========================================
- * 設定ファイルを読み込む
- *------------------------------------------
- */
 static
-bool map_config_read(ZString cfgName)
+bool map_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
     struct hostent *h = nullptr;
 
-    io::ReadFile in(cfgName);
-    if (!in.is_open())
     {
-        PRINTF("Map configuration file not found at: %s\n"_fmt, cfgName);
-        return false;
-    }
-
-    bool rv = true;
-    AString line;
-    while (in.getline(line))
-    {
-        if (is_comment(line))
-            continue;
-        XString w1;
-        ZString w2;
-        if (!config_split(line, &w1, &w2))
+        if (w1.data == "userid"_s)
         {
-            PRINTF("Bad config line: %s\n"_fmt, line);
-            rv = false;
-            continue;
-        }
-        if (w1 == "userid"_s)
-        {
-            AccountName name = stringish<AccountName>(w2);
+            AccountName name = stringish<AccountName>(w2.data);
             chrif_setuserid(name);
         }
-        else if (w1 == "passwd"_s)
+        else if (w1.data == "passwd"_s)
         {
-            AccountPass pass = stringish<AccountPass>(w2);
+            AccountPass pass = stringish<AccountPass>(w2.data);
             chrif_setpasswd(pass);
         }
-        else if (w1 == "char_ip"_s)
+        else if (w1.data == "char_ip"_s)
         {
-            h = gethostbyname(w2.c_str());
+            h = gethostbyname(w2.data.c_str());
             IP4Address w2ip;
             if (h != nullptr)
             {
@@ -1530,22 +1507,22 @@ bool map_config_read(ZString cfgName)
                         static_cast<uint8_t>(h->h_addr[3]),
                 });
                 PRINTF("Character server IP address : %s -> %s\n"_fmt,
-                        w2, w2ip);
+                        w2.data, w2ip);
             }
             else
             {
-                PRINTF("Bad IP value: %s\n"_fmt, line);
+                PRINTF("Bad IP value: %s\n"_fmt, w2.data);
                 return false;
             }
             chrif_setip(w2ip);
         }
-        else if (w1 == "char_port"_s)
+        else if (w1.data == "char_port"_s)
         {
-            chrif_setport(atoi(w2.c_str()));
+            chrif_setport(atoi(w2.data.c_str()));
         }
-        else if (w1 == "map_ip"_s)
+        else if (w1.data == "map_ip"_s)
         {
-            h = gethostbyname(w2.c_str());
+            h = gethostbyname(w2.data.c_str());
             IP4Address w2ip;
             if (h != nullptr)
             {
@@ -1556,66 +1533,70 @@ bool map_config_read(ZString cfgName)
                         static_cast<uint8_t>(h->h_addr[3]),
                 });
                 PRINTF("Map server IP address : %s -> %s\n"_fmt,
-                        w2, w2ip);
+                        w2.data, w2ip);
             }
             else
             {
-                PRINTF("Bad IP value: %s\n"_fmt, line);
+                PRINTF("Bad IP value: %s\n"_fmt, w2.data);
                 return false;
             }
             clif_setip(w2ip);
         }
-        else if (w1 == "map_port"_s)
+        else if (w1.data == "map_port"_s)
         {
-            clif_setport(atoi(w2.c_str()));
+            clif_setport(atoi(w2.data.c_str()));
         }
-        else if (w1 == "map"_s)
+        else if (w1.data == "map"_s)
         {
-            MapName name = VString<15>(w2);
+            MapName name = VString<15>(w2.data);
             map_addmap(name);
         }
-        else if (w1 == "delmap"_s)
+        else if (w1.data == "delmap"_s)
         {
-            MapName name = VString<15>(w2);
+            MapName name = VString<15>(w2.data);
             map_delmap(name);
         }
-        else if (w1 == "npc"_s)
+        else if (w1.data == "npc"_s)
         {
-            npc_addsrcfile(w2);
+            npc_addsrcfile(w2.data);
         }
-        else if (w1 == "delnpc"_s)
+        else if (w1.data == "delnpc"_s)
         {
-            npc_delsrcfile(w2);
+            npc_delsrcfile(w2.data);
         }
-        else if (w1 == "autosave_time"_s)
+        else if (w1.data == "autosave_time"_s)
         {
-            autosave_time = std::chrono::seconds(atoi(w2.c_str()));
+            autosave_time = std::chrono::seconds(atoi(w2.data.c_str()));
             if (autosave_time <= interval_t::zero())
                 autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
         }
-        else if (w1 == "motd_txt"_s)
+        else if (w1.data == "motd_txt"_s)
         {
-            motd_txt = w2;
+            motd_txt = w2.data;
         }
-        else if (w1 == "mapreg_txt"_s)
+        else if (w1.data == "mapreg_txt"_s)
         {
-            mapreg_txt = w2;
+            mapreg_txt = w2.data;
         }
-        else if (w1 == "gm_log"_s)
+        else if (w1.data == "gm_log"_s)
         {
-            gm_log = std::move(w2);
+            gm_log = std::move(w2.data);
         }
-        else if (w1 == "log_file"_s)
+        else if (w1.data == "log_file"_s)
         {
-            map_set_logfile(w2);
+            map_set_logfile(w2.data);
         }
-        else if (w1 == "import"_s)
+        else if (w1.data == "import"_s)
         {
-            rv &= map_config_read(w2);
+            return load_config_file(w2.data, map_config);
+        }
+        else
+        {
+            return false;
         }
     }
 
-    return rv;
+    return true;
 }
 
 static
@@ -1682,31 +1663,31 @@ int compare_item(Item *a, Item *b)
 }
 
 static
-bool map_confs(XString key, ZString value)
+bool map_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
 {
-    if (key == "map_conf"_s)
-        return map_config_read(value);
-    if (key == "battle_conf"_s)
-        return battle_config_read(value);
-    if (key == "atcommand_conf"_s)
-        return atcommand_config_read(value);
+    if (key.data == "map_conf"_s)
+        return load_config_file(value.data, map_config);
+    if (key.data == "battle_conf"_s)
+        return battle_config_read(value.data);
+    if (key.data == "atcommand_conf"_s)
+        return atcommand_config_read(value.data);
 
-    if (key == "item_db"_s)
-        return itemdb_readdb(value);
-    if (key == "mob_db"_s)
-        return mob_readdb(value);
-    if (key == "mob_skill_db"_s)
-        return mob_readskilldb(value);
-    if (key == "skill_db"_s)
-        return skill_readdb(value);
-    if (key == "magic_conf"_s)
-        return magic::load_magic_file_v2(value);
+    if (key.data == "item_db"_s)
+        return itemdb_readdb(value.data);
+    if (key.data == "mob_db"_s)
+        return mob_readdb(value.data);
+    if (key.data == "mob_skill_db"_s)
+        return mob_readskilldb(value.data);
+    if (key.data == "skill_db"_s)
+        return skill_readdb(value.data);
+    if (key.data == "magic_conf"_s)
+        return magic::load_magic_file_v2(value.data);
 
-    if (key == "resnametable"_s)
-        return load_resnametable(value);
-    if (key == "const_db"_s)
-        return read_constdb(value);
-    PRINTF("unknown map conf key: %s\n"_fmt, AString(key));
+    if (key.data == "resnametable"_s)
+        return load_resnametable(value.data);
+    if (key.data == "const_db"_s)
+        return read_constdb(value.data);
+    PRINTF("unknown map conf key: %s\n"_fmt, AString(key.data));
     return false;
 }
 

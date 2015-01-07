@@ -69,8 +69,28 @@ LString CURRENT_VERSION_STRING = VERSION_STRING;
 bool impl_extract(XString str, Version *vers)
 {
     *vers = {};
-    // TODO should I try to extract dev and vend also?
-    // It would've been useful during the magic migration.
+    // versions look like:
+    //   1.2.3 (release)
+    //   1.2.3+5 (vendor patches)
+    //   1.2.3-4 (dev patches)
+    //   1.2.3-4+5 (dev patches + vendor patches)
+    XString a, b;
+    if (extract(str, record<'+'>(&a, &b)))
+    {
+        if (!extract(b, &vers->vend))
+        {
+            return false;
+        }
+        str = a;
+    }
+    if (extract(str, record<'-'>(&a, &b)))
+    {
+        if (!extract(b, &vers->devel))
+        {
+            return false;
+        }
+        str = a;
+    }
     return extract(str, record<'.'>(&vers->major, &vers->minor, &vers->patch));
 }
 

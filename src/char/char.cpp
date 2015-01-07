@@ -52,6 +52,7 @@
 #include "../io/extract.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
+#include "../io/span.hpp"
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
@@ -2737,15 +2738,15 @@ void check_connect_login_server(TimerData *, tick_t)
 // Reading Lan Support configuration by [Yor]
 //-------------------------------------------
 static
-bool char_lan_config(XString w1, ZString w2)
+bool char_lan_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
     struct hostent *h = nullptr;
 
     {
-        if (w1 == "lan_map_ip"_s)
+        if (w1.data == "lan_map_ip"_s)
         {
             // Read map-server Lan IP Address
-            h = gethostbyname(w2.c_str());
+            h = gethostbyname(w2.data.c_str());
             if (h != nullptr)
             {
                 lan_map_ip = IP4Address({
@@ -2757,17 +2758,17 @@ bool char_lan_config(XString w1, ZString w2)
             }
             else
             {
-                PRINTF("Bad IP value: %s\n"_fmt, w2);
+                PRINTF("Bad IP value: %s\n"_fmt, w2.data);
                 return false;
             }
             PRINTF("LAN IP of map-server: %s.\n"_fmt, lan_map_ip);
         }
-        else if (w1 == "subnet"_s /*backward compatibility*/
-                || w1 == "lan_subnet"_s)
+        else if (w1.data == "subnet"_s /*backward compatibility*/
+                || w1.data == "lan_subnet"_s)
         {
-            if (!extract(w2, &lan_subnet))
+            if (!extract(w2.data, &lan_subnet))
             {
-                PRINTF("Bad IP mask: %s\n"_fmt, w2);
+                PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
                 return false;
             }
             PRINTF("Sub-network of the map-server: %s.\n"_fmt,
@@ -2798,23 +2799,23 @@ bool lan_check()
 }
 
 static
-bool char_config(XString w1, ZString w2)
+bool char_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
 {
     struct hostent *h = nullptr;
 
     {
-        if (w1 == "userid"_s)
-            userid = stringish<AccountName>(w2);
-        else if (w1 == "passwd"_s)
-            passwd = stringish<AccountPass>(w2);
-        else if (w1 == "server_name"_s)
+        if (w1.data == "userid"_s)
+            userid = stringish<AccountName>(w2.data);
+        else if (w1.data == "passwd"_s)
+            passwd = stringish<AccountPass>(w2.data);
+        else if (w1.data == "server_name"_s)
         {
-            server_name = stringish<ServerName>(w2);
-            PRINTF("%s server has been intialized\n"_fmt, w2);
+            server_name = stringish<ServerName>(w2.data);
+            PRINTF("%s server has been intialized\n"_fmt, w2.data);
         }
-        else if (w1 == "login_ip"_s)
+        else if (w1.data == "login_ip"_s)
         {
-            h = gethostbyname(w2.c_str());
+            h = gethostbyname(w2.data.c_str());
             if (h != nullptr)
             {
                 login_ip = IP4Address({
@@ -2824,21 +2825,21 @@ bool char_config(XString w1, ZString w2)
                         static_cast<uint8_t>(h->h_addr[3]),
                 });
                 PRINTF("Login server IP address : %s -> %s\n"_fmt,
-                        w2, login_ip);
+                        w2.data, login_ip);
             }
             else
             {
-                PRINTF("Bad IP value: %s\n"_fmt, w2);
+                PRINTF("Bad IP value: %s\n"_fmt, w2.data);
                 return false;
             }
         }
-        else if (w1 == "login_port"_s)
+        else if (w1.data == "login_port"_s)
         {
-            login_port = atoi(w2.c_str());
+            login_port = atoi(w2.data.c_str());
         }
-        else if (w1 == "char_ip"_s)
+        else if (w1.data == "char_ip"_s)
         {
-            h = gethostbyname(w2.c_str());
+            h = gethostbyname(w2.data.c_str());
             if (h != nullptr)
             {
                 char_ip = IP4Address({
@@ -2848,81 +2849,81 @@ bool char_config(XString w1, ZString w2)
                         static_cast<uint8_t>(h->h_addr[3]),
                 });
                 PRINTF("Character server IP address : %s -> %s\n"_fmt,
-                        w2, char_ip);
+                        w2.data, char_ip);
             }
             else
             {
-                PRINTF("Bad IP value: %s\n"_fmt, w2);
+                PRINTF("Bad IP value: %s\n"_fmt, w2.data);
                 return false;
             }
         }
-        else if (w1 == "char_port"_s)
+        else if (w1.data == "char_port"_s)
         {
-            char_port = atoi(w2.c_str());
+            char_port = atoi(w2.data.c_str());
         }
-        else if (w1 == "char_txt"_s)
+        else if (w1.data == "char_txt"_s)
         {
-            char_txt = w2;
+            char_txt = w2.data;
         }
-        else if (w1 == "max_connect_user"_s)
+        else if (w1.data == "max_connect_user"_s)
         {
-            max_connect_user = atoi(w2.c_str());
+            max_connect_user = atoi(w2.data.c_str());
             if (max_connect_user < 0)
                 max_connect_user = 0;   // unlimited online players
         }
-        else if (w1 == "autosave_time"_s)
+        else if (w1.data == "autosave_time"_s)
         {
-            autosave_time = std::chrono::seconds(atoi(w2.c_str()));
+            autosave_time = std::chrono::seconds(atoi(w2.data.c_str()));
             if (autosave_time <= std::chrono::seconds::zero())
                 autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
         }
-        else if (w1 == "start_point"_s)
+        else if (w1.data == "start_point"_s)
         {
-            extract(w2, &start_point);
+            extract(w2.data, &start_point);
         }
-        else if (w1 == "unknown_char_name"_s)
+        else if (w1.data == "unknown_char_name"_s)
         {
-            unknown_char_name = stringish<CharName>(w2);
+            unknown_char_name = stringish<CharName>(w2.data);
         }
-        else if (w1 == "char_log_filename"_s)
+        else if (w1.data == "char_log_filename"_s)
         {
-            char_log_filename = w2;
+            char_log_filename = w2.data;
         }
-        else if (w1 == "char_name_letters"_s)
+        else if (w1.data == "char_name_letters"_s)
         {
-            if (!w2)
+            if (!w2.data)
                 char_name_letters.reset();
             else
-                for (uint8_t c : w2)
+                for (uint8_t c : w2.data)
                     char_name_letters[c] = true;
         }
-        else if (w1 == "online_txt_filename"_s)
+        else if (w1.data == "online_txt_filename"_s)
         {
-            online_txt_filename = w2;
+            online_txt_filename = w2.data;
         }
-        else if (w1 == "online_html_filename"_s)
+        else if (w1.data == "online_html_filename"_s)
         {
-            online_html_filename = w2;
+            online_html_filename = w2.data;
         }
-        else if (w1 == "online_gm_display_min_level"_s)
+        else if (w1.data == "online_gm_display_min_level"_s)
         {
             // minimum GM level to display 'GM' when we want to display it
-            return extract(w2, &online_gm_display_min_level);
+            return extract(w2.data, &online_gm_display_min_level);
         }
-        else if (w1 == "online_refresh_html"_s)
+        else if (w1.data == "online_refresh_html"_s)
         {
-            online_refresh_html = atoi(w2.c_str());
+            online_refresh_html = atoi(w2.data.c_str());
             if (online_refresh_html < 1)
                 online_refresh_html = 1;
         }
-        else if (w1 == "anti_freeze_enable"_s)
+        else if (w1.data == "anti_freeze_enable"_s)
         {
-            anti_freeze_enable = config_switch(w2);
+            anti_freeze_enable = config_switch(w2.data);
         }
-        else if (w1 == "anti_freeze_interval"_s)
+        else if (w1.data == "anti_freeze_interval"_s)
         {
             anti_freeze_interval = std::max(
-                    std::chrono::seconds(atoi(w2.c_str())),
+                    std::chrono::seconds(atoi(w2.data.c_str())),
                     5_s);
         }
         else
@@ -2954,15 +2955,19 @@ void term_func(void)
 }
 
 static
-bool char_confs(XString key, ZString value)
+bool char_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
 {
-    unsigned sum = 0;
-    sum += char_config(key, value);
-    sum += char_lan_config(key, value);
-    sum += inter_config(key, value);
-    if (sum >= 2)
-        abort();
-    return sum;
+    bool ok;
+    ok = char_config(key, value);
+    if (!ok)
+        return ok;
+    ok = char_lan_config(key, value);
+    if (!ok)
+        return ok;
+    ok = inter_config(key, value);
+    if (!ok)
+        return ok;
+    return ok;
 }
 
 int do_init(Slice<ZString> argv)

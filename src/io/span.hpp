@@ -46,6 +46,8 @@ namespace io
         void note(ZString msg) const { message("note"_s, msg); }
         void warning(ZString msg) const { message("warning"_s, msg); }
         void error(ZString msg) const { message("error"_s, msg); }
+
+        LineSpan to_span() const;
     };
 
     // psst, don't tell anyone

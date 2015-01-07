@@ -34,7 +34,7 @@
 
 #include "../io/cxxstdio.hpp"
 #include "../io/fd.hpp"
-#include "../io/read.hpp"
+#include "../io/line.hpp"
 
 #include "../mmo/config_parse.hpp"
 
@@ -75,20 +75,19 @@ AString make_path(XString base, XString path)
 }
 
 static
-bool parse_option(XString name, ZString value)
+bool parse_option(io::Spanned<XString> name, io::Spanned<ZString> value)
 {
-    if (name == "login_server"_s)
-        login_server = value;
-    else if (name == "map_server"_s)
-        map_server = value;
-    else if (name == "char_server"_s)
-        char_server = value;
-    else if (name == "workdir"_s)
-        workdir = value;
+    if (name.data == "login_server"_s)
+        login_server = value.data;
+    else if (name.data == "map_server"_s)
+        map_server = value.data;
+    else if (name.data == "char_server"_s)
+        char_server = value.data;
+    else if (name.data == "workdir"_s)
+        workdir = value.data;
     else
     {
-        FPRINTF(stderr, "WARNING: ingnoring invalid option '%s' : '%s'\n"_fmt,
-                AString(name), value);
+        name.span.error("invalid option key"_s);
         return false;
     }
     return true;
@@ -98,30 +97,30 @@ static
 bool read_config(ZString filename)
 {
     bool rv = true;
-    io::ReadFile in(filename);
+    io::LineReader in(filename);
     if (!in.is_open())
     {
         FPRINTF(stderr, "Monitor config file not found: %s\n"_fmt, filename);
         exit(1);
     }
 
-    AString line;
-    while (in.getline(line))
+    io::Line line_;
+    while (in.read_line(line_))
     {
-        if (is_comment(line))
+        io::Spanned<ZString> line = respan(line_.to_span(), ZString(line_.text));
+        if (is_comment(line.data))
             continue;
-        XString name;
-        ZString value;
+        io::Spanned<XString> name;
+        io::Spanned<ZString> value;
         if (!config_split(line, &name, &value))
         {
-            PRINTF("Bad line: %s\n"_fmt, line);
+            line.span.error("Unable to split config key: value"_s);
             rv = false;
             continue;
         }
 
         if (!parse_option(name, value))
         {
-            PRINTF("Bad key/value: %s\n"_fmt, line);
             rv = false;
             continue;
         }
@@ -186,7 +185,10 @@ int main(int argc, char *argv[])
     ZString config = CONFIG;
     if (argc > 1)
         config = ZString(strings::really_construct_from_a_pointer, argv[1], nullptr);
-    read_config(config);
+    if (!read_config(config))
+    {
+        exit(1);
+    }
 
     if (chdir(workdir.c_str()) < 0)
     {

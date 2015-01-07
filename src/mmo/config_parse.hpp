@@ -23,11 +23,10 @@
 
 namespace tmwa
 {
-typedef bool (*ConfigItemParser)(XString key, ZString value);
+using ConfigItemParser = bool(io::Spanned<XString> key, io::Spanned<ZString> value);
 
 bool is_comment(XString line);
-bool config_split(ZString line, XString *key, ZString *value);
-bool config_split(XString line, XString *key, XString *value);
+bool config_split(io::Spanned<ZString> line, io::Spanned<XString> *key, io::Spanned<ZString> *value);
 
 /// Master config parser. This handles 'import' and 'version-ge' etc.
 /// Then it defers to the inferior parser for a line it does not understand.

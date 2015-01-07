@@ -25,7 +25,7 @@
 
 namespace tmwa
 {
-bool inter_config(XString key, ZString value);
+bool inter_config(io::Spanned<XString> key, io::Spanned<ZString> value);
 void inter_init2();
 void inter_save(void);
 RecvResult inter_parse_frommap(Session *ms, uint16_t packet_id);
