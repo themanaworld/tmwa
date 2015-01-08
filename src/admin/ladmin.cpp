@@ -57,32 +57,26 @@
 
 #include "../wire/packets.hpp"
 
+#include "admin_conf.hpp"
+#include "globals.hpp"
+
 #include "../poison.hpp"
 
 
 namespace tmwa
 {
-static
-int eathena_interactive_session;
-#define Iprintf if (eathena_interactive_session) PRINTF
+DIAG_PUSH();
+DIAG_I(missing_noreturn);
+void SessionDeleter::operator()(SessionData *)
+{
+    assert(false && "ladmin does not have sessions"_s);
+}
+DIAG_POP();
 
-//-------------------------------INSTRUCTIONS------------------------------
-// Set the variables below:
-//   IP of the login server.
-//   Port where the login-server listens incoming packets.
-//   Password of administration (same of config_athena.conf).
-// IMPORTANT:
-//   Be sure that you authorize remote administration in login-server
-//   (see login_athena.conf, 'admin_state' parameter)
-//-------------------------------------------------------------------------
-static
-IP4Address login_ip = IP4_LOCALHOST;   // IP of login-server
-static
-int login_port = 6900;    // Port of login-server
-static
-AccountPass admin_pass = stringish<AccountPass>("admin"_s);    // Administration password
-static
-AString ladmin_log_filename = "log/ladmin.log"_s;
+namespace admin
+{
+#define Iprintf if (tmwa::admin::eathena_interactive_session) PRINTF
+
 //-------------------------------------------------------------------------
 //  LIST of COMMANDs that you can type at the prompt:
 //    To use these commands you can only type only the first letters.
@@ -240,37 +234,16 @@ AString ladmin_log_filename = "log/ladmin.log"_s;
 //    Displays complete information of an account.
 //
 //-------------------------------------------------------------------------
-static
-Session *login_session;
-static
-int bytes_to_read = 0;         // flag to know if we waiting bytes from login-server
-static
-TString parameters; // needs to be global since it's passed to the parse function
-// really should be added to session data
-static
-AccountId list_first, list_last;
-static
-int list_type, list_count;  // parameter to display a list of accounts
-static
-int already_exit_function = 0; // sometimes, the exit function is called twice... so, don't log twice the message
-
-DIAG_PUSH();
-DIAG_I(missing_noreturn);
-void SessionDeleter::operator()(SessionData *)
-{
-    assert(false && "ladmin does not have sessions"_s);
-}
-DIAG_POP();
 
 //------------------------------
 // Writing function of logs file
 //------------------------------
 #define LADMIN_LOG(fmt, ...)    \
-    ladmin_log(STRPRINTF(fmt, ## __VA_ARGS__))
+    tmwa::admin::ladmin_log(STRPRINTF(fmt, ## __VA_ARGS__))
 static
 void ladmin_log(XString line)
 {
-    io::AppendFile logfp(ladmin_log_filename);
+    io::AppendFile logfp(admin_conf.ladmin_log_filename);
     if (!logfp.is_open())
         return;
     log_with_timestamp(logfp, line);
@@ -282,9 +255,9 @@ void delete_fromlogin(Session *)
     login_session = nullptr;
     {
         PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n"_fmt,
-                login_ip, login_port);
+                admin_conf.login_ip, admin_conf.login_port);
         LADMIN_LOG("Impossible to have a connection with the login-server [%s:%d] !\n"_fmt,
-                login_ip, login_port);
+                admin_conf.login_ip, admin_conf.login_port);
         exit(0);
     }
 }
@@ -1714,7 +1687,7 @@ void parse_fromlogin(Session *s)
                     break;
 
                 Iprintf("  Login-Server [%s:%d]\n"_fmt,
-                        login_ip, login_port);
+                        admin_conf.login_ip, admin_conf.login_port);
                 Version version = fixed.version;
                 Iprintf("  tmwA version %hhu.%hhu.%hhu (dev? %hhu) (flags %hhx) (which %hhx) (vend %hu)\n"_fmt,
                         version.major, version.minor, version.patch,
@@ -2471,12 +2444,12 @@ void parse_fromlogin(Session *s)
 // Function to connect to login-server
 //------------------------------------
 static
-int Connect_login_server(void)
+int connect_login_server(void)
 {
     Iprintf("Attempt to connect to login-server...\n"_fmt);
     LADMIN_LOG("Attempt to connect to login-server...\n"_fmt);
 
-    login_session = make_connection(login_ip, login_port, SessionParsers{.func_parse= parse_fromlogin, .func_delete= delete_fromlogin});
+    login_session = make_connection(admin_conf.login_ip, admin_conf.login_port, SessionParsers{.func_parse= parse_fromlogin, .func_delete= delete_fromlogin});
 
     if (!login_session)
         return 0;
@@ -2484,7 +2457,7 @@ int Connect_login_server(void)
     {
         Packet_Fixed<0x7918> fixed_18;
         fixed_18.encryption_zero = 0;
-        fixed_18.account_pass = admin_pass;
+        fixed_18.account_pass = admin_conf.admin_pass;
         send_fpacket<0x7918, 28>(login_session, fixed_18);
         bytes_to_read = 1;
 
@@ -2496,59 +2469,36 @@ int Connect_login_server(void)
 }
 
 static
-bool admin_confs(io::Spanned<XString> w1, io::Spanned<ZString> w2)
+bool admin_config(io::Spanned<XString> key, io::Spanned<ZString> value)
 {
-    {
-        if (w1.data == "login_ip"_s)
-        {
-            struct hostent *h = gethostbyname(w2.data.c_str());
-            if (h != nullptr)
-            {
-                Iprintf("Login server IP address: %s -> %s\n"_fmt,
-                        w2.data, login_ip);
-                login_ip = IP4Address({
-                        static_cast<uint8_t>(h->h_addr[0]),
-                        static_cast<uint8_t>(h->h_addr[1]),
-                        static_cast<uint8_t>(h->h_addr[2]),
-                        static_cast<uint8_t>(h->h_addr[3]),
-                });
-            }
-        }
-        else if (w1.data == "login_port"_s)
-        {
-            login_port = atoi(w2.data.c_str());
-        }
-        else if (w1.data == "admin_pass"_s)
-        {
-            admin_pass = stringish<AccountPass>(w2.data);
-        }
-        else if (w1.data == "ladmin_log_filename"_s)
-        {
-            ladmin_log_filename = w2.data;
-        }
-        else
-        {
-            PRINTF("WARNING: unknown ladmin config key: %s\n"_fmt, AString(w1.data));
-            return false;
-        }
-    }
-    return true;
+    return parse_admin_conf(admin_conf, key, value);
 }
+
+static
+bool admin_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
+{
+    if (key.data == "admin_conf"_s)
+    {
+        return load_config_file(value.data, admin_config);
+    }
+    key.span.error("Unknown meta-key for admin nonserver"_s);
+    return false;
+}
+} // namespace admin
 
 //--------------------------------------
 // Function called at exit of the server
 //--------------------------------------
 void term_func(void)
 {
-
-    if (already_exit_function == 0)
+    if (admin::already_exit_function == 0)
     {
-        delete_session(login_session);
+        delete_session(admin::login_session);
 
         Iprintf(SGR_RESET "----End of Ladmin (normal end with closing of all files).\n"_fmt);
         LADMIN_LOG("----End of Ladmin (normal end with closing of all files).\n"_fmt);
 
-        already_exit_function = 1;
+        admin::already_exit_function = 1;
     }
 }
 
@@ -2584,14 +2534,14 @@ int do_init(Slice<ZString> argv)
         else
         {
             loaded_config_yet = true;
-            runflag &= load_config_file(argvi, admin_confs);
+            runflag &= load_config_file(argvi, admin::admin_confs);
         }
     }
 
     if (!loaded_config_yet)
-        runflag &= load_config_file("conf/tmwa-admin.conf"_s, admin_confs);
+        runflag &= load_config_file("conf/tmwa-admin.conf"_s, admin::admin_confs);
 
-    eathena_interactive_session = isatty(0);
+    admin::eathena_interactive_session = isatty(0);
 
     LADMIN_LOG(""_fmt);
     LADMIN_LOG("Configuration file readed.\n"_fmt);
@@ -2608,8 +2558,9 @@ int do_init(Slice<ZString> argv)
     LADMIN_LOG("Ladmin is ready.\n"_fmt);
     Iprintf("Ladmin is " SGR_BOLD SGR_GREEN "ready" SGR_RESET ".\n\n"_fmt);
 
-    Connect_login_server();
+    admin::connect_login_server();
 
     return 0;
 }
+// namespace admin ends before term_func and do_init
 } // namespace tmwa

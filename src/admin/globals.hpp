@@ -1,5 +1,5 @@
 #pragma once
-//    admin/fwd.hpp - list of type names for admin client
+//    globals.hpp - Evil global variables for tmwa-admin.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -18,23 +18,20 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
-
-#include "../strings/fwd.hpp" // rank 1
-#include "../io/fwd.hpp" // rank 4
-#include "../net/fwd.hpp" // rank 5
-#include "../mmo/fwd.hpp" // rank 6
-#include "../proto2/fwd.hpp" // rank 8
-#include "../high/fwd.hpp" // rank 9
-#include "../wire/fwd.hpp" // rank 9
-// admin/fwd.hpp is rank ∞ because it is an executable
+#include "fwd.hpp"
 
 
 namespace tmwa
 {
-namespace admin
-{
-    struct AdminConf;
-// meh, add more when I feel like it
-} // namespace admin
+    namespace admin
+    {
+        extern bool eathena_interactive_session;
+        extern AdminConf admin_conf;
+        extern Session *login_session;
+        extern bool bytes_to_read;
+        extern TString parameters;
+        extern AccountId list_first, list_last;
+        extern int list_type, list_count;
+        extern bool already_exit_function;
+    } // namespace admin
 } // namespace tmwa
