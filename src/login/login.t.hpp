@@ -26,10 +26,15 @@
 
 namespace tmwa
 {
+namespace login
+{
 enum class ACO
 {
     DENY_ALLOW,
     ALLOW_DENY,
     MUTUAL_FAILURE,
 };
+} // namespace login
+// out of namespace because ADL is dumb
+bool extract(XString str, login::ACO *aco);
 } // namespace tmwa

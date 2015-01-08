@@ -26,6 +26,7 @@
 #include "oops.hpp"
 
 
+// half the important stuff is now in fwd.hpp !!!
 namespace tmwa
 {
 template<class I, I be, I en>
@@ -39,9 +40,6 @@ struct ExclusiveIndexing
     constexpr static size_t alloc_size = index_to_offset(en) - index_to_offset(be);
 };
 
-template<size_t n>
-using SimpleIndexing = ExclusiveIndexing<size_t, 0, n>;
-
 template<class I, I lo, I hi>
 struct InclusiveIndexing
 {
@@ -53,7 +51,7 @@ struct InclusiveIndexing
     constexpr static size_t alloc_size = index_to_offset(hi) - index_to_offset(lo) + 1;
 };
 
-template<class E, E n=E::COUNT>
+template<class E, E n>
 struct EnumIndexing : ExclusiveIndexing<E, static_cast<E>(0), n>
 {
 };
@@ -112,7 +110,4 @@ public:
         return !(lhs == rhs);
     }
 };
-
-template<class T, size_t n>
-using Array = GenericArray<T, SimpleIndexing<n>>;
 } // namespace tmwa

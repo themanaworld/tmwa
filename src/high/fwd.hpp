@@ -35,5 +35,6 @@ namespace tmwa
 {
 class CharPair;
 class PartyPair;
+struct GM_Account;
 // meh, add more when I feel like it
 } // namespace tmwa

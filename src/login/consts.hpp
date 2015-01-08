@@ -1,5 +1,6 @@
+
 #pragma once
-//    generic/fwd.hpp - list of type names for generic lib
+//    consts.hpp - Constants for tmwa-login.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -18,41 +19,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
-
-#include "../strings/fwd.hpp" // rank 1
-#include "../compat/fwd.hpp" // rank 2
-// generic/fwd.hpp is rank 3
+#include "fwd.hpp"
 
 
 namespace tmwa
 {
-// meh, add more when I feel like it
-template<class T>
-class dumb_ptr;
-
-template<class K, class V>
-class Map;
-template<class K, class V>
-class DMap;
-template<class K, class V>
-class UPMap;
-
-class InternPool;
-
-// arrays are complicated
-template<class I, I be, I en>
-struct ExclusiveIndexing;
-template<size_t n>
-using SimpleIndexing = ExclusiveIndexing<size_t, 0, n>;
-template<class I, I lo, I hi>
-struct InclusiveIndexing;
-template<class E, E n=E::COUNT>
-struct EnumIndexing;
-template<class I, size_t limit>
-struct InventoryIndexing;
-template<class T, class I>
-struct GenericArray;
-template<class T, size_t n>
-using Array = GenericArray<T, SimpleIndexing<n>>;
+namespace login
+{
+constexpr int MAX_SERVERS = 30;
+constexpr int AUTH_FIFO_SIZE = 256;
+} // namespace login
 } // namespace tmwa

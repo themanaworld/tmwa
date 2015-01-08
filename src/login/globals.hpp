@@ -1,5 +1,5 @@
 #pragma once
-//    login/fwd.hpp - list of type names for login server
+//    globals.hpp - Evil global variables for tmwa-login.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -18,30 +18,31 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+#include "fwd.hpp"
 
-#include "../ints/fwd.hpp" // rank 1
-#include "../strings/fwd.hpp" // rank 1
-#include "../compat/fwd.hpp"
-#include "../generic/fwd.hpp" // rank 3
-#include "../io/fwd.hpp" // rank 4
-#include "../net/fwd.hpp" // rank 5
-#include "../mmo/fwd.hpp" // rank 6
-#include "../proto2/fwd.hpp" // rank 8
-#include "../high/fwd.hpp" // rank 9
-#include "../wire/fwd.hpp" // rank 9
-// login/fwd.hpp is rank ∞ because it is an executable
+#include <vector>
+
+#include "../net/timer.t.hpp"
+
+#include "consts.hpp"
 
 
 namespace tmwa
 {
-namespace login
-{
-    struct LoginConf;
-    struct LoginLanConf;
-    struct AuthFifo;
-    struct mmo_char_server;
-    struct AuthData;
-    // meh, add more when I feel like it
-} // namespace login
+    namespace login
+    {
+        extern LoginConf login_conf;
+        extern LoginLanConf login_lan_conf;
+        extern AccountId account_id_count;
+        extern tick_t creation_time_GM_account_file;
+        extern Array<mmo_char_server, MAX_SERVERS> server;
+        extern Array<Session *, MAX_SERVERS> server_session;
+        extern Array<int, MAX_SERVERS> server_freezeflag;
+        extern Session *login_session;
+        extern Array<AuthFifo, AUTH_FIFO_SIZE> auth_fifo;
+        extern int auth_fifo_pos;
+        extern std::vector<AuthData> auth_data;
+        extern Map<AccountId, GM_Account> gm_account_db;
+        extern pid_t pid;
+    } // namespace login
 } // namespace tmwa

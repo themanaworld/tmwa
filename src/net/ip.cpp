@@ -105,6 +105,33 @@ bool impl_extract(XString str, IP4Mask *rv)
     return true;
 }
 
+bool impl_extract(XString str, std::vector<IP4Mask> *iv)
+{
+    if (str == "all"_s)
+    {
+        iv->clear();
+        iv->push_back(IP4Mask());
+        return true;
+    }
+    if (str == "clear"_s)
+    {
+        iv->clear();
+        return true;
+    }
+    // don't add if already 'all'
+    if (iv->size() == 1 && iv->front().mask() == IP4Address())
+    {
+        return true;
+    }
+    IP4Mask mask;
+    if (extract(str, &mask))
+    {
+        iv->push_back(mask);
+        return true;
+    }
+    return false;
+}
+
 VString<15> convert_for_printf(IP4Address a_)
 {
     const uint8_t *a = a_.bytes();

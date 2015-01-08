@@ -73,16 +73,47 @@
 
 #include "../wire/packets.hpp"
 
+#include "globals.hpp"
+#include "login_conf.hpp"
+#include "login_lan_conf.hpp"
+
 #include "../poison.hpp"
 
 
 namespace tmwa
 {
-constexpr int MAX_SERVERS = 30;
+DIAG_PUSH();
+DIAG_I(missing_noreturn);
+void SessionDeleter::operator()(SessionData *)
+{
+    assert(false && "login server does not have sessions anymore"_s);
+}
+DIAG_POP();
 
-constexpr AccountId START_ACCOUNT_NUM = wrap<AccountId>(2000000);
-constexpr AccountId END_ACCOUNT_NUM = wrap<AccountId>(100000000);
-
+// out of namespace because ADL is dumb
+bool extract(XString str, login::ACO *aco)
+{
+    using login::ACO;
+    if (str == "deny,allow"_s || str == "deny, allow"_s)
+    {
+        *aco = ACO::DENY_ALLOW;
+        return true;
+    }
+    if (str == "allow,deny"_s || str == "allow, deny"_s)
+    {
+        *aco = ACO::ALLOW_DENY;
+        return true;
+    }
+    // typo from old config files
+    if (str == "mutual-failture"_s || str == "mutual-failure"_s)
+    {
+        *aco = ACO::MUTUAL_FAILURE;
+        return true;
+    }
+    return false;
+}
+namespace login
+{
 struct mmo_account
 {
     AccountName userid;
@@ -97,143 +128,16 @@ struct mmo_account
     SEX sex;
 };
 
-struct mmo_char_server
-{
-    ServerName name;
-    IP4Address ip;
-    uint16_t port;
-    uint16_t users;
-};
-
-static
-AccountId account_id_count = START_ACCOUNT_NUM;
-static
-int new_account = 0;
-static
-int login_port = 6900;
-static
-IP4Address lan_char_ip = IP4_LOCALHOST;
-static
-IP4Mask lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
-static
-AString update_host;
-static
-AccountName userid;
-static
-AccountPass passwd;
-static
-ServerName main_server;
-
-static
-AString account_filename = "save/account.txt"_s;
-static
-AString gm_account_filename = "save/gm_account.txt"_s;
-static
-AString login_log_filename = "log/login.log"_s;
-static
-tick_t creation_time_GM_account_file;
-static
-std::chrono::seconds gm_account_filename_check_timer = 15_s;
-
-static
-int display_parse_login = 0;   // 0: no, 1: yes
-static
-int display_parse_admin = 0;   // 0: no, 1: yes
-static
-int display_parse_fromchar = 0;    // 0: no, 1: yes (without packet 0x2714), 2: all packets
-
-static
-Array<struct mmo_char_server, MAX_SERVERS> server;
-static
-Array<Session *, MAX_SERVERS> server_session;
-static
-Array<int, MAX_SERVERS> server_freezeflag;    // Char-server anti-freeze system. Counter. 5 ok, 4...0 freezed
-static
-int anti_freeze_enable = 0;
-static
-std::chrono::seconds anti_freeze_interval = 15_s;
-
-static
-Session *login_session;
-
-static
-ACO access_order = ACO::DENY_ALLOW;
-static
-std::vector<IP4Mask>
-access_allow, access_deny, access_ladmin;
-
-static
-GmLevel min_level_to_connect = GmLevel::from(0_u32);  // minimum level of player/GM (0: player, 1-99: gm) to connect on the server
-
-DIAG_PUSH();
-DIAG_I(missing_noreturn);
-void SessionDeleter::operator()(SessionData *)
-{
-    assert(false && "login server does not have sessions anymore"_s);
-}
-DIAG_POP();
-
-constexpr int AUTH_FIFO_SIZE = 256;
-struct AuthFifo
-{
-    AccountId account_id;
-    int login_id1, login_id2;
-    IP4Address ip;
-    SEX sex;
-    int delflag;
-};
-static
-Array<AuthFifo, AUTH_FIFO_SIZE> auth_fifo;
-// TODO replace with auto_fifo_it
-static
-int auth_fifo_pos = 0;
-
-struct AuthData
-{
-    AccountId account_id;
-    SEX sex;
-    AccountName userid;
-    AccountCrypt pass;
-    timestamp_milliseconds_buffer lastlogin;
-    int logincount;
-    int state;                 // packet 0x006a value + 1 (0: compte OK)
-    AccountEmail email;             // e-mail (by default: a@a.com)
-    timestamp_seconds_buffer error_message;     // Message of error code #6 = Your are Prohibited to log in until %s (packet 0x006a)
-    TimeT ban_until_time;      // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
-    IP4Address last_ip;           // save of last IP of connection
-    VString<254> memo;             // a memo field
-    int account_reg2_num;
-    Array<GlobalReg, ACCOUNT_REG2_NUM> account_reg2;
-};
-static
-std::vector<AuthData> auth_data;
-
-static
-int admin_state = 0;
-static
-AccountPass admin_pass;
-static
-AString gm_pass;
-static
-GmLevel level_new_gm = GmLevel::from(60u);
-
-// TODO make this just be Map<AccountId, GmLevel>
-static
-Map<AccountId, GM_Account> gm_account_db;
-
-static
-pid_t pid = 0; // For forked DB writes
-
 
 //------------------------------
 // Writing function of logs file
 //------------------------------
 #define LOGIN_LOG(fmt, ...) \
-    login_log(STRPRINTF(fmt, ## __VA_ARGS__))
+    tmwa::login::login_log(STRPRINTF(fmt, ## __VA_ARGS__))
 static
 void login_log(XString line)
 {
-    io::AppendFile logfp(login_log_filename);
+    io::AppendFile logfp(login_conf.login_log_filename);
     if (!logfp.is_open())
         return;
     log_with_timestamp(logfp, line);
@@ -288,16 +192,16 @@ int read_gm_account(void)
 
     gm_account_db.clear();
 
-    creation_time_GM_account_file = file_modified(gm_account_filename);
+    creation_time_GM_account_file = file_modified(login_conf.gm_account_filename);
 
-    io::ReadFile fp(gm_account_filename);
+    io::ReadFile fp(login_conf.gm_account_filename);
     if (!fp.is_open())
     {
         PRINTF("read_gm_account: GM accounts file [%s] not found.\n"_fmt,
-                gm_account_filename);
+                login_conf.gm_account_filename);
         PRINTF("                 Actually, there is no GM accounts on the server.\n"_fmt);
         LOGIN_LOG("read_gm_account: GM accounts file [%s] not found.\n"_fmt,
-                gm_account_filename);
+                login_conf.gm_account_filename);
         LOGIN_LOG("                 Actually, there is no GM accounts on the server.\n"_fmt);
         return 1;
     }
@@ -311,7 +215,7 @@ int read_gm_account(void)
         GM_Account p {};
         if (!extract(line, record<' '>(&p.account_id, &p.level)))
             PRINTF("read_gm_account: file [%s], invalid 'id_acount level' format: '%s'\n"_fmt,
-                    gm_account_filename, line);
+                    login_conf.gm_account_filename, line);
         else
         {
             GmLevel GM_level = isGM(p.account_id);
@@ -341,9 +245,9 @@ int read_gm_account(void)
     }
 
     PRINTF("read_gm_account: file '%s' readed (%d GM accounts found).\n"_fmt,
-            gm_account_filename, c);
+            login_conf.gm_account_filename, c);
     LOGIN_LOG("read_gm_account: file '%s' readed (%d GM accounts found).\n"_fmt,
-            gm_account_filename, c);
+            login_conf.gm_account_filename, c);
 
     return 0;
 }
@@ -362,29 +266,29 @@ bool check_ip(IP4Address ip)
     };
     ACF flag = ACF::DEF;
 
-    if (access_allow.empty() && access_deny.empty())
+    if (login_conf.allow.empty() && login_conf.deny.empty())
         return 1;
     // When there is no restriction, all IP are authorised.
 
-    if (std::find_if(access_allow.begin(), access_allow.end(),
+    if (std::find_if(login_conf.allow.begin(), login_conf.allow.end(),
                 [&ip](IP4Mask m)
                 {
                     return m.covers(ip);
-                }) != access_allow.end())
+                }) != login_conf.allow.end())
     {
         {
             flag = ACF::ALLOW;
-            if (access_order == ACO::ALLOW_DENY)
+            if (login_conf.order == ACO::ALLOW_DENY)
                 // With 'allow, deny' (deny if not allow), allow has priority
                 return 1;
         }
     }
 
-    if (std::find_if(access_deny.begin(), access_deny.end(),
+    if (std::find_if(login_conf.deny.begin(), login_conf.deny.end(),
                 [&ip](IP4Mask m)
                 {
                     return m.covers(ip);
-                }) != access_deny.end())
+                }) != login_conf.deny.end())
     {
         {
             flag = ACF::DENY;
@@ -393,7 +297,7 @@ bool check_ip(IP4Address ip)
         }
     }
 
-    return flag == ACF::ALLOW || access_order == ACO::DENY_ALLOW;
+    return flag == ACF::ALLOW || login_conf.order == ACO::DENY_ALLOW;
     // With 'mutual-failture', only 'allow' and non 'deny' IP are authorised.
     //   A non 'allow' (even non 'deny') IP is not authorised. It's like: if allowed and not denied, it's authorised.
     //   So, it's disapproval if you have no description at the time of 'mutual-failture'.
@@ -406,15 +310,15 @@ bool check_ip(IP4Address ip)
 static
 bool check_ladminip(IP4Address ip)
 {
-    if (access_ladmin.empty())
+    if (login_conf.ladminallowip.empty())
         // When there is no restriction, all IP are authorised.
         return true;
 
-    return std::find_if(access_ladmin.begin(), access_ladmin.end(),
+    return std::find_if(login_conf.ladminallowip.begin(), login_conf.ladminallowip.end(),
             [&ip](IP4Mask m)
             {
                 return m.covers(ip);
-            }) != access_ladmin.end();
+            }) != login_conf.ladminallowip.end();
 }
 
 //-----------------------------------------------
@@ -563,13 +467,13 @@ int mmo_auth_init(void)
 {
     int gm_count = 0;
 
-    io::ReadFile in(account_filename);
+    io::ReadFile in(login_conf.account_filename);
     if (!in.is_open())
     {
         // no account file -> no account -> no login, including char-server (ERROR)
         // not anymore! :-)
         PRINTF(SGR_BOLD SGR_RED "mmo_auth_init: Accounts file [%s] not found." SGR_RESET "\n"_fmt,
-                account_filename);
+                login_conf.account_filename);
         return 0;
     }
 
@@ -606,7 +510,7 @@ int mmo_auth_init(void)
     }
 
     AString str = STRPRINTF("%s has %zu accounts (%d GMs)\n"_fmt,
-            account_filename, auth_data.size(), gm_count);
+            login_conf.account_filename, auth_data.size(), gm_count);
     PRINTF("mmo_auth_init: %s\n"_fmt, str);
     LOGIN_LOG("%s\n"_fmt, line);
 
@@ -619,7 +523,7 @@ int mmo_auth_init(void)
 static
 void mmo_auth_sync(void)
 {
-    io::WriteLock fp(account_filename);
+    io::WriteLock fp(login_conf.account_filename);
 
     if (!fp.is_open())
     {
@@ -740,11 +644,11 @@ static
 void check_GM_file(TimerData *, tick_t)
 {
     // if we would not check
-    if (gm_account_filename_check_timer == interval_t::zero())
+    if (login_conf.gm_account_filename_check_timer == interval_t::zero())
         return;
 
     // get last modify time/date
-    tick_t new_time = file_modified(gm_account_filename);
+    tick_t new_time = file_modified(login_conf.gm_account_filename);
 
     if (new_time != creation_time_GM_account_file)
     {
@@ -802,7 +706,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
     // Account creation with _M/_F
     if (account->passwdenc == 0
         && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s))
-        && new_account == 1 && account_id_count < END_ACCOUNT_NUM
+        && login_conf.new_account && account_id_count < END_ACCOUNT_NUM
         && (account->userid.size() - 2) >= 4 && account->passwd.size() >= 4)
     {
         new_account_sex = account->userid.back();
@@ -956,7 +860,7 @@ void parse_fromchar(Session *s)
     uint16_t packet_id;
     while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
-        if (display_parse_fromchar == 2 || (display_parse_fromchar == 1 && packet_id != 0x2714))   // 0x2714 is done very often (number of players)
+        if (login_conf.display_parse_fromchar == 2 || (login_conf.display_parse_fromchar == 1 && packet_id != 0x2714))   // 0x2714 is done very often (number of players)
             PRINTF("parse_fromchar: connection #%d, packet: 0x%x (with being read: %zu bytes).\n"_fmt,
                     s, packet_id, packet_avail(s));
 
@@ -1041,7 +945,7 @@ void parse_fromchar(Session *s)
                     break;
 
                 server[id].users = fixed.users;
-                if (anti_freeze_enable)
+                if (login_conf.anti_freeze_enable)
                     server_freezeflag[id] = 5;  // Char anti-freeze system. Counter. 5 ok, 4...0 freezed
                 break;
             }
@@ -1095,16 +999,16 @@ void parse_fromchar(Session *s)
 
                     AString pass = repeat;
 
-                    if (pass == gm_pass)
+                    if (pass == login_conf.gm_pass)
                     {
                         // only non-GM can become GM
                         if (!isGM(acc))
                         {
                             // if we autorise creation
-                            if (level_new_gm)
+                            if (login_conf.level_new_gm)
                             {
                                 // if we can open the file to add the new GM
-                                io::AppendFile fp(gm_account_filename);
+                                io::AppendFile fp(login_conf.gm_account_filename);
                                 if (fp.is_open())
                                 {
                                     timestamp_seconds_buffer tmpstr;
@@ -1112,19 +1016,19 @@ void parse_fromchar(Session *s)
                                     FPRINTF(fp,
                                             "\n// %s: @GM command on account %d\n%d %d\n"_fmt,
                                             tmpstr,
-                                            acc, acc, level_new_gm);
+                                            acc, acc, login_conf.level_new_gm);
                                     if (!fp.close())
                                     {
                                         PRINTF("warning: didn't actually save GM file\n"_fmt);
                                     }
-                                    fixed_21.gm_level = level_new_gm;
+                                    fixed_21.gm_level = login_conf.level_new_gm;
                                     read_gm_account();
                                     send_GM_accounts();
                                     PRINTF("GM Change of the account %d: level 0 -> %d.\n"_fmt,
-                                            acc, level_new_gm);
+                                            acc, login_conf.level_new_gm);
                                     LOGIN_LOG("Char-server '%s': GM Change of the account %d: level 0 -> %d (ip: %s).\n"_fmt,
                                             server[id].name, acc,
-                                            level_new_gm, ip);
+                                            login_conf.level_new_gm, ip);
                                 }
                                 else
                                 {
@@ -1587,7 +1491,7 @@ void parse_admin(Session *s)
     uint16_t packet_id;
     while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
-        if (display_parse_admin == 1)
+        if (login_conf.display_parse_admin)
             PRINTF("parse_admin: connection #%d, packet: 0x%x (with being read: %zu bytes).\n"_fmt,
                     s, packet_id, packet_avail(s));
 
@@ -2025,10 +1929,10 @@ void parse_admin(Session *s)
                                 AccountId GM_account;
                                 GmLevel GM_level;
                                 int modify_flag;
-                                io::WriteLock fp2(gm_account_filename);
+                                io::WriteLock fp2(login_conf.gm_account_filename);
                                 if (fp2.is_open())
                                 {
-                                    io::ReadFile fp(gm_account_filename);
+                                    io::ReadFile fp(login_conf.gm_account_filename);
                                     if (fp.is_open())
                                     {
                                         timestamp_seconds_buffer tmpstr;
@@ -2602,7 +2506,7 @@ void parse_admin(Session *s)
 static
 bool lan_ip_check(IP4Address p)
 {
-    bool lancheck = lan_subnet.covers(p);
+    bool lancheck = login_lan_conf.lan_subnet.covers(p);
 
     PRINTF("LAN test (result): %s.\n"_fmt,
             (lancheck) ? SGR_BOLD SGR_CYAN "LAN source" SGR_RESET ""_s : SGR_BOLD SGR_GREEN "WAN source" SGR_RESET ""_s);
@@ -2623,7 +2527,7 @@ void parse_login(Session *s)
     uint16_t packet_id;
     while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
-        if (display_parse_login == 1)
+        if (login_conf.display_parse_login)
         {
             if (packet_id == 0x64)
             {
@@ -2685,10 +2589,10 @@ void parse_login(Session *s)
                 if (result == -1)
                 {
                     GmLevel gm_level = isGM(account.account_id);
-                    if (!(gm_level.satisfies(min_level_to_connect)))
+                    if (!(gm_level.satisfies(login_conf.min_level_to_connect)))
                     {
                         LOGIN_LOG("Connection refused: the minimum GM level for connection is %d (account: %s, GM level: %d, ip: %s).\n"_fmt,
-                                min_level_to_connect, account.userid,
+                                login_conf.min_level_to_connect, account.userid,
                                 gm_level, ip);
                         Packet_Fixed<0x0081> fixed_81;
                         fixed_81.error_code = 1; // 01 = Server closed
@@ -2718,9 +2622,9 @@ void parse_login(Session *s)
                          */
                         // if (version_2 & VERSION_2_UPDATEHOST)
                         {
-                            if (update_host)
+                            if (login_conf.update_host)
                             {
-                                send_packet_repeatonly<0x0063, 4, 1>(s, update_host);
+                                send_packet_repeatonly<0x0063, 4, 1>(s, login_conf.update_host);
                             }
                         }
 
@@ -2733,7 +2637,7 @@ void parse_login(Session *s)
                             {
                                 Packet_Repeat<0x0069> info;
                                 if (lan_ip_check(ip))
-                                    info.ip = lan_char_ip;
+                                    info.ip = login_lan_conf.lan_char_ip;
                                 else
                                     info.ip = server[i].ip;
                                 info.port = server[i].port;
@@ -2833,11 +2737,11 @@ void parse_login(Session *s)
                     ServerName server_name = stringish<ServerName>(fixed.server_name.to_print());
                     LOGIN_LOG("Connection request of the char-server '%s' @ %s:%d (ip: %s)\n"_fmt,
                             server_name, fixed.ip, fixed.port, ip);
-                    if (account.userid == userid && account.passwd == passwd)
+                    if (account.userid == login_conf.userid && account.passwd == login_conf.passwd)
                     {
                         // If this is the main server, and we don't already have a main server
                         if (!server_session[0]
-                            && server_name == main_server)
+                            && server_name == login_conf.main_server)
                         {
                             account.account_id = wrap<AccountId>(0_u32);
                             goto x2710_okay;
@@ -2872,7 +2776,7 @@ void parse_login(Session *s)
                         //maintenance = RFIFOW(fd, 82);
                         //is_new = RFIFOW(fd, 84);
                         server_session[unwrap<AccountId>(account.account_id)] = s;
-                        if (anti_freeze_enable)
+                        if (login_conf.anti_freeze_enable)
                             server_freezeflag[unwrap<AccountId>(account.account_id)] = 5;  // Char-server anti-freeze system. Counter. 5 ok, 4...0 freezed
 
                         Packet_Fixed<0x2711> fixed_11;
@@ -2914,7 +2818,7 @@ void parse_login(Session *s)
 
                 Packet_Fixed<0x7531> fixed_31;
                 Version version = CURRENT_LOGIN_SERVER_VERSION;
-                version.flags = new_account ? 1 : 0;
+                version.flags = login_conf.new_account ? 1 : 0;
                 fixed_31.version = version;
                 send_fpacket<0x7531, 10>(s, fixed_31);
                 break;
@@ -2953,8 +2857,8 @@ void parse_login(Session *s)
                         // non encrypted password
                         AccountPass password = stringish<AccountPass>(fixed.account_pass.to_print());
                         // If remote administration is enabled and password sent by client matches password read from login server configuration file
-                        if ((admin_state == 1)
-                            && (password == admin_pass))
+                        if (login_conf.admin_state
+                            && password == login_conf.admin_pass)
                         {
                             LOGIN_LOG("'ladmin'-login: Connection in administration mode accepted (non encrypted password: %s, ip: %s)\n"_fmt,
                                     password, ip);
@@ -2962,7 +2866,7 @@ void parse_login(Session *s)
                             fixed_19.error = 0;
                             s->set_parsers(SessionParsers{.func_parse= parse_admin, .func_delete= delete_admin});
                         }
-                        else if (admin_state != 1)
+                        else if (!login_conf.admin_state)
                             LOGIN_LOG("'ladmin'-login: Connection in administration mode REFUSED - remote administration is disabled (non encrypted password: %s, ip: %s)\n"_fmt,
                                     password, ip);
                         else
@@ -3009,273 +2913,22 @@ void parse_login(Session *s)
         s->set_eof();
 }
 
-//----------------------------------
-// Reading Lan Support configuration
-//----------------------------------
-static
-bool login_lan_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
-{
-    struct hostent *h = nullptr;
-
-    {
-        if (w1.data == "lan_char_ip"_s)
-        {
-            // Read Char-Server Lan IP Address
-            h = gethostbyname(w2.data.c_str());
-            if (h != nullptr)
-            {
-                lan_char_ip = IP4Address({
-                        static_cast<uint8_t>(h->h_addr[0]),
-                        static_cast<uint8_t>(h->h_addr[1]),
-                        static_cast<uint8_t>(h->h_addr[2]),
-                        static_cast<uint8_t>(h->h_addr[3]),
-                });
-            }
-            else
-            {
-                PRINTF("Bad IP value: %s\n"_fmt, w2.data);
-                return false;
-            }
-            PRINTF("LAN IP of char-server: %s.\n"_fmt, lan_char_ip);
-        }
-        else if (w1.data == "subnet"_s /*backward compatibility*/
-                || w1.data == "lan_subnet"_s)
-        {
-            if (!extract(w2.data, &lan_subnet))
-            {
-                PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
-                return false;
-            }
-            PRINTF("Sub-network of the char-server: %s.\n"_fmt,
-                    lan_subnet);
-        }
-        else
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 static
 bool lan_check()
 {
     // log the LAN configuration
     LOGIN_LOG("The LAN configuration of the server is set:\n"_fmt);
-    LOGIN_LOG("- with LAN IP of char-server: %s.\n"_fmt, lan_char_ip);
+    LOGIN_LOG("- with LAN IP of char-server: %s.\n"_fmt, login_lan_conf.lan_char_ip);
     LOGIN_LOG("- with the sub-network of the char-server: %s.\n"_fmt,
-            lan_subnet);
+            login_lan_conf.lan_subnet);
 
     // sub-network check of the char-server
     {
         PRINTF("LAN test of LAN IP of the char-server: "_fmt);
-        if (!lan_ip_check(lan_char_ip))
+        if (!lan_ip_check(login_lan_conf.lan_char_ip))
         {
             PRINTF(SGR_BOLD SGR_RED "***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network"_fmt SGR_RESET "\n");
             LOGIN_LOG("***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network.\n"_fmt);
-            return false;
-        }
-    }
-
-    return true;
-}
-
-//-----------------------------------
-// Reading general configuration file
-//-----------------------------------
-static
-bool login_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
-{
-    {
-        if (w1.data == "admin_state"_s)
-        {
-            admin_state = config_switch(w2.data);
-        }
-        else if (w1.data == "admin_pass"_s)
-        {
-            admin_pass = stringish<AccountPass>(w2.data);
-        }
-        else if (w1.data == "ladminallowip"_s)
-        {
-            if (w2.data == "clear"_s)
-            {
-                access_ladmin.clear();
-            }
-            else
-            {
-                // a.b.c.d/0.0.0.0 (canonically, 0.0.0.0/0) covers all
-                if (w2.data == "all"_s)
-                {
-                    // reset all previous values
-                    access_ladmin.clear();
-                    // set to all
-                    access_ladmin.push_back(IP4Mask());
-                }
-                else if (w2.data
-                        && !(access_ladmin.size() == 1
-                            && access_ladmin.front().mask() == IP4Address()))
-                {
-                    // don't add IP if already 'all'
-                    IP4Mask n;
-                    if (!extract(w2.data, &n))
-                    {
-                        PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
-                        return false;
-                    }
-                    access_ladmin.push_back(n);
-                }
-            }
-        }
-        else if (w1.data == "gm_pass"_s)
-        {
-            gm_pass = w2.data;
-        }
-        else if (w1.data == "level_new_gm"_s)
-        {
-            level_new_gm = GmLevel::from(static_cast<uint32_t>(atoi(w2.data.c_str())));
-        }
-        else if (w1.data == "new_account"_s)
-        {
-            new_account = config_switch(w2.data);
-        }
-        else if (w1.data == "login_port"_s)
-        {
-            login_port = atoi(w2.data.c_str());
-        }
-        else if (w1.data == "account_filename"_s)
-        {
-            account_filename = w2.data;
-        }
-        else if (w1.data == "gm_account_filename"_s)
-        {
-            gm_account_filename = w2.data;
-        }
-        else if (w1.data == "gm_account_filename_check_timer"_s)
-        {
-            gm_account_filename_check_timer = std::chrono::seconds(atoi(w2.data.c_str()));
-        }
-        else if (w1.data == "login_log_filename"_s)
-        {
-            login_log_filename = w2.data;
-        }
-        else if (w1.data == "display_parse_login"_s)
-        {
-            display_parse_login = config_switch(w2.data);   // 0: no, 1: yes
-        }
-        else if (w1.data == "display_parse_admin"_s)
-        {
-            display_parse_admin = config_switch(w2.data);   // 0: no, 1: yes
-        }
-        else if (w1.data == "display_parse_fromchar"_s)
-        {
-            display_parse_fromchar = config_switch(w2.data);    // 0: no, 1: yes (without packet 0x2714), 2: all packets
-        }
-        else if (w1.data == "min_level_to_connect"_s)
-        {
-            min_level_to_connect = GmLevel::from(static_cast<uint32_t>(atoi(w2.data.c_str())));
-        }
-        else if (w1.data == "order"_s)
-        {
-            if (w2.data == "deny,allow"_s || w2.data == "deny, allow"_s)
-                access_order = ACO::DENY_ALLOW;
-            else if (w2.data == "allow,deny"_s || w2.data == "allow, deny"_s)
-                access_order = ACO::ALLOW_DENY;
-            else if (w2.data == "mutual-failture"_s || w2.data == "mutual-failure"_s)
-                access_order = ACO::MUTUAL_FAILURE;
-            else
-            {
-                PRINTF("Bad order: %s\n"_fmt, w2.data);
-                return false;
-            }
-        }
-        else if (w1.data == "allow"_s)
-        {
-            if (w2.data == "clear"_s)
-            {
-                access_allow.clear();
-            }
-            else
-            {
-                if (w2.data == "all"_s)
-                {
-                    // reset all previous values
-                    access_allow.clear();
-                    // set to all
-                    access_allow.push_back(IP4Mask());
-                }
-                else if (w2.data
-                        && !(access_allow.size() == 1
-                            && access_allow.front().mask() == IP4Address()))
-                {
-                    // don't add IP if already 'all'
-                    IP4Mask n;
-                    if (!extract(w2.data, &n))
-                    {
-                        PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
-                        return false;
-                    }
-                    access_allow.push_back(n);
-                }
-            }
-        }
-        else if (w1.data == "deny"_s)
-        {
-            if (w2.data == "clear"_s)
-            {
-                access_deny.clear();
-            }
-            else
-            {
-                if (w2.data == "all"_s)
-                {
-                    // reset all previous values
-                    access_deny.clear();
-                    // set to all
-                    access_deny.push_back(IP4Mask());
-                }
-                else if (w2.data
-                        && !(access_deny.size() == 1
-                            && access_deny.front().mask() == IP4Address()))
-                {
-                    // don't add IP if already 'all'
-                    IP4Mask n;
-                    if (!extract(w2.data, &n))
-                    {
-                        PRINTF("Bad IP mask: %s\n"_fmt, w2.data);
-                        return false;
-                    }
-                    access_deny.push_back(n);
-                }
-            }
-        }
-        else if (w1.data == "anti_freeze_enable"_s)
-        {
-            anti_freeze_enable = config_switch(w2.data);
-        }
-        else if (w1.data == "anti_freeze_interval"_s)
-        {
-            anti_freeze_interval = std::max(
-                    std::chrono::seconds(atoi(w2.data.c_str())),
-                    5_s);
-        }
-        else if (w1.data == "update_host"_s)
-        {
-            update_host = w2.data;
-        }
-        else if (w1.data == "main_server"_s)
-        {
-            main_server = stringish<ServerName>(w2.data);
-        }
-        else if (w1.data == "userid"_s)
-        {
-            userid = stringish<AccountName>(w2.data);
-        }
-        else if (w1.data == "passwd"_s)
-        {
-            passwd = stringish<AccountPass>(w2.data);
-        }
-        else
-        {
             return false;
         }
     }
@@ -3290,104 +2943,60 @@ static
 bool display_conf_warnings(void)
 {
     bool rv = true;
-    if (admin_state != 0 && admin_state != 1)
-    {
-        PRINTF("***WARNING: Invalid value for admin_state parameter -> set to 0 (no remote admin).\n"_fmt);
-        admin_state = 0;
-        rv = false;
-    }
 
-    if (admin_state == 1)
+    if (login_conf.admin_state)
     {
-        if (!admin_pass)
+        if (!login_conf.admin_pass)
         {
             PRINTF("***WARNING: Administrator password is void (admin_pass).\n"_fmt);
             rv = false;
         }
-        else if (admin_pass == stringish<AccountPass>("admin"_s))
+        else if (login_conf.admin_pass == stringish<AccountPass>("admin"_s))
         {
             PRINTF("***WARNING: You are using the default administrator password (admin_pass).\n"_fmt);
             PRINTF("            We highly recommend that you change it.\n"_fmt);
         }
     }
 
-    if (!gm_pass)
+    if (!login_conf.gm_pass)
     {
         PRINTF("***WARNING: 'To GM become' password is void (gm_pass).\n"_fmt);
         PRINTF("            We highly recommend that you set one password.\n"_fmt);
         rv = false;
     }
-    else if (gm_pass == "gm"_s)
+    else if (login_conf.gm_pass == "gm"_s)
     {
         PRINTF("***WARNING: You are using the default GM password (gm_pass).\n"_fmt);
         PRINTF("            We highly recommend that you change it.\n"_fmt);
     }
 
-    if (new_account != 0 && new_account != 1)
-    {
-        PRINTF("***WARNING: Invalid value for new_account parameter -> set to 0 (no new account).\n"_fmt);
-        new_account = 0;
-        rv = false;
-    }
-
-    if (login_port < 1024 || login_port > 65535)
-    {
-        PRINTF("***WARNING: Invalid value for login_port parameter -> set to 6900 (default).\n"_fmt);
-        login_port = 6900;
-        rv = false;
-    }
-
-    if (gm_account_filename_check_timer.count() < 0)
+    if (login_conf.gm_account_filename_check_timer.count() < 0)
     {
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n"_fmt);
         PRINTF("            -> set to 15 sec (default).\n"_fmt);
-        gm_account_filename_check_timer = 15_s;
+        login_conf.gm_account_filename_check_timer = 15_s;
         rv = false;
     }
-    else if (gm_account_filename_check_timer == 1_s)
+    else if (login_conf.gm_account_filename_check_timer == 1_s)
     {
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n"_fmt);
         PRINTF("            -> set to 2 sec (minimum value).\n"_fmt);
-        gm_account_filename_check_timer = 2_s;
+        login_conf.gm_account_filename_check_timer = 2_s;
         rv = false;
     }
 
-    if (display_parse_login != 0 && display_parse_login != 1)
-    {                           // 0: no, 1: yes
-        PRINTF("***WARNING: Invalid value for display_parse_login parameter\n"_fmt);
-        PRINTF("            -> set to 0 (no display).\n"_fmt);
-        display_parse_login = 0;
-        rv = false;
-    }
-
-    if (display_parse_admin != 0 && display_parse_admin != 1)
-    {                           // 0: no, 1: yes
-        PRINTF("***WARNING: Invalid value for display_parse_admin parameter\n"_fmt);
-        PRINTF("            -> set to 0 (no display).\n"_fmt);
-        display_parse_admin = 0;
-        rv = false;
-    }
-
-    if (display_parse_fromchar < 0 || display_parse_fromchar > 2)
-    {                           // 0: no, 1: yes (without packet 0x2714), 2: all packets
-        PRINTF("***WARNING: Invalid value for display_parse_fromchar parameter\n"_fmt);
-        PRINTF("            -> set to 0 (no display).\n"_fmt);
-        display_parse_fromchar = 0;
-        rv = false;
-    }
-
-    if (access_order == ACO::DENY_ALLOW)
+    if (login_conf.order == ACO::DENY_ALLOW)
     {
-        if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
+        if (login_conf.deny.size() == 1 && login_conf.deny.front().mask() == IP4Address())
         {
             PRINTF("***WARNING: The IP security order is 'deny,allow' (allow if not deny).\n"_fmt);
             PRINTF("            And you refuse ALL IP.\n"_fmt);
             rv = false;
         }
     }
-    else if (access_order == ACO::ALLOW_DENY)
+    else if (login_conf.order == ACO::ALLOW_DENY)
     {
-        if (access_allow.empty())
+        if (login_conf.allow.empty())
         {
             PRINTF("***WARNING: The IP security order is 'allow,deny' (deny if not allow).\n"_fmt);
             PRINTF("            But, NO IP IS AUTHORISED!\n"_fmt);
@@ -3397,14 +3006,14 @@ bool display_conf_warnings(void)
     else
     {
         // ACO::MUTUAL_FAILURE
-        if (access_allow.empty())
+        if (login_conf.allow.empty())
         {
             PRINTF("***WARNING: The IP security order is 'mutual-failture'\n"_fmt);
             PRINTF("            (allow if in the allow list and not in the deny list).\n"_fmt);
             PRINTF("            But, NO IP IS AUTHORISED!\n"_fmt);
             rv = false;
         }
-        else if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
+        else if (login_conf.deny.size() == 1 && login_conf.deny.front().mask() == IP4Address())
         {
             PRINTF("***WARNING: The IP security order is mutual-failture\n"_fmt);
             PRINTF("            (allow if in the allow list and not in the deny list).\n"_fmt);
@@ -3428,171 +3037,186 @@ void save_config_in_log(void)
     // save configuration in log file
     LOGIN_LOG("The configuration of the server is set:\n"_fmt);
 
-    if (admin_state != 1)
+    if (!login_conf.admin_state)
         LOGIN_LOG("- with no remote administration.\n"_fmt);
-    else if (!admin_pass)
+    else if (!login_conf.admin_pass)
         LOGIN_LOG("- with a remote administration with a VOID password.\n"_fmt);
-    else if (admin_pass == stringish<AccountPass>("admin"_s))
+    else if (login_conf.admin_pass == stringish<AccountPass>("admin"_s))
         LOGIN_LOG("- with a remote administration with the DEFAULT password.\n"_fmt);
     else
         LOGIN_LOG("- with a remote administration with the password of %zu character(s).\n"_fmt,
-                admin_pass.size());
-    if (access_ladmin.empty()
-        || (access_ladmin.size() == 1 && access_ladmin.front().mask() == IP4Address()))
+                login_conf.admin_pass.size());
+    if (login_conf.ladminallowip.empty()
+        || (login_conf.ladminallowip.size() == 1 && login_conf.ladminallowip.front().mask() == IP4Address()))
     {
         LOGIN_LOG("- to accept any IP for remote administration\n"_fmt);
     }
     else
     {
         LOGIN_LOG("- to accept following IP for remote administration:\n"_fmt);
-        for (const IP4Mask& ae : access_ladmin)
+        for (const IP4Mask& ae : login_conf.ladminallowip)
             LOGIN_LOG("  %s\n"_fmt, ae);
     }
 
-    if (!gm_pass)
+    if (!login_conf.gm_pass)
         LOGIN_LOG("- with a VOID 'To GM become' password (gm_pass).\n"_fmt);
-    else if (gm_pass == "gm"_s)
+    else if (login_conf.gm_pass == "gm"_s)
         LOGIN_LOG("- with the DEFAULT 'To GM become' password (gm_pass).\n"_fmt);
     else
         LOGIN_LOG("- with a 'To GM become' password (gm_pass) of %zu character(s).\n"_fmt,
-                gm_pass.size());
-    if (!level_new_gm)
+                login_conf.gm_pass.size());
+    if (!login_conf.level_new_gm)
         LOGIN_LOG("- to refuse any creation of GM with @gm.\n"_fmt);
     else
         LOGIN_LOG("- to create GM with level '%d' when @gm is used.\n"_fmt,
-                level_new_gm);
+                login_conf.level_new_gm);
 
-    if (new_account == 1)
+    if (login_conf.new_account)
         LOGIN_LOG("- to ALLOW new users (with _F/_M).\n"_fmt);
     else
         LOGIN_LOG("- to NOT ALLOW new users (with _F/_M).\n"_fmt);
-    LOGIN_LOG("- with port: %d.\n"_fmt, login_port);
+    LOGIN_LOG("- with port: %d.\n"_fmt, login_conf.login_port);
     LOGIN_LOG("- with the accounts file name: '%s'.\n"_fmt,
-            account_filename);
+            login_conf.account_filename);
     LOGIN_LOG("- with the GM accounts file name: '%s'.\n"_fmt,
-            gm_account_filename);
-    if (gm_account_filename_check_timer == interval_t::zero())
+            login_conf.gm_account_filename);
+    if (login_conf.gm_account_filename_check_timer == interval_t::zero())
         LOGIN_LOG("- to NOT check GM accounts file modifications.\n"_fmt);
     else
         LOGIN_LOG("- to check GM accounts file modifications every %lld seconds.\n"_fmt,
-                maybe_cast<long long>(gm_account_filename_check_timer.count()));
+                maybe_cast<long long>(login_conf.gm_account_filename_check_timer.count()));
 
     // not necessary to log the 'login_log_filename', we are inside :)
 
-    if (display_parse_login)
+    if (login_conf.display_parse_login)
         LOGIN_LOG("- to display normal parse packets on console.\n"_fmt);
     else
         LOGIN_LOG("- to NOT display normal parse packets on console.\n"_fmt);
-    if (display_parse_admin)
+    if (login_conf.display_parse_admin)
         LOGIN_LOG("- to display administration parse packets on console.\n"_fmt);
     else
         LOGIN_LOG("- to NOT display administration parse packets on console.\n"_fmt);
-    if (display_parse_fromchar)
+    if (login_conf.display_parse_fromchar)
         LOGIN_LOG("- to display char-server parse packets on console.\n"_fmt);
     else
         LOGIN_LOG("- to NOT display char-server parse packets on console.\n"_fmt);
 
-    if (!min_level_to_connect)  // 0: all players, 1-99 at least gm level x
+    if (!login_conf.min_level_to_connect)  // 0: all players, 1-99 at least gm level x
         LOGIN_LOG("- with no minimum level for connection.\n"_fmt);
     else
         LOGIN_LOG("- to accept only GM with level %d or more.\n"_fmt,
-                min_level_to_connect);
+                login_conf.min_level_to_connect);
 
-    if (access_order == ACO::DENY_ALLOW)
+    if (login_conf.order == ACO::DENY_ALLOW)
     {
-        if (access_deny.empty())
+        if (login_conf.deny.empty())
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). You refuse no IP.\n"_fmt);
         }
-        else if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
+        else if (login_conf.deny.size() == 1 && login_conf.deny.front().mask() == IP4Address())
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). You refuse ALL IP.\n"_fmt);
         }
         else
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). Refused IP are:\n"_fmt);
-            for (IP4Mask ae : access_deny)
+            for (IP4Mask ae : login_conf.deny)
                 LOGIN_LOG("  %s\n"_fmt, ae);
         }
     }
-    else if (access_order == ACO::ALLOW_DENY)
+    else if (login_conf.order == ACO::ALLOW_DENY)
     {
-        if (access_allow.empty())
+        if (login_conf.allow.empty())
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). But, NO IP IS AUTHORISED!\n"_fmt);
         }
-        else if (access_allow.size() == 1 && access_allow.front().mask() == IP4Address())
+        else if (login_conf.allow.size() == 1 && login_conf.allow.front().mask() == IP4Address())
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). You authorise ALL IP.\n"_fmt);
         }
         else
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). Authorised IP are:\n"_fmt);
-            for (IP4Mask ae : access_allow)
+            for (IP4Mask ae : login_conf.allow)
                 LOGIN_LOG("  %s\n"_fmt, ae);
         }
     }
     else
     {                           // ACO_MUTUAL_FAILTURE
         LOGIN_LOG("- with the IP security order: 'mutual-failture' (allow if in the allow list and not in the deny list).\n"_fmt);
-        if (access_allow.empty())
+        if (login_conf.allow.empty())
         {
             LOGIN_LOG("  But, NO IP IS AUTHORISED!\n"_fmt);
         }
-        else if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
+        else if (login_conf.deny.size() == 1 && login_conf.deny.front().mask() == IP4Address())
         {
             LOGIN_LOG("  But, you refuse ALL IP!\n"_fmt);
         }
         else
         {
-            if (access_allow.size() == 1 && access_allow.front().mask() == IP4Address())
+            if (login_conf.allow.size() == 1 && login_conf.allow.front().mask() == IP4Address())
             {
                 LOGIN_LOG("  You authorise ALL IP.\n"_fmt);
             }
             else
             {
                 LOGIN_LOG("  Authorised IP are:\n"_fmt);
-                for (IP4Mask ae : access_allow)
+                for (IP4Mask ae : login_conf.allow)
                     LOGIN_LOG("    %s\n"_fmt, ae);
             }
             LOGIN_LOG("  Refused IP are:\n"_fmt);
-            for (IP4Mask ae : access_deny)
+            for (IP4Mask ae : login_conf.deny)
                 LOGIN_LOG("    %s\n"_fmt, ae);
         }
     }
 }
+
+static
+bool login_config(io::Spanned<XString> key, io::Spanned<ZString> value)
+{
+    return parse_login_conf(login_conf, key, value);
+}
+
+static
+bool login_lan_config(io::Spanned<XString> key, io::Spanned<ZString> value)
+{
+    return parse_login_lan_conf(login_lan_conf, key, value);
+}
+
+static
+bool login_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
+{
+    if (key.data == "login_conf"_s)
+    {
+        return load_config_file(value.data, login_config);
+    }
+    if (key.data == "login_lan_conf"_s)
+    {
+        return load_config_file(value.data, login_lan_config);
+    }
+    key.span.error("Unknown meta-key for login server"_s);
+    return false;
+}
+} // namespace login
 
 //--------------------------------------
 // Function called at exit of the server
 //--------------------------------------
 void term_func(void)
 {
-    mmo_auth_sync();
+    login::mmo_auth_sync();
 
-    auth_data.clear();
-    gm_account_db.clear();
-    for (int i = 0; i < MAX_SERVERS; i++)
+    login::auth_data.clear();
+    login::gm_account_db.clear();
+    for (int i = 0; i < login::MAX_SERVERS; i++)
     {
-        Session *s = server_session[i];
+        Session *s = login::server_session[i];
         if (s)
             delete_session(s);
     }
-    delete_session(login_session);
+    delete_session(login::login_session);
 
     LOGIN_LOG("----End of login-server (normal end with closing of all files).\n"_fmt);
-}
-
-static
-bool login_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
-{
-    bool ok;
-    ok = login_config(key, value);
-    if (!ok)
-        return ok;
-    ok = login_lan_config(key, value);
-    if (!ok)
-        return ok;
-    return ok;
 }
 
 //------------------------------
@@ -3627,59 +3251,60 @@ int do_init(Slice<ZString> argv)
         else
         {
             loaded_config_yet = true;
-            runflag &= load_config_file(argvi, login_confs);
+            runflag &= load_config_file(argvi, login::login_confs);
         }
     }
 
     if (!loaded_config_yet)
-        runflag &= load_config_file("conf/tmwa-login.conf"_s, login_confs);
+        runflag &= load_config_file("conf/tmwa-login.conf"_s, login::login_confs);
 
     // not in login_config_read, because we can use 'import' option, and display same message twice or more
     // (why is that bad?)
-    runflag &= display_conf_warnings();
+    runflag &= login::display_conf_warnings();
     // not before, because log file name can be changed
     // (that doesn't stop the char-server though)
-    save_config_in_log();
-    runflag &= lan_check();
+    login::save_config_in_log();
+    runflag &= login::lan_check();
 
-    for (int i = 0; i < AUTH_FIFO_SIZE; i++)
-        auth_fifo[i].delflag = 1;
-    for (int i = 0; i < MAX_SERVERS; i++)
-        server_session[i] = nullptr;
+    for (int i = 0; i < login::AUTH_FIFO_SIZE; i++)
+        login::auth_fifo[i].delflag = 1;
+    for (int i = 0; i < login::MAX_SERVERS; i++)
+        login::server_session[i] = nullptr;
 
-    read_gm_account();
-    mmo_auth_init();
+    login::read_gm_account();
+    login::mmo_auth_init();
 //     set_termfunc (mmo_auth_sync);
-    login_session = make_listen_port(login_port, SessionParsers{.func_parse= parse_login, .func_delete= delete_login});
+    login::login_session = make_listen_port(login::login_conf.login_port, SessionParsers{.func_parse= login::parse_login, .func_delete= login::delete_login});
 
 
     Timer(gettick() + 5_min,
-            check_auth_sync,
+            login::check_auth_sync,
             5_min
     ).detach();
 
-    if (anti_freeze_enable > 0)
+    if (login::login_conf.anti_freeze_enable > 0)
     {
         Timer(gettick() + 1_s,
-                char_anti_freeze_system,
-                anti_freeze_interval
+                login::char_anti_freeze_system,
+                login::login_conf.anti_freeze_interval
         ).detach();
     }
 
     // add timer to check GM accounts file modification
-    std::chrono::seconds j = gm_account_filename_check_timer;
+    std::chrono::seconds j = login::login_conf.gm_account_filename_check_timer;
     if (j == interval_t::zero())
         j = 1_min;
     Timer(gettick() + j,
-            check_GM_file,
+            login::check_GM_file,
             j).detach();
 
     LOGIN_LOG("The login-server is ready (Server is listening on the port %d).\n"_fmt,
-            login_port);
+            login::login_conf.login_port);
 
     PRINTF("The login-server is " SGR_BOLD SGR_GREEN "ready" SGR_RESET " (Server is listening on the port %d).\n\n"_fmt,
-            login_port);
+            login::login_conf.login_port);
 
     return 0;
 }
+// namespace login ends before term_func and do_init
 } // namespace tmwa
