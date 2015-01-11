@@ -50,6 +50,8 @@
 #include "../wire/packets.hpp"
 
 #include "char.hpp"
+#include "globals.hpp"
+#include "inter_conf.hpp"
 #include "int_party.hpp"
 #include "int_storage.hpp"
 
@@ -58,20 +60,8 @@
 
 namespace tmwa
 {
-static
-AString accreg_txt = "save/accreg.txt"_s;
-
-struct accreg
+namespace char_
 {
-    AccountId account_id;
-    int reg_num;
-    Array<GlobalReg, ACCOUNT_REG_NUM> reg;
-};
-static
-Map<AccountId, struct accreg> accreg_db;
-
-int party_share_level = 10;
-
 //--------------------------------------------------------
 
 // アカウント変数を文字列へ変換
@@ -112,7 +102,7 @@ void inter_accreg_init(void)
 {
     int c = 0;
 
-    io::ReadFile in(accreg_txt);
+    io::ReadFile in(inter_conf.accreg_txt);
     if (!in.is_open())
         return;
     AString line;
@@ -125,7 +115,7 @@ void inter_accreg_init(void)
         }
         else
         {
-            PRINTF("inter: accreg: broken data [%s] line %d\n"_fmt, accreg_txt,
+            PRINTF("inter: accreg: broken data [%s] line %d\n"_fmt, inter_conf.accreg_txt,
                     c);
         }
         c++;
@@ -147,47 +137,17 @@ void inter_accreg_save_sub(struct accreg *reg, io::WriteFile& fp)
 static
 int inter_accreg_save(void)
 {
-    io::WriteLock fp(accreg_txt);
+    io::WriteLock fp(inter_conf.accreg_txt);
     if (!fp.is_open())
     {
         PRINTF("int_accreg: cant write [%s] !!! data is lost !!!\n"_fmt,
-                accreg_txt);
+                inter_conf.accreg_txt);
         return 1;
     }
     for (auto& pair : accreg_db)
         inter_accreg_save_sub(&pair.second, fp);
 
     return 0;
-}
-
-bool inter_config(io::Spanned<XString> w1, io::Spanned<ZString> w2)
-{
-    {
-        if (w1.data == "storage_txt"_s)
-        {
-            storage_txt = w2.data;
-        }
-        else if (w1.data == "party_txt"_s)
-        {
-            party_txt = w2.data;
-        }
-        else if (w1.data == "accreg_txt"_s)
-        {
-            accreg_txt = w2.data;
-        }
-        else if (w1.data == "party_share_level"_s)
-        {
-            party_share_level = atoi(w2.data.c_str());
-            if (party_share_level < 0)
-                party_share_level = 0;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 // セーブ
@@ -489,4 +449,5 @@ RecvResult inter_parse_frommap(Session *ms, uint16_t packet_id)
 
     return rv;
 }
+} // namespace char_
 } // namespace tmwa

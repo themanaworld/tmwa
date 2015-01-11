@@ -1,9 +1,7 @@
 #pragma once
-//    int_storage.hpp - Internal storage handling.
+//    consts.hpp - Constants for tmwa-char.
 //
-//    Copyright © ????-2004 Athena Dev Teams
-//    Copyright © 2004-2011 The Mana World Development Team
-//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -27,11 +25,7 @@ namespace tmwa
 {
 namespace char_
 {
-void inter_storage_init(void);
-int inter_storage_save(void);
-void inter_storage_delete(AccountId account_id);
-Borrowed<Storage> account2storage(AccountId account_id);
-
-RecvResult inter_storage_parse_frommap(Session *ms, uint16_t);
+constexpr
+int MAX_MAP_SERVERS = 30;
 } // namespace char_
 } // namespace tmwa

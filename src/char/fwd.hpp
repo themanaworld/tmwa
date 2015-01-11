@@ -22,6 +22,7 @@
 
 #include "../ints/fwd.hpp" // rank 1
 #include "../strings/fwd.hpp" // rank 1
+#include "../compat/fwd.hpp" // rank 2
 #include "../generic/fwd.hpp" // rank 3
 #include "../io/fwd.hpp" // rank 4
 #include "../net/fwd.hpp" // rank 5
@@ -34,5 +35,16 @@
 
 namespace tmwa
 {
-// meh, add more when I feel like it
+namespace char_
+{
+    struct CharConf;
+    struct CharLanConf;
+    struct InterConf;
+
+    struct AuthFifoEntry;
+    struct mmo_map_server;
+
+    struct accreg;
+    // meh, add more when I feel like it
+} // namespace char_
 } // namespace tmwa

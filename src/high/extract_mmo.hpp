@@ -29,4 +29,5 @@ bool impl_extract(XString str, MapName *m);
 bool impl_extract(XString str, CharName *out);
 
 bool impl_extract(XString str, NpcEvent *ev);
+bool impl_extract(XString str, Point *p);
 } // namespace tmwa

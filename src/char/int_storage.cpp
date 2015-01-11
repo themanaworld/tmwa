@@ -42,18 +42,16 @@
 
 #include "../wire/packets.hpp"
 
+#include "globals.hpp"
+#include "inter_conf.hpp"
+
 #include "../poison.hpp"
 
 
 namespace tmwa
 {
-// ファイル名のデフォルト
-// inter_config_read()で再設定される
-AString storage_txt = "save/storage.txt"_s;
-
-static
-Map<AccountId, Storage> storage_db;
-
+namespace char_
+{
 // 倉庫データを文字列に変換
 static
 AString storage_tostr(Storage *p)
@@ -92,6 +90,7 @@ AString storage_tostr(Storage *p)
         return AString();
     return AString(str);
 }
+} // namespace char_
 
 // 文字列を倉庫データに変換
 static
@@ -118,6 +117,8 @@ bool impl_extract(XString str, Storage *p)
     return true;
 }
 
+namespace char_
+{
 // アカウントから倉庫データインデックスを得る（新規倉庫追加可能）
 Borrowed<Storage> account2storage(AccountId account_id)
 {
@@ -132,10 +133,10 @@ void inter_storage_init(void)
 {
     int c = 0;
 
-    io::ReadFile in(storage_txt);
+    io::ReadFile in(inter_conf.storage_txt);
     if (!in.is_open())
     {
-        PRINTF("cant't read : %s\n"_fmt, storage_txt);
+        PRINTF("cant't read : %s\n"_fmt, inter_conf.storage_txt);
         return;
     }
 
@@ -150,7 +151,7 @@ void inter_storage_init(void)
         else
         {
             PRINTF("int_storage: broken data [%s] line %d\n"_fmt,
-                    storage_txt, c);
+                    inter_conf.storage_txt, c);
         }
         c++;
     }
@@ -168,12 +169,12 @@ void inter_storage_save_sub(Storage *data, io::WriteFile& fp)
 // 倉庫データを書き込む
 int inter_storage_save(void)
 {
-    io::WriteLock fp(storage_txt);
+    io::WriteLock fp(inter_conf.storage_txt);
 
     if (!fp.is_open())
     {
         PRINTF("int_storage: cant write [%s] !!! data is lost !!!\n"_fmt,
-                storage_txt);
+                inter_conf.storage_txt);
         return 1;
     }
     for (auto& pair : storage_db)
@@ -270,4 +271,5 @@ RecvResult inter_storage_parse_frommap(Session *ms, uint16_t packet_id)
     }
     return rv;
 }
+} // namespace char_
 } // namespace tmwa

@@ -22,13 +22,27 @@
 
 #include "fwd.hpp"
 
+#include "../generic/array.hpp"
+
+#include "../mmo/consts.hpp"
+#include "../mmo/ids.hpp"
+
+#include "../proto2/net-GlobalReg.hpp"
+
 
 namespace tmwa
 {
-bool inter_config(io::Spanned<XString> key, io::Spanned<ZString> value);
+namespace char_
+{
+struct accreg
+{
+    AccountId account_id;
+    int reg_num;
+    Array<GlobalReg, ACCOUNT_REG_NUM> reg;
+};
+
 void inter_init2();
 void inter_save(void);
 RecvResult inter_parse_frommap(Session *ms, uint16_t packet_id);
-
-extern int party_share_level;
+} // namespace char_
 } // namespace tmwa

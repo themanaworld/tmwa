@@ -44,20 +44,17 @@
 #include "../wire/packets.hpp"
 
 #include "char.hpp"
+#include "globals.hpp"
 #include "inter.hpp"
+#include "inter_conf.hpp"
 
 #include "../poison.hpp"
 
 
 namespace tmwa
 {
-AString party_txt = "save/party.txt"_s;
-
-static
-Map<PartyId, PartyMost> party_db;
-static
-PartyId party_newid = wrap<PartyId>(100_u32);
-
+namespace char_
+{
 static
 void mapif_party_broken(PartyId party_id, int flag);
 static
@@ -91,6 +88,7 @@ AString inter_party_tostr(PartyPair p)
 
     return AString(str);
 }
+} // namespace char_
 
 static
 bool impl_extract(XString str, PartyPair *pp)
@@ -131,6 +129,8 @@ bool impl_extract(XString str, PartyPair *pp)
     return true;
 }
 
+namespace char_
+{
 static
 void party_check_deleted_init(PartyPair p)
 {
@@ -155,7 +155,7 @@ void party_check_deleted_init(PartyPair p)
 // パーティデータのロード
 void inter_party_init(void)
 {
-    io::ReadFile in(party_txt);
+    io::ReadFile in(inter_conf.party_txt);
     if (!in.is_open())
         return;
 
@@ -186,7 +186,7 @@ void inter_party_init(void)
         }
         else
         {
-            PRINTF("int_party: broken data [%s] line %d\n"_fmt, party_txt,
+            PRINTF("int_party: broken data [%s] line %d\n"_fmt, inter_conf.party_txt,
                     c + 1);
         }
         c++;
@@ -204,11 +204,11 @@ void inter_party_save_sub(PartyPair data, io::WriteFile& fp)
 // パーティーデータのセーブ
 int inter_party_save(void)
 {
-    io::WriteLock fp(party_txt);
+    io::WriteLock fp(inter_conf.party_txt);
     if (!fp.is_open())
     {
         PRINTF("int_party: cant write [%s] !!! data is lost !!!\n"_fmt,
-                party_txt);
+                inter_conf.party_txt);
         return 1;
     }
     for (auto& pair : party_db)
@@ -261,7 +261,7 @@ int party_check_exp_share(PartyPair p)
         }
     }
 
-    return (maxlv == 0 || maxlv - minlv <= party_share_level);
+    return (maxlv == 0 || maxlv - minlv <= inter_conf.party_share_level);
 }
 
 // パーティが空かどうかチェック
@@ -822,4 +822,5 @@ void inter_party_leave(PartyId party_id, AccountId account_id)
 {
     mapif_parse_PartyLeave(nullptr, party_id, account_id);
 }
+} // namespace char_
 } // namespace tmwa

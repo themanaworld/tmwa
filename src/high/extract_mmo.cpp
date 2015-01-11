@@ -92,4 +92,9 @@ bool impl_extract(XString str, NpcEvent *ev)
     XString mid;
     return extract(str, record<':'>(&ev->npc, &mid, &ev->label)) && !mid;
 }
+
+bool impl_extract(XString str, Point *p)
+{
+    return extract(str, record<','>(&p->map_, &p->x, &p->y));
+}
 } // namespace tmwa

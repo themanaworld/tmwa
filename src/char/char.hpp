@@ -22,19 +22,36 @@
 
 #include "fwd.hpp"
 
+#include "../ints/udl.hpp"
+
 #include "../generic/array.hpp"
 
 #include "../net/ip.hpp"
 
 #include "../high/mmo.hpp"
 
+#include "consts.hpp"
+
 
 namespace tmwa
 {
-constexpr int MAX_MAP_SERVERS = 30;
+namespace char_
+{
 constexpr
 std::chrono::seconds DEFAULT_AUTOSAVE_INTERVAL = 5_min;
+constexpr
+GmLevel default_gm_level = GmLevel::from(0_u32);
 
+struct AuthFifoEntry
+{
+    AccountId account_id;
+    CharId char_id;
+    int login_id1, login_id2;
+    IP4Address ip;
+    int delflag;
+    SEX sex;
+    unsigned short packet_tmw_version;
+};
 
 struct mmo_map_server
 {
@@ -54,4 +71,5 @@ void char_log(XString line);
 
 #define CHAR_LOG(fmt, ...)  \
     char_log(STRPRINTF(fmt, ## __VA_ARGS__))
+} // namespace char_
 } // namespace tmwa
