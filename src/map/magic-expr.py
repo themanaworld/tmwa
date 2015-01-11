@@ -1,7 +1,7 @@
 class fun_t(object):
     __slots__ = ('_value')
 
-    name = 'tmwa::magic::fun_t'
+    name = 'tmwa::map::magic::fun_t'
     depth = 1
     enabled = True
 
@@ -31,8 +31,8 @@ class fun_t(object):
     '''
 
     tests = [
-            ('static_cast<tmwa::magic::fun_t *>(nullptr)',
+            ('static_cast<tmwa::map::magic::fun_t *>(nullptr)',
                 '(fun_t *) nullptr'),
-            ('new tmwa::magic::fun_t{"name"_s, "sig"_s, \'\\0\', nullptr}',
+            ('new tmwa::map::magic::fun_t{"name"_s, "sig"_s, \'\\0\', nullptr}',
                 '(fun_t *) = {->name = "name", ->signature = "sig", ->ret_ty = 0 \'\\000\', ->fun = nullptr}'),
     ]

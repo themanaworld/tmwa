@@ -54,6 +54,11 @@ constexpr int MAX_PARTY = 12;
 #define MIN_CLOTH_COLOR battle_config.min_cloth_color
 #define MAX_CLOTH_COLOR battle_config.max_cloth_color
 
+namespace map
+{
+    struct map_session_data;
+}
+
 // WTF is this doing here?
 struct PartyMember
 {
@@ -61,6 +66,6 @@ struct PartyMember
     CharName name;
     MapName map;
     int leader, online, lv;
-    struct map_session_data *sd;
+    map::map_session_data *sd;
 };
 } // namespace tmwa

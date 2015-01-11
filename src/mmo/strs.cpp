@@ -1,7 +1,7 @@
-#pragma once
-//    skill-pools.hpp - dummy header to make Make dependencies work.
+#include "strs.hpp"
+//    strs.cpp - common string types
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,12 +18,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "fwd.hpp"
+#include "../io/cxxstdio.hpp"
+
+#include "../poison.hpp"
 
 
 namespace tmwa
 {
-namespace map
+VString<49> convert_for_printf(NpcEvent ev)
 {
-} // namespace map
+    return STRNPRINTF(50, "%s::%s"_fmt, ev.npc, ev.label);
+}
 } // namespace tmwa

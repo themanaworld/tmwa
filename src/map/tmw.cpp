@@ -28,12 +28,16 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "../net/timer.hpp"
+
 #include "../mmo/human_time_diff.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "intif.hpp"
 #include "map.hpp"
 #include "pc.hpp"
@@ -43,8 +47,10 @@
 
 namespace tmwa
 {
+namespace map
+{
 static
-void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length);
+void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, std::chrono::hours length);
 static
 bool tmw_CheckChatLameness(dumb_ptr<map_session_data> sd, XString message);
 
@@ -52,21 +58,21 @@ bool tmw_CheckChatLameness(dumb_ptr<map_session_data> sd, XString message);
 int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message)
 {
     nullpo_retr(1, sd);
-    TimeT now = TimeT::now();
+    tick_t now = gettick();
 
     if (pc_isGM(sd))
         return 0;
 
     if (now > sd->chat_reset_due)
     {
-        sd->chat_reset_due = static_cast<time_t>(now) + battle_config.chat_spam_threshold;
+        sd->chat_reset_due = now + battle_config.chat_spam_threshold;
         sd->chat_lines_in = 0;
     }
 
     if (now > sd->chat_repeat_reset_due)
     {
         sd->chat_repeat_reset_due =
-            static_cast<time_t>(now) + (battle_config.chat_spam_threshold * 60);
+            now + (battle_config.chat_spam_threshold * 60);
         sd->chat_total_repeats = 0;
     }
 
@@ -99,7 +105,7 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message)
         return 1;
     }
 
-    if (battle_config.chat_spam_ban &&
+    if (battle_config.chat_spam_ban != std::chrono::hours::zero() &&
         (sd->chat_lines_in >= battle_config.chat_spam_warn
          || sd->chat_total_repeats >= battle_config.chat_spam_warn))
     {
@@ -110,9 +116,9 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message)
     return 0;
 }
 
-void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
+void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, std::chrono::hours length)
 {
-    if (length == 0 || sd->auto_ban_info.in_progress)
+    if (length == std::chrono::hours::zero() || sd->auto_ban_info.in_progress)
         return;
 
     sd->auto_ban_info.in_progress = 1;
@@ -123,7 +129,7 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
     tmw_GmHackMsg(hack_msg);
 
     AString fake_command = STRPRINTF("@autoban %s %dh (%s spam)"_fmt,
-            sd->status_key.name, length, reason);
+            sd->status_key.name, static_cast<uint16_t>(length.count()), reason);
     log_atcommand(sd, fake_command);
 
     AString anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam."_fmt,
@@ -132,7 +138,7 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
     clif_displaymessage(sd->sess, anotherbuf);
     /* type: 2 - ban(year, month, day, hour, minute, second) */
     HumanTimeDiff ban_len {};
-    ban_len.hour = length;
+    ban_len.hour = length.count();
     chrif_char_ask_name(AccountId(), sd->status_key.name, 2, ban_len);
     clif_setwaitclose(sd->sess);
 }
@@ -162,7 +168,8 @@ bool tmw_CheckChatLameness(dumb_ptr<map_session_data>, XString message)
 void tmw_GmHackMsg(ZString line)
 {
     intif_wis_message_to_gm(WISP_SERVER_NAME,
-            GmLevel::from(static_cast<uint32_t>(battle_config.hack_info_GM_level)),
+            battle_config.hack_info_GM_level,
             line);
 }
+} // namespace map
 } // namespace tmwa

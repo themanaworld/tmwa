@@ -1,6 +1,6 @@
 class MapFlags(object):
     __slots__ = ('_value')
-    name = 'tmwa::MapFlags'
+    name = 'tmwa::map::MapFlags'
     enabled = True
 
     def __init__(self, value):
@@ -52,12 +52,12 @@ class MapFlags(object):
             ('RESAVE', 30),
     ]
     tests = [
-            ('reinterpret_cast<const tmwa::MapFlags&>(static_cast<const unsigned int&>(0x80000000))', 'MapFlags(0x80000000)'),
-            ('reinterpret_cast<const tmwa::MapFlags&>(static_cast<const unsigned int&>(0xf0000000))', 'MapFlags(TOWN | OUTSIDE | RESAVE | 0x80000000)'),
+            ('reinterpret_cast<const tmwa::map::MapFlags&>(static_cast<const unsigned int&>(0x80000000))', 'MapFlags(0x80000000)'),
+            ('reinterpret_cast<const tmwa::map::MapFlags&>(static_cast<const unsigned int&>(0xf0000000))', 'MapFlags(TOWN | OUTSIDE | RESAVE | 0x80000000)'),
     ] + [
-            ('tmwa::MapFlags(); value.set(tmwa::MapFlag::%s, true)' % n, 'MapFlags(%s)' % n)
+            ('tmwa::map::MapFlags(); value.set(tmwa::map::MapFlag::%s, true)' % n, 'MapFlags(%s)' % n)
             for (n, _) in junk
     ] + [
-            ('reinterpret_cast<const tmwa::MapFlags&>(static_cast<const unsigned int&>(1 << %d))' % i, 'MapFlags(%s)' % n)
+            ('reinterpret_cast<const tmwa::map::MapFlags&>(static_cast<const unsigned int&>(1 << %d))' % i, 'MapFlags(%s)' % n)
             for (n, i) in junk
     ]

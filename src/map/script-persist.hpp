@@ -28,10 +28,14 @@
 
 #include "../sexpr/variant.hpp"
 
+#include "../mmo/clif.t.hpp"
+
 #include "script-buffer.hpp"
 
 
 namespace tmwa
+{
+namespace map
 {
 class SIR
 {
@@ -120,4 +124,5 @@ struct script_data : ScriptDataVariantBase
     script_data(ScriptDataRetInfo v) : ScriptDataVariantBase(std::move(v)) {}
     script_data(ScriptDataFuncRef v) : ScriptDataVariantBase(std::move(v)) {}
 };
+} // namespace map
 } // namespace tmwa

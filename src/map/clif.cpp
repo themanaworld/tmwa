@@ -57,12 +57,15 @@
 
 #include "atcommand.hpp"
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "chrif.hpp"
+#include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "magic.hpp"
 #include "magic-stmt.hpp"
 #include "map.hpp"
+#include "map_conf.hpp"
 #include "npc.hpp"
 #include "party.hpp"
 #include "pc.hpp"
@@ -75,6 +78,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 constexpr int EMOTE_IGNORED = 0x0e;
 
@@ -120,11 +125,6 @@ enum class SendWho
 };
 
 static
-IP4Address map_ip;
-static
-int map_port = 5121;
-
-static
 int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
                              dumb_ptr<map_session_data> dstsd);
 static
@@ -150,42 +150,6 @@ void clif_delete(Session *s)
     }
 }
 
-
-/*==========================================
- * map鯖のip設定
- *------------------------------------------
- */
-void clif_setip(IP4Address ip)
-{
-    map_ip = ip;
-}
-
-/*==========================================
- * map鯖のport設定
- *------------------------------------------
- */
-void clif_setport(int port)
-{
-    map_port = port;
-}
-
-/*==========================================
- * map鯖のip読み出し
- *------------------------------------------
- */
-IP4Address clif_getip(void)
-{
-    return map_ip;
-}
-
-/*==========================================
- * map鯖のport読み出し
- *------------------------------------------
- */
-int clif_getport(void)
-{
-    return map_port;
-}
 
 /*==========================================
  *
@@ -3348,9 +3312,9 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     // 119
     // 78
 
-    if (battle_config.player_invincible_time > 0)
+    if (battle_config.player_invincible_time > interval_t::zero())
     {
-        pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.player_invincible_time));
+        pc_setinvincibletimer(sd, battle_config.player_invincible_time);
     }
 
     map_addblock(sd);     // ブロック登録
@@ -3574,7 +3538,7 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
                 send_fpacket<0x0195, 102>(s, fixed_195);
             }
 
-            if (pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.hack_info_GM_level))))
+            if (pc_isGM(sd).satisfies(battle_config.hack_info_GM_level))
             {
                 IP4Address ip = ssd->get_ip();
                 Packet_Fixed<0x020c> fixed_20c;
@@ -5322,12 +5286,10 @@ uint16_t clif_check_packet_flood(Session *s, int cmd)
     // They are flooding
     if (tick < sd->flood_rates[cmd] + rate)
     {
-        TimeT now = TimeT::now();
-
         // If it's a nasty flood we log and possibly kick
-        if (now > sd->packet_flood_reset_due)
+        if (tick > sd->packet_flood_reset_due)
         {
-            sd->packet_flood_reset_due = static_cast<time_t>(now) + battle_config.packet_spam_threshold;
+            sd->packet_flood_reset_due = tick + battle_config.packet_spam_threshold;
             sd->packet_flood_in = 0;
         }
 
@@ -5569,6 +5531,7 @@ unknown_packet:
 
 void do_init_clif(void)
 {
-    make_listen_port(map_port, SessionParsers{.func_parse= clif_parse, .func_delete= clif_delete});
+    make_listen_port(map_conf.map_port, SessionParsers{.func_parse= clif_parse, .func_delete= clif_delete});
 }
+} // namespace map
 } // namespace tmwa

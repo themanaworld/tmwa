@@ -27,6 +27,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 void do_init_party(void);
 Option<PartyPair> party_search(PartyId party_id);
 Option<PartyPair> party_searchname(PartyName str);
@@ -63,4 +65,5 @@ int party_exp_share(PartyPair p, Borrowed<map_local> map, int base_exp, int job_
 
 void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<map_session_data> sd, int type);
+} // namespace map
 } // namespace tmwa

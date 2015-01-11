@@ -1,6 +1,6 @@
 class ScriptBuffer(object):
     __slots__ = ('_value')
-    name = 'tmwa::ScriptBuffer'
+    name = 'tmwa::map::ScriptBuffer'
     enabled = True
 
     def __init__(self, value):
@@ -55,12 +55,12 @@ class ScriptBuffer(object):
                 global rstring_disable_children
                 rstring_disable_children = True
                 try:
-                    rv = 'VARIABLE %s' % gdb.parse_and_eval('tmwa::variable_names.names._M_impl._M_start[{ai}]'.format(ai=ai))
+                    rv = 'VARIABLE %s' % gdb.parse_and_eval('tmwa::map::variable_names.names._M_impl._M_start[{ai}]'.format(ai=ai))
                 finally:
                     rstring_disable_children = False
                 return rv
             elif cs == 'FUNC_REF':
-                return 'FUNC_REF %s' % gdb.parse_and_eval('tmwa::builtin_functions[{ai}].name'.format(ai=ai))
+                return 'FUNC_REF %s' % gdb.parse_and_eval('tmwa::map::builtin_functions[{ai}].name'.format(ai=ai))
             elif cs == 'PARAM':
                 # https://sourceware.org/bugzilla/show_bug.cgi?id=17568
                 try:
@@ -524,13 +524,13 @@ class ScriptBuffer(object):
     using tmwa::operator "" _s;
 
     static
-    const tmwa::ScriptBuffer& test_script_buffer(tmwa::LString source)
+    const tmwa::map::ScriptBuffer& test_script_buffer(tmwa::LString source)
     {
-        auto p = tmwa::add_strp("TEST_FAKE_PARAM_BASELEVEL"_s);
-        p->type = tmwa::StringCode::PARAM;
+        auto p = tmwa::map::add_strp("TEST_FAKE_PARAM_BASELEVEL"_s);
+        p->type = tmwa::map::StringCode::PARAM;
         p->val = static_cast<uint16_t>(tmwa::SP::BASELEVEL);
-        p = tmwa::add_strp("TEST_FAKE_CONSTANT"_s);
-        p->type = tmwa::StringCode::INT;
+        p = tmwa::map::add_strp("TEST_FAKE_CONSTANT"_s);
+        p->type = tmwa::map::StringCode::INT;
         p->val = 42;
 
         tmwa::io::LineCharReader lr(tmwa::io::from_string, "<script debug print test>"_s, source);
@@ -539,7 +539,7 @@ class ScriptBuffer(object):
         opt.implicit_end = true;
         auto code_res = tmwa::ast::script::parse_script_body(lr, opt);
         auto code = TRY_UNWRAP(code_res.get_success(), abort());
-        auto ups = tmwa::compile_script("script debug print test"_s, code, opt.implicit_end);
+        auto ups = tmwa::map::compile_script("script debug print test"_s, code, opt.implicit_end);
         assert(ups);
         return *ups.release();
     }

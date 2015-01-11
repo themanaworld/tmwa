@@ -53,6 +53,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 /* used for local spell effects */
@@ -1539,4 +1541,5 @@ int spell_attack(BlockId caster_id, BlockId target_id)
     return 1;
 }
 } // namespace magic
+} // namespace map
 } // namespace tmwa

@@ -29,6 +29,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace e
 {
 enum class BF : uint16_t
@@ -241,4 +243,5 @@ earray<Races, Race, Race::COUNT> race_shift //=
     Races::boss,
     Races::other,
 }};
+} // namespace map
 } // namespace tmwa

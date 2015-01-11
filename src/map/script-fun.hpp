@@ -26,6 +26,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 struct BuiltinFunction
 {
     void (*func)(ScriptState *);
@@ -35,4 +37,5 @@ struct BuiltinFunction
 };
 
 extern BuiltinFunction builtin_functions[];
+} // namespace map
 } // namespace tmwa

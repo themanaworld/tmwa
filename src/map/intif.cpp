@@ -38,8 +38,10 @@
 #include "../wire/packets.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "map.hpp"
 #include "party.hpp"
 #include "pc.hpp"
@@ -49,6 +51,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 //-----------------------------------------------------------------
 // inter serverへの送信
@@ -694,4 +698,5 @@ RecvResult intif_parse(Session *s, uint16_t packet_id)
     }
     return rv;
 }
+} // namespace map
 } // namespace tmwa

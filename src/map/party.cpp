@@ -35,7 +35,9 @@
 #include "../high/mmo.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "intif.hpp"
 #include "map.hpp"
 #include "pc.hpp"
@@ -45,11 +47,10 @@
 
 namespace tmwa
 {
+namespace map
+{
 // 座標やＨＰ送信の間隔
 constexpr interval_t PARTY_SEND_XYHP_INVERVAL = 1_s;
-
-static
-Map<PartyId, PartyMost> party_db;
 
 static
 void party_check_conflict(dumb_ptr<map_session_data> sd);
@@ -782,4 +783,5 @@ void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         if (list[i]->bl_prev)      // 有効かどうかチェック
             func(list[i]);
 }
+} // namespace map
 } // namespace tmwa

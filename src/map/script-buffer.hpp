@@ -27,16 +27,19 @@
 
 namespace tmwa
 {
+namespace map
+{
 class ScriptBuffer;
+} // namespace map
 } // namespace tmwa
 
 namespace std
 {
 template<>
-struct default_delete<const tmwa::ScriptBuffer>
+struct default_delete<const tmwa::map::ScriptBuffer>
 {
     default_delete() {}
-    default_delete(default_delete<tmwa::ScriptBuffer>) {}
-    void operator()(const tmwa::ScriptBuffer *sd);
+    default_delete(default_delete<tmwa::map::ScriptBuffer>) {}
+    void operator()(const tmwa::map::ScriptBuffer *sd);
 };
 } // namespace std

@@ -30,6 +30,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 enum class VariableCode : uint8_t
 {
     PARAM,
@@ -92,6 +94,7 @@ void push_str(struct script_stack *stack, RString str);
 
 void push_copy(struct script_stack *stack, int pos_);
 void pop_stack(struct script_stack *stack, int start, int end);
+} // namespace map
 } // namespace tmwa
 
 #include "script-call-internal.tcc"

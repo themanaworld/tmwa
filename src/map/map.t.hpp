@@ -34,6 +34,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 enum class BL : uint8_t
 {
     NUL,
@@ -195,4 +197,5 @@ inline
 BlockId account_to_block(AccountId a) { return wrap<BlockId>(unwrap<AccountId>(a)); }
 inline
 AccountId block_to_account(BlockId b) { return wrap<AccountId>(unwrap<BlockId>(b)); }
+} // namespace map
 } // namespace tmwa

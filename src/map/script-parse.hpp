@@ -29,12 +29,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 std::unique_ptr<const ScriptBuffer> compile_script(RString debug_name, const ast::script::ScriptBody& body, bool implicit_end);
-
-extern
-Map<ScriptLabel, int> scriptlabel_db;
-extern
-UPMap<RString, const ScriptBuffer> userfunc_db;
-
-extern int script_errors;
+} // namespace map
 } // namespace tmwa

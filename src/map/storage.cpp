@@ -29,6 +29,7 @@
 
 #include "chrif.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
@@ -39,9 +40,8 @@
 
 namespace tmwa
 {
-static
-Map<AccountId, Storage> storage_db;
-
+namespace map
+{
 void do_final_storage(void)
 {
     storage_db.clear();
@@ -311,4 +311,5 @@ int storage_storage_saved(AccountId account_id)
     }
     return 0;
 }
+} // namespace map
 } // namespace tmwa

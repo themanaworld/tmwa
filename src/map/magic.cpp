@@ -28,6 +28,7 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "globals.hpp"
 #include "magic-expr.hpp"
 #include "magic-interpreter.hpp"
 #include "magic-interpreter-base.hpp"
@@ -39,6 +40,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 namespace magic
 {
@@ -123,4 +126,5 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
     return 0;                   /* Not a spell */
 }
 } // namespace magic
+} // namespace map
 } // namespace tmwa

@@ -48,12 +48,15 @@
 
 #include "atcommand.hpp"
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "magic-stmt.hpp"
 #include "map.hpp"
+#include "map_conf.hpp"
 #include "npc.hpp"
 #include "party.hpp"
 #include "path.hpp"
@@ -66,6 +69,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 // PVP順位計算の間隔
 constexpr std::chrono::milliseconds PVP_CALCRANK_INTERVAL =
@@ -253,10 +258,6 @@ earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
     EPOS::WEAPON,
     EPOS::ARROW,
 }};
-
-// TODO use DMap<>
-static
-std::map<AccountId, GmLevel> gm_accountm;
 
 static
 int pc_checkoverhp(dumb_ptr<map_session_data> sd);
@@ -597,7 +598,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
 
     sc_data = battle_get_sc_data(sd);
 
-    GmLevel gm_all_equipment = GmLevel::from(static_cast<uint32_t>(battle_config.gm_all_equipment));
+    GmLevel gm_all_equipment = battle_config.gm_all_equipment;
     if (gm_all_equipment && pc_isGM(sd).satisfies(gm_all_equipment))
         return 1;
 
@@ -759,14 +760,14 @@ int pc_authok(AccountId id, int login_id2,
     sd->auto_ban_info.in_progress = 0;
 
     // Initialize antispam vars
-    sd->chat_reset_due = TimeT();
+    sd->chat_reset_due = tick_t();
     sd->chat_lines_in = sd->chat_total_repeats = 0;
-    sd->chat_repeat_reset_due = TimeT();
+    sd->chat_repeat_reset_due = tick_t();
     sd->chat_lastmsg = RString();
 
     for (tick_t& t : sd->flood_rates)
         t = tick_t();
-    sd->packet_flood_reset_due = TimeT();
+    sd->packet_flood_reset_due = tick_t();
     sd->packet_flood_in = 0;
 
     pc_calcstatus(sd, 1);
@@ -787,7 +788,7 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
     clif_displaymessage(sd->sess, "This server is Free Software, for details type @source in chat or use the tmwa-source tool"_s);
 
     sd->state.seen_motd = true;
-    io::ReadFile in(motd_txt);
+    io::ReadFile in(map_conf.motd_txt);
     if (in.is_open())
     {
         AString buf;
@@ -822,7 +823,8 @@ int pc_calc_skillpoint(dumb_ptr<map_session_data> sd)
 
     nullpo_retz(sd);
 
-    for (i = 0; i < skill_pool_skills_size; i++) {
+    for (i = 0; i < skill_pool_skills.size(); i++)
+    {
         int lv = sd->status.skill[skill_pool_skills[i]].lv;
         if (lv)
             skill_points += ((lv * (lv - 1)) >> 1) - 1;
@@ -1320,7 +1322,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->attack_spell_override)
         sd->aspd = sd->attack_spell_delay;
 
-    sd->aspd = std::max(sd->aspd, static_cast<interval_t>(battle_config.max_aspd));
+    sd->aspd = std::max(sd->aspd, battle_config.max_aspd);
     sd->amotion = sd->aspd;
     sd->dmotion = std::chrono::milliseconds(800 - sd->paramc[ATTR::AGI] * 4);
     sd->dmotion = std::max(sd->dmotion, 400_ms);
@@ -2661,7 +2663,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
                 sd->attackabletime = tick + (sd->aspd * 2);
             }
             if (sd->attackabletime <= tick)
-                sd->attackabletime = tick + static_cast<interval_t>(battle_config.max_aspd) * 2;
+                sd->attackabletime = tick + battle_config.max_aspd * 2;
         }
     }
 
@@ -4591,10 +4593,6 @@ dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd)
  * SP回復量計算
  *------------------------------------------
  */
-static
-tick_t natural_heal_tick, natural_heal_prev_tick;
-static
-interval_t natural_heal_diff_tick;
 
 static
 interval_t pc_spheal(dumb_ptr<map_session_data> sd)
@@ -4652,12 +4650,12 @@ int pc_natural_heal_hp(dumb_ptr<map_session_data> sd)
         return 0;
     }
 
-    if (sd->hp_sub >= static_cast<interval_t>(battle_config.natural_healhp_interval))
+    if (sd->hp_sub >= battle_config.natural_healhp_interval)
     {
         bonus = sd->nhealhp;
-        while (sd->hp_sub >= static_cast<interval_t>(battle_config.natural_healhp_interval))
+        while (sd->hp_sub >= battle_config.natural_healhp_interval)
         {
-            sd->hp_sub -= static_cast<interval_t>(battle_config.natural_healhp_interval);
+            sd->hp_sub -= battle_config.natural_healhp_interval;
             if (sd->status.hp + bonus <= sd->status.max_hp)
                 sd->status.hp += bonus;
             else
@@ -4698,12 +4696,12 @@ int pc_natural_heal_sp(dumb_ptr<map_session_data> sd)
     else
         sd->inchealsptick = interval_t::zero();
 
-    if (sd->sp_sub >= static_cast<interval_t>(battle_config.natural_healsp_interval))
+    if (sd->sp_sub >= battle_config.natural_healsp_interval)
     {
         bonus = sd->nhealsp;
-        while (sd->sp_sub >= static_cast<interval_t>(battle_config.natural_healsp_interval))
+        while (sd->sp_sub >= battle_config.natural_healsp_interval)
         {
-            sd->sp_sub -= static_cast<interval_t>(battle_config.natural_healsp_interval);
+            sd->sp_sub -= battle_config.natural_healsp_interval;
             if (sd->status.sp + bonus <= sd->status.max_sp)
                 sd->status.sp += bonus;
             else
@@ -4839,8 +4837,6 @@ void pc_setsavepoint(dumb_ptr<map_session_data> sd, MapName mapname, int x, int 
  *------------------------------------------
  */
 static
-int last_save_fd, save_flag;
-static
 void pc_autosave_sub(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
@@ -4867,7 +4863,7 @@ void pc_autosave(TimerData *, tick_t)
     if (save_flag == 0)
         last_save_fd = -1;
 
-    interval_t interval = autosave_time / (clif_countusers() + 1);
+    interval_t interval = map_conf.autosave_time / (clif_countusers() + 1);
     if (interval <= interval_t::zero())
         interval = 1_ms;
     Timer(gettick() + interval,
@@ -4920,7 +4916,7 @@ void do_init_pc(void)
             pc_natural_heal,
             NATURAL_HEAL_INTERVAL
     ).detach();
-    Timer(gettick() + autosave_time,
+    Timer(gettick() + map_conf.autosave_time,
             pc_autosave
     ).detach();
 }
@@ -4972,4 +4968,5 @@ int pc_logout(dumb_ptr<map_session_data> sd) // [fate] Player logs out
     MAP_LOG_STATS(sd, "LOGOUT"_fmt);
     return 0;
 }
+} // namespace map
 } // namespace tmwa

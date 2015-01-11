@@ -26,17 +26,12 @@
 
 namespace tmwa
 {
-extern
-BlockId npc_id;
-
+namespace map
+{
 struct event_data
 {
     dumb_ptr<npc_data_script> nd;
     int pos;
 };
-
-extern
-Map<NpcEvent, struct event_data> ev_db;
-extern
-DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
+} // namespace map
 } // namespace tmwa

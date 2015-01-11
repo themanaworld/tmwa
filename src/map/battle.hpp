@@ -33,6 +33,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 // ダメージ
 struct Damage
 {
@@ -106,114 +108,5 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         BCT flag);
 int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         int range);
-
-extern struct Battle_Config
-{
-    int warp_point_debug;
-    int enemy_critical;
-    int enemy_critical_rate;
-    int enemy_str;
-    int enemy_perfect_flee;
-    int casting_rate, delay_rate, delay_dependon_dex;
-    int skill_delay_attack_enable;
-    int monster_skill_add_range;
-    int player_damage_delay;
-    int flooritem_lifetime;
-    int item_auto_get;
-    int item_first_get_time;
-    int item_second_get_time;
-    int item_third_get_time;
-    int base_exp_rate, job_exp_rate;
-    int death_penalty_type;
-    int death_penalty_base, death_penalty_job;
-    int restart_hp_rate;
-    int restart_sp_rate;
-    int monster_hp_rate;
-    int monster_max_aspd;
-    int atcommand_gm_only;
-    int atcommand_spawn_quantity_limit;
-    int gm_all_equipment;
-    int monster_active_enable;
-    int mob_skill_use;
-    int mob_count_rate;
-    int basic_skill_check;
-    int player_invincible_time;
-    int skill_min_damage;
-    int natural_healhp_interval;
-    int natural_healsp_interval;
-    int natural_heal_weight_rate;
-    int arrow_decrement;
-    int max_aspd;
-    int max_hp;
-    int max_sp;
-    int max_lv;
-    int max_parameter;
-    int monster_skill_log;
-    int battle_log;
-    int save_log;
-    int error_log;
-    int etc_log;
-    int save_clothcolor;
-    int undead_detect_type;
-    int agi_penaly_type;
-    int agi_penaly_count;
-    int agi_penaly_num;
-    int vit_penaly_type;
-    int vit_penaly_count;
-    int vit_penaly_num;
-    int mob_changetarget_byskill;
-    int player_attack_direction_change;
-    int monster_attack_direction_change;
-    int display_delay_skill_fail;
-
-    int prevent_logout;
-
-    int alchemist_summon_reward;
-    int maximum_level;
-    int drops_by_luk;
-    int monsters_ignore_gm;
-    int multi_level_up;
-    int pk_mode;
-
-    int agi_penaly_count_lv;
-    int vit_penaly_count_lv;
-
-    int hide_GM_session;
-    int invite_request_check;
-    int disp_experience;
-
-    int hack_info_GM_level;
-    int any_warp_GM_min_level;
-
-    int min_hair_style;
-    int max_hair_style;
-    int min_hair_color;
-    int max_hair_color;
-    int min_cloth_color;
-    int max_cloth_color;
-
-    int castrate_dex_scale;
-    int area_size;
-
-    int chat_lame_penalty;
-    int chat_spam_threshold;
-    int chat_spam_flood;
-    int chat_spam_ban;
-    int chat_spam_warn;
-    int chat_maxline;
-
-    int packet_spam_threshold;
-    int packet_spam_flood;
-    int packet_spam_kick;
-
-    int mask_ip_gms;
-
-    int drop_pickup_safety_zone;
-    int itemheal_regeneration_factor;
-
-    int mob_splash_radius;
-} battle_config;
-
-bool battle_config_read(ZString cfgName);
-void battle_config_check();
+} // namespace map
 } // namespace tmwa

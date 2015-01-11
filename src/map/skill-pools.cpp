@@ -25,6 +25,8 @@
 #include "../mmo/cxxstdio_enums.hpp"
 
 #include "battle.hpp"
+#include "consts.hpp"
+#include "globals.hpp"
 #include "pc.hpp"
 
 #include "../poison.hpp"
@@ -32,26 +34,18 @@
 
 namespace tmwa
 {
-Array<SkillID, MAX_POOL_SKILLS> skill_pool_skills;
-int skill_pool_skills_size = 0;
-
+namespace map
+{
 void skill_pool_register(SkillID id)
 {
-    if (skill_pool_skills_size + 1 >= MAX_POOL_SKILLS)
-    {
-        FPRINTF(stderr,
-                "Too many pool skills! Increase MAX_POOL_SKILLS and recompile."_fmt);
-        return;
-    }
-
-    skill_pool_skills[skill_pool_skills_size++] = id;
+    skill_pool_skills.push_back(id);
 }
 
 int skill_pool(dumb_ptr<map_session_data> sd, SkillID *skills)
 {
     int i, count = 0;
 
-    for (i = 0; count < MAX_SKILL_POOL && i < skill_pool_skills_size; i++)
+    for (i = 0; count < MAX_SKILL_POOL && i < skill_pool_skills.size(); i++)
     {
         SkillID skill_id = skill_pool_skills[i];
         if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
@@ -148,4 +142,5 @@ int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill)
     else
         return 0;
 }
+} // namespace map
 } // namespace tmwa

@@ -37,6 +37,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 #define ENGLISH_NAME stringish<MobName>("--en--"_s)
 #define JAPANESE_NAME stringish<MobName>("--ja--"_s)
 #define MOB_THIS_MAP stringish<MapName>("this"_s)
@@ -71,7 +73,7 @@ struct mob_db_
     Race race;
     LevelElement element;
     MobMode mode;
-    int speed, adelay, amotion, dmotion;
+    interval_t speed, adelay, amotion, dmotion;
     int mutations_nr, mutation_power;
     struct
     {
@@ -135,4 +137,5 @@ void mobskill_castend_pos(TimerData *tid, tick_t tick, BlockId id);
 int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag);
 
 void mob_reload(void);
+} // namespace map
 } // namespace tmwa

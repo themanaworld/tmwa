@@ -38,6 +38,7 @@
 
 #include "../ast/script.hpp"
 
+#include "globals.hpp"
 #include "itemdb.hpp"
 #include "magic-expr.hpp"
 #include "magic-interpreter.hpp"
@@ -50,15 +51,12 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 namespace magic_v2
 {
-    static
-    std::map<RString, proc_t> procs;
-    static
-    std::map<RString, val_t> const_defm;
-
     static
     size_t intern_id(ZString id_name)
     {
@@ -1293,4 +1291,5 @@ bool load_magic_file_v2(ZString filename)
     return rv;
 }
 } // namespace magic
+} // namespace map
 } // namespace tmwa

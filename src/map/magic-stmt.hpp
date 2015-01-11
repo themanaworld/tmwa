@@ -28,6 +28,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 struct op_t
@@ -87,4 +89,5 @@ int spell_attack(BlockId caster, BlockId target);
 
 void spell_free_invocation(dumb_ptr<invocation> invocation);
 } // namespace magic
+} // namespace map
 } // namespace tmwa

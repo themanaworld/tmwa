@@ -28,13 +28,9 @@
 
 namespace tmwa
 {
-extern
-DMap<SIR, int> mapreg_db;
-extern
-Map<SIR, RString> mapregstr_db;
-extern
-int mapreg_dirty;
-
+namespace map
+{
 void mapreg_setreg(SIR reg, int val);
 void mapreg_setregstr(SIR reg, XString str);
+} // namespace map
 } // namespace tmwa

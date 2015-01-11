@@ -37,6 +37,7 @@
 
 #include "../ast/item.hpp"
 
+#include "globals.hpp"
 #include "script-parse.hpp"
 
 #include "../poison.hpp"
@@ -44,9 +45,8 @@
 
 namespace tmwa
 {
-static
-Map<ItemNameId, struct item_data> item_db;
-
+namespace map
+{
 // Function declarations
 
 /*==========================================
@@ -235,4 +235,5 @@ void do_final_itemdb(void)
         itemdb_final(&pair.second);
     item_db.clear();
 }
+} // namespace map
 } // namespace tmwa

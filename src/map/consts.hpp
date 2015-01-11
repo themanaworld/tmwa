@@ -1,7 +1,7 @@
 #pragma once
-//    skill-pools.hpp - dummy header to make Make dependencies work.
+//    consts.hpp - Constants for tmwa-map.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -20,10 +20,15 @@
 
 #include "fwd.hpp"
 
+#include "../ints/udl.hpp"
+
+#include "../mmo/ids.hpp"
+
 
 namespace tmwa
 {
 namespace map
 {
+constexpr BlockId MAX_FLOORITEM = wrap<BlockId>(500000_u32);
 } // namespace map
 } // namespace tmwa

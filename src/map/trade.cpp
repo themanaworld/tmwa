@@ -25,7 +25,9 @@
 #include "../io/cxxstdio.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "npc.hpp"
@@ -36,6 +38,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 /*==========================================
  * 取引要請を相手に送る
@@ -473,4 +477,5 @@ void trade_verifyzeny(dumb_ptr<map_session_data> sd)
         }
     }
 }
+} // namespace map
 } // namespace tmwa

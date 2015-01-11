@@ -28,6 +28,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 enum class PC_GAINEXP_REASON
 {
     KILLING = 0,
@@ -54,4 +56,5 @@ enum class CalcStatus
     NOW,
     LATER,
 };
+} // namespace map
 } // namespace tmwa

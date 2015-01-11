@@ -25,10 +25,13 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 bool magic_init0();
 // must be called after itemdb initialization
 bool load_magic_file_v2(ZString filename);
 } // namespace magic
+} // namespace map
 } // namespace tmwa

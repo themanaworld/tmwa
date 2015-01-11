@@ -36,6 +36,7 @@
 
 #include "../ast/script.hpp"
 
+#include "globals.hpp"
 #include "map.t.hpp"
 #include "script-buffer.hpp"
 #include "script-call.hpp"
@@ -45,6 +46,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 constexpr bool DEBUG_DISP = false;
 
@@ -77,14 +80,17 @@ public:
         return ZString(strings::really_construct_from_a_pointer, reinterpret_cast<const char *>(&script_buf[i]), nullptr);
     }
 };
+} // namespace map
 } // namespace tmwa
 
-void std::default_delete<const tmwa::ScriptBuffer>::operator()(const tmwa::ScriptBuffer *sd)
+void std::default_delete<const tmwa::map::ScriptBuffer>::operator()(const tmwa::map::ScriptBuffer *sd)
 {
     really_delete1 sd;
 }
 
 namespace tmwa
+{
+namespace map
 {
 // implemented for script-call.hpp because reasons
 ByteCode ScriptPointer::peek() const { return (*TRY_UNWRAP(code, abort()))[pos]; }
@@ -96,15 +102,6 @@ ZString ScriptPointer::pops()
     ++pos;
     return rv;
 }
-
-Map<RString, str_data_t> str_datam;
-static
-str_data_t LABEL_NEXTLINE_;
-
-Map<ScriptLabel, int> scriptlabel_db;
-static
-std::set<ScriptLabel> probable_labels;
-UPMap<RString, const ScriptBuffer> userfunc_db;
 
 static
 struct ScriptConfigParse
@@ -119,12 +116,6 @@ struct ScriptConfigParse
     int warn_cmd_mismatch_paramnum = 1;
 } script_config;
 
-static
-int parse_cmd_if = 0;
-static
-Option<Borrowed<str_data_t>> parse_cmdp = None;
-
-InternPool variable_names;
 
 Option<Borrowed<str_data_t>> search_strp(XString p)
 {
@@ -307,14 +298,6 @@ ZString::iterator skip_word(ZString::iterator p)
     return p;
 }
 
-// TODO: replace this whole mess with some sort of input stream that works
-// a line at a time.
-static
-ZString startptr;
-static
-int startline;
-
-int script_errors = 0;
 /*==========================================
  * エラーメッセージ出力
  *------------------------------------------
@@ -864,4 +847,5 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
     }
     PRINTF("\n"_fmt);
 }
+} // namespace map
 } // namespace tmwa

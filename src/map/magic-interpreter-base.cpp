@@ -30,6 +30,7 @@
 
 #include "../net/timer.hpp"
 
+#include "globals.hpp"
 #include "magic.hpp"
 #include "magic-expr.hpp"
 #include "magic-interpreter.hpp"
@@ -39,6 +40,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 namespace magic
 {
@@ -78,9 +81,6 @@ void set_spell(val_t *v, dumb_ptr<spell_t> x)
 {
     *v = ValSpell{x};
 }
-
-magic_conf_t magic_conf;        /* Global magic conf */
-env_t magic_default_env = { &magic_conf, nullptr };
 
 AString magic_find_invocation(XString spellname)
 {
@@ -549,4 +549,5 @@ int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invoca
     return 1;
 }
 } // namespace magic
+} // namespace map
 } // namespace tmwa

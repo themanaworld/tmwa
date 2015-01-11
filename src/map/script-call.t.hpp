@@ -27,6 +27,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 struct argrec_t
 {
     ZString name;
@@ -42,4 +44,5 @@ struct argrec_t
     argrec_t(ZString n, int i) : name(n), v(i) {}
     argrec_t(ZString n, ZString z) : name(n), v(z) {}
 };
+} // namespace map
 } // namespace tmwa

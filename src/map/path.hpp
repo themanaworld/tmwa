@@ -25,5 +25,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 int path_search(struct walkpath_data *, Borrowed<map_local>, int, int, int, int, int);
+} // namespace map
 } // namespace tmwa

@@ -32,7 +32,6 @@ namespace tmwa
 namespace e
 {
 enum class EPOS : uint16_t;
-enum class MobMode : uint16_t;
 enum class Opt1 : uint16_t;
 enum class Opt2 : uint16_t;
 enum class Opt0 : uint16_t;
@@ -40,18 +39,15 @@ enum class Opt0 : uint16_t;
 inline
 bool impl_extract(XString str, EPOS *iv) { return extract_as_int(str, iv); }
 inline
-bool impl_extract(XString str, MobMode *iv) { return extract_as_int(str, iv); }
-inline
 bool impl_extract(XString str, Opt1 *iv) { return extract_as_int(str, iv); }
 inline
 bool impl_extract(XString str, Opt2 *iv) { return extract_as_int(str, iv); }
 inline
 bool impl_extract(XString str, Opt0 *iv) { return extract_as_int(str, iv); }
-}
+} // namespace e
 
 enum class ItemLook : uint16_t;
 enum class ItemType : uint8_t;
-enum class Race : uint8_t;
 enum class SEX : uint8_t;
 enum class SkillID : uint16_t;
 enum class StatusChange : uint16_t;
@@ -61,8 +57,6 @@ bool impl_extract(XString str, ItemLook *iv) { return extract_as_int(str, iv); }
 inline
 bool impl_extract(XString str, ItemType *iv) { return extract_as_int(str, iv); }
 inline
-bool impl_extract(XString str, Race *iv) { return extract_as_int(str, iv); }
-inline
 bool impl_extract(XString str, SEX *iv) { return extract_as_int(str, iv); }
 inline
 bool impl_extract(XString str, SkillID *iv) { return extract_as_int(str, iv); }
@@ -70,4 +64,22 @@ inline
 bool impl_extract(XString str, StatusChange *iv) { return extract_as_int(str, iv); }
 
 bool impl_extract(XString, DIR *);
+
+namespace map
+{
+namespace e
+{
+enum class MobMode : uint16_t;
+
+inline
+bool impl_extract(XString str, MobMode *iv) { return extract_as_int(str, iv); }
+} // namespace map::e
+enum class Race : uint8_t;
+enum class ATK;
+
+inline
+bool impl_extract(XString str, Race *iv) { return extract_as_int(str, iv); }
+inline
+bool impl_extract(XString str, ATK *iv) { return extract_as_int(str, iv); }
+} // namespace map
 } // namespace tmwa

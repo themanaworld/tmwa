@@ -27,6 +27,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 /**
@@ -42,4 +44,5 @@ namespace magic
  */
 int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation);
 } // namespace magic
+} // namespace map
 } // namespace tmwa

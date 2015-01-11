@@ -29,6 +29,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 /*
@@ -101,4 +103,5 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
 Borrowed<map_local> magic_area_rect(int *x, int *y, int *width, int *height,
         area_t& area);
 } // namespace magic
+} // namespace map
 } // namespace tmwa

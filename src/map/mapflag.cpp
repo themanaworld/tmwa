@@ -25,6 +25,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 // because bitfields, that's why
 
 bool MapFlags::get(MapFlag mf) const
@@ -93,4 +95,5 @@ MapFlag map_flag_from_int(int shift)
 {
     return static_cast<MapFlag>(1 << shift);
 }
+} // namespace map
 } // namespace tmwa

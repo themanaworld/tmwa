@@ -41,10 +41,13 @@
 #include "../wire/packets.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
+#include "map_conf.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
 #include "storage.hpp"
@@ -54,60 +57,8 @@
 
 namespace tmwa
 {
-Session *char_session;
-static
-IP4Address char_ip;
-static
-int char_port = 6121;
-static
-AccountName userid;
-static
-AccountPass passwd;
-static
-int chrif_state;
-
-// 設定ファイル読み込み関係
-/*==========================================
- *
- *------------------------------------------
- */
-void chrif_setuserid(AccountName id)
+namespace map
 {
-    userid = id;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-void chrif_setpasswd(AccountPass pwd)
-{
-    passwd = pwd;
-}
-
-AccountPass chrif_getpasswd(void)
-{
-    return passwd;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-void chrif_setip(IP4Address ip)
-{
-    char_ip = ip;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-void chrif_setport(int port)
-{
-    char_port = port;
-}
-
 /*==========================================
  *
  *------------------------------------------
@@ -152,11 +103,11 @@ static
 int chrif_connect(Session *s)
 {
     Packet_Fixed<0x2af8> fixed_f8;
-    fixed_f8.account_name = userid;
-    fixed_f8.account_pass = passwd;
+    fixed_f8.account_name = map_conf.userid;
+    fixed_f8.account_pass = map_conf.passwd;
     fixed_f8.unused = 0;
-    fixed_f8.ip = clif_getip();
-    fixed_f8.port = clif_getport();
+    fixed_f8.ip = map_conf.map_ip;
+    fixed_f8.port = map_conf.map_port;
     send_fpacket<0x2af8, 60>(s, fixed_f8);
 
     return 0;
@@ -1169,7 +1120,7 @@ void check_connect_char_server(TimerData *, tick_t)
     {
         PRINTF("Attempt to connect to char-server...\n"_fmt);
         chrif_state = 0;
-        char_session = make_connection(char_ip, char_port,
+        char_session = make_connection(map_conf.char_ip, map_conf.char_port,
                 SessionParsers{.func_parse= chrif_parse, .func_delete= chrif_delete});
         if (!char_session)
             return;
@@ -1194,4 +1145,5 @@ void do_init_chrif(void)
             5_s
     ).detach();
 }
+} // namespace map
 } // namespace tmwa

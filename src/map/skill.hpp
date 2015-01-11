@@ -36,6 +36,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 constexpr int MAX_SKILL_PRODUCE_DB = 150;
 constexpr int MAX_SKILL_ARROW_DB = 150;
 constexpr int MAX_SKILL_ABRA_DB = 350;
@@ -59,8 +61,6 @@ struct skill_db_
     int weapon;
     Array<int, MAX_SKILL_LEVEL> castnodex;
 };
-extern
-earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 
 struct skill_name_db
 {
@@ -73,9 +73,6 @@ struct skill_name_db
     : id(i), name(n), desc(d)
     {}
 };
-
-// used only by @skillid for iteration - should be depublicized
-extern struct skill_name_db skill_names[];
 
 skill_name_db& skill_lookup_by_id(SkillID id);
 skill_name_db& skill_lookup_by_name(XString name);
@@ -134,11 +131,6 @@ void skill_reload(void);
 
 // Max. # of active entries in the skill pool
 constexpr int MAX_SKILL_POOL = 3;
-// Max. # of skills that may be classified as pool skills in db/skill_db.txt
-constexpr int MAX_POOL_SKILLS = 128;
-
-extern Array<SkillID, MAX_POOL_SKILLS> skill_pool_skills;  // All pool skills
-extern int skill_pool_skills_size;  // Number of entries in skill_pool_skills
 
 // Yields all active skills in the skill pool; no more than MAX_SKILL_POOL.  Return is number of skills.
 int skill_pool(dumb_ptr<map_session_data> sd, SkillID *skills);
@@ -165,4 +157,5 @@ int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill);
 
 // [Fate] Remember that a certain skill ID belongs to a pool skill
 void skill_pool_register(SkillID id);
+} // namespace map
 } // namespace tmwa

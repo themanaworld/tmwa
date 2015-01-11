@@ -28,6 +28,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 // TODO soon kill this unlike I killed VAR
@@ -48,4 +50,5 @@ namespace magic
 
 #define ARG_MAY_BE_AREA(x) (args[x].is<ValArea>() || args[x].is<ValArea>())
 } // namespace magic
+} // namespace map
 } // namespace tmwa

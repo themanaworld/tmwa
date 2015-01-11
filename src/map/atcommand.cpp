@@ -60,11 +60,14 @@
 #include "../ast/npc.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
+#include "map_conf.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
 #include "npc-parse.hpp"
@@ -79,6 +82,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 enum class ATCE
 {
@@ -215,11 +220,9 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
             cmd);
 }
 
-AString gm_log;
-
 io::AppendFile *get_gm_log()
 {
-    if (!gm_log)
+    if (!map_conf.gm_log)
         return nullptr;
 
     struct tm ctime = TimeT::now();
@@ -235,7 +238,7 @@ io::AppendFile *get_gm_log()
     last_logfile_nr = logfile_nr;
 
     AString fullname = STRPRINTF("%s.%04d-%02d"_fmt,
-            gm_log, year, month);
+            map_conf.gm_log, year, month);
 
     if (gm_logfile)
         gm_logfile.reset();
@@ -245,7 +248,7 @@ io::AppendFile *get_gm_log()
     if (!gm_logfile)
     {
         perror("GM log file");
-        gm_log = AString();
+        map_conf.gm_log = AString();
     }
     return gm_logfile.get();
 }
@@ -527,14 +530,14 @@ ATCE atcommand_charwarp(Session *s, dumb_ptr<map_session_data> sd,
             {
                 Option<P<map_local>> m = map_mapname2mapid(map_name);
                 if (m.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
-                    && !pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level))))
+                    && !pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level))
                 {
                     clif_displaymessage(s,
                             "You are not authorised to warp someone to this map."_s);
                     return ATCE::PERM;
                 }
                 if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                    && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+                    && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
                 {
                     clif_displaymessage(s,
                             "You are not authorised to warp this player from its actual map."_s);
@@ -596,14 +599,14 @@ ATCE atcommand_warp(Session *s, dumb_ptr<map_session_data> sd,
     {
         Option<P<map_local>> m = map_mapname2mapid(map_name);
         if (m.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
-            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+            && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to this map."_s);
             return ATCE::PERM;
         }
         if (sd->bl_m->flag.get(MapFlag::NOWARP)
-            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+            && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map."_s);
@@ -671,14 +674,14 @@ ATCE atcommand_goto(Session *s, dumb_ptr<map_session_data> sd,
     if (pl_sd != nullptr)
     {
         if (pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
-            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+            && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to the map of this player."_s);
             return ATCE::PERM;
         }
         if (sd->bl_m->flag.get(MapFlag::NOWARP)
-            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+            && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map."_s);
@@ -712,14 +715,14 @@ ATCE atcommand_jump(Session *s, dumb_ptr<map_session_data> sd,
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
         if (sd->bl_m->flag.get(MapFlag::NOWARPTO)
-            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+            && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you to your actual map."_s);
             return ATCE::PERM;
         }
         if (sd->bl_m->flag.get(MapFlag::NOWARP)
-            && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+            && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
         {
             clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map."_s);
@@ -1064,14 +1067,14 @@ ATCE atcommand_load(Session *s, dumb_ptr<map_session_data> sd,
 {
     Option<P<map_local>> m = map_mapname2mapid(sd->status.save_point.map_);
     if (m.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
-        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
     {
         clif_displaymessage(s,
                              "You are not authorised to warp you to your save map."_s);
         return ATCE::PERM;
     }
     if (sd->bl_m->flag.get(MapFlag::NOWARP)
-        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
     {
         clif_displaymessage(s,
                              "You are not authorised to warp you from your actual map."_s);
@@ -1242,8 +1245,8 @@ ATCE atcommand_alive(Session *s, dumb_ptr<map_session_data> sd,
     sd->status.hp = sd->status.max_hp;
     sd->status.sp = sd->status.max_sp;
     pc_setstand(sd);
-    if (static_cast<interval_t>(battle_config.player_invincible_time) > interval_t::zero())
-        pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.player_invincible_time));
+    if (battle_config.player_invincible_time > interval_t::zero())
+        pc_setinvincibletimer(sd, battle_config.player_invincible_time);
     clif_updatestatus(sd, SP::HP);
     clif_updatestatus(sd, SP::SP);
     clif_resurrection(sd, 1);
@@ -2067,14 +2070,14 @@ ATCE atcommand_recall(Session *s, dumb_ptr<map_session_data> sd,
         {
             // you can recall only lower or same level
             if (sd->bl_m->flag.get(MapFlag::NOWARPTO)
-                && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+                && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
             {
                 clif_displaymessage(s,
                         "You are not authorised to warp somenone to your actual map."_s);
                 return ATCE::PERM;
             }
             if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+                && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
             {
                 clif_displaymessage(s,
                         "You are not authorised to warp this player from its actual map."_s);
@@ -2113,8 +2116,8 @@ ATCE atcommand_revive(Session *s, dumb_ptr<map_session_data> sd,
     {
         pl_sd->status.hp = pl_sd->status.max_hp;
         pc_setstand(pl_sd);
-        if (static_cast<interval_t>(battle_config.player_invincible_time) > interval_t::zero())
-            pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.player_invincible_time));
+        if (battle_config.player_invincible_time > interval_t::zero())
+            pc_setinvincibletimer(sd, battle_config.player_invincible_time);
         clif_updatestatus(pl_sd, SP::HP);
         clif_updatestatus(pl_sd, SP::SP);
         clif_resurrection(pl_sd, 1);
@@ -2397,7 +2400,7 @@ ATCE atcommand_character_save(Session *s, dumb_ptr<map_session_data> sd,
 
             {
                 if (m->flag.get(MapFlag::NOWARPTO)
-                    && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+                    && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
                 {
                     clif_displaymessage(s,
                             "You are not authorised to set this map as a save map."_s);
@@ -3335,7 +3338,7 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
     int count;
 
     if (sd->bl_m->flag.get(MapFlag::NOWARPTO)
-        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp somenone to your actual map."_s);
@@ -3356,7 +3359,7 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
         {
             // you can recall only lower or same level
             if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+                && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
                 count++;
             else
                 pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
@@ -3386,7 +3389,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     if (sd->bl_m->flag.get(MapFlag::NOWARPTO)
-        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp somenone to your actual map."_s);
@@ -3413,7 +3416,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
                     && pl_sd->status.party_id == p.party_id)
                 {
                     if (pl_sd->bl_m->flag.get(MapFlag::NOWARP)
-                        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+                        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
                         count++;
                     else
                         pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
@@ -4661,14 +4664,14 @@ ATCE atcommand_jump_iterate(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     if (pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
-        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp you to the map of this player."_s);
         return ATCE::PERM;
     }
     if (sd->bl_m->flag.get(MapFlag::NOWARP)
-        && !(pc_isGM(sd).satisfies(GmLevel::from(static_cast<uint32_t>(battle_config.any_warp_GM_min_level)))))
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
     {
         clif_displaymessage(s,
                 "You are not authorised to warp you from your actual map."_s);
@@ -4739,11 +4742,11 @@ ATCE atcommand_skillpool_info(Session *s, dumb_ptr<map_session_data>,
             clif_displaymessage(s, buf);
         }
 
-        buf = STRPRINTF("Learned skills out of %d for %s:"_fmt,
-                skill_pool_skills_size, character);
+        buf = STRPRINTF("Learned skills out of %zu for %s:"_fmt,
+                skill_pool_skills.size(), character);
         clif_displaymessage(s, buf);
 
-        for (i = 0; i < skill_pool_skills_size; ++i)
+        for (i = 0; i < skill_pool_skills.size(); ++i)
         {
             const RString& name = skill_name(skill_pool_skills[i]);
             int lvl = pl_sd->status.skill[skill_pool_skills[i]].lv;
@@ -5348,4 +5351,5 @@ Map<XString, AtCommandInfo> atcommand_info =
         0, atcommand_source,
         "Legal information about source code (must be a level 0 command!)"_s}},
 };
+} // namespace map
 } // namespace tmwa

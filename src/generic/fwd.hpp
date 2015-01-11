@@ -55,4 +55,7 @@ template<class T, class I>
 struct GenericArray;
 template<class T, size_t n>
 using Array = GenericArray<T, SimpleIndexing<n>>;
+
+template<class T, class E, E max>
+using earray = GenericArray<T, EnumIndexing<E, max>>;
 } // namespace tmwa

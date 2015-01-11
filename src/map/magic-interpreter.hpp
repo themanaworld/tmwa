@@ -42,6 +42,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 struct location_t
@@ -624,4 +626,5 @@ struct proc_t
     {}
 };
 } // namespace magic
+} // namespace map
 } // namespace tmwa

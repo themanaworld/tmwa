@@ -48,7 +48,9 @@
 #include "../mmo/extract_enums.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "magic-stmt.hpp"
 #include "mob.hpp"
 #include "pc.hpp"
@@ -58,7 +60,10 @@
 
 namespace tmwa
 {
-struct skill_name_db skill_names[] =
+namespace map
+{
+static
+skill_name_db skill_names[] =
 {
     {SkillID::AC_OWL, "OWL"_s, "Owl's_Eye"_s},
 
@@ -89,9 +94,6 @@ struct skill_name_db skill_names[] =
 
     {SkillID::ZERO, ""_s, ""_s}
 };
-
-earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
-
 
 static
 int skill_attack(BF attack_type, dumb_ptr<block_list> src,
@@ -376,17 +378,6 @@ void skill_area_sub(dumb_ptr<block_list> bl,
     if (battle_check_target(src, bl, flag) > 0)
         func(src, bl, skill_id, skill_lv, tick, flag);
 }
-
-
-/* 範囲スキル使用処理小分けここまで
- * -------------------------------------------------------------------------
- */
-
-// these variables are set in the 'else' branches,
-// and used in the (recursive) 'if' branch
-// TODO kill it, kill it with fire.
-static BlockId skill_area_temp_id;
-static int skill_area_temp_hp;
 
 
 /*==========================================
@@ -1289,4 +1280,5 @@ skill_name_db& skill_lookup_by_name(XString name)
             return ner;
     return skill_names[num_names - 1];
 }
+} // namespace map
 } // namespace tmwa

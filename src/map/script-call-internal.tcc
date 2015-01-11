@@ -24,6 +24,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 template<class D>
 bool first_type_is_any()
 {
@@ -73,4 +75,5 @@ void push_str(struct script_stack *stack, RString str)
     script_data nsd = T{.str= str};
     stack->stack_datav.push_back(nsd);
 }
+} // namespace map
 } // namespace tmwa

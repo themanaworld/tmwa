@@ -29,10 +29,13 @@
 
 namespace tmwa
 {
+namespace map
+{
 bool load_resnametable(ZString filename);
 
 /// Load a resource into memory, subject to data/resnametable.txt.
 /// Normally, resourcename is xxx-y.gat and the file is xxx-y.wlk.
 /// Currently there is exactly one .wlk per .gat, but multiples are fine.
 std::vector<uint8_t> grfio_reads(MapName resourcename);
+} // namespace map
 } // namespace tmwa

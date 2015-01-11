@@ -45,7 +45,9 @@
 #include "../proto2/map-user.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "pc.hpp"
@@ -57,33 +59,14 @@
 
 namespace tmwa
 {
-BlockId npc_id = START_NPC_NUM;
-
+namespace map
+{
 BlockId npc_get_new_npc_id(void)
 {
     BlockId rv = npc_id;
     npc_id = next(npc_id);
     return rv;
 }
-
-Map<NpcEvent, struct event_data> ev_db;
-DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
-
-// used for clock-based event triggers
-// only tm_min, tm_hour, and tm_mday are used
-static
-struct tm ev_tm_b =
-{
-    .tm_sec= 0,
-    .tm_min= -1,
-    .tm_hour= -1,
-    .tm_mday= -1,
-    .tm_mon= 0,
-    .tm_year= 0,
-    .tm_wday= 0,
-    .tm_yday= 0,
-    .tm_isdst= 0,
-};
 
 /*==========================================
  * NPCの無効化/有効化
@@ -936,4 +919,5 @@ void npc_free(dumb_ptr<npc_data> nd)
     map_delblock(nd);
     npc_free_internal(nd);
 }
+} // namespace map
 } // namespace tmwa

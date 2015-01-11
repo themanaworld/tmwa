@@ -24,6 +24,9 @@
 
 namespace tmwa
 {
+namespace map
+{
 int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message);
 void tmw_GmHackMsg(ZString line);
+} // namespace map
 } // namespace tmwa

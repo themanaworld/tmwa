@@ -39,14 +39,15 @@
 #include "../high/extract_mmo.hpp"
 #include "../high/mmo.hpp"
 
+#include "globals.hpp"
+
 #include "../poison.hpp"
 
 
 namespace tmwa
 {
-static
-std::map<MapName, RString> resnametable;
-
+namespace map
+{
 bool load_resnametable(ZString filename)
 {
     io::ReadFile in(filename);
@@ -107,4 +108,5 @@ std::vector<uint8_t> grfio_reads(MapName rname)
     close(fd);
     return buffer;
 }
+} // namespace map
 } // namespace tmwa

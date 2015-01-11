@@ -27,6 +27,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 enum class MobSkillTarget
 {
     MST_TARGET = 0,
@@ -61,4 +63,5 @@ enum class MobSkillState : uint8_t
     MSS_LOOT,
     MSS_CHASE,
 };
+} // namespace map
 } // namespace tmwa

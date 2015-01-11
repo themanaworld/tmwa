@@ -28,6 +28,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 enum class StringCode : uint8_t
 {
     NOP, POS, INT, PARAM, FUNC,
@@ -59,11 +61,7 @@ struct str_data_t
     int val;
 };
 
-extern
-Map<RString, str_data_t> str_datam;
-extern
-InternPool variable_names;
-
 Option<Borrowed<str_data_t>> search_strp(XString p);
 Borrowed<str_data_t> add_strp(XString p);
+} // namespace map
 } // namespace tmwa

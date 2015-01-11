@@ -40,7 +40,18 @@
 
 namespace tmwa
 {
+namespace map
+{
 // meh, add more when I feel like it
+struct BattleConf;
+struct MapConf;
+
+struct charid2nick;
+struct map_abstract;
+struct mob_db_;
+struct skill_db_;
+struct event_data;
+
 struct block_list;
 struct map_session_data;
 struct npc_data;
@@ -55,9 +66,9 @@ class npc_data_message;
 
 struct item_data;
 
-enum class SP : uint16_t;
-
 struct ScriptState;
+struct str_data_t;
+class SIR;
 
 namespace magic
 {
@@ -74,5 +85,7 @@ struct env_t;
 struct magic_conf_t;
 struct component_t;
 struct effect_set_t;
+struct proc_t;
 } // namespace magic
+} // namespace map
 } // namespace tmwa

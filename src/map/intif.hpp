@@ -25,6 +25,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 RecvResult intif_parse(Session *, uint16_t packet_id);
 
 void intif_GMmessage(XString mes);
@@ -47,4 +49,5 @@ void intif_party_leave(PartyId party_id, AccountId accound_id);
 void intif_party_changemap(dumb_ptr<map_session_data> sd, int online);
 void intif_party_message(PartyId party_id, AccountId account_id, XString mes);
 void intif_party_checkconflict(PartyId party_id, AccountId account_id, CharName nick);
+} // namespace map
 } // namespace tmwa

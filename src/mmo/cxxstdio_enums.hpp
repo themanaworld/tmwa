@@ -29,49 +29,58 @@ namespace tmwa
 {
 namespace e
 {
-enum class BF : uint16_t;
 enum class EPOS : uint16_t;
-enum class MapCell : uint8_t;
 enum class Opt0 : uint16_t;
 
 inline
-auto decay_for_printf(BF v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
 auto decay_for_printf(EPOS v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
-auto decay_for_printf(MapCell v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
 auto decay_for_printf(Opt0 v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-}
+} // namespace e
 
-namespace magic
-{
-enum class SPELLARG : uint8_t;
-
-inline
-auto decay_for_printf(SPELLARG v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-}
-
-enum class BL : uint8_t;
-enum class ByteCode : uint8_t;
 enum class ItemLook : uint16_t;
-enum class MS : uint8_t;
 enum class SP : uint16_t;
 enum class SkillID : uint16_t;
 enum class StatusChange : uint16_t;
 
 inline
-auto decay_for_printf(BL v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(ByteCode v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
 auto decay_for_printf(ItemLook v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-inline
-auto decay_for_printf(MS v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
 auto decay_for_printf(SP v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
 auto decay_for_printf(SkillID v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 inline
 auto decay_for_printf(StatusChange v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+
+namespace map
+{
+namespace e
+{
+enum class BF : uint16_t;
+enum class MapCell : uint8_t;
+
+inline
+auto decay_for_printf(BF v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+inline
+auto decay_for_printf(MapCell v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+} // namespace map::e
+namespace magic
+{
+enum class SPELLARG : uint8_t;
+
+inline
+auto decay_for_printf(SPELLARG v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+} // namespace map::magic
+
+enum class BL : uint8_t;
+enum class ByteCode : uint8_t;
+enum class MS : uint8_t;
+
+inline
+auto decay_for_printf(BL v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+inline
+auto decay_for_printf(ByteCode v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+inline
+auto decay_for_printf(MS v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
+} // namespace map
 } // namespace tmwa

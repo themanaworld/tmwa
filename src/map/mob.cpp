@@ -47,7 +47,9 @@
 #include "../mmo/extract_enums.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "npc.hpp"
@@ -61,6 +63,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 constexpr interval_t MIN_MOBTHINKTIME = 100_ms;
 
 // Move probability in the negligent mode MOB (rate of 1000 minute)
@@ -68,8 +72,6 @@ constexpr random_::Fraction MOB_LAZYMOVEPERC {50, 1000};
 // Warp probability in the negligent mode MOB (rate of 1000 minute)
 constexpr random_::Fraction MOB_LAZYWARPPERC {20, 1000};
 
-static
-struct mob_db_ mob_db[2001];
 struct mob_db_& get_mob_db(Species s)
 {
     return mob_db[unwrap<Species>(s)];
@@ -318,12 +320,12 @@ int mob_gen_exp(mob_db_ *mob)
         (2 * mob->attrs[ATTR::LUK] * mob->max_hp / mod_def);
     double attack_factor =
         (mob->atk1 + mob->atk2 + mob->attrs[ATTR::STR] / 3.0 + mob->attrs[ATTR::DEX] / 2.0 +
-         mob->attrs[ATTR::LUK]) * (1872.0 / mob->adelay) / 4;
+         mob->attrs[ATTR::LUK]) * (1872.0 / mob->adelay.count()) / 4;
     double dodge_factor =
         pow(mob->lv + mob->attrs[ATTR::AGI] + mob->attrs[ATTR::LUK] / 2.0, 4.0 / 3.0);
     // TODO s/persuit/pursuit/g sometime when I'm not worried about diffs
     double persuit_factor =
-        (3 + mob->range) * bool(mob->mode & MobMode::CAN_MOVE) * 1000 / mob->speed;
+        (3 + mob->range) * bool(mob->mode & MobMode::CAN_MOVE) * 1000 / mob->speed.count();
     double aggression_factor =
         bool(mob->mode & MobMode::AGGRESSIVE)
         ? 10.0 / 9.0
@@ -357,10 +359,10 @@ void mob_init(dumb_ptr<mob_data> md)
     md->stats[mob_stat::LUK] = get_mob_db(mob_class).attrs[ATTR::LUK];
     md->stats[mob_stat::ATK1] = get_mob_db(mob_class).atk1;
     md->stats[mob_stat::ATK2] = get_mob_db(mob_class).atk2;
-    md->stats[mob_stat::ADELAY] = get_mob_db(mob_class).adelay;
+    md->stats[mob_stat::ADELAY] = get_mob_db(mob_class).adelay.count();
     md->stats[mob_stat::DEF] = get_mob_db(mob_class).def;
     md->stats[mob_stat::MDEF] = get_mob_db(mob_class).mdef;
-    md->stats[mob_stat::SPEED] = get_mob_db(mob_class).speed;
+    md->stats[mob_stat::SPEED] = get_mob_db(mob_class).speed.count();
     md->stats[mob_stat::XP_BONUS] = MOB_XP_BONUS_BASE;
 
     for (i = 0; i < mutations_nr; i++)
@@ -1148,7 +1150,7 @@ int mob_spawn(BlockId id)
     mob_init(md);
 
     if (!md->stats[mob_stat::SPEED])
-        md->stats[mob_stat::SPEED] = get_mob_db(md->mob_class).speed;
+        md->stats[mob_stat::SPEED] = get_mob_db(md->mob_class).speed.count();
     md->def_ele = get_mob_db(md->mob_class).element;
     md->master_id = BlockId();
     md->master_dist = 0;
@@ -3415,10 +3417,10 @@ int mob_makedummymobdb(Species mob_class)
     get_mob_db(mob_class).race = Race::formless;
     get_mob_db(mob_class).element = LevelElement{0, Element::neutral};
     get_mob_db(mob_class).mode = MobMode::ZERO;
-    get_mob_db(mob_class).speed = 300;
-    get_mob_db(mob_class).adelay = 1000;
-    get_mob_db(mob_class).amotion = 500;
-    get_mob_db(mob_class).dmotion = 500;
+    get_mob_db(mob_class).speed = 300_ms;
+    get_mob_db(mob_class).adelay = 1000_ms;
+    get_mob_db(mob_class).amotion = 500_ms;
+    get_mob_db(mob_class).dmotion = 500_ms;
     for (i = 0; i < 8; i++)
     {
         get_mob_db(mob_class).dropitem[i].nameid = ItemNameId();
@@ -3743,4 +3745,5 @@ void do_init_mob2(void)
             MIN_MOBTHINKTIME * 10
     ).detach();
 }
+} // namespace map
 } // namespace tmwa

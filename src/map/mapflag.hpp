@@ -25,6 +25,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 // originally from script.cpp
 // These are part of the script API, so they can't change ever,
 // even though they are silly.
@@ -78,4 +80,5 @@ public:
 bool impl_extract(XString str, MapFlag *mf);
 
 MapFlag map_flag_from_int(int shift);
+} // namespace map
 } // namespace tmwa

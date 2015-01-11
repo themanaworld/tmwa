@@ -1,7 +1,7 @@
 class op_t(object):
     __slots__ = ('_value')
 
-    name = 'tmwa::magic::op_t'
+    name = 'tmwa::map::magic::op_t'
     depth = 1
     enabled = True
 
@@ -30,8 +30,8 @@ class op_t(object):
     '''
 
     tests = [
-            ('static_cast<tmwa::magic::op_t *>(nullptr)',
+            ('static_cast<tmwa::map::magic::op_t *>(nullptr)',
                 '(op_t *) nullptr'),
-            ('new tmwa::magic::op_t{"name"_s, "sig"_s, nullptr}',
+            ('new tmwa::map::magic::op_t{"name"_s, "sig"_s, nullptr}',
                 '(op_t *) = {->name = "name", ->signature = "sig", ->op = nullptr}'),
     ]

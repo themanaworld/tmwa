@@ -29,6 +29,8 @@
 #include "../mmo/cxxstdio_enums.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
+#include "globals.hpp"
 #include "map.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
@@ -41,6 +43,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 constexpr bool DEBUG_RUN = false;
 
@@ -918,4 +922,5 @@ ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e)
     PRINTF("Warning: you lied about the type and I can't fix it!"_fmt);
     return ZString();
 }
+} // namespace map
 } // namespace tmwa

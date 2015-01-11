@@ -52,6 +52,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 constexpr int MAX_NPC_PER_MAP = 512;
 constexpr int BLOCK_SIZE = 8;
 #define AREA_SIZE battle_config.area_size
@@ -59,7 +61,6 @@ constexpr std::chrono::seconds LIFETIME_FLOORITEM = 1_min;
 constexpr int MAX_SKILL_LEVEL = 100;
 constexpr int MAX_EVENTTIMER = 32;
 constexpr interval_t NATURAL_HEAL_INTERVAL = 500_ms;
-constexpr BlockId MAX_FLOORITEM = wrap<BlockId>(500000_u32);
 constexpr int MAX_LEVEL = 255;
 constexpr int MAX_WALKPATH = 48;
 constexpr int MAX_DROP_PER_MAP = 48;
@@ -286,14 +287,14 @@ struct map_session_data : block_list, SessionData
         unsigned in_progress:1;
     } auto_ban_info;
 
-    TimeT chat_reset_due;
-    TimeT chat_repeat_reset_due;
+    tick_t chat_reset_due;
+    tick_t chat_repeat_reset_due;
     int chat_lines_in;
     int chat_total_repeats;
     RString chat_lastmsg;
 
     tick_t flood_rates[0x220];
-    TimeT packet_flood_reset_due;
+    tick_t packet_flood_reset_due;
     int packet_flood_in;
 
     IP4Address get_ip()
@@ -492,8 +493,6 @@ struct map_abstract
     map_abstract(map_abstract&&) = default;
     virtual ~map_abstract() {}
 };
-extern
-UPMap<MapName, map_abstract> maps_db;
 
 struct map_local : map_abstract
 {
@@ -529,11 +528,6 @@ struct flooritem_data : block_list
     tick_t first_get_tick, second_get_tick, third_get_tick;
     Item item_data;
 };
-
-extern interval_t autosave_time;
-extern int save_settings;
-
-extern AString motd_txt;
 
 extern const CharName WISP_SERVER_NAME;
 
@@ -607,8 +601,6 @@ BlockId map_addflooritem(Item *, int,
         dumb_ptr<map_session_data>);
 
 // キャラid＝＞キャラ名 変換関連
-extern
-DMap<BlockId, dumb_ptr<block_list>> id_db;
 void map_addchariddb(CharId charid, CharName name);
 CharName map_charid2nick(CharId);
 
@@ -701,4 +693,11 @@ inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype ==
 
 void map_addmap(MapName mapname);
 void map_delmap(MapName mapname);
+
+struct charid2nick
+{
+    CharName nick;
+    int req_id;
+};
+} // namespace map
 } // namespace tmwa

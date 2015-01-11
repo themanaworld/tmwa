@@ -31,6 +31,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 enum class ByteCode : uint8_t;
 
 // implemented in script-parse.cpp because reasons
@@ -61,4 +63,5 @@ void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString
 
 int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e);
 ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e);
+} // namespace map
 } // namespace tmwa

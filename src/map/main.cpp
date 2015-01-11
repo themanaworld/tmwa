@@ -26,6 +26,9 @@
 
 namespace tmwa
 {
+namespace map
+{
+} // namespace map
 } // namespace tmwa
 
 int main(int argc, char **argv)

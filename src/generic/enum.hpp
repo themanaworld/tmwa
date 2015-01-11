@@ -33,8 +33,7 @@
 
 namespace tmwa
 {
-template<class T, class E, E max>
-using earray = GenericArray<T, EnumIndexing<E, max>>;
+// part moved to fwd.hpp
 
 template<class T, class E, E max>
 class eptr

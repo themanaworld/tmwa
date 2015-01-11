@@ -26,6 +26,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 enum class SPELLARG : uint8_t
@@ -79,4 +81,5 @@ ENUM_BITWISE_OPERATORS(INVOCATION_FLAG)
 }
 using e::INVOCATION_FLAG;
 } // namespace magic
+} // namespace map
 } // namespace tmwa

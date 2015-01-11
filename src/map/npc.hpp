@@ -34,6 +34,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 constexpr BlockId START_NPC_NUM = wrap<BlockId>(110000000);
 
 // TODO make these species, see npc_class in npc_data
@@ -82,4 +84,5 @@ void npc_timerevent_stop(dumb_ptr<npc_data_script> nd);
 interval_t npc_gettimerevent_tick(dumb_ptr<npc_data_script> nd);
 void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer);
 int npc_delete(dumb_ptr<npc_data> nd);
+} // namespace map
 } // namespace tmwa

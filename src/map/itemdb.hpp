@@ -31,6 +31,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 struct item_data
 {
     ItemNameId nameid;
@@ -104,4 +106,5 @@ void itemdb_reload(void);
 
 void do_final_itemdb(void);
 bool itemdb_readdb(ZString filename);
+} // namespace map
 } // namespace tmwa

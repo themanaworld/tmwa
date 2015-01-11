@@ -50,6 +50,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 namespace magic
 {
 static
@@ -1868,4 +1870,5 @@ AString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
     return result.get_if<ValString>()->v_string;
 }
 } // namespace magic
+} // namespace map
 } // namespace tmwa

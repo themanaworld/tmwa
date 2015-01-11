@@ -41,8 +41,10 @@
 
 #include "atcommand.hpp"
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "magic-interpreter-base.hpp"
@@ -61,6 +63,8 @@
 
 
 namespace tmwa
+{
+namespace map
 {
 static
 Array<LString, 11> pos_str //=
@@ -2376,7 +2380,7 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
     if (!sd)
         return;
 
-    for (i = 0; i < skill_pool_skills_size; i++)
+    for (i = 0; i < skill_pool_skills.size(); i++)
     {
         SkillID skill_id = skill_pool_skills[i];
 
@@ -3093,4 +3097,5 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(mapexit, ""_s, '\0'),
     {nullptr, ""_s, ""_s, '\0'},
 };
+} // namespace map
 } // namespace tmwa

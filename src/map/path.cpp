@@ -39,6 +39,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 constexpr int MAX_HEAP = 150;
 struct tmp_path
 {
@@ -357,4 +359,5 @@ int path_search(struct walkpath_data *wpd, Borrowed<map_local> m, int x0, int y0
             return -1;
     }
 }
+} // namespace map
 } // namespace tmwa

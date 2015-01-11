@@ -34,7 +34,9 @@
 
 #include "../net/timer.hpp"
 
+#include "globals.hpp"
 #include "map.hpp"
+#include "map_conf.hpp"
 #include "script-parse-internal.hpp"
 #include "script-persist.hpp"
 
@@ -43,10 +45,8 @@
 
 namespace tmwa
 {
-DMap<SIR, int> mapreg_db;
-Map<SIR, RString> mapregstr_db;
-int mapreg_dirty = -1;
-AString mapreg_txt = "save/mapreg.txt"_s;
+namespace map
+{
 constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = 10_s;
 
 bool read_constdb(ZString filename)
@@ -140,7 +140,7 @@ void mapreg_setregstr(SIR reg, XString str)
 static
 void script_load_mapreg(void)
 {
-    io::ReadFile in(mapreg_txt);
+    io::ReadFile in(map_conf.mapreg_txt);
 
     if (!in.is_open())
         return;
@@ -176,7 +176,7 @@ void script_load_mapreg(void)
         else
         {
         borken:
-            PRINTF("%s: %s broken data !\n"_fmt, mapreg_txt, AString(buf1));
+            PRINTF("%s: %s broken data !\n"_fmt, map_conf.mapreg_txt, AString(buf1));
             continue;
         }
     }
@@ -218,7 +218,7 @@ void script_save_mapreg_strsub(SIR key, ZString data, io::WriteFile& fp)
 static
 void script_save_mapreg(void)
 {
-    io::WriteLock fp(mapreg_txt);
+    io::WriteLock fp(map_conf.mapreg_txt);
     if (!fp.is_open())
         return;
     for (auto& pair : mapreg_db)
@@ -261,4 +261,5 @@ void do_init_script(void)
             MAPREG_AUTOSAVE_INTERVAL
     ).detach();
 }
+} // namespace map
 } // namespace tmwa

@@ -32,6 +32,8 @@
 
 namespace tmwa
 {
+namespace map
+{
 inline
 void pc_setsit(dumb_ptr<map_session_data> sd)
 {
@@ -175,4 +177,5 @@ int pc_logout(dumb_ptr<map_session_data> sd);   // [fate] Player logs out
 void pc_show_motd(dumb_ptr<map_session_data> sd);
 
 void do_init_pc(void);
+} // namespace map
 } // namespace tmwa

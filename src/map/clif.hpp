@@ -38,11 +38,8 @@
 
 namespace tmwa
 {
-void clif_setip(IP4Address);
-void clif_setport(int);
-
-IP4Address clif_getip(void);
-int clif_getport(void);
+namespace map
+{
 int clif_countusers(void);
 void clif_setwaitclose(Session *);
 
@@ -179,4 +176,5 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
 int clif_foreachclient(std::function<void(dumb_ptr<map_session_data>)>);
 
 void do_init_clif(void);
+} // namespace map
 } // namespace tmwa

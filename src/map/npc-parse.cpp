@@ -41,7 +41,9 @@
 #include "../ast/npc.hpp"
 
 #include "battle.hpp"
+#include "battle_conf.hpp"
 #include "clif.hpp"
+#include "globals.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "mob.hpp"
@@ -53,12 +55,8 @@
 
 namespace tmwa
 {
-static
-std::list<AString> npc_srcs;
-
-static
-int npc_warp, npc_shop, npc_script, npc_mob;
-
+namespace map
+{
 static
 void npc_clearsrcfile(void)
 {
@@ -928,4 +926,5 @@ bool do_init_npc(void)
     }
     return rv;
 }
+} // namespace map
 } // namespace tmwa

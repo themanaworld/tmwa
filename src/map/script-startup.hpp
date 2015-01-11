@@ -24,10 +24,11 @@
 
 namespace tmwa
 {
+namespace map
+{
 void do_init_script(void);
 void do_final_script(void);
 
-extern AString mapreg_txt;
-
 bool read_constdb(ZString filename);
+} // namespace map
 } // namespace tmwa
