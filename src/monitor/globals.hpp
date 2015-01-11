@@ -1,5 +1,5 @@
 #pragma once
-//    monitor/fwd.hpp - list of type names for monitor nonserver
+//    globals.hpp - Evil global variables for tmwa-monitor.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -18,20 +18,16 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+#include "fwd.hpp"
 
-#include "../strings/fwd.hpp" // rank 1
-#include "../io/fwd.hpp" // rank 4
-#include "../net/fwd.hpp" // rank 5
-#include "../mmo/fwd.hpp" // rank 6
-#include "../high/fwd.hpp" // rank 9
-// monitor/fwd.hpp is rank ∞ because it is an executable
+#include <sys/types.h>
 
 
 namespace tmwa
 {
-namespace monitor
-{
-    struct MonitorConf;
-} // namespace monitor
+    namespace monitor
+    {
+        extern MonitorConf monitor_conf;
+        extern pid_t pid_login, pid_char, pid_map;
+    } // namespace monitor
 } // namespace tmwa
