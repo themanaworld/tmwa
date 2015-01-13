@@ -140,13 +140,18 @@ namespace npc
             {
                 return Err(item.data.name.span.error_str("item name problem (too long?)"_s));
             }
+            item.data.value_multiply = false;
             if (value.startswith('-'))
             {
                 item.data.value.span.begin.warning("Shop value multiplier should use '*' instead of '-' now"_s);
+                item.data.value_multiply = true;
+                item.data.value.span.begin.column += 1;
                 value = value.xslice_t(1);
             }
             else if (value.startswith('*'))
             {
+                item.data.value_multiply = true;
+                item.data.value.span.begin.column += 1;
                 value = value.xslice_t(1);
             }
             if (!extract(value, &item.data.value.data))

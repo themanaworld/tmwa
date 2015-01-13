@@ -134,9 +134,9 @@ namespace npc
         {
             //        1         2         3         4         5
             //2345678901234567890123456789012345678901234567890123456789
-            "map.gat,1,2,3|shop|Flower Shop|4,5:6,Named:7,Spaced :8"_s,
-            "map.gat,1,2,3|shop|Flower Shop|4,5:6,Named:7,Spaced :8\n"_s,
-            "map.gat,1,2,3|shop|Flower Shop|4,5:6,Named:7,Spaced :8{"_s,
+            "map.gat,1,2,3|shop|Flower Shop|4,5:6,Named:7,Spaced :*8"_s,
+            "map.gat,1,2,3|shop|Flower Shop|4,5:6,Named:7,Spaced :*8\n"_s,
+            "map.gat,1,2,3|shop|Flower Shop|4,5:6,Named:7,Spaced :*8{"_s,
             // no optional fields in shop
         };
         for (auto input : inputs)
@@ -145,7 +145,7 @@ namespace npc
             auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            EXPECT_SPAN(top.span, 1,1, 1,54);
+            EXPECT_SPAN(top.span, 1,1, 1,55);
             auto p = top.get_if<Shop>();
             EXPECT_TRUE(p);
             if (p)
@@ -163,22 +163,25 @@ namespace npc
                 EXPECT_EQ(p->name.data, stringish<NpcName>("Flower Shop"_s));
                 EXPECT_SPAN(p->npc_class.span, 1,32, 1,32);
                 EXPECT_EQ(p->npc_class.data, wrap<Species>(4));
-                EXPECT_SPAN(p->items.span, 1,34, 1,54);
+                EXPECT_SPAN(p->items.span, 1,34, 1,55);
                 EXPECT_EQ(p->items.data.size(), 3);
                 EXPECT_SPAN(p->items.data[0].span, 1,34, 1,36);
                 EXPECT_SPAN(p->items.data[0].data.name.span, 1,34, 1,34);
                 EXPECT_EQ(p->items.data[0].data.name.data, stringish<ItemName>("5"_s));
+                EXPECT_EQ(p->items.data[0].data.value_multiply, false);
                 EXPECT_SPAN(p->items.data[0].data.value.span, 1,36, 1,36);
                 EXPECT_EQ(p->items.data[0].data.value.data, 6);
                 EXPECT_SPAN(p->items.data[1].span, 1,38, 1,44);
                 EXPECT_SPAN(p->items.data[1].data.name.span, 1,38, 1,42);
                 EXPECT_EQ(p->items.data[1].data.name.data, stringish<ItemName>("Named"_s));
+                EXPECT_EQ(p->items.data[1].data.value_multiply, false);
                 EXPECT_SPAN(p->items.data[1].data.value.span, 1,44, 1,44);
                 EXPECT_EQ(p->items.data[1].data.value.data, 7);
-                EXPECT_SPAN(p->items.data[2].span, 1,46, 1,54);
+                EXPECT_SPAN(p->items.data[2].span, 1,46, 1,55);
                 EXPECT_SPAN(p->items.data[2].data.name.span, 1,46, 1,52);
                 EXPECT_EQ(p->items.data[2].data.name.data, stringish<ItemName>("Spaced"_s));
-                EXPECT_SPAN(p->items.data[2].data.value.span, 1,54, 1,54);
+                EXPECT_EQ(p->items.data[2].data.value_multiply, true);
+                EXPECT_SPAN(p->items.data[2].data.value.span, 1,55, 1,55);
                 EXPECT_EQ(p->items.data[2].data.value.data, 8);
             }
         }
