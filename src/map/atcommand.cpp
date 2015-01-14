@@ -4049,9 +4049,9 @@ ATCE atcommand_killer(Session *s, dumb_ptr<map_session_data> sd,
     sd->special_state.killer = !sd->special_state.killer;
 
     if (sd->special_state.killer)
-        clif_displaymessage(s, "You be a killa..."_s);
+        clif_displaymessage(s, "Killer: On"_s);
     else
-        clif_displaymessage(s, "You gonna be own3d..."_s);
+        clif_displaymessage(s, "Killer: Off"_s);
 
     return ATCE::OKAY;
 }
@@ -4092,9 +4092,9 @@ ATCE atcommand_killable(Session *s, dumb_ptr<map_session_data> sd,
     sd->special_state.killable = !sd->special_state.killable;
 
     if (sd->special_state.killable)
-        clif_displaymessage(s, "You gonna be own3d..."_s);
+        clif_displaymessage(s, "Killable: On"_s);
     else
-        clif_displaymessage(s, "You be a killa..."_s);
+        clif_displaymessage(s, "Killable: Off"_s);
 
     return ATCE::OKAY;
 }
