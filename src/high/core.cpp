@@ -23,6 +23,7 @@
 #include <sys/wait.h>
 
 #include <alloca.h>
+#include <unistd.h>
 
 #include <csignal>
 #include <cstdlib>
@@ -106,8 +107,21 @@ void sig_proc(int)
  */
 } // namespace tmwa
 
+static
+void check_caps()
+{
+    if (geteuid() == 0)
+    {
+        puts("Please don't run as root!");
+        _exit(1);
+    }
+}
+
 int tmwa_main(int argc, char **argv)
 {
+    // run before anything else (except global constructors)
+    check_caps();
+
     using namespace tmwa;
 
     check_paths();
