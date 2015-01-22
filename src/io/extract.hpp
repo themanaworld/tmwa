@@ -39,10 +39,10 @@
 namespace tmwa
 {
 template<class T>
-bool do_extract(XString str, T t);
+bool extract(XString str, T t);
 
 template<class T, typename=typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, char>::value && !std::is_same<T, bool>::value>::type>
-bool extract(XString str, T *iv)
+bool impl_extract(XString str, T *iv)
 {
     if (!str || str.size() > 20)
         return false;
@@ -75,7 +75,7 @@ bool extract(XString str, T *iv)
 }
 
 inline
-bool extract(XString str, TimeT *tv)
+bool impl_extract(XString str, TimeT *tv)
 {
     return extract(str, &tv->value);
 }
@@ -93,12 +93,12 @@ bool extract_as_int(XString str, T *iv)
     return true;
 }
 
-bool extract(XString str, XString *rv);
-bool extract(XString str, RString *rv);
-bool extract(XString str, AString *rv);
+bool impl_extract(XString str, XString *rv);
+bool impl_extract(XString str, RString *rv);
+bool impl_extract(XString str, AString *rv);
 
 template<uint8_t N>
-bool extract(XString str, VString<N> *out)
+bool impl_extract(XString str, VString<N> *out)
 {
     if (str.size() > N)
         return false;
@@ -107,7 +107,7 @@ bool extract(XString str, VString<N> *out)
 }
 
 inline
-bool extract(XString str, LString exact)
+bool impl_extract(XString str, LString exact)
 {
     return str == exact;
 }
@@ -126,7 +126,7 @@ LStripper<T> lstripping(T v)
 }
 
 template<class T>
-bool extract(XString str, LStripper<T> out)
+bool impl_extract(XString str, LStripper<T> out)
 {
     return extract(str.lstrip(), out.impl);
 }
@@ -163,13 +163,13 @@ Record<split, n, T...> record(T... t)
 }
 
 template<char split, int n>
-bool extract(XString str, Record<split, n>)
+bool impl_extract(XString str, Record<split, n>)
 {
     return !str;
 }
 
 template<char split, int n, class F, class... R>
-bool extract(XString str, Record<split, n, F, R...> rec)
+bool impl_extract(XString str, Record<split, n, F, R...> rec)
 {
     XString::iterator s = std::find(str.begin(), str.end(), split);
     XString::iterator s2 = s;
@@ -198,7 +198,7 @@ VRecord<split, T> vrec(std::vector<T> *arr)
 }
 
 template<char split, class T>
-bool extract(XString str, VRecord<split, T> rec)
+bool impl_extract(XString str, VRecord<split, T> rec)
 {
     if (!str)
         return true;
@@ -210,23 +210,25 @@ bool extract(XString str, VRecord<split, T> rec)
         && extract(str.xislice_t(s + 1), rec);
 }
 
-template<class T>
-bool do_extract(XString str, T t)
-{
-    return extract(str, t);
-}
-
 template<class R>
-bool extract(XString str, Wrapped<R> *w)
+bool impl_extract(XString str, Wrapped<R> *w)
 {
     return extract(str, &w->_value);
 }
 
-bool extract(XString str, std::chrono::nanoseconds *ns);
-bool extract(XString str, std::chrono::microseconds *us);
-bool extract(XString str, std::chrono::milliseconds *ms);
-bool extract(XString str, std::chrono::seconds *s);
-bool extract(XString str, std::chrono::minutes *min);
-bool extract(XString str, std::chrono::hours *h);
-bool extract(XString str, std::chrono::duration<int, std::ratio<60*60*24>> *d);
+bool impl_extract(XString str, std::chrono::nanoseconds *ns);
+bool impl_extract(XString str, std::chrono::microseconds *us);
+bool impl_extract(XString str, std::chrono::milliseconds *ms);
+bool impl_extract(XString str, std::chrono::seconds *s);
+bool impl_extract(XString str, std::chrono::minutes *min);
+bool impl_extract(XString str, std::chrono::hours *h);
+bool impl_extract(XString str, std::chrono::duration<int, std::ratio<60*60*24>> *d);
+
+// this must come after all non-`namespace tmwa` `impl_extract`s.
+// In particular, the ones for `*int*` and `std::chrono::*`
+template<class T>
+bool extract(XString str, T t)
+{
+    return impl_extract(str, t);
+}
 } // namespace tmwa

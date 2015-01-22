@@ -95,7 +95,7 @@ AString storage_tostr(Storage *p)
 
 // 文字列を倉庫データに変換
 static
-bool extract(XString str, Storage *p)
+bool impl_extract(XString str, Storage *p)
 {
     std::vector<Item> storage_items;
     if (!extract(str,

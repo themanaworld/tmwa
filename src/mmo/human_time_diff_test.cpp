@@ -20,6 +20,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../io/extract.hpp"
+
 #include "../poison.hpp"
 
 

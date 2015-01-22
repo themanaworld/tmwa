@@ -23,7 +23,7 @@
 
 namespace tmwa
 {
-bool extract(XString str, DIR *d)
+bool impl_extract(XString str, DIR *d)
 {
     unsigned di;
     if (extract(str, &di) && di < 8)

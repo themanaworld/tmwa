@@ -23,10 +23,10 @@
 
 namespace tmwa
 {
-bool extract(XString str, GlobalReg *var);
-bool extract(XString str, Item *it);
-bool extract(XString str, MapName *m);
-bool extract(XString str, CharName *out);
+bool impl_extract(XString str, GlobalReg *var);
+bool impl_extract(XString str, Item *it);
+bool impl_extract(XString str, MapName *m);
+bool impl_extract(XString str, CharName *out);
 
-bool extract(XString str, NpcEvent *ev);
+bool impl_extract(XString str, NpcEvent *ev);
 } // namespace tmwa

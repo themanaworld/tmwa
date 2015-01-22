@@ -75,7 +75,7 @@ public:
     void set(MapFlag, bool);
 };
 
-bool extract(XString str, MapFlag *mf);
+bool impl_extract(XString str, MapFlag *mf);
 
 MapFlag map_flag_from_int(int shift);
 } // namespace tmwa

@@ -30,25 +30,25 @@
 // TODO also pass an io::LineSpan around.
 namespace tmwa
 {
-bool extract(XString str, XString *rv)
+bool impl_extract(XString str, XString *rv)
 {
     *rv = str;
     return true;
 }
 
-bool extract(XString str, RString *rv)
+bool impl_extract(XString str, RString *rv)
 {
     *rv = str;
     return true;
 }
 
-bool extract(XString str, AString *rv)
+bool impl_extract(XString str, AString *rv)
 {
     *rv = str;
     return true;
 }
 
-bool extract(XString str, std::chrono::nanoseconds *ns)
+bool impl_extract(XString str, std::chrono::nanoseconds *ns)
 {
     std::chrono::nanoseconds::rep rep;
     if (extract(str, &rep))
@@ -73,7 +73,7 @@ bool extract(XString str, std::chrono::nanoseconds *ns)
     }
     return false;
 }
-bool extract(XString str, std::chrono::microseconds *us)
+bool impl_extract(XString str, std::chrono::microseconds *us)
 {
     std::chrono::microseconds::rep rep;
     if (extract(str, &rep))
@@ -98,7 +98,7 @@ bool extract(XString str, std::chrono::microseconds *us)
     }
     return false;
 }
-bool extract(XString str, std::chrono::milliseconds *ms)
+bool impl_extract(XString str, std::chrono::milliseconds *ms)
 {
     std::chrono::milliseconds::rep rep;
     if (extract(str, &rep))
@@ -123,7 +123,7 @@ bool extract(XString str, std::chrono::milliseconds *ms)
     }
     return false;
 }
-bool extract(XString str, std::chrono::seconds *s)
+bool impl_extract(XString str, std::chrono::seconds *s)
 {
     std::chrono::seconds::rep rep;
     if (extract(str, &rep))
@@ -148,7 +148,7 @@ bool extract(XString str, std::chrono::seconds *s)
     }
     return false;
 }
-bool extract(XString str, std::chrono::minutes *min)
+bool impl_extract(XString str, std::chrono::minutes *min)
 {
     std::chrono::minutes::rep rep;
     if (extract(str, &rep))
@@ -173,7 +173,7 @@ bool extract(XString str, std::chrono::minutes *min)
     }
     return false;
 }
-bool extract(XString str, std::chrono::hours *h)
+bool impl_extract(XString str, std::chrono::hours *h)
 {
     std::chrono::hours::rep rep;
     if (extract(str, &rep))
@@ -198,7 +198,7 @@ bool extract(XString str, std::chrono::hours *h)
     }
     return false;
 }
-bool extract(XString str, std::chrono::duration<int, std::ratio<60*60*24>> *d)
+bool impl_extract(XString str, std::chrono::duration<int, std::ratio<60*60*24>> *d)
 {
     std::chrono::duration<int, std::ratio<60*60*24>>::rep rep;
     if (extract(str, &rep))

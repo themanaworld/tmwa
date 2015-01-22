@@ -93,7 +93,7 @@ AString inter_party_tostr(PartyPair p)
 }
 
 static
-bool extract(XString str, PartyPair *pp)
+bool impl_extract(XString str, PartyPair *pp)
 {
     PartyPair& p = *pp;
 

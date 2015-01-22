@@ -32,13 +32,13 @@
 // TODO also pass an io::LineSpan around.
 namespace tmwa
 {
-bool extract(XString str, GlobalReg *var)
+bool impl_extract(XString str, GlobalReg *var)
 {
     return extract(str,
             record<','>(&var->str, &var->value));
 }
 
-bool extract(XString str, Item *it)
+bool impl_extract(XString str, Item *it)
 {
     XString ignored;
     XString corruption_hack_amount;
@@ -66,7 +66,7 @@ bool extract(XString str, Item *it)
     return rv;
 }
 
-bool extract(XString str, MapName *m)
+bool impl_extract(XString str, MapName *m)
 {
     XString::iterator it = std::find(str.begin(), str.end(), '.');
     str = str.xislice_h(it);
@@ -76,7 +76,7 @@ bool extract(XString str, MapName *m)
     return rv;
 }
 
-bool extract(XString str, CharName *out)
+bool impl_extract(XString str, CharName *out)
 {
     VString<23> tmp;
     if (extract(str, &tmp))
@@ -87,7 +87,7 @@ bool extract(XString str, CharName *out)
     return false;
 }
 
-bool extract(XString str, NpcEvent *ev)
+bool impl_extract(XString str, NpcEvent *ev)
 {
     XString mid;
     return extract(str, record<':'>(&ev->npc, &mid, &ev->label)) && !mid;

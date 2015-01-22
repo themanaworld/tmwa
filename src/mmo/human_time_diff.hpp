@@ -42,5 +42,5 @@ struct HumanTimeDiff
         return !bool(*this);
     }
 };
-bool extract(XString str, HumanTimeDiff *iv);
+bool impl_extract(XString str, HumanTimeDiff *iv);
 } // namespace tmwa

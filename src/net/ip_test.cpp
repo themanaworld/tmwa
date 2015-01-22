@@ -24,6 +24,7 @@
 #include "../strings/literal.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 
 #include "../poison.hpp"
 

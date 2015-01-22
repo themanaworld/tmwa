@@ -40,7 +40,7 @@ void MapFlags::set(MapFlag mf, bool val)
         flags &=~ static_cast<unsigned>(mf);
 }
 
-bool extract(XString str, MapFlag *mf)
+bool impl_extract(XString str, MapFlag *mf)
 {
     const struct
     {

@@ -30,6 +30,7 @@
 #include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 
 #include "../net/timer.hpp"
 

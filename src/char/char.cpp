@@ -409,7 +409,7 @@ AString mmo_char_tostr(struct CharPair *cp)
 }
 
 static
-bool extract(XString str, Point *p)
+bool impl_extract(XString str, Point *p)
 {
     return extract(str, record<','>(&p->map_, &p->x, &p->y));
 }
@@ -422,7 +422,7 @@ struct skill_loader
 };
 
 static
-bool extract(XString str, struct skill_loader *s)
+bool impl_extract(XString str, struct skill_loader *s)
 {
     uint32_t flags_and_level;
     if (!extract(str,
@@ -437,7 +437,7 @@ bool extract(XString str, struct skill_loader *s)
 // Function to set the character from the line (at read of characters file)
 //-------------------------------------------------------------------------
 static
-bool extract(XString str, CharPair *cp)
+bool impl_extract(XString str, CharPair *cp)
 {
     CharKey *k = &cp->key;
     CharData *p = cp->data.get();

@@ -29,7 +29,7 @@
 
 namespace tmwa
 {
-bool extract(XString str, IP4Address *rv)
+bool impl_extract(XString str, IP4Address *rv)
 {
     if (str.endswith('.'))
         return false;
@@ -42,7 +42,7 @@ bool extract(XString str, IP4Address *rv)
     return false;
 }
 
-bool extract(XString str, IP4Mask *rv)
+bool impl_extract(XString str, IP4Mask *rv)
 {
     IP4Address a, m;
     unsigned b;

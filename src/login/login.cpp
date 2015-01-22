@@ -479,7 +479,7 @@ AString mmo_auth_tostr(const AuthData *p)
 }
 
 static
-bool extract(XString line, AuthData *ad)
+bool impl_extract(XString line, AuthData *ad)
 {
     TimeT unused_connect_until_time;
     std::vector<GlobalReg> vars;

@@ -38,15 +38,15 @@ enum class Opt2 : uint16_t;
 enum class Opt0 : uint16_t;
 
 inline
-bool extract(XString str, EPOS *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, EPOS *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, MobMode *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, MobMode *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, Opt1 *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, Opt1 *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, Opt2 *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, Opt2 *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, Opt0 *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, Opt0 *iv) { return extract_as_int(str, iv); }
 }
 
 enum class ItemLook : uint16_t;
@@ -57,17 +57,17 @@ enum class SkillID : uint16_t;
 enum class StatusChange : uint16_t;
 
 inline
-bool extract(XString str, ItemLook *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, ItemLook *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, ItemType *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, ItemType *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, Race *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, Race *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, SEX *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, SEX *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, SkillID *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, SkillID *iv) { return extract_as_int(str, iv); }
 inline
-bool extract(XString str, StatusChange *iv) { return extract_as_int(str, iv); }
+bool impl_extract(XString str, StatusChange *iv) { return extract_as_int(str, iv); }
 
-bool extract(XString, DIR *);
+bool impl_extract(XString, DIR *);
 } // namespace tmwa

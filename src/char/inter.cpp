@@ -85,7 +85,7 @@ AString inter_accreg_tostr(struct accreg *reg)
 
 // アカウント変数を文字列から変換
 static
-bool extract(XString str, struct accreg *reg)
+bool impl_extract(XString str, struct accreg *reg)
 {
     std::vector<GlobalReg> vars;
     if (!extract(str,

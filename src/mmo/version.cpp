@@ -66,7 +66,7 @@ Version CURRENT_MAP_SERVER_VERSION =
 
 LString CURRENT_VERSION_STRING = VERSION_STRING;
 
-bool extract(XString str, Version *vers)
+bool impl_extract(XString str, Version *vers)
 {
     *vers = {};
     // TODO should I try to extract dev and vend also?

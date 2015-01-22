@@ -3428,7 +3428,7 @@ int mob_makedummymobdb(Species mob_class)
 }
 
 static
-bool extract(XString str, LevelElement *le)
+bool impl_extract(XString str, LevelElement *le)
 {
     int tmp;
     if (extract(str, &tmp))
@@ -3583,7 +3583,7 @@ bool mob_readdb(ZString filename)
 }
 
 static
-bool extract(XString str, MobSkillCondition *msc)
+bool impl_extract(XString str, MobSkillCondition *msc)
 {
     const struct
     {
@@ -3607,7 +3607,7 @@ bool extract(XString str, MobSkillCondition *msc)
 }
 
 static
-bool extract(XString str, MobSkillState *mss)
+bool impl_extract(XString str, MobSkillState *mss)
 {
     const struct
     {
@@ -3630,7 +3630,7 @@ bool extract(XString str, MobSkillState *mss)
 }
 
 static
-bool extract(XString str, MobSkillTarget *mst)
+bool impl_extract(XString str, MobSkillTarget *mst)
 {
     const struct
     {

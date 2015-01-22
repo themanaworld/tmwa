@@ -25,7 +25,7 @@
 
 namespace tmwa
 {
-bool extract(XString str, HumanTimeDiff *iv)
+bool impl_extract(XString str, HumanTimeDiff *iv)
 {
     // str is a sequence of [-+]?[0-9]+([ay]|m|[jd]|h|mn|s)
     // there are NO spaces here

@@ -24,6 +24,7 @@
 #include "../strings/zstring.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/extract.hpp"
 #include "../io/line.hpp"
 
 #include "version.hpp"

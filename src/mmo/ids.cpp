@@ -25,7 +25,7 @@
 
 namespace tmwa
 {
-bool extract(XString str, Species *w)
+bool impl_extract(XString str, Species *w)
 {
     // lots of data files use this
     if (str == "-1"_s)
@@ -35,7 +35,7 @@ bool extract(XString str, Species *w)
     }
     return extract(str, &w->_value);
 }
-bool extract(XString str, GmLevel *lvl)
+bool impl_extract(XString str, GmLevel *lvl)
 {
     return extract(str, &lvl->bits);
 }
