@@ -50,7 +50,7 @@ before_script:
       wget http://clang.llvm.org/libstdc++4.6-clang11.patch;
       sudo patch /usr/include/c++/4.6/type_traits < libstdc++4.6-clang11.patch;
     fi
-  - sudo sed -i /usr/lib/debug/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.*-gdb.py -e "s:^libdir = .*$:libdir = '/usr/lib/x86_64-linux-gnu':"
+  - if test -f /usr/lib/debug/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.*-gdb.py; then sudo sed -i /usr/lib/debug/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.*-gdb.py -e "s:^libdir = .*$:libdir = '/usr/lib/x86_64-linux-gnu':"; fi
 
 ## Main test script
 script:
