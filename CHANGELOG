@@ -1,3 +1,45 @@
+v15.1.23:
+  - update changelog for this and last release
+  - segregate per-server global variables
+  - use namespaces for every server
+  - generate all config parsers
+  - support fine-tuned per-version sections in config files
+  - track spans for config parsing
+  - remove deprecated config settings
+  - fuck adl
+  - error out (after global ctors) if someone is dumb enough to run as root
+  - really fix shop prices
+  - add gcc 4.9 on travis
+  - use an uglier bug more reliable macro for MATCH
+  - fill the house with dancing elves, it is the xmas season
+  - workaround the clang bug preventing shared libraries
+  - fix clang 3.5 builds (previously only 3.4 worked)
+  - fix infinite loop in previous release
+  - flatten protocol generator and add pre/post/desc digraph and wiki
+  - new script builtins: npcareawarp, iscollision
+  - use manaplus url format
+  - fix nightlies
+v14.11.11:
+  - avoid this release at all costs
+  - fix an obscure bug breaking asan
+  - add new way of checking for mapless events
+  - fix off-by-one overflow with too many script arguments
+  - more script debugging in python instead of in the executable
+  - attempt to fix shops
+  - eliminate buggy microoptimization with sc_count
+  - fix crash with divorce
+  - parse npcs and items into an ast first
+  - simplify nightly cross-builds now that there's a defaults package
+  - semiformalize the concept of "ranked" directories of headers
+  - convert readme to markdown
+  - fix bugs caused by using more Option<T>
+  - bump clang version on travis
+  - various build system improvements to build more, smaller, files
+  - pretty-print pointers by symbol/segment
+  - move more stuff to Option<T>
+  - split parsing functions into their own files
+  - get rid of crazy 2-based arrays for script arguments
+  - finish removing offhanded weapons
 v14.10.5:
   - fix the stupid refactoring bug with mob slave summons
   - officially drop support for clang, all versions are too buggy
