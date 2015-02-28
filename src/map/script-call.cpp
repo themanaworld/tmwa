@@ -757,7 +757,7 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                 {
                     rerun_pos = st->scriptp.pos;
                     st->state = ScriptEndState::ZERO;
-                    if (gotocount > 0 && (--gotocount) <= 0)
+                    if (!st->freeloop && gotocount > 0 && (--gotocount) <= 0)
                     {
                         PRINTF("run_script: infinity loop !\n"_fmt);
                         st->state = ScriptEndState::END;
@@ -806,7 +806,7 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                 st->state = ScriptEndState::END;
                 break;
         }
-        if (cmdcount > 0 && (--cmdcount) <= 0)
+        if (!st->freeloop && cmdcount > 0 && (--cmdcount) <= 0)
         {
             PRINTF("run_script: infinity loop !\n"_fmt);
             st->state = ScriptEndState::END;
