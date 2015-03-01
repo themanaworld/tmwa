@@ -53,7 +53,7 @@ public:
     ScriptEndState state;
     BlockId rid, oid;
     ScriptPointer scriptp, new_scriptp;
-    int defsp, new_defsp;
+    int defsp, new_defsp, freeloop;
 };
 
 void run_func(ScriptState *st);

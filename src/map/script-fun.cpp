@@ -1123,6 +1123,25 @@ void builtin_getequipid(ScriptState *st)
 }
 
 /*==========================================
+ * freeloop
+ *------------------------------------------
+ */
+static
+void builtin_freeloop(ScriptState *st)
+{
+    int num;
+    num = conv_num(st, &AARG(0));
+    if(num == 1)
+    {
+        st->freeloop = 1;
+    }
+    else
+    {
+        st->freeloop = 0;
+    }
+}
+
+/*==========================================
  * 装備名文字列（精錬メニュー用）
  *------------------------------------------
  */
@@ -3095,6 +3114,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(gety, ""_s, 'i'),
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
+    BUILTIN(freeloop, "i"_s, '\0'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
