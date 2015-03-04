@@ -1,3 +1,5 @@
+v15.2.28
+  - Added Freeloop
 v15.1.23:
   - update changelog for this and last release
   - segregate per-server global variables
