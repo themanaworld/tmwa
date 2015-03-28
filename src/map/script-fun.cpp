@@ -2984,6 +2984,30 @@ void builtin_getmap(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, sd->bl_m->name_);
 }
 
+/*============================
+ * Gets the NPC's x pos
+ *----------------------------
+ */
+static
+void builtin_getnpcx(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+
+    push_int<ScriptDataInt>(st->stack, nd->bl_x);
+}
+
+/*============================
+ * Gets the NPC's y pos
+ *----------------------------
+ */
+static
+void builtin_getnpcy(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+
+    push_int<ScriptDataInt>(st->stack, nd->bl_y);
+}
+
 static
 void builtin_mapexit(ScriptState *)
 {
@@ -3112,6 +3136,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),
+    BUILTIN(getnpcx, ""_s, 'i'),
+    BUILTIN(getnpcy, ""_s, 'i'),
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
