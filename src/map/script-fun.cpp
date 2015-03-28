@@ -2984,6 +2984,35 @@ void builtin_getmap(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, sd->bl_m->name_);
 }
 
+/*
+ * Get the NPC's info
+ */
+static
+void builtin_strnpcinfo(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+    int num = conv_num(st, &AARG(0));
+    RString name;
+
+    switch(num)
+    {
+        case 0:
+            name = nd->name;
+            break;
+        case 1:
+            name = nd->name.xislice_h(std::find(nd->name.begin(), nd->name.end(), '#'));
+            break;
+        case 2:
+            name = nd->name.xislice_t(std::find(nd->name.begin(), nd->name.end(), '#'));
+            break;
+        case 3:
+            name = nd->bl_m->name_;
+            break;
+    }
+
+    push_str<ScriptDataStr>(st->stack, name);
+}
+
 /*============================
  * Gets the NPC's x pos
  *----------------------------
@@ -3138,6 +3167,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(gety, ""_s, 'i'),
     BUILTIN(getnpcx, ""_s, 'i'),
     BUILTIN(getnpcy, ""_s, 'i'),
+    BUILTIN(strnpcinfo, "i"_s, 's'),
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
