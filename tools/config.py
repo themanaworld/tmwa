@@ -614,6 +614,7 @@ def build_config():
     battle_conf.opt('mob_count_rate', percent, '100')
     battle_conf.opt('basic_skill_check', bool, 'true')
     battle_conf.opt('player_invincible_time', milliseconds, '5_s')
+    battle_conf.opt('player_pvp_time', milliseconds, '5_s')
     battle_conf.opt('skill_min_damage', bool, 'false')
     battle_conf.opt('natural_healhp_interval', milliseconds, '6_s', {map_h}, min='NATURAL_HEAL_INTERVAL')
     battle_conf.opt('natural_healsp_interval', milliseconds, '8_s', {map_h}, min='NATURAL_HEAL_INTERVAL')

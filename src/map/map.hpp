@@ -142,11 +142,10 @@ struct map_session_data : block_list, SessionData
         unsigned shroud_disappears_on_pickup:1;
         unsigned shroud_disappears_on_talk:1;
         unsigned seen_motd:1;
+        unsigned pvpon:1;
     } state;
     struct
     {
-        unsigned killer:1;
-        unsigned killable:1;
         unsigned unbreakable_weapon:1;
         unsigned unbreakable_armor:1;
         unsigned deaf:1;
