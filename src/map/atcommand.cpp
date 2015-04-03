@@ -4050,6 +4050,25 @@ ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    CharName character;
+    int channel;
+
+    if (!extract(message, record<' '>(&character, &channel)))
+        return ATCE::USAGE;
+
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
+    if (pl_sd == nullptr)
+        return ATCE::EXIST;
+
+    pl_sd->state.pvpchannel = channel;
+
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_npcmove(Session *, dumb_ptr<map_session_data>,
         ZString message)
 {
@@ -5182,6 +5201,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"npcmove"_s, {"<x> <y> <npc-name>"_s,
         80, atcommand_npcmove,
         "Force an NPC to move on the map"_s}},
+    {"charpvp"_s, {"<charname> <channel>"_s,
+        40, atcommand_charpvp,
+        "Set the pvp channel of another player"_s}},
     {"chareffect"_s, {"<type> <target>"_s,
         40, atcommand_chareffect,
         "Apply effect type with arg 0 to a player"_s}},
