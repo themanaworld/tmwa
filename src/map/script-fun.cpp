@@ -2192,17 +2192,18 @@ void builtin_getpvpflag(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int num = conv_num(st, &AARG(0));
+    int flag = 0;
 
     switch (num){
         case 0:
-            num = sd->state.pvpon;
+            flag = sd->state.pvpon;
             break;
         case 1:
             flag = bool(sd->status.option & Opt0::HIDE);
             break;
     }
 
-    push_int<ScriptDataInt>(st->stack, num);
+    push_int<ScriptDataInt>(st->stack, flag);
 }
 
 /*==========================================
