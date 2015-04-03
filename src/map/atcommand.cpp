@@ -4033,17 +4033,19 @@ static
 ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    if (sd->pvp_timer)
+    int chan = sd->state.pvpchannel;
+    if (sd->pvp_timer || (chan > 1))
         return ATCE::OKAY;
 
-    sd->state.pvpon = !sd->state.pvpon;
-    pc_setpvptimer(sd, battle_config.player_pvp_time);
-
-    if (sd->state.pvpon)
+    if (chan < 1) {
+        sd->state.pvpchannel = 1;
         clif_displaymessage(s, "##3PvP : ##BOn"_s);
-    else
+    } else {
+        sd->state.pvpchannel = 0;
         clif_displaymessage(s, "##3PvP : ##BOff"_s);
+    }
 
+    pc_setpvptimer(sd, battle_config.player_pvp_time);
     return ATCE::OKAY;
 }
 

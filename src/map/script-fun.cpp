@@ -2176,15 +2176,15 @@ void builtin_pvpoff(ScriptState *st)
 }
 
 static
-void builtin_pvp(ScriptState *st)
+void builtin_setpvpchannel(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int flag;
     flag = conv_num(st, &AARG(0));
-    if (flag > 1)
-        flag = 1;
+    if (flag < 1)
+        flag = 0;
 
-    sd->state.pvpon = flag;
+    sd->state.pvpchannel = flag;
 }
 
 static
@@ -2196,7 +2196,7 @@ void builtin_getpvpflag(ScriptState *st)
 
     switch (num){
         case 0:
-            flag = sd->state.pvpon;
+            flag = sd->state.pvpchannel;
             break;
         case 1:
             flag = bool(sd->status.option & Opt0::HIDE);
@@ -3109,7 +3109,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmapflag, "Mi"_s, 'i'),
     BUILTIN(pvpon, "M"_s, '\0'),
     BUILTIN(pvpoff, "M"_s, '\0'),
-    BUILTIN(pvp, "i"_s, '\0'),
+    BUILTIN(setpvpchannel, "i"_s, '\0'),
     BUILTIN(getpvpflag, "i"_s, 'i'),
     BUILTIN(emotion, "i"_s, '\0'),
     BUILTIN(mapwarp, "MMxy"_s, '\0'),
