@@ -1554,25 +1554,6 @@ void builtin_killmonster(ScriptState *st)
             BL::MOB);
 }
 
-static
-void builtin_killmonsterall_sub(dumb_ptr<block_list> bl)
-{
-    mob_delete(bl->is_mob());
-}
-
-static
-void builtin_killmonsterall(ScriptState *st)
-{
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-
-    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
-    map_foreachinarea(builtin_killmonsterall_sub,
-            m,
-            0, 0,
-            m->xs, m->ys,
-            BL::MOB);
-}
-
 /*==========================================
  * NPC主体イベント実行
  *------------------------------------------
@@ -3048,7 +3029,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(monster, "Mxysmi?"_s, '\0'),
     BUILTIN(areamonster, "Mxyxysmi?"_s, '\0'),
     BUILTIN(killmonster, "ME"_s, '\0'),
-    BUILTIN(killmonsterall, "M"_s, '\0'),
     BUILTIN(donpcevent, "E"_s, '\0'),
     BUILTIN(addtimer, "tE"_s, '\0'),
     BUILTIN(initnpctimer, ""_s, '\0'),
