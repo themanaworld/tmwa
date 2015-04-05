@@ -482,27 +482,6 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
     return 0;
 }
 
-static
-void npc_command_sub(NpcEvent key, struct event_data *ev, NpcName npcname, XString command)
-{
-    if (ev->nd->name == npcname
-        && key.label.startswith("OnCommand"_s))
-    {
-        XString temp = key.label.xslice_t(9);
-
-        if (command == temp)
-            run_script(ScriptPointer(borrow(*ev->nd->scr.script), ev->pos), BlockId(), ev->nd->bl_id);
-    }
-}
-
-int npc_command(dumb_ptr<map_session_data>, NpcName npcname, XString command)
-{
-    for (auto& pair : ev_db)
-        npc_command_sub(pair.first, &pair.second, npcname, command);
-
-    return 0;
-}
-
 /*==========================================
  * 接触型のNPC処理
  *------------------------------------------
