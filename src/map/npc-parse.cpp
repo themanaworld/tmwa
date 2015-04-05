@@ -154,10 +154,7 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->flag = 0;
     nd->name = warp.name.data;
 
-    if (!battle_config.warp_point_debug)
-        nd->npc_class = WARP_CLASS;
-    else
-        nd->npc_class = WARP_DEBUG_CLASS;
+    nd->npc_class = WARP_CLASS;
     nd->speed = 200_ms;
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;

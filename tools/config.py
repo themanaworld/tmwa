@@ -581,7 +581,6 @@ def build_config():
     map_conf.opt('gm_log', RString, '{}')
     map_conf.opt('log_file', RString, '{}')
 
-    battle_conf.opt('warp_point_debug', bool, 'false')
     battle_conf.opt('enemy_critical', bool, 'false')
     battle_conf.opt('enemy_critical_rate', percent, '100')
     battle_conf.opt('enemy_str', bool, 'true')
