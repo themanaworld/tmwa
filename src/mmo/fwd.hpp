@@ -51,6 +51,7 @@ class AccountCrypt;
 class AccountEmail;
 class ServerName;
 class PartyName;
+class QuestId;
 class VarName;
 class MapName;
 class CharName;

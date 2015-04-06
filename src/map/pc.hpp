@@ -28,6 +28,7 @@
 
 #include "../mmo/clif.t.hpp"
 #include "map.hpp"
+#include "quest.hpp"
 
 
 namespace tmwa
@@ -146,6 +147,8 @@ int pc_readreg(dumb_ptr<map_session_data>, SIR);
 void pc_setreg(dumb_ptr<map_session_data>, SIR, int);
 ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg);
 void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, RString str);
+void update_quest(dumb_ptr<map_session_data> sd, VarName quest_var, int value);
+void update_allquest(dumb_ptr<map_session_data> sd);
 int pc_readglobalreg(dumb_ptr<map_session_data>, VarName );
 int pc_setglobalreg(dumb_ptr<map_session_data>, VarName , int);
 int pc_readaccountreg(dumb_ptr<map_session_data>, VarName );

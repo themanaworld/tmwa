@@ -5,6 +5,7 @@ for s in [
         'PartyId',
         'ItemNameId',
         'BlockId',
+        'QuestId',
 ]:
     class OtherId(object):
         __slots__ = ('_value')

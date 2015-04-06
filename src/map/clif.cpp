@@ -4671,6 +4671,60 @@ RecvResult clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
     return rv;
 }
 
+void clif_sendallquest(dumb_ptr<map_session_data> sd)
+{
+    int i;
+    QuestId questid;
+    if (!sd)
+        return;
+
+    if (!sd->sess)
+        return;
+
+    Session *s = sd->sess;
+    Packet_Head<0x0215> head_215;
+    std::vector<Packet_Repeat<0x0215>> repeat_215;
+
+    assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
+    for (QuestId q = wrap<QuestId>(0); q < wrap<QuestId>(-1); q = next(q))
+    {
+        P<struct quest_data> quest_data_ = TRY_UNWRAP(questdb_exists(q), continue);
+        for (i = 0; i < sd->status.global_reg_num; i++)
+        {
+            if (sd->status.global_reg[i].str == quest_data_->quest_vr)
+            {
+                int val = ((sd->status.global_reg[i].value & (((1 << quest_data_->quest_mask) - 1) << (quest_data_->quest_shift * quest_data_->quest_mask))) >> (quest_data_->quest_shift * quest_data_->quest_mask));
+                Packet_Repeat<0x0215> info;
+                info.variable = unwrap<QuestId>(quest_data_->questid);
+                info.value = val;
+                repeat_215.push_back(info);
+                break;
+            }
+        }
+    }
+
+    send_vpacket<0x0215, 4, 6>(s, head_215, repeat_215);
+    return;
+}
+
+void clif_sendquest(dumb_ptr<map_session_data> sd, QuestId questid, int value)
+{
+    if (!sd)
+        return;
+
+    if (!sd->sess)
+        return;
+
+    Session *s = sd->sess;
+
+    Packet_Fixed<0x0214> fixed;
+    fixed.variable = unwrap<QuestId>(questid);
+    fixed.value = value;
+    send_fpacket<0x0214, 8>(s, fixed);
+    return;
+}
+
+
 func_table clif_parse_func_table[0x0220] =
 {
     {0,     10, nullptr,                        },  // 0x0000

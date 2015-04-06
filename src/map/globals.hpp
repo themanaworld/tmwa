@@ -48,6 +48,7 @@ namespace tmwa
         extern int chrif_state;
         extern std::map<MapName, RString> resnametable;
         extern Map<ItemNameId, item_data> item_db;
+        extern Map<QuestId, quest_data> quest_db;
         namespace magic
         {
             // Global magic conf
