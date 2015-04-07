@@ -413,20 +413,6 @@ void builtin_heal(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_itemheal(ScriptState *st)
-{
-    int hp, sp;
-
-    hp = conv_num(st, &AARG(0));
-    sp = conv_num(st, &AARG(1));
-    pc_itemheal(script_rid2sd(st), hp, sp);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
 void builtin_input(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
@@ -2996,7 +2982,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(warp, "Mxy"_s, '\0'),
     BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
     BUILTIN(heal, "ii"_s, '\0'),
-    BUILTIN(itemheal, "ii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
     BUILTIN(set, "Ne"_s, '\0'),
