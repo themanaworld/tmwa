@@ -677,6 +677,16 @@ void builtin_getelementofarray(ScriptState *st)
     }
 }
 
+static
+void builtin_wgm(ScriptState *st)
+{
+    ZString message = ZString(conv_str(st, &AARG(0)));
+
+    intif_wis_message_to_gm(WISP_SERVER_NAME,
+            battle_config.hack_info_GM_level,
+            STRPRINTF("[GM] %s"_fmt, message));
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -3166,6 +3176,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(sc_end, "i"_s, '\0'),
     BUILTIN(sc_check, "i"_s, 'i'),
     BUILTIN(debugmes, "s"_s, '\0'),
+    BUILTIN(wgm, "s"_s, '\0'),
     BUILTIN(resetstatus, ""_s, '\0'),
     BUILTIN(changesex, ""_s, '\0'),
     BUILTIN(attachrid, "i"_s, 'i'),
