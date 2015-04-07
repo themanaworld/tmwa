@@ -138,7 +138,6 @@ int pc_useitem(dumb_ptr<map_session_data>, IOff0);
 int pc_damage(dumb_ptr<block_list>, dumb_ptr<map_session_data>, int);
 int pc_heal(dumb_ptr<map_session_data>, int, int);
 int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp);
-int pc_percentheal(dumb_ptr<map_session_data> sd, int, int);
 int pc_changelook(dumb_ptr<map_session_data>, LOOK, int);
 
 int pc_readparam(dumb_ptr<map_session_data>, SP);
