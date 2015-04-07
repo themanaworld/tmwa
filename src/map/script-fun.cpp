@@ -401,16 +401,23 @@ void builtin_areawarp(ScriptState *st)
 static
 void builtin_heal(ScriptState *st)
 {
-    int hp, sp, item;
+    int hp, sp;
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
     hp = conv_num(st, &AARG(0));
     sp = conv_num(st, &AARG(1));
-    item = conv_num(st, &AARG(2));
 
-    if(item)
-        pc_itemheal(script_rid2sd(st), hp, sp);
+    if(sd != nullptr && (sd->status.hp < 1 && hp > 0)){
+        pc_setstand(sd);
+        if (battle_config.player_invincible_time > interval_t::zero())
+            pc_setinvincibletimer(sd, battle_config.player_invincible_time);
+        clif_resurrection(sd, 1);
+    }
+
+    if(HARG(2) && bool(conv_num(st, &AARG(2))) && hp > 0)
+        pc_itemheal(sd, hp, sp);
     else
-        pc_heal(script_rid2sd(st), hp, sp);
+        pc_heal(sd, hp, sp);
 }
 
 /*==========================================
