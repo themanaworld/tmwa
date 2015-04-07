@@ -401,11 +401,16 @@ void builtin_areawarp(ScriptState *st)
 static
 void builtin_heal(ScriptState *st)
 {
-    int hp, sp;
+    int hp, sp, item;
 
     hp = conv_num(st, &AARG(0));
     sp = conv_num(st, &AARG(1));
-    pc_heal(script_rid2sd(st), hp, sp);
+    item = conv_num(st, &AARG(2));
+
+    if(item)
+        pc_itemheal(script_rid2sd(st), hp, sp);
+    else
+        pc_heal(script_rid2sd(st), hp, sp);
 }
 
 /*==========================================
@@ -2981,7 +2986,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(isat, "Mxy"_s, 'i'),
     BUILTIN(warp, "Mxy"_s, '\0'),
     BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
-    BUILTIN(heal, "ii"_s, '\0'),
+    BUILTIN(heal, "ii?"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
     BUILTIN(set, "Ne"_s, '\0'),
