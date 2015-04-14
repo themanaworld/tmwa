@@ -2185,7 +2185,7 @@ void builtin_emotion(ScriptState *st)
 {
     int type;
     type = conv_num(st, &AARG(0));
-    if (type < 0 || type > 100)
+    if (type < 0 || type > 200)
         return;
     clif_emotion(map_id2bl(st->oid), type);
 }
