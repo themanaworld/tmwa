@@ -402,38 +402,22 @@ static
 void builtin_heal(ScriptState *st)
 {
     int hp, sp;
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
     hp = conv_num(st, &AARG(0));
     sp = conv_num(st, &AARG(1));
-    pc_heal(script_rid2sd(st), hp, sp);
-}
 
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_itemheal(ScriptState *st)
-{
-    int hp, sp;
+    if(sd != nullptr && (sd->status.hp < 1 && hp > 0)){
+        pc_setstand(sd);
+        if (battle_config.player_invincible_time > interval_t::zero())
+            pc_setinvincibletimer(sd, battle_config.player_invincible_time);
+        clif_resurrection(sd, 1);
+    }
 
-    hp = conv_num(st, &AARG(0));
-    sp = conv_num(st, &AARG(1));
-    pc_itemheal(script_rid2sd(st), hp, sp);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_percentheal(ScriptState *st)
-{
-    int hp, sp;
-
-    hp = conv_num(st, &AARG(0));
-    sp = conv_num(st, &AARG(1));
-    pc_percentheal(script_rid2sd(st), hp, sp);
+    if(HARG(2) && bool(conv_num(st, &AARG(2))) && hp > 0)
+        pc_itemheal(sd, hp, sp);
+    else
+        pc_heal(sd, hp, sp);
 }
 
 /*==========================================
@@ -3126,9 +3110,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(isat, "Mxy"_s, 'i'),
     BUILTIN(warp, "Mxy"_s, '\0'),
     BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
-    BUILTIN(heal, "ii"_s, '\0'),
-    BUILTIN(itemheal, "ii"_s, '\0'),
-    BUILTIN(percentheal, "ii"_s, '\0'),
+    BUILTIN(heal, "ii?"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
     BUILTIN(set, "Ne"_s, '\0'),
