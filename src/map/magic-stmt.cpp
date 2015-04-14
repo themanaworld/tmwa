@@ -773,8 +773,8 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
 
     if (target->bl_type == BL::PC
         && !target->bl_m->flag.get(MapFlag::PVP)
-        && !target->is_player()->special_state.killable
-        && (caster->bl_type != BL::PC || !caster->is_player()->special_state.killer))
+        && (caster->bl_type != BL::PC)
+        && ((caster->is_player()->state.pvpchannel > 1) && (target->is_player()->state.pvpchannel != caster->is_player()->state.pvpchannel)))
         return 0;               /* Cannot damage other players outside of pvp */
 
     if (target != caster)

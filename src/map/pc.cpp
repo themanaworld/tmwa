@@ -288,16 +288,12 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
 {
     nullpo_retz(src);
 
-    if (src->bl_type != BL::PC)
+    if (src->bl_type != BL::PC || target->bl_type != BL::PC)
         return 0;
-    if (src->special_state.killer)
+    if ((src->state.pvpchannel == 1) && (target->state.pvpchannel == 1) && !src->bl_m->flag.get(MapFlag::NOPVP))
         return 1;
-
-    if (target->bl_type != BL::PC)
-        return 0;
-    if (target->special_state.killable)
+    if ((src->state.pvpchannel > 1) && (target->state.pvpchannel == src->state.pvpchannel)) // this one does not respect NOPVP
         return 1;
-
     return 0;
 }
 
@@ -317,6 +313,33 @@ int distance(int x0, int y0, int x1, int y1)
     dx = abs(x0 - x1);
     dy = abs(y0 - y1);
     return dx > dy ? dx : dy;
+}
+
+static
+void pc_pvp_timer(TimerData *, tick_t, BlockId id)
+{
+    dumb_ptr<map_session_data> sd = map_id2sd(id);
+
+    assert (sd != nullptr);
+    assert (sd->bl_type == BL::PC);
+}
+
+int pc_setpvptimer(dumb_ptr<map_session_data> sd, interval_t val)
+{
+    nullpo_retz(sd);
+
+    sd->pvp_timer = Timer(gettick() + val,
+            std::bind(pc_pvp_timer, ph::_1, ph::_2,
+                sd->bl_id));
+    return 0;
+}
+
+int pc_delpvptimer(dumb_ptr<map_session_data> sd)
+{
+    nullpo_retz(sd);
+
+    sd->pvp_timer.cancel();
+    return 0;
 }
 
 static
@@ -378,7 +401,6 @@ int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type)
         clif_updatestatus(sd, SP::SP);
 
     sd->heal_xp = 0;            // [Fate] Set gainable xp for healing this player to 0
-
     return 0;
 }
 
@@ -899,6 +921,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     int bl;
     int aspd_rate, refinedef = 0;
     int str, dstr, dex;
+    int b_pvpchannel = 0;
 
     nullpo_retz(sd);
 
@@ -927,6 +950,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     b_mdef = sd->mdef;
     b_mdef2 = sd->mdef2;
     b_base_atk = sd->base_atk;
+    if (!pc_isdead(sd) && sd->state.pvpchannel == 1)
+        b_pvpchannel = sd->state.pvpchannel;
 
     sd->max_weight = max_weight_base_0 + sd->status.attrs[ATTR::STR] * 300;
 
@@ -1399,6 +1424,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         clif_updatestatus(sd, SP::HP);
     if (b_sp != sd->status.sp)
         clif_updatestatus(sd, SP::SP);
+    if (b_pvpchannel != sd->state.pvpchannel)
+        sd->state.pvpchannel = b_pvpchannel;
 
     return 0;
 }
