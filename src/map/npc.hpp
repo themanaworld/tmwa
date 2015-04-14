@@ -41,7 +41,6 @@ constexpr BlockId START_NPC_NUM = wrap<BlockId>(110000000);
 // TODO make these species, see npc_class in npc_data
 constexpr Species WARP_CLASS = wrap<Species>(45);
 constexpr Species FAKE_NPC_CLASS = wrap<Species>(127);
-constexpr Species WARP_DEBUG_CLASS = wrap<Species>(722);
 constexpr Species INVISIBLE_CLASS = wrap<Species>(32767);
 
 int npc_event_dequeue(dumb_ptr<map_session_data> sd);
