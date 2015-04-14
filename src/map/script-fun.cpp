@@ -2214,15 +2214,6 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 }
 
 static
-void builtin_cmdothernpc(ScriptState *st)   // Added by RoVeRT
-{
-    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(0))));
-    ZString command = ZString(conv_str(st, &AARG(1)));
-
-    npc_command(map_id2sd(st->rid), npc, command);
-}
-
-static
 void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
 {
     if (event == bl->is_mob()->npc_event)
@@ -3105,7 +3096,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(pvpoff, "M"_s, '\0'),
     BUILTIN(emotion, "i"_s, '\0'),
     BUILTIN(mapwarp, "MMxy"_s, '\0'),
-    BUILTIN(cmdothernpc, "ss"_s, '\0'),
     BUILTIN(mobcount, "ME"_s, 'i'),
     BUILTIN(marriage, "P"_s, 'i'),
     BUILTIN(divorce, ""_s, 'i'),
