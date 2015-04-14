@@ -109,8 +109,8 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message)
         (sd->chat_lines_in >= battle_config.chat_spam_warn
          || sd->chat_total_repeats >= battle_config.chat_spam_warn))
     {
-        clif_displaymessage(sd->sess, "WARNING: You are about to be automatically banned for spam!"_s);
-        clif_displaymessage(sd->sess, "WARNING: Please slow down, do not repeat, and do not SHOUT!"_s);
+        clif_displaymessage(sd->sess, "##1WARNING : ##BYou are about to be automatically banned for spam!"_s);
+        clif_displaymessage(sd->sess, "##1WARNING : ##BPlease slow down, do not repeat, and do not SHOUT!"_s);
     }
 
     return 0;
