@@ -687,6 +687,14 @@ void builtin_wgm(ScriptState *st)
             STRPRINTF("[GM] %s"_fmt, message));
 }
 
+static
+void builtin_gmlog(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    ZString message = ZString(conv_str(st, &AARG(0)));
+    log_atcommand(sd, STRPRINTF("{SCRIPT} %s"_fmt, message));
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -3177,6 +3185,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(sc_check, "i"_s, 'i'),
     BUILTIN(debugmes, "s"_s, '\0'),
     BUILTIN(wgm, "s"_s, '\0'),
+    BUILTIN(gmlog, "s"_s, '\0'),
     BUILTIN(resetstatus, ""_s, '\0'),
     BUILTIN(changesex, ""_s, '\0'),
     BUILTIN(attachrid, "i"_s, 'i'),
