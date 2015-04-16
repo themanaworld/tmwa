@@ -3520,8 +3520,7 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             }
             break;
         case SP::SEX:
-            // this is a really bad idea
-            sd->sex = static_cast<SEX>(val);
+            chrif_char_ask_name(AccountId(), sd->status_key.name, 5, HumanTimeDiff());
             break;
         case SP::WEIGHT:
             sd->weight = val;
