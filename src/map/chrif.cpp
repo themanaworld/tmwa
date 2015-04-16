@@ -615,9 +615,7 @@ void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
             chrif_save(sd);
             sd->login_id1++;    // change identify, because if player come back in char within the 5 seconds, he can change its characters
             // do same modify in login-server for the account, but no in char-server (it ask again login_id1 to login, and don't remember it)
-            clif_displaymessage(sd->sess,
-                                 "Your sex has been changed (need disconexion by the server)..."_s);
-            clif_setwaitclose(sd->sess); // forced to disconnect for the change
+            clif_fixpcpos(sd); // use clif_set0078_main_1d8 to send new sex to the client
         }
     }
     else
