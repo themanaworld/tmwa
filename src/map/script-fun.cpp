@@ -949,31 +949,6 @@ void builtin_delitem(ScriptState *st)
 }
 
 /*==========================================
- *キャラ関係のパラメータ取得
- *------------------------------------------
- */
-static
-void builtin_readparam(ScriptState *st)
-{
-    dumb_ptr<map_session_data> sd;
-
-    SP type = SP(conv_num(st, &AARG(0)));
-    if (HARG(1))
-        sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARG(1)))));
-    else
-        sd = script_rid2sd(st);
-
-    if (sd == nullptr)
-    {
-        push_int<ScriptDataInt>(st->stack, -1);
-        return;
-    }
-
-    push_int<ScriptDataInt>(st->stack, pc_readparam(sd, type));
-
-}
-
-/*==========================================
  *キャラ関係のID取得
  *------------------------------------------
  */
@@ -1161,20 +1136,6 @@ void builtin_getequipname(ScriptState *st)
         buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
     }
     push_str<ScriptDataStr>(st->stack, buf);
-
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_statusup2(ScriptState *st)
-{
-    SP type = SP(conv_num(st, &AARG(0)));
-    int val = conv_num(st, &AARG(1));
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    pc_statusup2(sd, type, val);
 
 }
 
@@ -3124,12 +3085,10 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getitem, "Ii??"_s, '\0'),
     BUILTIN(makeitem, "IiMxy"_s, '\0'),
     BUILTIN(delitem, "Ii"_s, '\0'),
-    BUILTIN(readparam, "i?"_s, 'i'),
     BUILTIN(getcharid, "i?"_s, 'i'),
     BUILTIN(strcharinfo, "i"_s, 's'),
     BUILTIN(getequipid, "i"_s, 'i'),
     BUILTIN(getequipname, "i"_s, 's'),
-    BUILTIN(statusup2, "ii"_s, '\0'),
     BUILTIN(bonus, "ii"_s, '\0'),
     BUILTIN(bonus2, "iii"_s, '\0'),
     BUILTIN(skill, "ii?"_s, '\0'),

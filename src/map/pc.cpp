@@ -3547,7 +3547,7 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
         case SP::INT:
         case SP::DEX:
         case SP::LUK:
-            sd->status.attrs[sp_to_attr(type)] = val;
+            pc_statusup2(sd, type, (val - sd->status.attrs[sp_to_attr(type)]));
             break;
     }
     clif_updatestatus(sd, type);
