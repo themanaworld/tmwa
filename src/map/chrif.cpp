@@ -609,8 +609,9 @@ void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
             {
                 if (sd->status.inventory[i].nameid
                     && bool(sd->status.inventory[i].equip))
-                    pc_unequipitem(sd, i, CalcStatus::NOW);
+                    pc_unequipitem(sd, i, CalcStatus::LATER);
             }
+            pc_calcstatus(sd, 0);
             // save character
             chrif_save(sd);
             sd->login_id1++;    // change identify, because if player come back in char within the 5 seconds, he can change its characters
