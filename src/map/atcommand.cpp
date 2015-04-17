@@ -4469,6 +4469,7 @@ LString magic_skill_names[magic_skills_nr] =
     "transmute"_s,
     "nature"_s,
     "astral"_s,
+    "dark"_s
 };
 
 static
@@ -4547,7 +4548,7 @@ ATCE atcommand_set_magic(Session *s, dumb_ptr<map_session_data>,
     if (skill_index == SkillID::NEGATIVE)
     {
         clif_displaymessage(s,
-                "Incorrect school of magic.  Use `magic', `nature', `life', `war', `transmute', `ether', or `all'."_s);
+                "Incorrect school of magic.  Use `magic', `nature', `life', `war', `transmute', `astral', `dark', or `all'."_s);
         return ATCE::RANGE;
     }
 
