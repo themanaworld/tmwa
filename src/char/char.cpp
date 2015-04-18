@@ -1223,28 +1223,6 @@ void parse_tologin(Session *ls)
                 break;
             }
 
-            case 0x2721:       // gm reply
-            {
-                Packet_Fixed<0x2721> fixed;
-                rv = recv_fpacket<0x2721, 10>(ls, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                {
-                    AccountId acc = fixed.account_id;
-                    GmLevel gml = fixed.gm_level;
-
-                    Packet_Fixed<0x2b0b> fixed_2b;
-                    fixed_2b.account_id = acc;
-                    fixed_2b.gm_level = gml;
-                    for (Session *ss : iter_map_sessions())
-                    {
-                        send_fpacket<0x2b0b, 10>(ss, fixed_2b);
-                    }
-                }
-                break;
-            }
-
             case 0x2723:       // changesex reply (modified by [Yor])
             {
                 Packet_Fixed<0x2723> fixed;
@@ -1854,33 +1832,6 @@ void parse_frommap(Session *ms)
                     }
                 }
                 send_fpacket<0x2b06, 44>(ms, fixed_06);
-                break;
-            }
-
-                // it is a request to become GM
-            case 0x2b0a:
-            {
-                Packet_Head<0x2b0a> head;
-                AString repeat;
-                rv = recv_vpacket<0x2b0a, 8, 1>(ms, head, repeat);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                AccountId account_id = head.account_id;
-                if (login_session)
-                {               // don't send request if no login-server
-                    Packet_Head<0x2720> head_20;
-                    head_20.account_id = account_id;
-                    AString& repeat_20 = repeat;
-                    send_vpacket<0x2720, 8, 1>(login_session, head_20, repeat_20);
-                }
-                else
-                {
-                    Packet_Fixed<0x2b0b> fixed_0b;
-                    fixed_0b.account_id = account_id;
-                    fixed_0b.gm_level = GmLevel();
-                    send_fpacket<0x2b0b, 10>(ms, fixed_0b);
-                }
                 break;
             }
 
