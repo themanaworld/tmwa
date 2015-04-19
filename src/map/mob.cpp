@@ -333,8 +333,7 @@ int mob_gen_exp(mob_db_ *mob)
     int xp = floor(effective_hp * pow(sqrt(attack_factor)
             + sqrt(dodge_factor)
             + sqrt(persuit_factor) + 55, 3)
-        * aggression_factor / 2000000.0
-        * static_cast<double>(battle_config.base_exp_rate) / 100.);
+        * aggression_factor / 2000000.0);
     if (xp < 1)
         xp = 1;
     PRINTF("Exp for mob '%s' generated: %d\n"_fmt, mob->name, xp);
@@ -3531,30 +3530,33 @@ bool mob_readdb(ZString filename)
                 continue;
             }
 
+            if (get_mob_db(mob_class).base_exp < 0)
+            {
+                PRINTF("bad mob line: Xp needs to be greater than 0.  %s\n"_fmt, line);
+                rv = false;
+                continue;
+            }
+            if (get_mob_db(mob_class).base_exp > 1000000000)
+            {
+                PRINTF("bad mob line: Xp needs to be less than 1000000000.  %s\n"_fmt, line);
+                rv = false;
+                continue;
+            }
+            if (get_mob_db(mob_class).job_exp < 0)
+            {
+                PRINTF("bad mob line: Job Xp needs to be greater than 0.  %s\n"_fmt, line);
+                rv = false;
+                continue;
+            }
+            if (get_mob_db(mob_class).job_exp > 1000000000)
+            {
+                PRINTF("bad mob line: Job Xp needs to be less than 1000000000.  %s\n"_fmt, line);
+                rv = false;
+                continue;
+            }
+
             // TODO move this lower
             get_mob_db(mob_class) = std::move(mdbv);
-
-            if (get_mob_db(mob_class).base_exp < 0)
-                get_mob_db(mob_class).base_exp = 0;
-            else if (get_mob_db(mob_class).base_exp > 0
-                     && (get_mob_db(mob_class).base_exp *
-                         battle_config.base_exp_rate / 100 > 1000000000
-                         || get_mob_db(mob_class).base_exp *
-                         battle_config.base_exp_rate / 100 < 0))
-                get_mob_db(mob_class).base_exp = 1000000000;
-            else
-                get_mob_db(mob_class).base_exp = get_mob_db(mob_class).base_exp * battle_config.base_exp_rate / 100;
-
-            if (get_mob_db(mob_class).job_exp < 0)
-                get_mob_db(mob_class).job_exp = 0;
-            else if (get_mob_db(mob_class).job_exp > 0
-                     && (get_mob_db(mob_class).job_exp * battle_config.job_exp_rate /
-                         100 > 1000000000
-                         || get_mob_db(mob_class).job_exp *
-                         battle_config.job_exp_rate / 100 < 0))
-                get_mob_db(mob_class).job_exp = 1000000000;
-            else
-                get_mob_db(mob_class).job_exp = get_mob_db(mob_class).job_exp * battle_config.job_exp_rate / 100;
 
             for (int i = 0; i < 8; i++)
             {
