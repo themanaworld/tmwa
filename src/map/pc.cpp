@@ -2883,6 +2883,12 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
         }
     }
 
+    // Double Xp Weekends
+    base_exp = (base_exp * static_cast<double>(battle_config.base_exp_rate) / 100.);
+    if (base_exp <= 0)
+        base_exp = 0;
+    else if (base_exp > 1000000000)
+        base_exp = 1000000000;
     sd->status.base_exp += base_exp;
 
     // [Fate] Adjust experience points that healers can extract from this character
@@ -2890,7 +2896,6 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
     {
         const int max_heal_xp =
             20 + (sd->status.base_level * sd->status.base_level);
-
         sd->heal_xp += base_exp;
         if (sd->heal_xp > max_heal_xp)
             sd->heal_xp = max_heal_xp;
@@ -2913,6 +2918,12 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
         }
     }
 
+    // Double Xp Weekends
+    job_exp = (job_exp * static_cast<double>(battle_config.job_exp_rate) / 100.);
+    if (job_exp <= 0)
+        job_exp = 0;
+    else if (job_exp > 1000000000)
+        job_exp = 1000000000;
     sd->status.job_exp += job_exp;
     if (sd->status.job_exp < 0)
         sd->status.job_exp = 0;
