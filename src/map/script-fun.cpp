@@ -720,15 +720,14 @@ void builtin_countitem(ScriptState *st)
     int count = 0;
     dumb_ptr<map_session_data> sd;
 
-    struct script_data *data;
+    auto *ss = AARG(0).get_if<ScriptDataStr>();
+    auto *ii = AARG(0).get_if<ScriptDataInt>();
 
     sd = script_rid2sd(st);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
+    if (ss)
     {
-        ZString name = ZString(conv_str(st, data));
+        ZString name = ZString(ss->str);
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
         OMATCH_BEGIN_SOME (item_data, item_data_)
         {
@@ -736,8 +735,8 @@ void builtin_countitem(ScriptState *st)
         }
         OMATCH_END ();
     }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
+    else if (ii)
+        nameid = wrap<ItemNameId>(ii->numi);
 
     if (nameid)
     {
@@ -766,15 +765,13 @@ void builtin_checkweight(ScriptState *st)
     ItemNameId nameid;
     int amount;
     dumb_ptr<map_session_data> sd;
-    struct script_data *data;
-
+    auto *ss = AARG(0).get_if<ScriptDataStr>();
+    auto *ii = AARG(0).get_if<ScriptDataInt>();
     sd = script_rid2sd(st);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
+    if (ss)
     {
-        ZString name = ZString(conv_str(st, data));
+        ZString name = ZString(ss->str);
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
         OMATCH_BEGIN_SOME (item_data, item_data_)
         {
@@ -782,8 +779,8 @@ void builtin_checkweight(ScriptState *st)
         }
         OMATCH_END ();
     }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
+    else if (ii)
+        nameid = wrap<ItemNameId>(ii->numi);
 
     amount = conv_num(st, &AARG(1));
     if (amount <= 0 || !nameid)
@@ -814,15 +811,13 @@ void builtin_getitem(ScriptState *st)
     ItemNameId nameid;
     int amount;
     dumb_ptr<map_session_data> sd;
-    struct script_data *data;
-
+    auto *ss = AARG(0).get_if<ScriptDataStr>();
+    auto *ii = AARG(0).get_if<ScriptDataInt>();
     sd = script_rid2sd(st);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
+    if (ss)
     {
-        ZString name = ZString(conv_str(st, data));
+        ZString name = ZString(ss->str);
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
         OMATCH_BEGIN_SOME (item_data, item_data_)
         {
@@ -830,8 +825,8 @@ void builtin_getitem(ScriptState *st)
         }
         OMATCH_END ();
     }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
+    else if(ii)
+        nameid = wrap<ItemNameId>(ii->numi);
 
     if ((amount =
          conv_num(st, &AARG(1))) <= 0)
@@ -870,15 +865,13 @@ void builtin_makeitem(ScriptState *st)
     int amount;
     int x, y;
     dumb_ptr<map_session_data> sd;
-    struct script_data *data;
-
+    auto *ss = AARG(0).get_if<ScriptDataStr>();
+    auto *ii = AARG(0).get_if<ScriptDataInt>();
     sd = script_rid2sd(st);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
+    if (ss)
     {
-        ZString name = ZString(conv_str(st, data));
+        ZString name = ZString(ss->str);
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
         OMATCH_BEGIN_SOME (item_data, item_data_)
         {
@@ -886,8 +879,8 @@ void builtin_makeitem(ScriptState *st)
         }
         OMATCH_END ();
     }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
+    else if (ii)
+        nameid = wrap<ItemNameId>(ii->numi);
 
     amount = conv_num(st, &AARG(1));
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(2))));
@@ -917,15 +910,13 @@ void builtin_delitem(ScriptState *st)
     ItemNameId nameid;
     int amount;
     dumb_ptr<map_session_data> sd;
-    struct script_data *data;
-
+    auto *ss = AARG(0).get_if<ScriptDataStr>();
+    auto *ii = AARG(0).get_if<ScriptDataInt>();
     sd = script_rid2sd(st);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
+    if (ss)
     {
-        ZString name = ZString(conv_str(st, data));
+        ZString name = ZString(ss->str);
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
         OMATCH_BEGIN_SOME (item_data, item_data_)
         {
@@ -933,8 +924,8 @@ void builtin_delitem(ScriptState *st)
         }
         OMATCH_END ();
     }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
+    else if (ii)
+        nameid = wrap<ItemNameId>(ii->numi);
 
     amount = conv_num(st, &AARG(1));
 
@@ -1820,19 +1811,17 @@ void builtin_getareadropitem(ScriptState *st)
 {
     ItemNameId item;
     int x0, y0, x1, y1, amount = 0, delitems = 0;
-    struct script_data *data;
-
+    auto *ss = AARG(5).get_if<ScriptDataStr>();
+    auto *ii = AARG(5).get_if<ScriptDataInt>();
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x0 = conv_num(st, &AARG(1));
     y0 = conv_num(st, &AARG(2));
     x1 = conv_num(st, &AARG(3));
     y1 = conv_num(st, &AARG(4));
 
-    data = &AARG(5);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
+    if (ss)
     {
-        ZString name = ZString(conv_str(st, data));
+        ZString name = ZString(ss->str);
         Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
         OMATCH_BEGIN_SOME (item_data, item_data_)
         {
@@ -1840,8 +1829,8 @@ void builtin_getareadropitem(ScriptState *st)
         }
         OMATCH_END ();
     }
-    else
-        item = wrap<ItemNameId>(conv_num(st, data));
+    else if (ii)
+        item = wrap<ItemNameId>(ii->numi);
 
     if (HARG(6))
         delitems = conv_num(st, &AARG(6));
@@ -2253,18 +2242,17 @@ static
 void builtin_getitemname(ScriptState *st)
 {
     Option<P<struct item_data>> i_data = None;
-    struct script_data *data;
+    auto *ss = AARG(0).get_if<ScriptDataStr>();
+    auto *ii = AARG(0).get_if<ScriptDataInt>();
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
+    if (ss)
     {
-        ZString name = ZString(conv_str(st, data));
+        ZString name = ZString(ss->str);
         i_data = itemdb_searchname(name);
     }
-    else
+    else if (ii)
     {
-        ItemNameId item_id = wrap<ItemNameId>(conv_num(st, data));
+        ItemNameId item_id = wrap<ItemNameId>(ii->numi);
         i_data = Some(itemdb_search(item_id));
     }
 
@@ -2453,14 +2441,13 @@ void builtin_misceffect(ScriptState *st)
 
     if (HARG(1))
     {
-        struct script_data *sdata = &AARG(1);
+        auto *ss = AARG(1).get_if<ScriptDataStr>();
+        auto *ii = AARG(1).get_if<ScriptDataInt>();
 
-        get_val(st, sdata);
-
-        if (sdata->is<ScriptDataStr>())
-            name = stringish<CharName>(ZString(conv_str(st, sdata)));
-        else
-            id = wrap<BlockId>(conv_num(st, sdata));
+        if (ss)
+            name = stringish<CharName>(ZString(ss->str));
+        else if (ii)
+            id = wrap<BlockId>(ii->numi);
     }
 
     if (name.to__actual())
