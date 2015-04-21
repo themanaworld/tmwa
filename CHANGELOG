@@ -1,3 +1,23 @@
+v15.4.20
+  - make spam warnings appear in General chat tab
+  - add builtin getnpcx
+  - add builtin getnpcy
+  - add builtin pvp
+  - add builtin getpvpflag
+  - add builtin strnpcinfo
+  - remove builtin cmdothernpc
+  - remove builtin killmonsterall
+  - remove builtin percentheal
+  - remove builtin itemheal
+  - modify builtin heal to include itemheal
+  - remove atcommand killer
+  - remove atcommand killable
+  - remove atcommand charkiller
+  - add atcommand pvp
+  - add atcommand charpvp
+  - add atcommand exprate
+  - remove warp debug (npc 722)
+  - add support for emote IDs over 100
 v15.2.28
   - Added Freeloop
 v15.1.23:
