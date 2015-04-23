@@ -2179,11 +2179,22 @@ void builtin_getpvpflag(ScriptState *st)
 static
 void builtin_emotion(ScriptState *st)
 {
-    int type;
-    type = conv_num(st, &AARG(0));
+    ZString str;
+    dumb_ptr<map_session_data> pl_sd = nullptr;
+    int type = conv_num(st, &AARG(0));
+    if (HARG(1)) {
+        str = ZString(conv_str(st, &AARG(1)));
+        CharName player = stringish<CharName>(str);
+        pl_sd = map_nick2sd(player);
+    }
     if (type < 0 || type > 200)
         return;
-    clif_emotion(map_id2bl(st->oid), type);
+    if (pl_sd != nullptr)
+        clif_emotion_towards(map_id2bl(st->oid), pl_sd, type);
+    else if (st->rid && str == "self"_s)
+        clif_emotion(map_id2sd(st->rid), type);
+    else
+        clif_emotion(map_id2bl(st->oid), type);
 }
 
 static
@@ -3178,7 +3189,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(pvpoff, "M"_s, '\0'),
     BUILTIN(setpvpchannel, "i"_s, '\0'),
     BUILTIN(getpvpflag, "i"_s, 'i'),
-    BUILTIN(emotion, "i"_s, '\0'),
+    BUILTIN(emotion, "i?"_s, '\0'),
     BUILTIN(mapwarp, "MMxy"_s, '\0'),
     BUILTIN(mobcount, "ME"_s, 'i'),
     BUILTIN(marriage, "P"_s, 'i'),
