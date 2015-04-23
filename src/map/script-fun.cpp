@@ -1113,15 +1113,13 @@ void builtin_getequipid(ScriptState *st)
 static
 void builtin_freeloop(ScriptState *st)
 {
-    int num;
-    num = conv_num(st, &AARG(0));
-    if(num == 1)
+    if(bool(conv_num(st, &AARG(0))))
     {
-        st->freeloop = 1;
+        st->freeloop = true;
     }
     else
     {
-        st->freeloop = 0;
+        st->freeloop = false;
     }
 }
 
