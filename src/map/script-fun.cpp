@@ -2610,25 +2610,6 @@ void builtin_unequipbyid(ScriptState *st)
 }
 
 /*==========================================
- * gmcommand [MouseJstr]
- *
- * suggested on the forums...
- *------------------------------------------
- */
-
-static
-void builtin_gmcommand(ScriptState *st)
-{
-    dumb_ptr<map_session_data> sd;
-
-    sd = script_rid2sd(st);
-    RString cmd = conv_str(st, &AARG(0));
-
-    is_atcommand(sd->sess, sd, cmd, GmLevel::from(-1U));
-
-}
-
-/*==========================================
  * npcwarp [remoitnane]
  * Move NPC to a new position on the same map.
  *------------------------------------------
@@ -3217,7 +3198,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(specialeffect2, "i"_s, '\0'),
     BUILTIN(nude, ""_s, '\0'),
     BUILTIN(unequipbyid, "i"_s, '\0'),
-    BUILTIN(gmcommand, "s"_s, '\0'),
     BUILTIN(npcwarp, "xys"_s, '\0'),
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
