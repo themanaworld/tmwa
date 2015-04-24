@@ -1119,45 +1119,6 @@ void builtin_freeloop(ScriptState *st)
 }
 
 /*==========================================
- * 装備名文字列（精錬メニュー用）
- *------------------------------------------
- */
-static
-void builtin_getequipname(ScriptState *st)
-{
-    int num;
-    dumb_ptr<map_session_data> sd;
-
-    AString buf;
-
-    sd = script_rid2sd(st);
-    num = conv_num(st, &AARG(0));
-    IOff0 i = pc_checkequip(sd, equip[num - 1]);
-    if (i.ok())
-    {
-        Option<P<struct item_data>> item_ = sd->inventory_data[i];
-        OMATCH_BEGIN (item_)
-        {
-            OMATCH_CASE_SOME (item)
-            {
-                buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], item->jname);
-            }
-            OMATCH_CASE_NONE ()
-            {
-                buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
-            }
-        }
-        OMATCH_END ();
-    }
-    else
-    {
-        buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
-    }
-    push_str<ScriptDataStr>(st->stack, buf);
-
-}
-
-/*==========================================
  * 装備品による能力値ボーナス
  *------------------------------------------
  */
@@ -3056,7 +3017,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getcharid, "i?"_s, 'i'),
     BUILTIN(strcharinfo, "i"_s, 's'),
     BUILTIN(getequipid, "i"_s, 'i'),
-    BUILTIN(getequipname, "i"_s, 's'),
     BUILTIN(bonus, "ii"_s, '\0'),
     BUILTIN(bonus2, "iii"_s, '\0'),
     BUILTIN(skill, "ii?"_s, '\0'),
