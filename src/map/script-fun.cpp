@@ -2245,34 +2245,6 @@ void builtin_divorce(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, 1);
 }
 
-/*==========================================
- * IDからItem名
- *------------------------------------------
- */
-static
-void builtin_getitemname(ScriptState *st)
-{
-    Option<P<struct item_data>> i_data = None;
-    struct script_data *data;
-
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
-    {
-        ZString name = ZString(conv_str(st, data));
-        i_data = itemdb_searchname(name);
-    }
-    else
-    {
-        ItemNameId item_id = wrap<ItemNameId>(conv_num(st, data));
-        i_data = Some(itemdb_search(item_id));
-    }
-
-    RString item_name = i_data.pmd_pget(&item_data::jname).copy_or(stringish<ItemName>("Unknown Item"_s));
-
-    push_str<ScriptDataStr>(st->stack, item_name);
-}
-
 static
 void builtin_getitemlink(ScriptState *st)
 {
@@ -3139,7 +3111,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(mobcount, "ME"_s, 'i'),
     BUILTIN(marriage, "P"_s, 'i'),
     BUILTIN(divorce, ""_s, 'i'),
-    BUILTIN(getitemname, "I"_s, 's'),
     BUILTIN(getitemlink, "I"_s, 's'),
     BUILTIN(getspellinvocation, "s"_s, 's'),
     BUILTIN(getpartnerid2, ""_s, 'i'),
