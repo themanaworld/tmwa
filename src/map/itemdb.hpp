@@ -36,7 +36,7 @@ namespace map
 struct item_data
 {
     ItemNameId nameid;
-    ItemName name, jname;
+    ItemName name;
     int value_buy;
     int value_sell;
     ItemType type;

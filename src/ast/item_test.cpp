@@ -89,9 +89,9 @@ namespace item
         {
             //        1         2         3         4         5
             //2345678901234567890123456789012345678901234567890123456789
-            "1,abc ,  def,3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}"_s,
-            "1,abc ,  def,3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}\n"_s,
-            "1,abc ,  def,3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}\nabc"_s,
+            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}"_s,
+            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}\n"_s,
+            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}\nabc"_s,
         };
         for (auto input : inputs)
         {
@@ -108,8 +108,6 @@ namespace item
                 EXPECT_EQ(p->id.data, wrap<ItemNameId>(1));
                 EXPECT_SPAN(p->name.span, 1,3, 1,6);
                 EXPECT_EQ(p->name.data, stringish<ItemName>("abc "_s));
-                EXPECT_SPAN(p->jname.span, 1,10, 1,12);
-                EXPECT_EQ(p->jname.data, stringish<ItemName>("def"_s));
                 EXPECT_SPAN(p->type.span, 1,14, 1,14);
                 EXPECT_EQ(p->type.data, ItemType::JUNK);
                 EXPECT_SPAN(p->buy_price.span, 1,16, 1,16);
