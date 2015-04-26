@@ -824,7 +824,33 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
 
     buf = create_fpacket<0x007b, 60>(fixed_7b);
 }
+/*==========================================
+ * Packet to send server's mob walkpath data
+ *------------------------------------------
+ */
+static
+int clif_0225_being_move3(dumb_ptr<mob_data> md)
+{
+    Packet_Head<0x0225> head_225;
+    std::vector<Packet_Repeat<0x0225>> repeat_225;
 
+    head_225.magic_packet_length = md->walkpath.path_len + 14;
+    head_225.id = md->bl_id;
+    head_225.speed = battle_get_speed(md);
+    head_225.x_position = md->bl_x;
+    head_225.y_position = md->bl_y;
+    for (int i = 0; i < md->walkpath.path_len; i++)
+    {
+        Packet_Repeat<0x0225> move_225;
+        move_225.move = md->walkpath.path[i];
+        repeat_225.push_back(move_225);
+    }
+
+    Buffer buf = create_vpacket<0x0225, 14, 1>(head_225, repeat_225);
+    clif_send(buf, md, SendWho::AREA);
+
+    return 0;
+}
 /*==========================================
  *
  *------------------------------------------
@@ -2344,6 +2370,7 @@ int clif_movemob(dumb_ptr<mob_data> md)
     Buffer buf;
     clif_mob007b(md, buf);
     clif_send(buf, md, SendWho::AREA);
+    clif_0225_being_move3(md);
 
     return 0;
 }
