@@ -108,8 +108,9 @@ void builtin_goto(ScriptState *st)
 {
     if (!AARG(0).is<ScriptDataPos>())
     {
-        PRINTF("script: goto: that's not a label!\n"_fmt);
+        PRINTF("fatal: script: goto: not label !\n"_fmt);
         st->state = ScriptEndState::END;
+        runflag = 0;
         return;
     }
 
@@ -149,8 +150,9 @@ void builtin_callfunc(ScriptState *st)
         }
         OMATCH_CASE_NONE ()
         {
-            PRINTF("script: callfunc: function not found! [%s]\n"_fmt, str);
+            PRINTF("fatal: script: callfunc: function not found! [%s]\n"_fmt, str);
             st->state = ScriptEndState::END;
+            runflag = 0;
         }
     }
     OMATCH_END ();
@@ -276,7 +278,9 @@ void builtin_menu(ScriptState *st)
             int arg_index = (sd->npc_menu - 1) * 2 + 1;
             if (!AARG(arg_index).is<ScriptDataPos>())
             {
+                PRINTF("fatal: script:menu: not a label\n"_fmt);
                 st->state = ScriptEndState::END;
+                runflag = 0;
                 return;
             }
             st->scriptp.pos = AARG(arg_index).get_if<ScriptDataPos>()->numi;
