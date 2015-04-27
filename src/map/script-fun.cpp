@@ -2311,11 +2311,11 @@ void builtin_getitemlink(ScriptState *st)
     {
         OMATCH_CASE_SOME (item_data)
         {
-            buf = STRPRINTF("[@@%d|%s@@]"_fmt, item_data->nameid, item_data->jname);
+            buf = STRPRINTF("@@%d|@@"_fmt, item_data->nameid);
         }
         OMATCH_CASE_NONE ()
         {
-            buf = STRPRINTF("Unknown Item: %s"_fmt, name);
+            buf = "Unknown Item"_s;
         }
     }
     OMATCH_END ();
