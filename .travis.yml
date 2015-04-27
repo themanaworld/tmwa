@@ -102,6 +102,8 @@ matrix:
       env: REAL_CC=gcc-4.8   REAL_CXX=g++-4.8     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.8 DEBUGPACKAGE=libstdc++6-4.8-dbg
     - compiler: gcc
       env: REAL_CC=gcc-4.9   REAL_CXX=g++-4.9     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.9 DEBUGPACKAGE=libstdc++6-4.9-dbg
+    - compiler: gcc
+      env: REAL_CC=gcc-5     REAL_CXX=g++-5       PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-5   DEBUGPACKAGE=libstdc++6-4.9-dbg
 
     - compiler: gcc
       env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7 DEBUGPACKAGE=libstdc++6-4.8-dbg EXTRA_CONFIGURE_ARGS=--disable-warnings
