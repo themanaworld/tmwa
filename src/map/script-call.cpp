@@ -28,6 +28,8 @@
 
 #include "../mmo/cxxstdio_enums.hpp"
 
+#include "../high/core.hpp"
+
 #include "battle.hpp"
 #include "battle_conf.hpp"
 #include "globals.hpp"
@@ -584,6 +586,7 @@ void run_func(ScriptState *st)
             if (battle_config.error_log)
                 PRINTF("function not found\n"_fmt);
             st->state = ScriptEndState::END;
+            runflag = 0;
             return;
         }
     }
@@ -596,6 +599,7 @@ void run_func(ScriptState *st)
     {
         PRINTF("run_func: not function and command! \n"_fmt);
         st->state = ScriptEndState::END;
+        runflag = 0;
         return;
     }
     size_t func = st->stack->stack_datav[st->start].get_if<ScriptDataFuncRef>()->numi;
@@ -665,6 +669,7 @@ void run_func(ScriptState *st)
         {
             PRINTF("script:run_func (return) return without callfunc or callsub!\n"_fmt);
             st->state = ScriptEndState::END;
+            runflag = 0;
             return;
         }
         assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
@@ -761,6 +766,7 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                     {
                         PRINTF("run_script: infinity loop !\n"_fmt);
                         st->state = ScriptEndState::END;
+                        runflag = 0;
                     }
                 }
                 break;
@@ -804,12 +810,14 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                     PRINTF("unknown command : %d @ %zu\n"_fmt,
                             c, st->scriptp.pos);
                 st->state = ScriptEndState::END;
+                runflag = 0;
                 break;
         }
         if (st->freeloop != 1 && cmdcount > 0 && (--cmdcount) <= 0)
         {
             PRINTF("run_script: infinity loop !\n"_fmt);
             st->state = ScriptEndState::END;
+            runflag = 0;
         }
     }
     switch (st->state)
