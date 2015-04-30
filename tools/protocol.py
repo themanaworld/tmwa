@@ -4617,7 +4617,39 @@ def build_context():
     )
     # 0x0213 define='CMSG_SET_STATUS',
     # 0x0214 define='SMSG_QUEST_SET_VAR',
+    map_user.s(0x0214, 'send quest',
+        define='SMSG_QUEST_SET_VAR',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'variable'),
+            at(4, u32, 'value'),
+        ],
+        fixed_size=8,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Set Quest Log Variable to Value.
+        ''',
+    )
     # 0x0215 define='SMSG_QUEST_PLAYER_VARS',
+    map_user.s(0x0215, 'send all quest',
+        define='SMSG_QUEST_PLAYER_VARS',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'variable'),
+            at(2, u32, 'value'),
+        ],
+        repeat_size=6,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Set All Quest Log Variable to Value.
+        ''',
+    )
     # 0x0220 define='SMSG_BEING_NAME_RESPONSE2',
     # 0x0221 define='SMSG_CHAR_CREATE_SUCCEEDED2',
     # 0x0222 define='CMSG_CHAT_MESSAGE2',

@@ -26,6 +26,7 @@
 
 #include "battle_conf.hpp"
 #include "itemdb.hpp"
+#include "quest.hpp"
 #include "magic-interpreter.hpp"
 #include "map_conf.hpp"
 #include "mob.hpp"
@@ -49,6 +50,7 @@ namespace tmwa
         int chrif_state;
         std::map<MapName, RString> resnametable;
         Map<ItemNameId, item_data> item_db;
+        Map<QuestId, quest_data> quest_db;
         namespace magic
         {
             // Global magic conf

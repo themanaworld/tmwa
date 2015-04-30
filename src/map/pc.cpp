@@ -64,6 +64,7 @@
 #include "skill.hpp"
 #include "storage.hpp"
 #include "trade.hpp"
+#include "quest.hpp"
 
 #include "../poison.hpp"
 
@@ -793,7 +794,8 @@ int pc_authok(AccountId id, int login_id2,
     sd->packet_flood_in = 0;
 
     pc_calcstatus(sd, 1);
-
+    // Init Quest Log
+    clif_sendallquest(sd);
     return 0;
 }
 
@@ -3827,14 +3829,37 @@ void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, RString str)
 int pc_readglobalreg(dumb_ptr<map_session_data> sd, VarName reg)
 {
     int i;
-
+    int quest_shift = 0;
+    int quest_mask = 0;
     nullpo_retz(sd);
+    QuestId questid;
+    XString var = reg;
+    VarName vr;
 
     assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
+    Option<P<struct quest_data>> quest_data_ = questdb_searchname(var);
+    OMATCH_BEGIN_SOME(quest_data, quest_data_)
+    {
+        questid = quest_data->questid;
+        reg = quest_data->quest_vr;
+        vr = quest_data->quest_var;
+        quest_shift = quest_data->quest_shift;
+        quest_mask = quest_data->quest_mask;
+    }
+    OMATCH_END ();
     for (i = 0; i < sd->status.global_reg_num; i++)
     {
         if (sd->status.global_reg[i].str == reg)
-            return sd->status.global_reg[i].value;
+        {
+            if (questid)
+            {
+                return ((sd->status.global_reg[i].value & (((1 << quest_mask) - 1) << (quest_shift * quest_mask))) >> (quest_shift * quest_mask));
+            }
+            else
+            {
+                return sd->status.global_reg[i].value;
+            }
+        }
     }
 
     return 0;
@@ -3847,8 +3872,13 @@ int pc_readglobalreg(dumb_ptr<map_session_data> sd, VarName reg)
 int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
 {
     int i;
-
+    int quest_shift = 0;
+    int quest_mask = 0;
+    int bitval = val;
     nullpo_retz(sd);
+    QuestId questid;
+    XString var = reg;
+    VarName vr;
 
     //PC_DIE_COUNTERがスクリプトなどで変更された時の処理
     if (reg == stringish<VarName>("PC_DIE_COUNTER"_s) && sd->die_counter != val)
@@ -3856,6 +3886,17 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
         sd->die_counter = val;
         pc_calcstatus(sd, 0);
     }
+    Option<P<struct quest_data>> quest_data_ = questdb_searchname(var);
+    OMATCH_BEGIN_SOME(quest_data, quest_data_)
+    {
+        questid = quest_data->questid;
+        reg = quest_data->quest_vr;
+        vr = quest_data->quest_var;
+        quest_shift = quest_data->quest_shift;
+        quest_mask = quest_data->quest_mask;
+        assert (((1 << quest_mask) - 1) >= val);
+    }
+    OMATCH_END ();
     assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
     if (val == 0)
     {
@@ -3863,9 +3904,18 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
         {
             if (sd->status.global_reg[i].str == reg)
             {
-                sd->status.global_reg[i] =
-                    sd->status.global_reg[sd->status.global_reg_num - 1];
-                sd->status.global_reg_num--;
+                if (questid)
+                {
+                    bitval = ((sd->status.global_reg[i].value & ~(((1 << quest_mask) - 1) << (quest_shift * quest_mask))) | (val << (quest_shift * quest_mask)));
+                    clif_sendquest(sd, questid, val);
+                }
+                sd->status.global_reg[i].value = bitval;
+                if (sd->status.global_reg[i].value == 0)
+                {
+                    sd->status.global_reg[i] =
+                        sd->status.global_reg[sd->status.global_reg_num - 1];
+                    sd->status.global_reg_num--;
+                }
                 break;
             }
         }
@@ -3875,14 +3925,24 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
     {
         if (sd->status.global_reg[i].str == reg)
         {
-            sd->status.global_reg[i].value = val;
+            if (questid)
+            {
+                bitval = ((sd->status.global_reg[i].value & ~(((1 << quest_mask) - 1) << (quest_shift * quest_mask))) | (val << (quest_shift * quest_mask)));
+                clif_sendquest(sd, questid, val);
+            }
+            sd->status.global_reg[i].value = bitval;
             return 0;
         }
     }
     if (sd->status.global_reg_num < GLOBAL_REG_NUM)
     {
         sd->status.global_reg[i].str = reg;
-        sd->status.global_reg[i].value = val;
+        if (questid)
+        {
+            bitval = ((sd->status.global_reg[i].value & ~(((1 << quest_mask) - 1) << (quest_shift * quest_mask))) | (val << (quest_shift * quest_mask)));
+            clif_sendquest(sd, questid, val);
+        }
+        sd->status.global_reg[i].value = bitval;
         sd->status.global_reg_num++;
         return 0;
     }

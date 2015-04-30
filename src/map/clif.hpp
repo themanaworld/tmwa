@@ -175,6 +175,9 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
         int type);
 
 int clif_foreachclient(std::function<void(dumb_ptr<map_session_data>)>);
+// quest
+void clif_sendallquest(dumb_ptr<map_session_data> sd);
+void clif_sendquest(dumb_ptr<map_session_data> sd, QuestId questid, int value);
 
 void do_init_clif(void);
 } // namespace map
