@@ -249,9 +249,6 @@ int chrif_connectack(Session *s, const Packet_Fixed<0x2af9>& fixed)
 
     chrif_sendmap(s);
 
-    PRINTF("chrif: OnInterIfInit event done. (%d events)\n"_fmt,
-            npc_event_doall(stringish<ScriptLabel>("OnInterIfInit"_s)));
-
     return 0;
 }
 
