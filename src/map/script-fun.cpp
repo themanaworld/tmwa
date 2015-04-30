@@ -538,6 +538,34 @@ void builtin_set(ScriptState *st)
 
 }
 
+static
+void builtin_get(ScriptState *st)
+{
+    BlockId old = st->rid;
+    st->rid = wrap<BlockId>(conv_num(st, &AARG(1)));
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
+    ZString name = variable_names.outtern(reg.base());
+    char prefix = name.front();
+    char postfix = name.back();
+
+    if(prefix != '@' && prefix){
+        PRINTF("builtin_get: illegal scope !\n"_fmt);
+        return;
+    }
+
+    if (postfix == '$'){
+        ZString var = pc_readregstr(sd, reg);
+        st->rid = old;
+        push_str<ScriptDataStr>(st->stack, var);
+    }
+    else{
+        int var = pc_readreg(sd, reg);
+        st->rid = old;
+        push_int<ScriptDataInt>(st->stack, var);
+    }
+}
+
 /*==========================================
  * 配列変数設定
  *------------------------------------------
@@ -3111,6 +3139,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
     BUILTIN(set, "Ne"_s, '\0'),
+    BUILTIN(get, "NP"_s, '.'),
     BUILTIN(setarray, "Ne*"_s, '\0'),
     BUILTIN(cleararray, "Nei"_s, '\0'),
     BUILTIN(getarraysize, "N"_s, 'i'),
