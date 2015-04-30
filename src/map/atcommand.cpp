@@ -701,6 +701,69 @@ ATCE atcommand_goto(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_npc(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    NpcName npc;
+
+    if (!asplit(message, &npc))
+    {
+        clif_displaymessage(s,
+                "Please, enter a npc name (usage: @npc/@warptonpc/@gotonpc <npc>)."_s);
+        return ATCE::USAGE;
+    }
+
+    dumb_ptr<npc_data> nd = npc_name2id(npc);
+    if (nd != nullptr)
+    {
+        if (nd->bl_m->flag.get(MapFlag::NOWARPTO)
+            && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
+        {
+            clif_displaymessage(s,
+                    "You are not authorised to warp you to the map of this npc."_s);
+            return ATCE::PERM;
+        }
+        if (sd->bl_m->flag.get(MapFlag::NOWARP)
+            && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
+        {
+            clif_displaymessage(s,
+                    "You are not authorised to warp you from your actual map."_s);
+            return ATCE::PERM;
+        }
+
+        int x = nd->bl_x, y = nd->bl_y, x0 = (x >= 5)? (x - 5): 0, j = 0,
+            y0 = (y >= 5)? (y - 5): 0, x1 = (x + 5), y1 = (y + 5), max;
+        max = (y1 - y0 + 1) * (x1 - x0 + 1) * 3;
+        P<map_local> m = TRY_UNWRAP(map_mapname2mapid(nd->bl_m->name_), return ATCE::OKAY);
+        if (max > 1000)
+            max = 1000;
+        if (bool(map_getcell(m, x, y) & MapCell::UNWALKABLE)){
+            do
+            {
+                x = random_::in(x0, x1);
+                y = random_::in(y0, y1);
+            }
+            while (bool(map_getcell(m, x, y) & MapCell::UNWALKABLE)
+                 && (++j) < max);
+            if (j >= max)
+            {
+                return ATCE::OKAY;       // Since reference of the place which boils first went wrong, it stops.
+            }
+        }
+        pc_setpos(sd, nd->bl_m->name_, x, y, BeingRemoveWhy::WARPED);
+        AString output = STRPRINTF("Jump to %s"_fmt, npc);
+        clif_displaymessage(s, output);
+    }
+    else
+    {
+        clif_displaymessage(s, "Npc not found."_s);
+        return ATCE::EXIST;
+    }
+
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_jump(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
@@ -4907,6 +4970,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"goto"_s, {"<charname>"_s,
         40, atcommand_goto,
         "Warp yourself to another character"_s}},
+    {"npc"_s, {"<npc>"_s,
+        40, atcommand_npc,
+        "Warp yourself to a npc"_s}},
     {"jump"_s, {"[x] [y]"_s,
         40, atcommand_jump,
         "Warp yourself within a map"_s}},
