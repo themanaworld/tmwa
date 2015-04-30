@@ -794,6 +794,8 @@ int pc_authok(AccountId id, int login_id2,
     sd->packet_flood_in = 0;
 
     pc_calcstatus(sd, 1);
+
+    npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
     // Init Quest Log
     clif_sendallquest(sd);
     return 0;
