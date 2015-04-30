@@ -345,23 +345,6 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * GMに変化要求
- *------------------------------------------
- */
-void chrif_changegm(AccountId id, ZString pass)
-{
-    if (!char_session)
-        return;
-
-    if (battle_config.etc_log)
-        PRINTF("chrif_changegm: account: %d, password: '%s'.\n"_fmt, id, pass);
-
-    Packet_Head<0x2b0a> head_0a;
-    head_0a.account_id = id;
-    send_vpacket<0x2b0a, 8, 1>(char_session, head_0a, pass);
-}
-
-/*==========================================
  * Change Email
  *------------------------------------------
  */
@@ -556,30 +539,6 @@ int chrif_char_ask_name_answer(Session *, const Packet_Fixed<0x2b0f>& fixed)
         PRINTF("chrif_char_ask_name_answer failed - player not online.\n"_fmt);
 
     return 0;
-}
-
-/*==========================================
- * End of GM change(@GM) (modified by Yor)
- *------------------------------------------
- */
-static
-void chrif_changedgm(Session *, const Packet_Fixed<0x2b0b>& fixed)
-{
-    AccountId acc = fixed.account_id;
-    GmLevel level = fixed.gm_level;
-
-    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(acc));
-
-    if (battle_config.etc_log)
-        PRINTF("chrif_changedgm: account: %d, GM level 0 -> %d.\n"_fmt, acc,
-                level);
-    if (sd != nullptr)
-    {
-        if (level)
-            clif_displaymessage(sd->sess, "GM modification success."_s);
-        else
-            clif_displaymessage(sd->sess, "Failure of GM modification."_s);
-    }
 }
 
 /*==========================================
@@ -971,16 +930,6 @@ void chrif_parse(Session *s)
                     break;
 
                 chrif_changemapserverack(s, fixed);
-                break;
-            }
-            case 0x2b0b:
-            {
-                Packet_Fixed<0x2b0b> fixed;
-                rv = recv_fpacket<0x2b0b, 10>(s, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                chrif_changedgm(s, fixed);
                 break;
             }
             case 0x2b0d:

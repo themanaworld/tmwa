@@ -1528,25 +1528,6 @@ ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_gm(Session *s, dumb_ptr<map_session_data> sd,
-        ZString message)
-{
-    if (!message)
-        return ATCE::USAGE;
-
-    if (pc_isGM(sd))
-    {
-        // a GM can not use this function. only a normal player (become gm is not for gm!)
-        clif_displaymessage(s, "You already have some GM powers."_s);
-        return ATCE::PERM;
-    }
-    else
-        chrif_changegm(sd->status_key.account_id, message);
-
-    return ATCE::OKAY;
-}
-
-static
 ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
@@ -4995,9 +4976,6 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"jlvl"_s, {"<delta>"_s,
         60, atcommand_joblevelup,
         "Adjust your job level"_s}},
-    {"gm"_s, {"<password>"_s,
-        100, atcommand_gm,
-        "Receive GM powers"_s}},
     {"pvpoff"_s, {""_s,
         60, atcommand_pvpoff,
         "Enable PvP on your map"_s}},
