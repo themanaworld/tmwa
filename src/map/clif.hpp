@@ -96,6 +96,7 @@ int clif_changeoption(dumb_ptr<block_list>);   // area
 int clif_useitemack(dumb_ptr<map_session_data>, IOff0, int, int);    // self
 
 void clif_emotion(dumb_ptr<block_list> bl, int type);
+void clif_emotion_towards(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int type);
 void clif_sitting(Session *, dumb_ptr<map_session_data> sd);
 
 // trade

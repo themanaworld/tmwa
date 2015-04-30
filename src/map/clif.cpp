@@ -198,11 +198,6 @@ int is_deaf(dumb_ptr<block_list> bl)
     return sd->special_state.deaf;
 }
 
-static
-void clif_emotion_towards(dumb_ptr<block_list> bl,
-                                  dumb_ptr<block_list> target, int type);
-
-
 enum class ChatType
 {
     Party,
@@ -3113,7 +3108,6 @@ void clif_emotion(dumb_ptr<block_list> bl, int type)
     clif_send(buf, bl, SendWho::AREA);
 }
 
-static
 void clif_emotion_towards(dumb_ptr<block_list> bl,
                                   dumb_ptr<block_list> target, int type)
 {
