@@ -1987,20 +1987,6 @@ void builtin_resetstatus(ScriptState *st)
 }
 
 /*==========================================
- * 性別変換
- *------------------------------------------
- */
-static
-void builtin_changesex(ScriptState *st)
-{
-    dumb_ptr<map_session_data> sd = nullptr;
-    sd = script_rid2sd(st);
-
-    chrif_char_ask_name(AccountId(), sd->status_key.name, 5, HumanTimeDiff()); // type: 5 - changesex
-    chrif_save(sd);
-}
-
-/*==========================================
  * RIDのアタッチ
  *------------------------------------------
  */
@@ -3178,7 +3164,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(sc_check, "i"_s, 'i'),
     BUILTIN(debugmes, "s"_s, '\0'),
     BUILTIN(resetstatus, ""_s, '\0'),
-    BUILTIN(changesex, ""_s, '\0'),
     BUILTIN(attachrid, "i"_s, 'i'),
     BUILTIN(detachrid, ""_s, '\0'),
     BUILTIN(isloggedin, "i"_s, 'i'),
