@@ -677,6 +677,24 @@ void builtin_getelementofarray(ScriptState *st)
     }
 }
 
+static
+void builtin_wgm(ScriptState *st)
+{
+    ZString message = ZString(conv_str(st, &AARG(0)));
+
+    intif_wis_message_to_gm(WISP_SERVER_NAME,
+            battle_config.hack_info_GM_level,
+            STRPRINTF("[GM] %s"_fmt, message));
+}
+
+static
+void builtin_gmlog(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    ZString message = ZString(conv_str(st, &AARG(0)));
+    log_atcommand(sd, STRPRINTF("{SCRIPT} %s"_fmt, message));
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -2589,25 +2607,6 @@ void builtin_unequipbyid(ScriptState *st)
 }
 
 /*==========================================
- * gmcommand [MouseJstr]
- *
- * suggested on the forums...
- *------------------------------------------
- */
-
-static
-void builtin_gmcommand(ScriptState *st)
-{
-    dumb_ptr<map_session_data> sd;
-
-    sd = script_rid2sd(st);
-    RString cmd = conv_str(st, &AARG(0));
-
-    is_atcommand(sd->sess, sd, cmd, GmLevel::from(-1U));
-
-}
-
-/*==========================================
  * npcwarp [remoitnane]
  * Move NPC to a new position on the same map.
  *------------------------------------------
@@ -3163,6 +3162,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(sc_end, "i"_s, '\0'),
     BUILTIN(sc_check, "i"_s, 'i'),
     BUILTIN(debugmes, "s"_s, '\0'),
+    BUILTIN(wgm, "s"_s, '\0'),
+    BUILTIN(gmlog, "s"_s, '\0'),
     BUILTIN(resetstatus, ""_s, '\0'),
     BUILTIN(attachrid, "i"_s, 'i'),
     BUILTIN(detachrid, ""_s, '\0'),
@@ -3193,7 +3194,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(specialeffect2, "i"_s, '\0'),
     BUILTIN(nude, ""_s, '\0'),
     BUILTIN(unequipbyid, "i"_s, '\0'),
-    BUILTIN(gmcommand, "s"_s, '\0'),
     BUILTIN(npcwarp, "xys"_s, '\0'),
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
