@@ -339,7 +339,7 @@ bool npc_load_mapflag(ast::npc::MapFlag& mapflag)
         return false;
     }
 
-    if (battle_config.pk_mode && mf == MapFlag::NOPVP)
+    if (mf == MapFlag::NOPVP)
     {
         if (mapflag.vec_extra.data.size())
         {
