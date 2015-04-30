@@ -767,4 +767,4 @@ doc: ${DOC_PNGS}
 
 most: $(filter-out bin/${tmwa}-map.elf,${BINARIES})
 magic: $(filter obj/map/magic%,${PDC_OBJECTS})
-common: $(filter-out %/lib.pdc.o obj/debug-debug/% %_test.pdc.o obj/login/% obj/char/% obj/map/% obj/admin/% obj/monitor/%,${PDC_OBJECTS})
+common: $(filter-out %/lib.pdc.o obj/debug-debug/% %_test.pdc.o obj/login/% obj/char/% obj/map/% obj/admin/%,${PDC_OBJECTS})

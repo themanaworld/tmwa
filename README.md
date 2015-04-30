@@ -151,19 +151,19 @@ to installed files has begun.
 
 
 ####tmwa-monitor:
+<DEPRECATED>
 Formerly known as `eathena-monitor`.
 
 An unmaintained tool whose job was to keep restarting the servers
 every time they crashed. It still builds in case anyone was using it,
 but it proved inflexible and has't really been kept up-to-date with our
 (TMW's) server-data, and besides, the server doesn't crash much now.
+There are also a number of other Open Source programs that monitor
+services already.
 
-At some point I plan to rewrite it and ship a new conf file, unless
-everyone agrees to use systemd, in which case I maybe can use that.
-
-In the mean time, there is a `run-all` script in the server-data repo
-that starts the appropriate server for that config. On the main server,
-we instead start the servers (and bots) individually in a tmux.
+There is a `run-all` script in the server-data repo that starts the 
+appropriate server for that config. On the main server, we instead 
+start the servers (and bots) individually in a tmux.
 
 ####tmwa-admin:
 Formerly known as `ladmin` ("local").

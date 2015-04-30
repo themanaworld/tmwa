@@ -419,7 +419,6 @@ def build_config():
     admin_realm = rv.realm('src/admin')
     char_realm = rv.realm('src/char')
     map_realm = rv.realm('src/map')
-    monitor_realm = rv.realm('src/monitor')
 
     # confs
     login_conf = login_realm.conf()
@@ -433,8 +432,6 @@ def build_config():
 
     map_conf = map_realm.conf()
     battle_conf = map_realm.conf('battle')
-
-    monitor_conf = monitor_realm.conf()
 
     # headers
     cstdint_sys = SystemHeader('cstdint')
@@ -676,11 +673,6 @@ def build_config():
     battle_conf.opt('drop_pickup_safety_zone', i32, '20')
     battle_conf.opt('itemheal_regeneration_factor', i32, '1')
     battle_conf.opt('mob_splash_radius', i32, '-1', min='-1')
-
-    monitor_conf.opt('login_server', RString, lit('./login-server'))
-    monitor_conf.opt('char_server', RString, lit('./char-server'))
-    monitor_conf.opt('map_server', RString, lit('./map-server'))
-    monitor_conf.opt('workdir', RString, '{}') # initialized specially
 
     return rv
 
