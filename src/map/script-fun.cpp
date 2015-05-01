@@ -108,7 +108,7 @@ void builtin_goto(ScriptState *st)
 {
     if (!AARG(0).is<ScriptDataPos>())
     {
-        PRINTF("script: goto: not label !\n"_fmt);
+        PRINTF("script: goto: that's not a label!\n"_fmt);
         st->state = ScriptEndState::END;
         return;
     }
@@ -149,7 +149,7 @@ void builtin_callfunc(ScriptState *st)
         }
         OMATCH_CASE_NONE ()
         {
-            PRINTF("script:callfunc: function not found! [%s]\n"_fmt, str);
+            PRINTF("script: callfunc: function not found! [%s]\n"_fmt, str);
             st->state = ScriptEndState::END;
         }
     }
@@ -553,7 +553,7 @@ void builtin_setarray(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        PRINTF("builtin_setarray: illegal scope !\n"_fmt);
+        PRINTF("builtin_setarray: illegal scope!\n"_fmt);
         return;
     }
     if (prefix != '$')
@@ -584,7 +584,7 @@ void builtin_cleararray(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        PRINTF("builtin_cleararray: illegal scope !\n"_fmt);
+        PRINTF("builtin_cleararray: illegal scope!\n"_fmt);
         return;
     }
     if (prefix != '$')
@@ -641,7 +641,7 @@ void builtin_getarraysize(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        PRINTF("builtin_copyarray: illegal scope !\n"_fmt);
+        PRINTF("builtin_copyarray: illegal scope!\n"_fmt);
         return;
     }
 
@@ -660,7 +660,7 @@ void builtin_getelementofarray(ScriptState *st)
         int i = conv_num(st, &AARG(1));
         if (i > 255 || i < 0)
         {
-            PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n"_fmt,
+            PRINTF("script: getelementofarray (operator[]): param2 illegal number: %d\n"_fmt,
                     i);
             push_int<ScriptDataInt>(st->stack, 0);
         }
@@ -672,7 +672,7 @@ void builtin_getelementofarray(ScriptState *st)
     }
     else
     {
-        PRINTF("script: getelementofarray (operator[]): param1 not name !\n"_fmt);
+        PRINTF("script: getelementofarray (operator[]): param1 not named!\n"_fmt);
         push_int<ScriptDataInt>(st->stack, 0);
     }
 }
@@ -750,7 +750,7 @@ void builtin_countitem(ScriptState *st)
     else
     {
         if (battle_config.error_log)
-            PRINTF("wrong item ID : countitem (%i)\n"_fmt, nameid);
+            PRINTF("wrong item ID: countitem (%i)\n"_fmt, nameid);
     }
     push_int<ScriptDataInt>(st->stack, count);
 
@@ -788,7 +788,7 @@ void builtin_checkweight(ScriptState *st)
     amount = conv_num(st, &AARG(1));
     if (amount <= 0 || !nameid)
     {
-        //if get wrong item ID or amount<=0, don't count weight of non existing items
+        //If it gets the wrong item ID or the amount<=0, don't count its weight (assume it's a non-existent item)
         push_int<ScriptDataInt>(st->stack, 0);
         return;
     }
@@ -940,7 +940,7 @@ void builtin_delitem(ScriptState *st)
 
     if (!nameid || amount <= 0)
     {
-        //by Lupus. Don't run FOR if u got wrong item ID or amount<=0
+        //By Lupus. Don't run FOR if you've got the wrong item ID or amount<=0
         return;
     }
 
@@ -1949,7 +1949,7 @@ static
 void builtin_debugmes(ScriptState *st)
 {
     RString mes = conv_str(st, &AARG(0));
-    PRINTF("script debug : %d %d : %s\n"_fmt,
+    PRINTF("script debug: %d %d: '%s'\n"_fmt,
             st->rid, st->oid, mes);
 }
 
@@ -2585,7 +2585,7 @@ void builtin_npcwarp(ScriptState *st)
 
     if (!nd)
     {
-        PRINTF("builtin_npcwarp: no such npc: %s\n"_fmt, npc);
+        PRINTF("builtin_npcwarp: no such npc: '%s'\n"_fmt, npc);
         return;
     }
 
@@ -2628,7 +2628,7 @@ void builtin_npcareawarp(ScriptState *st)
 
     if (!nd)
     {
-        PRINTF("builtin_npcareawarp: no such npc: %s\n"_fmt, npc);
+        PRINTF("builtin_npcareawarp: no such npc: '%s'\n"_fmt, npc);
         return;
     }
 
@@ -2873,7 +2873,7 @@ void builtin_shop(ScriptState *st)
     nd = npc_name2id(name);
     if (!nd)
     {
-        PRINTF("builtin_shop: no such npc: %s\n"_fmt, name);
+        PRINTF("builtin_shop: no such npc: '%s'\n"_fmt, name);
         return;
     }
 
@@ -2906,7 +2906,7 @@ void builtin_fakenpcname(ScriptState *st)
     dumb_ptr<npc_data> nd = npc_name2id(name);
     if (!nd)
     {
-        PRINTF("builtin_fakenpcname: no such npc: %s\n"_fmt, name);
+        PRINTF("builtin_fakenpcname: no such npc: '%s'\n"_fmt, name);
         return;
     }
     nd->name = newname;
@@ -2968,7 +2968,7 @@ void builtin_strnpcinfo(ScriptState *st)
         nd = npc_name2id(npc);
         if (!nd)
         {
-            PRINTF("builtin_strnpcinfo: no such npc: %s\n"_fmt, npc);
+            PRINTF("builtin_strnpcinfo: no such npc: '%s'\n"_fmt, npc);
             return;
         }
     } else {
@@ -3008,7 +3008,7 @@ void builtin_getnpcx(ScriptState *st)
         nd = npc_name2id(name);
         if (!nd)
         {
-            PRINTF("builtin_getnpcx: no such npc: %s\n"_fmt, name);
+            PRINTF("builtin_getnpcx: no such npc: '%s'\n"_fmt, name);
             return;
         }
     } else {
@@ -3032,7 +3032,7 @@ void builtin_getnpcy(ScriptState *st)
         nd = npc_name2id(name);
         if (!nd)
         {
-            PRINTF("builtin_getnpcy: no such npc: %s\n"_fmt, name);
+            PRINTF("builtin_getnpcy: no such npc: '%s'\n"_fmt, name);
             return;
         }
     } else {
