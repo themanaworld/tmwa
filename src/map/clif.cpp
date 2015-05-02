@@ -901,7 +901,7 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 {
     nullpo_retz(nd);
 
-    if (nd->npc_class == NEGATIVE_SPECIES || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
+    if (nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
 
     Packet_Fixed<0x007c> fixed_7c;
@@ -2320,7 +2320,7 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
     nullpo_retv(sd);
     nullpo_retv(nd);
 
-    if (nd->npc_class == NEGATIVE_SPECIES || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
+    if (nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return;
 
     Buffer buf;

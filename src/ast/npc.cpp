@@ -306,7 +306,7 @@ namespace npc
     static
     Result<ScriptNone> parse_script_none_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
     {
-        //  ScriptNone:         -|script|script name|-1{code}
+        //  ScriptNone:         -|script|script name|32767{code}
         if (bits.size() != 4)
         {
             return Err(span.error_str("expect 4 |component|s"_s));
@@ -319,10 +319,10 @@ namespace npc
         {
             return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
-        assert(bits[3].data[0].data == "-1"_s);
+        assert(bits[3].data[0].data == "32767"_s);
         if (bits[3].data.size() != 1)
         {
-            return Err(bits[3].span.error_str("in |component 4| should be just -1"_s));
+            return Err(bits[3].span.error_str("in |component 4| should be just 32767"_s));
         }
 
         ScriptNone script_none;
@@ -331,39 +331,6 @@ namespace npc
         script_none.key4_span = bits[3].data[0].span;
         // also expect '{' and parse real script (in caller)
         return Ok(std::move(script_none));
-    }
-    static
-    Result<ScriptMapNone> parse_script_map_none_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
-    {
-        //  ScriptMapNone:      m,x,y,d|script|script name|-1{code}
-        if (bits.size() != 4)
-        {
-            return Err(span.error_str("expect 4 |component|s"_s));
-        }
-        if (bits[0].data.size() != 4)
-        {
-            return Err(bits[0].span.error_str("in |component 1| expect 3 ,component,s"_s));
-        }
-        assert(bits[1].data.size() == 1);
-        assert(bits[1].data[0].data == "script"_s);
-        if (bits[2].data.size() != 1)
-        {
-            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
-        }
-        if (bits[3].data.size() != 1 || bits[3].data[0].data != "-1"_s)
-        {
-            return Err(bits[3].span.error_str("in |component 4| should be just -1"_s));
-        }
-
-        ScriptMapNone script_map_none;
-        TRY_EXTRACT(bits[0].data[0], script_map_none.m);
-        TRY_EXTRACT(bits[0].data[1], script_map_none.x);
-        TRY_EXTRACT(bits[0].data[2], script_map_none.y);
-        TRY_EXTRACT(bits[0].data[3], script_map_none.d);
-        TRY_EXTRACT(bits[2].data[0], script_map_none.name);
-        script_map_none.key4_span = bits[3].data[0].span;
-        // also expect '{' and parse real script (in caller)
-        return Ok(std::move(script_map_none));
     }
     static
     Result<ScriptMap> parse_script_map_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
@@ -417,10 +384,9 @@ namespace npc
     static
     Result<Script> parse_script_any(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits, io::LineCharReader& lr)
     {
-        // 4 cases:
+        // 3 cases:
         //  ScriptFunction:     function|script|Fun Name{code}
-        //  ScriptNone:         -|script|script name|-1{code}
-        //  ScriptMapNone:      m,x,y,d|script|script name|-1{code}
+        //  ScriptNone:         -|script|script name|32767{code}
         //  ScriptMap:          m,x,y,d|script|script name|class,xs,ys{code}
         if (bits[0].data[0].data == "function"_s)
         {
@@ -437,17 +403,6 @@ namespace npc
         else if (bits[0].data[0].data == "-"_s)
         {
             Script rv = TRY(parse_script_none_head(span, bits));
-            rv.key_span = bits[1].data[0].span;
-
-            ast::script::ScriptOptions opt;
-            opt.implicit_start = true;
-            opt.no_start = true;
-            rv.body = TRY(ast::script::parse_script_body(lr, opt));
-            return Ok(std::move(rv));
-        }
-        else if (bits.size() >= 4 && bits[3].data[0].data == "-1"_s)
-        {
-            Script rv = TRY(parse_script_map_none_head(span, bits));
             rv.key_span = bits[1].data[0].span;
 
             ast::script::ScriptOptions opt;
