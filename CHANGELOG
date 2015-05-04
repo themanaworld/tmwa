@@ -1,3 +1,20 @@
+v15.5.04
+  - remove check for pk_mode for mapflag NOPVP
+  - remove atcommand gm
+  - add atcommand npc
+  - remove builtin readparam
+  - remove builtin statusup2
+  - remove builtin changesex
+  - remove builtin gmcommand
+  - add builtin wgm
+  - add builtin gmlog
+  - do not force disconnection after sex change
+  - add new parameter to builtin emotion
+  - remove braces and jname from getitemlink
+  - add quest log
+  - add sanity check to freeloop
+  - add OnPCLoginEvent handler
+  - some typo fixes and rewording
 v15.4.20
   - make spam warnings appear in General chat tab
   - add builtin getnpcx
