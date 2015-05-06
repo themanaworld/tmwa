@@ -451,7 +451,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         ZString::iterator tmpp = skip_space(p + 1);
         if (*tmpp == ';' || *tmpp == ',')
         {
-            --script_errors; disp_error_message("deprecated: implicit 'next statement' label"_s, p);
+            disp_error_message("error: implicit 'next statement' label"_s, p);
             add_scriptl(borrow(LABEL_NEXTLINE_));
             p++;
             return p;
@@ -752,7 +752,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         {
             if (can_step)
             {
-                --script_errors; disp_error_message("deprecated: implicit fallthrough"_s, p);
+                disp_error_message("error: implicit fallthrough"_s, p);
             }
             can_step = true;
 
@@ -777,7 +777,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
 
         if (!can_step)
         {
-            --script_errors; disp_error_message("deprecated: unreachable statement"_s, p);
+            disp_error_message("error: unreachable statement"_s, p);
         }
         // 他は全部一緒くた
         p = parse_line(p, &can_step);
@@ -792,7 +792,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
 
     if (can_step && !implicit_end)
     {
-        --script_errors; disp_error_message("deprecated: implicit end"_s, p);
+        disp_error_message("error: implicit end"_s, p);
     }
     add_scriptc(ByteCode::NOP);
 
@@ -824,14 +824,14 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         if (key.startswith("On"_s))
             continue;
         if (!(key.startswith("L_"_s) || key.startswith("S_"_s)))
-            PRINTF("Warning: ugly label: %s\n"_fmt, key);
+            disp_error_message(STRPRINTF("error: ugly label: %s\n"_fmt, key),p);
         else if (!probable_labels.count(key))
-            PRINTF("Warning: unused label: %s\n"_fmt, key);
+            disp_error_message(STRPRINTF("error: unused label: %s\n"_fmt, key),p);
     }
     for (ScriptLabel used : probable_labels)
     {
         if (scriptlabel_db.search(used).is_none())
-            PRINTF("Warning: no such label: %s\n"_fmt, used);
+            disp_error_message(STRPRINTF("error: no such label: %s\n"_fmt, used),p);
     }
     probable_labels.clear();
 

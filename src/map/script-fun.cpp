@@ -108,8 +108,9 @@ void builtin_goto(ScriptState *st)
 {
     if (!AARG(0).is<ScriptDataPos>())
     {
-        PRINTF("script: goto: that's not a label!\n"_fmt);
+        PRINTF("fatal: script: goto: not label !\n"_fmt);
         st->state = ScriptEndState::END;
+        runflag = 0;
         return;
     }
 
@@ -149,8 +150,9 @@ void builtin_callfunc(ScriptState *st)
         }
         OMATCH_CASE_NONE ()
         {
-            PRINTF("script: callfunc: function not found! [%s]\n"_fmt, str);
+            PRINTF("fatal: script: callfunc: function not found! [%s]\n"_fmt, str);
             st->state = ScriptEndState::END;
+            runflag = 0;
         }
     }
     OMATCH_END ();
@@ -188,6 +190,14 @@ void builtin_callsub(ScriptState *st)
 static
 void builtin_return(ScriptState *st)
 {
+    if (!(st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>()))
+    {
+        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+        if(nd)
+            PRINTF("Deprecated: return outside of callfunc or callsub! @ %s\n"_fmt, nd->name);
+        else
+            PRINTF("Deprecated: return outside of callfunc or callsub! (no npc)\n"_fmt);
+    }
 #if 0
     if (HARG(0))
     {                           // 戻り値有り
@@ -215,6 +225,14 @@ void builtin_next(ScriptState *st)
 static
 void builtin_close(ScriptState *st)
 {
+    if (st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
+    {
+        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+        if(nd)
+            PRINTF("Deprecated: close in a callfunc or callsub! @ %s\n"_fmt, nd->name);
+        else
+            PRINTF("Deprecated: close in a callfunc or callsub! (no npc)\n"_fmt);
+    }
     st->state = ScriptEndState::END;
     clif_scriptclose(script_rid2sd(st), st->oid);
 }
@@ -276,7 +294,9 @@ void builtin_menu(ScriptState *st)
             int arg_index = (sd->npc_menu - 1) * 2 + 1;
             if (!AARG(arg_index).is<ScriptDataPos>())
             {
+                PRINTF("fatal: script:menu: not a label\n"_fmt);
                 st->state = ScriptEndState::END;
+                runflag = 0;
                 return;
             }
             st->scriptp.pos = AARG(arg_index).get_if<ScriptDataPos>()->numi;
@@ -1239,6 +1259,14 @@ void builtin_getgmlevel(ScriptState *st)
 static
 void builtin_end(ScriptState *st)
 {
+    if (st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
+    {
+        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+        if(nd)
+            PRINTF("Deprecated: close in a callfunc or callsub! @ %s\n"_fmt, nd->name);
+        else
+            PRINTF("Deprecated: close in a callfunc or callsub! (no npc)\n"_fmt);
+    }
     st->state = ScriptEndState::END;
 }
 
