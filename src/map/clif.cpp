@@ -807,6 +807,8 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_7b.mob_class = md->mob_class;
     // snip: stuff for monsters disguised as PCs
     fixed_7b.tick_and_maybe_part_of_guild_emblem = gettick();
+    fixed_7b.max_hp = md->stats[mob_stat::MAX_HP];
+    fixed_7b.hp = md->hp;
 
     fixed_7b.pos2.x0 = md->bl_x;
     fixed_7b.pos2.y0 = md->bl_y;
