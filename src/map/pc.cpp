@@ -2289,35 +2289,6 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
 }
 
 /*==========================================
- * PCのランダムワープ
- *------------------------------------------
- */
-int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type)
-{
-    int x, y, i = 0;
-
-    nullpo_retz(sd);
-
-    P<map_local> m = sd->bl_m;
-
-    if (sd->bl_m->flag.get(MapFlag::NOTELEPORT))  // テレポート禁止
-        return 0;
-
-    do
-    {
-        x = random_::in(1, m->xs - 2);
-        y = random_::in(1, m->ys - 2);
-    }
-    while (bool(read_gatp(m, x, y) & MapCell::UNWALKABLE)
-        && (i++) < 1000);
-
-    if (i < 1000)
-        pc_setpos(sd, m->name_, x, y, type);
-
-    return 0;
-}
-
-/*==========================================
  *
  *------------------------------------------
  */

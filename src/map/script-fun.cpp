@@ -338,22 +338,10 @@ void builtin_warp(ScriptState *st)
 {
     int x, y;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
-    if (str == "Random"_s)
-        pc_randomwarp(sd, BeingRemoveWhy::WARPED);
-    else if (str == "SavePoint"_s or str == "Save"_s)
-    {
-        if (sd->bl_m->flag.get(MapFlag::NORETURN))
-            return;
-
-        pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x, sd->status.save_point.y,
-                BeingRemoveWhy::WARPED);
-    }
-    else
-        pc_setpos(sd, str, x, y, BeingRemoveWhy::GONE);
+    pc_setpos(sd, str, x, y, BeingRemoveWhy::GONE);
 }
 
 /*==========================================
@@ -364,10 +352,7 @@ static
 void builtin_areawarp_sub(dumb_ptr<block_list> bl, MapName mapname, int x, int y)
 {
     dumb_ptr<map_session_data> sd = bl->is_player();
-    if (mapname == "Random"_s)
-        pc_randomwarp(sd, BeingRemoveWhy::WARPED);
-    else
-        pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE);
+    pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE);
 }
 
 static

@@ -92,7 +92,6 @@ int pc_walktoxy(dumb_ptr<map_session_data>, int, int);
 int pc_stop_walking(dumb_ptr<map_session_data>, int);
 int pc_setpos(dumb_ptr<map_session_data>, MapName, int, int, BeingRemoveWhy);
 void pc_setsavepoint(dumb_ptr<map_session_data>, MapName, int, int);
-int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type);
 
 ADDITEM pc_checkadditem(dumb_ptr<map_session_data>, ItemNameId, int);
 int pc_inventoryblank(dumb_ptr<map_session_data>);
