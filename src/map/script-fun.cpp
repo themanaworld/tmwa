@@ -190,6 +190,14 @@ void builtin_callsub(ScriptState *st)
 static
 void builtin_return(ScriptState *st)
 {
+    if (!(st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>()))
+    {
+        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+        if(nd)
+            PRINTF("Deprecated: return outside of callfunc or callsub! @ %s\n"_fmt, nd->name);
+        else
+            PRINTF("Deprecated: return outside of callfunc or callsub! (no npc)\n"_fmt);
+    }
 #if 0
     if (HARG(0))
     {                           // 戻り値有り
