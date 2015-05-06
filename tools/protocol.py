@@ -4653,7 +4653,27 @@ def build_context():
     # 0x0222 define='CMSG_CHAT_MESSAGE2',
     # 0x0223 define='SMSG_BEING_CHAT2',
     # 0x0224 define='SMSG_PLAYER_CHAT2',
-    # 0x0225 define='SMSG_BEING_MOVE3',
+    map_user.s(0x0225, 'being move 3',
+        define='SMSG_BEING_MOVE3',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, block_id, 'id'),
+            at(8, interval16, 'speed'),
+            at(10, u16, 'x position'),
+            at(12, u16, 'y position'),
+        ],
+        head_size=14,
+        repeat=[
+            at(0, dir, 'move'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send mob walkpath data to client
+        ''',
+    )
     # 0x0226 define='SMSG_MAP_MASK',
     # 0x0227 define='SMSG_MAP_MUSIC',
     # 0x0228 define='SMSG_NPC_CHANGETITLE',
