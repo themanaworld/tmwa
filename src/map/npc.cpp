@@ -583,7 +583,7 @@ int npc_checknear(dumb_ptr<map_session_data> sd, BlockId id)
     if (nd->bl_type != BL::NPC)
         return 1;
 
-    if (nd->npc_class == NEGATIVE_SPECIES)
+    if (nd->npc_class == INVISIBLE_CLASS)
         return 0;
 
     // エリア判定

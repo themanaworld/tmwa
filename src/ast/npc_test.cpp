@@ -423,11 +423,11 @@ namespace npc
         {
             //        1         2         3
             //23456789012345678901234567890123456789
-            "-|script|#config|-1{end;}"_s,
+            "-|script|#config|32767{end;}"_s,
             //                    123456
-            "-|script|#config|-1\n{end;}\n"_s,
+            "-|script|#config|32767\n{end;}\n"_s,
             //                      1234567
-            "-|script|#config|-1\n \n {end;} "_s,
+            "-|script|#config|32767\n \n {end;} "_s,
         };
         for (auto input : inputs)
         {
@@ -435,7 +435,7 @@ namespace npc
             auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            EXPECT_SPAN(top.span, 1,1, 1,19);
+            EXPECT_SPAN(top.span, 1,1, 1,22);
             auto script = top.get_if<Script>();
             EXPECT_TRUE(script);
             auto p = script->get_if<ScriptNone>();
@@ -446,66 +446,10 @@ namespace npc
                 EXPECT_SPAN(script->key_span, 1,3, 1,8);
                 EXPECT_SPAN(p->name.span, 1,10, 1,16);
                 EXPECT_EQ(p->name.data, stringish<NpcName>("#config"_s));
-                EXPECT_SPAN(p->key4_span, 1,18, 1,19);
+                EXPECT_SPAN(p->key4_span, 1,18, 1,22);
                 if (input.endswith('}'))
                 {
-                    EXPECT_SPAN(script->body.span, 1,20, 1,25);
-                }
-                else if (input.endswith('\n'))
-                {
-                    EXPECT_SPAN(script->body.span, 2,1, 2,6);
-                }
-                else if (input.endswith(' '))
-                {
-                    EXPECT_SPAN(script->body.span, 3,2, 3,7);
-                }
-                else
-                {
-                    FAIL();
-                }
-                EXPECT_EQ(script->body.braced_body, "{end;}"_s);
-            }
-        }
-    }
-    TEST(npcast, scriptmapnone)
-    {
-        QuietFd q;
-        LString inputs[] =
-        {
-            //        1         2         3
-            //23456789012345678901234567890123456789
-            "map.gat,1,2,3|script|Init|-1{end;}"_s,
-            "map.gat,1,2,3|script|Init|-1\n{end;}\n"_s,
-            "map.gat,1,2,3|script|Init|-1\n \n {end;} "_s,
-        };
-        for (auto input : inputs)
-        {
-            io::LineCharReader lr(io::from_string, "<string>"_s, input);
-            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
-            EXPECT_TRUE(res.get_success().is_some());
-            auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            EXPECT_SPAN(top.span, 1,1, 1,28);
-            auto script = top.get_if<Script>();
-            EXPECT_TRUE(script);
-            auto p = script->get_if<ScriptMapNone>();
-            EXPECT_TRUE(p);
-            if (p)
-            {
-                EXPECT_SPAN(p->m.span, 1,1, 1,7);
-                EXPECT_EQ(p->m.data, stringish<MapName>("map"_s));
-                EXPECT_SPAN(p->x.span, 1,9, 1,9);
-                EXPECT_EQ(p->x.data, 1);
-                EXPECT_SPAN(p->y.span, 1,11, 1,11);
-                EXPECT_EQ(p->y.data, 2);
-                EXPECT_SPAN(p->d.span, 1,13, 1,13);
-                EXPECT_EQ(p->d.data, DIR::NW);
-                EXPECT_SPAN(script->key_span, 1,15, 1,20);
-                EXPECT_SPAN(p->name.span, 1,22, 1,25);
-                EXPECT_EQ(p->name.data, stringish<NpcName>("Init"_s));
-                EXPECT_SPAN(p->key4_span, 1,27, 1,28);
-                if (input.endswith('}'))
-                {
-                    EXPECT_SPAN(script->body.span, 1,29, 1,34);
+                    EXPECT_SPAN(script->body.span, 1,23, 1,28);
                 }
                 else if (input.endswith('\n'))
                 {

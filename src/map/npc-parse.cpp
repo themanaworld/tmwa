@@ -446,7 +446,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     nd->bl_id = npc_get_new_npc_id();
     nd->dir = DIR::S;
     nd->flag = 0;
-    nd->npc_class = NEGATIVE_SPECIES;
+    nd->npc_class = INVISIBLE_CLASS;
     nd->speed = 200_ms;
     nd->scr.script = std::move(script);
     nd->option = Opt0::ZERO;
@@ -457,115 +457,6 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     npc_script++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
-
-    register_npc_name(nd);
-
-    for (auto& pair : scriptlabel_db)
-        npc_convertlabel_db(pair.first, pair.second, nd);
-
-    for (npc_label_list& el : nd->scr.label_listv)
-    {
-        ScriptLabel lname = el.name;
-        int pos = el.pos;
-
-        if (lname.startswith("On"_s))
-        {
-            struct event_data ev {};
-            ev.nd = nd;
-            ev.pos = pos;
-            NpcEvent buf;
-            buf.npc = nd->name;
-            buf.label = lname;
-            ev_db.insert(buf, ev);
-        }
-    }
-
-    for (npc_label_list& el : nd->scr.label_listv)
-    {
-        int t_ = 0;
-        ScriptLabel lname = el.name;
-        int pos = el.pos;
-        if (lname.startswith("OnTimer"_s) && extract(lname.xslice_t(7), &t_) && t_ > 0)
-        {
-            interval_t t = static_cast<interval_t>(t_);
-
-            npc_timerevent_list tel {};
-            tel.timer = t;
-            tel.pos = pos;
-
-            auto it = std::lower_bound(nd->scr.timer_eventv.begin(), nd->scr.timer_eventv.end(), tel,
-                    [](const npc_timerevent_list& l, const npc_timerevent_list& r)
-                    {
-                        return l.timer < r.timer;
-                    }
-            );
-            assert (it == nd->scr.timer_eventv.end() || it->timer != tel.timer);
-
-            nd->scr.timer_eventv.insert(it, std::move(tel));
-        }
-    }
-    // The counter starts stopped with 0 ticks, which is the first event,
-    // unless there is none, in which case begin == end.
-    nd->scr.timer = interval_t::zero();
-    nd->scr.next_event = nd->scr.timer_eventv.begin();
-    // nd->scr.timerid = nullptr;
-
-    return true;
-}
-
-static
-bool npc_load_script_map_none(ast::script::ScriptBody& body, ast::npc::ScriptMapNone& script_map_none)
-{
-    MapName mapname = script_map_none.m.data;
-    int x = script_map_none.x.data, y = script_map_none.y.data;
-    DIR dir = script_map_none.d.data;
-    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname),
-            {
-                script_map_none.m.span.error("No such map"_s);
-                return false;
-            });
-
-    std::unique_ptr<const ScriptBuffer> script = compile_script(STRPRINTF("script npc \"%s\""_fmt, script_map_none.name.data), body, false);
-    if (script == nullptr)
-        return false;
-
-    dumb_ptr<npc_data_script> nd;
-    nd.new_();
-    nd->scr.event_needs_map = false;
-
-    nd->name = script_map_none.name.data;
-
-    nd->bl_prev = nd->bl_next = nullptr;
-    nd->bl_m = m;
-    nd->bl_x = x;
-    nd->bl_y = y;
-    nd->bl_id = npc_get_new_npc_id();
-    nd->dir = dir;
-    nd->flag = 0;
-    nd->npc_class = NEGATIVE_SPECIES;
-    nd->speed = 200_ms;
-    nd->scr.script = std::move(script);
-    nd->option = Opt0::ZERO;
-    nd->opt1 = Opt1::ZERO;
-    nd->opt2 = Opt2::ZERO;
-    nd->opt3 = Opt3::ZERO;
-
-    npc_script++;
-    nd->bl_type = BL::NPC;
-    nd->npc_subtype = NpcSubtype::SCRIPT;
-
-    nd->n = map_addnpc(m, nd);
-    map_addblock(nd);
-
-    {
-        struct event_data ev {};
-        ev.nd = nd;
-        ev.pos = 0;
-        NpcEvent npcev;
-        npcev.npc = nd->name;
-        npcev.label = ScriptLabel();
-        ev_db.insert(npcev, ev);
-    }
 
     register_npc_name(nd);
 
@@ -760,17 +651,6 @@ bool npc_load_script_any(ast::npc::Script *script)
         MATCH_CASE (ast::npc::ScriptNone&, script_none)
         {
             return npc_load_script_none(script->body, script_none);
-        }
-        MATCH_CASE (ast::npc::ScriptMapNone&, script_map_none)
-        {
-            auto& mapname = script_map_none.m;
-            Option<P<map_local>> m = map_mapname2mapid(mapname.data);
-            if (m.is_none())
-            {
-                mapname.span.error(STRPRINTF("Map not found: %s"_fmt, mapname.data));
-                return false;
-            }
-            return npc_load_script_map_none(script->body, script_map_none);
         }
         MATCH_CASE (ast::npc::ScriptMap&, script_map)
         {

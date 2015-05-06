@@ -103,14 +103,6 @@ namespace npc
         Spanned<NpcName> name;
         io::LineSpan key4_span;
     };
-    struct ScriptMapNone
-    {
-        Spanned<MapName> m;
-        Spanned<unsigned> x, y;
-        Spanned<DIR> d;
-        Spanned<NpcName> name;
-        io::LineSpan key4_span;
-    };
     struct ScriptMap
     {
         Spanned<MapName> m;
@@ -120,13 +112,12 @@ namespace npc
         Spanned<Species> npc_class;
         Spanned<unsigned> xs, ys;
     };
-    using ScriptBase = Variant<ScriptFunction, ScriptNone, ScriptMapNone, ScriptMap>;
+    using ScriptBase = Variant<ScriptFunction, ScriptNone, ScriptMap>;
     struct Script : ScriptBase
     {
         Script() = default;
         Script(ScriptFunction s) : ScriptBase(std::move(s)) {}
         Script(ScriptNone s) : ScriptBase(std::move(s)) {}
-        Script(ScriptMapNone s) : ScriptBase(std::move(s)) {}
         Script(ScriptMap s) : ScriptBase(std::move(s)) {}
 
         io::LineSpan key_span;
