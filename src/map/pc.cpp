@@ -809,7 +809,7 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
     // If you remove the sending of this message,
     // the license does not permit you to publicly use this software.
 
-    clif_displaymessage(sd->sess, "This server is Free Software, for details type @source in chat or use the tmwa-source tool"_s);
+    clif_displaymessage(sd->sess, "##7Server : This server is Free Software, for details type @source in chat or use the tmwa-source tool"_s);
     npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
 
     sd->state.seen_motd = true;
