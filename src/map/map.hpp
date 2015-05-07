@@ -324,6 +324,7 @@ struct npc_data : block_list
     short n;
     Species npc_class;
     DIR dir;
+    DamageType sit;
     interval_t speed;
     NpcName name;
     Opt1 opt1;

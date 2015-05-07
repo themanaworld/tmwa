@@ -781,10 +781,6 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_78.pos.x = md->bl_x;
     fixed_78.pos.y = md->bl_y;
     fixed_78.pos.dir = md->dir;
-    fixed_78.five1 = 5;
-    fixed_78.five2 = 5;
-    int level = battle_get_lv(md);
-    fixed_78.level = (level > battle_config.max_lv) ? battle_config.max_lv : level;
 
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
@@ -884,11 +880,6 @@ void clif_npc0078(dumb_ptr<npc_data> nd, Buffer& buf)
     fixed_78.pos.x = nd->bl_x;
     fixed_78.pos.y = nd->bl_y;
     fixed_78.pos.dir = nd->dir;
-    fixed_78.five1 = 5;
-    fixed_78.five2 = 5;
-    fixed_78.zero = 0;
-    fixed_78.level = 0;
-
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
@@ -951,7 +942,7 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 
     if (nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
-
+    /* manaplus is skipping this packet
     Packet_Fixed<0x007c> fixed_7c;
     fixed_7c.block_id = nd->bl_id;
     fixed_7c.speed = nd->speed;
@@ -961,9 +952,13 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 
     Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
     clif_send(buf, nd, SendWho::AREA);
-
+    */
+    Buffer buf;
     clif_npc0078(nd, buf);
     clif_send(buf, nd, SendWho::AREA);
+
+    if(nd->sit == DamageType::SIT)
+        clif_sitnpc(nullptr, nd, true);
 
     return 0;
 }
@@ -995,15 +990,8 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
     fixed_78.opt2 = Opt2::ZERO;
     fixed_78.option = Opt0::ZERO;
     fixed_78.species = FAKE_NPC_CLASS;
-    fixed_78.unused_head_bottom_or_species_again = unwrap<Species>(FAKE_NPC_CLASS);
     fixed_78.pos.x = sd->bl_x;
     fixed_78.pos.y = sd->bl_y;
-    fixed_78.unused_pos_again.x = sd->bl_x;
-    fixed_78.unused_pos_again.y = sd->bl_y;
-    fixed_78.five1 = 5;
-    fixed_78.five2 = 5;
-    fixed_78.zero = 0;
-    fixed_78.level = 0;
     send_fpacket<0x0078, 54>(s, fixed_78);
 
     return 0;
@@ -2374,6 +2362,9 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
     Buffer buf;
     clif_npc0078(nd, buf);
     send_buffer(sd->sess, buf);
+
+    if(nd->sit == DamageType::SIT)
+        clif_sitnpc(sd, nd, false);
 }
 
 /*==========================================
@@ -3188,6 +3179,22 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
     fixed_8a.damage_type = DamageType::SIT;
     Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
     clif_send(buf, sd, SendWho::AREA);
+}
+
+void clif_sitnpc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, bool area)
+{
+    nullpo_retv(nd);
+    nullpo_retv(sd);
+
+    Packet_Fixed<0x008a> fixed_8a;
+    fixed_8a.src_id = nd->bl_id;
+    fixed_8a.damage_type = nd->sit;
+    Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
+
+    if(area)
+        clif_send(buf, nd, SendWho::AREA);
+    else if(sd)
+        clif_send(buf, sd, SendWho::SELF);
 }
 
 /*==========================================

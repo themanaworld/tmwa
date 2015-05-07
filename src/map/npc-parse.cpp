@@ -152,6 +152,7 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->bl_y = y;
     nd->dir = DIR::S;
     nd->flag = 0;
+    nd->sit = DamageType::STAND;
     nd->name = warp.name.data;
 
     nd->npc_class = WARP_CLASS;
@@ -233,6 +234,7 @@ bool npc_load_shop(ast::npc::Shop& shop)
     nd->bl_id = npc_get_new_npc_id();
     nd->dir = dir;
     nd->flag = 0;
+    nd->sit = DamageType::STAND;
     nd->name = shop.name.data;
     nd->npc_class = npc_class;
     nd->speed = 200_ms;
@@ -446,6 +448,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     nd->bl_id = npc_get_new_npc_id();
     nd->dir = DIR::S;
     nd->flag = 0;
+    nd->sit = DamageType::STAND;
     nd->npc_class = INVISIBLE_CLASS;
     nd->speed = 200_ms;
     nd->scr.script = std::move(script);
@@ -567,6 +570,7 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     nd->bl_id = npc_get_new_npc_id();
     nd->dir = dir;
     nd->flag = 0;
+    nd->sit = DamageType::STAND;
     nd->npc_class = npc_class;
     nd->speed = 200_ms;
     nd->scr.script = std::move(script);
