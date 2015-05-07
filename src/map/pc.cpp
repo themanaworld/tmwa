@@ -801,8 +801,6 @@ int pc_authok(AccountId id, int login_id2,
     return 0;
 }
 
-// TODO fix this to cache and use inotify
-// this is far from the only such thing, but most of the others are logs
 void pc_show_motd(dumb_ptr<map_session_data> sd)
 {
     // Attention all forks: DO NOT REMOVE THIS NOTICE.
@@ -815,15 +813,6 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
     npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
 
     sd->state.seen_motd = true;
-    io::ReadFile in(map_conf.motd_txt);
-    if (in.is_open())
-    {
-        AString buf;
-        while (in.getline(buf))
-        {
-            clif_displaymessage(sd->sess, buf);
-        }
-    }
 }
 
 /*==========================================
