@@ -913,7 +913,7 @@ dumb_ptr<map_session_data> map_get_session(io::FD i)
         if (!s)
             return nullptr;
         map_session_data *d = static_cast<map_session_data *>(s->session_data.get());
-        if (d && d->state.auth)
+        if (d && d->state.auth && !d->state.connect_new)
             return dumb_ptr<map_session_data>(d);
     }
 

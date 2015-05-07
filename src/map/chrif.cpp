@@ -1037,7 +1037,7 @@ void send_users_tochar(TimerData *, tick_t)
         if (!s)
             continue;
         dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-        if (sd && sd->state.auth &&
+        if (sd && sd->state.auth && !sd->state.connect_new &&
             !((battle_config.hide_GM_session
                || sd->state.shroud_active
                || bool(sd->status.option & Opt0::HIDE)) && pc_isGM(sd)))
