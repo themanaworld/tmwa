@@ -2871,18 +2871,6 @@ bool display_conf_warnings(void)
         }
     }
 
-    if (!login_conf.gm_pass)
-    {
-        PRINTF("***WARNING: 'To GM become' password is void (gm_pass).\n"_fmt);
-        PRINTF("            We highly recommend that you set one password.\n"_fmt);
-        rv = false;
-    }
-    else if (login_conf.gm_pass == "gm"_s)
-    {
-        PRINTF("***WARNING: You are using the default GM password (gm_pass).\n"_fmt);
-        PRINTF("            We highly recommend that you change it.\n"_fmt);
-    }
-
     if (login_conf.gm_account_filename_check_timer.count() < 0)
     {
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n"_fmt);
@@ -2970,19 +2958,6 @@ void save_config_in_log(void)
         for (const IP4Mask& ae : login_conf.ladminallowip)
             LOGIN_LOG("  %s\n"_fmt, ae);
     }
-
-    if (!login_conf.gm_pass)
-        LOGIN_LOG("- with a VOID 'To GM become' password (gm_pass).\n"_fmt);
-    else if (login_conf.gm_pass == "gm"_s)
-        LOGIN_LOG("- with the DEFAULT 'To GM become' password (gm_pass).\n"_fmt);
-    else
-        LOGIN_LOG("- with a 'To GM become' password (gm_pass) of %zu character(s).\n"_fmt,
-                login_conf.gm_pass.size());
-    if (!login_conf.level_new_gm)
-        LOGIN_LOG("- to refuse any creation of GM with @gm.\n"_fmt);
-    else
-        LOGIN_LOG("- to create GM with level '%d' when @gm is used.\n"_fmt,
-                login_conf.level_new_gm);
 
     if (login_conf.new_account)
         LOGIN_LOG("- to ALLOW new users (with _F/_M).\n"_fmt);

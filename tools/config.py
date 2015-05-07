@@ -504,8 +504,6 @@ def build_config():
     login_conf.opt('admin_state', bool, 'false')
     login_conf.opt('admin_pass', AccountPass, '{}')
     login_conf.opt('ladminallowip', IpSet, '{}')
-    login_conf.opt('gm_pass', RString, '{}')
-    login_conf.opt('level_new_gm', GmLevel, 'GmLevel::from(60_u32)', {udl_h})
     login_conf.opt('new_account', bool, 'false')
     login_conf.opt('login_port', u16, '6901', min='1024')
     login_conf.opt('account_filename', RString, lit('save/account.txt'))
