@@ -131,6 +131,9 @@ static
 void clif_quitsave(Session *, dumb_ptr<map_session_data> sd);
 
 static
+void clif_sitnpc_sub(Buffer& buf, dumb_ptr<npc_data> nd, DamageType dmg);
+
+static
 void clif_delete(Session *s)
 {
     assert (s != char_session);
@@ -958,7 +961,11 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
     clif_send(buf, nd, SendWho::AREA);
 
     if(nd->sit == DamageType::SIT)
-        clif_sitnpc(nullptr, nd, true);
+    {
+        Buffer buff;
+        clif_sitnpc_sub(buff, nd, nd->sit);
+        clif_send(buff, nd, SendWho::AREA);
+    }
 
     return 0;
 }
@@ -2364,7 +2371,11 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
     send_buffer(sd->sess, buf);
 
     if(nd->sit == DamageType::SIT)
-        clif_sitnpc(sd, nd, false);
+    {
+        Buffer buff;
+        clif_sitnpc_sub(buff, nd, nd->sit);
+        send_buffer(sd->sess, buff);
+    }
 }
 
 /*==========================================
@@ -3181,20 +3192,83 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
     clif_send(buf, sd, SendWho::AREA);
 }
 
-void clif_sitnpc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, bool area)
+static
+void clif_sitnpc_sub(Buffer& buf, dumb_ptr<npc_data> nd, DamageType dmg)
+{
+    nullpo_retv(nd);
+
+    Packet_Fixed<0x008a> fixed_8a;
+    fixed_8a.src_id = nd->bl_id;
+    fixed_8a.damage_type = dmg;
+    buf = create_fpacket<0x008a, 29>(fixed_8a);
+}
+
+void clif_sitnpc_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DamageType dmg)
 {
     nullpo_retv(nd);
     nullpo_retv(sd);
 
-    Packet_Fixed<0x008a> fixed_8a;
-    fixed_8a.src_id = nd->bl_id;
-    fixed_8a.damage_type = nd->sit;
-    Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
+    if(!sd)
+        return;
 
-    if(area)
-        clif_send(buf, nd, SendWho::AREA);
-    else if(sd)
-        clif_send(buf, sd, SendWho::SELF);
+    Buffer buf;
+    clif_sitnpc_sub(buf, nd, dmg);
+    clif_send(buf, sd, SendWho::SELF);
+}
+
+void clif_sitnpc(dumb_ptr<npc_data> nd, DamageType dmg)
+{
+    nullpo_retv(nd);
+
+    Buffer buf;
+    clif_sitnpc_sub(buf, nd, dmg);
+    clif_send(buf, nd, SendWho::AREA);
+}
+
+static
+void clif_setnpcdirection_sub(Buffer& buf, dumb_ptr<npc_data> nd, DIR direction)
+{
+    nullpo_retv(nd);
+    short dir = 1 | 0;
+
+    switch (direction)
+    {
+        case DIR::S:  dir = 1 | 0; break; // down
+        case DIR::SW: dir = 1 | 2; break;
+        case DIR::W:  dir = 0 | 2; break; // left
+        case DIR::NW: dir = 4 | 2; break;
+        case DIR::N:  dir = 4 | 0; break; // up
+        case DIR::NE: dir = 4 | 8; break;
+        case DIR::E:  dir = 0 | 8; break; // right
+        case DIR::SE: dir = 1 | 8; break;
+    }
+
+    Packet_Fixed<0x009c> fixed_9c;
+    fixed_9c.block_id = nd->bl_id;
+    fixed_9c.client_dir = dir;
+    buf = create_fpacket<0x009c, 9>(fixed_9c);
+}
+
+void clif_setnpcdirection_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DIR direction)
+{
+    nullpo_retv(nd);
+    nullpo_retv(sd);
+
+    if(!sd)
+        return;
+
+    Buffer buf;
+    clif_setnpcdirection_sub(buf, nd, direction);
+    clif_send(buf, sd, SendWho::SELF);
+}
+
+void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction)
+{
+    nullpo_retv(nd);
+
+    Buffer buf;
+    clif_setnpcdirection_sub(buf, nd, direction);
+    clif_send(buf, nd, SendWho::AREA);
 }
 
 /*==========================================

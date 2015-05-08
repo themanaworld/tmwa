@@ -4157,30 +4157,6 @@ ATCE atcommand_npcmove(Session *, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_npcsit(Session *, dumb_ptr<map_session_data> sd,
-        ZString message)
-{
-    NpcName character;
-    dumb_ptr<npc_data> nd = nullptr;
-
-    if (!asplit(message, &character))
-        return ATCE::USAGE;
-
-    nd = npc_name2id(character);
-    if (nd == nullptr)
-        return ATCE::EXIST;
-
-    if(nd->sit == DamageType::SIT)
-        nd->sit = DamageType::STAND;
-    else
-        nd->sit = DamageType::SIT;
-
-    clif_sitnpc(sd, nd, true);
-
-    return ATCE::OKAY;
-}
-
-static
 ATCE atcommand_addwarp(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
@@ -5290,9 +5266,6 @@ Map<XString, AtCommandInfo> atcommand_info =
         "Toggle your pvp flag"_s}},
     {"npcmove"_s, {"<x> <y> <npc-name>"_s,
         80, atcommand_npcmove,
-        "Force an NPC to move on the map"_s}},
-    {"npcsit"_s, {"<npc-name>"_s,
-        80, atcommand_npcsit,
         "Force an NPC to move on the map"_s}},
     {"charpvp"_s, {"<charname> <channel>"_s,
         40, atcommand_charpvp,
