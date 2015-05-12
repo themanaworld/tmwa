@@ -165,7 +165,7 @@ int clif_countusers(void)
         if (!s)
             continue;
         dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-        if (sd && sd->state.auth && !(battle_config.hide_GM_session && pc_isGM(sd)))
+        if (sd && sd->state.auth && !sd->state.connect_new && !(battle_config.hide_GM_session && pc_isGM(sd)))
             users++;
     }
     return users;
@@ -183,7 +183,7 @@ int clif_foreachclient(std::function<void (dumb_ptr<map_session_data>)> func)
         if (!s)
             continue;
         dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-        if (sd && sd->state.auth)
+        if (sd && sd->state.auth && !sd->state.connect_new)
             func(sd);
     }
     return 0;
@@ -295,7 +295,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
                 if (!s)
                     continue;
                 dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-                if (sd && sd->state.auth)
+                if (sd && sd->state.auth && !sd->state.connect_new)
                 {
                     {
                         send_buffer(s, buf);
@@ -310,7 +310,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
                 if (!s)
                     continue;
                 dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-                if (sd && sd->state.auth && sd->bl_m == bl->bl_m)
+                if (sd && sd->state.auth && !sd->state.connect_new && sd->bl_m == bl->bl_m)
                 {
                     {
                         send_buffer(s, buf);
@@ -388,7 +388,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
                     if (!s)
                         continue;
                     dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-                    if (sd && sd->state.auth)
+                    if (sd && sd->state.auth && !sd->state.connect_new)
                     {
                         if (sd->partyspy == p.party_id)
                         {
@@ -3221,7 +3221,7 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
             if (!s)
                 continue;
             dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-            if (sd && sd->state.auth && sd->bl_m == bl->bl_m)
+            if (sd && sd->state.auth && !sd->state.connect_new && sd->bl_m == bl->bl_m)
                 clif_specialeffect(sd, type, 1);
         }
     }

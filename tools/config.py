@@ -573,7 +573,6 @@ def build_config():
     map_conf.opt('npc', addnpc, '{}')
     map_conf.opt('delnpc', delnpc, '{}')
     map_conf.opt('autosave_time', seconds, 'DEFAULT_AUTOSAVE_INTERVAL', {map_h})
-    map_conf.opt('motd_txt', RString, lit('conf/motd.txt'))
     map_conf.opt('mapreg_txt', RString, lit('save/mapreg.txt'))
     map_conf.opt('gm_log', RString, '{}')
     map_conf.opt('log_file', RString, '{}')

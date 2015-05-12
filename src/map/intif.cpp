@@ -359,7 +359,7 @@ void mapif_parse_WisToGM(Session *, const Packet_Head<0x3803>& head, AString& me
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
-        if (pl_sd && pl_sd->state.auth)
+        if (pl_sd && pl_sd->state.auth && !pl_sd->state.connect_new)
         {
             if (pc_isGM(pl_sd).satisfies(min_gm_level))
                 clif_wis_message(s2, Wisp_name, message);

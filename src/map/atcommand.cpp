@@ -2498,7 +2498,7 @@ ATCE atcommand_doom(Session *s, dumb_ptr<map_session_data> sd,
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
-        if (pl_sd
+        if (pl_sd && !pl_sd->state.connect_new
             && pl_sd->state.auth && s2 != s
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -2522,7 +2522,7 @@ ATCE atcommand_doommap(Session *s, dumb_ptr<map_session_data> sd,
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
-        if (pl_sd
+        if (pl_sd && !pl_sd->state.connect_new
             && pl_sd->state.auth && s2 != s && sd->bl_m == pl_sd->bl_m
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -3474,7 +3474,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
                 if (!s2)
                     continue;
                 dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
-                if (pl_sd && pl_sd->state.auth
+                if (pl_sd && pl_sd->state.auth && !pl_sd->state.connect_new
                     && sd->status_key.account_id != pl_sd->status_key.account_id
                     && pl_sd->status.party_id == p.party_id)
                 {
@@ -3889,7 +3889,7 @@ ATCE atcommand_effect(Session *s, dumb_ptr<map_session_data> sd,
             if (!s2)
                 continue;
             dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
-            if (pl_sd && pl_sd->state.auth)
+            if (pl_sd && pl_sd->state.auth && !pl_sd->state.connect_new)
             {
                 clif_specialeffect(pl_sd, type, flag);
                 clif_displaymessage(pl_sd->sess, "Your Effect Has Changed."_s);
@@ -4920,7 +4920,7 @@ ATCE atcommand_doomspot(Session *s, dumb_ptr<map_session_data> sd,
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
-        if (pl_sd
+        if (pl_sd && !pl_sd->state.connect_new
             && pl_sd->state.auth && s2 != s && sd->bl_m == pl_sd->bl_m
             && sd->bl_x == pl_sd->bl_x && sd->bl_y == pl_sd->bl_y
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))

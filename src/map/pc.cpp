@@ -517,6 +517,7 @@ int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char
     (void)client_tick;
     sd->sex = sex;
     sd->state.auth = 0;
+    sd->state.connect_new = 0;
     sd->bl_type = BL::PC;
     sd->canact_tick = sd->canmove_tick = gettick();
     sd->canlog_tick = gettick();
@@ -795,14 +796,11 @@ int pc_authok(AccountId id, int login_id2,
 
     pc_calcstatus(sd, 1);
 
-    npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
     // Init Quest Log
     clif_sendallquest(sd);
     return 0;
 }
 
-// TODO fix this to cache and use inotify
-// this is far from the only such thing, but most of the others are logs
 void pc_show_motd(dumb_ptr<map_session_data> sd)
 {
     // Attention all forks: DO NOT REMOVE THIS NOTICE.
@@ -811,18 +809,10 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
     // If you remove the sending of this message,
     // the license does not permit you to publicly use this software.
 
-    clif_displaymessage(sd->sess, "This server is Free Software, for details type @source in chat or use the tmwa-source tool"_s);
+    clif_displaymessage(sd->sess, "##7Server : This server is Free Software, for details type @source in chat or use the tmwa-source tool"_s);
+    npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
 
     sd->state.seen_motd = true;
-    io::ReadFile in(map_conf.motd_txt);
-    if (in.is_open())
-    {
-        AString buf;
-        while (in.getline(buf))
-        {
-            clif_displaymessage(sd->sess, buf);
-        }
-    }
 }
 
 /*==========================================
