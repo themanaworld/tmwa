@@ -49,7 +49,6 @@ namespace item
     {
         Spanned<ItemNameId> id;
         Spanned<ItemName> name;
-        Spanned<ItemName> jname;
         Spanned<ItemType> type;
         Spanned<int> buy_price;
         Spanned<int> sell_price;

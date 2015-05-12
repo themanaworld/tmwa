@@ -3037,10 +3037,10 @@ ATCE atcommand_idsearch(Session *s, dumb_ptr<map_session_data>,
     for (ItemNameId i = wrap<ItemNameId>(0); i < wrap<ItemNameId>(-1); i = next(i))
     {
         P<struct item_data> item = TRY_UNWRAP(itemdb_exists(i), continue);
-        if (item->jname.contains_seq(item_name))
+        if (item->name.contains_seq(item_name))
         {
             match++;
-            output = STRPRINTF("%s: %d"_fmt, item->jname, item->nameid);
+            output = STRPRINTF("%s: %d"_fmt, item->name, item->nameid);
             clif_displaymessage(s, output);
         }
     }
@@ -3975,9 +3975,9 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
 
                     AString output;
                     if (true)
-                        output = STRPRINTF("%d %s (%s, id: %d) %s"_fmt,
+                        output = STRPRINTF("%d %s (id: %d) %s"_fmt,
                                 pl_sd->status.inventory[i].amount,
-                                item_data->name, item_data->jname,
+                                item_data->name,
                                 pl_sd->status.inventory[i].nameid,
                                 AString(equipstr));
                     clif_displaymessage(s, output);
@@ -4051,9 +4051,9 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                             }
                             AString output;
                             if (true)
-                                output = STRPRINTF("%d %s (%s, id: %d)"_fmt,
+                                output = STRPRINTF("%d %s (id: %d)"_fmt,
                                         stor->storage_[i].amount,
-                                        item_data->name, item_data->jname,
+                                        item_data->name,
                                         stor->storage_[i].nameid);
                             clif_displaymessage(s, output);
                         }

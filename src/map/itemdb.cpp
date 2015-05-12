@@ -188,7 +188,6 @@ bool itemdb_readdb(ZString filename)
                 item_data idv {};
                 idv.nameid = item.id.data;
                 idv.name = item.name.data;
-                idv.jname = item.jname.data;
                 idv.type = item.type.data;
                 idv.value_buy = item.buy_price.data ?: item.sell_price.data * 2;
                 idv.value_sell = item.sell_price.data ?: item.buy_price.data / 2;

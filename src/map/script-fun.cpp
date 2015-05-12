@@ -1124,45 +1124,6 @@ void builtin_freeloop(ScriptState *st)
 }
 
 /*==========================================
- * 装備名文字列（精錬メニュー用）
- *------------------------------------------
- */
-static
-void builtin_getequipname(ScriptState *st)
-{
-    int num;
-    dumb_ptr<map_session_data> sd;
-
-    AString buf;
-
-    sd = script_rid2sd(st);
-    num = conv_num(st, &AARG(0));
-    IOff0 i = pc_checkequip(sd, equip[num - 1]);
-    if (i.ok())
-    {
-        Option<P<struct item_data>> item_ = sd->inventory_data[i];
-        OMATCH_BEGIN (item_)
-        {
-            OMATCH_CASE_SOME (item)
-            {
-                buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], item->jname);
-            }
-            OMATCH_CASE_NONE ()
-            {
-                buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
-            }
-        }
-        OMATCH_END ();
-    }
-    else
-    {
-        buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
-    }
-    push_str<ScriptDataStr>(st->stack, buf);
-
-}
-
-/*==========================================
  * 装備品による能力値ボーナス
  *------------------------------------------
  */
@@ -2258,34 +2219,6 @@ void builtin_divorce(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, 1);
 }
 
-/*==========================================
- * IDからItem名
- *------------------------------------------
- */
-static
-void builtin_getitemname(ScriptState *st)
-{
-    Option<P<struct item_data>> i_data = None;
-    struct script_data *data;
-
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
-    {
-        ZString name = ZString(conv_str(st, data));
-        i_data = itemdb_searchname(name);
-    }
-    else
-    {
-        ItemNameId item_id = wrap<ItemNameId>(conv_num(st, data));
-        i_data = Some(itemdb_search(item_id));
-    }
-
-    RString item_name = i_data.pmd_pget(&item_data::jname).copy_or(stringish<ItemName>("Unknown Item"_s));
-
-    push_str<ScriptDataStr>(st->stack, item_name);
-}
-
 static
 void builtin_getitemlink(ScriptState *st)
 {
@@ -3097,7 +3030,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getcharid, "i?"_s, 'i'),
     BUILTIN(strcharinfo, "i"_s, 's'),
     BUILTIN(getequipid, "i"_s, 'i'),
-    BUILTIN(getequipname, "i"_s, 's'),
     BUILTIN(bonus, "ii"_s, '\0'),
     BUILTIN(bonus2, "iii"_s, '\0'),
     BUILTIN(skill, "ii?"_s, '\0'),
@@ -3152,7 +3084,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(mobcount, "ME"_s, 'i'),
     BUILTIN(marriage, "P"_s, 'i'),
     BUILTIN(divorce, ""_s, 'i'),
-    BUILTIN(getitemname, "I"_s, 's'),
     BUILTIN(getitemlink, "I"_s, 's'),
     BUILTIN(getspellinvocation, "s"_s, 's'),
     BUILTIN(getpartnerid2, ""_s, 'i'),
