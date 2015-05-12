@@ -146,6 +146,70 @@ dumb_ptr<npc_data> npc_name2id(NpcName name)
 }
 
 /*==========================================
+ * Spell Toknise
+ * Return a pair of strings, {spellname, parameter}
+ * Parameter may be empty.
+ *------------------------------------------
+ */
+static
+std::pair<XString, XString> magic_tokenise(XString src)
+{
+    auto seeker = std::find(src.begin(), src.end(), ' ');
+
+    if (seeker == src.end())
+    {
+        return {src, XString()};
+    }
+    else
+    {
+        XString rv1 = src.xislice_h(seeker);
+        ++seeker;
+
+        while (seeker != src.end() && *seeker == ' ')
+            ++seeker;
+
+        // Note: this very well could be empty
+        XString rv2 = src.xislice_t(seeker);
+        return {rv1, rv2};
+    }
+}
+
+/*==========================================
+ * NPC Spell
+ *------------------------------------------
+ */
+int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
+{
+    if (pc_isdead(caster))
+        return 0;
+    if (bool(caster->status.option & Opt0::HIDE))
+        return 0;           // No spellcasting while hidden
+
+    int power = caster->matk1;
+
+    auto pair = magic_tokenise(source_invocation);
+    // Spell Cast
+    NpcName spell_name = stringish<NpcName>(pair.first);
+    RString spell_params = pair.second;
+    PRINTF("Cast:  %s\n"_fmt, spell_name);
+    PRINTF("Params:  %s\n"_fmt, spell_params);
+
+    dumb_ptr<npc_data> nd = npc_name2id(spell_name);
+
+    if (nd)
+    {
+        PRINTF("script: spell: found! [%s]\n"_fmt, spell_name);
+        return 1;
+    }
+    else
+    {
+        PRINTF("fatal: script: spell: not found! [%s]\n"_fmt, spell_name);
+        return 0;
+    }
+    return 0;
+}
+
+/*==========================================
  * イベントキューのイベント処理
  *------------------------------------------
  */
