@@ -408,7 +408,7 @@ namespace npc
     Result<Script> parse_script_any(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits, io::LineCharReader& lr)
     {
         // 4 cases:
-        //  ScriptMagic:        spell|script|Fun Name{code}
+        //  ScriptMagic:        spell|script|#Fun Name{code}
         //  ScriptFunction:     function|script|Fun Name{code}
         //  ScriptNone:         -|script|script name|32767{code}
         //  ScriptMap:          m,x,y,d|script|script name|class,xs,ys{code}

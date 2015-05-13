@@ -338,17 +338,51 @@ struct npc_data : block_list
 
 private:
     dumb_ptr<npc_data_script> as_script();
+    dumb_ptr<npc_data_spell> as_spell();
     dumb_ptr<npc_data_shop> as_shop();
     dumb_ptr<npc_data_warp> as_warp();
     dumb_ptr<npc_data_message> as_message();
 public:
     dumb_ptr<npc_data_script> is_script();
+    dumb_ptr<npc_data_spell> is_spell();
     dumb_ptr<npc_data_shop> is_shop();
     dumb_ptr<npc_data_warp> is_warp();
     dumb_ptr<npc_data_message> is_message();
 };
 
 class npc_data_script : public npc_data
+{
+public:
+    struct
+    {
+        // The bytecode unique to this NPC.
+        std::unique_ptr<const ScriptBuffer> script;
+        // Diameter.
+        short xs, ys;
+        bool event_needs_map;
+
+        // Whether the timer advances if not beyond end.
+        bool timer_active;
+        // Tick counter through the timers.
+        // It is actually updated when frobbing the thing in any way.
+        // If this is timer_eventv().back().timer, it is expired
+        // rather than blank. It's probably a bad idea to rely on this.
+        interval_t timer;
+        // Actual timer that fires the event.
+        Timer timerid;
+        // Event to be fired, or .end() if no timer.
+        std::vector<npc_timerevent_list>::iterator next_event;
+        // When the timer started. Needed to get the true diff, or to stop.
+        tick_t timertick;
+        // List of label events to call.
+        std::vector<npc_timerevent_list> timer_eventv;
+
+        // List of (name, offset) label locations in the bytecode
+        std::vector<npc_label_list> label_listv;
+    } scr;
+};
+
+class npc_data_spell : public npc_data
 {
 public:
     struct
@@ -681,11 +715,13 @@ inline dumb_ptr<flooritem_data> block_list::is_item() { return bl_type == BL::IT
 // struct invocation is defined in another header
 
 inline dumb_ptr<npc_data_script> npc_data::as_script() { return dumb_ptr<npc_data_script>(static_cast<npc_data_script *>(this)) ; }
+inline dumb_ptr<npc_data_spell> npc_data::as_spell() { return dumb_ptr<npc_data_spell>(static_cast<npc_data_spell *>(this)) ; }
 inline dumb_ptr<npc_data_shop> npc_data::as_shop() { return dumb_ptr<npc_data_shop>(static_cast<npc_data_shop *>(this)) ; }
 inline dumb_ptr<npc_data_warp> npc_data::as_warp() { return dumb_ptr<npc_data_warp>(static_cast<npc_data_warp *>(this)) ; }
 inline dumb_ptr<npc_data_message> npc_data::as_message() { return dumb_ptr<npc_data_message>(static_cast<npc_data_message *>(this)) ; }
 
 inline dumb_ptr<npc_data_script> npc_data::is_script() { return npc_subtype == NpcSubtype::SCRIPT ? as_script() : nullptr ; }
+inline dumb_ptr<npc_data_spell> npc_data::is_spell() { return npc_subtype == NpcSubtype::SPELL ? as_spell() : nullptr ; }
 inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSubtype::SHOP ? as_shop() : nullptr ; }
 inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
 inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }

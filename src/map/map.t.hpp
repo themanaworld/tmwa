@@ -50,6 +50,7 @@ enum class NpcSubtype : uint8_t
     WARP,
     SHOP,
     SCRIPT,
+    SPELL,
     MESSAGE,
 
     COUNT,

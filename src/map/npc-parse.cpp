@@ -100,6 +100,7 @@ void register_npc_name(dumb_ptr<npc_data> nd)
         "WARP"_s,
         "SHOP"_s,
         "SCRIPT"_s,
+        "SPELL"_s,
         "MESSAGE"_s,
     }};
     if (!nd->name)
@@ -446,7 +447,7 @@ bool npc_load_script_spell(ast::script::ScriptBody& body, ast::npc::ScriptSpell&
     nd->bl_id = npc_get_new_npc_id();
     nd->dir = DIR::S;
     nd->flag = 0;
-    nd->npc_class = INVISIBLE_CLASS;
+    nd->npc_class = FAKE_NPC_CLASS;
     nd->speed = 200_ms;
     nd->scr.script = std::move(script);
     nd->option = Opt0::ZERO;
@@ -456,7 +457,7 @@ bool npc_load_script_spell(ast::script::ScriptBody& body, ast::npc::ScriptSpell&
 
     npc_script++;
     nd->bl_type = BL::NPC;
-    nd->npc_subtype = NpcSubtype::SCRIPT;
+    nd->npc_subtype = NpcSubtype::SPELL;
 
     register_npc_name(nd);
 
