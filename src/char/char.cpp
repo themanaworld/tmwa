@@ -98,7 +98,7 @@ struct char_session_data : SessionData
     AccountId account_id;
     int login_id1, login_id2;
     SEX sex;
-    unsigned short packet_tmw_version;
+    unsigned short packet_client_version;
     AccountEmail email;
 };
 } // namespace char_
@@ -1673,10 +1673,10 @@ void parse_frommap(Session *ms)
                         payload_fd.account_id = account_id;
                         payload_fd.login_id2 = afi.login_id2;
                         cd->sex = afi.sex;
-                        payload_fd.packet_tmw_version = afi.packet_tmw_version;
+                        payload_fd.packet_client_version = afi.packet_client_version;
                         FPRINTF(stderr,
                                 "From queue index %zd: recalling packet version %d\n"_fmt,
-                                (&afi - &auth_fifo.front()), afi.packet_tmw_version);
+                                (&afi - &auth_fifo.front()), afi.packet_client_version);
                         payload_fd.char_key = *ck;
                         payload_fd.char_data = *cd;
                         send_ppacket<0x2afd>(ms, payload_fd);
@@ -2180,7 +2180,7 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             auth_fifo_iter->delflag = 0;
             auth_fifo_iter->sex = sd->sex;
             auth_fifo_iter->ip = s->client_ip;
-            auth_fifo_iter->packet_tmw_version = sd->packet_tmw_version;
+            auth_fifo_iter->packet_client_version = sd->packet_client_version;
             auth_fifo_iter++;
         }
     }
@@ -2251,7 +2251,7 @@ void parse_char(Session *s)
                     sd->account_id = account_id;
                     sd->login_id1 = fixed.login_id1;
                     sd->login_id2 = fixed.login_id2;
-                    sd->packet_tmw_version = fixed.packet_tmw_version;
+                    sd->packet_client_version = fixed.packet_client_version;
                     sd->sex = fixed.sex;
 
                     // formerly: send back account_id
@@ -2280,8 +2280,8 @@ void parse_char(Session *s)
                                     send_fpacket<0x2716, 6>(login_session, fixed_16);
                                 }
                                 // Record client version
-                                afi.packet_tmw_version =
-                                    sd->packet_tmw_version;
+                                afi.packet_client_version =
+                                    sd->packet_client_version;
                                 // send characters to player
                                 mmo_char_send006b(s, sd);
                             }

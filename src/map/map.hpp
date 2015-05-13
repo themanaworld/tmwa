@@ -153,7 +153,7 @@ struct map_session_data : block_list, SessionData
     CharId char_id_;
     int login_id1, login_id2;
     SEX sex;
-    unsigned char tmw_version;  // tmw client version
+    int client_version;  // tmw client version
     CharKey status_key;
     CharData status;
     GenericArray<Option<Borrowed<struct item_data>>, InventoryIndexing<IOff0, MAX_INVENTORY>> inventory_data =

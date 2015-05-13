@@ -50,7 +50,7 @@ struct AuthFifoEntry
     IP4Address ip;
     int delflag;
     SEX sex;
-    unsigned short packet_tmw_version;
+    unsigned short packet_client_version;
 };
 
 struct mmo_map_server

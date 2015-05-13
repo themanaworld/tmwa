@@ -2654,7 +2654,7 @@ void clif_skillinfoblock(dumb_ptr<map_session_data> sd)
     std::vector<Packet_Repeat<0x010f>> repeat_10f;
     for (SkillID i : erange(SkillID(), MAX_SKILL))
     {
-        if (sd->status.skill[i].lv && sd->tmw_version >= 1)
+        if (sd->status.skill[i].lv && sd->client_version >= 1)
         {
             Packet_Repeat<0x010f> info;
             // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
