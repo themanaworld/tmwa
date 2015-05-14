@@ -304,9 +304,9 @@ namespace npc
         return Ok(std::move(script_function));
     }
     static
-    Result<ScriptSpell> parse_script_spell_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
+    Result<ScriptMap> parse_script_spell_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
     {
-        //  ScriptSpell:     spell|script|Fun Name{code}
+        //  ScriptMap:     spell|script|Fun Name{code}
         if (bits.size() != 3)
         {
             return Err(span.error_str("expect 3 |component|s"_s));
@@ -320,11 +320,22 @@ namespace npc
             return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
 
-        ScriptSpell script_spell;
-        script_spell.key1_span = bits[0].data[0].span;
-        TRY_EXTRACT(bits[2].data[0], script_spell.name);
+        ScriptMap script_map;
+        TRY_EXTRACT(bits[2].data[0], script_map.name);
+        script_map.m.data = stringish<MapName>("botcheck.gat"_s);
+        script_map.x.data = 0;
+        script_map.y.data = 0;
+        script_map.d.data = DIR::S;
+        script_map.npc_class.data = wrap<Species>(127);
+        script_map.xs.data = 0;
+        script_map.xs.span = script_map.npc_class.span;
+        script_map.xs.span.end.column++;
+        script_map.xs.span.begin = script_map.xs.span.end;
+        script_map.ys.data = 0;
+        script_map.ys.span = script_map.xs.span;
+
         // also expect '{' and parse real script (in caller)
-        return Ok(std::move(script_spell));
+        return Ok(std::move(script_map));
     }
     static
     Result<ScriptNone> parse_script_none_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
@@ -431,8 +442,8 @@ namespace npc
 
             ast::script::ScriptOptions opt;
             opt.implicit_start = true;
-            opt.default_label = "OnCall"_s;
-            opt.no_event = true;
+            opt.default_label = "OnClick"_s;
+            opt.no_touch = true;
             rv.body = TRY(ast::script::parse_script_body(lr, opt));
             return Ok(std::move(rv));
         }

@@ -60,7 +60,6 @@ struct flooritem_data;
 //struct magic::invocation;
 struct map_local;
 class npc_data_script;
-class npc_data_spell;
 class npc_data_shop;
 class npc_data_warp;
 class npc_data_message;

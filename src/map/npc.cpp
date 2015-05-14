@@ -35,6 +35,7 @@
 #include "../strings/xstring.hpp"
 #include "../strings/literal.hpp"
 
+#include "../generic/random.hpp"
 #include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -175,6 +176,18 @@ std::pair<XString, XString> magic_tokenise(XString src)
 }
 
 /*==========================================
+ * NPC Spell Delete
+ *------------------------------------------
+ */
+static
+void timer_callback_spell_npc_delete(TimerData *, tick_t, BlockId spell_id)
+{
+    dumb_ptr<npc_data> spell_npc = map_id_is_npc(spell_id);
+    PRINTF("Cast:  %s\n"_fmt, spell_npc->name);
+    npc_free(spell_npc);
+}
+
+/*==========================================
  * NPC Spell
  *------------------------------------------
  */
@@ -192,16 +205,25 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 
     dumb_ptr<npc_data> nd = npc_name2id(spell_name);
 
-    if (nd && nd->npc_subtype == NpcSubtype::SPELL)
+    if (nd)
     {
-        PRINTF("Cast:  %s\n"_fmt, nd->name);
-        PRINTF("Params:  %s\n"_fmt, spell_params);
+        nd->bl_id = npc_get_new_npc_id();
         nd->bl_m = caster->bl_m;
         nd->bl_x = caster->bl_x;
         nd->bl_y = caster->bl_y;
+
+        PRINTF("Cast:  %s\n"_fmt, nd->name);
+        PRINTF("Params:  %s\n"_fmt, spell_params);
         map_addnpc(nd->bl_m, nd);
-        clif_spawnnpc(nd);
+        //clif_spawnnpc(nd);
+        clif_spawn_fake_npc_for_player(caster, nd->bl_id);
         npc_click(caster, nd->bl_id);
+        /* 1 minute should be enough for all interesting spell effects, I hope */
+        //std::chrono::seconds delay = 30_s;
+        //Timer(gettick() + delay,
+        //            std::bind(timer_callback_spell_npc_delete, ph::_1, ph::_2,
+        //                            nd->bl_id)
+        //                ).detach();
         return 1;
     }
     return 0;
@@ -576,10 +598,6 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
                 xs = 0;
                 ys = 0;
                 break;
-            case NpcSubtype::SPELL:
-                xs = m->npc[i]->is_spell()->scr.xs;
-                ys = m->npc[i]->is_spell()->scr.ys;
-                break;
             case NpcSubtype::SCRIPT:
                 xs = m->npc[i]->is_script()->scr.xs;
                 ys = m->npc[i]->is_script()->scr.ys;
@@ -612,20 +630,6 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
         case NpcSubtype::MESSAGE:
             assert (0 && "I'm pretty sure these NPCs are never put on a map."_s);
             break;
-        case NpcSubtype::SPELL:
-        {
-            NpcEvent aname;
-            aname.npc = m->npc[i]->name;
-            aname.label = stringish<ScriptLabel>("OnTouch"_s);
-
-            if (sd->areanpc_id == m->npc[i]->bl_id)
-                return 1;
-
-            sd->areanpc_id = m->npc[i]->bl_id;
-            if (npc_event(sd, aname, 0) > 0)
-                npc_click(sd, m->npc[i]->bl_id);
-            break;
-        }
         case NpcSubtype::SCRIPT:
         {
             NpcEvent aname;
@@ -710,9 +714,6 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
             clif_npcbuysell(sd, id);
             npc_event_dequeue(sd);
             break;
-        case NpcSubtype::SPELL:
-            sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_spell()->scr.script), 0), sd->bl_id, id);
-            break;
         case NpcSubtype::SCRIPT:
             sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), sd->bl_id, id);
             break;
@@ -755,10 +756,7 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
         return 0;
     }
 
-    if (nd->npc_subtype == NpcSubtype::SCRIPT)
-        sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), sd->npc_pos), sd->bl_id, id);
-    else if (nd->npc_subtype == NpcSubtype::SPELL)
-        sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_spell()->scr.script), sd->npc_pos), sd->bl_id, id);
+    sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), sd->npc_pos), sd->bl_id, id);
 
     return 0;
 }
@@ -944,16 +942,6 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     if (nd_->npc_subtype == NpcSubtype::SCRIPT)
     {
         dumb_ptr<npc_data_script> nd = nd_->is_script();
-        nd->scr.timer_eventv.clear();
-
-        {
-            nd->scr.script.reset();
-            nd->scr.label_listv.clear();
-        }
-    }
-    else if (nd_->npc_subtype == NpcSubtype::SPELL)
-    {
-        dumb_ptr<npc_data_spell> nd = nd_->is_spell();
         nd->scr.timer_eventv.clear();
 
         {

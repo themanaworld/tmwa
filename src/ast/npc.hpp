@@ -97,11 +97,6 @@ namespace npc
         io::LineSpan key1_span;
         Spanned<RString> name;
     };
-    struct ScriptSpell
-    {
-        io::LineSpan key1_span;
-        Spanned<NpcName> name;
-    };
     struct ScriptNone
     {
         io::LineSpan key1_span;
@@ -117,12 +112,11 @@ namespace npc
         Spanned<Species> npc_class;
         Spanned<unsigned> xs, ys;
     };
-    using ScriptBase = Variant<ScriptFunction, ScriptSpell, ScriptNone, ScriptMap>;
+    using ScriptBase = Variant<ScriptFunction, ScriptNone, ScriptMap>;
     struct Script : ScriptBase
     {
         Script() = default;
         Script(ScriptFunction s) : ScriptBase(std::move(s)) {}
-        Script(ScriptSpell s) : ScriptBase(std::move(s)) {}
         Script(ScriptNone s) : ScriptBase(std::move(s)) {}
         Script(ScriptMap s) : ScriptBase(std::move(s)) {}
 

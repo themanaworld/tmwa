@@ -438,11 +438,10 @@ namespace npc
             EXPECT_SPAN(top.span, 1,1, 1,21);
             auto script = top.get_if<Script>();
             EXPECT_TRUE(script);
-            auto p = script->get_if<ScriptSpell>();
+            auto p = script->get_if<ScriptMap>();
             EXPECT_TRUE(p);
             if (p)
             {
-                EXPECT_SPAN(p->key1_span, 1,1, 1,5);
                 EXPECT_SPAN(script->key_span, 1,7, 1,12);
                 EXPECT_SPAN(p->name.span, 1,14, 1,21);
                 EXPECT_EQ(p->name.data, stringish<NpcName>("#FunName"_s));
