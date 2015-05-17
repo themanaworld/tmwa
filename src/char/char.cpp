@@ -62,6 +62,7 @@
 #include "../proto2/any-user.hpp"
 #include "../proto2/login-admin.hpp"
 #include "../proto2/login-char.hpp"
+#include "../proto2/login-user.hpp"
 #include "../proto2/char-map.hpp"
 #include "../proto2/char-user.hpp"
 
@@ -2258,6 +2259,14 @@ void parse_char(Session *s)
                     Packet_Payload<0x8000> special;
                     special.magic_packet_length = 4;
                     send_ppacket<0x8000>(s, special);
+
+                    if(sd->packet_client_version < MIN_CLIENT_VERSION)
+                    {
+                        Packet_Fixed<0x006a> fixed_6a;
+                        fixed_6a.error_code = 5;
+                        send_fpacket<0x006a, 23>(s, fixed_6a);
+                        goto x65_out;
+                    }
 
                     // search authentification
                     for (AuthFifoEntry& afi : auth_fifo)
