@@ -971,6 +971,13 @@ void builtin_delitem(ScriptState *st)
 
 }
 
+static
+void builtin_getversion(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);;
+    push_int<ScriptDataInt>(st->stack, sd->client_version);
+}
+
 /*==========================================
  *キャラ関係のID取得
  *------------------------------------------
@@ -3028,6 +3035,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(makeitem, "IiMxy"_s, '\0'),
     BUILTIN(delitem, "Ii"_s, '\0'),
     BUILTIN(getcharid, "i?"_s, 'i'),
+    BUILTIN(getversion, ""_s, 'i'),
     BUILTIN(strcharinfo, "i"_s, 's'),
     BUILTIN(getequipid, "i"_s, 'i'),
     BUILTIN(bonus, "ii"_s, '\0'),

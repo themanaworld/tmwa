@@ -42,6 +42,9 @@ std::chrono::seconds DEFAULT_AUTOSAVE_INTERVAL = 5_min;
 constexpr
 GmLevel default_gm_level = GmLevel::from(0_u32);
 
+// increase the min version when the protocol is incompatible with old m+ versions
+#define MIN_CLIENT_VERSION 1
+
 struct AuthFifoEntry
 {
     AccountId account_id;
@@ -50,7 +53,7 @@ struct AuthFifoEntry
     IP4Address ip;
     int delflag;
     SEX sex;
-    unsigned short packet_tmw_version;
+    unsigned short packet_client_version;
 };
 
 struct mmo_map_server

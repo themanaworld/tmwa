@@ -641,7 +641,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
  *------------------------------------------
  */
 int pc_authok(AccountId id, int login_id2,
-        short tmw_version, const CharKey *st_key, const CharData *st_data)
+        short client_version, const CharKey *st_key, const CharData *st_data)
 {
     dumb_ptr<map_session_data> sd = nullptr;
 
@@ -652,7 +652,7 @@ int pc_authok(AccountId id, int login_id2,
         return 1;
 
     sd->login_id2 = login_id2;
-    sd->tmw_version = tmw_version;
+    sd->client_version = client_version;
 
     sd->status_key = *st_key;
     sd->status = *st_data;

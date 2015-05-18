@@ -867,11 +867,11 @@ void chrif_parse(Session *s)
 
                 AccountId id = payload.account_id;
                 int login_id2 = payload.login_id2;
-                short tmw_version = payload.packet_tmw_version;
+                short client_version = payload.packet_client_version;
                 CharKey st_key = payload.char_key;
                 CharData st_data = payload.char_data;
                 pc_authok(id, login_id2,
-                        tmw_version,
+                        client_version,
                         &st_key, &st_data);
                 break;
             }
