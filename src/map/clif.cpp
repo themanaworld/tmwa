@@ -3833,6 +3833,7 @@ RecvResult clif_parse_Restart(Session *s, dumb_ptr<map_session_data> sd)
             {
                 pc_setstand(sd);
                 pc_setrestartvalue(sd, 3);
+                skill_status_change_clear(sd, 0);
                 if (sd->bl_m->flag.get(MapFlag::RESAVE))
                 {
                     pc_setpos(sd, sd->bl_m->resave.map_,
