@@ -4724,6 +4724,9 @@ void clif_sendallquest(dumb_ptr<map_session_data> sd)
     if (!sd->sess)
         return;
 
+    if(sd->client_version < 2)
+        return;
+
     Session *s = sd->sess;
     Packet_Head<0x0215> head_215;
     std::vector<Packet_Repeat<0x0215>> repeat_215;
@@ -4756,6 +4759,9 @@ void clif_sendquest(dumb_ptr<map_session_data> sd, QuestId questid, int value)
         return;
 
     if (!sd->sess)
+        return;
+
+    if(sd->client_version < 2)
         return;
 
     Session *s = sd->sess;

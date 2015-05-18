@@ -797,8 +797,7 @@ int pc_authok(AccountId id, int login_id2,
     pc_calcstatus(sd, 1);
 
     // Init Quest Log
-    if(sd->client_version >= 2)
-        clif_sendallquest(sd);
+    clif_sendallquest(sd);
     return 0;
 }
 
