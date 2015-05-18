@@ -826,6 +826,21 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
  *------------------------------------------
  */
 static
+void clif_0225_being_move3_sub(dumb_ptr<block_list> bl, const Buffer& buf)
+{
+    nullpo_retv(bl);
+    dumb_ptr<map_session_data> sd = bl->is_player();
+
+    if (sd->sess != nullptr)
+    {
+        if(sd->client_version >= 3)
+        {
+            send_buffer(sd->sess, buf);
+        }
+    }
+}
+
+static
 int clif_0225_being_move3(dumb_ptr<mob_data> md)
 {
     Packet_Head<0x0225> head_225;
@@ -844,7 +859,12 @@ int clif_0225_being_move3(dumb_ptr<mob_data> md)
     }
 
     Buffer buf = create_vpacket<0x0225, 14, 1>(head_225, repeat_225);
-    clif_send(buf, md, SendWho::AREA);
+
+    map_foreachinarea(std::bind(clif_0225_being_move3_sub, ph::_1, buf),
+            md->bl_m,
+            md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
+            md->bl_x + AREA_SIZE, md->bl_y + AREA_SIZE,
+            BL::PC);
 
     return 0;
 }
