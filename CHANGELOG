@@ -1,3 +1,23 @@
+v15.5.18
+  - reject old incompatible clients
+  - check client version before sending quest data
+  - send mob hp to client
+  - send mob walk data to client if client version >= 3
+  - remove "Save" and "Random" special map names for the warp builtin
+  - remove unused pc_randomwarp
+  - remove builtin getitemname in favor of builtin getitemlink
+  - remove builtin getequipname in favor of getitemlink combined with getequipid
+  - remove item labels
+  - remove OnInterIfInit event handler
+  - remove OnCharIfInit event handler
+  - remove long deprecated tmwa-monitor
+  - allow to specify npcs in timer-related builtins
+  - make the script engine more strict and die on errors
+  - completely deprecate invalid npc id -1 in favor of id 32767
+  - remove the motd in favor of one provided by server-data
+  - make the message about the source code location be sent to General chat tab instead of Debug
+  - remove leftovers from deprecation of atcommand gm
+  - reset the status both on death and on respawn
 v15.5.04
   - remove check for pk_mode for mapflag NOPVP
   - remove atcommand gm
