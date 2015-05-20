@@ -1,3 +1,12 @@
+v15.5.19
+  - check client version in login server
+  - make npcs sit-able
+  - send mob attack range
+  - send mob hp properly
+  - send npc sex
+  - add builtin setnpcdirection
+  - make packet SMSG_BEING_VISIBLE follow manaplus spec
+  - make packet SMSG_BEING_MOVE follow manaplus spec
 v15.5.18
   - reject old incompatible clients
   - check client version before sending quest data
