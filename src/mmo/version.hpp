@@ -35,6 +35,9 @@ namespace tmwa
 #define TMWA_SERVER_INTER      0x04
 #define TMWA_SERVER_MAP        0x08
 
+// increase the min version when the protocol is incompatible with old m+ versions
+#define MIN_CLIENT_VERSION 1
+
 // TODO now that I generate the protocol, split 'flags' out of the struct
 struct Version
 {

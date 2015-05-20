@@ -1456,9 +1456,6 @@ def build_context():
     #md5_native = md5_h.native('md5_native')
     #SaltString = md5_h.native('SaltString')
 
-    VERSION_2 = login_th.native('VERSION_2')
-
-
     Position1 = clif_th.native('Position1')
     NetPosition1 = clif_th.network('NetPosition1')
     Position2 = clif_th.native('Position2')
@@ -1587,8 +1584,6 @@ def build_context():
                 ('vend', u16),
             ]
     )
-
-    version_2 = ctx.enum(VERSION_2, u8)
 
     stats6 = ctx.struct(
             'Stats6',
@@ -1966,7 +1961,7 @@ def build_context():
             at(2, u32, 'unknown'),
             at(6, account_name, 'account name'),
             at(30, account_pass, 'account pass'),
-            at(54, version_2, 'version 2 flags'),
+            at(54, u8, 'version'),
         ],
         fixed_size=55,
         pre=[HUMAN, 0x7531],
