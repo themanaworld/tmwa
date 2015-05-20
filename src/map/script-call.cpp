@@ -807,10 +807,21 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
 
             default:
                 if (battle_config.error_log)
+                {
                     PRINTF("unknown command : %d @ %zu\n"_fmt,
                             c, st->scriptp.pos);
-                st->state = ScriptEndState::END;
-                runflag = 0;
+                    if (st->oid)
+                    {
+                        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+                        PRINTF("NPC => %s\n"_fmt, nd->name);
+                    }
+                    if (st->rid)
+                    {
+                        dumb_ptr<map_session_data> sd = script_rid2sd(st);
+                        PRINTF("PC => %s\n"_fmt, sd->status_key.name.to__actual());
+                    }
+                }
+                abort();
                 break;
         }
         if (st->freeloop != 1 && cmdcount > 0 && (--cmdcount) <= 0)
