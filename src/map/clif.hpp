@@ -98,6 +98,10 @@ int clif_useitemack(dumb_ptr<map_session_data>, IOff0, int, int);    // self
 void clif_emotion(dumb_ptr<block_list> bl, int type);
 void clif_emotion_towards(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int type);
 void clif_sitting(Session *, dumb_ptr<map_session_data> sd);
+void clif_sitnpc(dumb_ptr<npc_data> nd, DamageType dmg);
+void clif_sitnpc_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DamageType dmg);
+void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction);
+void clif_setnpcdirection_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DIR direction);
 
 // trade
 void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name);

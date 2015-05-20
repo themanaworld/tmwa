@@ -2494,9 +2494,7 @@ void parse_login(Session *s)
                 result = mmo_auth(&account, s);
                 if (result == -1)
                 {
-                    VERSION_2 version_2 = fixed.version_2_flags;
-                    if (!bool(version_2 & VERSION_2::UPDATEHOST)
-                        || !bool(version_2 & VERSION_2::SERVERORDER))
+                    if (fixed.version < MIN_CLIENT_VERSION)
                         result = 5; // client too old
                 }
                 if (result == -1)

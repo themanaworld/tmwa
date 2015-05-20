@@ -131,6 +131,9 @@ static
 void clif_quitsave(Session *, dumb_ptr<map_session_data> sd);
 
 static
+void clif_sitnpc_sub(Buffer& buf, dumb_ptr<npc_data> nd, DamageType dmg);
+
+static
 void clif_delete(Session *s)
 {
     assert (s != char_session);
@@ -769,6 +772,8 @@ static
 void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
 {
     nullpo_retv(md);
+    int max_hp = md->stats[mob_stat::MAX_HP];
+    int hp = md->hp;
 
     Packet_Fixed<0x0078> fixed_78;
     fixed_78.block_id = md->bl_id;
@@ -781,10 +786,12 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_78.pos.x = md->bl_x;
     fixed_78.pos.y = md->bl_y;
     fixed_78.pos.dir = md->dir;
-    fixed_78.five1 = 5;
-    fixed_78.five2 = 5;
-    int level = battle_get_lv(md);
-    fixed_78.level = (level > battle_config.max_lv) ? battle_config.max_lv : level;
+
+    fixed_78.gloves_or_part_of_hp = static_cast<short>(hp >> 16);
+    fixed_78.part_of_guild_id_or_part_of_hp = static_cast<short>(hp & 0xffff);
+    fixed_78.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
+    fixed_78.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
+    fixed_78.karma_or_attack_range = battle_get_range(md);
 
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
@@ -797,6 +804,8 @@ static
 void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
 {
     nullpo_retv(md);
+    int max_hp = md->stats[mob_stat::MAX_HP];
+    int hp = md->hp;
 
     Packet_Fixed<0x007b> fixed_7b;
     fixed_7b.block_id = md->bl_id;
@@ -806,18 +815,18 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_7b.option = md->option;
     fixed_7b.mob_class = md->mob_class;
     // snip: stuff for monsters disguised as PCs
-    fixed_7b.tick_and_maybe_part_of_guild_emblem = gettick();
-    fixed_7b.max_hp = md->stats[mob_stat::MAX_HP];
-    fixed_7b.hp = md->hp;
+    fixed_7b.tick = gettick();
 
     fixed_7b.pos2.x0 = md->bl_x;
     fixed_7b.pos2.y0 = md->bl_y;
     fixed_7b.pos2.x1 = md->to_x;
     fixed_7b.pos2.y1 = md->to_y;
-    fixed_7b.five1 = 5;
-    fixed_7b.five2 = 5;
-    int level = battle_get_lv(md);
-    fixed_7b.level = (level > battle_config.max_lv) ? battle_config.max_lv : level;
+
+    fixed_7b.gloves_or_part_of_hp = static_cast<short>(hp >> 16);
+    fixed_7b.part_of_guild_id_or_part_of_hp = static_cast<short>(hp & 0xffff);
+    fixed_7b.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
+    fixed_7b.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
+    fixed_7b.karma_or_attack_range = battle_get_range(md);
 
     buf = create_fpacket<0x007b, 60>(fixed_7b);
 }
@@ -884,11 +893,7 @@ void clif_npc0078(dumb_ptr<npc_data> nd, Buffer& buf)
     fixed_78.pos.x = nd->bl_x;
     fixed_78.pos.y = nd->bl_y;
     fixed_78.pos.dir = nd->dir;
-    fixed_78.five1 = 5;
-    fixed_78.five2 = 5;
-    fixed_78.zero = 0;
-    fixed_78.level = 0;
-
+    fixed_78.sex = nd->sex;
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
@@ -951,7 +956,7 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 
     if (nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
-
+    /* manaplus is skipping this packet
     Packet_Fixed<0x007c> fixed_7c;
     fixed_7c.block_id = nd->bl_id;
     fixed_7c.speed = nd->speed;
@@ -961,9 +966,17 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 
     Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
     clif_send(buf, nd, SendWho::AREA);
-
+    */
+    Buffer buf;
     clif_npc0078(nd, buf);
     clif_send(buf, nd, SendWho::AREA);
+
+    if(nd->sit == DamageType::SIT)
+    {
+        Buffer buff;
+        clif_sitnpc_sub(buff, nd, nd->sit);
+        clif_send(buff, nd, SendWho::AREA);
+    }
 
     return 0;
 }
@@ -995,15 +1008,8 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
     fixed_78.opt2 = Opt2::ZERO;
     fixed_78.option = Opt0::ZERO;
     fixed_78.species = FAKE_NPC_CLASS;
-    fixed_78.unused_head_bottom_or_species_again = unwrap<Species>(FAKE_NPC_CLASS);
     fixed_78.pos.x = sd->bl_x;
     fixed_78.pos.y = sd->bl_y;
-    fixed_78.unused_pos_again.x = sd->bl_x;
-    fixed_78.unused_pos_again.y = sd->bl_y;
-    fixed_78.five1 = 5;
-    fixed_78.five2 = 5;
-    fixed_78.zero = 0;
-    fixed_78.level = 0;
     send_fpacket<0x0078, 54>(s, fixed_78);
 
     return 0;
@@ -2374,6 +2380,13 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
     Buffer buf;
     clif_npc0078(nd, buf);
     send_buffer(sd->sess, buf);
+
+    if(nd->sit == DamageType::SIT)
+    {
+        Buffer buff;
+        clif_sitnpc_sub(buff, nd, nd->sit);
+        send_buffer(sd->sess, buff);
+    }
 }
 
 /*==========================================
@@ -3188,6 +3201,85 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
     fixed_8a.damage_type = DamageType::SIT;
     Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
     clif_send(buf, sd, SendWho::AREA);
+}
+
+static
+void clif_sitnpc_sub(Buffer& buf, dumb_ptr<npc_data> nd, DamageType dmg)
+{
+    nullpo_retv(nd);
+
+    Packet_Fixed<0x008a> fixed_8a;
+    fixed_8a.src_id = nd->bl_id;
+    fixed_8a.damage_type = dmg;
+    buf = create_fpacket<0x008a, 29>(fixed_8a);
+}
+
+void clif_sitnpc_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DamageType dmg)
+{
+    nullpo_retv(nd);
+    nullpo_retv(sd);
+
+    if(!sd)
+        return;
+
+    Buffer buf;
+    clif_sitnpc_sub(buf, nd, dmg);
+    clif_send(buf, sd, SendWho::SELF);
+}
+
+void clif_sitnpc(dumb_ptr<npc_data> nd, DamageType dmg)
+{
+    nullpo_retv(nd);
+
+    Buffer buf;
+    clif_sitnpc_sub(buf, nd, dmg);
+    clif_send(buf, nd, SendWho::AREA);
+}
+
+static
+void clif_setnpcdirection_sub(Buffer& buf, dumb_ptr<npc_data> nd, DIR direction)
+{
+    nullpo_retv(nd);
+    short dir = 1 | 0;
+
+    switch (direction)
+    {
+        case DIR::S:  dir = 1 | 0; break; // down
+        case DIR::SW: dir = 1 | 2; break;
+        case DIR::W:  dir = 0 | 2; break; // left
+        case DIR::NW: dir = 4 | 2; break;
+        case DIR::N:  dir = 4 | 0; break; // up
+        case DIR::NE: dir = 4 | 8; break;
+        case DIR::E:  dir = 0 | 8; break; // right
+        case DIR::SE: dir = 1 | 8; break;
+    }
+
+    Packet_Fixed<0x009c> fixed_9c;
+    fixed_9c.block_id = nd->bl_id;
+    fixed_9c.client_dir = dir;
+    buf = create_fpacket<0x009c, 9>(fixed_9c);
+}
+
+void clif_setnpcdirection_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DIR direction)
+{
+    nullpo_retv(nd);
+    nullpo_retv(sd);
+
+    if(!sd)
+        return;
+
+    Buffer buf;
+    clif_setnpcdirection_sub(buf, nd, direction);
+    clif_send(buf, sd, SendWho::SELF);
+}
+
+void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction)
+{
+    nullpo_retv(nd);
+
+    Buffer buf;
+    clif_setnpcdirection_sub(buf, nd, direction);
+    clif_send(buf, nd, SendWho::AREA);
 }
 
 /*==========================================

@@ -1631,6 +1631,43 @@ void builtin_setnpctimer(ScriptState *st)
     npc_settimerevent_tick(nd, tick);
 }
 
+static
+void builtin_setnpcdirection(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd_;
+    DIR dir = static_cast<DIR>(conv_num(st, &AARG(0)));
+    bool save = bool(conv_num(st, &AARG(2)));
+    DamageType action;
+
+    if (HARG(3))
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(3)))));
+    else
+        nd_ = map_id_is_npc(st->oid);
+
+    if (bool(conv_num(st, &AARG(1))))
+        action = DamageType::SIT;
+    else
+        action = DamageType::STAND;
+
+    if (save)
+    {
+        nd_->dir = dir;
+        nd_->sit = action;
+    }
+
+    if (st->rid)
+    {
+        dumb_ptr<map_session_data> sd = script_rid2sd(st);
+        clif_sitnpc_towards(sd, nd_, action);
+        clif_setnpcdirection_towards(sd, nd_, dir);
+    }
+    else
+    {
+        clif_sitnpc(nd_, action);
+        clif_setnpcdirection(nd_, dir);
+    }
+}
+
 /*==========================================
  * 天の声アナウンス
  *------------------------------------------
@@ -3062,6 +3099,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(stopnpctimer, "?"_s, '\0'),
     BUILTIN(getnpctimer, "i?"_s, 'i'),
     BUILTIN(setnpctimer, "i?"_s, '\0'),
+    BUILTIN(setnpcdirection, "iii?"_s, '\0'),
     BUILTIN(announce, "si"_s, '\0'),
     BUILTIN(mapannounce, "Msi"_s, '\0'),
     BUILTIN(getusers, "i"_s, 'i'),
