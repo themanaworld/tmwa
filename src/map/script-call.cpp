@@ -586,8 +586,7 @@ void run_func(ScriptState *st)
             if (battle_config.error_log)
                 PRINTF("function not found\n"_fmt);
             st->state = ScriptEndState::END;
-            runflag = 0;
-            return;
+            abort();
         }
     }
     // the func is before the arg
@@ -599,8 +598,7 @@ void run_func(ScriptState *st)
     {
         PRINTF("run_func: not function and command! \n"_fmt);
         st->state = ScriptEndState::END;
-        runflag = 0;
-        return;
+        abort();
     }
     size_t func = st->stack->stack_datav[st->start].get_if<ScriptDataFuncRef>()->numi;
 
@@ -669,8 +667,7 @@ void run_func(ScriptState *st)
         {
             PRINTF("script:run_func (return) return without callfunc or callsub!\n"_fmt);
             st->state = ScriptEndState::END;
-            runflag = 0;
-            return;
+            abort();
         }
         assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
         st->scriptp.code = Some(conv_script(st, &st->stack->stack_datav[olddefsp - 1]));   // スクリプトを復元
@@ -766,7 +763,7 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                     {
                         PRINTF("run_script: infinity loop !\n"_fmt);
                         st->state = ScriptEndState::END;
-                        runflag = 0;
+                        abort();
                     }
                 }
                 break;
@@ -828,7 +825,7 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
         {
             PRINTF("run_script: infinity loop !\n"_fmt);
             st->state = ScriptEndState::END;
-            runflag = 0;
+            abort();
         }
     }
     switch (st->state)

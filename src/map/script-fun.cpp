@@ -110,8 +110,7 @@ void builtin_goto(ScriptState *st)
     {
         PRINTF("fatal: script: goto: not label !\n"_fmt);
         st->state = ScriptEndState::END;
-        runflag = 0;
-        return;
+        abort();
     }
 
     st->scriptp.pos = conv_num(st, &AARG(0));
@@ -152,7 +151,7 @@ void builtin_callfunc(ScriptState *st)
         {
             PRINTF("fatal: script: callfunc: function not found! [%s]\n"_fmt, str);
             st->state = ScriptEndState::END;
-            runflag = 0;
+            abort();
         }
     }
     OMATCH_END ();
@@ -296,8 +295,7 @@ void builtin_menu(ScriptState *st)
             {
                 PRINTF("fatal: script:menu: not a label\n"_fmt);
                 st->state = ScriptEndState::END;
-                runflag = 0;
-                return;
+                abort();
             }
             st->scriptp.pos = AARG(arg_index).get_if<ScriptDataPos>()->numi;
             st->state = ScriptEndState::GOTO;
