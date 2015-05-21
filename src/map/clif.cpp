@@ -800,6 +800,24 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
+void clif_npc_action(dumb_ptr<map_session_data> sd, BlockId npcid,
+        short command, int id, short x, short y)
+{
+    nullpo_retv(sd);
+    if(sd->client_version < 2)
+        return;
+
+    Packet_Fixed<0x0212> fixed_212;
+    fixed_212.npc_id = npcid;
+    fixed_212.command = command;
+    fixed_212.id = id;
+    fixed_212.x = x;
+    fixed_212.y = y;
+
+    Buffer buf = create_fpacket<0x0212, 16>(fixed_212);
+    send_buffer(sd->sess, buf);
+}
+
 /*==========================================
  * MOB表示2
  *------------------------------------------

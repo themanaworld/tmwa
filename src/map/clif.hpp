@@ -106,6 +106,7 @@ void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction);
 void clif_setnpcdirection_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DIR direction);
 void clif_npc_send_title(Session *s, BlockId npcid, XString msg);
 void clif_change_music(dumb_ptr<map_session_data> sd, XString music);
+void clif_npc_action(dumb_ptr<map_session_data>, BlockId, short, int, short, short);
 
 // trade
 void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name);

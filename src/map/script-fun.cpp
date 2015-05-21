@@ -1615,6 +1615,30 @@ void builtin_setnpctimer(ScriptState *st)
 }
 
 static
+void builtin_npcaction(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    short command = conv_num(st, &AARG(0));
+    int id = 0;
+    short x = HARG(2) ? conv_num(st, &AARG(2)) : 0;
+    short y = HARG(3) ? conv_num(st, &AARG(3)) : 0;
+
+    if(HARG(1))
+    {
+        if(command == 2)
+        {
+            dumb_ptr<npc_data> nd_;
+            nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(1)))));
+            id = unwrap<BlockId>(nd_->bl_id);
+        }
+        else
+            id = conv_num(st, &AARG(1));
+    }
+
+    clif_npc_action(sd, st->oid, command, id, x, y);
+}
+
+static
 void builtin_setnpcdirection(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
@@ -3103,6 +3127,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getnpctimer, "i?"_s, 'i'),
     BUILTIN(setnpctimer, "i?"_s, '\0'),
     BUILTIN(setnpcdirection, "iii?"_s, '\0'),
+    BUILTIN(npcaction, "i???"_s, '\0'),
     BUILTIN(announce, "si"_s, '\0'),
     BUILTIN(mapannounce, "Msi"_s, '\0'),
     BUILTIN(getusers, "i"_s, 'i'),

@@ -4631,7 +4631,7 @@ def build_context():
             at(0, u16, 'packet id'),
             at(2, block_id, 'npc id'),
             at(6, u16, 'command'),
-            at(8, block_id, 'id'),
+            at(8, u32, 'id'),
             at(12, u16, 'x'),
             at(14, u16, 'y'),
         ],
