@@ -2670,6 +2670,16 @@ void builtin_title(ScriptState *st)
     clif_npc_send_title(sd->sess, st->oid, msg);
 }
 
+static
+void builtin_music(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    ZString msg = ZString(conv_str(st, &AARG(0)));
+    if (sd == nullptr)
+        return;
+    clif_change_music(sd, msg);
+}
+
 /*==========================================
  * npctalk (sends message to surrounding
  * area) [Valaris]
@@ -3141,6 +3151,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "s"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
+    BUILTIN(music, "s"_s, '\0'),
     BUILTIN(getlook, "i"_s, 'i'),
     BUILTIN(getsavepoint, "i"_s, '.'),
     BUILTIN(areatimer, "MxyxytE"_s, '\0'),
