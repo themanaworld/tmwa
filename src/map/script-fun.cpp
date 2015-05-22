@@ -2675,6 +2675,16 @@ void builtin_message(ScriptState *st)
 
 }
 
+static
+void builtin_title(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    ZString msg = ZString(conv_str(st, &AARG(0)));
+    if (sd == nullptr)
+        return;
+    clif_npc_send_title(sd->sess, st->oid, msg);
+}
+
 /*==========================================
  * npctalk (sends message to surrounding
  * area) [Valaris]
@@ -3145,6 +3155,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "s"_s, '\0'),
+    BUILTIN(title, "s"_s, '\0'),
     BUILTIN(getlook, "i"_s, 'i'),
     BUILTIN(getsavepoint, "i"_s, '.'),
     BUILTIN(areatimer, "MxyxytE"_s, '\0'),
