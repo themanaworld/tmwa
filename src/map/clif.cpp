@@ -1155,6 +1155,9 @@ void clif_changemap(dumb_ptr<map_session_data> sd, MapName mapname, int x, int y
     fixed_91.x = x;
     fixed_91.y = y;
     send_fpacket<0x0091, 22>(s, fixed_91);
+
+    if(sd->bl_m->mask > 0)
+        clif_send_mask(sd, sd->bl_m->mask);
 }
 
 /*==========================================
@@ -3871,6 +3874,19 @@ void clif_message(dumb_ptr<block_list> bl, XString msg)
     Buffer buf;
     clif_message_sub(buf, bl, msg);
     clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+}
+
+void clif_send_mask(dumb_ptr<map_session_data> sd, int map_mask)
+{
+    nullpo_retv(sd);
+    if(sd->client_version < 2)
+        return;
+
+    Packet_Fixed<0x0226> fixed_226;
+    fixed_226.mask = map_mask;
+
+    Buffer buf = create_fpacket<0x0226, 10>(fixed_226);
+    send_buffer(sd->sess, buf);
 }
 
 /*==========================================

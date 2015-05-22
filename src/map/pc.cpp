@@ -796,6 +796,9 @@ int pc_authok(AccountId id, int login_id2,
 
     pc_calcstatus(sd, 1);
 
+    if(sd->bl_m->mask > 0)
+        clif_send_mask(sd, sd->bl_m->mask);
+
     // Init Quest Log
     clif_sendallquest(sd);
     return 0;

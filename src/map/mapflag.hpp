@@ -54,7 +54,7 @@ enum class MapFlag
     NOWARP = 1 << 13,
     NOWARPTO = 1 << 26,
     NOPVP = 1 << 14,
-    //NOICEWALL = 1 << 15,
+    MASK = 1 << 15,
     SNOW = 1 << 16,
     FOG = 1 << 17,
     SAKURA = 1 << 18,

@@ -71,7 +71,7 @@ bool impl_extract(XString str, MapFlag *mf)
         {"nowarp"_s, MapFlag::NOWARP},
         {"nowarpto"_s, MapFlag::NOWARPTO},
         {"nopvp"_s, MapFlag::NOPVP},
-        //{"noicewall"_s, MapFlag::NOICEWALL},
+        {"mask"_s, MapFlag::MASK},
         {"snow"_s, MapFlag::SNOW},
         {"fog"_s, MapFlag::FOG},
         {"sakura"_s, MapFlag::SAKURA},

@@ -4703,7 +4703,20 @@ def build_context():
             Send mob walkpath data to client
         ''',
     )
-    # 0x0226 define='SMSG_MAP_MASK',
+    map_user.s(0x0226, 'send map mask',
+        define='SMSG_MAP_MASK',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u32, 'mask'),
+            at(6, u32, 'unused'),
+        ],
+        fixed_size=10,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Set map mask
+        ''',
+    )
     map_user.s(0x0227, 'change map music',
         define='SMSG_MAP_MUSIC',
         head=[

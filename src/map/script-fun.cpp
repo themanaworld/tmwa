@@ -2704,6 +2704,50 @@ void builtin_music(ScriptState *st)
     clif_change_music(sd, msg);
 }
 
+static
+void builtin_mapmask(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd;
+    dumb_ptr<map_session_data> sd;
+    int map_mask = conv_num(st, &AARG(0));
+
+    if(st->oid)
+        nd = map_id_is_npc(st->oid);
+    if(st->rid)
+        sd = script_rid2sd(st);
+
+    if(HARG(1) && sd != nullptr)
+        sd->bl_m->mask = map_mask;
+    else if(HARG(1) && nd)
+        nd->bl_m->mask = map_mask;
+
+    if (sd == nullptr)
+        return;
+    clif_send_mask(sd, map_mask);
+}
+
+static
+void builtin_getmask(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd;
+    dumb_ptr<map_session_data> sd;
+    int map_mask;
+
+    if(st->oid)
+        nd = map_id_is_npc(st->oid);
+    if(st->rid)
+        sd = script_rid2sd(st);
+
+    if(sd != nullptr)
+        map_mask = sd->bl_m->mask;
+    else if(nd)
+        map_mask = nd->bl_m->mask;
+    else
+        map_mask = -1;
+
+    push_int<ScriptDataInt>(st->stack, map_mask);
+}
+
 /*==========================================
  * npctalk (sends message to surrounding
  * area) [Valaris]
@@ -3188,6 +3232,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npctalk, "ss?"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
     BUILTIN(music, "s"_s, '\0'),
+    BUILTIN(mapmask, "i?"_s, '\0'),
+    BUILTIN(getmask, ""_s, 'i'),
     BUILTIN(getlook, "i"_s, 'i'),
     BUILTIN(getsavepoint, "i"_s, '.'),
     BUILTIN(areatimer, "MxyxytE"_s, '\0'),
