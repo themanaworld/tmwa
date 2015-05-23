@@ -586,8 +586,7 @@ void run_func(ScriptState *st)
             if (battle_config.error_log)
                 PRINTF("function not found\n"_fmt);
             st->state = ScriptEndState::END;
-            runflag = 0;
-            return;
+            abort();
         }
     }
     // the func is before the arg
@@ -599,8 +598,7 @@ void run_func(ScriptState *st)
     {
         PRINTF("run_func: not function and command! \n"_fmt);
         st->state = ScriptEndState::END;
-        runflag = 0;
-        return;
+        abort();
     }
     size_t func = st->stack->stack_datav[st->start].get_if<ScriptDataFuncRef>()->numi;
 
@@ -669,8 +667,7 @@ void run_func(ScriptState *st)
         {
             PRINTF("script:run_func (return) return without callfunc or callsub!\n"_fmt);
             st->state = ScriptEndState::END;
-            runflag = 0;
-            return;
+            abort();
         }
         assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
         st->scriptp.code = Some(conv_script(st, &st->stack->stack_datav[olddefsp - 1]));   // スクリプトを復元
@@ -766,7 +763,7 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                     {
                         PRINTF("run_script: infinity loop !\n"_fmt);
                         st->state = ScriptEndState::END;
-                        runflag = 0;
+                        abort();
                     }
                 }
                 break;
@@ -807,17 +804,28 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
 
             default:
                 if (battle_config.error_log)
+                {
                     PRINTF("unknown command : %d @ %zu\n"_fmt,
                             c, st->scriptp.pos);
-                st->state = ScriptEndState::END;
-                runflag = 0;
+                    if (st->oid)
+                    {
+                        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+                        PRINTF("NPC => %s\n"_fmt, nd->name);
+                    }
+                    if (st->rid)
+                    {
+                        dumb_ptr<map_session_data> sd = script_rid2sd(st);
+                        PRINTF("PC => %s\n"_fmt, sd->status_key.name.to__actual());
+                    }
+                }
+                abort();
                 break;
         }
         if (st->freeloop != 1 && cmdcount > 0 && (--cmdcount) <= 0)
         {
             PRINTF("run_script: infinity loop !\n"_fmt);
             st->state = ScriptEndState::END;
-            runflag = 0;
+            abort();
         }
     }
     switch (st->state)
