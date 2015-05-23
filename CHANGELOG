@@ -1,3 +1,6 @@
+v15.5.23
+  - really send mob hp properly
+  - add more debug with abort vs. runflag
 v15.5.19
   - check client version in login server
   - make npcs sit-able
