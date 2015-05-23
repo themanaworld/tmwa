@@ -156,7 +156,7 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->name = warp.name.data;
 
     nd->npc_class = WARP_CLASS;
-    nd->speed = 200_ms;
+    nd->speed = DEFAULT_WALK_SPEED;
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
@@ -237,7 +237,7 @@ bool npc_load_shop(ast::npc::Shop& shop)
     nd->sit = DamageType::STAND;
     nd->name = shop.name.data;
     nd->npc_class = npc_class;
-    nd->speed = 200_ms;
+    nd->speed = DEFAULT_WALK_SPEED;
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
@@ -450,7 +450,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     nd->flag = 0;
     nd->sit = DamageType::STAND;
     nd->npc_class = INVISIBLE_CLASS;
-    nd->speed = 200_ms;
+    nd->speed = DEFAULT_WALK_SPEED;
     nd->scr.script = std::move(script);
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
@@ -572,7 +572,7 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     nd->flag = 0;
     nd->sit = DamageType::STAND;
     nd->npc_class = npc_class;
-    nd->speed = 200_ms;
+    nd->speed = DEFAULT_WALK_SPEED;
     nd->scr.script = std::move(script);
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;

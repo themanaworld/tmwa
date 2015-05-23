@@ -58,6 +58,7 @@ int clif_spawnmob(dumb_ptr<mob_data>); // area
 int clif_walkok(dumb_ptr<map_session_data>);   // self
 int clif_movechar(dumb_ptr<map_session_data>); // area
 int clif_movemob(dumb_ptr<mob_data>);  //area
+int clif_movenpc(dumb_ptr<npc_data>);
 void clif_changemap(dumb_ptr<map_session_data>, MapName, int, int);  //self
 void clif_changemapserver(dumb_ptr<map_session_data>, MapName, int, int, IP4Address, int);  //self
 void clif_fixpos(dumb_ptr<block_list>); // area

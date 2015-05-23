@@ -333,6 +333,7 @@ struct npc_data : block_list
     Opt3 opt3;
     Opt0 option;
     short flag;
+    short to_x, to_y;
 
     std::list<RString> eventqueuel;
     Array<Timer, MAX_EVENTTIMER> eventtimer;
