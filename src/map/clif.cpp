@@ -796,6 +796,25 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
+static
+void clif_npc007b(dumb_ptr<npc_data> nd, Buffer& buf)
+{
+    nullpo_retv(nd);
+
+    Packet_Fixed<0x007b> fixed_7b;
+    fixed_7b.block_id = nd->bl_id;
+    fixed_7b.speed = nd->speed;
+    fixed_7b.mob_class = nd->npc_class;
+    fixed_7b.tick = gettick();
+
+    fixed_7b.pos2.x0 = nd->bl_x;
+    fixed_7b.pos2.y0 = nd->bl_y;
+    fixed_7b.pos2.x1 = nd->to_x;
+    fixed_7b.pos2.y1 = nd->to_y;
+
+    buf = create_fpacket<0x007b, 60>(fixed_7b);
+}
+
 /*==========================================
  * MOB表示2
  *------------------------------------------
@@ -2401,6 +2420,18 @@ int clif_movemob(dumb_ptr<mob_data> md)
     clif_mob007b(md, buf);
     clif_send(buf, md, SendWho::AREA);
     clif_0225_being_move3(md);
+
+    return 0;
+}
+
+int clif_movenpc(dumb_ptr<npc_data> nd)
+{
+    nullpo_retz(nd);
+
+    Buffer buf;
+    clif_npc007b(nd, buf);
+    clif_send(buf, nd, SendWho::AREA);
+    //clif_0225_being_move3(nd);
 
     return 0;
 }

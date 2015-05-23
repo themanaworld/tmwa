@@ -2693,6 +2693,24 @@ void builtin_npctalk(ScriptState *st)
     }
 }
 
+static
+void builtin_walk(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd;
+    short to_x = conv_num(st, &AARG(0));
+    short to_y = conv_num(st, &AARG(1));
+    dumb_ptr<npc_data> nd_ = map_id_is_npc(st->oid);
+    assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
+    nd = nd_->is_script();
+
+    nd->to_x = to_x;
+    nd->to_y = to_y;
+    nd->bl_x = to_x;
+    nd->bl_y = to_y;
+
+    clif_movenpc(nd);
+}
+
 /*==========================================
   * getlook char info. getlook(arg)
   *------------------------------------------
@@ -3161,6 +3179,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
+    BUILTIN(walk, "ii"_s, '\0'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
