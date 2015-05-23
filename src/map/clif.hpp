@@ -179,6 +179,7 @@ void clif_resurrection(dumb_ptr<block_list> bl, int type);
 
 int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag);    // special effects [Valaris]
 void clif_message(dumb_ptr<block_list> bl, XString msg);   // messages (from mobs/npcs) [Valaris]
+void clif_message_towards(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl, XString msg);
 
 int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
         int type);

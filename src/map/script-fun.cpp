@@ -2713,13 +2713,24 @@ void builtin_music(ScriptState *st)
 static
 void builtin_npctalk(ScriptState *st)
 {
-    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
-    RString str = conv_str(st, &AARG(0));
+    dumb_ptr<npc_data> nd;
+    RString str = conv_str(st, &AARG(1));
 
-    if (nd)
-    {
-        clif_message(nd, str);
+    dumb_ptr<npc_data> nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
+    assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
+    nd = nd_->is_script();
+
+
+    if(HARG(2)){
+        CharName player = stringish<CharName>(ZString(conv_str(st, &AARG(2))));
+        dumb_ptr<map_session_data> pl_sd = map_nick2sd(player);
+        if (pl_sd == nullptr)
+            return;
+        clif_message_towards(pl_sd, nd, str);
     }
+
+    else
+        clif_message(nd, str);
 }
 
 /*==========================================
@@ -3174,7 +3185,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npcwarp, "xys"_s, '\0'),
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
-    BUILTIN(npctalk, "s"_s, '\0'),
+    BUILTIN(npctalk, "ss?"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
     BUILTIN(music, "s"_s, '\0'),
     BUILTIN(getlook, "i"_s, 'i'),
