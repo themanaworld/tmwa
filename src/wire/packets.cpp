@@ -76,6 +76,7 @@ void packet_dump(Session *s)
         if ((i & 15) == 0)
             FPRINTF(stderr, "%04X "_fmt, i);
         Byte rfifob_ib;
+        rfifob_ib.value = 0;
         packet_fetch(s, i, &rfifob_ib, 1);
         uint8_t rfifob_i = rfifob_ib.value;
         FPRINTF(stderr, "%02x "_fmt, rfifob_i);
