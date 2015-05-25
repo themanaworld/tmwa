@@ -57,8 +57,8 @@ script:
   - mkdir build
   - cd build
   - git init
-  - echo ../configure --build=x86_64-linux-gnu --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi6` $EXTRA_CONFIGURE_ARGS
-  - ../configure --build=x86_64-linux-gnu --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi6` $EXTRA_CONFIGURE_ARGS
+  - echo ../configure --build=x86_64-linux-gnu --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi` $EXTRA_CONFIGURE_ARGS
+  - ../configure --build=x86_64-linux-gnu --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi` $EXTRA_CONFIGURE_ARGS
   - make -R -k -j2
   - make -R -k -j2 test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
 
@@ -103,7 +103,7 @@ matrix:
     - compiler: gcc
       env: REAL_CC=gcc-4.9   REAL_CXX=g++-4.9     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.9 DEBUGPACKAGE=libstdc++6-4.9-dbg
     - compiler: gcc
-      env: REAL_CC=gcc-5     REAL_CXX=g++-5       PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-5   DEBUGPACKAGE=libstdc++6-4.9-dbg
+      env: REAL_CC=gcc-5     REAL_CXX=g++-5       PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-5   DEBUGPACKAGE=libstdc++6-5-dbg
 
     - compiler: gcc
       env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7 DEBUGPACKAGE=libstdc++6-4.8-dbg EXTRA_CONFIGURE_ARGS=--disable-warnings

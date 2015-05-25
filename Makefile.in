@@ -47,7 +47,7 @@ GTEST_DIR = @GTEST_DIR@
 GDB = @GDB@
 
 ENABLE_WARNINGS = @ENABLE_WARNINGS@
-ENABLE_ABI6 = @ENABLE_ABI6@
+ENABLE_ABI = @ENABLE_ABI@
 ENABLE_CYGWIN_HACKS = @ENABLE_CYGWIN_HACKS@
 ENABLE_DEBUG = @ENABLE_DEBUG@
 ENABLE_RPATH = @ENABLE_RPATH@
@@ -276,8 +276,8 @@ WARNINGS := -include ${SRC_DIR}/src/warnings.hpp
 endif
 
 # related to gdb bug 15801
-ifeq (${ENABLE_ABI6},yes)
-CXXFLAGS += -fabi-version=6
+ifeq (${ENABLE_ABI},yes)
+CXXFLAGS += -fabi-version=8
 endif
 
 # This needs to edit CXX instead of CXXFLAGS in order to make
