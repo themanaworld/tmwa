@@ -930,6 +930,12 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
 
     clif_send(buf, sd, SendWho::AREA_WOS);
 
+    if (pc_isdead(sd))
+        clif_clearchar(sd, BeingRemoveWhy::DEAD);
+
+    if (pc_issit(sd))
+        clif_sitting(sd);
+
     if (sd->bl_m->flag.get(MapFlag::SNOW))
         clif_specialeffect(sd, 162, 1);
     if (sd->bl_m->flag.get(MapFlag::FOG))
@@ -1175,16 +1181,33 @@ void clif_changemapserver(dumb_ptr<map_session_data> sd,
  *
  *------------------------------------------
  */
-void clif_fixpos(dumb_ptr<block_list> bl)
-{
-    nullpo_retv(bl);
 
+static
+void clif_fixpos_sub(Buffer &buf, dumb_ptr<block_list> bl)
+{
     Packet_Fixed<0x0088> fixed_88;
     fixed_88.block_id = bl->bl_id;
     fixed_88.x = bl->bl_x;
     fixed_88.y = bl->bl_y;
 
-    Buffer buf = create_fpacket<0x0088, 10>(fixed_88);
+    buf = create_fpacket<0x0088, 10>(fixed_88);
+}
+
+void clif_fixpos_towards(dumb_ptr<block_list> bl)
+{
+    nullpo_retv(bl);
+
+    Buffer buf;
+    clif_fixpos_sub(buf, bl);
+    clif_send(buf, bl, SendWho::SELF);
+}
+
+void clif_fixpos(dumb_ptr<block_list> bl)
+{
+    nullpo_retv(bl);
+
+    Buffer buf;
+    clif_fixpos_sub(buf, bl);
     clif_send(buf, bl, SendWho::AREA);
 }
 
@@ -3192,7 +3215,7 @@ void clif_emotion_towards(dumb_ptr<block_list> bl,
  * 座る
  *------------------------------------------
  */
-void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
+void clif_sitting(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -3539,19 +3562,18 @@ RecvResult clif_parse_WalkToXY(Session *s, dumb_ptr<map_session_data> sd)
 
     if (pc_isdead(sd))
     {
+        clif_fixpos_towards(sd); // send correction notice
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
         return rv;
     }
 
-    if (sd->npc_id || sd->state.storage_open)
+    if (sd->npc_id || sd->state.storage_open ||
+        sd->canmove_tick > gettick() ||
+        (bool(sd->opt1) && sd->opt1 != (Opt1::_stone6)))
+    {
+        clif_fixpos_towards(sd); // send correction notice
         return rv;
-
-    if (sd->canmove_tick > gettick())
-        return rv;
-
-    // ステータス異常やハイディング中(トンネルドライブ無)で動けない
-    if (bool(sd->opt1) && sd->opt1 != (Opt1::_stone6))
-        return rv;
+    }
 
     if (sd->invincible_timer)
         pc_delinvincibletimer(sd);
@@ -3911,7 +3933,7 @@ RecvResult clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
         case DamageType::SIT:
             pc_stop_walking(sd, 1);
             pc_setsit(sd);
-            clif_sitting(s, sd);
+            clif_sitting(sd);
             break;
         case DamageType::STAND:
             pc_setstand(sd);

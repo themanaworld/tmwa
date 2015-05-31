@@ -61,6 +61,7 @@ int clif_movemob(dumb_ptr<mob_data>);  //area
 void clif_changemap(dumb_ptr<map_session_data>, MapName, int, int);  //self
 void clif_changemapserver(dumb_ptr<map_session_data>, MapName, int, int, IP4Address, int);  //self
 void clif_fixpos(dumb_ptr<block_list>); // area
+void clif_fixpos_towards(dumb_ptr<block_list>); // self
 int clif_fixmobpos(dumb_ptr<mob_data> md);
 int clif_fixpcpos(dumb_ptr<map_session_data> sd);
 int clif_npcbuysell(dumb_ptr<map_session_data>, BlockId);  //self
@@ -97,7 +98,7 @@ int clif_useitemack(dumb_ptr<map_session_data>, IOff0, int, int);    // self
 
 void clif_emotion(dumb_ptr<block_list> bl, int type);
 void clif_emotion_towards(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int type);
-void clif_sitting(Session *, dumb_ptr<map_session_data> sd);
+void clif_sitting(dumb_ptr<map_session_data> sd);
 void clif_sitnpc(dumb_ptr<npc_data> nd, DamageType dmg);
 void clif_sitnpc_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DamageType dmg);
 void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction);
