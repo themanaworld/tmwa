@@ -92,6 +92,7 @@ int clif_statusupack(dumb_ptr<map_session_data>, SP, int, int);   // self
 int clif_equipitemack(dumb_ptr<map_session_data>, IOff0, EPOS, int);  // self
 int clif_unequipitemack(dumb_ptr<map_session_data>, IOff0, EPOS, int);    // self
 int clif_misceffect(dumb_ptr<block_list>, int);    // area
+void clif_pvpstatus(dumb_ptr<map_session_data>); // area
 int clif_changeoption(dumb_ptr<block_list>);   // area
 int clif_useitemack(dumb_ptr<map_session_data>, IOff0, int, int);    // self
 

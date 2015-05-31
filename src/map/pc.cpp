@@ -3313,6 +3313,11 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         };
         npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"_s), sd->bl_id, arg);
         npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"_s), src->bl_id, arg);
+
+        sd->state.pvp_rank = 0;
+        src->is_player()->state.pvp_rank++;
+        clif_pvpstatus(sd);
+        clif_pvpstatus(src->is_player());
     }
     npc_event_doall_l(stringish<ScriptLabel>("OnPCDieEvent"_s), sd->bl_id, nullptr);
 

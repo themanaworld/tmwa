@@ -930,6 +930,8 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
 
     clif_send(buf, sd, SendWho::AREA_WOS);
 
+    clif_pvpstatus(sd);
+
     if (sd->bl_m->flag.get(MapFlag::SNOW))
         clif_specialeffect(sd, 162, 1);
     if (sd->bl_m->flag.get(MapFlag::FOG))
@@ -2046,6 +2048,19 @@ int clif_misceffect(dumb_ptr<block_list> bl, int type)
     clif_send(buf, bl, SendWho::AREA);
 
     return 0;
+}
+
+void clif_pvpstatus(dumb_ptr<map_session_data> sd)
+{
+    nullpo_retv(sd);
+
+    Packet_Fixed<0x019a> fixed_19a;
+    fixed_19a.block_id = sd->bl_id;
+    fixed_19a.rank = sd->state.pvp_rank;
+    fixed_19a.channel = sd->state.pvpchannel;
+    Buffer buf = create_fpacket<0x019a, 14>(fixed_19a);
+
+    clif_send(buf, sd, SendWho::AREA);
 }
 
 /*==========================================
