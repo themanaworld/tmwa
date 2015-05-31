@@ -2050,6 +2050,20 @@ int clif_misceffect(dumb_ptr<block_list> bl, int type)
     return 0;
 }
 
+void clif_map_pvp(dumb_ptr<map_session_data> sd)
+{
+    nullpo_retv(sd);
+
+    if (sd->client_version < 3)
+        return;
+
+    Packet_Fixed<0x0199> fixed_199;
+    fixed_199.status = sd->bl_m->flag.get(MapFlag::PVP)? 1: 0;
+    Buffer buf = create_fpacket<0x0199, 4>(fixed_199);
+
+    clif_send(buf, sd, SendWho::SELF);
+}
+
 void clif_pvpstatus(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
@@ -3469,6 +3483,8 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
 
     map_addblock(sd);     // ブロック登録
     clif_spawnpc(sd);          // spawn
+
+    clif_map_pvp(sd); // send map pvp status
 
     // weight max , now
     clif_updatestatus(sd, SP::MAXWEIGHT);

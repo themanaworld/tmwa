@@ -4278,10 +4278,21 @@ def build_context():
             Being adds/removes a persistent status effect.
         ''',
     )
-    # 0x0199 define='SMSG_PVP_MAP_MODE',
-    # 0x019a define='SMSG_PVP_SET',
+    map_user.s(0x0199, 'map pvp status',
+        define='SMSG_PVP_MAP_MODE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'status'),
+        ],
+        fixed_size=4,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send the map pvp status
+        ''',
+    )
     map_user.s(0x019a, 'being pvp status',
-        define='SMSG_BEING_SELFEFFECT',
+        define='SMSG_PVP_SET',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, block_id, 'block id'),
