@@ -134,6 +134,9 @@ static
 void clif_sitnpc_sub(Buffer& buf, dumb_ptr<npc_data> nd, DamageType dmg);
 
 static
+void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf);
+
+static
 void clif_delete(Session *s)
 {
     assert (s != char_session);
@@ -765,35 +768,13 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
 }
 
 /*==========================================
- * MOB表示1
+ * DEPRECATED
  *------------------------------------------
  */
 static
 void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
 {
-    nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
-    int hp = md->hp;
-
-    Packet_Fixed<0x0078> fixed_78;
-    fixed_78.block_id = md->bl_id;
-    fixed_78.speed = battle_get_speed(md);
-    fixed_78.opt1 = md->opt1;
-    fixed_78.opt2 = md->opt2;
-    fixed_78.option = md->option;
-    fixed_78.species = md->mob_class;
-    // snip: stuff do do with disguise as a PC
-    fixed_78.pos.x = md->bl_x;
-    fixed_78.pos.y = md->bl_y;
-    fixed_78.pos.dir = md->dir;
-
-    fixed_78.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
-    fixed_78.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
-    fixed_78.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
-    fixed_78.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
-    fixed_78.karma_or_attack_range = battle_get_range(md);
-
-    buf = create_fpacket<0x0078, 54>(fixed_78);
+    clif_mob007b(md, buf);
 }
 
 /*==========================================
