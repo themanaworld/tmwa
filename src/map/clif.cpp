@@ -134,9 +134,6 @@ static
 void clif_sitnpc_sub(Buffer& buf, dumb_ptr<npc_data> nd, DamageType dmg);
 
 static
-void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf);
-
-static
 void clif_delete(Session *s)
 {
     assert (s != char_session);
@@ -768,22 +765,13 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
 }
 
 /*==========================================
- * DEPRECATED
+ * The entity is moving
  *------------------------------------------
  */
 static
-void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
+void clif_entity_move(dumb_ptr<block_list> bl, Buffer& buf)
 {
-    clif_mob007b(md, buf);
-}
-
-/*==========================================
- * MOB表示2
- *------------------------------------------
- */
-static
-void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
-{
+    dumb_ptr<mob_data> md = bl->is_mob(); // FIXME: make this packet compatible with npcs when npcs become mobs
     nullpo_retv(md);
     int max_hp = md->stats[mob_stat::MAX_HP];
     int hp = md->hp;
@@ -795,7 +783,6 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_7b.opt2 = md->opt2;
     fixed_7b.option = md->option;
     fixed_7b.mob_class = md->mob_class;
-    // snip: stuff for monsters disguised as PCs
     fixed_7b.tick = gettick();
 
     fixed_7b.pos2.x0 = md->bl_x;
@@ -811,6 +798,50 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
 
     buf = create_fpacket<0x007b, 60>(fixed_7b);
 }
+
+/*==========================================
+ * The entity is moving or stationary
+ *------------------------------------------
+ */
+static
+void clif_entity_visible(dumb_ptr<block_list> bl, Buffer& buf)
+{
+    nullpo_retv(bl);
+    dumb_ptr<npc_data> nd = bl->is_npc();
+    dumb_ptr<mob_data> md = bl->is_mob();
+
+    Packet_Fixed<0x0078> fixed_78;
+    fixed_78.block_id = bl->bl_id;
+    fixed_78.pos.x = bl->bl_x;
+    fixed_78.pos.y = bl->bl_y;
+
+    if(nd) // npc
+    {
+        fixed_78.speed = nd->speed;
+        fixed_78.species = nd->npc_class;
+        fixed_78.pos.dir = nd->dir;
+        fixed_78.sex = nd->sex;
+    }
+
+    else // mob
+    {
+        int max_hp = md->stats[mob_stat::MAX_HP];
+        int hp = md->hp;
+        fixed_78.speed = battle_get_speed(md);
+        fixed_78.opt1 = md->opt1;
+        fixed_78.opt2 = md->opt2;
+        fixed_78.option = md->option;
+        fixed_78.species = md->mob_class;
+        fixed_78.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
+        fixed_78.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
+        fixed_78.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
+        fixed_78.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
+        fixed_78.karma_or_attack_range = battle_get_range(md);
+    }
+
+    buf = create_fpacket<0x0078, 54>(fixed_78);
+}
+
 /*==========================================
  * Packet to send server's mob walkpath data
  *------------------------------------------
@@ -857,25 +888,6 @@ int clif_0225_being_move3(dumb_ptr<mob_data> md)
             BL::PC);
 
     return 0;
-}
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void clif_npc0078(dumb_ptr<npc_data> nd, Buffer& buf)
-{
-    nullpo_retv(nd);
-
-    Packet_Fixed<0x0078> fixed_78;
-    fixed_78.block_id = nd->bl_id;
-    fixed_78.speed = nd->speed;
-    fixed_78.species = nd->npc_class;
-    fixed_78.pos.x = nd->bl_x;
-    fixed_78.pos.y = nd->bl_y;
-    fixed_78.pos.dir = nd->dir;
-    fixed_78.sex = nd->sex;
-    buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
 /* These indices are derived from equip_pos in pc.c and some guesswork */
@@ -937,19 +949,9 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 
     if (nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
-    /* manaplus is skipping this packet
-    Packet_Fixed<0x007c> fixed_7c;
-    fixed_7c.block_id = nd->bl_id;
-    fixed_7c.speed = nd->speed;
-    fixed_7c.species = nd->npc_class;
-    fixed_7c.pos.x = nd->bl_x;
-    fixed_7c.pos.y = nd->bl_y;
 
-    Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
-    clif_send(buf, nd, SendWho::AREA);
-    */
     Buffer buf;
-    clif_npc0078(nd, buf);
+    clif_entity_visible(nd, buf);
     clif_send(buf, nd, SendWho::AREA);
 
     if(nd->sit == DamageType::SIT)
@@ -970,17 +972,6 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
 
     if (!s)
         return 0;
-
-    Packet_Fixed<0x007c> fixed_7c;
-    fixed_7c.block_id = fake_npc_id;
-    fixed_7c.speed = interval_t();
-    fixed_7c.opt1 = Opt1::ZERO;
-    fixed_7c.opt2 = Opt2::ZERO;
-    fixed_7c.option = Opt0::ZERO;
-    fixed_7c.species = FAKE_NPC_CLASS;
-    fixed_7c.pos.x = sd->bl_x;
-    fixed_7c.pos.y = sd->bl_y;
-    send_fpacket<0x007c, 41>(s, fixed_7c);
 
     Packet_Fixed<0x0078> fixed_78;
     fixed_78.block_id = fake_npc_id;
@@ -1004,22 +995,8 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
 {
     nullpo_retz(md);
 
-    {
-        Packet_Fixed<0x007c> fixed_7c;
-        fixed_7c.block_id = md->bl_id;
-        fixed_7c.speed = interval_t(md->stats[mob_stat::SPEED]);
-        fixed_7c.opt1 = md->opt1;
-        fixed_7c.opt2 = md->opt2;
-        fixed_7c.option = md->option;
-        fixed_7c.species = md->mob_class;
-        fixed_7c.pos.x = md->bl_x;
-        fixed_7c.pos.y = md->bl_y;
-        Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
-        clif_send(buf, md, SendWho::AREA);
-    }
-
     Buffer buf;
-    clif_mob0078(md, buf);
+    clif_entity_visible(md, buf);
     clif_send(buf, md, SendWho::AREA);
 
     return 0;
@@ -2359,7 +2336,7 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
         return;
 
     Buffer buf;
-    clif_npc0078(nd, buf);
+    clif_entity_visible(nd, buf);
     send_buffer(sd->sess, buf);
 
     if(nd->sit == DamageType::SIT)
@@ -2379,7 +2356,7 @@ int clif_movemob(dumb_ptr<mob_data> md)
     nullpo_retz(md);
 
     Buffer buf;
-    clif_mob007b(md, buf);
+    clif_entity_move(md, buf);
     clif_send(buf, md, SendWho::AREA);
     clif_0225_being_move3(md);
 
@@ -2397,13 +2374,13 @@ int clif_fixmobpos(dumb_ptr<mob_data> md)
     if (md->state.state == MS::WALK)
     {
         Buffer buf;
-        clif_mob007b(md, buf);
+        clif_entity_move(md, buf);
         clif_send(buf, md, SendWho::AREA);
     }
     else
     {
         Buffer buf;
-        clif_mob0078(md, buf);
+        clif_entity_visible(md, buf);
         clif_send(buf, md, SendWho::AREA);
     }
 
@@ -2479,13 +2456,13 @@ void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
     if (md->state.state == MS::WALK)
     {
         Buffer buf;
-        clif_mob007b(md, buf);
+        clif_entity_move(md, buf);
         send_buffer(sd->sess, buf);
     }
     else
     {
         Buffer buf;
-        clif_mob0078(md, buf);
+        clif_entity_visible(md, buf);
         send_buffer(sd->sess, buf);
     }
 }
