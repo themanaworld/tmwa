@@ -842,7 +842,7 @@ void clif_0225_being_move3_sub(dumb_ptr<block_list> bl, const Buffer& buf)
 
     if (sd->sess != nullptr)
     {
-        if(sd->client_version >= 3)
+        if(sd->client_version >= 3) // require 1.5.5.23 or above
         {
             send_buffer(sd->sess, buf);
         }
@@ -2054,7 +2054,7 @@ void clif_map_pvp(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    if (sd->client_version < 3)
+    if (sd->client_version < 2) // require 1.5.5.9 or above
         return;
 
     Packet_Fixed<0x0199> fixed_199;
@@ -2067,6 +2067,9 @@ void clif_map_pvp(dumb_ptr<map_session_data> sd)
 void clif_pvpstatus(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
+
+    if (sd->client_version < 2) // require 1.5.5.9 or above
+        return;
 
     Packet_Fixed<0x019a> fixed_19a;
     fixed_19a.block_id = sd->bl_id;
@@ -2716,7 +2719,7 @@ void clif_skillinfoblock(dumb_ptr<map_session_data> sd)
     std::vector<Packet_Repeat<0x010f>> repeat_10f;
     for (SkillID i : erange(SkillID(), MAX_SKILL))
     {
-        if (sd->status.skill[i].lv && sd->client_version >= 1)
+        if (sd->status.skill[i].lv)
         {
             Packet_Repeat<0x010f> info;
             // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
@@ -4848,7 +4851,7 @@ void clif_sendallquest(dumb_ptr<map_session_data> sd)
     if (!sd->sess)
         return;
 
-    if(sd->client_version < 2)
+    if(sd->client_version < 2) // require 1.5.5.9 or above
         return;
 
     Session *s = sd->sess;
@@ -4885,7 +4888,7 @@ void clif_sendquest(dumb_ptr<map_session_data> sd, QuestId questid, int value)
     if (!sd->sess)
         return;
 
-    if(sd->client_version < 2)
+    if(sd->client_version < 2) // require 1.5.5.9 or above
         return;
 
     Session *s = sd->sess;

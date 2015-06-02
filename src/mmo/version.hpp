@@ -36,6 +36,9 @@ namespace tmwa
 #define TMWA_SERVER_MAP        0x08
 
 // increase the min version when the protocol is incompatible with old m+ versions
+// 1 = latest mana, old manaplus, bots
+// 2 = manaplus 1.5.5.9 and above
+// 3 = manaplus 1.5.5.23 and above
 #define MIN_CLIENT_VERSION 1
 
 // TODO now that I generate the protocol, split 'flags' out of the struct
