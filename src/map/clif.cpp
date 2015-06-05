@@ -3051,7 +3051,7 @@ int clif_party_hp(PartyPair , dumb_ptr<map_session_data> sd)
 /*==========================================
  * 攻撃するために移動が必要
  *------------------------------------------
- */
+ *
 int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
 {
     nullpo_retz(sd);
@@ -3067,7 +3067,7 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
     fixed_139.range = sd->attackrange;
     send_fpacket<0x0139, 16>(s, fixed_139);
     return 0;
-}
+}*/
 
 /*==========================================
  * エモーション
