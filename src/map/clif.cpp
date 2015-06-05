@@ -713,61 +713,6 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
 }
 
 /*==========================================
- *
- *------------------------------------------
- */
-static
-void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
-{
-    nullpo_retv(sd);
-
-    Packet_Fixed<0x01da> fixed_1da;
-    fixed_1da.block_id = sd->bl_id;
-    fixed_1da.speed = sd->speed;
-    fixed_1da.opt1 = sd->opt1;
-    fixed_1da.opt2 = sd->opt2;
-    fixed_1da.option = sd->status.option;
-    fixed_1da.species = sd->status.species;
-    fixed_1da.hair_style = sd->status.hair;
-    IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
-    IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
-    if (widx.ok() && sd->inventory_data[widx].is_some())
-    {
-        fixed_1da.weapon = sd->status.inventory[widx].nameid;
-    }
-    else
-        fixed_1da.weapon = ItemNameId();
-    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx].is_some())
-    {
-        fixed_1da.shield = sd->status.inventory[sidx].nameid;
-    }
-    else
-        fixed_1da.shield = ItemNameId();
-    fixed_1da.head_bottom = sd->status.head_bottom;
-    fixed_1da.tick = gettick();
-    fixed_1da.head_top = sd->status.head_top;
-    fixed_1da.head_mid = sd->status.head_mid;
-    fixed_1da.hair_color = sd->status.hair_color;
-    fixed_1da.clothes_color = sd->status.clothes_color;
-    fixed_1da.head_dir = sd->head_dir;
-    fixed_1da.guild_id = 0;
-    fixed_1da.guild_emblem_id = 0;
-    fixed_1da.manner = sd->status.manner;
-    fixed_1da.opt3 = sd->opt3;
-    fixed_1da.karma = sd->status.karma;
-    fixed_1da.sex = sd->sex;
-    fixed_1da.pos2.x0 = sd->bl_x;
-    fixed_1da.pos2.y0 = sd->bl_y;
-    fixed_1da.pos2.x1 = sd->to_x;
-    fixed_1da.pos2.y1 = sd->to_y;
-    fixed_1da.gm_bits = pc_isGM(sd).get_public_word();
-    fixed_1da.five = 5;
-    fixed_1da.unused = 0;
-
-    buf = create_fpacket<0x01da, 60>(fixed_1da);
-}
-
-/*==========================================
  * The entity is moving
  *------------------------------------------
  */
@@ -849,19 +794,28 @@ void clif_send_entity_move(dumb_ptr<block_list> bl_sd, dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
     nullpo_retv(bl_sd);
-    dumb_ptr<mob_data> md = bl->is_mob();
     dumb_ptr<map_session_data> sd = bl_sd->is_player();
     Buffer buf;
 
     if (sd->sess != nullptr)
     {
         if(sd->client_version >= 3)
-            clif_entity_move_path(md, buf);
+            clif_entity_move_path(bl, buf);
         else
-            clif_entity_move(md, buf);
+            clif_entity_move(bl, buf);
 
         clif_send(buf, sd, SendWho::SELF);
     }
+}
+
+static
+void clif_send_entity_move_wos(dumb_ptr<block_list> bl_sd, dumb_ptr<block_list> bl)
+{
+    nullpo_retv(bl);
+    nullpo_retv(bl_sd);
+    if(bl_sd == bl)
+        return;
+    clif_send_entity_move(bl_sd, bl);
 }
 
 /* These indices are derived from equip_pos in pc.c and some guesswork */
@@ -1022,10 +976,11 @@ int clif_movechar(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
 
-    Buffer buf;
-    clif_set007b(sd, buf);
-
-    clif_send(buf, sd, SendWho::AREA_WOS);
+    map_foreachinarea(std::bind(clif_send_entity_move_wos, ph::_1, sd),
+            sd->bl_m,
+            sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
+            BL::PC);
 
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
         clif_changelook(sd, LOOK::CLOTHES_COLOR,
@@ -2280,7 +2235,7 @@ void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
     Buffer buf;
     if (dstsd->walktimer)
     {
-        clif_set007b(dstsd, buf);
+        clif_send_entity_move(sd, sd);
     }
     else
     {
@@ -2372,9 +2327,11 @@ int clif_fixpcpos(dumb_ptr<map_session_data> sd)
 
     if (sd->walktimer)
     {
-        Buffer buf;
-        clif_set007b(sd, buf);
-        clif_send(buf, sd, SendWho::AREA);
+        map_foreachinarea(std::bind(clif_send_entity_move, ph::_1, sd),
+                sd->bl_m,
+                sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+                sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
+                BL::PC);
     }
     else
     {
