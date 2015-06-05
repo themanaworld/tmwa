@@ -2448,6 +2448,29 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
  *------------------------------------------
  */
 static
+void clif_entity_move_path(dumb_ptr<block_list> bl, Buffer& buf)
+{
+    dumb_ptr<mob_data> md = bl->is_mob(); // FIXME: make this packet compatible with npcs when npcs become mobs
+    nullpo_retv(md);
+
+    Packet_Head<0x0225> head_225;
+    std::vector<Packet_Repeat<0x0225>> repeat_225;
+    head_225.magic_packet_length = md->walkpath.path_len + 14;
+    head_225.id = md->bl_id;
+    head_225.speed = battle_get_speed(md);
+    head_225.x_position = md->bl_x;
+    head_225.y_position = md->bl_y;
+    for (int i = 0; i < md->walkpath.path_len; i++)
+    {
+        Packet_Repeat<0x0225> move_225;
+        move_225.move = md->walkpath.path[i];
+        repeat_225.push_back(move_225);
+    }
+
+    buf = create_vpacket<0x0225, 14, 1>(head_225, repeat_225);
+}
+
+static
 void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
 {
     nullpo_retv(sd);
@@ -2456,8 +2479,15 @@ void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
     if (md->state.state == MS::WALK)
     {
         Buffer buf;
+        clif_entity_visible(md, buf);
+        send_buffer(sd->sess, buf);
         clif_entity_move(md, buf);
         send_buffer(sd->sess, buf);
+        if(sd->client_version >= 3)
+        {
+            clif_entity_move_path(md, buf);
+            send_buffer(sd->sess, buf);
+        }
     }
     else
     {
