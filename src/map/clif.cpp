@@ -134,6 +134,9 @@ static
 void clif_sitnpc_sub(Buffer& buf, dumb_ptr<npc_data> nd, DamageType dmg);
 
 static
+void clif_entity_move_path(dumb_ptr<block_list>, Buffer&);
+
+static
 void clif_delete(Session *s)
 {
     assert (s != char_session);
@@ -842,52 +845,24 @@ void clif_entity_visible(dumb_ptr<block_list> bl, Buffer& buf)
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
-/*==========================================
- * Packet to send server's mob walkpath data
- *------------------------------------------
- */
 static
-void clif_0225_being_move3_sub(dumb_ptr<block_list> bl, const Buffer& buf)
+void clif_send_entity_move(dumb_ptr<block_list> bl_sd, dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
-    dumb_ptr<map_session_data> sd = bl->is_player();
+    nullpo_retv(bl_sd);
+    dumb_ptr<mob_data> md = bl->is_mob();
+    dumb_ptr<map_session_data> sd = bl_sd->is_player();
+    Buffer buf;
 
     if (sd->sess != nullptr)
     {
         if(sd->client_version >= 3)
-        {
-            send_buffer(sd->sess, buf);
-        }
+            clif_entity_move_path(md, buf);
+        else
+            clif_entity_move(md, buf);
+
+        clif_send(buf, sd, SendWho::SELF);
     }
-}
-
-static
-int clif_0225_being_move3(dumb_ptr<mob_data> md)
-{
-    Packet_Head<0x0225> head_225;
-    std::vector<Packet_Repeat<0x0225>> repeat_225;
-
-    head_225.magic_packet_length = md->walkpath.path_len + 14;
-    head_225.id = md->bl_id;
-    head_225.speed = battle_get_speed(md);
-    head_225.x_position = md->bl_x;
-    head_225.y_position = md->bl_y;
-    for (int i = 0; i < md->walkpath.path_len; i++)
-    {
-        Packet_Repeat<0x0225> move_225;
-        move_225.move = md->walkpath.path[i];
-        repeat_225.push_back(move_225);
-    }
-
-    Buffer buf = create_vpacket<0x0225, 14, 1>(head_225, repeat_225);
-
-    map_foreachinarea(std::bind(clif_0225_being_move3_sub, ph::_1, buf),
-            md->bl_m,
-            md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
-            md->bl_x + AREA_SIZE, md->bl_y + AREA_SIZE,
-            BL::PC);
-
-    return 0;
 }
 
 /* These indices are derived from equip_pos in pc.c and some guesswork */
@@ -2354,12 +2329,11 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
 int clif_movemob(dumb_ptr<mob_data> md)
 {
     nullpo_retz(md);
-
-    Buffer buf;
-    clif_entity_move(md, buf);
-    clif_send(buf, md, SendWho::AREA);
-    clif_0225_being_move3(md);
-
+    map_foreachinarea(std::bind(clif_send_entity_move, ph::_1, md),
+            md->bl_m,
+            md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
+            md->bl_x + AREA_SIZE, md->bl_y + AREA_SIZE,
+            BL::PC);
     return 0;
 }
 
@@ -2373,9 +2347,11 @@ int clif_fixmobpos(dumb_ptr<mob_data> md)
 
     if (md->state.state == MS::WALK)
     {
-        Buffer buf;
-        clif_entity_move(md, buf);
-        clif_send(buf, md, SendWho::AREA);
+        map_foreachinarea(std::bind(clif_send_entity_move, ph::_1, md),
+                md->bl_m,
+                md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
+                md->bl_x + AREA_SIZE, md->bl_y + AREA_SIZE,
+                BL::PC);
     }
     else
     {
@@ -2481,13 +2457,7 @@ void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
         Buffer buf;
         clif_entity_visible(md, buf);
         send_buffer(sd->sess, buf);
-        clif_entity_move(md, buf);
-        send_buffer(sd->sess, buf);
-        if(sd->client_version >= 3)
-        {
-            clif_entity_move_path(md, buf);
-            send_buffer(sd->sess, buf);
-        }
+        clif_send_entity_move(sd, md);
     }
     else
     {
