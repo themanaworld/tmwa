@@ -955,15 +955,9 @@ int clif_walkok(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
 
-    Session *s = sd->sess;
-    Packet_Fixed<0x0087> fixed_87;
-    fixed_87.tick = gettick();
-    fixed_87.pos2.x0 = sd->bl_x;
-    fixed_87.pos2.y0 = sd->bl_y;
-    fixed_87.pos2.x1 = sd->to_x;
-    fixed_87.pos2.y1 = sd->to_y;
-    fixed_87.zero = 0;
-    send_fpacket<0x0087, 12>(s, fixed_87);
+    // this is not required by manaplus since manaplus assumes that walking
+    // always work and that the server will otherwise send a correction notice
+    //clif_send_entity_move(sd, sd);
 
     return 0;
 }
