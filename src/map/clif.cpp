@@ -774,30 +774,29 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
 static
 void clif_entity_move(dumb_ptr<block_list> bl, Buffer& buf)
 {
-    dumb_ptr<mob_data> md = bl->is_mob(); // FIXME: make this packet compatible with npcs when npcs become mobs
-    nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
-    int hp = md->hp;
-
     Packet_Fixed<0x007b> fixed_7b;
-    fixed_7b.block_id = md->bl_id;
-    fixed_7b.speed = battle_get_speed(md);
-    fixed_7b.opt1 = md->opt1;
-    fixed_7b.opt2 = md->opt2;
-    fixed_7b.option = md->option;
-    fixed_7b.mob_class = md->mob_class;
+    fixed_7b.block_id = bl->bl_id;
+    fixed_7b.speed = battle_get_speed(bl);
     fixed_7b.tick = gettick();
+    fixed_7b.pos2.x0 = bl->bl_x;
+    fixed_7b.pos2.y0 = bl->bl_y;
+    fixed_7b.pos2.x1 = bl->to_x;
+    fixed_7b.pos2.y1 = bl->to_y;
 
-    fixed_7b.pos2.x0 = md->bl_x;
-    fixed_7b.pos2.y0 = md->bl_y;
-    fixed_7b.pos2.x1 = md->to_x;
-    fixed_7b.pos2.y1 = md->to_y;
-
-    fixed_7b.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
-    fixed_7b.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
-    fixed_7b.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
-    fixed_7b.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
-    fixed_7b.karma_or_attack_range = battle_get_range(md);
+    dumb_ptr<mob_data> md = bl->is_mob();
+    if (md)
+    {
+        int max_hp = md->stats[mob_stat::MAX_HP];
+        int hp = md->hp;
+        fixed_7b.opt1 = md->opt1;
+        fixed_7b.option = md->option;
+        fixed_7b.mob_class = md->mob_class;
+        fixed_7b.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
+        fixed_7b.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
+        fixed_7b.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
+        fixed_7b.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
+        fixed_7b.karma_or_attack_range = battle_get_range(md);
+    }
 
     buf = create_fpacket<0x007b, 60>(fixed_7b);
 }
@@ -2426,20 +2425,20 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 static
 void clif_entity_move_path(dumb_ptr<block_list> bl, Buffer& buf)
 {
-    dumb_ptr<mob_data> md = bl->is_mob(); // FIXME: make this packet compatible with npcs when npcs become mobs
-    nullpo_retv(md);
+    nullpo_retv(bl);
 
     Packet_Head<0x0225> head_225;
     std::vector<Packet_Repeat<0x0225>> repeat_225;
-    head_225.magic_packet_length = md->walkpath.path_len + 14;
-    head_225.id = md->bl_id;
-    head_225.speed = battle_get_speed(md);
-    head_225.x_position = md->bl_x;
-    head_225.y_position = md->bl_y;
-    for (int i = 0; i < md->walkpath.path_len; i++)
+    head_225.id = bl->bl_id;
+    head_225.speed = battle_get_speed(bl);
+    head_225.x_position = bl->bl_x;
+    head_225.y_position = bl->bl_y;
+
+    head_225.magic_packet_length = bl->walkpath.path_len + 14;
+    for (int i = 0; i < bl->walkpath.path_len; i++)
     {
         Packet_Repeat<0x0225> move_225;
-        move_225.move = md->walkpath.path[i];
+        move_225.move = bl->walkpath.path[i];
         repeat_225.push_back(move_225);
     }
 
