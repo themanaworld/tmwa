@@ -69,13 +69,20 @@ constexpr std::chrono::seconds DEFAULT_AUTOSAVE_INTERVAL = 1_min;
 
 extern map_local undefined_gat;
 
+struct walkpath_data
+{
+    unsigned char path_len, path_pos, path_half;
+    Array<DIR, MAX_WALKPATH> path;
+};
+
 struct block_list
 {
     dumb_ptr<block_list> bl_next, bl_prev;
     BlockId bl_id;
     Borrowed<map_local> bl_m = borrow(undefined_gat);
-    short bl_x, bl_y;
+    short bl_x, bl_y, to_x, to_y;
     BL bl_type;
+    struct walkpath_data walkpath;
 
     // This deletes the copy-ctor also
     // TODO give proper ctors.
@@ -98,11 +105,6 @@ public:
     dumb_ptr<magic::invocation> is_spell();
 };
 
-struct walkpath_data
-{
-    unsigned char path_len, path_pos, path_half;
-    Array<DIR, MAX_WALKPATH> path;
-};
 struct status_change
 {
     Timer timer;
@@ -173,13 +175,11 @@ struct map_session_data : block_list, SessionData
     int weight, max_weight;
     MapName mapname_;
     Session *sess; // use this, you idiots!
-    short to_x, to_y;
     interval_t speed;
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;
     DIR dir, head_dir;
-    struct walkpath_data walkpath;
     Timer walktimer;
     BlockId npc_id, areanpc_id, npc_shopid;
     // this is important
@@ -435,11 +435,9 @@ struct mob_data : block_list
         unsigned special_mob_ai:3;
     } state;
     Timer timer;
-    short to_x, to_y;
     int hp;
     BlockId target_id, attacked_id;
     ATK target_lv;
-    struct walkpath_data walkpath;
     tick_t next_walktime;
     tick_t attackabletime;
     tick_t last_deadtime, last_spawntime, last_thinktime;

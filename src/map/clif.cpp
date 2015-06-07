@@ -134,6 +134,9 @@ static
 void clif_sitnpc_sub(Buffer& buf, dumb_ptr<npc_data> nd, DamageType dmg);
 
 static
+void clif_entity_move_path(dumb_ptr<block_list>, Buffer&);
+
+static
 void clif_delete(Session *s)
 {
     assert (s != char_session);
@@ -710,191 +713,109 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
 }
 
 /*==========================================
- *
+ * The entity is moving
  *------------------------------------------
  */
 static
-void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
+void clif_entity_move(dumb_ptr<block_list> bl, Buffer& buf)
 {
-    nullpo_retv(sd);
+    Packet_Fixed<0x007b> fixed_7b;
+    fixed_7b.block_id = bl->bl_id;
+    fixed_7b.speed = battle_get_speed(bl);
+    fixed_7b.tick = gettick();
+    fixed_7b.pos2.x0 = bl->bl_x;
+    fixed_7b.pos2.y0 = bl->bl_y;
+    fixed_7b.pos2.x1 = bl->to_x;
+    fixed_7b.pos2.y1 = bl->to_y;
 
-    Packet_Fixed<0x01da> fixed_1da;
-    fixed_1da.block_id = sd->bl_id;
-    fixed_1da.speed = sd->speed;
-    fixed_1da.opt1 = sd->opt1;
-    fixed_1da.opt2 = sd->opt2;
-    fixed_1da.option = sd->status.option;
-    fixed_1da.species = sd->status.species;
-    fixed_1da.hair_style = sd->status.hair;
-    IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
-    IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
-    if (widx.ok() && sd->inventory_data[widx].is_some())
+    dumb_ptr<mob_data> md = bl->is_mob();
+    if (md)
     {
-        fixed_1da.weapon = sd->status.inventory[widx].nameid;
+        int max_hp = md->stats[mob_stat::MAX_HP];
+        int hp = md->hp;
+        fixed_7b.opt1 = md->opt1;
+        fixed_7b.option = md->option;
+        fixed_7b.mob_class = md->mob_class;
+        fixed_7b.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
+        fixed_7b.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
+        fixed_7b.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
+        fixed_7b.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
+        fixed_7b.karma_or_attack_range = battle_get_range(md);
     }
-    else
-        fixed_1da.weapon = ItemNameId();
-    if (sidx.ok() && sidx != widx && sd->inventory_data[sidx].is_some())
-    {
-        fixed_1da.shield = sd->status.inventory[sidx].nameid;
-    }
-    else
-        fixed_1da.shield = ItemNameId();
-    fixed_1da.head_bottom = sd->status.head_bottom;
-    fixed_1da.tick = gettick();
-    fixed_1da.head_top = sd->status.head_top;
-    fixed_1da.head_mid = sd->status.head_mid;
-    fixed_1da.hair_color = sd->status.hair_color;
-    fixed_1da.clothes_color = sd->status.clothes_color;
-    fixed_1da.head_dir = sd->head_dir;
-    fixed_1da.guild_id = 0;
-    fixed_1da.guild_emblem_id = 0;
-    fixed_1da.manner = sd->status.manner;
-    fixed_1da.opt3 = sd->opt3;
-    fixed_1da.karma = sd->status.karma;
-    fixed_1da.sex = sd->sex;
-    fixed_1da.pos2.x0 = sd->bl_x;
-    fixed_1da.pos2.y0 = sd->bl_y;
-    fixed_1da.pos2.x1 = sd->to_x;
-    fixed_1da.pos2.y1 = sd->to_y;
-    fixed_1da.gm_bits = pc_isGM(sd).get_public_word();
-    fixed_1da.five = 5;
-    fixed_1da.unused = 0;
 
-    buf = create_fpacket<0x01da, 60>(fixed_1da);
+    buf = create_fpacket<0x007b, 60>(fixed_7b);
 }
 
 /*==========================================
- * MOB表示1
+ * The entity is moving or stationary
  *------------------------------------------
  */
 static
-void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
+void clif_entity_visible(dumb_ptr<block_list> bl, Buffer& buf)
 {
-    nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
-    int hp = md->hp;
+    nullpo_retv(bl);
+    dumb_ptr<npc_data> nd = bl->is_npc();
+    dumb_ptr<mob_data> md = bl->is_mob();
 
     Packet_Fixed<0x0078> fixed_78;
-    fixed_78.block_id = md->bl_id;
-    fixed_78.speed = battle_get_speed(md);
-    fixed_78.opt1 = md->opt1;
-    fixed_78.opt2 = md->opt2;
-    fixed_78.option = md->option;
-    fixed_78.species = md->mob_class;
-    // snip: stuff do do with disguise as a PC
-    fixed_78.pos.x = md->bl_x;
-    fixed_78.pos.y = md->bl_y;
-    fixed_78.pos.dir = md->dir;
+    fixed_78.block_id = bl->bl_id;
+    fixed_78.pos.x = bl->bl_x;
+    fixed_78.pos.y = bl->bl_y;
 
-    fixed_78.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
-    fixed_78.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
-    fixed_78.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
-    fixed_78.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
-    fixed_78.karma_or_attack_range = battle_get_range(md);
+    if(nd) // npc
+    {
+        fixed_78.speed = nd->speed;
+        fixed_78.species = nd->npc_class;
+        fixed_78.pos.dir = nd->dir;
+        fixed_78.sex = nd->sex;
+    }
+
+    else // mob
+    {
+        int max_hp = md->stats[mob_stat::MAX_HP];
+        int hp = md->hp;
+        fixed_78.speed = battle_get_speed(md);
+        fixed_78.opt1 = md->opt1;
+        fixed_78.opt2 = md->opt2;
+        fixed_78.option = md->option;
+        fixed_78.species = md->mob_class;
+        fixed_78.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
+        fixed_78.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
+        fixed_78.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
+        fixed_78.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
+        fixed_78.karma_or_attack_range = battle_get_range(md);
+    }
 
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
-/*==========================================
- * MOB表示2
- *------------------------------------------
- */
 static
-void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
-{
-    nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
-    int hp = md->hp;
-
-    Packet_Fixed<0x007b> fixed_7b;
-    fixed_7b.block_id = md->bl_id;
-    fixed_7b.speed = battle_get_speed(md);
-    fixed_7b.opt1 = md->opt1;
-    fixed_7b.opt2 = md->opt2;
-    fixed_7b.option = md->option;
-    fixed_7b.mob_class = md->mob_class;
-    // snip: stuff for monsters disguised as PCs
-    fixed_7b.tick = gettick();
-
-    fixed_7b.pos2.x0 = md->bl_x;
-    fixed_7b.pos2.y0 = md->bl_y;
-    fixed_7b.pos2.x1 = md->to_x;
-    fixed_7b.pos2.y1 = md->to_y;
-
-    fixed_7b.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
-    fixed_7b.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
-    fixed_7b.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
-    fixed_7b.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
-    fixed_7b.karma_or_attack_range = battle_get_range(md);
-
-    buf = create_fpacket<0x007b, 60>(fixed_7b);
-}
-/*==========================================
- * Packet to send server's mob walkpath data
- *------------------------------------------
- */
-static
-void clif_0225_being_move3_sub(dumb_ptr<block_list> bl, const Buffer& buf)
+void clif_send_entity_move(dumb_ptr<block_list> bl_sd, dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
-    dumb_ptr<map_session_data> sd = bl->is_player();
+    nullpo_retv(bl_sd);
+    dumb_ptr<map_session_data> sd = bl_sd->is_player();
+    Buffer buf;
 
     if (sd->sess != nullptr)
     {
         if(sd->client_version >= 3)
-        {
-            send_buffer(sd->sess, buf);
-        }
+            clif_entity_move_path(bl, buf);
+        else
+            clif_entity_move(bl, buf);
+
+        clif_send(buf, sd, SendWho::SELF);
     }
 }
 
 static
-int clif_0225_being_move3(dumb_ptr<mob_data> md)
+void clif_send_entity_move_wos(dumb_ptr<block_list> bl_sd, dumb_ptr<block_list> bl)
 {
-    Packet_Head<0x0225> head_225;
-    std::vector<Packet_Repeat<0x0225>> repeat_225;
-
-    head_225.magic_packet_length = md->walkpath.path_len + 14;
-    head_225.id = md->bl_id;
-    head_225.speed = battle_get_speed(md);
-    head_225.x_position = md->bl_x;
-    head_225.y_position = md->bl_y;
-    for (int i = 0; i < md->walkpath.path_len; i++)
-    {
-        Packet_Repeat<0x0225> move_225;
-        move_225.move = md->walkpath.path[i];
-        repeat_225.push_back(move_225);
-    }
-
-    Buffer buf = create_vpacket<0x0225, 14, 1>(head_225, repeat_225);
-
-    map_foreachinarea(std::bind(clif_0225_being_move3_sub, ph::_1, buf),
-            md->bl_m,
-            md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
-            md->bl_x + AREA_SIZE, md->bl_y + AREA_SIZE,
-            BL::PC);
-
-    return 0;
-}
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void clif_npc0078(dumb_ptr<npc_data> nd, Buffer& buf)
-{
-    nullpo_retv(nd);
-
-    Packet_Fixed<0x0078> fixed_78;
-    fixed_78.block_id = nd->bl_id;
-    fixed_78.speed = nd->speed;
-    fixed_78.species = nd->npc_class;
-    fixed_78.pos.x = nd->bl_x;
-    fixed_78.pos.y = nd->bl_y;
-    fixed_78.pos.dir = nd->dir;
-    fixed_78.sex = nd->sex;
-    buf = create_fpacket<0x0078, 54>(fixed_78);
+    nullpo_retv(bl);
+    nullpo_retv(bl_sd);
+    if(bl_sd == bl)
+        return;
+    clif_send_entity_move(bl_sd, bl);
 }
 
 /* These indices are derived from equip_pos in pc.c and some guesswork */
@@ -956,19 +877,9 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 
     if (nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
-    /* manaplus is skipping this packet
-    Packet_Fixed<0x007c> fixed_7c;
-    fixed_7c.block_id = nd->bl_id;
-    fixed_7c.speed = nd->speed;
-    fixed_7c.species = nd->npc_class;
-    fixed_7c.pos.x = nd->bl_x;
-    fixed_7c.pos.y = nd->bl_y;
 
-    Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
-    clif_send(buf, nd, SendWho::AREA);
-    */
     Buffer buf;
-    clif_npc0078(nd, buf);
+    clif_entity_visible(nd, buf);
     clif_send(buf, nd, SendWho::AREA);
 
     if(nd->sit == DamageType::SIT)
@@ -989,17 +900,6 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
 
     if (!s)
         return 0;
-
-    Packet_Fixed<0x007c> fixed_7c;
-    fixed_7c.block_id = fake_npc_id;
-    fixed_7c.speed = interval_t();
-    fixed_7c.opt1 = Opt1::ZERO;
-    fixed_7c.opt2 = Opt2::ZERO;
-    fixed_7c.option = Opt0::ZERO;
-    fixed_7c.species = FAKE_NPC_CLASS;
-    fixed_7c.pos.x = sd->bl_x;
-    fixed_7c.pos.y = sd->bl_y;
-    send_fpacket<0x007c, 41>(s, fixed_7c);
 
     Packet_Fixed<0x0078> fixed_78;
     fixed_78.block_id = fake_npc_id;
@@ -1023,22 +923,8 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
 {
     nullpo_retz(md);
 
-    {
-        Packet_Fixed<0x007c> fixed_7c;
-        fixed_7c.block_id = md->bl_id;
-        fixed_7c.speed = interval_t(md->stats[mob_stat::SPEED]);
-        fixed_7c.opt1 = md->opt1;
-        fixed_7c.opt2 = md->opt2;
-        fixed_7c.option = md->option;
-        fixed_7c.species = md->mob_class;
-        fixed_7c.pos.x = md->bl_x;
-        fixed_7c.pos.y = md->bl_y;
-        Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
-        clif_send(buf, md, SendWho::AREA);
-    }
-
     Buffer buf;
-    clif_mob0078(md, buf);
+    clif_entity_visible(md, buf);
     clif_send(buf, md, SendWho::AREA);
 
     return 0;
@@ -1069,15 +955,9 @@ int clif_walkok(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
 
-    Session *s = sd->sess;
-    Packet_Fixed<0x0087> fixed_87;
-    fixed_87.tick = gettick();
-    fixed_87.pos2.x0 = sd->bl_x;
-    fixed_87.pos2.y0 = sd->bl_y;
-    fixed_87.pos2.x1 = sd->to_x;
-    fixed_87.pos2.y1 = sd->to_y;
-    fixed_87.zero = 0;
-    send_fpacket<0x0087, 12>(s, fixed_87);
+    // this is not required by manaplus since manaplus assumes that walking
+    // always work and that the server will otherwise send a correction notice
+    //clif_send_entity_move(sd, sd);
 
     return 0;
 }
@@ -1090,10 +970,11 @@ int clif_movechar(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
 
-    Buffer buf;
-    clif_set007b(sd, buf);
-
-    clif_send(buf, sd, SendWho::AREA_WOS);
+    map_foreachinarea(std::bind(clif_send_entity_move_wos, ph::_1, sd),
+            sd->bl_m,
+            sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
+            BL::PC);
 
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
         clif_changelook(sd, LOOK::CLOTHES_COLOR,
@@ -2348,7 +2229,7 @@ void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
     Buffer buf;
     if (dstsd->walktimer)
     {
-        clif_set007b(dstsd, buf);
+        clif_send_entity_move(sd, sd);
     }
     else
     {
@@ -2378,7 +2259,7 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
         return;
 
     Buffer buf;
-    clif_npc0078(nd, buf);
+    clif_entity_visible(nd, buf);
     send_buffer(sd->sess, buf);
 
     if(nd->sit == DamageType::SIT)
@@ -2396,12 +2277,11 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
 int clif_movemob(dumb_ptr<mob_data> md)
 {
     nullpo_retz(md);
-
-    Buffer buf;
-    clif_mob007b(md, buf);
-    clif_send(buf, md, SendWho::AREA);
-    clif_0225_being_move3(md);
-
+    map_foreachinarea(std::bind(clif_send_entity_move, ph::_1, md),
+            md->bl_m,
+            md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
+            md->bl_x + AREA_SIZE, md->bl_y + AREA_SIZE,
+            BL::PC);
     return 0;
 }
 
@@ -2415,14 +2295,16 @@ int clif_fixmobpos(dumb_ptr<mob_data> md)
 
     if (md->state.state == MS::WALK)
     {
-        Buffer buf;
-        clif_mob007b(md, buf);
-        clif_send(buf, md, SendWho::AREA);
+        map_foreachinarea(std::bind(clif_send_entity_move, ph::_1, md),
+                md->bl_m,
+                md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
+                md->bl_x + AREA_SIZE, md->bl_y + AREA_SIZE,
+                BL::PC);
     }
     else
     {
         Buffer buf;
-        clif_mob0078(md, buf);
+        clif_entity_visible(md, buf);
         clif_send(buf, md, SendWho::AREA);
     }
 
@@ -2439,9 +2321,11 @@ int clif_fixpcpos(dumb_ptr<map_session_data> sd)
 
     if (sd->walktimer)
     {
-        Buffer buf;
-        clif_set007b(sd, buf);
-        clif_send(buf, sd, SendWho::AREA);
+        map_foreachinarea(std::bind(clif_send_entity_move, ph::_1, sd),
+                sd->bl_m,
+                sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+                sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
+                BL::PC);
     }
     else
     {
@@ -2490,6 +2374,29 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
  *------------------------------------------
  */
 static
+void clif_entity_move_path(dumb_ptr<block_list> bl, Buffer& buf)
+{
+    nullpo_retv(bl);
+
+    Packet_Head<0x0225> head_225;
+    std::vector<Packet_Repeat<0x0225>> repeat_225;
+    head_225.id = bl->bl_id;
+    head_225.speed = battle_get_speed(bl);
+    head_225.x_position = bl->bl_x;
+    head_225.y_position = bl->bl_y;
+
+    head_225.magic_packet_length = bl->walkpath.path_len + 14;
+    for (int i = 0; i < bl->walkpath.path_len; i++)
+    {
+        Packet_Repeat<0x0225> move_225;
+        move_225.move = bl->walkpath.path[i];
+        repeat_225.push_back(move_225);
+    }
+
+    buf = create_vpacket<0x0225, 14, 1>(head_225, repeat_225);
+}
+
+static
 void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
 {
     nullpo_retv(sd);
@@ -2498,13 +2405,14 @@ void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
     if (md->state.state == MS::WALK)
     {
         Buffer buf;
-        clif_mob007b(md, buf);
+        clif_entity_visible(md, buf);
         send_buffer(sd->sess, buf);
+        clif_send_entity_move(sd, md);
     }
     else
     {
         Buffer buf;
-        clif_mob0078(md, buf);
+        clif_entity_visible(md, buf);
         send_buffer(sd->sess, buf);
     }
 }
@@ -3137,7 +3045,7 @@ int clif_party_hp(PartyPair , dumb_ptr<map_session_data> sd)
 /*==========================================
  * 攻撃するために移動が必要
  *------------------------------------------
- */
+ *
 int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
 {
     nullpo_retz(sd);
@@ -3153,7 +3061,7 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
     fixed_139.range = sd->attackrange;
     send_fpacket<0x0139, 16>(s, fixed_139);
     return 0;
-}
+}*/
 
 /*==========================================
  * エモーション

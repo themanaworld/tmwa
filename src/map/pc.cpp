@@ -2635,9 +2635,8 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
         if (dist <= range && !battle_check_range(sd, bl, range))
         {
             if (pc_can_reach(sd, bl->bl_x, bl->bl_y) && sd->canmove_tick < tick)
-                // TMW client doesn't support this
-                //pc_walktoxy(sd,bl->bl_x,bl->bl_y);
-                clif_movetoattack(sd, bl);
+                pc_walktoxy(sd,bl->bl_x,bl->bl_y);
+                //clif_movetoattack(sd, bl);
             sd->attackabletime = tick + (sd->aspd * 2);
         }
         else
