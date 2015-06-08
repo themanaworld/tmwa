@@ -1396,6 +1396,16 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
     return 0;
 }
 
+int mob_aggravate(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl)
+{
+    if (md->bl_type != BL::MOB)
+        return 0;
+    mob_target(md, bl, battle_get_range(bl));
+    md->target_id = bl->bl_id;
+    md->attacked_id = bl->bl_id;
+    return 1;
+}
+
 /*==========================================
  * The ?? routine of an active monster
  *------------------------------------------

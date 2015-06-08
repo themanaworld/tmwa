@@ -70,6 +70,13 @@ namespace map
 #define AARG(n) (st->stack->stack_datav[st->start + 2 + (n)])
 #define HARG(n) (st->end > st->start + 2 + (n))
 
+enum class MonsterAttitude
+{
+    HOSTILE     = 0,
+    FRIENDLY    = 1,
+    SERVANT     = 2,
+    FROZEN      = 3,
+};
 //
 // 埋め込み関数
 //
@@ -503,6 +510,81 @@ void builtin_heal(ScriptState *st)
  *------------------------------------------
  */
 static
+void builtin_elttype(ScriptState *st)
+{
+    int element_type = static_cast<int>(battle_get_element(map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))))).element);
+    push_int<ScriptDataInt>(st->stack, element_type);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void builtin_eltlvl(ScriptState *st)
+{
+    int element_lvl = static_cast<int>(battle_get_element(map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))))).level);
+    push_int<ScriptDataInt>(st->stack, element_lvl);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void builtin_injure(ScriptState *st)
+{
+    dumb_ptr<block_list> caster = map_id2bl(st->rid);
+    dumb_ptr<block_list> target = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))));
+    int damage_caused = conv_num(st, &AARG(1));
+    int mp_damage = conv_num(st, &AARG(2));
+    int target_hp = battle_get_hp(target);
+    int mdef = battle_get_mdef(target);
+
+    if (target->bl_type == BL::PC
+        && !target->bl_m->flag.get(MapFlag::PVP)
+        && (caster->bl_type == BL::PC)
+        && ((caster->is_player()->state.pvpchannel > 1) && (target->is_player()->state.pvpchannel != caster->is_player()->state.pvpchannel)))
+        return;               /* Cannot damage other players outside of pvp */
+
+    if (target != caster)
+    {
+        /* Not protected against own spells */
+        damage_caused = (damage_caused * (100 - mdef)) / 100;
+        mp_damage = (mp_damage * (100 - mdef)) / 100;
+    }
+
+    damage_caused = (damage_caused > target_hp) ? target_hp : damage_caused;
+
+    if (damage_caused < 0)
+        damage_caused = 0;
+
+    // display damage first, because dealing damage may deallocate the target.
+    clif_damage(caster, target,
+            gettick(), interval_t::zero(), interval_t::zero(),
+            damage_caused, 0, DamageType::NORMAL);
+
+    if (caster->bl_type == BL::PC)
+    {
+        dumb_ptr<map_session_data> caster_pc = caster->is_player();
+        if (target->bl_type == BL::MOB)
+        {
+            dumb_ptr<mob_data> mob = target->is_mob();
+            dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+            MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
+                    mob->bl_id, mob->mob_class, damage_caused, nd->name);
+        }
+    }
+    battle_damage(caster, target, damage_caused, mp_damage);
+
+    return;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
 void builtin_input(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = nullptr;
@@ -637,6 +719,61 @@ void builtin_elif (ScriptState *st)
         push_copy(st->stack, i);
     }
     run_func(st);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void builtin_foreach_sub(dumb_ptr<block_list> bl, NpcEvent event, BlockId caster)
+{
+    // call_spell_event_script
+    argrec_t arg[1] =
+    {
+        {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
+    };
+    npc_event_do_l(event, caster, arg);
+}
+static
+void builtin_foreach(ScriptState *st)
+{
+    int x0, y0, x1, y1, bl_num;
+
+    dumb_ptr<block_list> caster = map_id2bl(st->rid);
+    bl_num = conv_num(st, &AARG(0));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
+    x0 = conv_num(st, &AARG(2));
+    y0 = conv_num(st, &AARG(3));
+    x1 = conv_num(st, &AARG(4));
+    y1 = conv_num(st, &AARG(5));
+    ZString event_ = ZString(conv_str(st, &AARG(6)));
+    BL block_type;
+    NpcEvent event;
+    extract(event_, &event);
+
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+
+    switch (bl_num)
+    {
+        case 0:
+            block_type = BL::PC;
+            break;
+        case 1:
+            block_type = BL::NPC;
+            break;
+        case 2:
+            block_type = BL::MOB;
+            break;
+        default:
+            return;
+    }
+
+    map_foreachinarea(std::bind(builtin_foreach_sub, ph::_1, event, caster->bl_id),
+            m,
+            x0, y0,
+            x1, y1,
+            block_type);
 }
 
 /*==========================================
@@ -1401,6 +1538,31 @@ void builtin_getskilllv(ScriptState *st)
  *------------------------------------------
  */
 static
+void builtin_overrideattack(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    int charges = conv_num(st, &AARG(0));
+    interval_t attack_delay = static_cast<interval_t>(conv_num(st, &AARG(1)));
+    int attack_range = conv_num(st, &AARG(2));
+    StatusChange icon = StatusChange(conv_num(st, &AARG(3)));
+    ItemNameId look = wrap<ItemNameId>(static_cast<uint16_t>(conv_num(st, &AARG(4))));
+    ZString event_ = ZString(conv_str(st, &AARG(5)));
+
+    NpcEvent event;
+    extract(event_, &event);
+
+    sd->attack_spell_override = st->oid;
+    sd->attack_spell_charges = charges;
+    sd->magic_attack = event;
+    pc_set_weapon_icon(sd, charges, icon, look);
+    pc_set_attack_info(sd, attack_delay, attack_range);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
 void builtin_getgmlevel(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, pc_isGM(script_rid2sd(st)).get_all_bits());
@@ -1592,6 +1754,72 @@ void builtin_getexp(ScriptState *st)
     if (sd)
         pc_gainexp_reason(sd, base, job, PC_GAINEXP_REASON::SCRIPT);
 
+}
+
+static
+void builtin_summon(ScriptState *st)
+{
+    NpcEvent event;
+    MapName map = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    int x = conv_num(st, &AARG(1));
+    int y = conv_num(st, &AARG(2));
+    dumb_ptr<block_list> owner_e = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(3))));
+    dumb_ptr<map_session_data> owner = nullptr;
+    Species monster_id = wrap<Species>(conv_num(st, &AARG(4)));
+    MonsterAttitude monster_attitude = static_cast<MonsterAttitude>(conv_num(st, &AARG(5)));
+    interval_t lifespan = static_cast<interval_t>(conv_num(st, &AARG(6)));
+    if (HARG(7))
+        extract(ZString(conv_str(st, &AARG(7))), &event);
+
+    if (monster_attitude == MonsterAttitude::SERVANT
+        && owner_e->bl_type == BL::PC)
+        owner = owner_e->is_player(); // XXX in the future this should also work with mobs as owner
+
+    BlockId mob_id = mob_once_spawn(owner, map, x, y, MobName(), monster_id, 1, event);
+    dumb_ptr<mob_data> mob = map_id_is_mob(mob_id);
+
+    if (mob)
+    {
+        mob->mode = get_mob_db(monster_id).mode;
+
+        switch (monster_attitude)
+        {
+            case MonsterAttitude::SERVANT:
+                mob->state.special_mob_ai = 1;
+                mob->mode |= MobMode::AGGRESSIVE;
+                break;
+
+            case MonsterAttitude::FRIENDLY:
+                mob->mode = MobMode::CAN_ATTACK | (mob->mode & MobMode::CAN_MOVE);
+                break;
+
+            case MonsterAttitude::HOSTILE:
+                mob->mode = MobMode::CAN_ATTACK | MobMode::AGGRESSIVE | (mob->mode & MobMode::CAN_MOVE);
+                if (owner)
+                {
+                    mob->target_id = owner->bl_id;
+                    mob->attacked_id = owner->bl_id;
+                }
+                break;
+
+            case MonsterAttitude::FROZEN:
+                mob->mode = MobMode::ZERO;
+                break;
+        }
+
+        mob->mode |=
+            MobMode::SUMMONED | MobMode::TURNS_AGAINST_BAD_MASTER;
+
+        mob->deletetimer = Timer(gettick() + lifespan,
+                std::bind(mob_timer_delete, ph::_1, ph::_2,
+                    mob_id));
+
+        if (owner)
+        {
+            mob->master_id = owner->bl_id;
+            mob->master_dist = 6;
+        }
+    }
 }
 
 /*==========================================
@@ -1979,6 +2207,38 @@ void builtin_getmapusers(ScriptState *st)
             m->xs, m->ys,
             BL::PC);
     push_int<ScriptDataInt>(st->stack, users);
+}
+
+static
+void builtin_aggravate_sub(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int effect)
+{
+    dumb_ptr<mob_data> md = bl->is_mob();
+
+    if (mob_aggravate(md, target))
+        clif_misceffect(bl, effect);
+}
+
+static
+void builtin_aggravate(ScriptState *st)
+{
+    dumb_ptr<block_list> target = map_id2bl(st->rid);
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    int x0 = conv_num(st, &AARG(1));
+    int y0 = conv_num(st, &AARG(2));
+    int x1 = conv_num(st, &AARG(3));
+    int y1 = conv_num(st, &AARG(4));
+    int effect = conv_num(st, &AARG(5));
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str),
+    {
+        push_int<ScriptDataInt>(st->stack, -1);
+        return;
+    });
+
+    map_foreachinarea(std::bind(builtin_aggravate_sub, ph::_1, target, effect),
+            m,
+            x0, y0,
+            x1, y1,
+            BL::MOB);
 }
 
 /*==========================================
@@ -3069,6 +3329,18 @@ void builtin_npctalk(ScriptState *st)
 }
 
 /*==========================================
+  * casttime
+  *------------------------------------------
+  */
+static
+void builtin_casttime(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(0)));
+    sd->cast_tick = gettick() + tick;
+}
+
+/*==========================================
   * getlook char info. getlook(arg)
   *------------------------------------------
   */
@@ -3152,31 +3424,56 @@ void builtin_getsavepoint(ScriptState *st)
 static
 void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent event)
 {
-    pc_addeventtimer(bl->is_player(), tick, event);
+    if (bl->bl_type == BL::PC)
+    {
+        dumb_ptr<map_session_data> sd = map_id_is_player(bl->bl_id);
+        pc_addeventtimer(sd, tick, event);
+    }
+    else
+    {
+        npc_addeventtimer(bl, tick, event);
+    }
 }
 
 static
 void builtin_areatimer(ScriptState *st)
 {
-    int x0, y0, x1, y1;
+    int x0, y0, x1, y1, bl_num;
 
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-    x0 = conv_num(st, &AARG(1));
-    y0 = conv_num(st, &AARG(2));
-    x1 = conv_num(st, &AARG(3));
-    y1 = conv_num(st, &AARG(4));
-    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(5)));
-    ZString event_ = ZString(conv_str(st, &AARG(6)));
+    bl_num = conv_num(st, &AARG(0));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
+    x0 = conv_num(st, &AARG(2));
+    y0 = conv_num(st, &AARG(3));
+    x1 = conv_num(st, &AARG(4));
+    y1 = conv_num(st, &AARG(5));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(6)));
+    ZString event_ = conv_str(st, &AARG(7));
+    BL block_type;
     NpcEvent event;
     extract(event_, &event);
 
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
 
+    switch (bl_num)
+    {
+        case 0:
+            block_type = BL::PC;
+            break;
+        case 1:
+            block_type = BL::NPC;
+            break;
+        case 2:
+            block_type = BL::MOB;
+            break;
+        default:
+            return;
+    }
+
     map_foreachinarea(std::bind(builtin_areatimer_sub, ph::_1, tick, event),
             m,
             x0, y0,
             x1, y1,
-            BL::PC);
+            block_type);
 }
 
 /*==========================================
@@ -3431,6 +3728,9 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(warp, "Mxy"_s, '\0'),
     BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
     BUILTIN(heal, "ii?"_s, '\0'),
+    BUILTIN(elttype, "i"_s, 'i'),
+    BUILTIN(eltlvl, "i"_s, 'i'),
+    BUILTIN(injure, "iii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
     BUILTIN(elif, "iF*"_s, '\0'),
@@ -3456,6 +3756,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(skill, "ii?"_s, '\0'),
     BUILTIN(setskill, "ii"_s, '\0'),
     BUILTIN(getskilllv, "i"_s, 'i'),
+    BUILTIN(overrideattack, "iiiiiE"_s, '\0'),
     BUILTIN(getgmlevel, ""_s, 'i'),
     BUILTIN(end, ""_s, '\0'),
     BUILTIN(getopt2, ""_s, 'i'),
@@ -3465,6 +3766,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(gettime, "i"_s, 'i'),
     BUILTIN(openstorage, ""_s, '\0'),
     BUILTIN(getexp, "ii"_s, '\0'),
+    BUILTIN(summon, "Mxysmii?"_s, '\0'),
     BUILTIN(monster, "Mxysmi?"_s, '\0'),
     BUILTIN(areamonster, "Mxyxysmi?"_s, '\0'),
     BUILTIN(killmonster, "ME"_s, '\0'),
@@ -3525,6 +3827,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "ss?"_s, '\0'),
+    BUILTIN(casttime, "i"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
     BUILTIN(smsg, "e??"_s, '\0'),
     BUILTIN(remotecmd, "s?"_s, '\0'),
@@ -3533,11 +3836,13 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmask, ""_s, 'i'),
     BUILTIN(getlook, "i"_s, 'i'),
     BUILTIN(getsavepoint, "i"_s, '.'),
-    BUILTIN(areatimer, "MxyxytE"_s, '\0'),
+    BUILTIN(areatimer, "MxyxytEi"_s, '\0'),
+    BUILTIN(foreach, "iMxyxyE"_s, '\0'),
     BUILTIN(isin, "Mxyxy"_s, 'i'),
     BUILTIN(iscollision, "Mxy"_s, 'i'),
     BUILTIN(shop, "s"_s, '\0'),
     BUILTIN(isdead, ""_s, 'i'),
+    BUILTIN(aggravate, "Mxyxyi"_s, '\0'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),

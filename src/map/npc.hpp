@@ -45,6 +45,7 @@ constexpr Species INVISIBLE_CLASS = wrap<Species>(32767);
 
 int npc_event_dequeue(dumb_ptr<map_session_data> sd);
 int npc_event(dumb_ptr<map_session_data> sd, NpcEvent npcname, int);
+int npc_addeventtimer(dumb_ptr<block_list> bl, interval_t tick, NpcEvent name);
 int npc_touch_areanpc(dumb_ptr<map_session_data>, Borrowed<map_local>, int, int);
 int npc_click(dumb_ptr<map_session_data>, BlockId);
 int npc_scriptcont(dumb_ptr<map_session_data>, BlockId);

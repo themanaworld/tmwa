@@ -208,6 +208,7 @@ struct map_session_data : block_list, SessionData
     tick_t cast_tick;     // [Fate] Next tick at which spellcasting is allowed
     dumb_ptr<magic::invocation> active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
     BlockId attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
+    NpcEvent magic_attack;
     // like a weapon.  Check pc_attack_timer() for details.
     // Weapon equipment slot (slot 4) item override
     StatusChange attack_spell_icon_override;
@@ -479,6 +480,9 @@ struct mob_data : block_list
     // [Fate] mob-specific stats
     earray<unsigned short, mob_stat, mob_stat::LAST> stats;
     short size;
+    // Npc Runscripts
+    std::list<RString> eventqueuel;
+    Array<Timer, MAX_EVENTTIMER> eventtimer;
 };
 
 struct BlockLists

@@ -286,6 +286,94 @@ int npc_event_do_oninit(void)
     return 0;
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void npc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
+{
+    Option<P<struct event_data>> ev_ = ev_db.search(data);
+    dumb_ptr<npc_data_script> nd;
+    dumb_ptr<block_list> bl = map_id2bl(id);
+
+    if (ev_.is_none() && data.label == stringish<ScriptLabel>("OnTouch"_s))
+        return;
+
+    P<struct event_data> ev = TRY_UNWRAP(ev_,
+    {
+        if (battle_config.error_log)
+            PRINTF("npc_event: event not found [%s]\n"_fmt,
+                    data);
+        return;
+    });
+    if ((nd = ev->nd) == nullptr)
+    {
+        if (battle_config.error_log)
+            PRINTF("npc_event: event not found [%s]\n"_fmt,
+                    data);
+        return;
+    }
+
+    if (nd->scr.event_needs_map)
+    {
+        int xs = nd->scr.xs;
+        int ys = nd->scr.ys;
+        if (nd->bl_m != bl->bl_m)
+            return;
+        if (xs > 0
+            && (bl->bl_x < nd->bl_x - xs / 2 || nd->bl_x + xs / 2 < bl->bl_x))
+            return;
+        if (ys > 0
+            && (bl->bl_y < nd->bl_y - ys / 2 || nd->bl_y + ys / 2 < bl->bl_y))
+            return;
+    }
+
+    run_script(ScriptPointer(borrow(*nd->scr.script), ev->pos), id, nd->bl_id);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int npc_addeventtimer(dumb_ptr<block_list> bl, interval_t tick, NpcEvent name)
+{
+    int i;
+
+    nullpo_retz(bl);
+    if (bl->bl_type == BL::MOB)
+    {
+        dumb_ptr<mob_data> md = bl->is_mob();
+        for (i = 0; i < MAX_EVENTTIMER; i++)
+            if (!md->eventtimer[i])
+                break;
+
+        if (i < MAX_EVENTTIMER)
+        {
+            md->eventtimer[i] = Timer(gettick() + tick,
+                    std::bind(npc_eventtimer, ph::_1, ph::_2,
+                        md->bl_id, name));
+            return 1;
+        }
+    }
+    if (bl->bl_type == BL::NPC)
+    {
+        dumb_ptr<npc_data> nd = bl->is_npc();
+        for (i = 0; i < MAX_EVENTTIMER; i++)
+            if (!nd->eventtimer[i])
+                break;
+
+        if (i < MAX_EVENTTIMER)
+        {
+            nd->eventtimer[i] = Timer(gettick() + tick,
+                    std::bind(npc_eventtimer, ph::_1, ph::_2,
+                        nd->bl_id, name));
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /// Callback for npc OnTimer*: labels.
 /// This will be called later if you call npc_timerevent_start.
 /// This function may only expire, but not deactivate, the counter.

@@ -635,6 +635,51 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
     return 1;
 }
 
+void pc_set_weapon_icon(dumb_ptr<map_session_data> sd, int count,
+        StatusChange icon, ItemNameId look)
+{
+    const StatusChange old_icon = sd->attack_spell_icon_override;
+
+    sd->attack_spell_icon_override = icon;
+    sd->attack_spell_look_override = look;
+
+    if (old_icon != StatusChange::ZERO && old_icon != icon)
+        clif_status_change(sd, old_icon, 0);
+
+    clif_fixpcpos(sd);
+    if (count)
+    {
+        clif_changelook(sd, LOOK::WEAPON, unwrap<ItemNameId>(look));
+        if (icon != StatusChange::ZERO)
+            clif_status_change(sd, icon, 1);
+    }
+    else
+    {
+        /* Set it to `normal' */
+        clif_changelook(sd, LOOK::WEAPON,
+                static_cast<uint16_t>(sd->status.weapon));
+    }
+}
+
+void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int range)
+{
+    sd->attack_spell_delay = speed;
+    sd->attack_spell_range = range;
+
+    if (speed == interval_t::zero())
+    {
+        pc_calcstatus(sd, 1);
+        clif_updatestatus(sd, SP::ASPD);
+        clif_updatestatus(sd, SP::ATTACKRANGE);
+    }
+    else
+    {
+        sd->aspd = speed;
+        clif_updatestatus(sd, SP::ASPD);
+        clif_updatestatus(sd, SP::ATTACKRANGE);
+    }
+}
+
 /*==========================================
  * session idに問題無し
  * char鯖から送られてきたステータスを設定
@@ -2608,13 +2653,23 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     if (sd->attackabletime > tick)
         return;               // cannot attack yet
 
-    interval_t attack_spell_delay = sd->attack_spell_delay;
-    if (sd->attack_spell_override   // [Fate] If we have an active attack spell, use that
-        && magic::spell_attack(id, sd->attacktarget))
+    if (sd->attack_spell_override)   // [Fate] If we have an active attack spell, use that
     {
-        // Return if the spell succeeded.  If the spell had disspiated, spell_attack() may fail.
-        sd->attackabletime = tick + attack_spell_delay;
-
+        // call_spell_event_script
+        argrec_t arg[1] =
+        {
+            {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
+        };
+        npc_event_do_l(sd->magic_attack, sd->bl_id, arg);
+        sd->attackabletime = tick + sd->attack_spell_delay;
+        sd->attack_spell_charges--;
+        if (!sd->attack_spell_charges)
+        {
+            sd->attack_spell_override = BlockId();
+            pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
+            pc_set_attack_info(sd, interval_t::zero(), 0);
+            pc_calcstatus(sd, 0);
+        }
     }
     else
     {

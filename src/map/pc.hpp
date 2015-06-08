@@ -80,6 +80,8 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
 void pc_makesavestatus(dumb_ptr<map_session_data>);
 int pc_setnewpc(dumb_ptr<map_session_data>, AccountId, CharId, int, uint32_t /*tick_t*/, SEX);
+void pc_set_weapon_icon(dumb_ptr<map_session_data> sd, int count,StatusChange icon, ItemNameId look);
+void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int range);
 int pc_authok(AccountId, int, ClientVersion, const CharKey *, const CharData *);
 int pc_authfail(AccountId accid);
 
