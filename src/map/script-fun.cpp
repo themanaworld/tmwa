@@ -572,7 +572,7 @@ void builtin_injure(ScriptState *st)
             dumb_ptr<mob_data> mob = target->is_mob();
             dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
             MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
-                    mob->bl_id, mob->mob_class, damage_caused, nd->name);
+                    mob->bl_id, mob->mob_class, damage_caused, caster->is_player()->magic_attack);
         }
     }
     battle_damage(caster, target, damage_caused, mp_damage);
@@ -3341,6 +3341,22 @@ void builtin_casttime(ScriptState *st)
 }
 
 /*==========================================
+  * register cmd
+  *------------------------------------------
+  */
+static
+void builtin_registercmd(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+    RString evoke = conv_str(st, &AARG(0));
+    ZString event_ = conv_str(st, &AARG(1));
+    NpcEvent event;
+    extract(event_, &event);
+
+    spells_by_name.put(evoke, event);
+}
+
+/*==========================================
   * getlook char info. getlook(arg)
   *------------------------------------------
   */
@@ -3828,6 +3844,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "ss?"_s, '\0'),
     BUILTIN(casttime, "i"_s, '\0'),
+    BUILTIN(registercmd, "sE"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
     BUILTIN(smsg, "e??"_s, '\0'),
     BUILTIN(remotecmd, "s?"_s, '\0'),

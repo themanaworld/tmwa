@@ -58,6 +58,7 @@ dumb_ptr<npc_data> npc_name2id(NpcName name);
 
 BlockId npc_get_new_npc_id(void);
 
+int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation);
 /**
  * Uninstalls and frees an NPC
  */

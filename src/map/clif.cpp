@@ -3842,7 +3842,7 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
     if (is_atcommand(s, sd, mbuf, GmLevel()))
         return rv;
 
-    if (!magic::magic_message(sd, mbuf))
+    if (!magic_message(sd, mbuf))
     {
         /* Don't send chat that results in an automatic ban. */
         if (tmw_CheckChatSpam(sd, mbuf))
