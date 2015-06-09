@@ -47,7 +47,6 @@
 #include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
-#include "magic-interpreter-base.hpp"
 #include "map.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
@@ -259,7 +258,6 @@ void builtin_menu(ScriptState *st)
             buf += choice_str;
             buf += ':';
         }
-
         clif_scriptmenu(script_rid2sd(st), st->oid, AString(buf));
     }
     else
@@ -2768,18 +2766,6 @@ void builtin_getitemlink(ScriptState *st)
 }
 
 static
-void builtin_getspellinvocation(ScriptState *st)
-{
-    RString name = conv_str(st, &AARG(0));
-
-    AString invocation = magic::magic_find_invocation(name);
-    if (!invocation)
-        invocation = "..."_s;
-
-    push_str<ScriptDataStr>(st->stack, invocation);
-}
-
-static
 void builtin_getpartnerid2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
@@ -3329,31 +3315,21 @@ void builtin_npctalk(ScriptState *st)
 }
 
 /*==========================================
-  * casttime
-  *------------------------------------------
-  */
-static
-void builtin_casttime(ScriptState *st)
-{
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(0)));
-    sd->cast_tick = gettick() + tick;
-}
-
-/*==========================================
   * register cmd
   *------------------------------------------
   */
 static
 void builtin_registercmd(ScriptState *st)
 {
-    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
     RString evoke = conv_str(st, &AARG(0));
+    NpcName npcname = stringish<NpcName>(conv_str(st, &AARG(1)));
     ZString event_ = conv_str(st, &AARG(1));
     NpcEvent event;
     extract(event_, &event);
-
-    spells_by_name.put(evoke, event);
+    if (event.label)
+        spells_by_events.put(evoke, event);
+    else
+        spells_by_name.put(evoke, npcname);
 }
 
 /*==========================================
@@ -3826,7 +3802,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(marriage, "P"_s, 'i'),
     BUILTIN(divorce, ""_s, 'i'),
     BUILTIN(getitemlink, "I"_s, 's'),
-    BUILTIN(getspellinvocation, "s"_s, 's'),
     BUILTIN(getpartnerid2, ""_s, 'i'),
     BUILTIN(explode, "Nss"_s, '\0'),
     BUILTIN(getinventorylist, ""_s, '\0'),
@@ -3843,8 +3818,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "ss?"_s, '\0'),
-    BUILTIN(casttime, "i"_s, '\0'),
-    BUILTIN(registercmd, "sE"_s, '\0'),
+    BUILTIN(registercmd, "ss"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
     BUILTIN(smsg, "e??"_s, '\0'),
     BUILTIN(remotecmd, "s?"_s, '\0'),

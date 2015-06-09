@@ -64,13 +64,6 @@ auto decay_for_printf(BF v) -> typename remove_enum<decltype(v)>::type { return 
 inline
 auto decay_for_printf(MapCell v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
 } // namespace map::e
-namespace magic
-{
-enum class SPELLARG : uint8_t;
-
-inline
-auto decay_for_printf(SPELLARG v) -> typename remove_enum<decltype(v)>::type { return typename remove_enum<decltype(v)>::type(v); }
-} // namespace map::magic
 
 enum class BL : uint8_t;
 enum class ByteCode : uint8_t;

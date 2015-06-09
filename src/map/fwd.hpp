@@ -57,7 +57,6 @@ struct map_session_data;
 struct npc_data;
 struct mob_data;
 struct flooritem_data;
-//struct magic::invocation;
 struct map_local;
 class npc_data_script;
 class npc_data_shop;
@@ -71,22 +70,5 @@ struct ScriptState;
 struct str_data_t;
 class SIR;
 
-namespace magic
-{
-struct fun_t;
-struct op_t;
-struct expr_t;
-struct val_t;
-struct location_t;
-struct area_t;
-struct spell_t;
-struct invocation;
-struct teleport_anchor_t;
-struct env_t;
-struct magic_conf_t;
-struct component_t;
-struct effect_set_t;
-struct proc_t;
-} // namespace magic
 } // namespace map
 } // namespace tmwa

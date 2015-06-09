@@ -69,9 +69,6 @@
 #include "globals.hpp"
 #include "grfio.hpp"
 #include "itemdb.hpp"
-#include "magic-interpreter.hpp" // for is_spell inline body
-#include "magic-stmt.hpp"
-#include "magic-v2.hpp"
 #include "map_conf.hpp"
 #include "mob.hpp"
 #include "quest.hpp"
@@ -1454,9 +1451,6 @@ void cleanup_sub(dumb_ptr<block_list> bl)
         case BL::ITEM:
             map_clearflooritem(bl->bl_id);
             break;
-        case BL::SPELL:
-            magic::spell_free_invocation(bl->is_spell());
-            break;
     }
 }
 
@@ -1497,8 +1491,6 @@ bool map_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
         return mob_readskilldb(value.data);
     if (key.data == "skill_db"_s)
         return skill_readdb(value.data);
-    if (key.data == "magic_conf"_s)
-        return magic::load_magic_file_v2(value.data);
 
     if (key.data == "resnametable"_s)
         return load_resnametable(value.data);
@@ -1515,16 +1507,7 @@ int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
     if (!bl)
         return 0;
 
-    switch (bl->bl_type)
-    {
-        case BL::NPC:
-            return npc_scriptcont(sd, id);
-        case BL::SPELL:
-            magic::spell_execute_script(bl->is_spell());
-            break;
-    }
-
-    return 0;
+    return npc_scriptcont(sd, id);
 }
 } // namespace map
 
@@ -1571,7 +1554,6 @@ int do_init(Slice<ZString> argv)
     using namespace tmwa::map;
 
     ZString argv0 = argv.pop_front();
-    runflag &= magic::magic_init0();
 
     bool loaded_config_yet = false;
     while (argv)

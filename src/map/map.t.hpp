@@ -43,7 +43,6 @@ enum class BL : uint8_t
     NPC,
     MOB,
     ITEM,
-    SPELL,
 };
 enum class NpcSubtype : uint8_t
 {

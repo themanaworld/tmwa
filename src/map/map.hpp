@@ -89,13 +89,11 @@ private:
     dumb_ptr<npc_data> as_npc();
     dumb_ptr<mob_data> as_mob();
     dumb_ptr<flooritem_data> as_item();
-    dumb_ptr<magic::invocation> as_spell();
 public:
     dumb_ptr<map_session_data> is_player();
     dumb_ptr<npc_data> is_npc();
     dumb_ptr<mob_data> is_mob();
     dumb_ptr<flooritem_data> is_item();
-    dumb_ptr<magic::invocation> is_spell();
 };
 
 struct walkpath_data
@@ -107,7 +105,6 @@ struct status_change
 {
     Timer timer;
     int val1;
-    BlockId spell_invocation;      /* [Fate] If triggered by a spell, record here */
 };
 
 struct quick_regeneration
@@ -205,8 +202,7 @@ struct map_session_data : block_list, SessionData
     // used by @hugo and @linus
     BlockId followtarget;
 
-    tick_t cast_tick;     // [Fate] Next tick at which spellcasting is allowed
-    dumb_ptr<magic::invocation> active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
+    //tick_t cast_tick;     // [Fate] Next tick at which spellcasting is allowed
     BlockId attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
     NpcEvent magic_attack;
     // like a weapon.  Check pc_attack_timer() for details.
@@ -639,13 +635,6 @@ dumb_ptr<flooritem_data> map_id_is_item(BlockId id)
     dumb_ptr<block_list> bl = map_id2bl(id);
     return bl ? bl->is_item() : nullptr;
 }
-inline
-dumb_ptr<magic::invocation> map_id_is_spell(BlockId id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    return bl ? bl->is_spell() : nullptr;
-}
-
 
 Option<Borrowed<map_local>> map_mapname2mapid(MapName);
 int map_mapname2ipport(MapName, Borrowed<IP4Address>, Borrowed<int>);
@@ -679,13 +668,11 @@ inline dumb_ptr<map_session_data> block_list::as_player() { return dumb_ptr<map_
 inline dumb_ptr<npc_data> block_list::as_npc() { return dumb_ptr<npc_data>(static_cast<npc_data *>(this)) ; }
 inline dumb_ptr<mob_data> block_list::as_mob() { return dumb_ptr<mob_data>(static_cast<mob_data *>(this)) ; }
 inline dumb_ptr<flooritem_data> block_list::as_item() { return dumb_ptr<flooritem_data>(static_cast<flooritem_data *>(this)) ; }
-//inline dumb_ptr<invocation> block_list::as_spell() { return dumb_ptr<invocation>(static_cast<invocation *>(this)) ; }
 
 inline dumb_ptr<map_session_data> block_list::is_player() { return bl_type == BL::PC ? as_player() : nullptr; }
 inline dumb_ptr<npc_data> block_list::is_npc() { return bl_type == BL::NPC ? as_npc() : nullptr; }
 inline dumb_ptr<mob_data> block_list::is_mob() { return bl_type == BL::MOB ? as_mob() : nullptr; }
 inline dumb_ptr<flooritem_data> block_list::is_item() { return bl_type == BL::ITEM ? as_item() : nullptr; }
-//inline dumb_ptr<invocation> block_list::is_spell() { return bl_type == BL::SPELL ? as_spell() : nullptr; }
 
 // struct invocation is defined in another header
 
