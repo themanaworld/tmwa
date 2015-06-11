@@ -401,7 +401,7 @@ namespace npc
 
             ast::script::ScriptOptions opt;
             opt.implicit_start = true;
-            opt.no_start = true;
+            opt.default_label = "OnCall"_s;
             rv.body = TRY(ast::script::parse_script_body(lr, opt));
             return Ok(std::move(rv));
         }
