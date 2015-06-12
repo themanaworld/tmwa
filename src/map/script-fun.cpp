@@ -1402,7 +1402,10 @@ void builtin_getequipid(ScriptState *st)
     int num;
     dumb_ptr<map_session_data> sd;
 
-    sd = script_rid2sd(st);
+    if (HARG(1))
+        sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARG(1)))));
+    else
+        sd = script_rid2sd(st);
     if (sd == nullptr)
     {
         PRINTF("getequipid: sd == nullptr\n"_fmt);
@@ -3742,7 +3745,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getcharid, "i?"_s, 'i'),
     BUILTIN(getversion, ""_s, 'i'),
     BUILTIN(strcharinfo, "i"_s, 's'),
-    BUILTIN(getequipid, "i"_s, 'i'),
+    BUILTIN(getequipid, "i?"_s, 'i'),
     BUILTIN(bonus, "ii"_s, '\0'),
     BUILTIN(bonus2, "iii"_s, '\0'),
     BUILTIN(skill, "ii?"_s, '\0'),
