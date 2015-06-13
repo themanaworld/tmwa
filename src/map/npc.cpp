@@ -206,12 +206,12 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 
     RString spell_params = pair.second;
 
-    dumb_ptr<npc_data> nd = npc_name2id(spell_name);
+    dumb_ptr<npc_data> nd = npc_name2id(spell_event.label? spell_event.npc: spell_name);
 
     if (nd)
     {
-        PRINTF("NPC:  %s %d\n"_fmt, nd->name, nd->bl_id);
-        PRINTF("Params:  %s\n"_fmt, spell_params);
+        PRINTF("NPC:  '%s' %d\n"_fmt, nd->name, nd->bl_id);
+        PRINTF("Params:  '%s'\n"_fmt, spell_params);
         caster->npc_id = nd->bl_id;
         dumb_ptr<block_list> map_bl = map_id2bl(nd->bl_id);
         if (!map_bl)
@@ -220,23 +220,11 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
         {
             {"@args$"_s, spell_params},
         };
-        caster->npc_pos = run_script_l(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id, arg);
-        return 1;
-    }
-    if (spell_event.label)
-    {
-        dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
-        PRINTF("NPC:  %s %d\n"_fmt, nd->name, nd->bl_id);
-        PRINTF("Params:  %s\n"_fmt, spell_params);
-        caster->npc_id = nd->bl_id;
-        dumb_ptr<block_list> map_bl = map_id2bl(nd->bl_id);
-        if (!map_bl)
-            map_addnpc(caster->bl_m, nd);
-        argrec_t arg[1] =
-        {
-            {"@args$"_s, spell_params},
-        };
-        caster->npc_pos = npc_event_do_l(spell_event, caster->bl_id, arg);
+
+        if (spell_event.label)
+            caster->npc_pos = npc_event_do_l(spell_event, caster->bl_id, arg);
+        else
+            caster->npc_pos = run_script_l(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id, arg);
         return 1;
     }
     return 0;
