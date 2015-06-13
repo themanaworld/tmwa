@@ -183,7 +183,7 @@ int map_addblock(dumb_ptr<block_list> bl)
         if (bl->bl_next)
             bl->bl_next->bl_prev = bl;
         m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).normal = bl;
-        if (bl->bl_type == BL::PC)
+        if (bl->bl_type == BL::PC && !bool(bl->is_player()->status.option & Opt0::HIDE))
             m->users++;
     }
 
