@@ -2322,6 +2322,49 @@ void builtin_getpartnerid2(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status.partner_id));
 }
 
+static
+void builtin_explode(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = nullptr;
+    SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
+    ZString name = variable_names.outtern(reg.base());
+    const char separator = conv_str(st, &AARG(2))[0];
+    RString str = conv_str(st, &AARG(1));
+    RString val;
+    char prefix = name.front();
+    char postfix = name.back();
+
+    if (prefix != '$' && prefix != '@')
+    {
+        PRINTF("builtin_explode: illegal scope!\n"_fmt);
+        return;
+    }
+    if (prefix != '$')
+        sd = script_rid2sd(st);
+
+    for (int j = 0; j < 256; j++)
+    {
+        auto find = std::find(str.begin(), str.end(), separator);
+        if (find == str.end())
+        {
+            if (postfix == '$')
+                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), str);
+            else
+                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), atoi(str.c_str()));
+            break;
+        }
+        {
+            val = str.xislice_h(find);
+            str = str.xislice_t(find + 1);
+
+            if (postfix == '$')
+                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), val);
+            else
+                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), atoi(val.c_str()));
+        }
+    }
+}
+
 /*==========================================
  * PCの所持品情報読み取り
  *------------------------------------------
@@ -3223,6 +3266,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getitemlink, "I"_s, 's'),
     BUILTIN(getspellinvocation, "s"_s, 's'),
     BUILTIN(getpartnerid2, ""_s, 'i'),
+    BUILTIN(explode, "Nss"_s, '\0'),
     BUILTIN(getinventorylist, ""_s, '\0'),
     BUILTIN(getactivatedpoolskilllist, ""_s, '\0'),
     BUILTIN(getunactivatedpoolskilllist, ""_s, '\0'),
