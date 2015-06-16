@@ -944,7 +944,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     b_mdef = sd->mdef;
     b_mdef2 = sd->mdef2;
     b_base_atk = sd->base_atk;
-    if (!pc_isdead(sd) && sd->state.pvpchannel == 1)
+    if (sd->state.pvpchannel == 1)
         b_pvpchannel = sd->state.pvpchannel;
 
     sd->max_weight = max_weight_base_0 + sd->status.attrs[ATTR::STR] * 300;
