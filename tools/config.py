@@ -552,6 +552,13 @@ def build_config():
     char_conf.opt('online_html_filename', RString, lit('online.html'))
     char_conf.opt('online_gm_display_min_level', GmLevel, 'GmLevel::from(20_u32)', {udl_h})
     char_conf.opt('online_refresh_html', u32, '20', min=1)
+    char_conf.opt('max_hair_style', u16, '20', min=1)
+    char_conf.opt('max_hair_color', u16, '11', min=1)
+    char_conf.opt('min_stat_value', u16, '1')
+    char_conf.opt('max_stat_value', u16, '9', min=2)
+    char_conf.opt('total_stat_sum', u16, '30', min=7)
+    char_conf.opt('min_name_length', u16, '4', min=1)
+    char_conf.opt('char_slots', u16, '9', min=1)
     char_conf.opt('anti_freeze_enable', bool, 'false')
     char_conf.opt('anti_freeze_interval', seconds, '6_s', min='5_s')
 

@@ -586,7 +586,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     }
 
     // check lenght of character name
-    if (name.to__actual().size() < 4)
+    if (name.to__actual().size() < char_conf.min_name_length)
     {
         CHAR_LOG("Make new char error (character name too small): (connection #%d, account: %d, name: '%s').\n"_fmt,
                 s, sd->account_id, name);
@@ -611,7 +611,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
 
     // TODO this comment is obsolete
     // this is why it needs to be unsigned
-    if (stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk != 5 * 6)
+    if (stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk != char_conf.total_stat_sum)
     {
         CHAR_LOG("Make new char error (invalid stats): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d\n"_fmt,
                 s, sd->account_id, slot, name,
@@ -621,7 +621,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
         return nullptr;
     }
 
-    if (slot >= 9)
+    if (slot >= char_conf.char_slots)
     {
         CHAR_LOG("Make new char error (invalid slot): (connection #%d, account: %d) slot %d, name: %s\n"_fmt,
                 s, sd->account_id, slot, name);
@@ -629,7 +629,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
         return nullptr;
     }
 
-    if (hair_style >= 20 || hair_color >= 12)
+    if (hair_style > char_conf.max_hair_style || hair_color > char_conf.max_hair_color)
     {
         CHAR_LOG("Make new char error (invalid hair): (connection #%d, account: %d) slot %d, name: %s, hair: %d, hair color: %d\n"_fmt,
                 s, sd->account_id, slot, name, hair_style, hair_color);
@@ -641,7 +641,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     for (int i = 0; i < 6; i++)
     {
         uint8_t statsi = reinterpret_cast<const uint8_t *>(&stats)[i];
-        if (statsi < 1 || statsi > 9)
+        if (statsi < char_conf.min_stat_value || statsi > char_conf.max_stat_value)
         {
             CHAR_LOG("Make new char error (invalid stat value: not between 1 to 9): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n"_fmt,
                     s, sd->account_id, slot, name,
