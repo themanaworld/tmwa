@@ -50,6 +50,7 @@
 #include "map.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
+#include "npc-parse.hpp"
 #include "party.hpp"
 #include "pc.hpp"
 #include "script-call-internal.hpp"
@@ -57,6 +58,7 @@
 #include "script-persist.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
+#include "npc-internal.hpp"
 
 #include "../poison.hpp"
 
@@ -772,6 +774,132 @@ void builtin_foreach(ScriptState *st)
             x0, y0,
             x1, y1,
             block_type);
+}
+/*========================================
+ * Destructs a temp NPC
+ *----------------------------------------
+ */
+static
+void builtin_destroypuppet(ScriptState *st)
+{
+    BlockId id;
+    if (HARG(0))
+        id = wrap<BlockId>(conv_num(st, &AARG(0)));
+    else
+        id = st->oid;
+
+    dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
+    if(!nd)
+        return;
+    assert(nd->disposable == true);
+    npc_free(nd);
+    if (!HARG(0))
+        st->state = ScriptEndState::END;
+}
+/*========================================
+ * Creates a temp NPC
+ *----------------------------------------
+ */
+
+static
+void builtin_puppet(ScriptState *st)
+{
+    int x, y;
+
+    dumb_ptr<block_list> bl = map_id2bl(st->oid);
+    dumb_ptr<npc_data_script> parent_nd = bl->is_npc()->is_script();
+    dumb_ptr<npc_data_script> nd;
+    nd.new_();
+
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x = conv_num(st, &AARG(1));
+    y = conv_num(st, &AARG(2));
+    Species sprite = wrap<Species>(static_cast<uint16_t>(conv_num(st, &AARG(4))));
+
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+
+    nd->bl_prev = nd->bl_next = nullptr;
+    nd->scr.event_needs_map = false;
+    nd->disposable = true; // allow to destroy
+
+    // PlayerName::SpellName
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
+    PRINTF("Npc: %s\n"_fmt, npc);
+    nd->name = npc;
+
+    // Dynamically set location
+    nd->bl_m = m;
+    nd->bl_x = x;
+    nd->bl_y = y;
+    nd->bl_id = npc_get_new_npc_id();
+    nd->scr.parent = parent_nd->bl_id;
+    nd->dir = DIR::S;
+    nd->flag = 0;
+    nd->sit = DamageType::STAND;
+    nd->npc_class = sprite;
+    nd->speed = 200_ms;
+    nd->option = Opt0::ZERO;
+    nd->opt1 = Opt1::ZERO;
+    nd->opt2 = Opt2::ZERO;
+    nd->opt3 = Opt3::ZERO;
+    nd->scr.label_listv = parent_nd->scr.label_listv;
+    nd->bl_type = BL::NPC;
+    nd->npc_subtype = NpcSubtype::SCRIPT;
+    npc_script++;
+
+    nd->n = map_addnpc(nd->bl_m, nd);
+
+    map_addblock(nd);
+    clif_spawnnpc(nd);
+
+    register_npc_name(nd);
+
+    for (npc_label_list& el : parent_nd->scr.label_listv)
+    {
+        ScriptLabel lname = el.name;
+        int pos = el.pos;
+
+        if (lname.startswith("On"_s))
+        {
+            struct event_data ev {};
+            ev.nd = nd;
+            ev.pos = pos;
+            NpcEvent buf;
+            buf.npc = nd->name;
+            buf.label = lname;
+            ev_db.insert(buf, ev);
+        }
+    }
+
+    for (npc_label_list& el : parent_nd->scr.label_listv)
+    {
+        int t_ = 0;
+        ScriptLabel lname = el.name;
+        int pos = el.pos;
+        if (lname.startswith("OnTimer"_s) && extract(lname.xslice_t(7), &t_) && t_ > 0)
+        {
+            interval_t t = static_cast<interval_t>(t_);
+
+            npc_timerevent_list tel {};
+            tel.timer = t;
+            tel.pos = pos;
+
+            auto it = std::lower_bound(nd->scr.timer_eventv.begin(), nd->scr.timer_eventv.end(), tel,
+                    [](const npc_timerevent_list& l, const npc_timerevent_list& r)
+                    {
+                        return l.timer < r.timer;
+                    }
+            );
+            assert (it == nd->scr.timer_eventv.end() || it->timer != tel.timer);
+
+            nd->scr.timer_eventv.insert(it, std::move(tel));
+        }
+    }
+
+    nd->scr.timer = interval_t::zero();
+    nd->scr.next_event = nd->scr.timer_eventv.begin();
+
+    push_int<ScriptDataInt>(st->stack, unwrap<BlockId>(nd->bl_id));
 }
 
 /*==========================================
@@ -2472,6 +2600,7 @@ void builtin_attachrid(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, (map_id2sd(st->rid) != nullptr));
 }
 
+
 /*==========================================
  * RIDのデタッチ
  *------------------------------------------
@@ -3838,6 +3967,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(isdead, ""_s, 'i'),
     BUILTIN(aggravate, "Mxyxyi"_s, '\0'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
+    BUILTIN(puppet, "mxysi"_s, 'i'),
+    BUILTIN(destroypuppet, "?"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),
     BUILTIN(getnpcx, "?"_s, 'i'),

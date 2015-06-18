@@ -876,7 +876,26 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
 {
     struct script_stack stack;
     ScriptState st;
-    dumb_ptr<map_session_data> sd = map_id2sd(rid);
+    dumb_ptr<block_list> bl = map_id2bl(rid);
+    dumb_ptr<map_session_data> sd = bl? bl->is_player(): nullptr;
+    if (oid)
+    {
+        dumb_ptr<block_list> oid_bl = map_id2bl(oid);
+        if (oid_bl->bl_type == BL::NPC)
+        {
+            dumb_ptr<npc_data> nd = oid_bl->is_npc();
+            if(nd->npc_subtype == NpcSubtype::SCRIPT)
+            {
+                dumb_ptr<npc_data_script> nds = nd->is_script();
+                if (nds->scr.parent)
+                {
+                    dumb_ptr<npc_data_script> parent = map_id2bl(nds->scr.parent)->is_npc()->is_script();
+                    assert(parent->bl_type == BL::NPC && parent->npc_subtype == NpcSubtype::SCRIPT);
+                    sp = ScriptPointer(borrow(*parent->scr.script), sp.pos);
+                }
+            }
+        }
+    }
     P<const ScriptBuffer> rootscript = TRY_UNWRAP(sp.code, return -1);
     int i;
     if (sp.pos >> 24)
@@ -892,6 +911,7 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     st.scriptp = sp;
     st.rid = rid;
     st.oid = oid;
+
     for (i = 0; i < args.size(); i++)
     {
         if (args[i].name.back() == '$')

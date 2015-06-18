@@ -31,6 +31,7 @@ namespace map
 struct event_data
 {
     dumb_ptr<npc_data_script> nd;
+    BlockId child;
     int pos;
 };
 } // namespace map

@@ -61,6 +61,15 @@ namespace tmwa
 {
 namespace map
 {
+const std::vector<ByteCode> fake_buffer;
+const ScriptBuffer& fake_script = reinterpret_cast<const ScriptBuffer&>(fake_buffer);
+
+static
+Borrowed<const ScriptBuffer> script_or_parent(dumb_ptr<npc_data_script> nd)
+{
+    return borrow(nd->scr.parent ? fake_script : *nd->scr.script);
+}
+
 BlockId npc_get_new_npc_id(void)
 {
     BlockId rv = npc_id;
@@ -224,7 +233,7 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
         if (spell_event.label)
             caster->npc_pos = npc_event_do_l(spell_event, caster->bl_id, arg);
         else
-            caster->npc_pos = run_script_l(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id, arg);
+            caster->npc_pos = run_script_l(ScriptPointer(script_or_parent(nd->is_script()), 0), caster->bl_id, nd->bl_id, arg);
         return 1;
     }
     return 0;
@@ -281,7 +290,9 @@ void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
 
     if (name == p)
     {
-        run_script_l(ScriptPointer(borrow(*ev->nd->scr.script), ev->pos), rid, ev->nd->bl_id,
+        if (ev->nd->disposable)
+            return; // temporary npcs only respond to commands directly issued to them
+        run_script_l(ScriptPointer(script_or_parent(ev->nd), ev->pos), rid, ev->nd->bl_id,
                 argv);
         (*c)++;
     }
@@ -304,7 +315,7 @@ void npc_event_do_sub(NpcEvent key, struct event_data *ev,
 
     if (name == key)
     {
-        run_script_l(ScriptPointer(borrow(*ev->nd->scr.script), ev->pos), rid, ev->nd->bl_id,
+        run_script_l(ScriptPointer(script_or_parent(ev->nd), ev->pos), rid, ev->nd->bl_id,
                 argv);
         (*c)++;
     }
@@ -414,7 +425,7 @@ void npc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
             return;
     }
 
-    run_script(ScriptPointer(borrow(*nd->scr.script), ev->pos), id, nd->bl_id);
+    run_script(ScriptPointer(script_or_parent(nd), ev->pos), id, nd->bl_id);
 }
 
 /*==========================================
@@ -486,7 +497,7 @@ void npc_timerevent(TimerData *, tick_t tick, BlockId id, interval_t data)
                     id, next));
     }
 
-    run_script(ScriptPointer(borrow(*nd->scr.script), te->pos), BlockId(), nd->bl_id);
+    run_script(ScriptPointer(script_or_parent(nd), te->pos), BlockId(), nd->bl_id);
 }
 
 /// Start (or resume) counting ticks to the next npc_timerevent.
@@ -651,7 +662,7 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
 
     sd->npc_id = nd->bl_id;
     sd->npc_pos =
-        run_script(ScriptPointer(borrow(*nd->scr.script), ev->pos), sd->bl_id, nd->bl_id);
+        run_script(ScriptPointer(script_or_parent(nd), ev->pos), sd->bl_id, nd->bl_id);
     return 0;
 }
 
@@ -805,7 +816,7 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
             npc_event_dequeue(sd);
             break;
         case NpcSubtype::SCRIPT:
-            sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), sd->bl_id, id);
+            sd->npc_pos = run_script(ScriptPointer(script_or_parent(nd->is_script()), 0), sd->bl_id, id);
             break;
         case NpcSubtype::MESSAGE:
             if (nd->is_message()->message)
@@ -846,7 +857,7 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
         return 0;
     }
 
-    sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), sd->npc_pos), sd->bl_id, id);
+    sd->npc_pos = run_script(ScriptPointer(script_or_parent(nd->is_script()), sd->npc_pos), sd->bl_id, id);
 
     return 0;
 }
@@ -1032,18 +1043,18 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     if (nd_->npc_subtype == NpcSubtype::SCRIPT)
     {
         dumb_ptr<npc_data_script> nd = nd_->is_script();
+        nd->scr.timerid.cancel();
         nd->scr.timer_eventv.clear();
-
-        {
-            nd->scr.script.reset();
-            nd->scr.label_listv.clear();
-        }
+        nd->scr.script.reset();
+        nd->scr.label_listv.clear();
     }
     else if (nd_->npc_subtype == NpcSubtype::MESSAGE)
     {
         dumb_ptr<npc_data_message> nd = nd_->is_message();
         nd->message = AString();
     }
+    if (nd_->name)
+        npcs_by_name.put(nd_->name, nullptr);
     nd_.delete_();
 }
 

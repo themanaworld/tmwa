@@ -331,6 +331,7 @@ struct npc_data : block_list
     Opt3 opt3;
     Opt0 option;
     short flag;
+    bool disposable;
 
     std::list<RString> eventqueuel;
     Array<Timer, MAX_EVENTTIMER> eventtimer;
@@ -358,6 +359,9 @@ public:
         // Diameter.
         short xs, ys;
         bool event_needs_map;
+
+        // the npc containing the actual script
+        BlockId parent;
 
         // Whether the timer advances if not beyond end.
         bool timer_active;

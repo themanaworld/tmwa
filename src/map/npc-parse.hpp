@@ -39,6 +39,7 @@ dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
 
 void npc_addsrcfile(AString name);
 void npc_delsrcfile(XString name);
+void register_npc_name(dumb_ptr<npc_data> nd);
 bool do_init_npc(void);
 } // namespace map
 } // namespace tmwa
