@@ -77,6 +77,13 @@ struct block_list
     short bl_x, bl_y;
     BL bl_type;
 
+    // register keys are ints (interned)
+    // Not anymore! Well, sort of.
+    DMap<SIR, int> regm;
+    // can't be DMap because we want predictable .c_str()s
+    // TODO this can change now
+    Map<SIR, RString> regstrm;
+
     // This deletes the copy-ctor also
     // TODO give proper ctors.
     block_list& operator = (block_list&&) = delete;
@@ -250,13 +257,6 @@ struct map_session_data : block_list, SessionData
     short hp_drain_rate, hp_drain_per, sp_drain_rate, sp_drain_per;
 
     int die_counter;
-
-    // register keys are ints (interned)
-    // Not anymore! Well, sort of.
-    DMap<SIR, int> regm;
-    // can't be DMap because we want predictable .c_str()s
-    // TODO this can change now
-    Map<SIR, RString> regstrm;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 

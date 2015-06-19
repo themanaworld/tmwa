@@ -283,6 +283,10 @@ ZString::iterator skip_word(ZString::iterator p)
         p++;                    // MAP鯖内共有変数用
     if (*p == '@')
         p++;                    // 一時的変数用(like weiss)
+    if (*p == '.')
+        p++;                    // npc
+    if (*p == '@')
+        p++;                    // scope
     if (*p == '#')
         p++;                    // account変数用
     if (*p == '#')
@@ -623,6 +627,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
             "end"_s,
             "mapexit"_s,
             "shop"_s,
+            "destroy"_s,
         };
         *can_step = terminators.count(cmd->strs) == 0;
     }

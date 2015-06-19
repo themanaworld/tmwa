@@ -25,6 +25,8 @@
 
 #include "../mmo/ids.hpp"
 
+#include "../strings/rstring.hpp"
+#include "../generic/db.hpp"
 #include "script-persist.hpp"
 
 
@@ -55,6 +57,13 @@ public:
     ScriptPointer scriptp, new_scriptp;
     int defsp, new_defsp, freeloop;
     int is_true = 0;
+
+    // register keys are ints (interned)
+    // Not anymore! Well, sort of.
+    DMap<SIR, int> regm;
+    // can't be DMap because we want predictable .c_str()s
+    // TODO this can change now
+    Map<SIR, RString> regstrm;
 };
 
 void run_func(ScriptState *st);
@@ -70,13 +79,14 @@ enum class ScriptEndState
 };
 
 dumb_ptr<map_session_data> script_rid2sd(ScriptState *st);
-void get_val(dumb_ptr<map_session_data> sd, struct script_data *data);
+void get_val(dumb_ptr<block_list> sd, struct script_data *data);
 __attribute__((deprecated))
 void get_val(ScriptState *st, struct script_data *data);
 struct script_data get_val2(ScriptState *st, SIR reg);
-void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, struct script_data vd);
-void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, int id);
-void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, RString zd);
+void set_scope_reg(ScriptState *, SIR, struct script_data);
+void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_data vd);
+void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, int id);
+void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, RString zd);
 __attribute__((warn_unused_result))
 RString conv_str(ScriptState *st, struct script_data *data);
 __attribute__((warn_unused_result))

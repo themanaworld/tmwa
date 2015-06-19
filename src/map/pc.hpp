@@ -144,10 +144,10 @@ int pc_changelook(dumb_ptr<map_session_data>, LOOK, int);
 
 int pc_readparam(dumb_ptr<map_session_data>, SP);
 int pc_setparam(dumb_ptr<map_session_data>, SP, int);
-int pc_readreg(dumb_ptr<map_session_data>, SIR);
-void pc_setreg(dumb_ptr<map_session_data>, SIR, int);
-ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg);
-void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, RString str);
+int pc_readreg(dumb_ptr<block_list>, SIR);
+void pc_setreg(dumb_ptr<block_list>, SIR, int);
+ZString pc_readregstr(dumb_ptr<block_list> sd, SIR reg);
+void pc_setregstr(dumb_ptr<block_list> sd, SIR reg, RString str);
 void update_quest(dumb_ptr<map_session_data> sd, VarName quest_var, int value);
 void update_allquest(dumb_ptr<map_session_data> sd);
 int pc_readglobalreg(dumb_ptr<map_session_data>, VarName );

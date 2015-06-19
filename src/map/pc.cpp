@@ -3814,7 +3814,7 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
  * script用変数の値を読む
  *------------------------------------------
  */
-int pc_readreg(dumb_ptr<map_session_data> sd, SIR reg)
+int pc_readreg(dumb_ptr<block_list> sd, SIR reg)
 {
     nullpo_retz(sd);
 
@@ -3825,7 +3825,7 @@ int pc_readreg(dumb_ptr<map_session_data> sd, SIR reg)
  * script用変数の値を設定
  *------------------------------------------
  */
-void pc_setreg(dumb_ptr<map_session_data> sd, SIR reg, int val)
+void pc_setreg(dumb_ptr<block_list> sd, SIR reg, int val)
 {
     nullpo_retv(sd);
 
@@ -3836,7 +3836,7 @@ void pc_setreg(dumb_ptr<map_session_data> sd, SIR reg, int val)
  * script用文字列変数の値を読む
  *------------------------------------------
  */
-ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
+ZString pc_readregstr(dumb_ptr<block_list> sd, SIR reg)
 {
     nullpo_retr(ZString(), sd);
 
@@ -3848,7 +3848,7 @@ ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
  * script用文字列変数の値を設定
  *------------------------------------------
  */
-void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, RString str)
+void pc_setregstr(dumb_ptr<block_list> sd, SIR reg, RString str)
 {
     nullpo_retv(sd);
 
