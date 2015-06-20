@@ -3782,6 +3782,20 @@ void clif_message(dumb_ptr<block_list> bl, XString msg)
     clif_send(buf, bl, SendWho::AREA);
 }
 
+void clif_npc_send_title(Session *s, BlockId npcid, XString msg)
+{
+    size_t msg_len = msg.size() + 1;
+    if (msg_len > 50)
+        return;
+
+    Packet_Head<0x0228> head_228;
+    head_228.npc_id = npcid;
+    head_228.string_length = msg_len;
+    Buffer buf = create_vpacket<0x0228, 10, 1>(head_228, msg);
+
+    send_buffer(s, buf);
+}
+
 /*==========================================
  *
  *------------------------------------------

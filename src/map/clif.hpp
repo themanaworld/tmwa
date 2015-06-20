@@ -102,6 +102,7 @@ void clif_sitnpc(dumb_ptr<npc_data> nd, DamageType dmg);
 void clif_sitnpc_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DamageType dmg);
 void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction);
 void clif_setnpcdirection_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DIR direction);
+void clif_npc_send_title(Session *s, BlockId npcid, XString msg);
 
 // trade
 void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name);

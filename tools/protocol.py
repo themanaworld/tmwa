@@ -4679,7 +4679,25 @@ def build_context():
     )
     # 0x0226 define='SMSG_MAP_MASK',
     # 0x0227 define='SMSG_MAP_MUSIC',
-    # 0x0228 define='SMSG_NPC_CHANGETITLE',
+    map_user.s(0x0228, 'npc change title',
+        define='SMSG_NPC_CHANGETITLE',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, block_id, 'npc id'),
+            at(8, u16, 'string length'),
+        ],
+        head_size=10,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Change npc title
+        ''',
+    )
 
     # TOC_LOGINCHAR
     # login char
