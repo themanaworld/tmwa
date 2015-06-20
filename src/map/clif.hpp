@@ -106,6 +106,8 @@ void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction);
 void clif_setnpcdirection_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, DIR direction);
 void clif_npc_send_title(Session *s, BlockId npcid, XString msg);
 void clif_change_music(dumb_ptr<map_session_data> sd, XString music);
+void clif_npc_action(dumb_ptr<map_session_data>, BlockId, short, int, short, short);
+void clif_send_mask(dumb_ptr<map_session_data>, int);
 
 // trade
 void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name);
@@ -178,6 +180,7 @@ void clif_resurrection(dumb_ptr<block_list> bl, int type);
 
 int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag);    // special effects [Valaris]
 void clif_message(dumb_ptr<block_list> bl, XString msg);   // messages (from mobs/npcs) [Valaris]
+void clif_message_towards(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl, XString msg);
 
 int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
         int type);

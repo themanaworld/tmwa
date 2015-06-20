@@ -505,6 +505,7 @@ struct map_local : map_abstract
     MapFlags flag;
     Point save;
     Point resave;
+    int mask;
     Array<dumb_ptr<npc_data>, MAX_NPC_PER_MAP> npc;
 };
 

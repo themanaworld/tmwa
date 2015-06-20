@@ -40,7 +40,7 @@ class MapFlags(object):
             ('NOWARP', 13),
             ('NOWARPTO', 26),
             ('NOPVP', 14),
-            #('NOICEWALL', 15),
+            ('MASK', 15),
             ('SNOW', 16),
             ('FOG', 17),
             ('SAKURA', 18),

@@ -800,6 +800,24 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
+void clif_npc_action(dumb_ptr<map_session_data> sd, BlockId npcid,
+        short command, int id, short x, short y)
+{
+    nullpo_retv(sd);
+    if(sd->client_version < 2)
+        return;
+
+    Packet_Fixed<0x0212> fixed_212;
+    fixed_212.npc_id = npcid;
+    fixed_212.command = command;
+    fixed_212.id = id;
+    fixed_212.x = x;
+    fixed_212.y = y;
+
+    Buffer buf = create_fpacket<0x0212, 16>(fixed_212);
+    send_buffer(sd->sess, buf);
+}
+
 /*==========================================
  * MOB表示2
  *------------------------------------------
@@ -1137,6 +1155,9 @@ void clif_changemap(dumb_ptr<map_session_data> sd, MapName mapname, int x, int y
     fixed_91.x = x;
     fixed_91.y = y;
     send_fpacket<0x0091, 22>(s, fixed_91);
+
+    if(sd->bl_m->mask > 0)
+        clif_send_mask(sd, sd->bl_m->mask);
 }
 
 /*==========================================
@@ -3791,19 +3812,16 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
     return rv;
 }
 
-void clif_message(dumb_ptr<block_list> bl, XString msg)
+static
+void clif_message_sub(Buffer& buf, dumb_ptr<block_list> bl, XString msg)
 {
     size_t msg_len = msg.size() + 1;
     if (msg_len + 16 > 512)
         return;
 
-    nullpo_retv(bl);
-
     Packet_Head<0x008d> head_8d;
     head_8d.block_id = bl->bl_id;
-    Buffer buf = create_vpacket<0x008d, 8, 1>(head_8d, msg);
-
-    clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+    buf = create_vpacket<0x008d, 8, 1>(head_8d, msg);
 }
 
 void clif_npc_send_title(Session *s, BlockId npcid, XString msg)
@@ -3833,6 +3851,41 @@ void clif_change_music(dumb_ptr<map_session_data> sd, XString music)
     Packet_Head<0x0227> head_227;
     Buffer buf = create_vpacket<0x0227, 4, 1>(head_227, music);
 
+    send_buffer(sd->sess, buf);
+}
+
+void clif_message_towards(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl, XString msg)
+{
+    nullpo_retv(bl);
+    nullpo_retv(sd);
+
+    if(!sd)
+        return;
+
+    Buffer buf;
+    clif_message_sub(buf, bl, msg);
+    clif_send(buf, sd, SendWho::SELF, MIN_CLIENT_VERSION);
+}
+
+void clif_message(dumb_ptr<block_list> bl, XString msg)
+{
+    nullpo_retv(bl);
+
+    Buffer buf;
+    clif_message_sub(buf, bl, msg);
+    clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+}
+
+void clif_send_mask(dumb_ptr<map_session_data> sd, int map_mask)
+{
+    nullpo_retv(sd);
+    if(sd->client_version < 2)
+        return;
+
+    Packet_Fixed<0x0226> fixed_226;
+    fixed_226.mask = map_mask;
+
+    Buffer buf = create_fpacket<0x0226, 10>(fixed_226);
     send_buffer(sd->sess, buf);
 }
 

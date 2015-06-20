@@ -1615,6 +1615,30 @@ void builtin_setnpctimer(ScriptState *st)
 }
 
 static
+void builtin_npcaction(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    short command = conv_num(st, &AARG(0));
+    int id = 0;
+    short x = HARG(2) ? conv_num(st, &AARG(2)) : 0;
+    short y = HARG(3) ? conv_num(st, &AARG(3)) : 0;
+
+    if(HARG(1))
+    {
+        if(command == 2)
+        {
+            dumb_ptr<npc_data> nd_;
+            nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(1)))));
+            id = unwrap<BlockId>(nd_->bl_id);
+        }
+        else
+            id = conv_num(st, &AARG(1));
+    }
+
+    clif_npc_action(sd, st->oid, command, id, x, y);
+}
+
+static
 void builtin_setnpcdirection(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
@@ -2680,6 +2704,50 @@ void builtin_music(ScriptState *st)
     clif_change_music(sd, msg);
 }
 
+static
+void builtin_mapmask(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd;
+    dumb_ptr<map_session_data> sd;
+    int map_mask = conv_num(st, &AARG(0));
+
+    if(st->oid)
+        nd = map_id_is_npc(st->oid);
+    if(st->rid)
+        sd = script_rid2sd(st);
+
+    if(HARG(1) && sd != nullptr)
+        sd->bl_m->mask = map_mask;
+    else if(HARG(1) && nd)
+        nd->bl_m->mask = map_mask;
+
+    if (sd == nullptr)
+        return;
+    clif_send_mask(sd, map_mask);
+}
+
+static
+void builtin_getmask(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd;
+    dumb_ptr<map_session_data> sd;
+    int map_mask;
+
+    if(st->oid)
+        nd = map_id_is_npc(st->oid);
+    if(st->rid)
+        sd = script_rid2sd(st);
+
+    if(sd != nullptr)
+        map_mask = sd->bl_m->mask;
+    else if(nd)
+        map_mask = nd->bl_m->mask;
+    else
+        map_mask = -1;
+
+    push_int<ScriptDataInt>(st->stack, map_mask);
+}
+
 /*==========================================
  * npctalk (sends message to surrounding
  * area) [Valaris]
@@ -2689,13 +2757,24 @@ void builtin_music(ScriptState *st)
 static
 void builtin_npctalk(ScriptState *st)
 {
-    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
-    RString str = conv_str(st, &AARG(0));
+    dumb_ptr<npc_data> nd;
+    RString str = conv_str(st, &AARG(1));
 
-    if (nd)
-    {
-        clif_message(nd, str);
+    dumb_ptr<npc_data> nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
+    assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
+    nd = nd_->is_script();
+
+
+    if(HARG(2)){
+        CharName player = stringish<CharName>(ZString(conv_str(st, &AARG(2))));
+        dumb_ptr<map_session_data> pl_sd = map_nick2sd(player);
+        if (pl_sd == nullptr)
+            return;
+        clif_message_towards(pl_sd, nd, str);
     }
+
+    else
+        clif_message(nd, str);
 }
 
 /*==========================================
@@ -3103,6 +3182,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getnpctimer, "i?"_s, 'i'),
     BUILTIN(setnpctimer, "i?"_s, '\0'),
     BUILTIN(setnpcdirection, "iii?"_s, '\0'),
+    BUILTIN(npcaction, "i???"_s, '\0'),
     BUILTIN(announce, "si"_s, '\0'),
     BUILTIN(mapannounce, "Msi"_s, '\0'),
     BUILTIN(getusers, "i"_s, 'i'),
@@ -3149,9 +3229,11 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npcwarp, "xys"_s, '\0'),
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
-    BUILTIN(npctalk, "s"_s, '\0'),
+    BUILTIN(npctalk, "ss?"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
     BUILTIN(music, "s"_s, '\0'),
+    BUILTIN(mapmask, "i?"_s, '\0'),
+    BUILTIN(getmask, ""_s, 'i'),
     BUILTIN(getlook, "i"_s, 'i'),
     BUILTIN(getsavepoint, "i"_s, '.'),
     BUILTIN(areatimer, "MxyxytE"_s, '\0'),

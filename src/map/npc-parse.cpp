@@ -354,7 +354,7 @@ bool npc_load_mapflag(ast::npc::MapFlag& mapflag)
     }
 
     MapName savemap;
-    int savex, savey;
+    int savex, savey, mask;
 
     if (mf == MapFlag::NOSAVE)
     {
@@ -389,6 +389,19 @@ bool npc_load_mapflag(ast::npc::MapFlag& mapflag)
         else
         {
             mapflag.vec_extra.span.error("Unable to extract resave savepoint"_s);
+            return false;
+        }
+    }
+    else if (mf == MapFlag::MASK)
+    {
+        if (mapflag.vec_extra.data.size() == 1
+                && extract(mapflag.vec_extra.data[0].data, &mask))
+        {
+            m->mask = mask;
+        }
+        else
+        {
+            mapflag.vec_extra.span.error("Unable to extract map mask"_s);
             return false;
         }
     }
