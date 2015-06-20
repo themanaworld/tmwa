@@ -3820,6 +3820,22 @@ void clif_npc_send_title(Session *s, BlockId npcid, XString msg)
     send_buffer(s, buf);
 }
 
+void clif_change_music(dumb_ptr<map_session_data> sd, XString music)
+{
+    nullpo_retv(sd);
+    if(sd->client_version < 2)
+        return;
+
+    size_t msg_len = music.size();
+    if (msg_len > 128)
+        return;
+
+    Packet_Head<0x0227> head_227;
+    Buffer buf = create_vpacket<0x0227, 4, 1>(head_227, music);
+
+    send_buffer(sd->sess, buf);
+}
+
 /*==========================================
  *
  *------------------------------------------

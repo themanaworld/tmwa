@@ -4704,7 +4704,23 @@ def build_context():
         ''',
     )
     # 0x0226 define='SMSG_MAP_MASK',
-    # 0x0227 define='SMSG_MAP_MUSIC',
+    map_user.s(0x0227, 'change map music',
+        define='SMSG_MAP_MUSIC',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Change map music
+        ''',
+    )
     map_user.s(0x0228, 'npc change title',
         define='SMSG_NPC_CHANGETITLE',
         head=[
