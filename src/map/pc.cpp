@@ -944,7 +944,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     b_mdef = sd->mdef;
     b_mdef2 = sd->mdef2;
     b_base_atk = sd->base_atk;
-    if (!pc_isdead(sd) && sd->state.pvpchannel == 1)
+    if (sd->state.pvpchannel == 1)
         b_pvpchannel = sd->state.pvpchannel;
 
     sd->max_weight = max_weight_base_0 + sd->status.attrs[ATTR::STR] * 300;
@@ -3313,6 +3313,11 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         };
         npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"_s), sd->bl_id, arg);
         npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"_s), src->bl_id, arg);
+
+        sd->state.pvp_rank = 0;
+        src->is_player()->state.pvp_rank++;
+        clif_pvpstatus(sd);
+        clif_pvpstatus(src->is_player());
     }
     npc_event_doall_l(stringish<ScriptLabel>("OnPCDieEvent"_s), sd->bl_id, nullptr);
 

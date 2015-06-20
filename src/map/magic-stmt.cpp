@@ -771,10 +771,12 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
     int target_hp = battle_get_hp(target);
     int mdef = battle_get_mdef(target);
 
-    if (target->bl_type == BL::PC
-        && !target->bl_m->flag.get(MapFlag::PVP)
-        && (caster->bl_type == BL::PC)
-        && ((caster->is_player()->state.pvpchannel > 1) && (target->is_player()->state.pvpchannel != caster->is_player()->state.pvpchannel)))
+    if (target->bl_type == BL::PC                       // target is player
+        && !target->bl_m->flag.get(MapFlag::PVP)        // there is no pvpon flag
+        && (caster->bl_type == BL::PC)                  // caster is player
+        && ((target->is_player()->state.pvpchannel == 0)
+            || ((caster->is_player()->state.pvpchannel > 0)
+                && (target->is_player()->state.pvpchannel != caster->is_player()->state.pvpchannel))))
         return 0;               /* Cannot damage other players outside of pvp */
 
     if (target != caster)

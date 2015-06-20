@@ -4108,6 +4108,9 @@ ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
         clif_displaymessage(s, "##3PvP : ##BOff"_s);
     }
 
+    sd->state.pvp_rank = 0;
+    clif_pvpstatus(sd); // send my channel to others
+
     pc_setpvptimer(sd, battle_config.player_pvp_time);
     return ATCE::OKAY;
 }
@@ -4127,6 +4130,8 @@ ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
         return ATCE::EXIST;
 
     pl_sd->state.pvpchannel = channel;
+    pl_sd->state.pvp_rank = 0;
+    clif_pvpstatus(pl_sd); // send their channel to others
 
     return ATCE::OKAY;
 }

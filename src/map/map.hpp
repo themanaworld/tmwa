@@ -143,6 +143,7 @@ struct map_session_data : block_list, SessionData
         unsigned shroud_disappears_on_talk:1;
         unsigned seen_motd:1;
         unsigned pvpchannel;
+        unsigned pvp_rank;
     } state;
     struct
     {

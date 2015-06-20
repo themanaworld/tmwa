@@ -72,6 +72,7 @@ void clif_scriptclose(dumb_ptr<map_session_data>, BlockId); //self
 void clif_scriptmenu(dumb_ptr<map_session_data>, BlockId, XString);  //self
 void clif_scriptinput(dumb_ptr<map_session_data>, BlockId); //self
 void clif_scriptinputstr(dumb_ptr<map_session_data> sd, BlockId npcid);  // self
+void clif_map_pvp(dumb_ptr<map_session_data>); // self
 
 int clif_additem(dumb_ptr<map_session_data>, IOff0, int, PickupFail);   //self
 void clif_delitem(dumb_ptr<map_session_data>, IOff0, int);    //self
@@ -92,6 +93,7 @@ int clif_statusupack(dumb_ptr<map_session_data>, SP, int, int);   // self
 int clif_equipitemack(dumb_ptr<map_session_data>, IOff0, EPOS, int);  // self
 int clif_unequipitemack(dumb_ptr<map_session_data>, IOff0, EPOS, int);    // self
 int clif_misceffect(dumb_ptr<block_list>, int);    // area
+void clif_pvpstatus(dumb_ptr<map_session_data>); // area
 int clif_changeoption(dumb_ptr<block_list>);   // area
 int clif_useitemack(dumb_ptr<map_session_data>, IOff0, int, int);    // self
 
