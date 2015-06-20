@@ -1237,7 +1237,8 @@ int map_setipport(MapName name, IP4Address ip, int port)
             mdos->gat = nullptr;
             mdos->ip = ip;
             mdos->port = port;
-            maps_db.put(mdos->name_, std::move(mdos));
+            MapName mName = mdos->name_;
+            maps_db.put(mName, std::move(mdos));
         }
     }
     OMATCH_END ();
