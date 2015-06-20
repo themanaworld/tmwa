@@ -66,21 +66,6 @@ namespace tmwa
 {
 namespace map
 {
-static
-Array<LString, 11> pos_str //=
-{{
-    "Head"_s,
-    "Body"_s,
-    "Left hand"_s,
-    "Right hand"_s,
-    "Robe"_s,
-    "Shoes"_s,
-    "Accessory 1"_s,
-    "Accessory 2"_s,
-    "Head 2"_s,
-    "Head 3"_s,
-    "Not Equipped"_s,
-}};
 
 #define AARG(n) (st->stack->stack_datav[st->start + 2 + (n)])
 #define HARG(n) (st->end > st->start + 2 + (n))

@@ -64,6 +64,14 @@ namespace ints
         }
 
         template<class T>
+        struct Sub : T
+        {
+            constexpr
+            Sub(typename T::wrapped_type v2)
+            : T(v2)
+            {}
+        };
+        template<class T>
         constexpr
         typename T::wrapped_type unwrap(typename std::enable_if<true, T>::type w)
         {
@@ -73,14 +81,7 @@ namespace ints
         constexpr
         T wrap(typename T::wrapped_type v)
         {
-            struct Sub : T
-            {
-                constexpr
-                Sub(typename T::wrapped_type v2)
-                : T(v2)
-                {}
-            };
-            return Sub(v);
+            return Sub<T>(v);
         }
 
         template<class W>

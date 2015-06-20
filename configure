@@ -50,7 +50,7 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
         home = os.path.expanduser('~')
         self.add_alias('--user', ['--prefix=%s' % home, '--enable-rpath=relative'],
                 help='alias for --prefix=$HOME --enable-rpath=relative', hidden=False)
-        self.add_alias('--dev', ['--user', '--enable-warnings', '--enable-abi6'],
+        self.add_alias('--dev', ['--user', '--enable-warnings', '--enable-abi'],
                 help=None, hidden=False)
 
     def paths(self):
@@ -66,8 +66,8 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
         self.add_bool_feature('warnings', init='no',
                 check=lambda build, ENABLE_WARNINGS: None,
                 help='Enable warnings (for development)')
-        self.add_bool_feature('abi6', init='no',
-                check=lambda build, ENABLE_ABI6: None,
+        self.add_bool_feature('abi', init='no',
+                check=lambda build, ENABLE_ABI: None,
                 help='Force a nonbuggy gcc ABI (for development)')
         self.add_bool_feature('cygwin-hacks', init='no',
                 check=lambda build, ENABLE_CYGWIN_HACKS: None,
