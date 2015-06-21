@@ -3947,11 +3947,23 @@ void builtin_strnpcinfo(ScriptState *st)
     dumb_ptr<npc_data> nd;
 
     if(HARG(1)){
-        NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(1))));
-        nd = npc_name2id(npc);
+        struct script_data *sdata = &AARG(1);
+        get_val(st, sdata);
+
+        if (sdata->is<ScriptDataStr>())
+        {
+            NpcName name = stringish<NpcName>(ZString(conv_str(st, sdata)));
+            nd = npc_name2id(name);
+        }
+        else
+        {
+            BlockId id = wrap<BlockId>(conv_num(st, sdata));
+            nd = map_id2bl(id)->is_npc();
+        }
+
         if (!nd)
         {
-            PRINTF("builtin_strnpcinfo: no such npc: '%s'\n"_fmt, npc);
+            PRINTF("builtin_strnpcinfo: npc not found\n"_fmt);
             return;
         }
     } else {
