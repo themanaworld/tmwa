@@ -2156,6 +2156,20 @@ void builtin_addtimer(ScriptState *st)
 }
 
 /*==========================================
+ * NPCイベントタイマー追加
+ *------------------------------------------
+ */
+static
+void builtin_addnpctimer(ScriptState *st)
+{
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(0)));
+    ZString event_ = ZString(conv_str(st, &AARG(1)));
+    NpcEvent event;
+    extract(event_, &event);
+    npc_addeventtimer(map_id2bl(st->oid), tick, event);
+}
+
+/*==========================================
  * NPCタイマー初期化
  *------------------------------------------
  */
@@ -3925,6 +3939,18 @@ void builtin_gety(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, sd->bl_y);
 }
 
+/*============================
+ * Gets the PC's direction
+ *----------------------------
+ */
+static
+void builtin_getdir(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+
+    push_int<ScriptDataInt>(st->stack, static_cast<uint8_t>(sd->dir));
+}
+
 /*
  * Get the PC's current map's name
  */
@@ -4108,6 +4134,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(killmonster, "ME"_s, '\0'),
     BUILTIN(donpcevent, "E"_s, '\0'),
     BUILTIN(addtimer, "tE"_s, '\0'),
+    BUILTIN(addnpctimer, "tE"_s, '\0'),
     BUILTIN(initnpctimer, "?"_s, '\0'),
     BUILTIN(startnpctimer, "?"_s, '\0'),
     BUILTIN(stopnpctimer, "?"_s, '\0'),
@@ -4183,6 +4210,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(destroy, "?"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),
+    BUILTIN(getdir, ""_s, 'i'),
     BUILTIN(getnpcx, "?"_s, 'i'),
     BUILTIN(getnpcy, "?"_s, 'i'),
     BUILTIN(strnpcinfo, "i?"_s, 's'),
