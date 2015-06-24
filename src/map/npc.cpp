@@ -155,18 +155,10 @@ dumb_ptr<npc_data> npc_name2id(NpcName name)
 }
 
 /*==========================================
- * NPC Spells
- *------------------------------------------
- */
-NpcName spell_name2id(RString name)
-{
-    return spells_by_name.get(name);
-}
-
-/*==========================================
  * NPC Spells Events
  *------------------------------------------
  */
+static
 NpcEvent spell_event2id(RString name)
 {
     return spells_by_events.get(name);
@@ -209,31 +201,23 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 {
     auto pair = magic_tokenise(source_invocation);
     // Spell Cast
-    NpcName spell_name = spell_name2id(pair.first);
     NpcEvent spell_event = spell_event2id(pair.first);
     PRINTF("Cast: %s\n"_fmt, RString(pair.first));
 
     RString spell_params = pair.second;
 
-    dumb_ptr<npc_data> nd = npc_name2id(spell_event.label? spell_event.npc: spell_name);
+    dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
 
     if (nd)
     {
         PRINTF("NPC:  '%s' %d\n"_fmt, nd->name, nd->bl_id);
         PRINTF("Params:  '%s'\n"_fmt, spell_params);
-        caster->npc_id = nd->bl_id;
-        dumb_ptr<block_list> map_bl = map_id2bl(nd->bl_id);
-        if (!map_bl)
-            map_addnpc(caster->bl_m, nd);
         argrec_t arg[1] =
         {
             {"@args$"_s, spell_params},
         };
 
-        if (spell_event.label)
-            caster->npc_pos = npc_event_do_l(spell_event, caster->bl_id, arg);
-        else
-            caster->npc_pos = run_script_l(ScriptPointer(script_or_parent(nd->is_script()), 0), caster->bl_id, nd->bl_id, arg);
+        npc_event_do_l(spell_event, caster->bl_id, arg);
         return 1;
     }
     return 0;
@@ -321,6 +305,7 @@ void npc_event_do_sub(NpcEvent key, struct event_data *ev,
     }
 }
 
+// XXX maybe merge npc_event_do_l into npc_event ?
 int npc_event_do_l(NpcEvent name, BlockId rid, Slice<argrec_t> args)
 {
     int c = 0;
@@ -328,6 +313,17 @@ int npc_event_do_l(NpcEvent name, BlockId rid, Slice<argrec_t> args)
     if (!name.npc)
     {
         return npc_event_doall_l(name.label, rid, args);
+    }
+
+    if (!name.label && rid)
+    {
+        dumb_ptr<map_session_data> sd = map_id2bl(rid)->is_player();
+        dumb_ptr<npc_data_script> nd = npc_name2id(name.npc)->is_script();
+        if (!nd || !sd || sd->npc_id)
+            return 0;
+        sd->npc_id = nd->bl_id;
+        sd->npc_pos = run_script_l(ScriptPointer(script_or_parent(nd), 0), rid, nd->bl_id, args);
+        return sd->npc_pos;
     }
 
     for (auto& pair : ev_db)
@@ -609,6 +605,12 @@ void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer)
 int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
         int mob_kill)
 {
+    if (!eventname.label && eventname.npc && sd)
+    {
+        npc_event_do_l(eventname, sd->bl_id, nullptr);
+        return 1;
+    }
+
     Option<P<struct event_data>> ev_ = ev_db.search(eventname);
     dumb_ptr<npc_data_script> nd;
 
@@ -816,6 +818,7 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
             npc_event_dequeue(sd);
             break;
         case NpcSubtype::SCRIPT:
+            // XXX use npc_event_script_l instead?
             sd->npc_pos = run_script(ScriptPointer(script_or_parent(nd->is_script()), 0), sd->bl_id, id);
             break;
         case NpcSubtype::MESSAGE:

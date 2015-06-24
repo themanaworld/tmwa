@@ -3667,14 +3667,10 @@ static
 void builtin_registercmd(ScriptState *st)
 {
     RString evoke = conv_str(st, &AARG(0));
-    NpcName npcname = stringish<NpcName>(conv_str(st, &AARG(1)));
     ZString event_ = conv_str(st, &AARG(1));
     NpcEvent event;
     extract(event_, &event);
-    if (event.label)
-        spells_by_events.put(evoke, event);
-    else
-        spells_by_name.put(evoke, npcname);
+    spells_by_events.put(evoke, event);
 }
 
 /*==========================================

@@ -68,7 +68,6 @@ namespace tmwa
         extern BlockId npc_id;
         extern Map<NpcEvent, event_data> ev_db;
         extern DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
-        extern DMap<RString, NpcName> spells_by_name;
         extern DMap<RString, NpcEvent> spells_by_events;
         extern tm ev_tm_b;
         extern Map<PartyId, PartyMost> party_db;
