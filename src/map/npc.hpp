@@ -44,7 +44,18 @@ constexpr Species FAKE_NPC_CLASS = wrap<Species>(127);
 constexpr Species INVISIBLE_CLASS = wrap<Species>(32767);
 
 int npc_event_dequeue(dumb_ptr<map_session_data> sd);
-int npc_event(dumb_ptr<map_session_data> sd, NpcEvent npcname, int);
+int npc_event(dumb_ptr<map_session_data>, NpcEvent, int, Slice<argrec_t>);
+int npc_event(BlockId, NpcEvent, int, Slice<argrec_t>);
+inline
+int npc_event(dumb_ptr<map_session_data> sd, NpcEvent npcname, int i)
+{
+    return npc_event(sd, npcname, i, nullptr);
+}
+inline
+int npc_event(BlockId rid, NpcEvent eventname, int mob_kill, Slice<argrec_t> args)
+{
+    return npc_event(rid ? map_id2bl(rid)->is_player() : nullptr, eventname, mob_kill, args);
+}
 int npc_addeventtimer(dumb_ptr<block_list> bl, interval_t tick, NpcEvent name);
 int npc_touch_areanpc(dumb_ptr<map_session_data>, Borrowed<map_local>, int, int);
 int npc_click(dumb_ptr<map_session_data>, BlockId);
@@ -67,7 +78,11 @@ void npc_free(dumb_ptr<npc_data> npc);
 int npc_event_do_oninit(void);
 
 int npc_event_doall_l(ScriptLabel name, BlockId rid, Slice<argrec_t> argv);
-int npc_event_do_l(NpcEvent name, BlockId rid, Slice<argrec_t> argv);
+inline
+int npc_event_do_l(NpcEvent name, BlockId rid, Slice<argrec_t> argv)
+{
+    return npc_event(rid, name, 0, argv);
+}
 inline
 int npc_event_doall(ScriptLabel name)
 {
