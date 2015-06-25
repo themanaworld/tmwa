@@ -45,7 +45,6 @@ constexpr Species INVISIBLE_CLASS = wrap<Species>(32767);
 
 int npc_event_dequeue(dumb_ptr<map_session_data> sd);
 int npc_event(dumb_ptr<map_session_data>, NpcEvent, int, Slice<argrec_t>);
-int npc_event(BlockId, NpcEvent, int, Slice<argrec_t>);
 inline
 int npc_event(dumb_ptr<map_session_data> sd, NpcEvent npcname, int i)
 {

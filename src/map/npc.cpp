@@ -622,7 +622,7 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
                 && (sd->bl_y < nd->bl_y - ys / 2 || nd->bl_y + ys / 2 < sd->bl_y))
                 return 1;
         }
-        if (sd->npc_id)
+        if (sd->npc_id && sd->npc_pos > -1 && args.size() < 1) // if called from a timer we process async, otherwise sync
         {
             sd->eventqueuel.push_back(eventname);
             return 1;
