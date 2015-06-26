@@ -1676,7 +1676,11 @@ void builtin_freeloop(ScriptState *st)
 static
 void builtin_bonus(ScriptState *st)
 {
-    SP type = SP(conv_num(st, &AARG(0)));
+    SP type;
+    if (auto *u = AARG(0).get_if<ScriptDataParam>())
+        type = u->reg.sp();
+    else
+        type = SP(conv_num(st, &AARG(0)));
     int val = conv_num(st, &AARG(1));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     pc_bonus(sd, type, val);
@@ -1690,7 +1694,11 @@ void builtin_bonus(ScriptState *st)
 static
 void builtin_bonus2(ScriptState *st)
 {
-    SP type = SP(conv_num(st, &AARG(0)));
+    SP type;
+    if (auto *u = AARG(0).get_if<ScriptDataParam>())
+        type = u->reg.sp();
+    else
+        type = SP(conv_num(st, &AARG(0)));
     int type2 = conv_num(st, &AARG(1));
     int val = conv_num(st, &AARG(2));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
@@ -3291,7 +3299,7 @@ void builtin_get(ScriptState *st)
 
         if (bl == nullptr)
             return;
-        int var = pc_readparam(bl->is_player(), reg.sp());
+        int var = pc_readparam(bl, reg.sp());
         push_int<ScriptDataInt>(st->stack, var);
         return;
     }

@@ -142,7 +142,7 @@ int pc_heal(dumb_ptr<map_session_data>, int, int);
 int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp);
 int pc_changelook(dumb_ptr<map_session_data>, LOOK, int);
 
-int pc_readparam(dumb_ptr<map_session_data>, SP);
+int pc_readparam(dumb_ptr<block_list>, SP);
 int pc_setparam(dumb_ptr<map_session_data>, SP, int);
 int pc_readreg(dumb_ptr<block_list>, SIR);
 void pc_setreg(dumb_ptr<block_list>, SIR, int);

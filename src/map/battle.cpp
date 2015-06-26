@@ -341,7 +341,6 @@ int battle_get_luk(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_flee(dumb_ptr<block_list> bl)
 {
     int flee = 1;
@@ -370,7 +369,6 @@ int battle_get_flee(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_hit(dumb_ptr<block_list> bl)
 {
     int hit = 1;
@@ -398,7 +396,6 @@ int battle_get_hit(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_flee2(dumb_ptr<block_list> bl)
 {
     int flee2 = 1;
@@ -430,7 +427,6 @@ int battle_get_flee2(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_critical(dumb_ptr<block_list> bl)
 {
     int critical = 1;
@@ -457,7 +453,6 @@ int battle_get_critical(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_baseatk(dumb_ptr<block_list> bl)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -484,7 +479,6 @@ int battle_get_baseatk(dumb_ptr<block_list> bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static
 int battle_get_atk(dumb_ptr<block_list> bl)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -507,7 +501,6 @@ int battle_get_atk(dumb_ptr<block_list> bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static
 int battle_get_atk2(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);
@@ -530,7 +523,6 @@ int battle_get_atk2(dumb_ptr<block_list> bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static
 int battle_get_matk1(dumb_ptr<block_list> bl)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -554,7 +546,6 @@ int battle_get_matk1(dumb_ptr<block_list> bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static
 int battle_get_matk2(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);

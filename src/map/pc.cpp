@@ -3382,64 +3382,105 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
  * script用PCステータス読み出し
  *------------------------------------------
  */
-int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
+int pc_readparam(dumb_ptr<block_list> bl, SP type)
 {
+    nullpo_retz(bl);
+    dumb_ptr<map_session_data> sd;
+    dumb_ptr<npc_data> nd;
+    dumb_ptr<mob_data> md;
     int val = 0;
 
-    nullpo_retz(sd);
+    if (bl->bl_type == BL::PC)
+        sd = bl->is_player();
+    else if (bl->bl_type == BL::MOB)
+        md = bl->is_mob();
+    else if (bl->bl_type == BL::NPC)
+        nd = bl->is_npc();
+    else
+        return val;
 
     switch (type)
     {
         case SP::SKILLPOINT:
-            val = sd->status.skill_point;
+            val = sd ? sd->status.skill_point : 0;
             break;
         case SP::STATUSPOINT:
-            val = sd->status.status_point;
+            val = sd ? sd->status.status_point : 0;
             break;
         case SP::ZENY:
-            val = sd->status.zeny;
+            val = sd ? sd->status.zeny : 0;
             break;
         case SP::BASELEVEL:
-            val = sd->status.base_level;
+            val = battle_get_lv(bl);
             break;
         case SP::JOBLEVEL:
-            val = sd->status.job_level;
+            val = sd ? sd->status.job_level : 0;
             break;
         case SP::CLASS:
-            val = unwrap<Species>(sd->status.species);
+            val = unwrap<Species>(battle_get_class(bl));
             break;
         case SP::SEX:
-            val = static_cast<uint8_t>(sd->status.sex);
+            if (sd)
+                val = static_cast<uint8_t>(sd->status.sex);
+            else if (nd)
+                val = static_cast<uint8_t>(nd->sex);
             break;
         case SP::WEIGHT:
-            val = sd->weight;
+            val = sd ? sd->weight : 0;
             break;
         case SP::MAXWEIGHT:
-            val = sd->max_weight;
+            val = sd ? sd->max_weight : 0;
             break;
         case SP::BASEEXP:
-            val = sd->status.base_exp;
+            val = sd ? sd->status.base_exp : 0;
             break;
         case SP::JOBEXP:
-            val = sd->status.job_exp;
+            val = sd ? sd->status.job_exp : 0;
             break;
         case SP::NEXTBASEEXP:
-            val = pc_nextbaseexp(sd);
+            val = sd ? pc_nextbaseexp(sd) : 0;
             break;
         case SP::NEXTJOBEXP:
-            val = pc_nextjobexp(sd);
+            val = sd ? pc_nextjobexp(sd) : 0;
             break;
         case SP::HP:
-            val = sd->status.hp;
+            val = battle_get_hp(bl);
             break;
         case SP::MAXHP:
-            val = sd->status.max_hp;
+            val = battle_get_max_hp(bl);
             break;
         case SP::SP:
-            val = sd->status.sp;
+            val = sd ? sd->status.sp : 0;
             break;
         case SP::MAXSP:
-            val = sd->status.max_sp;
+            val = sd ? sd->status.max_sp : 0;
+            break;
+        case SP::BASE_ATK:
+            val = battle_get_baseatk(bl);
+            break;
+        case SP::ATK1:
+            val = battle_get_atk(bl);
+            break;
+        case SP::ATK2:
+            val = battle_get_atk2(bl);
+            break;
+        case SP::DEF1:
+            val = battle_get_def(bl);
+            break;
+        case SP::DEF2:
+            val = battle_get_def2(bl);
+            break;
+        case SP::MATK1:
+            val = battle_get_matk1(bl);
+            break;
+        case SP::MATK2:
+            val = battle_get_matk2(bl);
+            break;
+        case SP::MDEF1:
+            val = battle_get_mdef(bl);
+            break;
+        case SP::MDEF2:
+            val = battle_get_mdef2(bl);
             break;
         case SP::STR:
         case SP::AGI:
@@ -3447,7 +3488,28 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
         case SP::INT:
         case SP::DEX:
         case SP::LUK:
-            val = sd->status.attrs[sp_to_attr(type)];
+            val = battle_get_stat(type, bl);
+            break;
+        case SP::SPEED:
+            val = battle_get_speed(bl).count();
+            break;
+        case SP::HIT:
+            val = battle_get_hit(bl);
+            break;
+        case SP::FLEE1:
+            val = battle_get_flee(bl);
+            break;
+        case SP::FLEE2:
+            val = battle_get_flee2(bl);
+            break;
+        case SP::CRITICAL:
+            val = battle_get_critical(bl);
+            break;
+        case SP::GM:
+            val = sd ? pc_isGM(sd).get_all_bits() : 0;
+            break;
+        case SP::ATTACKRANGE:
+            val = battle_get_range(bl);
             break;
     }
 
