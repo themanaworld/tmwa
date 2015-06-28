@@ -469,6 +469,64 @@ void builtin_if (ScriptState *st)
     int sel, i;
 
     sel = conv_num(st, &AARG(0));
+    st->is_true = sel ? 2 : 1;
+    if (!sel)
+        return;
+
+    // 関数名をコピー
+    push_copy(st->stack, st->start + 3);
+    // 間に引数マーカを入れて
+    push_int<ScriptDataArg>(st->stack, 0);
+    // 残りの引数をコピー
+    for (i = st->start + 4; i < st->end; i++)
+    {
+        push_copy(st->stack, i);
+    }
+    run_func(st);
+}
+
+static
+void builtin_else (ScriptState *st)
+{
+    int i;
+
+    if (st->is_true < 1)
+    {
+        PRINTF("builtin_else: no if statement!\n"_fmt);
+        abort();
+    }
+
+    if (st->is_true > 1)
+        return;
+
+    st->is_true = 0;
+    // 関数名をコピー
+    push_copy(st->stack, st->start + 2);
+    // 間に引数マーカを入れて
+    push_int<ScriptDataArg>(st->stack, 0);
+    // 残りの引数をコピー
+    for (i = st->start + 3; i < st->end; i++)
+    {
+        push_copy(st->stack, i);
+    }
+    run_func(st);
+}
+
+static
+void builtin_elif (ScriptState *st)
+{
+    int sel, i;
+
+    if (st->is_true < 1)
+    {
+        PRINTF("builtin_elif: no if statement!\n"_fmt);
+        abort();
+    }
+    if (st->is_true > 1)
+        return;
+
+    sel = conv_num(st, &AARG(0));
+    st->is_true = sel ? 2 : 1;
     if (!sel)
         return;
 
@@ -3149,6 +3207,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(heal, "ii?"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
+    BUILTIN(elif, "iF*"_s, '\0'),
+    BUILTIN(else, "F*"_s, '\0'),
     BUILTIN(set, "Ne"_s, '\0'),
     BUILTIN(setarray, "Ne*"_s, '\0'),
     BUILTIN(cleararray, "Nei"_s, '\0'),
