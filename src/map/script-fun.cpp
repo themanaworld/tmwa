@@ -59,6 +59,7 @@
 #include "skill.hpp"
 #include "storage.hpp"
 #include "npc-internal.hpp"
+#include "path.hpp"
 
 #include "../poison.hpp"
 
@@ -532,50 +533,74 @@ void builtin_eltlvl(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_injure(ScriptState *st)
+void builtin_target(ScriptState *st)
 {
-    dumb_ptr<block_list> caster = map_id2bl(st->rid);
-    dumb_ptr<block_list> target = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))));
-    int damage_caused = conv_num(st, &AARG(1));
-    int mp_damage = conv_num(st, &AARG(2));
-    int target_hp = battle_get_hp(target);
-    int mdef = battle_get_mdef(target);
+    // TODO maybe scrap all this and make it use battle_ functions? (add missing functions to battle)
 
-    if (target->bl_type == BL::PC
-        && !target->bl_m->flag.get(MapFlag::PVP)
-        && (caster->bl_type == BL::PC)
-        && ((caster->is_player()->state.pvpchannel > 1) && (target->is_player()->state.pvpchannel != caster->is_player()->state.pvpchannel)))
-        return;               /* Cannot damage other players outside of pvp */
+    dumb_ptr<block_list> source = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))));
+    dumb_ptr<block_list> target = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
+    int flag = conv_num(st, &AARG(2));
+    int val = 0;
 
-    if (target != caster)
+    if (flag & 0x01)
     {
-        /* Not protected against own spells */
-        damage_caused = (damage_caused * (100 - mdef)) / 100;
-        mp_damage = (mp_damage * (100 - mdef)) / 100;
+        int x0 = source->bl_x - AREA_SIZE;
+        int y0 = source->bl_y - AREA_SIZE;
+        int x1 = source->bl_x + AREA_SIZE;
+        int y1 = source->bl_y + AREA_SIZE;
+        if (target->bl_x >= x0 && target->bl_x <= x1 && target->bl_y >= y0 && target->bl_y <= y1)
+            val |= 0x01; // 0x01 target is in visible range
     }
 
-    damage_caused = (damage_caused > target_hp) ? target_hp : damage_caused;
+    if (flag & 0x02)
+    {
+        int range = battle_get_range(source);
+        int x2 = source->bl_x - range;
+        int y2 = source->bl_y - range;
+        int x3 = source->bl_x + range;
+        int y3 = source->bl_y + range;
+        if (target->bl_x >= x2 && target->bl_x <= x3 && target->bl_y >= y2 && target->bl_y <= y3)
+            val |= 0x02; // 0x02 target is in attack range
+    }
 
-    if (damage_caused < 0)
-        damage_caused = 0;
+    if (flag & 0x04)
+    {
+        struct walkpath_data wpd;
+        if (!path_search(&wpd, source->bl_m, source->bl_x, source->bl_y, target->bl_x, target->bl_y, 0))
+            val |= 0x04; // 0x04 target is walkable (has clear path to target)
+    }
+
+    // TODO 0x08 target is visible (not behind collision) XXX maybe this is line of sight?
+
+    if (flag & 0x10)
+    {
+        if (target->bl_type != BL::PC || (target->bl_type == BL::PC &&
+            (target->bl_m->flag.get(MapFlag::PVP) || pc_iskiller(source->is_player(), target->is_player()))))
+            val |= 0x10; // 0x10 target can be attacked by source (killer, killable and so on)
+    }
+
+    // TODO 0x20 target is in line of sight
+
+    push_int<ScriptDataInt>(st->stack, val);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void builtin_injure(ScriptState *st)
+{
+    dumb_ptr<block_list> source = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))));
+    dumb_ptr<block_list> target = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
+    int damage_caused = conv_num(st, &AARG(2));
 
     // display damage first, because dealing damage may deallocate the target.
-    clif_damage(caster, target,
+    clif_damage(source, target,
             gettick(), interval_t::zero(), interval_t::zero(),
             damage_caused, 0, DamageType::NORMAL);
 
-    if (caster->bl_type == BL::PC)
-    {
-        dumb_ptr<map_session_data> caster_pc = caster->is_player();
-        if (target->bl_type == BL::MOB)
-        {
-            dumb_ptr<mob_data> mob = target->is_mob();
-            dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
-            MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
-                    mob->bl_id, mob->mob_class, damage_caused, caster->is_player()->magic_attack);
-        }
-    }
-    battle_damage(caster, target, damage_caused, mp_damage);
+    battle_damage(source, target, damage_caused, 0);
 
     return;
 }
@@ -4228,6 +4253,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(sqrt, "i"_s, 'i'),
     BUILTIN(cbrt, "i"_s, 'i'),
     BUILTIN(pow, "ii"_s, 'i'),
+    BUILTIN(target, "iii"_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
