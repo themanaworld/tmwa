@@ -562,7 +562,7 @@ void mmo_char_sync_timer(TimerData *, tick_t)
 // Function to create a new character
 //-----------------------------------
 static
-CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t slot, uint16_t hair_color, uint16_t hair_style)
+CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t slot, uint16_t hair_color, uint16_t hair_style, short& error_code)
 {
     // ugh
     char_session_data *sd = static_cast<char_session_data *>(s->session_data.get());
@@ -572,6 +572,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     {
         CHAR_LOG("Make new char error (control char received in the name): (connection #%d, account: %d).\n"_fmt,
                 s, sd->account_id);
+        error_code = 0x02;
         return nullptr;
     }
 
@@ -580,14 +581,16 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     {
         CHAR_LOG("Make new char error (leading/trailing whitespace): (connection #%d, account: %d, name: '%s'.\n"_fmt,
                 s, sd->account_id, name);
+        error_code = 0x02;
         return nullptr;
     }
 
     // check lenght of character name
-    if (name.to__actual().size() < 4)
+    if (name.to__actual().size() < char_conf.min_name_length)
     {
         CHAR_LOG("Make new char error (character name too small): (connection #%d, account: %d, name: '%s').\n"_fmt,
                 s, sd->account_id, name);
+        error_code = 0x02;
         return nullptr;
     }
 
@@ -600,6 +603,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
             {
                 CHAR_LOG("Make new char error (invalid letter in the name): (connection #%d, account: %d), name: %s, invalid letter: %c.\n"_fmt,
                         s, sd->account_id, name, c);
+                error_code = 0x02;
                 return nullptr;
             }
         }
@@ -607,16 +611,29 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
 
     // TODO this comment is obsolete
     // this is why it needs to be unsigned
-    if (stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk != 5 * 6 ||   // stats
-        slot >= 9 ||
-        hair_style >= 20 ||
-        hair_color >= 12)
+    if (stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk != char_conf.total_stat_sum)
     {
-        CHAR_LOG("Make new char error (invalid values): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n"_fmt,
+        CHAR_LOG("Make new char error (invalid stats): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d\n"_fmt,
                 s, sd->account_id, slot, name,
                 stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
-                stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
-                hair_style, hair_color);
+                stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk);
+        error_code = 0x03;
+        return nullptr;
+    }
+
+    if (slot >= char_conf.char_slots)
+    {
+        CHAR_LOG("Make new char error (invalid slot): (connection #%d, account: %d) slot %d, name: %s\n"_fmt,
+                s, sd->account_id, slot, name);
+        error_code = 0x05;
+        return nullptr;
+    }
+
+    if (hair_style > char_conf.max_hair_style || hair_color > char_conf.max_hair_color)
+    {
+        CHAR_LOG("Make new char error (invalid hair): (connection #%d, account: %d) slot %d, name: %s, hair: %d, hair color: %d\n"_fmt,
+                s, sd->account_id, slot, name, hair_style, hair_color);
+        error_code = 0x04;
         return nullptr;
     }
 
@@ -624,13 +641,14 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     for (int i = 0; i < 6; i++)
     {
         uint8_t statsi = reinterpret_cast<const uint8_t *>(&stats)[i];
-        if (statsi < 1 || statsi > 9)
+        if (statsi < char_conf.min_stat_value || statsi > char_conf.max_stat_value)
         {
             CHAR_LOG("Make new char error (invalid stat value: not between 1 to 9): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n"_fmt,
                     s, sd->account_id, slot, name,
                     stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
                     stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                     hair_style, hair_color);
+            error_code = 0x03;
             return nullptr;
         }
     }
@@ -644,6 +662,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
                     stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
                     stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                     hair_style, hair_color);
+            error_code = 0x01;
             return nullptr;
         }
         if (cd.key.account_id == sd->account_id
@@ -654,6 +673,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
                     stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
                     stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                     hair_style, hair_color);
+            error_code = 0x05;
             return nullptr;
         }
     }
@@ -665,6 +685,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
                 stats.str, stats.agi, stats.vit, stats.int_, stats.dex, stats.luk,
                 stats.str + stats.agi + stats.vit + stats.int_ + stats.dex + stats.luk,
                 hair_style, hair_color);
+        error_code = 0x01;
         return nullptr;
     }
 
@@ -2355,11 +2376,12 @@ void parse_char(Session *s)
                 uint8_t slot = fixed.slot;
                 uint16_t hair_color = fixed.hair_color;
                 uint16_t hair_style = fixed.hair_style;
-                const CharPair *cp = make_new_char(s, name, stats, slot, hair_color, hair_style);
+                short error_code = 0;
+                const CharPair *cp = make_new_char(s, name, stats, slot, hair_color, hair_style, error_code);
                 if (!cp)
                 {
                     Packet_Fixed<0x006e> fixed_6e;
-                    fixed_6e.code = 0x00;
+                    fixed_6e.code = error_code;
                     send_fpacket<0x006e, 3>(s, fixed_6e);
                     break;
                 }
