@@ -1,3 +1,15 @@
+v15.6.30
+  - a few modifications to make tmwa compatible with gcc 5
+  - send pvp channel and rank to client
+  - don't segfault when inserting remote maps into DB
+  - do not count hidden players with getmapusers builtin
+  - do not reset the default (1) pvp channel on death
+  - fix a bug that allowed to attack with magic players that are not in the same pvp channel
+  - add builtin "title"
+  - add builtin "mapmask"
+  - add mapflag "mask" (and remove legacy "noicewall" mapflag)
+  - add builtin "npcaction"
+  - add builtin "music"
 v15.5.23
   - really send mob hp properly
   - add more debug with abort vs. runflag
