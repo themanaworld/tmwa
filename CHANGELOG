@@ -1,3 +1,5 @@
+v15.7.06
+  - another fix for "do not count hidden players with getmapusers builtin"
 v15.7.05
   - fix for "do not count hidden players with getmapusers builtin"
 v15.6.30
