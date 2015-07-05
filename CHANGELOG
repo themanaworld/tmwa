@@ -1,3 +1,5 @@
+v15.7.05
+  - fix for "do not count hidden players with getmapusers builtin"
 v15.6.30
   - a few modifications to make tmwa compatible with gcc 5
   - send pvp channel and rank to client
