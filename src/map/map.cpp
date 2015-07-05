@@ -211,7 +211,7 @@ int map_delblock(dumb_ptr<block_list> bl)
         return 0;
     }
 
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_type == BL::PC  && !bool(bl->is_player()->status.option & Opt0::HIDE))
         bl->bl_m->users--;
 
     if (bl->bl_next)
