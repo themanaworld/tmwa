@@ -1752,29 +1752,36 @@ void builtin_getusers(ScriptState *st)
  * マップ指定ユーザー数所得
  *------------------------------------------
  */
+ static
+ void builtin_getareausers_sub(dumb_ptr<block_list> bl, int *users)
+ {
+     if (bool(bl->is_player()->status.option & Opt0::HIDE))
+         return;
+     (*users)++;
+ }
+
 static
 void builtin_getmapusers(ScriptState *st)
 {
+    int users = 0;
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str),
     {
         push_int<ScriptDataInt>(st->stack, -1);
         return;
     });
-    push_int<ScriptDataInt>(st->stack, m->users);
+    map_foreachinarea(std::bind(builtin_getareausers_sub, ph::_1, &users),
+            m,
+            0, 0,
+            m->xs, m->ys,
+            BL::PC);
+    push_int<ScriptDataInt>(st->stack, users);
 }
 
 /*==========================================
  * エリア指定ユーザー数所得
  *------------------------------------------
  */
-static
-void builtin_getareausers_sub(dumb_ptr<block_list> bl, int *users)
-{
-    if (bool(bl->is_player()->status.option & Opt0::HIDE))
-        return;
-    (*users)++;
-}
 
 static
 void builtin_getareausers_living_sub(dumb_ptr<block_list> bl, int *users)
