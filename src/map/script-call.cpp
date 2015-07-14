@@ -84,8 +84,6 @@ void get_val(dumb_ptr<block_list> sd, struct script_data *data)
     {
         MATCH_CASE (const ScriptDataParam&, u)
         {
-            if (sd == nullptr)
-                PRINTF("get_val error param SP::%d\n"_fmt, u.reg.sp());
             int numi = 0;
             if (sd)
                 numi = pc_readparam(sd, u.reg.sp());

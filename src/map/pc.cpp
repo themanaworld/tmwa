@@ -3517,6 +3517,12 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::POS_Y:
             val = bl->bl_y;
             break;
+        case SP::PVP_CHANNEL:
+            val = sd ? sd->state.pvpchannel : 0;
+            break;
+        case SP::BL_ID:
+            val = unwrap<BlockId>(bl->bl_id);
+            break;
     }
 
     return val;

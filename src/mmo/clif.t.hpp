@@ -472,6 +472,8 @@ enum class SP : uint16_t
 
     POS_X                       = 1074,
     POS_Y                       = 1075,
+    PVP_CHANNEL                 = 1076,
+    BL_ID                       = 1077,
 };
 
 constexpr

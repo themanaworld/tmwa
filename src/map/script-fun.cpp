@@ -545,7 +545,7 @@ void builtin_distance(ScriptState *st)
         // TODO implement case 1 (walk distance)
         case 0:
         default:
-            if (source->bl_m->name_ != target->bl_m->name_)
+            if (source->bl_m != target->bl_m)
             {
                 // FIXME make it work even if source and target are not in the same map
                 distance = 0x7fffffff;
@@ -1598,6 +1598,28 @@ void builtin_getcharid(ScriptState *st)
         push_int<ScriptDataInt>(st->stack, 0/*guild_id*/);
     if (num == 3)
         push_int<ScriptDataInt>(st->stack, unwrap<AccountId>(sd->status_key.account_id));
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void builtin_getnpcid(ScriptState *st)
+{
+    dumb_ptr<npc_data> nd;
+
+    if (HARG(0))
+        nd = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
+    else
+        nd = map_id2bl(st->oid)->is_npc();
+    if (nd == nullptr)
+    {
+        push_int<ScriptDataInt>(st->stack, -1);
+        return;
+    }
+
+    push_int<ScriptDataInt>(st->stack, unwrap<BlockId>(nd->bl_id));
 }
 
 /*==========================================
@@ -4170,6 +4192,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(makeitem, "IiMxy"_s, '\0'),
     BUILTIN(delitem, "Ii"_s, '\0'),
     BUILTIN(getcharid, "i?"_s, 'i'),
+    BUILTIN(getnpcid, "?"_s, 'i'),
     BUILTIN(getversion, ""_s, 'i'),
     BUILTIN(strcharinfo, "i"_s, 's'),
     BUILTIN(getequipid, "i?"_s, 'i'),
