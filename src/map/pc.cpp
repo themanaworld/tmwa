@@ -3511,6 +3511,12 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::ATTACKRANGE:
             val = battle_get_range(bl);
             break;
+        case SP::POS_X:
+            val = bl->bl_x;
+            break;
+        case SP::POS_Y:
+            val = bl->bl_y;
+            break;
     }
 
     return val;

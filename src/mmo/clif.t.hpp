@@ -469,6 +469,9 @@ enum class SP : uint16_t
 #if 0
     RANDOM_ATTACK_INCREASE      = 1072,
 #endif
+
+    POS_X                       = 1074,
+    POS_Y                       = 1075,
 };
 
 constexpr
