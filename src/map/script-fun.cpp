@@ -533,6 +533,37 @@ void builtin_eltlvl(ScriptState *st)
  *------------------------------------------
  */
 static
+void builtin_distance(ScriptState *st)
+{
+    dumb_ptr<block_list> source = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))));
+    dumb_ptr<block_list> target = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
+    int distance = 0;
+    int mode = HARG(2) ? conv_num(st, &AARG(2)) : 0;
+
+    switch (mode)
+    {
+        // TODO implement case 1 (walk distance)
+        case 0:
+        default:
+            if (source->bl_m->name_ != target->bl_m->name_)
+            {
+                // FIXME make it work even if source and target are not in the same map
+                distance = 0x7fffffff;
+                break;
+            }
+            int dx = abs(source->bl_x - target->bl_x);
+            int dy = abs(source->bl_y - target->bl_y);
+            distance = sqrt((dx * dx) + (dy * dy)); // Pythagoras' theorem
+    }
+
+    push_int<ScriptDataInt>(st->stack, distance);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
 void builtin_target(ScriptState *st)
 {
     // TODO maybe scrap all this and make it use battle_ functions? (add missing functions to battle)
@@ -4254,6 +4285,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(cbrt, "i"_s, 'i'),
     BUILTIN(pow, "ii"_s, 'i'),
     BUILTIN(target, "iii"_s, 'i'),
+    BUILTIN(distance, "ii?"_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
