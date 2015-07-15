@@ -81,7 +81,8 @@ script:
 #  - clang-3.2
 #  - clang-3.3
 env:
-  - ignore=this
+  global:
+    - secure: "e0tMKcFplz5RdQFDOa9fiCp7vKawcOALgHUzs49Tr166F+wdz+T0UEJtUmtnFm6capumebv0bo5GCPlrXW7DGrvfoy/64sbvH4DQyKiB1K7ACLqE/RJbso0LQZt42xMHrhI2xidwXcVLnrReRDJepCqxGTao+eT2rm9vAEyN6cc="
 
 matrix:
   allow_failures:
@@ -113,3 +114,13 @@ matrix:
 branches:
   except:
     - stable
+
+addons:
+  coverity_scan:
+    project:
+      name: "themanaworld/tmwa"
+      description: "Build submitted via Travis CI"
+    notification_email: pasekei@gmail.com
+    build_command_prepend: "./configure --user"
+    build_command: "make -R -k -j2"
+    branch_pattern: stable
