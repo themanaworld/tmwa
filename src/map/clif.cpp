@@ -819,40 +819,6 @@ void clif_npc_action(dumb_ptr<map_session_data> sd, BlockId npcid,
 }
 
 /*==========================================
- * MOB表示2
- *------------------------------------------
- */
-static
-void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
-{
-    nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
-    int hp = md->hp;
-
-    Packet_Fixed<0x007b> fixed_7b;
-    fixed_7b.block_id = md->bl_id;
-    fixed_7b.speed = battle_get_speed(md);
-    fixed_7b.opt1 = md->opt1;
-    fixed_7b.opt2 = md->opt2;
-    fixed_7b.option = md->option;
-    fixed_7b.mob_class = md->mob_class;
-    // snip: stuff for monsters disguised as PCs
-    fixed_7b.tick = gettick();
-
-    fixed_7b.pos2.x0 = md->bl_x;
-    fixed_7b.pos2.y0 = md->bl_y;
-    fixed_7b.pos2.x1 = md->to_x;
-    fixed_7b.pos2.y1 = md->to_y;
-
-    fixed_7b.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
-    fixed_7b.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
-    fixed_7b.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
-    fixed_7b.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
-    fixed_7b.karma_or_attack_range = battle_get_range(md);
-
-    buf = create_fpacket<0x007b, 60>(fixed_7b);
-}
-/*==========================================
  * Packet to send server's mob walkpath data
  *------------------------------------------
  */
@@ -2440,9 +2406,6 @@ int clif_movemob(dumb_ptr<mob_data> md)
 {
     nullpo_retz(md);
 
-    Buffer buf;
-    clif_mob007b(md, buf);
-    clif_send(buf, md, SendWho::AREA, MIN_CLIENT_VERSION);
     clif_0225_being_move3(md);
 
     return 0;
@@ -2458,9 +2421,7 @@ int clif_fixmobpos(dumb_ptr<mob_data> md)
 
     if (md->state.state == MS::WALK)
     {
-        Buffer buf;
-        clif_mob007b(md, buf);
-        clif_send(buf, md, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_movemob(md);
     }
     else
     {
@@ -2540,9 +2501,7 @@ void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
 
     if (md->state.state == MS::WALK)
     {
-        Buffer buf;
-        clif_mob007b(md, buf);
-        send_buffer(sd->sess, buf);
+        clif_movemob(md);
     }
     else
     {
