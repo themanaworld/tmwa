@@ -79,6 +79,32 @@ namespace io
     {
         return ::send(fd, buf, count, flags);
     }
+    ssize_t FD::sendmsg(const struct msghdr *msg, int flags)
+    {
+        return ::sendmsg(fd, msg, flags);
+    }
+    int FD::sendmmsg(struct mmsghdr *msgvec, unsigned int vlen, unsigned int flags)
+    {
+        return ::sendmmsg(fd, msgvec, vlen, flags);
+    }
+    ssize_t FD::sendto(const void *buf, size_t count, int flags,
+               const struct sockaddr *dest_addr, socklen_t addrlen)
+    {
+        return ::sendto(fd, buf, count, flags, dest_addr, addrlen);
+    }
+    ssize_t FD::recv(void *buf, size_t count, int flags)
+    {
+        return ::recv(fd, buf, count, flags);
+    }
+    ssize_t FD::recvfrom(void *buf, size_t count, int flags,
+             struct sockaddr *src_addr, socklen_t *addrlen)
+    {
+        return ::recvfrom(fd, buf, count, flags, src_addr, addrlen);
+    }
+    ssize_t FD::recvmsg(struct msghdr *msg, int flags)
+    {
+        return ::recvmsg(fd, msg, flags);
+    }
     ssize_t FD::pread(void *buf, size_t count, off_t offset)
     {
         return ::pread(fd, buf, count, offset);
