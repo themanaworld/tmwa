@@ -77,6 +77,7 @@ namespace io
 
         ssize_t read(void *buf, size_t count);
         ssize_t write(const void *buf, size_t count);
+        ssize_t send(const void *buf, size_t count, int flags);
         ssize_t pread(void *buf, size_t count, off_t offset);
         ssize_t pwrite(const void *buf, size_t count, off_t offset);
         ssize_t readv(const struct iovec *iov, int iovcnt);

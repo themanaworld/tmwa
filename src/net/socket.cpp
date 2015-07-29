@@ -153,7 +153,7 @@ void recv_to_fifo(Session *s)
 static
 void send_from_fifo(Session *s)
 {
-    ssize_t len = s->fd.write(&s->wdata[0], s->wdata_size);
+    ssize_t len = s->fd.send(&s->wdata[0], s->wdata_size, MSG_NOSIGNAL);
 
     if (len > 0)
     {

@@ -75,6 +75,10 @@ namespace io
     {
         return ::write(fd, buf, count);
     }
+    ssize_t FD::send(const void *buf, size_t count, int flags)
+    {
+        return ::send(fd, buf, count, flags);
+    }
     ssize_t FD::pread(void *buf, size_t count, off_t offset)
     {
         return ::pread(fd, buf, count, offset);
