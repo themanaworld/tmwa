@@ -3830,11 +3830,11 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
 
-    if (is_atcommand(s, sd, mbuf, GmLevel()))
-        return rv;
-
     if (!magic_message(sd, mbuf))
     {
+        if (is_atcommand(s, sd, mbuf, GmLevel()))
+            return rv;
+
         /* Don't send chat that results in an automatic ban. */
         if (tmw_CheckChatSpam(sd, mbuf))
         {
