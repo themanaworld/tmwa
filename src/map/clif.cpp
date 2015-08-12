@@ -229,6 +229,8 @@ void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
             break;
 
         case SendWho::AREA_CHAT_WOC:
+            if (bl && bl == src_bl)
+                break;
             if (is_deaf(bl)
                 && !(bl->bl_type == BL::PC
                      && pc_isGM(src_bl->is_player())))
@@ -236,8 +238,6 @@ void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
                 clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
                 return;
             }
-            if (bl && bl == src_bl)
-                return;
 
             break;
     }
@@ -3830,35 +3830,31 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
 
-    if (!magic_message(sd, mbuf))
+    if (magic_message(sd, mbuf))
+        return rv;
+
+    if (is_atcommand(s, sd, mbuf, GmLevel()))
+        return rv;
+
+    /* Don't send chat that results in an automatic ban. */
+    if (tmw_CheckChatSpam(sd, mbuf))
     {
-        if (is_atcommand(s, sd, mbuf, GmLevel()))
-            return rv;
-
-        /* Don't send chat that results in an automatic ban. */
-        if (tmw_CheckChatSpam(sd, mbuf))
-        {
-            clif_displaymessage(s, "Your message could not be sent."_s);
-            return rv;
-        }
-
-        /* It's not a spell/magic message, so send the message to others. */
-
-        Buffer sendbuf;
-        clif_message_sub(sendbuf, sd, mbuf);
-
-        Buffer filteredBuf; // ManaPlus remote execution exploit prevention
-        XString filtered = mbuf;
-        if (mbuf.contains_seq("@@="_s) && mbuf.contains('|'))
-            filtered = "##B##3[##1Impossible to see this message. Please update your client.##3]"_s;
-        clif_message_sub(filteredBuf, sd, filtered);
-
-        clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC,
-            wrap<ClientVersion>(6), filteredBuf);
+        clif_displaymessage(s, "Your message could not be sent."_s);
+        return rv;
     }
 
-    /* Send the message back to the speaker. */
-    send_packet_repeatonly<0x008e, 4, 1>(s, STRPRINTF("%s : %s"_fmt, battle_get_name(sd), mbuf));
+
+    Buffer sendbuf;
+    clif_message_sub(sendbuf, sd, mbuf);
+
+    Buffer filteredBuf; // ManaPlus remote execution exploit prevention
+    XString filtered = mbuf;
+    if (mbuf.contains_seq("@@="_s) && mbuf.contains('|'))
+        filtered = "##B##3[##1Impossible to see this message. Please update your client.##3]"_s;
+    clif_message_sub(filteredBuf, sd, filtered);
+
+    clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC,
+        wrap<ClientVersion>(6), filteredBuf);
 
     return rv;
 }
