@@ -1,3 +1,7 @@
+v15.8.17
+  - Fix Broken Nick Issue
+  - Change write to send
+  - Mob Movement
 v15.7.06
   - another fix for "do not count hidden players with getmapusers builtin"
 v15.7.05
