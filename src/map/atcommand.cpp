@@ -4102,10 +4102,10 @@ ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
 
     if (chan < 1) {
         sd->state.pvpchannel = 1;
-        clif_displaymessage(s, "##3PvP : ##BOn"_s);
+        clif_displaymessage(s, "PvP : ##3##BOn"_s);
     } else {
         sd->state.pvpchannel = 0;
-        clif_displaymessage(s, "##3PvP : ##BOff"_s);
+        clif_displaymessage(s, "PvP : ##3##BOff"_s);
     }
 
     sd->state.pvp_rank = 0;
