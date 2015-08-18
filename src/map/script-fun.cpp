@@ -311,6 +311,66 @@ void builtin_rand(ScriptState *st)
 }
 
 static
+void builtin_max(ScriptState *st)
+{
+    int max=0, num;
+    if (HARG(1))
+    {
+        max = conv_num(st, &AARG(0));
+        for (int i = 1; HARG(i); i++)
+        {
+            num = conv_num(st, &AARG(i));
+            if (num > max)
+                max = num;
+        }
+    }
+    else
+    {
+        SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
+        ZString name = variable_names.outtern(reg.base());
+        char prefix = name.front();
+        if (prefix != '$' && prefix != '@' && prefix != '.')
+        {
+            PRINTF("builtin_max: illegal scope!\n"_fmt);
+            return;
+        }
+        for (int i = reg.index(); i < 256; i++)
+        {
+            struct script_data vd = get_val2(st, reg.iplus(i));
+            MATCH_BEGIN (vd)
+            {
+                MATCH_CASE (const ScriptDataInt&, u)
+                {
+                    if (u.numi > max)
+                        max = u.numi;
+                    continue;
+                }
+            }
+            MATCH_END ();
+            abort();
+        }
+    }
+
+    push_int<ScriptDataInt>(st->stack, max);
+}
+
+static
+void builtin_min(ScriptState *st)
+{
+    int min, num;
+    min = conv_num(st, &AARG(0));
+
+    for (int i = 1; HARG(i); i++)
+    {
+        num = conv_num(st, &AARG(i));
+        if (num < min)
+            min = num;
+    }
+
+    push_int<ScriptDataInt>(st->stack, min);
+}
+
+static
 void builtin_sqrt(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
@@ -3275,6 +3335,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
+    BUILTIN(max, "e?*"_s, 'i'),
+    BUILTIN(min, "ii*"_s, 'i'),
     BUILTIN(sqrt, "i"_s, 'i'),
     BUILTIN(cbrt, "i"_s, 'i'),
     BUILTIN(pow, "ii"_s, 'i'),
