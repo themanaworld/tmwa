@@ -310,6 +310,24 @@ void builtin_rand(ScriptState *st)
     }
 }
 
+static
+void builtin_sqrt(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
+}
+
+static
+void builtin_cbrt(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(cbrt(conv_num(st, &AARG(0)))));
+}
+
+static
+void builtin_pow(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(pow(conv_num(st, &AARG(0)), conv_num(st, &AARG(1)))));
+}
+
 /*==========================================
  * Check whether the PC is at the specified location
  *------------------------------------------
@@ -3257,6 +3275,9 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
+    BUILTIN(sqrt, "i"_s, 'i'),
+    BUILTIN(cbrt, "i"_s, 'i'),
+    BUILTIN(pow, "ii"_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
