@@ -601,7 +601,7 @@ void builtin_target(ScriptState *st)
             val |= 0x04; // 0x04 target is walkable (has clear path to target)
     }
 
-    // TODO 0x08 target is visible (not behind collision) XXX maybe this is line of sight?
+    // TODO 0x08 target is visible (not behind collision)
 
     if (flag & 0x10)
     {
@@ -610,7 +610,11 @@ void builtin_target(ScriptState *st)
             val |= 0x10; // 0x10 target can be attacked by source (killer, killable and so on)
     }
 
-    // TODO 0x20 target is in line of sight
+    if (flag & 0x20)
+    {
+        if (battle_check_range(source, target, 0))
+            val |= 0x20; // 0x20 target is in line of sight
+    }
 
     push_int<ScriptDataInt>(st->stack, val);
 }
