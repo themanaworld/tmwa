@@ -2256,7 +2256,7 @@ void builtin_addnpctimer(ScriptState *st)
     ZString event_ = ZString(conv_str(st, &AARG(1)));
     NpcEvent event;
     extract(event_, &event);
-    npc_addeventtimer(map_id2bl(st->oid), tick, event);
+    npc_addeventtimer(npc_name2id(event.npc), tick, event);
 }
 
 /*==========================================
