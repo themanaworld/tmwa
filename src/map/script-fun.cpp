@@ -486,6 +486,13 @@ void builtin_if (ScriptState *st)
 }
 
 static
+void builtin_if_then_else (ScriptState *st)
+{
+    int condition = conv_num(st, &AARG(0));
+    push_copy(st->stack, st->start + (condition ? 3 : 4));
+}
+
+static
 void builtin_else (ScriptState *st)
 {
     int i;
@@ -3317,6 +3324,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
+    BUILTIN(if_then_else, "iii"_s, '.'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
