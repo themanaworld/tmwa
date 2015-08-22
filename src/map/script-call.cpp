@@ -169,6 +169,7 @@ void get_val(ScriptState *st, struct script_data *data)
     {
         MATCH_CASE (const ScriptDataParam&, u)
         {
+            (void)u; // XXX travis complains if we don't use u
             bl = map_id2bl(st->rid);
         }
         MATCH_CASE (const ScriptDataVariable&, u)

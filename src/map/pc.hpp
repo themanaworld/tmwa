@@ -170,7 +170,6 @@ int pc_divorce(dumb_ptr<map_session_data> sd);
 dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd);
 void pc_set_gm_level(AccountId account_id, GmLevel level);
 void pc_setstand(dumb_ptr<map_session_data> sd);
-void pc_cleanup(dumb_ptr<map_session_data> sd);  // [Fate] Clean up after a logged-out PC
 
 int pc_read_gm_account(Session *, const std::vector<Packet_Repeat<0x2b15>>&);
 int pc_setpvptimer(dumb_ptr<map_session_data> sd, interval_t);

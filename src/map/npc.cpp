@@ -61,8 +61,8 @@ namespace tmwa
 {
 namespace map
 {
-const std::vector<ByteCode> fake_buffer;
-const ScriptBuffer& fake_script = reinterpret_cast<const ScriptBuffer&>(fake_buffer);
+static const std::vector<ByteCode> fake_buffer;
+static const ScriptBuffer& fake_script = reinterpret_cast<const ScriptBuffer&>(fake_buffer);
 
 static
 Borrowed<const ScriptBuffer> script_or_parent(dumb_ptr<npc_data_script> nd)

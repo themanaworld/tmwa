@@ -892,12 +892,12 @@ int skill_status_change_start(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
         interval_t tick)
 {
-    return skill_status_effect(bl, type, val1, tick, BlockId());
+    return skill_status_effect(bl, type, val1, tick);
 }
 
 int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
-        interval_t tick, BlockId spell_invocation)
+        interval_t tick)
 {
     dumb_ptr<map_session_data> sd = nullptr;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;

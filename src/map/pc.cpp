@@ -5063,11 +5063,6 @@ void do_init_pc(void)
     ).detach();
 }
 
-void pc_cleanup(dumb_ptr<map_session_data> sd)
-{
-    //magic_stop_completely(sd);
-}
-
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)
 {
     if (enabled && !bool(sd->status.option & Opt0::INVISIBILITY))

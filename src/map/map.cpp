@@ -573,8 +573,6 @@ void map_delobject(BlockId id, BL type)
         return;
 
     map_delobjectnofree(id, type);
-    if (obj->bl_type == BL::PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
-        pc_cleanup(obj->is_player());
 
     MapBlockLock::freeblock(obj);
 }

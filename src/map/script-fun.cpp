@@ -4064,8 +4064,8 @@ void builtin_strnpcinfo(ScriptState *st)
 
         if (sdata->is<ScriptDataStr>())
         {
-            NpcName name = stringish<NpcName>(ZString(conv_str(st, sdata)));
-            nd = npc_name2id(name);
+            NpcName name_ = stringish<NpcName>(ZString(conv_str(st, sdata)));
+            nd = npc_name2id(name_);
         }
         else
         {
