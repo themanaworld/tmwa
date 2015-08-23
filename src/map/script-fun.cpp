@@ -1648,7 +1648,11 @@ void builtin_strcharinfo(ScriptState *st)
     dumb_ptr<map_session_data> sd;
     int num;
 
-    sd = script_rid2sd(st);
+    if (HARG(1))    //指定したキャラを状態異常にする
+        sd = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))))->is_player();
+    else
+        sd = script_rid2sd(st);
+
     num = conv_num(st, &AARG(0));
     if (num == 0)
     {
@@ -2741,7 +2745,11 @@ void builtin_sc_end(ScriptState *st)
 {
     dumb_ptr<block_list> bl;
     StatusChange type = StatusChange(conv_num(st, &AARG(0)));
-    bl = map_id2bl(st->rid);
+    if (HARG(1))    //指定したキャラを状態異常にする
+        bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
+    else
+        bl = map_id2bl(st->rid);
+
     skill_status_change_end(bl, type, nullptr);
 }
 
@@ -2750,7 +2758,10 @@ void builtin_sc_check(ScriptState *st)
 {
     dumb_ptr<block_list> bl;
     StatusChange type = StatusChange(conv_num(st, &AARG(0)));
-    bl = map_id2bl(st->rid);
+    if (HARG(1))    //指定したキャラを状態異常にする
+        bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
+    else
+        bl = map_id2bl(st->rid);
 
     push_int<ScriptDataInt>(st->stack, skill_status_change_active(bl, type));
 
@@ -2938,7 +2949,12 @@ void builtin_setpvpchannel(ScriptState *st)
 static
 void builtin_getpvpflag(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    dumb_ptr<map_session_data> sd;
+    if (HARG(1))    //指定したキャラを状態異常にする
+        sd = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))))->is_player();
+    else
+        sd = script_rid2sd(st);
+
     int num = conv_num(st, &AARG(0));
     int flag = 0;
 
@@ -4198,7 +4214,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getcharid, "i?"_s, 'i'),
     BUILTIN(getnpcid, "?"_s, 'i'),
     BUILTIN(getversion, ""_s, 'i'),
-    BUILTIN(strcharinfo, "i"_s, 's'),
+    BUILTIN(strcharinfo, "i?"_s, 's'),
     BUILTIN(getequipid, "i?"_s, 'i'),
     BUILTIN(bonus, "ii"_s, '\0'),
     BUILTIN(bonus2, "iii"_s, '\0'),
@@ -4238,8 +4254,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(enablenpc, "s"_s, '\0'),
     BUILTIN(disablenpc, "s"_s, '\0'),
     BUILTIN(sc_start, "iTi?"_s, '\0'),
-    BUILTIN(sc_end, "i"_s, '\0'),
-    BUILTIN(sc_check, "i"_s, 'i'),
+    BUILTIN(sc_end, "i?"_s, '\0'),
+    BUILTIN(sc_check, "i?"_s, 'i'),
     BUILTIN(debugmes, "s"_s, '\0'),
     BUILTIN(wgm, "s"_s, '\0'),
     BUILTIN(gmlog, "s"_s, '\0'),
@@ -4253,7 +4269,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(pvpon, "M"_s, '\0'),
     BUILTIN(pvpoff, "M"_s, '\0'),
     BUILTIN(setpvpchannel, "i"_s, '\0'),
-    BUILTIN(getpvpflag, "i"_s, 'i'),
+    BUILTIN(getpvpflag, "i?"_s, 'i'),
     BUILTIN(emotion, "i?"_s, '\0'),
     BUILTIN(mapwarp, "MMxy"_s, '\0'),
     BUILTIN(mobcount, "ME"_s, 'i'),
