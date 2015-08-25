@@ -3523,6 +3523,9 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::BL_ID:
             val = unwrap<BlockId>(bl->bl_id);
             break;
+        case SP::BL_TYPE:
+            val = static_cast<uint8_t>(bl->bl_type);
+            break;
     }
 
     return val;
