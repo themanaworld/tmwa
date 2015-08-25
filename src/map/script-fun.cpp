@@ -825,6 +825,9 @@ void builtin_foreach(ScriptState *st)
         case 2:
             block_type = BL::MOB;
             break;
+        case 3:
+            block_type = BL::NUL;
+            break;
         default:
             return;
     }
