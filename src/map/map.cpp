@@ -68,6 +68,7 @@
 #include "clif.hpp"
 #include "globals.hpp"
 #include "grfio.hpp"
+#include "guild.hpp"
 #include "itemdb.hpp"
 #include "magic-interpreter.hpp" // for is_spell inline body
 #include "magic-stmt.hpp"
@@ -810,6 +811,8 @@ void map_quit(dumb_ptr<map_session_data> sd)
         party_reply_invite(sd, sd->party_invite_account, 0);
 
     party_send_logout(sd);     // パーティのログアウトメッセージ送信
+
+    guild_send_logout(sd);
 
     pc_cleareventtimer(sd);    // イベントタイマを破棄する
 

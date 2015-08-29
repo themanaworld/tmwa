@@ -53,6 +53,7 @@
 #include "globals.hpp"
 #include "inter_conf.hpp"
 #include "int_party.hpp"
+#include "int_guild.hpp"
 #include "int_storage.hpp"
 
 #include "../poison.hpp"
@@ -154,6 +155,7 @@ int inter_accreg_save(void)
 void inter_save(void)
 {
     inter_party_save();
+    inter_guild_save();
     inter_storage_save();
     inter_accreg_save();
 }
@@ -162,6 +164,7 @@ void inter_save(void)
 void inter_init2()
 {
     inter_party_init();
+    inter_guild_init();
     inter_storage_init();
     inter_accreg_init();
 }
@@ -442,6 +445,9 @@ RecvResult inter_parse_frommap(Session *ms, uint16_t packet_id)
             if (rv != RecvResult::Error)
                 return rv;
             rv = inter_storage_parse_frommap(ms, packet_id);
+            if (rv != RecvResult::Error)
+                return rv;
+            rv = inter_guild_parse_frommap(ms, packet_id);
             if (rv != RecvResult::Error)
                 return rv;
             return RecvResult::Error;

@@ -38,6 +38,7 @@ class CharId : public Wrapped<uint32_t> { public: constexpr CharId() : Wrapped<u
 // important note: slave mobs synthesize PartyId as -BlockId of master
 class PartyId : public Wrapped<uint32_t> { public: constexpr PartyId() : Wrapped<uint32_t>() {} protected: constexpr explicit PartyId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 class ItemNameId : public Wrapped<uint16_t> { public: constexpr ItemNameId() : Wrapped<uint16_t>() {} protected: constexpr explicit ItemNameId(uint16_t a) : Wrapped<uint16_t>(a) {} };
+class GuildId : public Wrapped<uint32_t> { public : constexpr GuildId() : Wrapped<uint32_t>() {} protected: constexpr explicit GuildId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 
 class BlockId : public Wrapped<uint32_t> { public: constexpr BlockId() : Wrapped<uint32_t>() {} protected: constexpr explicit BlockId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 class QuestId : public Wrapped<uint16_t> { public: constexpr QuestId() : Wrapped<uint16_t>() {} protected: constexpr explicit QuestId(uint16_t a) : Wrapped<uint16_t>(a) {} };

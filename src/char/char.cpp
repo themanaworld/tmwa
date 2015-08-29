@@ -261,7 +261,7 @@ AString mmo_char_tostr(struct CharPair *cp)
             p->attrs[ATTR::STR], p->attrs[ATTR::AGI], p->attrs[ATTR::VIT], p->attrs[ATTR::INT], p->attrs[ATTR::DEX], p->attrs[ATTR::LUK],
             p->status_point, p->skill_point,
             p->option, p->karma, p->manner,
-            p->party_id, 0/*guild_id*/, 0/*pet_id*/,
+            p->party_id, p->guild_id, 0/*pet_id*/,
             p->hair, p->hair_color, p->clothes_color,
             p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom,
             p->last_point.map_, p->last_point.x, p->last_point.y,
@@ -351,7 +351,8 @@ bool impl_extract(XString str, CharPair *cp)
     CharKey *k = &cp->key;
     CharData *p = cp->data.get();
 
-    uint32_t unused_guild_id, unused_pet_id;
+    uint32_t unused_pet_id;
+    GuildId guild_id;
     XString unused_memos;
     std::vector<Item> inventory;
     XString unused_cart;
@@ -369,7 +370,7 @@ bool impl_extract(XString str, CharPair *cp)
                     record<','>(&p->attrs[ATTR::STR], &p->attrs[ATTR::AGI], &p->attrs[ATTR::VIT], &p->attrs[ATTR::INT], &p->attrs[ATTR::DEX], &p->attrs[ATTR::LUK]),
                     record<','>(&p->status_point, &p->skill_point),
                     record<','>(&p->option, &p->karma, &p->manner),
-                    record<','>(&p->party_id, &unused_guild_id, &unused_pet_id),
+                    record<','>(&p->party_id, &p->guild_id, &unused_pet_id),
                     record<','>(&hair_style, &p->hair_color, &p->clothes_color),
                     record<','>(&p->weapon, &p->shield, &p->head_top, &p->head_mid, &p->head_bottom),
                     &p->last_point,
@@ -727,7 +728,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     cd.karma = 0;
     cd.manner = 0;
     cd.party_id = PartyId();
-    //cd.guild_id = 0;
+    cd.guild_id = GuildId();
     cd.hair = hair_style;
     cd.hair_color = hair_color;
     cd.clothes_color = 0;
@@ -1110,6 +1111,7 @@ int char_delete(CharPair *cp)
     // パーティー脱退
     if (cs->party_id)
         inter_party_leave(cs->party_id, ck->account_id);
+        // TODO:: inter_guild_leave();
     // 離婚
     if (cs->partner_id)
         char_divorce(cp);

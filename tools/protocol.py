@@ -1416,11 +1416,13 @@ def build_context():
     AccountId = ids_h.native('AccountId')
     CharId = ids_h.native('CharId')
     PartyId = ids_h.native('PartyId')
+    GuildId = ids_h.native('GuildId')
     ItemNameId = ids_h.native('ItemNameId')
     BlockId = ids_h.native('BlockId')
     GmLevel = ids_h.native('GmLevel')
 
     party_member = consts_h.native('PartyMember')
+    guild_member = consts_h.native('GuildMember')
 
     HumanTimeDiff = human_time_diff_h.native('HumanTimeDiff')
 
@@ -1435,6 +1437,8 @@ def build_context():
     VString24 = vstring_h.native('VString<23>')
     VString32 = vstring_h.native('VString<31>')
     VString40 = vstring_h.native('VString<39>')
+    VString60 = vstring_h.native('VString<59>')
+    VString120 = vstring_h.native('VString<119>')
 
     # not all of these are used on the network side of things
     # should this set of numbers be +1'ed ?
@@ -1446,6 +1450,7 @@ def build_context():
     AccountEmail = strs_h.native('AccountEmail')
     ServerName = strs_h.native('ServerName')
     PartyName = strs_h.native('PartyName')
+    GuildName = strs_h.native('GuildName')
     VarName = strs_h.native('VarName')
     CharName = strs_h.native('CharName')
     MapName = strs_h.native('MapName')
@@ -1527,6 +1532,7 @@ def build_context():
     char_id = ctx.wrap(CharId, u32)
     party_id = ctx.wrap(PartyId, u32)
     item_name_id = ctx.wrap(ItemNameId, u16)
+    guild_id = ctx.wrap(GuildId, u32)
     item_name_id4 = ctx.wrap(ItemNameId, u32)
     ctx.poly(item_name_id, item_name_id4)
     block_id = ctx.wrap(BlockId, u32)
@@ -1547,6 +1553,8 @@ def build_context():
     str24 = ctx.string(VString24)
     str32 = ctx.string(VString32)
     str40 = ctx.string(VString40)
+    str60 = ctx.string(VString60)
+    str120 = ctx.string(VString120)
 
     seconds = ctx.string(timestamp_seconds_buffer)
     millis = ctx.string(timestamp_milliseconds_buffer)
@@ -1555,6 +1563,7 @@ def build_context():
     account_email = ctx.string(AccountEmail)
     server_name = ctx.string(ServerName)
     party_name = ctx.string(PartyName)
+    guild_name = ctx.string(GuildName)
     var_name = ctx.string(VarName)
     char_name = ctx.string(CharName)
     map_name = ctx.string(MapName)
@@ -1727,6 +1736,7 @@ def build_context():
                 at(None, i16, 'hair color'),
                 at(None, i16, 'clothes color'),
                 at(None, party_id, 'party id'),
+                at(None, guild_id, 'guild id'),
                 at(None, item_look, 'weapon'),
                 at(None, item_name_id, 'shield'),
                 at(None, item_name_id, 'head top'),
@@ -1773,6 +1783,29 @@ def build_context():
                 at(None, ctx.array(party_member, 'MAX_PARTY'), 'member'),
             ],
             size=None,
+    )
+
+    guild_member = ctx.partial_struct(
+            guild_member,
+            [
+                ('account_id', account_id), # size 4
+                ('name', char_name),        # size 24
+                ('position', i32),            # size 4
+                ('online', i32),            # size 4
+                ('lv', i32),                # size 4
+            ],
+            #size=40,
+    )
+
+    guild_most = ctx.struct(
+        'GuildMost',
+        [
+            at(None, guild_name, 'name'),
+            at(None, i32, 'exp'),
+            at(None, i32, 'zeny'),
+            at(None, ctx.array(guild_member, 'MAX_GUILD'), 'member'),
+        ],
+        size=None,
     )
 
     # TODO move 'account id' out somehow.
@@ -4178,41 +4211,393 @@ def build_context():
     # 0x014c define='SMSG_GUILD_ALIANCE_INFO',
     # 0x014d define='CMSG_GUILD_CHECK_MASTER',
     # 0x014e define='SMSG_GUILD_MASTER_OR_MEMBER',
-    # 0x014f define='CMSG_GUILD_REQUEST_INFO',
+    map_user.r(0x014f, 'request guild info',
+        define='CMSG_GUILD_REQUEST_INFO',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u32, 'flag'),
+        ],
+        fixed_size=6,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Client is requesting either basic info or member list.
+                Only 0 and 1 are requested for now.
+
+                0 = basic info + alliance info
+                1 = position name list + member list
+                2 = position name list + position info list
+                3 = skill info
+                4 = expulsion list
+        ''',
+    )
     # 0x0151 define='CMSG_GUILD_REQUEST_EMBLEM',
     # 0x0152 define='SMSG_GUILD_EMBLEM',
     # 0x0153 define='CMSG_GUILD_CHANGE_EMBLEM',
-    # 0x0154 define='SMSG_GUILD_MEMBER_LIST',
-    # 0x0155 define='CMSG_GUILD_CHANGE_MEMBER_POS',
-    # 0x0156 define='SMSG_GUILD_MEMBER_POS_CHANGE',
-    # 0x0159 define='CMSG_GUILD_LEAVE',
-    # 0x015a define='SMSG_GUILD_LEAVE',
-    # 0x015b define='CMSG_GUILD_EXPULSION',
-    # 0x015c define='SMSG_GUILD_EXPULSION',
+    map_user.s(0x0154, 'guild member list',
+        define='SMSG_GUILD_MEMBER_LIST',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, account_id, 'account id'),
+            at(4, u32, 'zero 1'),
+            at(8, u16, 'hair'),
+            at(10, u16, 'hair color'),
+            at(12, u16, 'gender'),
+            at(14, u16, 'pc class'),
+            at(16, u16, 'lv'),
+            at(18, u32, 'exp'),
+            at(22, u32, 'online'),
+            at(26, u32, 'position'),
+            at(30, u32, 'zero 2'),
+            at(34, u32, 'zero 3'),
+            at(38, u32, 'zero 4'),
+            at(42, u32, 'zero 5'),
+            at(46, u32, 'zero 6'),
+            at(50, u32, 'zero 7'),
+            at(54, u32, 'zero 8'),
+            at(58, u32, 'zero 9'),
+            at(62, u32, 'zero 10'),
+            at(66, u32, 'zero 11'),
+            at(70, u32, 'zero 12'),
+            at(74, u32, 'zero 13'),
+            at(78, u16, 'zero 14'),
+            at(80, str24, 'name'),
+        ],
+        repeat_size=104,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send guild member list to cilent.
+        ''',
+    )
+    map_user.r(0x0155, 'guild change member pos',
+        define='CMSG_GUILD_CHANGE_MEMBER_POS',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'unused len'),
+            at(4, account_id, 'account id'),
+            at(8, char_id, 'char id'),
+            at(12, u32, 'position id'),
+        ],
+        fixed_size = 16,
+        pre=[NOTHING],
+        post=[0x0156],
+        desc='''
+            Someone requests to change a guild members position.
+        ''',
+    )
+    map_user.s(0x0156, 'guild member pos change',
+        define='SMSG_GUILD_MEMBER_POS_CHANGE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'unused len'),
+            at(4, account_id, 'account id'),
+            at(8, char_id, 'char id'),
+            at(12, u32, 'position id'),
+        ],
+        fixed_size = 16,
+        pre=[0x0155],
+        post=[PRETTY],
+        desc='''
+            A guild members position has been changed.
+        ''',
+    )
+    map_user.r(0x0159, 'guild member leave',
+        define='CMSG_GUILD_LEAVE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'account id'),
+            at(10, char_id, 'char id'),
+            at(14, str40, 'mes'),
+        ],
+        fixed_size = 54,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Request from guild member to leave their guild.
+        ''',
+    )
+    map_user.s(0x015a, 'guild member left',
+        define='SMSG_GUILD_LEAVE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_name, 'char name'),
+            at(26, str40, 'mes'),
+        ],
+        fixed_size=66,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Notification that a guild member has left.
+        ''',
+    )
+    map_user.r(0x015b, 'guild expulsion request',
+        define='CMSG_GUILD_EXPULSION',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'account id'),
+            at(10, char_id, 'char id'),
+            at(14, str40, 'reason'),
+        ],
+        fixed_size=54,
+        pre=[NOTHING],
+        post=[0x015c],
+        desc='''
+            Someone tries to expel a player from a guild
+        ''',
+    )
+    map_user.s(0x015c, 'guild expulsion notify',
+        define='SMSG_GUILD_EXPULSION',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, char_name, 'kicked name'),
+            at(26, str40, 'reason'),
+            at(66, char_name, 'kicker name'),
+        ],
+        fixed_size=90,
+        pre=[0x015b],
+        post=[PRETTY],
+        desc='''
+            Notification that a guild member was expelled.
+        ''',
+    )
     # 0x015d define='CMSG_GUILD_BREAK',
     # 0x015e define='SMSG_GUILD_BROKEN',
     # 0x0160 define='SMSG_GUILD_POS_INFO_LIST',
     # 0x0161 define='CMSG_GUILD_CHANGE_POS_INFO',
     # 0x0162 define='SMSG_GUILD_SKILL_INFO',
+    map_user.s(0x0162, 'guild skill info',
+        define='SMSG_GUILD_SKILL_INFO',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, u16, 'guild skill point'),
+            #at(6, u16, 'skill id'),
+            #at(8, u16, 'skill info'),
+            #at(10, u16, 'unused 1'),
+            #at(12, u16, 'skill lv'),
+            #at(14, u16, 'skill sp'),
+            #at(16, u16, 'skill range'),
+            #at(18, str24, 'unused 24'),
+            #at(42, bit, 'max lv bool'),
+        ],
+        head_size=6,
+        repeat=[
+            at(0, u16, 'skill id'),
+            at(2, u16, 'skill info'),
+            at(4, u16, 'unused 1'),
+            at(6, u16, 'skill lv'),
+            at(8, u16, 'skill sp'),
+            at(10, u16, 'skill range'),
+            at(12, str24, 'unused 24'),
+            at(36, bit, 'max lv bool'),
+        ],
+        repeat_size=37,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send guild skill info to client.
+        ''',
+    )
     # 0x0163 define='SMSG_GUILD_EXPULSION_LIST',
-    # 0x0165 define='CMSG_GUILD_CREATE',
-    # 0x0166 define='SMSG_GUILD_POS_NAME_LIST',
-    # 0x0167 define='SMSG_GUILD_CREATE_RESPONSE',
-    # 0x0168 define='CMSG_GUILD_INVITE',
-    # 0x0169 define='SMSG_GUILD_INVITE_ACK',
-    # 0x016a define='SMSG_GUILD_INVITE',
-    # 0x016b define='CMSG_GUILD_INVITE_REPLY',
-    # 0x016c define='SMSG_GUILD_POSITION_INFO',
-    # 0x016d define='SMSG_GUILD_MEMBER_LOGIN',
+    map_user.r(0x0165, 'guild_create',
+        define='CMSG_GUILD_CREATE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u32, 'unused'),
+            at(6, guild_name, 'guild name'),
+        ],
+        fixed_size=30,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Request to create a guild from client.
+        ''',
+    )
+    map_user.s(0x0166, 'guild pos name list',
+        define='SMSG_GUILD_POS_NAME_LIST',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u32, 'position id'),
+            at(4, str24, 'position name'),
+        ],
+        repeat_size=28,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send position list to client.
+        ''',
+    )
+    map_user.s(0x0167, 'guild_create response',
+        define='CMSG_GUILD_CREATE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'flag'),
+        ],
+        fixed_size=3,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Response to client about guild creation.
+        ''',
+    )
+    map_user.r(0x0168, 'guild invite1',
+        define='CMSG_GUILD_INVITE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'unused 1'),
+            at(10, u32, 'unused 2'),
+        ],
+        fixed_size=14,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Request to invite someone to a guild.
+        ''',
+    )
+    map_user.s(0x0169, 'guild invite1 ack',
+        define='SMSG_GUILD_INVITE_ACK',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'flag'),
+        ],
+        fixed_size=3,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Response to inviting someone to a guild.
+        ''',
+    )
+    map_user.s(0x016a, 'guild invite2',
+        define='SMSG_GUILD_INVITE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, guild_name, 'guild name'),
+        ],
+        fixed_size=30,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Offer to join a guild.
+        ''',
+    )
+    map_user.r(0x016b, 'guild invite2 response',
+        define='CMSG_GUILD_INVITE_REPLY',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, u8, 'flag'),
+            at(7, u8, 'unused 1'),
+            at(8, u16, 'unused 2'),
+        ],
+        fixed_size=10,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Response to offer to join a guild.
+        ''',
+    )
+    map_user.s(0x016c, 'guild position info',
+        define='SMSG_GUILD_POSITION_INFO',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, u32, 'unused emblem id'),
+            at(10, u32, 'position'),
+            at(14, u32, 'unused 1'),
+            at(18, u8, 'unused 2'),
+            at(19, guild_name, 'guild name'),
+        ],
+        fixed_size=43,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send guild position info to client.
+        ''',
+    )
+    map_user.s(0x016d, 'guild member login',
+        define='SMSG_GUILD_MEMBER_LOGIN',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_id, 'char id'),
+            at(10, u32, 'online'),
+        ],
+        fixed_size=14,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send guildmember online info.
+        ''',
+    )
     # 0x016e define='CMSG_GUILD_CHANGE_NOTICE',
-    # 0x016f define='SMSG_GUILD_NOTICE',
+    map_user.s(0x016f, 'guild notice',
+        define='SMSG_GUILD_NOTICE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, str60, 'mes1'),
+            at(62, str120, 'mes2'),
+        ],
+        fixed_size=182,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send guild notice to client.
+        ''',
+    )
     # 0x0170 define='CMSG_GUILD_ALLIANCE_REQUEST',
     # 0x0171 define='SMSG_GUILD_REQ_ALLIANCE',
     # 0x0172 define='CMSG_GUILD_ALLIANCE_REPLY',
     # 0x0173 define='SMSG_GUILD_REQ_ALLIANCE_ACK',
     # 0x0174 define='SMSG_GUILD_POSITION_CHANGED',
     # 0x017e define='CMSG_GUILD_MESSAGE',
+    map_user.r(0x017e, 'guild message from client',
+        define='CMSG_GUILD_MESSAGE',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Guild message from client.
+        ''',
+    )
     # 0x017f define='SMSG_GUILD_MESSAGE',
+    map_user.s(0x017f, 'guild message to client',
+        define='SMSG_GUILD_MESSAGE',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Guild message to client.
+        ''',
+    )
     # 0x0180 define='CMSG_GUILD_OPPOSITION',
     # 0x0181 define='SMSG_GUILD_OPPOSITION_ACK',
     # 0x0183 define='CMSG_GUILD_ALLIANCE_DELETE',
@@ -4337,7 +4722,32 @@ def build_context():
             Result of trying to add an item/zeny to your trade offer.
         ''',
     )
-    # 0x01b6 define='SMSG_GUILD_BASIC_INFO',
+    map_user.s(0x01b6, 'guild basic info',
+        define='SMSG_GUILD_BASIC_INFO',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, u32, 'guild lv'),
+            at(10, u32, 'unused connect member'),
+            at(14, u32, 'unused max member'),
+            at(18, u32, 'unused average lv'),
+            at(22, u32, 'unused exp'),
+            at(26, u32, 'unused next exp'),
+            at(30, u32, 'unused 1'),
+            at(34, u32, 'unused 2'),
+            at(38, u32, 'unused 3'),
+            at(42, u32, 'unused 4'),
+            at(46, guild_name, 'guild name'),
+            at(70, str24, 'guild master'),
+            at(94, str20, 'castles taken'),
+        ],
+        fixed_size=114,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send basic guild info to client.
+        ''',
+    )
     # 0x01b9 define='SMSG_SKILL_CAST_CANCEL',
     map_user.s(0x01c8, 'use item result',
         define='SMSG_PLAYER_INVENTORY_USE',
@@ -4430,7 +4840,7 @@ def build_context():
             at(30, u16, 'clothes color'),
             at(32, dir, 'head dir'),
             at(33, u8, 'unused2'),
-            at(34, u32, 'guild id'),
+            at(34, guild_id, 'guild id'),
             at(38, u16, 'guild emblem id'),
             at(40, u16, 'manner'),
             at(42, opt3, 'opt3'),
@@ -4471,7 +4881,7 @@ def build_context():
             at(30, u16, 'clothes color'),
             at(32, dir, 'head dir'),
             at(33, u8, 'unused2'),
-            at(34, u32, 'guild id'),
+            at(34, guild_id, 'guild id'),
             at(38, u16, 'guild emblem id'),
             at(40, u16, 'manner'),
             at(42, opt3, 'opt3'),
@@ -4512,7 +4922,7 @@ def build_context():
             at(34, u16, 'clothes color'),
             at(36, dir, 'head dir'),
             at(37, u8, 'unused2'),
-            at(38, u32, 'guild id'),
+            at(38, guild_id, 'guild id'),
             at(42, u16, 'guild emblem id'),
             at(44, u16, 'manner'),
             at(46, opt3, 'opt3'),
@@ -5798,7 +6208,116 @@ def build_context():
             (I am not sure this is actually meaningful).
         ''',
     )
-
+    char_map.s(0x3030, 'guild create',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, guild_name, 'guild name'),
+            at(30, char_name, 'char name'),
+            at(54, u16, 'level'),
+        ],
+        fixed_size=56,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send guild create request to char server
+        ''',
+    )
+    char_map.r(0x3031, 'guild needinfo',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'account id'),
+        ],
+        fixed_size=10,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Request full info about a guild.
+        ''',
+    )
+    char_map.r(0x3032, 'guild add member',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            #at(6, guild_member, 'guild member')
+            at(6, account_id, 'account id'),
+            at(10, u32, 'position'),
+            at(14, char_name, 'name'),
+            at(38, u16, 'lv'),
+        ],
+        #fixed_size=46,
+        #fixed_size=14,
+        fixed_size=40,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Request to add a character to a guild.
+        ''',
+    )
+    char_map.r(0x3034, 'guild member leave',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'account id'),
+            at(10, char_id, 'char id'),
+            at(14, u8, 'flag'),
+            at(15, str40, 'mes'),
+        ],
+        fixed_size=55,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Request to facilitate guild member leaving.
+        ''',
+    )
+    char_map.r(0x3037, 'guild message to char',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, guild_id, 'guild id'),
+            at(8, account_id, 'account id'),
+        ],
+        head_size=12,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Forward guild message to char server.
+        ''',
+    )
+    char_map.s(0x3038, 'guild expulsion to char',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'kicked id'),
+            at(10, str40, 'reason'),
+            at(50, account_id, 'kicker id'),
+        ],
+        fixed_size=54,
+        pre=[0x015b],
+        post=[0x3838],
+        desc='''
+            Forward guild expulsion to char server.
+        ''',
+    )
+    char_map.r(0x3039, 'guild position change',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'account id'),
+            at(10, u32, 'position'),
+        ],
+        fixed_size=14,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Forward guild position change to char server.
+        ''',
+    )
     char_map.s(0x3800, 'gm broadcast forward',
         head=[
             at(0, u16, 'packet id'),
@@ -6040,6 +6559,118 @@ def build_context():
         post=[0x00c0, 0x0109],
         desc='''
             Actually send a party message to other map servers.
+        ''',
+    )
+    char_map.s(0x3830, 'guild create',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u8, 'error'),
+            at(7, guild_id, 'guild id'),
+            at(11, guild_name, 'guild name'),
+        ],
+        fixed_size=35,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send guild create response to map server.
+        ''',
+    )
+    char_map.s(0x3831, 'guild notify',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, u8, 'flag'),
+            at(5, guild_id, 'guild id'),
+            at(9, account_id, 'account id'),
+        ],
+        head_size=13,
+        option=[
+            at(0, guild_most, 'guild most'),
+        ],
+        option_size=None,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send guild info to map server.
+        ''',
+    )
+    char_map.s(0x3832, 'guild member added',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'account id'),
+            at(10, char_id, 'unused_char_id'),
+            at(14, u8, 'flag'),
+        ],
+        fixed_size=15,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Response to request to add character to guild.
+        ''',
+    )
+    char_map.s(0x3834, 'guild member left',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'account id'),
+            at(10, char_id, 'char id'),
+            at(14, u8, 'flag'),
+            at(15, char_name, 'char name'),
+            at(39, str40, 'mes'),
+        ],
+        fixed_size=79,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Guild member has left the guild.
+        ''',
+    )
+    char_map.s(0x3837, 'guild message to maps',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, guild_id, 'guild id'),
+            at(8, account_id, 'account id'),
+        ],
+        head_size=12,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Forward guild message to map servers.
+        ''',
+    )
+    char_map.s(0x3838, 'guild expulsion char response',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'kicked id'),
+            at(6, str40, 'reason'),
+            at(46, account_id, 'kicker id'),
+        ],
+        fixed_size=50,
+        pre=[0x3038],
+        post=[0x015c],
+        desc='''
+            Char server responds about guild expulsion.
+        ''',
+    )
+    char_map.r(0x3839, 'guild position change forward',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, guild_id, 'guild id'),
+            at(6, account_id, 'account id'),
+            at(10, u32, 'position'),
+        ],
+        fixed_size=14,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Forward guild position change to map servers.
         ''',
     )
 

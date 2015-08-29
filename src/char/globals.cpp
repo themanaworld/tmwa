@@ -63,6 +63,9 @@ namespace tmwa
         Map<PartyId, PartyMost> party_db;
         PartyId party_newid = wrap<PartyId>(100_u32);
 
+        Map<GuildId, GuildMost> guild_db;
+        GuildId guild_newid = wrap<GuildId>(100_u32);
+
         Map<AccountId, Storage> storage_db;
     } // namespace char_
 } // namespace tmwa

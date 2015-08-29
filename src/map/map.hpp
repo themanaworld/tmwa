@@ -276,6 +276,10 @@ struct map_session_data : block_list, SessionData
 
     PartyId partyspy;              // [Syrus22]
 
+    int guild_sended;
+    GuildId guild_invite;
+    AccountId guild_invite_account;
+
     int pvp_point, pvp_rank;
     Timer pvp_timer;
 

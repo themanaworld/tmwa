@@ -190,6 +190,20 @@ int clif_foreachclient(std::function<void(dumb_ptr<map_session_data>)>);
 void clif_sendallquest(dumb_ptr<map_session_data> sd);
 void clif_sendquest(dumb_ptr<map_session_data> sd, QuestId questid, int value);
 
+int clif_guild_created(dumb_ptr<map_session_data> sd, int flag);
+int clif_guild_basicinfo(dumb_ptr<map_session_data> sd, GuildId guild_id, GuildName guild_name, CharName leader);
+int clif_guild_emblem();
+int clif_guild_memberlist(dumb_ptr<map_session_data> sd, GuildMost &gm);
+void clif_guild_position_name_list(dumb_ptr<map_session_data> sd);
+int clif_guild_skillinfo();
+int clif_guild_belonginfo(dumb_ptr<map_session_data> sd, GuildPair &gp, int position);
+int clif_guild_notice();
+int clif_guild_invite(dumb_ptr<map_session_data> tsd, GuildId guild_id, GuildName guild_name);
+int clif_guild_inviteack(dumb_ptr<map_session_data> sd, int flag);
+int clif_guild_leave(dumb_ptr<map_session_data> sd2, CharName name, AString mes);
+int clif_guild_message(GuildPair g, XString mes);
+int clif_guild_expulsion(dumb_ptr<map_session_data> sd, CharName kicked_name, XString reason, CharName kicker_name);
+
 void do_init_clif(void);
 } // namespace map
 } // namespace tmwa

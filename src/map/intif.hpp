@@ -49,5 +49,12 @@ void intif_party_leave(PartyId party_id, AccountId accound_id);
 void intif_party_changemap(dumb_ptr<map_session_data> sd, int online);
 void intif_party_message(PartyId party_id, AccountId account_id, XString mes);
 void intif_party_checkconflict(PartyId party_id, AccountId account_id, CharName nick);
+void intif_guild_create(dumb_ptr<map_session_data> sd, GuildName guild_name);
+void intif_request_guildinfo(GuildId guild_id, AccountId account_id);
+void intif_guild_addmember (GuildId guild_invite, AccountId id, int i, int lv, CharName name);
+void intif_guild_leave(GuildId guild_id, AccountId account_id, int flag, AString mes);
+void intif_guild_message(GuildId guild_id, AccountId account_id, AString mbuf);
+void intif_guild_expulsion(dumb_ptr<map_session_data> sd, GuildId guild_id, AccountId account_id, /*CharId char_id,*/ XString reason);
+void intif_guild_poschanged(GuildId guild_id, AccountId account_id, int position);
 } // namespace map
 } // namespace tmwa

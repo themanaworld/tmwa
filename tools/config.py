@@ -564,6 +564,7 @@ def build_config():
 
     inter_conf.opt('storage_txt', RString, lit('save/storage.txt'))
     inter_conf.opt('party_txt', RString, lit('save/party.txt'))
+    inter_conf.opt('guild_txt', RString, lit('save/guild.txt'))
     inter_conf.opt('accreg_txt', RString, lit('save/accreg.txt'))
     inter_conf.opt('party_share_level', u32, '10')
 

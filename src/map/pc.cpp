@@ -52,6 +52,7 @@
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
+#include "guild.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "magic-stmt.hpp"
@@ -726,6 +727,8 @@ int pc_authok(AccountId id, int login_id2,
     sd->party_y = -1;
     sd->party_hp = -1;
 
+    sd->guild_sended = 0;
+
     // イベント関係の初期化
     sd->eventqueuel.clear();
 
@@ -752,6 +755,11 @@ int pc_authok(AccountId id, int login_id2,
     if (sd->status.party_id
         && party_search(sd->status.party_id).is_none())
         party_request_info(sd->status.party_id);
+
+    if (sd->status.guild_id && guild_search(sd->status.guild_id).is_none())
+    {
+        guild_request_info(sd->status.guild_id, id);
+    }
 
     // pvpの設定
     sd->pvp_rank = 0;
