@@ -270,12 +270,12 @@ void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_
     }
 }
 
-void set_scope_reg(ScriptState *st, SIR reg, struct script_data vd)
+void set_scope_reg(ScriptState *st, SIR reg, struct script_data *vd)
 {
     ZString name = variable_names.outtern(reg.base());
     if (name.back() == '$')
     {
-        if (auto *u = vd.get_if<ScriptDataStr>())
+        if (auto *u = vd->get_if<ScriptDataStr>())
         {
             if (!u->str)
             {
@@ -285,10 +285,12 @@ void set_scope_reg(ScriptState *st, SIR reg, struct script_data vd)
             st->regstrm.insert(reg, u->str);
         }
         else
-            st->regstrm.erase(reg);
+            st->regstrm.insert(reg, conv_str(st, vd));
     }
-    else if (auto *u = vd.get_if<ScriptDataInt>())
+    else if (auto *u = vd->get_if<ScriptDataInt>())
         st->regm.put(reg, u->numi);
+    else
+        st->regm.put(reg, conv_num(st, vd));
 }
 
 void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, int id)

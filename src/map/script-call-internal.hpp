@@ -83,7 +83,7 @@ void get_val(dumb_ptr<block_list> sd, struct script_data *data);
 __attribute__((deprecated))
 void get_val(ScriptState *st, struct script_data *data);
 struct script_data get_val2(ScriptState *st, SIR reg);
-void set_scope_reg(ScriptState *, SIR, struct script_data);
+void set_scope_reg(ScriptState *, SIR, struct script_data *);
 void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_data vd);
 void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, int id);
 void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, RString zd);

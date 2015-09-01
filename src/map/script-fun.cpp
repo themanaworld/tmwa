@@ -1059,7 +1059,7 @@ void builtin_set(ScriptState *st)
             {
                 if (name_[1] == '@')
                 {
-                        set_scope_reg(st, reg, AARG(1));
+                        set_scope_reg(st, reg, &AARG(1));
                     return;
                 }
                 bl = map_id2bl(st->oid)->is_npc();
@@ -1106,13 +1106,13 @@ void builtin_setarray(ScriptState *st)
     }
     if (prefix == '.' && name[1] != '@')
         bl = map_id2bl(st->oid)->is_npc();
-    else if (prefix != '$')
+    else if (prefix != '$' && !(prefix == '.' && name[1] == '@'))
         bl = map_id2bl(st->rid)->is_player();
 
     for (int j = 0, i = 1; i < st->end - st->start - 2 && j < 256; i++, j++)
     {
         if (prefix == '.' && name[1] == '@')
-            set_scope_reg(st, reg.iplus(j), AARG(i));
+            set_scope_reg(st, reg.iplus(j), &AARG(i));
         else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARG(i)));
         else
@@ -1141,13 +1141,13 @@ void builtin_cleararray(ScriptState *st)
     }
     if (prefix == '.' && name[1] != '@')
         bl = map_id2bl(st->oid)->is_npc();
-    else if (prefix != '$')
+    else if (prefix != '$' && !(prefix == '.' && name[1] == '@'))
         bl = map_id2bl(st->rid)->is_player();
 
     for (int i = 0; i < sz; i++)
     {
         if (prefix == '.' && name[1] == '@')
-            set_scope_reg(st, reg.iplus(i), AARG(i));
+            set_scope_reg(st, reg.iplus(i), &AARG(i));
         else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARG(1)));
         else
