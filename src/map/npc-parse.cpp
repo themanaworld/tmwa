@@ -166,21 +166,6 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->warp.xs = xs;
     nd->warp.ys = ys;
 
-    for (int i = 0; i < ys; i++)
-    {
-        for (int j = 0; j < xs; j++)
-        {
-            int x_lo = x - xs / 2;
-            int y_lo = y - ys / 2;
-            int xc = x_lo + j;
-            int yc = y_lo + i;
-            MapCell t = map_getcell(m, xc, yc);
-            if (bool(t & MapCell::UNWALKABLE))
-                continue;
-            map_setcell(m, xc, yc, t | MapCell::NPC_NEAR);
-        }
-    }
-
     npc_warp++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::WARP;
@@ -554,21 +539,6 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     int xs = script_map.xs.data, ys = script_map.ys.data;
 
     {
-        for (int i = 0; i < ys; i++)
-        {
-            for (int j = 0; j < xs; j++)
-            {
-                int x_lo = x - xs / 2;
-                int y_lo = y - ys / 2;
-                int xc = x_lo + j;
-                int yc = y_lo + i;
-                MapCell t = map_getcell(m, xc, yc);
-                if (bool(t & MapCell::UNWALKABLE))
-                    continue;
-                map_setcell(m, xc, yc, t | MapCell::NPC_NEAR);
-            }
-        }
-
         nd->scr.xs = xs;
         nd->scr.ys = ys;
         nd->scr.event_needs_map = true;

@@ -2457,9 +2457,7 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
             }
         }
 
-        if (bool(map_getcell(sd->bl_m, x, y) & MapCell::NPC_NEAR))
-            npc_touch_areanpc(sd, sd->bl_m, x, y);
-        else
+        if (npc_touch_areanpc(sd, sd->bl_m, x, y) != 2)
             sd->areanpc_id = BlockId();
     }
     interval_t i = calc_next_walk_step(sd);
@@ -2563,9 +2561,7 @@ int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
 
 void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd)
 {
-    if (bool(map_getcell(sd->bl_m, sd->bl_x, sd->bl_y) & MapCell::NPC_NEAR))
-        npc_touch_areanpc(sd, sd->bl_m, sd->bl_x, sd->bl_y);
-    else
+    if (npc_touch_areanpc(sd, sd->bl_m, sd->bl_x, sd->bl_y) != 2)
         sd->areanpc_id = BlockId();
 }
 

@@ -713,12 +713,12 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
             aname.label = stringish<ScriptLabel>("OnTouch"_s);
 
             if (sd->areanpc_id == m->npc[i]->bl_id)
-                return 1;
+                return 2;
 
             sd->areanpc_id = m->npc[i]->bl_id;
             if (npc_event(sd, aname, 0) > 0)
                 npc_click(sd, m->npc[i]->bl_id);
-            break;
+            return 2;
         }
     }
     return 0;

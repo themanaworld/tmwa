@@ -894,6 +894,11 @@ void builtin_puppet(ScriptState *st)
     nd->bl_m = m;
     nd->bl_x = x;
     nd->bl_y = y;
+    if (HARG(5) && HARG(6))
+    {
+        nd->scr.xs = ((conv_num(st, &AARG(5)) * 2) + 1); // do the same equation as in AST
+        nd->scr.ys = ((conv_num(st, &AARG(6)) * 2) + 1);
+    }
     nd->bl_id = npc_get_new_npc_id();
     nd->scr.parent = parent_nd->bl_id;
     nd->dir = DIR::S;
@@ -4312,7 +4317,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(isdead, ""_s, 'i'),
     BUILTIN(aggravate, "Mxyxyi"_s, '\0'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
-    BUILTIN(puppet, "mxysi"_s, 'i'),
+    BUILTIN(puppet, "mxysi??"_s, 'i'),
     BUILTIN(destroy, "?"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),
