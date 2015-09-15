@@ -134,7 +134,9 @@ int battle_get_range(dumb_ptr<block_list> bl)
     if (bl->bl_type == BL::MOB)
         return get_mob_db(bl->is_mob()->mob_class).range;
     else if (bl->bl_type == BL::PC)
-        return bl->is_player()->attackrange;
+        return (bl->is_player()->attack_spell_override
+                    ? bl->is_player()->attack_spell_range
+                    : bl->is_player()->attackrange);
     else
         return 0;
 }
