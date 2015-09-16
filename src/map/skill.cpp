@@ -1001,10 +1001,10 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
             break;
 
         case StatusChange::SC_HASTE:
-            calc_flag = 1;
-            break;
         case StatusChange::SC_PHYS_SHIELD:
         case StatusChange::SC_MBARRIER:
+            calc_flag = 1;
+            break;
         case StatusChange::SC_HALT_REGENERATE:
         case StatusChange::SC_HIDE:
             break;
