@@ -821,6 +821,54 @@ void builtin_getelementofarray(ScriptState *st)
 }
 
 static
+void builtin_array_search(ScriptState *st)
+{
+    ZString needle_str = ZString(conv_str(st, &AARG(0)));
+    int needle_int = conv_num(st, &AARG(0));
+    SIR reg = AARG(1).get_if<ScriptDataVariable>()->reg; // haystack
+    ZString name = variable_names.outtern(reg.base());
+    char prefix = name.front();
+    int i, c;
+
+    if (prefix != '$' && prefix != '@' && prefix != '.')
+    {
+        PRINTF("builtin_array_search: illegal scope!\n"_fmt);
+        return;
+    }
+
+    i = reg.index(); c = -1;
+    for (; i < 256; i++)
+    {
+        struct script_data vd = get_val2(st, reg.iplus(i));
+        MATCH_BEGIN (vd)
+        {
+            MATCH_CASE (const ScriptDataStr&, u)
+            {
+                if (u.str == needle_str)
+                {
+                    c = i;
+                    goto Out;
+                }
+                continue;
+            }
+            MATCH_CASE (const ScriptDataInt&, u)
+            {
+                if (u.numi == needle_int)
+                {
+                    c = i;
+                    goto Out;
+                }
+                continue;
+            }
+        }
+        MATCH_END ();
+        abort();
+    }
+    Out:
+    push_int<ScriptDataInt>(st->stack, c);
+}
+
+static
 void builtin_wgm(ScriptState *st)
 {
     ZString message = ZString(conv_str(st, &AARG(0)));
@@ -3354,6 +3402,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(cleararray, "Nei"_s, '\0'),
     BUILTIN(getarraysize, "N"_s, 'i'),
     BUILTIN(getelementofarray, "Ni"_s, '.'),
+    BUILTIN(array_search, "eN"_s, 'i'),
     BUILTIN(setlook, "ii"_s, '\0'),
     BUILTIN(countitem, "I"_s, 'i'),
     BUILTIN(checkweight, "Ii"_s, 'i'),
