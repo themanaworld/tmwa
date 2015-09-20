@@ -1374,7 +1374,7 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
         {
             sd = bl->is_player();
             nullpo_retz(sd);
-            if (sd->invincible_timer || pc_isinvisible(sd))
+            if (pc_isdead(sd) || sd->invincible_timer || pc_isinvisible(sd))
                 return 0;
             if (!bool(mode & MobMode::BOSS) && race != Race::_insect && race != Race::_demon
                 && sd->state.gangsterparadise)
@@ -1800,7 +1800,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         dumb_ptr<map_session_data> asd = map_id2sd(md->attacked_id);
         if (asd)
         {
-            if (!asd->invincible_timer && !pc_isinvisible(asd))
+            if (!pc_isdead(asd) && !asd->invincible_timer && !pc_isinvisible(asd))
             {
                 map_foreachinarea(std::bind(mob_ai_sub_hard_linksearch, ph::_1, md, asd),
                         md->bl_m,
@@ -1823,7 +1823,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
             if (abl->bl_type == BL::PC)
                 asd = abl->is_player();
             if (asd == nullptr || md->bl_m != abl->bl_m || abl->bl_prev == nullptr
-                || asd->invincible_timer || pc_isinvisible(asd)
+                || asd->invincible_timer || pc_isinvisible(asd) || pc_isdead(asd)
                 || (dist =
                     distance(md->bl_x, md->bl_y, abl->bl_x, abl->bl_y)) >= 32
                 || battle_check_target(bl, abl, BCT_ENEMY) == 0)
