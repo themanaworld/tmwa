@@ -1277,15 +1277,18 @@ int mob_stop_walking(dumb_ptr<mob_data> md, int type)
 static
 int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
 {
-    int dx, dy;
+    int dx, dy, rangex, rangey, arange;
     struct walkpath_data wpd;
     int i;
 
     nullpo_retz(md);
     nullpo_retz(bl);
 
-    dx = abs(bl->bl_x - md->bl_x);
-    dy = abs(bl->bl_y - md->bl_y);
+    dx = (bl->bl_x - md->bl_x);
+    dy = (bl->bl_y - md->bl_y);
+    rangex = abs(dx);
+    rangey = abs(dy);
+    arange = ((rangex > rangey) ? rangex : rangey);
 
     if (bl->bl_type == BL::PC && battle_config.monsters_ignore_gm == 1)
     {                           // option to have monsters ignore GMs [Valaris]
@@ -1297,7 +1300,7 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
     if (md->bl_m != bl->bl_m)      // 違うャbプ
         return 0;
 
-    if (range > 0 && range < ((dx > dy) ? dx : dy)) // 遠すぎる
+    if (range > 0 && range < arange) // 遠すぎる
         return 0;
 
     if (md->bl_x == bl->bl_x && md->bl_y == bl->bl_y) // 同じャX
