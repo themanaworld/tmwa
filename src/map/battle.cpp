@@ -2129,16 +2129,18 @@ int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
                         int range)
 {
 
-    int dx, dy;
+    int dx, dy, rangex, rangey;
     struct walkpath_data wpd;
     int arange;
 
     nullpo_retz(src);
     nullpo_retz(bl);
 
-    dx = abs(bl->bl_x - src->bl_x);
-    dy = abs(bl->bl_y - src->bl_y);
-    arange = ((dx > dy) ? dx : dy);
+    dx = (bl->bl_x - src->bl_x);
+    dy = (bl->bl_y - src->bl_y);
+    rangex = abs(dx);
+    rangey = abs(dy);
+    arange = ((rangex > rangey) ? rangex : rangey);
 
     if (src->bl_m != bl->bl_m)        // 違うマップ
         return 0;
