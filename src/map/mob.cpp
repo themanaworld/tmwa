@@ -1845,6 +1845,18 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     }
 
     md->state.master_check = 0;
+    // Processing of summoned monster attacked by owner
+    if (md->last_master_id && md->state.special_mob_ai)
+    {
+        if (((bl = map_id2bl(md->last_master_id)) != nullptr && md->bl_m != bl->bl_m) || (bl = map_id2bl(md->last_master_id)) == nullptr)
+        {
+            md->last_master_id = BlockId();
+            md->state.special_mob_ai = 0;
+            md->mode = get_mob_db(md->mob_class).mode;
+            md->target_id = BlockId();
+            md->attacked_id = BlockId();
+        }
+    }
     // Processing of slave monster
     if (md->master_id && md->state.special_mob_ai == 0)
         mob_ai_sub_hard_slavemob(md, tick);
@@ -2358,6 +2370,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         && bool(md->mode & MobMode::TURNS_AGAINST_BAD_MASTER))
     {
         /* If the master hits a monster, have the monster turn against him */
+        md->last_master_id = md->master_id;
         md->master_id = BlockId();
         md->mode = MobMode::war;        /* Regular war mode */
         md->target_id = src->bl_id;
