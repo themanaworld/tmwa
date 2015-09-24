@@ -36,6 +36,7 @@ struct AccountCrypt : VString<39> {};
 struct AccountEmail : VString<39> {};
 struct ServerName : VString<19> {};
 struct PartyName : VString<23> {};
+struct GuildName : VString<23> {};
 struct VarName : VString<31> {};
 
 #define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com"_s)

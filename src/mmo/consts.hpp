@@ -46,6 +46,7 @@ constexpr interval_t MIN_WALK_SPEED = interval_t::zero();
 constexpr interval_t MAX_WALK_SPEED = 1_s;
 constexpr int MAX_STORAGE = 300;
 constexpr int MAX_PARTY = 12;
+constexpr int MAX_GUILD = 60;
 
 #define MIN_HAIR_STYLE battle_config.min_hair_style
 #define MAX_HAIR_STYLE battle_config.max_hair_style
@@ -60,6 +61,7 @@ namespace map
 }
 
 // WTF is this doing here?
+
 struct PartyMember
 {
     AccountId account_id;
@@ -68,4 +70,13 @@ struct PartyMember
     int leader, online, lv;
     map::map_session_data *sd;
 };
+
+struct GuildMember
+{
+    AccountId account_id;
+    CharName name;
+    int position, online, lv;
+    map::map_session_data *sd;
+};
+
 } // namespace tmwa

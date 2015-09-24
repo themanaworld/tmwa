@@ -3,6 +3,7 @@ for s in [
         'AccountId',
         'CharId',
         'PartyId',
+        'GuildId',
         'ItemNameId',
         'BlockId',
         'QuestId',

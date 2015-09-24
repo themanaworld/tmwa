@@ -100,6 +100,7 @@ namespace tmwa
             .tm_isdst= 0,
         };
         Map<PartyId, PartyMost> party_db;
+        Map<GuildId, GuildMost> guild_db;
         std::map<AccountId, GmLevel> gm_accountm;
         tick_t natural_heal_tick, natural_heal_prev_tick;
         interval_t natural_heal_diff_tick;

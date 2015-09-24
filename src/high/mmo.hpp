@@ -28,6 +28,7 @@
 #include "../proto2/net-CharData.hpp"
 #include "../proto2/net-CharKey.hpp"
 #include "../proto2/net-PartyMost.hpp"
+#include "../proto2/net-GuildMost.hpp"
 #include "../proto2/net-SkillValue.hpp"
 
 
@@ -67,5 +68,14 @@ struct PartyPair
 
     PartyMost& operator *() const { return *party_most; }
     Borrowed<PartyMost> operator->() const { return party_most; }
+};
+
+struct GuildPair
+{
+    GuildId guild_id;
+    Borrowed<GuildMost> guild_most;
+
+    GuildMost& operator *() const { return *guild_most; }
+    Borrowed<GuildMost> operator->() const { return guild_most; }
 };
 } // namespace tmwa

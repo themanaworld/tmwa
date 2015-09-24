@@ -54,6 +54,9 @@ namespace tmwa
         extern Map<PartyId, PartyMost> party_db;
         extern PartyId party_newid;
 
+        extern Map<GuildId, GuildMost> guild_db;
+        extern GuildId guild_newid;
+
         extern Map<AccountId, Storage> storage_db;
     } // namespace char_
 } // namespace tmwa

@@ -68,6 +68,7 @@
 #include "map_conf.hpp"
 #include "npc.hpp"
 #include "party.hpp"
+#include "guild.hpp"
 #include "pc.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
@@ -121,6 +122,7 @@ enum class SendWho
     PARTY_SAMEMAP_WOS,
     PARTY_AREA,
     PARTY_AREA_WOS,
+    GUILD,
     SELF,
 };
 
@@ -206,6 +208,7 @@ enum class ChatType
     Party,
     Whisper,
     Global,
+    Guild,
 };
 
 static
@@ -402,6 +405,29 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short mi
                                 send_buffer(sd->sess, buf);
                             }
                         }
+                    }
+                }
+            }
+            OMATCH_END ();
+        }
+            break;
+        case SendWho::GUILD:
+        {
+            Option<GuildPair> g_ = None;
+            if (bl->bl_type == BL::PC)
+            {
+                dumb_ptr<map_session_data> sd = bl->is_player();
+                if (sd->status.guild_id)
+                    g_ = guild_search(sd->status.guild_id);
+            }
+            OMATCH_BEGIN_SOME(g, g_)
+            {
+                for (int i = 0; i < MAX_GUILD; i++)
+                {
+                    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(g->member[i].sd);
+                    if (sd)
+                    {
+                        send_buffer(sd->sess, buf);
                     }
                 }
             }
@@ -644,7 +670,7 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.hair_color = sd->status.hair_color;
     fixed_1d8.clothes_color = sd->status.clothes_color;
     fixed_1d8.head_dir = sd->head_dir;
-    fixed_1d8.guild_id = 0;
+    fixed_1d8.guild_id = sd->status.guild_id;
     fixed_1d8.guild_emblem_id = 0;
     fixed_1d8.manner = sd->status.manner;
     fixed_1d8.opt3 = sd->opt3;
@@ -698,7 +724,7 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.hair_color = sd->status.hair_color;
     fixed_1d8.clothes_color = sd->status.clothes_color;
     fixed_1d8.head_dir = sd->head_dir;
-    fixed_1d8.guild_id = 0;
+    fixed_1d8.guild_id = sd->status.guild_id;
     fixed_1d8.guild_emblem_id = 0;
     fixed_1d8.manner = sd->status.manner;
     fixed_1d8.opt3 = sd->opt3;
@@ -751,7 +777,7 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1da.hair_color = sd->status.hair_color;
     fixed_1da.clothes_color = sd->status.clothes_color;
     fixed_1da.head_dir = sd->head_dir;
-    fixed_1da.guild_id = 0;
+    fixed_1da.guild_id = sd->status.guild_id;
     fixed_1da.guild_emblem_id = 0;
     fixed_1da.manner = sd->status.manner;
     fixed_1da.opt3 = sd->opt3;
@@ -3504,6 +3530,8 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     clif_initialstatus(sd);
     // party
     party_send_movemap(sd);
+    // guild
+    guild_request_info(sd->status.guild_id, sd->status_key.account_id);
     // 119
     // 78
 
@@ -3724,14 +3752,30 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
                 OMATCH_END ();
             }
 
+            GuildName guild_name;
+            XString guild_position;
+
+            if (ssd->status.guild_id)
+            {
+                Option<GuildPair> g_ = guild_search(ssd->status.guild_id);
+
+                OMATCH_BEGIN_SOME (g, g_)
+                {
+                    guild_name = g->name;
+                    guild_position = guild_get_position(g, ssd->status_key.account_id);
+                    send = 1;
+                }
+                OMATCH_END ();
+            }
+
             if (send)
             {
                 Packet_Fixed<0x0195> fixed_195;
                 fixed_195.block_id = account_id;
                 fixed_195.party_name = party_name;
-                fixed_195.guild_name = ""_s;
-                fixed_195.guild_pos = ""_s;
-                fixed_195.guild_pos = ""_s; // We send this value twice because the client expects it
+                fixed_195.guild_name = guild_name;
+                fixed_195.guild_pos = guild_position;
+                fixed_195.guild_pos = guild_position; // We send this value twice because the client expects it
                 send_fpacket<0x0195, 102>(s, fixed_195);
             }
 
@@ -4931,6 +4975,518 @@ RecvResult clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
     return rv;
 }
 
+/*==========================================
+ * Process create guild request from client.
+ *------------------------------------------
+*/
+static
+RecvResult clif_parse_CreateGuild(Session *s, dumb_ptr<map_session_data> sd)
+{
+    PRINTF("Map server received create guild request from client.\n"_fmt);
+
+    Packet_Fixed<0x0165> fixed;
+    RecvResult rv = recv_fpacket<0x0165, 30>(s, fixed);
+    if (rv != RecvResult::Complete)
+    {
+        return rv;
+    }
+
+    GuildName guild_name = fixed.guild_name;
+
+    guild_create(sd, guild_name);
+
+    return rv;
+}
+
+/*==========================================
+ * Process guild invite request from client.
+ *------------------------------------------
+*/
+static
+RecvResult clif_parse_GuildInvite(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x0168> fixed_68;
+    RecvResult rv = recv_fpacket<0x0168, 14>(s, fixed_68);
+    if (rv != RecvResult::Complete)
+    {
+        return rv;
+    }
+
+    AccountId account_id = fixed_68.account_id;
+
+    guild_invite(sd, account_id);
+
+    return rv;
+}
+
+/*==========================================
+ * Process request for guild info from client.
+ *------------------------------------------
+*/
+static
+RecvResult clif_parse_GuildRequestInfo(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x014f> fixed_4f;
+    RecvResult rv = recv_fpacket<0x014f, 6>(s, fixed_4f);
+        if (rv != RecvResult::Complete)
+        {
+            return rv;
+        }
+
+    Option<P<GuildMost>> maybe_guild_most = guild_db.search(sd->status.guild_id);
+    P<GuildMost> gm = TRY_UNWRAP(maybe_guild_most,
+            {
+                    PRINTF("    Error: could not find guild\n"_fmt);
+                    PRINTF("        sd'd guild_id : %d\n"_fmt, sd->status.guild_id);
+                    return rv;
+            });
+
+    CharName leader;
+
+    for (int i = 0; i < MAX_GUILD; ++i)
+    {
+        if (gm->member[i].position == 1)
+        {
+            leader = gm->member[i].name;
+            break;
+        }
+    }
+
+    switch (fixed_4f.flag)
+    {
+        case 0:
+        {
+            clif_guild_basicinfo(sd, sd->status.guild_id, gm->name, leader);
+            return rv;
+        }
+        case 1:
+        {
+            clif_guild_memberlist(sd, *gm);
+            clif_guild_position_name_list(sd);
+            return rv;
+        }
+        case 2:
+        {
+            return rv;
+        }
+        case 3:
+        {
+            return rv;
+        }
+        default:
+        {
+            return rv;
+        }
+    }
+
+    return rv;
+}
+/*==========================================
+ * Process guild member position change request.
+ *------------------------------------------
+*/
+static
+RecvResult clif_parse_GuildChangeMemberPos(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x0155> fixed;
+    RecvResult rv = recv_fpacket<0x0155, 16>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    AccountId acct_id = fixed.account_id;
+    //CharId char_id = fixed.char_id;
+    int position = fixed.position_id;
+
+    guild_changememberpos_request(sd, acct_id, position);
+
+    return rv;
+}
+
+/*==========================================
+ * Process guild invite response from client.
+ *------------------------------------------
+*/
+static
+RecvResult clif_parse_GuildInviteReply(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x016b> fixed_6b;
+    RecvResult rv = recv_fpacket<0x016b, 10>(s, fixed_6b);
+    if (rv != RecvResult::Complete)
+    {
+        return rv;
+    }
+
+    GuildId guild_id = fixed_6b.guild_id;
+    int flag = fixed_6b.flag;
+
+    guild_reply_invite(sd, guild_id, flag);
+
+    return rv;
+}
+
+/*==========================================
+ * Process guild leave request from client.
+ *------------------------------------------
+*/
+static
+RecvResult clif_parse_GuildLeave(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x0159> fixed_59;
+    RecvResult rv = recv_fpacket<0x0159, 54>(s, fixed_59);
+    if (rv != RecvResult::Complete)
+    {
+        return rv;
+    }
+
+    GuildId guild_id = fixed_59.guild_id;
+    AccountId account_id = fixed_59.account_id;
+    AString mes = fixed_59.mes;
+
+    guild_leave(sd, guild_id, account_id, mes);
+
+    return rv;
+}
+
+/*==========================================
+ * Process guild message from client.
+ *------------------------------------------
+*/
+static
+RecvResult clif_parse_GuildMessage(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Head<0x017e> head_7e;
+    AString repeat_7e;
+    RecvResult rv = recv_vpacket<0x017e, 4, 1>(s, head_7e, repeat_7e);
+
+    if (rv != RecvResult::Complete)
+        return rv;
+
+   AString mbuf = clif_validate_chat(sd, ChatType::Guild, repeat_7e);
+
+    if (!mbuf)
+    {
+        clif_displaymessage(s, "Your message could not be sent."_s);
+        return rv;
+    }
+
+    if (is_atcommand(s, sd, mbuf, GmLevel()))
+        return rv;
+
+    if (!magic::magic_message(sd, mbuf))
+    {
+        /* Don't send chat that results in an automatic ban. */
+        if (tmw_CheckChatSpam(sd, mbuf))
+        {
+            clif_displaymessage(s, "Your message could not be sent."_s);
+            return rv;
+        }
+
+        guild_send_message(sd, mbuf);
+    }
+
+    return rv;
+}
+
+/*==========================================
+ * Process guild expulsion.
+ *------------------------------------------
+*/
+static
+RecvResult clif_parse_GuildExpulsion(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x015b> fixed_15b;
+    RecvResult rv = recv_fpacket<0x015b, 54>(s, fixed_15b);
+    if (rv != RecvResult::Complete)
+    {
+        return rv;
+    }
+
+    GuildId guild_id = fixed_15b.guild_id;
+    AccountId account_id = fixed_15b.account_id;
+    //CharId char_id = fixed_15b.char_id;
+    XString reason = fixed_15b.reason;
+
+    guild_expulsion(sd, guild_id, account_id/*, char_id*/, reason);
+
+    return rv;
+}
+
+/*==========================================
+ * Send create guild response to client.
+ *
+ * flag:
+ *   0 the guild was created
+ *   1 invalid/taken guild name
+ *   2 character already in guild
+ *------------------------------------------
+*/
+int clif_guild_created(dumb_ptr<map_session_data> sd, int flag)
+{
+    nullpo_retz(sd);
+
+    Session *s = sd->sess;
+    Packet_Fixed<0x0167> fixed_67;
+    fixed_67.flag = flag;
+    send_fpacket<0x0167, 3>(s, fixed_67);
+
+    return 0;
+}
+
+/*==========================================
+ * Send basic guild info to client.
+ *------------------------------------------
+ */
+int clif_guild_basicinfo(dumb_ptr<map_session_data> sd, GuildId guild_id, GuildName guild_name, CharName leader)
+{
+    Session *s = sd->sess;
+
+    VString<19> castles_taken = "None taken."_s;
+
+    Packet_Fixed<0x01b6> fixed;
+    fixed.guild_id = guild_id;
+    fixed.guild_lv = 0;
+    fixed.unused_connect_member = 0;
+    fixed.unused_max_member = MAX_GUILD;
+    fixed.unused_average_lv = 0;
+    fixed.unused_exp = 0;
+    fixed.unused_next_exp = 0;
+    fixed.unused_1 = 0;
+    fixed.unused_2 = 0;
+    fixed.unused_3 = 0;
+    fixed.unused_4 = 0;
+    fixed.guild_name = guild_name;
+    fixed.guild_master = leader.to__actual();
+    fixed.castles_taken = castles_taken;
+
+    send_fpacket<0x01b6, 114>(s, fixed);
+
+    return 0;
+}
+
+/*==========================================
+ * Unused, for now.
+ *------------------------------------------
+ */
+int clif_guild_emblem()
+{
+    return 0;
+}
+
+/*==========================================
+ * Send member list to all members of guild.
+ *------------------------------------------
+ */
+int clif_guild_memberlist(dumb_ptr<map_session_data> sd, GuildMost &gm)
+{
+    Session *s = sd->sess;
+
+    std::vector<Packet_Repeat<0x0154>> repeat_54;
+
+    int i;
+
+    //for (i = 0; gm.member[i].account_id; ++i)
+    for (i = 0; i < MAX_GUILD; ++i)
+    {
+        if (gm.member[i].account_id)
+        {
+            Packet_Repeat<0x0154> info;
+            info.account_id = gm.member[i].account_id;
+            info.zero_1 = 0;
+            info.hair = 0;
+            info.hair_color = 0;
+            info.gender = ((sd->status.sex == SEX::MALE) ? 1 : 0);
+            info.pc_class = 0;
+            info.lv = gm.member[i].lv;
+            info.exp = sd->status.base_exp;
+            info.online = gm.member[i].online;
+            info.position = gm.member[i].position;
+            info.zero_2 = 0;
+            info.zero_3 = 0;
+            info.zero_4 = 0;
+            info.zero_5 = 0;
+            info.zero_6 = 0;
+            info.zero_7 = 0;
+            info.zero_8 = 0;
+            info.zero_9 = 0;
+            info.zero_10 = 0;
+            info.zero_11 = 0;
+            info.zero_12 = 0;
+            info.zero_13 = 0;
+            info.zero_14 = 0;
+            info.name = gm.member[i].name.to__actual();
+            repeat_54.push_back(info);
+        }
+    }
+
+    send_packet_repeatonly<0x0154, 4, 104>(s, repeat_54);
+
+    return 0;
+}
+
+/*==========================================
+ * Position number permissions are hardcoded.
+ *
+ * Position 1: The leader
+ *      Invite Member
+ *      Kick Member
+ *      Change Member Position
+ *      Break Guild
+ *
+ * Position 2: 2nd in command
+ *      Invite Member
+ *      Kick Member
+ *      Change Member Position
+ *
+ * Position 3: Someone who can invite others
+ *      Invite Member
+ *
+ * Position 4: A regular member
+ *------------------------------------------
+ */
+void clif_guild_position_name_list(dumb_ptr<map_session_data> sd)
+{
+    Session *s = sd->sess;
+
+    std::vector<Packet_Repeat<0x0166>> repeat_66;
+
+    // The names of the guild positions can be changed here.
+    VString<23> guild_master = "Guild Master"_s;
+    VString<23> executor = "Executor"_s;
+    VString<23> officer = "Officer"_s;
+    VString<23> member = "Member"_s;
+
+    int i;
+
+    for (i = 1; i <= 4; ++i)
+    {
+        Packet_Repeat<0x0166> position;
+
+        switch ( i ) {
+        case 1:
+            position.position_id = 1;
+            position.position_name = guild_master;
+            break;
+        case 2:
+            position.position_id = 2;
+            position.position_name = executor;
+            break;
+        case 3:
+            position.position_id = 3;
+            position.position_name = officer;
+            break;
+        case 4:
+            position.position_id = 4;
+            position.position_name = member;
+            break;
+        default:
+            break;
+        }
+
+        repeat_66.push_back(position);
+    }
+
+    send_packet_repeatonly<0x0166, 4, 28>(s, repeat_66);
+
+    return;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int clif_guild_skillinfo()
+{
+    return 0;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int clif_guild_belonginfo(dumb_ptr<map_session_data> sd, GuildPair &gp, int position)
+{
+    Session *s = sd->sess;
+
+    Packet_Fixed<0x016c> fixed_6c;
+    fixed_6c.guild_id = gp.guild_id;
+    fixed_6c.unused_emblem_id = 0;
+    fixed_6c.position = position;
+    fixed_6c.unused_1 = 0;
+    fixed_6c.unused_2 = 0;
+    fixed_6c.guild_name = gp.guild_most->name;
+
+    send_fpacket<0x016c, 43>(s, fixed_6c);
+
+    return 0;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int clif_guild_notice()
+{
+    return 0;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int clif_guild_invite(dumb_ptr<map_session_data> tsd, GuildId guild_id, GuildName guild_name)
+{
+    Session *s = tsd->sess;
+
+    Packet_Fixed<0x016a> fixed_6a;
+    fixed_6a.guild_id = guild_id;
+    fixed_6a.guild_name = guild_name;
+
+    send_fpacket<0x016a, 30>(s, fixed_6a);
+
+    return 0;
+}
+
+/*==========================================
+ * Response to inviting character about
+ * whether the invitee accepted or not.
+ *
+ * flags:
+ *          0 : failed
+ *          1 : rejected
+ *          2 : joined
+ *          3 : full
+ *      other : error
+ *------------------------------------------
+ */
+int clif_guild_inviteack(dumb_ptr<map_session_data> sd, int flag)
+{
+    Session *s = sd->sess;
+
+    Packet_Fixed<0x0169> fixed_69;
+    fixed_69.flag = flag;
+
+    send_fpacket<0x0169, 3>(s, fixed_69);
+
+    return 0;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int clif_guild_leave(dumb_ptr<map_session_data> sd, CharName name, AString mes)
+{
+    Session *s = sd->sess;
+
+    Packet_Fixed<0x015a> fixed_5a;
+    fixed_5a.char_name = name;
+    fixed_5a.mes = mes;
+
+    send_fpacket<0x015a, 66>(s, fixed_5a);
+
+    return 0;
+}
+
 void clif_sendallquest(dumb_ptr<map_session_data> sd)
 {
     int i;
@@ -4970,6 +5526,50 @@ void clif_sendallquest(dumb_ptr<map_session_data> sd)
     return;
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int clif_guild_message(GuildPair g, XString mes)
+{
+    dumb_ptr<map_session_data> sd = nullptr;
+    int i;
+
+    for (i = 0; i < MAX_GUILD; i++)
+    {
+        sd = dumb_ptr<map_session_data>(g->member[i].sd);
+        if (sd != nullptr)
+            break;
+    }
+    if (sd != nullptr)
+    {
+        Packet_Head<0x017f> head_7f;
+        //head_7f.account_id = account_id;
+        Buffer buf = create_vpacket<0x017f, 4, 1>(head_7f, mes);
+        clif_send(buf, sd, SendWho::GUILD, MIN_CLIENT_VERSION);
+    }
+
+    return 0;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int clif_guild_expulsion(dumb_ptr<map_session_data> sd, CharName kicked_name, XString reason, CharName kicker_name)
+{
+    Session *s = sd->sess;
+
+    Packet_Fixed<0x015c> fixed_15c;
+    fixed_15c.kicked_name = kicked_name;
+    fixed_15c.reason = reason;
+    fixed_15c.kicker_name = kicker_name;
+
+    send_fpacket<0x015c, 90>(s, fixed_15c);
+
+    return 0;
+}
+
 void clif_sendquest(dumb_ptr<map_session_data> sd, QuestId questid, int value)
 {
     if (!sd)
@@ -4989,7 +5589,6 @@ void clif_sendquest(dumb_ptr<map_session_data> sd, QuestId questid, int value)
     send_fpacket<0x0214, 8>(s, fixed);
     return;
 }
-
 
 func_table clif_parse_func_table[0x0220] =
 {
@@ -5328,19 +5927,19 @@ func_table clif_parse_func_table[0x0220] =
     {0,     VAR,nullptr,                        },  // 0x014c
     {0,     2,  nullptr,                        },  // 0x014d
     {0,     6,  nullptr,                        },  // 0x014e
-    {0,     6,  nullptr,                        },  // 0x014f
+    {0,     6,  clif_parse_GuildRequestInfo,    },  // 0x014f
     {0,     110,nullptr,                        },  // 0x0150
     {0,     6,  nullptr,                        },  // 0x0151
     {0,     VAR,nullptr,                        },  // 0x0152
     {0,     VAR,nullptr,                        },  // 0x0153
     {0,     VAR,nullptr,                        },  // 0x0154
-    {0,     VAR,nullptr,                        },  // 0x0155
-    {0,     VAR,nullptr,                        },  // 0x0156
+    {0,     16, clif_parse_GuildChangeMemberPos,},  // 0x0155
+    {0,     16, nullptr,                        },  // 0x0156
     {0,     6,  nullptr,                        },  // 0x0157
     {0,     VAR,nullptr,                        },  // 0x0158
-    {0,     54, nullptr,                        },  // 0x0159
+    {0,     54, clif_parse_GuildLeave,          },  // 0x0159
     {0,     66, nullptr,                        },  // 0x015a
-    {0,     54, nullptr,                        },  // 0x015b
+    {0,     54, clif_parse_GuildExpulsion,      },  // 0x015b
     {0,     90, nullptr,                        },  // 0x015c
     {0,     42, nullptr,                        },  // 0x015d
     {0,     6,  nullptr,                        },  // 0x015e
@@ -5350,13 +5949,13 @@ func_table clif_parse_func_table[0x0220] =
     {0,     VAR,nullptr,                        },  // 0x0162
     {0,     VAR,nullptr,                        },  // 0x0163
     {0,     VAR,nullptr,                        },  // 0x0164
-    {0,     30, nullptr,                        },  // 0x0165
+    {0,     30, clif_parse_CreateGuild,         },  // 0x0165
     {0,     VAR,nullptr,                        },  // 0x0166
     {0,     3,  nullptr,                        },  // 0x0167
-    {0,     14, nullptr,                        },  // 0x0168
+    {0,     14, clif_parse_GuildInvite,         },  // 0x0168
     {0,     3,  nullptr,                        },  // 0x0169
     {0,     30, nullptr,                        },  // 0x016a
-    {0,     10, nullptr,                        },  // 0x016b
+    {0,     10, clif_parse_GuildInviteReply,    },  // 0x016b
     {0,     43, nullptr,                        },  // 0x016c
     {0,     14, nullptr,                        },  // 0x016d
     {0,     186,nullptr,                        },  // 0x016e
@@ -5375,7 +5974,7 @@ func_table clif_parse_func_table[0x0220] =
     {0,     VAR,nullptr,                        },  // 0x017b
     {0,     6,  nullptr,                        },  // 0x017c
     {0,     7,  nullptr,                        },  // 0x017d
-    {0,     VAR,nullptr,                        },  // 0x017e
+    {0,     VAR,clif_parse_GuildMessage,        },  // 0x017e
     {0,     VAR,nullptr,                        },  // 0x017f
     {0,     6,  nullptr,                        },  // 0x0180
     {0,     3,  nullptr,                        },  // 0x0181

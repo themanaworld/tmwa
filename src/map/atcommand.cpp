@@ -64,6 +64,7 @@
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
+#include "guild.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
@@ -4952,7 +4953,233 @@ ATCE atcommand_source(Session *s, dumb_ptr<map_session_data>,
     return ATCE::OKAY;
 }
 
+static
+ATCE atcommand_createguild(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    GuildName guild_name;
+    CharName guild_master;
 
+    if (!extract(message, record<',', 1>(&guild_name, &guild_master)))
+        return ATCE::USAGE;
+
+    Option<GuildPair> g_ = guild_searchname(guild_name);
+
+    TRY_UNWRAP(g_,
+    {
+        // Guild with this name already exists
+        clif_displaymessage(s, "That guild name is already taken"_s);
+        return ATCE::EXIST;
+    });
+
+    // Guild name is available
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(guild_master);
+    if (pl_sd == nullptr)
+    {
+        clif_displaymessage(s, "Character not found."_s);
+        return ATCE::EXIST;
+    }
+
+    guild_create(pl_sd, guild_name);
+    return ATCE::OKAY;
+
+    /*OMATCH_BEGIN (g_)
+    {
+        OMATCH_CASE_SOME ()
+        {
+            // Guild with this name already exists
+            clif_displaymessage(s, "That guild name is already taken"_s);
+            return ATCE::EXIST;
+        }
+        OMATCH_CASE_NONE ()
+        {
+            // Guild name is available
+            dumb_ptr<map_session_data> pl_sd = map_nick2sd(guild_master);
+            if (pl_sd == nullptr)
+            {
+                clif_displaymessage(s, "Character not found."_s);
+                return ATCE::EXIST;
+            }
+
+            guild_create(pl_sd, guild_name);
+            return ATCE::OKAY;
+        }
+    }
+    OMATCH_END ();
+    return ATCE::EXIST;*/
+}
+
+static
+ATCE atcommand_breakguild(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    GuildName guild_name;
+
+    if (!extract(message, &guild_name))
+        return ATCE::USAGE;
+
+    Option<GuildPair> g_ = guild_searchname(guild_name);
+    OMATCH_BEGIN (g_)
+    {
+        OMATCH_CASE_SOME (g)
+        {
+            // Guild name exists
+            guild_break(g.guild_id);
+            clif_displaymessage(s, "Guild broken."_s);
+            return ATCE::OKAY;
+        }
+        OMATCH_CASE_NONE ()
+        {
+            // Guild name does not exist
+            clif_displaymessage(s, "Guild not found."_s);
+            return ATCE::EXIST;
+        }
+    }
+    OMATCH_END ();
+    return ATCE::EXIST;
+}
+
+static
+ATCE atcommand_listguildmembers(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    GuildName guild_name;
+
+    if (!extract(message, &guild_name))
+        return ATCE::USAGE;
+
+    Option<GuildPair> g_ = guild_searchname(guild_name);
+    OMATCH_BEGIN (g_)
+    {
+        OMATCH_CASE_SOME (g)
+        {
+            // Guild name exists
+            int i;
+            for (i = 0; i < MAX_GUILD; ++i)
+            {
+                if (g.guild_most->member[i].name != CharName())
+                {
+                    clif_displaymessage(s, g.guild_most->member[i].name.to__actual());
+                }
+            }
+            return ATCE::OKAY;
+        }
+        OMATCH_CASE_NONE ()
+        {
+            // Guild name does not exist
+            clif_displaymessage(s, "Guild not found."_s);
+            return ATCE::EXIST;
+        }
+    }
+    OMATCH_END ();
+    return ATCE::EXIST;
+}
+
+static
+ATCE atcommand_changeguildmemberposition(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    GuildName guild_name;
+    CharName guild_member;
+    int position;
+
+    if (!extract(message, record<',', 1>(&guild_name, &guild_member, &position)))
+        return ATCE::USAGE;
+
+    Option<GuildPair> g_ = guild_searchname(guild_name);
+    OMATCH_BEGIN (g_)
+    {
+        OMATCH_CASE_SOME (g)
+        {
+            // Guild name exists
+            intif_guild_poschanged(g.guild_id, map_nick2sd(guild_member)->status_key.account_id, position);
+            clif_displaymessage(s, "Guild member position changed"_s);
+            return ATCE::OKAY;
+        }
+        OMATCH_CASE_NONE ()
+        {
+            // Guild name does not exist
+            clif_displaymessage(s, "Guild not found."_s);
+            return ATCE::EXIST;
+        }
+    }
+    OMATCH_END ();
+    return ATCE::EXIST;
+}
+
+static
+ATCE atcommand_addtoguild(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    GuildName guild_name;
+    CharName name;
+
+    if (!extract(message, record<',', 1>(&guild_name, &name)))
+        return ATCE::USAGE;
+
+    Option<GuildPair> g_ = guild_searchname(guild_name);
+    OMATCH_BEGIN (g_)
+    {
+        OMATCH_CASE_SOME (g)
+        {
+            // Guild name exists
+
+            map_nick2sd(name)->guild_invite = g.guild_id;
+            int i;
+            for (i = 0; i < MAX_GUILD; ++i)
+            {
+                if (!g->member[i].account_id)
+                    break;
+            }
+            guild_makemember(map_nick2sd(name), i, g);
+            intif_guild_addmember(g.guild_id, map_nick2sd(name)->status_key.account_id, i, map_nick2sd(name)->status.base_level, name);
+            guild_recv_info(g);
+
+            clif_displaymessage(s, "Character invited to guild."_s);
+            return ATCE::OKAY;
+        }
+        OMATCH_CASE_NONE ()
+        {
+            // Guild name does not exist
+            clif_displaymessage(s, "Guild not found."_s);
+            return ATCE::EXIST;
+        }
+    }
+    OMATCH_END ();
+    return ATCE::EXIST;
+}
+
+static
+ATCE atcommand_removefromguild(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    GuildName guild_name;
+    CharName name;
+
+    if (!extract(message, record<',', 1>(&guild_name, &name)))
+        return ATCE::USAGE;
+
+    Option<GuildPair> g_ = guild_searchname(guild_name);
+    OMATCH_BEGIN (g_)
+    {
+        OMATCH_CASE_SOME (g)
+        {
+            // Guild name exists
+            AString mes = "You were removed from your guild."_s;
+            guild_leave(map_nick2sd(name), g.guild_id , map_nick2sd(name)->status_key.account_id, mes);
+            clif_displaymessage(s, "Character removed from guild"_s);
+            return ATCE::OKAY;
+        }
+        OMATCH_CASE_NONE ()
+        {
+            // Guild name does not exist
+            clif_displaymessage(s, "Guild not found."_s);
+            return ATCE::EXIST;
+        }
+    }
+    OMATCH_END ();
+    return ATCE::EXIST;
+}
 
 // declared extern above
 Map<XString, AtCommandInfo> atcommand_info =
@@ -5371,6 +5598,24 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"doomspot"_s, {""_s,
         60, atcommand_doomspot,
         "Kill all players on the same tile"_s}},
+    {"createguild"_s, {"<guild-name>,<guild-master>"_s,
+        60, atcommand_createguild,
+        "Create a guild with player as guild master. Arguments are comma separated"_s}},
+    {"breakguild"_s, {"<guild-name>"_s,
+        60, atcommand_breakguild,
+        "Remove all members of a guild and delete it"_s}},
+    {"listguildmembers"_s, {"<guild-name>"_s,
+        60, atcommand_listguildmembers,
+        "List all members in a guild"_s}},
+    {"changeguildmemberposition"_s, {"<guild-name>,<member>,<position>"_s,
+        60, atcommand_changeguildmemberposition,
+        "Change the position of a member in a guild. Arguments are comma separated. 1. Guild Master (make sure it doesn't exist), 2. Executor, 3. Officer, 4. Member"_s}},
+    {"addtoguild"_s, {"<guild-name>,<name>"_s,
+        60, atcommand_addtoguild,
+        "Invite a player to a guild. Arguments are comma separated"_s}},
+    {"removefromguild"_s, {"<guild-name>,<name>"_s,
+        60, atcommand_removefromguild,
+        "Remove a member of a guild. Arguments are comma separated"_s}},
     {"source"_s, {""_s,
         0, atcommand_source,
         "Legal information about source code (must be a level 0 command!)"_s}},
