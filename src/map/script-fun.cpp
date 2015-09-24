@@ -371,6 +371,18 @@ void builtin_min(ScriptState *st)
 }
 
 static
+void builtin_average(ScriptState *st)
+{
+    int total, i;
+    total = conv_num(st, &AARG(0));
+
+    for (i = 1; HARG(i); i++)
+        total += conv_num(st, &AARG(i));
+
+    push_int<ScriptDataInt>(st->stack, (total / i));
+}
+
+static
 void builtin_sqrt(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
@@ -3337,6 +3349,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(max, "e?*"_s, 'i'),
     BUILTIN(min, "ii*"_s, 'i'),
+    BUILTIN(average, "ii*"_s, 'i'),
     BUILTIN(sqrt, "i"_s, 'i'),
     BUILTIN(cbrt, "i"_s, 'i'),
     BUILTIN(pow, "ii"_s, 'i'),
