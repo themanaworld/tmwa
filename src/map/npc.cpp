@@ -35,6 +35,7 @@
 #include "../strings/xstring.hpp"
 #include "../strings/literal.hpp"
 
+#include "../generic/random.hpp"
 #include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -143,6 +144,89 @@ int npc_enable(NpcName name, bool flag)
 dumb_ptr<npc_data> npc_name2id(NpcName name)
 {
     return npcs_by_name.get(name);
+}
+
+/*==========================================
+ * Spell Toknise
+ * Return a pair of strings, {spellname, parameter}
+ * Parameter may be empty.
+ *------------------------------------------
+ */
+static
+std::pair<XString, XString> magic_tokenise(XString src)
+{
+    auto seeker = std::find(src.begin(), src.end(), ' ');
+
+    if (seeker == src.end())
+    {
+        return {src, XString()};
+    }
+    else
+    {
+        XString rv1 = src.xislice_h(seeker);
+        ++seeker;
+
+        while (seeker != src.end() && *seeker == ' ')
+            ++seeker;
+
+        // Note: this very well could be empty
+        XString rv2 = src.xislice_t(seeker);
+        return {rv1, rv2};
+    }
+}
+
+/*==========================================
+ * NPC Spell Delete
+ *------------------------------------------
+ */
+static
+void timer_callback_spell_npc_delete(TimerData *, tick_t, BlockId spell_id)
+{
+    dumb_ptr<npc_data> spell_npc = map_id_is_npc(spell_id);
+    PRINTF("Cast:  %s\n"_fmt, spell_npc->name);
+    npc_free(spell_npc);
+}
+
+/*==========================================
+ * NPC Spell
+ *------------------------------------------
+ */
+int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
+{
+    if (pc_isdead(caster))
+        return 0;
+    if (bool(caster->status.option & Opt0::HIDE))
+        return 0;           // No spellcasting while hidden
+
+    auto pair = magic_tokenise(source_invocation);
+    // Spell Cast
+    NpcName spell_name = stringish<NpcName>(pair.first);
+    RString spell_params = pair.second;
+
+    dumb_ptr<npc_data> nd = npc_name2id(spell_name);
+
+    if (nd)
+    {
+        nd->bl_id = npc_get_new_npc_id();
+        nd->bl_m = caster->bl_m;
+        nd->bl_x = caster->bl_x;
+        nd->bl_y = caster->bl_y;
+
+        PRINTF("Cast:  %s\n"_fmt, nd->name);
+        PRINTF("Params:  %s\n"_fmt, spell_params);
+        map_addnpc(nd->bl_m, nd);
+        //clif_spawnnpc(nd);
+        clif_spawn_fake_npc_for_player(caster, nd->bl_id);
+        npc_click(caster, nd->bl_id);
+        /* 1 minute should be enough for all interesting spell effects, I hope */
+        //std::chrono::seconds delay = 30_s;
+        //Timer(gettick() + delay,
+        //            std::bind(timer_callback_spell_npc_delete, ph::_1, ph::_2,
+        //                            nd->bl_id)
+        //                ).detach();
+        return 1;
+    }
+    return 0;
 }
 
 /*==========================================
@@ -294,7 +378,6 @@ void npc_timerevent(TimerData *, tick_t tick, BlockId id, interval_t data)
 {
     dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
     assert (nd != nullptr);
-    assert (nd->npc_subtype == NpcSubtype::SCRIPT);
     assert (nd->scr.next_event != nd->scr.timer_eventv.end());
 
     nd->scr.timertick = tick;

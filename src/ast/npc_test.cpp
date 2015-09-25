@@ -416,6 +416,55 @@ namespace npc
             }
         }
     }
+    TEST(npcast, scriptspell)
+    {
+        QuietFd q;
+        LString inputs[] =
+        {
+            //        1         2         3
+            //23456789012345678901234567890123456789
+            "spell|script|#FunName{end;}"_s,
+            //                         123456
+            "spell|script|#FunName\n{end;}\n"_s,
+            //                           1234567
+            "spell|script|#FunName\n \n {end;} "_s,
+        };
+        for (auto input : inputs)
+        {
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
+            auto res = TRY_UNWRAP(parse_top(lr), FAIL());
+            EXPECT_TRUE(res.get_success().is_some());
+            auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            EXPECT_SPAN(top.span, 1,1, 1,21);
+            auto script = top.get_if<Script>();
+            EXPECT_TRUE(script);
+            auto p = script->get_if<ScriptMap>();
+            EXPECT_TRUE(p);
+            if (p)
+            {
+                EXPECT_SPAN(script->key_span, 1,7, 1,12);
+                EXPECT_SPAN(p->name.span, 1,14, 1,21);
+                EXPECT_EQ(p->name.data, stringish<NpcName>("#FunName"_s));
+                if (input.endswith('}'))
+                {
+                    EXPECT_SPAN(script->body.span, 1,22, 1,27);
+                }
+                else if (input.endswith('\n'))
+                {
+                    EXPECT_SPAN(script->body.span, 2,1, 2,6);
+                }
+                else if (input.endswith(' '))
+                {
+                    EXPECT_SPAN(script->body.span, 3,2, 3,7);
+                }
+                else
+                {
+                    FAIL();
+                }
+                EXPECT_EQ(script->body.braced_body, "{end;}"_s);
+            }
+        }
+    }
     TEST(npcast, scriptnone)
     {
         QuietFd q;
