@@ -49,19 +49,6 @@ matrix:
   fast-finish: true
   include:
     - compiler: clang
-      env: REAL_CC=clang-3.5     REAL_CXX=clang++-3.5
-      addons:
-        apt:
-          sources:
-          - llvm-toolchain-precise-3.5
-          - ubuntu-toolchain-r-test
-          packages:
-          - clang-3.5
-          - libstdc++6-4.6-dbg
-          - libgtest-dev
-          - valgrind
-          - gdb
-    - compiler: clang
       env: REAL_CC=clang-3.6     REAL_CXX=clang++-3.6
       addons:
         apt:
@@ -70,6 +57,19 @@ matrix:
           - ubuntu-toolchain-r-test
           packages:
           - clang-3.6
+          - libstdc++6-4.6-dbg
+          - libgtest-dev
+          - valgrind
+          - gdb
+    - compiler: clang
+      env: REAL_CC=clang-3.7     REAL_CXX=clang++-3.7
+      addons:
+        apt:
+          sources:
+          - llvm-toolchain-precise-3.7
+          - ubuntu-toolchain-r-test
+          packages:
+          - clang-3.7
           - libstdc++6-4.6-dbg
           - libgtest-dev
           - valgrind
