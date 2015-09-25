@@ -383,6 +383,24 @@ void builtin_average(ScriptState *st)
 }
 
 static
+void builtin_median(ScriptState *st)
+{
+    int size = (st->end - (st->start + 3)), arr[size], m;
+
+    for (int i = 0; i <= size; i++)
+        arr[i] = conv_num(st, &AARG(i));
+
+    std::sort(arr, arr + size);
+
+    if ((size + 1) % 2 == 0)
+        m = ((arr[((size+1)/2)] + arr[(((size+1)/2)+1)]) / 2);
+    else
+        m = arr[(size/2)];
+
+    push_int<ScriptDataInt>(st->stack, m);
+}
+
+static
 void builtin_sqrt(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
@@ -3350,6 +3368,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(max, "e?*"_s, 'i'),
     BUILTIN(min, "ii*"_s, 'i'),
     BUILTIN(average, "ii*"_s, 'i'),
+    BUILTIN(median, "ii*"_s, 'i'),
     BUILTIN(sqrt, "i"_s, 'i'),
     BUILTIN(cbrt, "i"_s, 'i'),
     BUILTIN(pow, "ii"_s, 'i'),
