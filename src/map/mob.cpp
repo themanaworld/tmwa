@@ -804,10 +804,10 @@ int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
 
     nullpo_retz(md);
 
-    if ((tbl = map_id2bl(md->target_id)) == nullptr)
+    if (!mob_check_attack(md))
         return 0;
 
-    if (!mob_check_attack(md))
+    if ((tbl = map_id2bl(md->target_id)) == nullptr)
         return 0;
 
     if (battle_config.monster_attack_direction_change)
