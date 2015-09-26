@@ -310,6 +310,114 @@ void builtin_rand(ScriptState *st)
     }
 }
 
+static
+void builtin_max(ScriptState *st)
+{
+    int max=0, num;
+    if (HARG(1))
+    {
+        max = conv_num(st, &AARG(0));
+        for (int i = 1; HARG(i); i++)
+        {
+            num = conv_num(st, &AARG(i));
+            if (num > max)
+                max = num;
+        }
+    }
+    else
+    {
+        SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
+        ZString name = variable_names.outtern(reg.base());
+        char prefix = name.front();
+        if (prefix != '$' && prefix != '@' && prefix != '.')
+        {
+            PRINTF("builtin_max: illegal scope!\n"_fmt);
+            return;
+        }
+        for (int i = reg.index(); i < 256; i++)
+        {
+            struct script_data vd = get_val2(st, reg.iplus(i));
+            MATCH_BEGIN (vd)
+            {
+                MATCH_CASE (const ScriptDataInt&, u)
+                {
+                    if (u.numi > max)
+                        max = u.numi;
+                    continue;
+                }
+            }
+            MATCH_END ();
+            abort();
+        }
+    }
+
+    push_int<ScriptDataInt>(st->stack, max);
+}
+
+static
+void builtin_min(ScriptState *st)
+{
+    int min, num;
+    min = conv_num(st, &AARG(0));
+
+    for (int i = 1; HARG(i); i++)
+    {
+        num = conv_num(st, &AARG(i));
+        if (num < min)
+            min = num;
+    }
+
+    push_int<ScriptDataInt>(st->stack, min);
+}
+
+static
+void builtin_average(ScriptState *st)
+{
+    int total, i;
+    total = conv_num(st, &AARG(0));
+
+    for (i = 1; HARG(i); i++)
+        total += conv_num(st, &AARG(i));
+
+    push_int<ScriptDataInt>(st->stack, (total / i));
+}
+
+static
+void builtin_median(ScriptState *st)
+{
+    int size = (st->end - (st->start + 3)), arr[size], m;
+
+    for (int i = 0; i <= size; i++)
+        arr[i] = conv_num(st, &AARG(i));
+
+    std::sort(arr, arr + size);
+
+    if ((size + 1) % 2 == 0)
+        m = ((arr[((size+1)/2)] + arr[(((size+1)/2)+1)]) / 2);
+    else
+        m = arr[(size/2)];
+
+    push_int<ScriptDataInt>(st->stack, m);
+}
+
+static
+void builtin_sqrt(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
+}
+
+static
+void builtin_cbrt(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(cbrt(conv_num(st, &AARG(0)))));
+}
+
+static
+void builtin_pow(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(pow(conv_num(st, &AARG(0)), conv_num(st, &AARG(1)))));
+}
+
 /*==========================================
  * Check whether the PC is at the specified location
  *------------------------------------------
@@ -3257,6 +3365,13 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
+    BUILTIN(max, "e?*"_s, 'i'),
+    BUILTIN(min, "ii*"_s, 'i'),
+    BUILTIN(average, "ii*"_s, 'i'),
+    BUILTIN(median, "ii*"_s, 'i'),
+    BUILTIN(sqrt, "i"_s, 'i'),
+    BUILTIN(cbrt, "i"_s, 'i'),
+    BUILTIN(pow, "ii"_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
