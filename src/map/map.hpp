@@ -472,6 +472,7 @@ struct mob_data : block_list
     std::unique_ptr<tick_t[]> skilldelayup; // [MAX_MOBSKILL];
     LevelElement def_ele;
     BlockId master_id;
+    BlockId last_master_id;
     int master_dist;
     int exclusion_src, exclusion_party;
     NpcEvent npc_event;
