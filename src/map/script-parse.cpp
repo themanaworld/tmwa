@@ -407,7 +407,8 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
 
         parse_cmdp = Some(ld);          // warn_*_mismatch_paramnumのために必要
         // why not just check l->str == "if"_s or std::string(p, p2) == "if"_s?
-        if (Some(ld) == search_strp("if"_s)) // warn_cmd_no_commaのために必要
+        if (Some(ld) == search_strp("if"_s) || Some(ld) == search_strp("elif"_s)
+            || Some(ld) == search_strp("else"_s)) // warn_cmd_no_commaのために必要
             parse_cmd_if++;
         p = p2;
 

@@ -310,6 +310,96 @@ void builtin_rand(ScriptState *st)
     }
 }
 
+static
+void builtin_max(ScriptState *st)
+{
+    int max=0, num;
+    if (HARG(1))
+    {
+        max = conv_num(st, &AARG(0));
+        for (int i = 1; HARG(i); i++)
+        {
+            num = conv_num(st, &AARG(i));
+            if (num > max)
+                max = num;
+        }
+    }
+    else
+    {
+        SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
+        ZString name = variable_names.outtern(reg.base());
+        char prefix = name.front();
+        if (prefix != '$' && prefix != '@' && prefix != '.')
+        {
+            PRINTF("builtin_max: illegal scope!\n"_fmt);
+            return;
+        }
+        for (int i = reg.index(); i < 256; i++)
+        {
+            struct script_data vd = get_val2(st, reg.iplus(i));
+            MATCH_BEGIN (vd)
+            {
+                MATCH_CASE (const ScriptDataInt&, u)
+                {
+                    if (u.numi > max)
+                        max = u.numi;
+                    continue;
+                }
+            }
+            MATCH_END ();
+            abort();
+        }
+    }
+
+    push_int<ScriptDataInt>(st->stack, max);
+}
+
+static
+void builtin_min(ScriptState *st)
+{
+    int min, num;
+    min = conv_num(st, &AARG(0));
+
+    for (int i = 1; HARG(i); i++)
+    {
+        num = conv_num(st, &AARG(i));
+        if (num < min)
+            min = num;
+    }
+
+    push_int<ScriptDataInt>(st->stack, min);
+}
+
+static
+void builtin_average(ScriptState *st)
+{
+    int total, i;
+    total = conv_num(st, &AARG(0));
+
+    for (i = 1; HARG(i); i++)
+        total += conv_num(st, &AARG(i));
+
+    push_int<ScriptDataInt>(st->stack, (total / i));
+}
+
+static
+void builtin_sqrt(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
+}
+
+static
+void builtin_cbrt(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(cbrt(conv_num(st, &AARG(0)))));
+}
+
+static
+void builtin_pow(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(pow(conv_num(st, &AARG(0)), conv_num(st, &AARG(1)))));
+}
+
 /*==========================================
  * Check whether the PC is at the specified location
  *------------------------------------------
@@ -469,6 +559,71 @@ void builtin_if (ScriptState *st)
     int sel, i;
 
     sel = conv_num(st, &AARG(0));
+    st->is_true = sel ? 2 : 1;
+    if (!sel)
+        return;
+
+    // 関数名をコピー
+    push_copy(st->stack, st->start + 3);
+    // 間に引数マーカを入れて
+    push_int<ScriptDataArg>(st->stack, 0);
+    // 残りの引数をコピー
+    for (i = st->start + 4; i < st->end; i++)
+    {
+        push_copy(st->stack, i);
+    }
+    run_func(st);
+}
+
+static
+void builtin_if_then_else (ScriptState *st)
+{
+    int condition = conv_num(st, &AARG(0));
+    push_copy(st->stack, st->start + (condition ? 3 : 4));
+}
+
+static
+void builtin_else (ScriptState *st)
+{
+    int i;
+
+    if (st->is_true < 1)
+    {
+        PRINTF("builtin_else: no if statement!\n"_fmt);
+        abort();
+    }
+
+    if (st->is_true > 1)
+        return;
+
+    st->is_true = 0;
+    // 関数名をコピー
+    push_copy(st->stack, st->start + 2);
+    // 間に引数マーカを入れて
+    push_int<ScriptDataArg>(st->stack, 0);
+    // 残りの引数をコピー
+    for (i = st->start + 3; i < st->end; i++)
+    {
+        push_copy(st->stack, i);
+    }
+    run_func(st);
+}
+
+static
+void builtin_elif (ScriptState *st)
+{
+    int sel, i;
+
+    if (st->is_true < 1)
+    {
+        PRINTF("builtin_elif: no if statement!\n"_fmt);
+        abort();
+    }
+    if (st->is_true > 1)
+        return;
+
+    sel = conv_num(st, &AARG(0));
+    st->is_true = sel ? 2 : 1;
     if (!sel)
         return;
 
@@ -663,6 +818,54 @@ void builtin_getelementofarray(ScriptState *st)
         PRINTF("script: getelementofarray (operator[]): param1 not named!\n"_fmt);
         push_int<ScriptDataInt>(st->stack, 0);
     }
+}
+
+static
+void builtin_array_search(ScriptState *st)
+{
+    ZString needle_str = ZString(conv_str(st, &AARG(0)));
+    int needle_int = conv_num(st, &AARG(0));
+    SIR reg = AARG(1).get_if<ScriptDataVariable>()->reg; // haystack
+    ZString name = variable_names.outtern(reg.base());
+    char prefix = name.front();
+    int i, c;
+
+    if (prefix != '$' && prefix != '@' && prefix != '.')
+    {
+        PRINTF("builtin_array_search: illegal scope!\n"_fmt);
+        return;
+    }
+
+    i = reg.index(); c = -1;
+    for (; i < 256; i++)
+    {
+        struct script_data vd = get_val2(st, reg.iplus(i));
+        MATCH_BEGIN (vd)
+        {
+            MATCH_CASE (const ScriptDataStr&, u)
+            {
+                if (u.str == needle_str)
+                {
+                    c = i;
+                    goto Out;
+                }
+                continue;
+            }
+            MATCH_CASE (const ScriptDataInt&, u)
+            {
+                if (u.numi == needle_int)
+                {
+                    c = i;
+                    goto Out;
+                }
+                continue;
+            }
+        }
+        MATCH_END ();
+        abort();
+    }
+    Out:
+    push_int<ScriptDataInt>(st->stack, c);
 }
 
 static
@@ -2322,6 +2525,49 @@ void builtin_getpartnerid2(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status.partner_id));
 }
 
+static
+void builtin_explode(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = nullptr;
+    SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
+    ZString name = variable_names.outtern(reg.base());
+    const char separator = conv_str(st, &AARG(2))[0];
+    RString str = conv_str(st, &AARG(1));
+    RString val;
+    char prefix = name.front();
+    char postfix = name.back();
+
+    if (prefix != '$' && prefix != '@')
+    {
+        PRINTF("builtin_explode: illegal scope!\n"_fmt);
+        return;
+    }
+    if (prefix != '$')
+        sd = script_rid2sd(st);
+
+    for (int j = 0; j < 256; j++)
+    {
+        auto find = std::find(str.begin(), str.end(), separator);
+        if (find == str.end())
+        {
+            if (postfix == '$')
+                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), str);
+            else
+                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), atoi(str.c_str()));
+            break;
+        }
+        {
+            val = str.xislice_h(find);
+            str = str.xislice_t(find + 1);
+
+            if (postfix == '$')
+                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), val);
+            else
+                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), atoi(val.c_str()));
+        }
+    }
+}
+
 /*==========================================
  * PCの所持品情報読み取り
  *------------------------------------------
@@ -3149,11 +3395,14 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(heal, "ii?"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
+    BUILTIN(elif, "iF*"_s, '\0'),
+    BUILTIN(else, "F*"_s, '\0'),
     BUILTIN(set, "Ne"_s, '\0'),
     BUILTIN(setarray, "Ne*"_s, '\0'),
     BUILTIN(cleararray, "Nei"_s, '\0'),
     BUILTIN(getarraysize, "N"_s, 'i'),
     BUILTIN(getelementofarray, "Ni"_s, '.'),
+    BUILTIN(array_search, "eN"_s, 'i'),
     BUILTIN(setlook, "ii"_s, '\0'),
     BUILTIN(countitem, "I"_s, 'i'),
     BUILTIN(checkweight, "Ii"_s, 'i'),
@@ -3223,6 +3472,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getitemlink, "I"_s, 's'),
     BUILTIN(getspellinvocation, "s"_s, 's'),
     BUILTIN(getpartnerid2, ""_s, 'i'),
+    BUILTIN(explode, "Nss"_s, '\0'),
     BUILTIN(getinventorylist, ""_s, '\0'),
     BUILTIN(getactivatedpoolskilllist, ""_s, '\0'),
     BUILTIN(getunactivatedpoolskilllist, ""_s, '\0'),
@@ -3257,6 +3507,13 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmap, ""_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
+    BUILTIN(if_then_else, "iii"_s, '.'),
+    BUILTIN(max, "e?*"_s, 'i'),
+    BUILTIN(min, "ii*"_s, 'i'),
+    BUILTIN(average, "ii*"_s, 'i'),
+    BUILTIN(sqrt, "i"_s, 'i'),
+    BUILTIN(cbrt, "i"_s, 'i'),
+    BUILTIN(pow, "ii"_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
