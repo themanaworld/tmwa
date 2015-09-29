@@ -2696,24 +2696,8 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         if (sd == nullptr)
         {
             if (mvp_sd != nullptr)
-                sd = mvp_sd;
-            else
             {
-                for (io::FD i : iter_fds())
-                {
-                    Session *s = get_session(i);
-                    if (!s)
-                        continue;
-                    dumb_ptr<map_session_data> tmp_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-                    if (tmp_sd && tmp_sd->state.auth)
-                    {
-                        if (md->bl_m == tmp_sd->bl_m)
-                        {
-                            sd = tmp_sd;
-                            break;
-                        }
-                    }
-                }
+                sd = mvp_sd;
             }
         }
         if (sd)
