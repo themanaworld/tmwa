@@ -324,18 +324,28 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short mi
             break;
         case SendWho::AREA:
         case SendWho::AREA_WOS:
-            map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, type, min_version),
-                    bl->bl_m,
-                    bl->bl_x - AREA_SIZE, bl->bl_y - AREA_SIZE,
-                    bl->bl_x + AREA_SIZE, bl->bl_y + AREA_SIZE,
-                    BL::PC);
+        {
+            if (bl->bl_m != borrow(undefined_gat))
+            {
+                map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, type, min_version),
+                        bl->bl_m,
+                        bl->bl_x - AREA_SIZE, bl->bl_y - AREA_SIZE,
+                        bl->bl_x + AREA_SIZE, bl->bl_y + AREA_SIZE,
+                        BL::PC);
+            }
+        }
             break;
         case SendWho::AREA_CHAT_WOC:
-            map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, SendWho::AREA_CHAT_WOC, min_version),
-                    bl->bl_m,
-                    bl->bl_x - (AREA_SIZE), bl->bl_y - (AREA_SIZE),
-                    bl->bl_x + (AREA_SIZE), bl->bl_y + (AREA_SIZE),
-                    BL::PC);
+        {
+            if (bl->bl_m != borrow(undefined_gat))
+            {
+                map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, SendWho::AREA_CHAT_WOC, min_version),
+                        bl->bl_m,
+                        bl->bl_x - (AREA_SIZE), bl->bl_y - (AREA_SIZE),
+                        bl->bl_x + (AREA_SIZE), bl->bl_y + (AREA_SIZE),
+                        BL::PC);
+            }
+        }
             break;
 
         case SendWho::PARTY_AREA:       // 同じ画面内の全パーティーメンバに送信
