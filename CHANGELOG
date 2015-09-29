@@ -1,3 +1,13 @@
+v15.10.01
+  - Make travis use the container-based builds
+  - Update the travis builds to use newer clang and gcc
+  - Fix attack path detection
+  - Add some missing pc_isdead checks to mobs (aka "mob freeze" bug)
+  - Fix "warp mob freeze" bug
+  - Fix how summoned mobs behave when their master leave (the summon+leave trolling)
+  - Stop looking for the next victim on the map for mob deaths (aka the "pumpkin failover" bug)
+  - New builtins: elif, else, if_then_else, explode, max, min, sqrt, cbrt, pow, average, array_search
+  - Fix crash when doing clif_damage on undefined_gat
 v15.8.17
   - Fix Broken Nick Issue
   - Change write to send
