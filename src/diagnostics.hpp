@@ -1,7 +1,7 @@
 #pragma once
 //    diagnostics.hpp - List of useful warnings and macros to control them.
 //
-//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2015 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -20,6 +20,7 @@
 
 // just mention "fwd.hpp" to make formatter happy
 
+// Last updated for: GCC 5.2
 
 namespace tmwa
 {
@@ -29,19 +30,24 @@ namespace tmwa
 // * because token dispatching, it can't be #define HAS_XXX (GCC >= yyy)
 // * gcc 4.6 is required for function scope pragmas
 // * when upgrading compiler, diff 'gcc --help=warnings'
+//   (Unfortunately this is not good about warnings specific to a single
+//   language in some version, which may change, and often lies)
 // * clang-specific warning support is incomplete
 
 // List of warnings that require arguments,
 // and thus cannot reliably be activated:
-//  gcc 4.6:
-//      -Wlarger-than=<1024>
-//      -Wnormalized=<id|nfc|nfd>
-//      -Wsuggest-attribute=<noreturn,const,pure,format>
-//  gcc 4.7:
-//      -Wstack-usage=<8192>
 //  ???:
 //      -Wstrict-aliasing=<1>
 //      -Wstrict-overflow=<1>
+//  gcc 4.6:
+//      -Wlarger-than=<1024>
+//      -Wnormalized=<none|id|nfc|nfd>
+//      -Wsuggest-attribute=<noreturn,const,pure,format>
+//  gcc 4.7:
+//      -Wstack-usage=<8192>
+//  gcc 5:
+//      -Wabi=<8> (but no argument works)
+//      -Warray-bounds=<???> (but no argument works)
 
 #ifdef __GNUC__
 # ifdef __clang__
@@ -61,7 +67,7 @@ namespace tmwa
 #endif
 
 #define DIAG_E(tag) DO_DIAG_IF(HAS_DIAG_##tag)(error, DIAG_##tag)
-#define DIAG_W(tag) DO_DIAG_IF(HAS_DIAG_##tag)(warning, DIAG_##tag)
+#define DIAG_W(tag) DO_DIAG_IF(HAS_DIAG_##tag)(error, DIAG_##tag)
 #define DIAG_I(tag) DO_DIAG_IF(HAS_DIAG_##tag)(ignored, DIAG_##tag)
 #define DIAG_X(tag) DO_DIAG_IF(HAS_DIAG_##tag)(ignored, DIAG_##tag)
 
@@ -81,8 +87,10 @@ namespace tmwa
 #define DIAG_POP() PRAGMA(GCC diagnostic pop)
 
 
-/// Warn about things that will change when compiling
+/// (with no argument) Warn about things that will change when compiling
 /// with an ABI-compliant compiler
+/// (with an argmuent) Warn about things that change between the current
+/// -fabi-version and the specified version
 // see note about -fabi-version=6 in the makefile
 #define DIAG_abi "-Wabi"
 #if 1
@@ -132,8 +140,17 @@ namespace tmwa
 # define HAS_DIAG_attributes 0
 #endif
 
+/// Warn about boolean expression compared with an
+/// integer value different from true/false
+#define DIAG_bool_compare "-Wbool-compare"
+#if GCC >= 500
+# define HAS_DIAG_bool_compare 1
+#else
+# define HAS_DIAG_bool_compare 0
+#endif
+
 /// Warn when a built-in preprocessor macro is
-// undefined or redefined
+/// undefined or redefined
 #define DIAG_builtin_macro_redefined "-Wbuiltin-macro-redefined"
 #if 1
 # define HAS_DIAG_builtin_macro_redefined 1
@@ -156,6 +173,15 @@ namespace tmwa
 #else
 # define HAS_DIAG_cxx0x_compat 0
 # define HAS_DIAG_cxx11_compat 0
+#endif
+
+/// Warn about C++ constructs whose meaning differs
+/// between ISO C++ 2011 and ISO C++ 2014
+#define DIAG_cxx14_compat "-Wc++14-compat"
+#if GCC >= 500
+# define HAS_DIAG_cxx14_compat 1
+#else
+# define HAS_DIAG_cxx14_compat 0
 #endif
 
 // I care about whether my code compiles with the standard as implemented
@@ -189,6 +215,15 @@ namespace tmwa
 # define HAS_DIAG_char_subscripts 1
 #else
 # define HAS_DIAG_char_subscripts 0
+#endif
+
+/// Warn about memory access errors found by Pointer
+/// Bounds Checker
+#define DIAG_chkp "-Wchkp"
+#if GCC >= 500
+# define HAS_DIAG_chkp 1
+#else
+# define HAS_DIAG_chkp 0
 #endif
 
 /// Warn about variables that might be changed by
@@ -452,6 +487,14 @@ namespace tmwa
 # define HAS_DIAG_format_security 0
 #endif
 
+/// Warn about sign differences with format functions
+#define DIAG_format_signedness "-Wformat-signedness"
+#if GCC >= 500
+# define HAS_DIAG_format_signedness 1
+#else
+# define HAS_DIAG_format_signedness 0
+#endif
+
 /// Warn about strftime formats yielding 2-digit years
 #define DIAG_format_y2k "-Wformat-y2k"
 #if 1
@@ -571,6 +614,15 @@ namespace tmwa
 # define HAS_DIAG_literal_suffix 1
 #else
 # define HAS_DIAG_literal_suffix 0
+#endif
+
+/// Warn when logical not is used on the left hand
+/// side operand of a comparison
+#define DIAG_logical_not_parentheses "-Wlogical-not-parentheses"
+#if GCC >= 500
+# define HAS_DIAG_logical_not_parentheses 1
+#else
+# define HAS_DIAG_logical_not_parentheses 0
 #endif
 
 /// Warn when a logical operator is suspiciously
@@ -760,6 +812,15 @@ namespace tmwa
 # define HAS_DIAG_null_conversion 0
 #endif
 
+/// Warn about some C++ One Definition Rule
+/// violations during link time optimization
+#define DIAG_odr "-Wodr"
+#if GCC >= 500
+# define HAS_DIAG_odr 1
+#else
+# define HAS_DIAG_odr 0
+#endif
+
 /// Warn if a C-style cast is used in a program
 #define DIAG_old_style_cast "-Wold-style-cast"
 #if 1
@@ -922,6 +983,31 @@ namespace tmwa
 # define HAS_DIAG_shadow 0
 #endif
 
+/// Warn if a local declaration hides an instance
+/// variable
+#define DIAG_shadow_ivar "-Wshadow-ivar"
+#if GCC >= 500
+# define HAS_DIAG_shadow_ivar 1
+#else
+# define HAS_DIAG_shadow_ivar 0
+#endif
+
+/// Warn if shift count is negative
+#define DIAG_shift_count_negative "-Wshift-count-negative"
+#if GCC >= 500
+# define HAS_DIAG_shift_count_negative 1
+#else
+# define HAS_DIAG_shift_count_negative 0
+#endif
+
+/// Warn if shift count >= width of type
+#define DIAG_shift_count_overflow "-Wshift-count-overflow"
+#if GCC >= 500
+# define HAS_DIAG_shift_count_overflow 1
+#else
+# define HAS_DIAG_shift_count_overflow 0
+#endif
+
 /// Warn about signed-unsigned comparisons
 #define DIAG_sign_compare "-Wsign-compare"
 #if 1
@@ -939,7 +1025,26 @@ namespace tmwa
 # define HAS_DIAG_sign_promo 0
 #endif
 
-/// This switch lacks documentation
+/// Warn about missing sized deallocation functions
+#define DIAG_sized_deallocation "-Wsized-deallocation"
+#if GCC >= 500
+# define HAS_DIAG_sized_deallocation 1
+#else
+# define HAS_DIAG_sized_deallocation 0
+#endif
+
+/// Warn when sizeof is applied on a parameter
+/// declared as an array
+#define DIAG_sizeof_array_argument "-Wsizeof-array-argument"
+#if GCC >= 500
+# define HAS_DIAG_sizeof_array_argument 1
+#else
+# define HAS_DIAG_sizeof_array_argument 0
+#endif
+
+/// Warn about suspicious length parameters to
+/// certain string functions if the argument uses
+/// sizeof
 #define DIAG_sizeof_pointer_memaccess "-Wsizeof-pointer-memaccess"
 #if GCC >= 408
 # define HAS_DIAG_sizeof_pointer_memaccess 1
@@ -982,6 +1087,34 @@ namespace tmwa
 # define HAS_DIAG_strict_overflow 0
 #endif
 
+/// Warn about C++ virtual methods where adding final
+/// keyword would improve code quality
+#define DIAG_suggest_final_methods "-Wsuggest-final-methods"
+#if GCC >= 500
+# define HAS_DIAG_suggest_final_methods 1
+#else
+# define HAS_DIAG_suggest_final_methods 0
+#endif
+
+/// Warn about C++ polymorphic types where adding
+/// final keyword would improve code quality
+#define DIAG_suggest_final_types "-Wsuggest-final-types"
+#if GCC >= 500
+# define HAS_DIAG_suggest_final_types 1
+#else
+# define HAS_DIAG_suggest_final_types 0
+#endif
+
+/// Suggest that the override keyword be used when
+/// the declaration of a virtual function overrides
+/// another.
+#define DIAG_suggest_override "-Wsuggest-override"
+#if GCC >= 500
+# define HAS_DIAG_suggest_override 1
+#else
+# define HAS_DIAG_suggest_override 0
+#endif
+
 /// Warn about enumerated switches, with no default,
 /// missing a case
 #define DIAG_switch "-Wswitch"
@@ -989,6 +1122,15 @@ namespace tmwa
 # define HAS_DIAG_switch 1
 #else
 # define HAS_DIAG_switch 0
+#endif
+
+/// Warn about switches with boolean controlling
+/// expression
+#define DIAG_switch_bool "-Wswitch-bool"
+#if GCC >= 500
+# define HAS_DIAG_switch_bool 1
+#else
+# define HAS_DIAG_switch_bool 0
 #endif
 
 /// Warn about enumerated switches missing a

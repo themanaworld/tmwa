@@ -4,7 +4,7 @@
 // The preceding sentence is a lie.
 //    warnings.hpp - Make the compiler do the hard work.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2015 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -34,17 +34,20 @@ PRAGMA(GCC diagnostic warning "-Wunused");
 PRAGMA(GCC diagnostic warning "-Wformat");
 
 DIAG_E(abi);
-DIAG_W(abi_tag);
+DIAG_I(abi_tag);
 DIAG_E(address);
 DIAG_I(aggregate_return);
 DIAG_E(array_bounds);
 DIAG_E(attributes);
+DIAG_E(bool_compare);
 DIAG_E(builtin_macro_redefined);
 DIAG_I(cxx0x_compat);
+DIAG_W(cxx14_compat);
 DIAG_I(cxx1y_extensions);
 DIAG_E(cast_align);
 DIAG_E(cast_qual);
 DIAG_E(char_subscripts);
+DIAG_W(chkp);
 DIAG_E(clobbered);
 DIAG_E(comment);
 DIAG_E(conditionally_supported);
@@ -84,6 +87,7 @@ DIAG_I(format_security);
 DIAG_E(format_nonliteral);
 DIAG_E(format_security);
 #endif
+DIAG_X(format_signedness);
 DIAG_E(format_y2k);
 DIAG_I(format_zero_length);
 DIAG_E(free_nonheap_object);
@@ -98,6 +102,7 @@ DIAG_W(invalid_memory_model);
 DIAG_E(invalid_offsetof);
 DIAG_E(invalid_pch);
 DIAG_W(literal_suffix);
+DIAG_W(logical_not_parentheses);
 DIAG_W(logical_op);
 DIAG_I(long_long);
 DIAG_E(main);
@@ -112,7 +117,7 @@ DIAG_E(missing_field_initializers);
 #endif
 DIAG_E(missing_format_attribute);
 DIAG_E(missing_include_dirs);
-DIAG_W(missing_noreturn);
+DIAG_X(missing_noreturn);
 DIAG_E(missing_prototypes);
 #ifndef GTEST_HAS_PTHREAD // this is a hack
 DIAG_E(missing_variable_declarations);
@@ -127,6 +132,7 @@ DIAG_E(non_template_friend);
 DIAG_E(non_virtual_dtor);
 DIAG_E(nonnull);
 DIAG_E(null_conversion);
+DIAG_W(odr);
 DIAG_E(old_style_cast);
 DIAG_W(overflow);
 DIAG_E(openmp_simd);
@@ -145,14 +151,23 @@ DIAG_W(return_local_addr);
 DIAG_E(return_type);
 DIAG_E(sequence_point);
 DIAG_E(shadow);
+DIAG_E(shadow_ivar);
+DIAG_E(shift_count_negative);
+DIAG_E(shift_count_overflow);
 DIAG_X(sign_compare);
 DIAG_E(sign_promo);
+DIAG_W(sized_deallocation);
+DIAG_E(sizeof_array_argument);
 DIAG_W(sizeof_pointer_memaccess);
+DIAG_X(suggest_final_methods);
+DIAG_X(suggest_final_types);
+DIAG_X(suggest_override);
 DIAG_X(stack_protector);
 DIAG_E(strict_aliasing);
 DIAG_W(strict_null_sentinel);
 DIAG_X(strict_overflow);
 DIAG_I(switch);
+DIAG_I(switch_bool);
 DIAG_I(switch_default);
 DIAG_I(switch_enum);
 DIAG_W(sync_nand);
