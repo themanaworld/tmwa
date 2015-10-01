@@ -3,7 +3,7 @@
 //
 //    Copyright © ????-2004 Athena Dev Teams
 //    Copyright © 2004-2011 The Mana World Development Team
-//    Copyright © 2011-2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2011-2015 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -27,6 +27,10 @@
 
 #include <csignal>
 #include <cstdlib>
+
+#if WITH_SYSTEMD
+# include <systemd/sd-daemon.h>
+#endif
 
 #include <tmwa/shared.hpp>
 
@@ -161,6 +165,9 @@ int tmwa_main(int argc, char **argv)
 
     atexit(term_func);
 
+#if WITH_SYSTEMD
+    sd_notify(0, "READY=1");
+#endif
     while (runflag)
     {
         // TODO - if timers take a long time to run, this
