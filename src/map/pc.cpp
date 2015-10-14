@@ -3522,6 +3522,12 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::BL_TYPE:
             val = static_cast<uint8_t>(bl->bl_type);
             break;
+        case SP::PARTNER:
+            val = sd ? unwrap<CharId>(sd->status.partner_id) : 0;
+            break;
+        case SP::CHAR_ID:
+            val = sd ? unwrap<CharId>(sd->status_key.char_id) : 0;
+            break;
     }
 
     return val;
@@ -3662,6 +3668,21 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
         case SP::DEX:
         case SP::LUK:
             pc_statusup2(sd, type, (val - sd->status.attrs[sp_to_attr(type)]));
+            break;
+        case SP::PARTNER:
+            dumb_ptr<block_list> p_bl;
+            if (val < 2000000 && val >= 150000)
+            {
+                dumb_ptr<map_session_data> p_sd = nullptr;
+                if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(val)))) != nullptr)
+                    p_bl = map_id2bl(p_sd->bl_id);
+            }
+            else
+                p_bl = map_id2bl(wrap<BlockId>(val));
+            if (val < 1)
+                pc_divorce(sd);
+            else
+                p_bl ? pc_marriage(sd, p_bl->is_player()) : 0;
             break;
     }
     clif_updatestatus(sd, type);

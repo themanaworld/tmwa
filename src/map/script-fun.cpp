@@ -995,7 +995,19 @@ void builtin_set(ScriptState *st)
             }
             else
             {
-                id = wrap<BlockId>(conv_num(st, sdata));
+                int num = conv_num(st, sdata);
+                if (num >= 2000000)
+                    id = wrap<BlockId>(num);
+                else if (num >= 150000)
+                {
+                    dumb_ptr<map_session_data> p_sd = nullptr;
+                    if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(num)))) != nullptr)
+                        id = p_sd->bl_id;
+                    else
+                        return;
+                }
+                else
+                    return;
                 bl = map_id2bl(id);
             }
         }
@@ -3399,7 +3411,19 @@ void builtin_get(ScriptState *st)
         }
         else
         {
-            id = wrap<BlockId>(conv_num(st, sdata));
+            int num = conv_num(st, sdata);
+            if (num >= 2000000)
+                id = wrap<BlockId>(num);
+            else if (num >= 150000)
+            {
+                dumb_ptr<map_session_data> p_sd = nullptr;
+                if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(num)))) != nullptr)
+                    id = p_sd->bl_id;
+                else
+                    return;
+            }
+            else
+                return;
             bl = map_id2bl(id);
         }
 

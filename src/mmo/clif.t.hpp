@@ -307,8 +307,9 @@ enum class SP : uint16_t
     // sent to client
     JOBLEVEL                    = 55,
 
-#if 0
     PARTNER                     = 57,
+
+#if 0
     CART                        = 58,
     FAME                        = 59,
     UNBREAKABLE                 = 60,
@@ -475,6 +476,7 @@ enum class SP : uint16_t
     PVP_CHANNEL                 = 1076,
     BL_ID                       = 1077,
     BL_TYPE                     = 1078,
+    CHAR_ID                     = 1079,
 };
 
 constexpr
