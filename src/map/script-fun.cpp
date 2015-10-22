@@ -3133,6 +3133,20 @@ void builtin_getpartnerid2(ScriptState *st)
 }
 
 static
+void builtin_chr(ScriptState *st)
+{
+    const char ascii = conv_num(st, &AARG(0));
+    push_str<ScriptDataStr>(st->stack, VString<1>(ascii));
+}
+
+static
+void builtin_ord(ScriptState *st)
+{
+    const char ascii = conv_str(st, &AARG(0))[0];
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(ascii));
+}
+
+static
 void builtin_explode(ScriptState *st)
 {
     dumb_ptr<block_list> bl = nullptr;
@@ -4371,6 +4385,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(pow, "ii"_s, 'i'),
     BUILTIN(target, "iii"_s, 'i'),
     BUILTIN(distance, "ii?"_s, 'i'),
+    BUILTIN(chr, "i"_s, 'i'),
+    BUILTIN(ord, "s"_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
