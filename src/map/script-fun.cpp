@@ -229,6 +229,12 @@ void builtin_getarg(ScriptState *st)
     push_copy(st->stack, (st->defsp - 4 - i) + arg);
 }
 
+static
+void builtin_void(ScriptState *)
+{
+    return;
+}
+
 /*==========================================
  * サブルーティンの呼び出し
  *------------------------------------------
@@ -4317,7 +4323,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(call, "F?*"_s, '.'),
     BUILTIN(callsub, "L"_s, '\0'),
     BUILTIN(getarg, "i"_s, '.'),
-    BUILTIN(return, "?*"_s, '\0'),
+    BUILTIN(return, "?"_s, '\0'),
+    BUILTIN(void, "?*"_s, '\0'),
     BUILTIN(next, ""_s, '\0'),
     BUILTIN(close, ""_s, '\0'),
     BUILTIN(close2, ""_s, '\0'),
