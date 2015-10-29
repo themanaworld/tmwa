@@ -224,8 +224,15 @@ void builtin_getarg(ScriptState *st)
     }
 
     int i = conv_num(st, &st->stack->stack_datav[st->defsp - 4]); // Number of arguments.
-    if (arg > i || arg < 0)
+    if (arg > i || arg < 0 || i == 0)
+    {
+        const char a = 3; // ETX
+        if (HARG(1))
+            push_copy(st->stack, st->start + 3);
+        else
+            push_str<ScriptDataStr>(st->stack, VString<1>(a));
         return;
+    }
     push_copy(st->stack, (st->defsp - 4 - i) + arg);
 }
 
@@ -4322,7 +4329,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(callfunc, "F"_s, '\0'),
     BUILTIN(call, "F?*"_s, '.'),
     BUILTIN(callsub, "L"_s, '\0'),
-    BUILTIN(getarg, "i"_s, '.'),
+    BUILTIN(getarg, "i?"_s, '.'),
     BUILTIN(return, "?"_s, '\0'),
     BUILTIN(void, "?*"_s, '\0'),
     BUILTIN(next, ""_s, '\0'),
