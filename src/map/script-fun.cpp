@@ -131,7 +131,6 @@ void builtin_callfunc(ScriptState *st)
             for (int i = st->start + 3; i < st->end; i++, j++)
                 push_copy(st->stack, i);
 #endif
-
             push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
             push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
             push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
@@ -149,6 +148,85 @@ void builtin_callfunc(ScriptState *st)
         }
     }
     OMATCH_END ();
+}
+
+static
+void builtin_call(ScriptState *st)
+{
+    struct script_data *sdata = &AARG(0);
+    get_val(st, sdata);
+    RString str;
+    if (sdata->is<ScriptDataStr>())
+    {
+        str = conv_str(st, sdata);
+        Option<P<const ScriptBuffer>> scr_ = userfunc_db.get(str);
+        OMATCH_BEGIN (scr_)
+        {
+            OMATCH_CASE_SOME (scr)
+            {
+                int j = 0;
+
+                for (int i = st->start + 3; i < st->end; i++, j++)
+                    push_copy(st->stack, i);
+
+                push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
+                push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
+                push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
+                push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
+
+                st->scriptp = ScriptPointer(scr, 0);
+                st->defsp = st->start + 4 + j;
+                st->state = ScriptEndState::GOTO;
+                return;
+            }
+            OMATCH_CASE_NONE ()
+            {
+                PRINTF("fatal: script: callfunc: function not found! [%s]\n"_fmt, str);
+                st->state = ScriptEndState::END;
+                abort();
+            }
+        }
+        OMATCH_END ();
+    }
+    else
+    {
+        int pos_ = conv_num(st, &AARG(0));
+        int j = 0;
+
+        for (int i = st->start + 3; i < st->end; i++, j++)
+            push_copy(st->stack, i);
+
+        push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
+        push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
+        push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
+        push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
+
+        st->scriptp.pos = pos_;
+        st->defsp = st->start + 4 + j;
+        st->state = ScriptEndState::GOTO;
+    }
+
+}
+
+static
+void builtin_getarg(ScriptState *st)
+{
+    int arg = conv_num(st, &AARG(0));
+    if(st->defsp < 1 || !(st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>()))
+    {
+        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+        if(nd)
+            PRINTF("builtin_getarg: no callfunc or callsub! @ %s\n"_fmt, nd->name);
+        else
+            PRINTF("builtin_getarg: no callfunc or callsub! (no npc)\n"_fmt);
+        st->state = ScriptEndState::END;
+        return;
+    }
+
+    int i = conv_num(st, &st->stack->stack_datav[st->defsp - 4]); // Number of arguments.
+    if (arg > i || arg < 0)
+        return;
+    push_copy(st->stack, (st->defsp - 4 - i) + arg);
 }
 
 /*==========================================
@@ -191,12 +269,12 @@ void builtin_return(ScriptState *st)
         else
             PRINTF("Deprecated: return outside of callfunc or callsub! (no npc)\n"_fmt);
     }
-#if 0
+
     if (HARG(0))
     {                           // 戻り値有り
         push_copy(st->stack, st->start + 2);
     }
-#endif
+
     st->state = ScriptEndState::RETFUNC;
 }
 
@@ -4236,8 +4314,10 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(mes, "s"_s, '\0'),
     BUILTIN(goto, "L"_s, '\0'),
     BUILTIN(callfunc, "F"_s, '\0'),
+    BUILTIN(call, "F?*"_s, '.'),
     BUILTIN(callsub, "L"_s, '\0'),
-    BUILTIN(return, ""_s, '\0'),
+    BUILTIN(getarg, "i"_s, '.'),
+    BUILTIN(return, "?*"_s, '\0'),
     BUILTIN(next, ""_s, '\0'),
     BUILTIN(close, ""_s, '\0'),
     BUILTIN(close2, ""_s, '\0'),

@@ -728,7 +728,7 @@ void run_func(ScriptState *st)
         st->defsp = conv_num(st, &st->stack->stack_datav[olddefsp - 3]); // 基準スタックポインタを復元
         // Number of arguments.
         int i = conv_num(st, &st->stack->stack_datav[olddefsp - 4]); // 引数の数所得
-        assert (i == 0);
+        //assert (i == 0);
 
         pop_stack(st->stack, olddefsp - 4 - i, olddefsp);  // 要らなくなったスタック(引数と復帰用データ)削除
 
