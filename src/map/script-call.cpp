@@ -882,20 +882,25 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
             abort();
         }
     }
+    dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
     switch (st->state)
     {
         case ScriptEndState::STOP:
+            if (sd && sd->npc_id == st->oid)
+                sd->state.npc_dialog_mes = 0;
             break;
         case ScriptEndState::END:
-        {
-            dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
             st->scriptp.code = None;
             st->scriptp.pos = -1;
             if (sd && sd->npc_id == st->oid)
+            {
+                sd->state.npc_dialog_mes = 0;
                 npc_event_dequeue(sd);
-        }
+            }
             break;
         case ScriptEndState::RERUNLINE:
+            if (sd && sd->npc_id == st->oid)
+                sd->state.npc_dialog_mes = 0;
             st->scriptp.pos = rerun_pos;
             break;
     }

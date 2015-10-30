@@ -89,8 +89,16 @@ enum class MonsterAttitude
 static
 void builtin_mes(ScriptState *st)
 {
-    RString mes = conv_str(st, &AARG(0));
-    clif_scriptmes(script_rid2sd(st), st->oid, mes);
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    sd->state.npc_dialog_mes = 1;
+    RString mes = HARG(0) ? conv_str(st, &AARG(0)) : ""_s;
+    clif_scriptmes(sd, st->oid, mes);
+}
+
+static
+void builtin_clear(ScriptState *st)
+{
+    clif_npc_action(script_rid2sd(st), st->oid, 9, 0, 0, 0);
 }
 
 /*==========================================
@@ -318,14 +326,22 @@ void builtin_close(ScriptState *st)
             PRINTF("Deprecated: close in a callfunc or callsub! (no npc)\n"_fmt);
     }
     st->state = ScriptEndState::END;
-    clif_scriptclose(script_rid2sd(st), st->oid);
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (sd->state.npc_dialog_mes)
+        clif_scriptclose(sd, st->oid);
+    else
+        clif_npc_action(sd, st->oid, 5, 0, 0, 0);
 }
 
 static
 void builtin_close2(ScriptState *st)
 {
     st->state = ScriptEndState::STOP;
-    clif_scriptclose(script_rid2sd(st), st->oid);
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (sd->state.npc_dialog_mes)
+        clif_scriptclose(sd, st->oid);
+    else
+        clif_npc_action(sd, st->oid, 5, 0, 0, 0);
 }
 
 /*==========================================
@@ -778,6 +794,147 @@ void builtin_input(ScriptState *st)
             clif_scriptinputstr(sd, st->oid);
         else
             clif_scriptinput(sd, st->oid);
+        sd->state.menu_or_input = 1;
+    }
+}
+
+static
+void builtin_requestitem(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = nullptr;
+    script_data& scrd = AARG(0);
+    assert (scrd.is<ScriptDataVariable>());
+    int amount = HARG(1) ? conv_num(st, &AARG(1)) : 1;
+    if (amount < 1 || amount > 16)
+        amount = 1;
+
+    SIR reg = scrd.get_if<ScriptDataVariable>()->reg;
+    ZString name = variable_names.outtern(reg.base());
+    char prefix = name.front();
+    char postfix = name.back();
+
+    if (prefix != '$' && prefix != '@' && prefix != '.')
+    {
+        PRINTF("builtin_requestitem: illegal scope!\n"_fmt);
+        runflag = 0;
+        return;
+    }
+
+    sd = script_rid2sd(st);
+    if (sd->state.menu_or_input)
+    {
+        // Second time (rerunline)
+        sd->state.menu_or_input = 0;
+        RString str = sd->npc_str;
+        RString val;
+        const char separator = ';';
+        for (int j = 0; j < amount; j++)
+        {
+            auto find = std::find(str.begin(), str.end(), separator);
+            if (find == str.end())
+                val = str.xislice_h(std::find(str.begin(), str.end(), ','));
+            else
+            {
+                val = str.xislice_h(find);
+                val = val.xislice_h(std::find(val.begin(), val.end(), ','));
+                str = str.xislice_t(find + 1);
+            }
+
+            // check that the item exists in the inventory
+            int num = atoi(val.c_str());
+            if (num < 1)
+            {
+                j--;
+                if (find == str.end())
+                    break;
+                continue;
+            }
+            ItemNameId nameid = wrap<ItemNameId>(num);
+            for (IOff0 i : IOff0::iter())
+                if (sd->status.inventory[i].nameid == nameid)
+                    goto pass;
+        fail:
+            j--;
+            if (find == str.end())
+                break;
+            continue;
+
+        pass:
+            // push to array
+            if (postfix == '$')
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(nameid));
+                RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                if (item_name == ""_s)
+                    goto fail;
+                if (prefix == '.' && name[1] == '@')
+                {
+                    struct script_data vd = script_data(ScriptDataStr{item_name});
+                    set_scope_reg(st, reg.iplus(j), &vd);
+                }
+                else
+                    set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), item_name);
+            }
+            else
+            {
+                if (prefix == '.' && name[1] == '@')
+                {
+                    struct script_data vd = script_data(ScriptDataInt{num});
+                    set_scope_reg(st, reg.iplus(j), &vd);
+                }
+                else
+                    set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), num);
+            }
+            if (find == str.end())
+                break;
+        }
+    }
+    else
+    {
+        // First time - send prompt to client, then wait
+        st->state = ScriptEndState::RERUNLINE;
+        clif_scriptinputstr(sd, st->oid); // send string prompt
+        clif_npc_action(sd, st->oid, 10, amount, 0, 0); // send item request
+        sd->state.menu_or_input = 1;
+    }
+}
+
+static
+void builtin_requestlang(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    script_data& scrd = AARG(0);
+    assert (scrd.is<ScriptDataVariable>());
+    SIR reg = scrd.get_if<ScriptDataVariable>()->reg;
+    ZString name = variable_names.outtern(reg.base());
+    char prefix = name.front();
+    char postfix = name.back();
+
+    if (postfix != '$')
+    {
+        PRINTF("builtin_requestlang: illegal type (expects string)!\n"_fmt);
+        runflag = 0;
+        return;
+    }
+
+    if (sd->state.menu_or_input)
+    {
+        // Second time (rerunline)
+        sd->state.menu_or_input = 0;
+        if (prefix == '.' && name[1] == '@')
+        {
+            struct script_data vd = script_data(ScriptDataStr{sd->npc_str});
+            set_scope_reg(st, reg, &vd);
+        }
+        else
+            set_reg(sd, VariableCode::VARIABLE, reg, sd->npc_str);
+    }
+    else
+    {
+        // First time - send prompt to client, then wait
+        st->state = ScriptEndState::RERUNLINE;
+        clif_npc_action(sd, st->oid, 0, 0, 0, 0); // send lang request
+        clif_scriptinputstr(sd, st->oid); // send string prompt
         sd->state.menu_or_input = 1;
     }
 }
@@ -2502,6 +2659,49 @@ void builtin_npcaction(ScriptState *st)
     }
 
     clif_npc_action(sd, st->oid, command, id, x, y);
+}
+
+static
+void builtin_camera(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (HARG(0))
+    {
+        if (HARG(1) && !HARG(2))
+            clif_npc_action(sd, st->oid, 2, 0, conv_num(st, &AARG(0)), conv_num(st, &AARG(1))); // camera to x, y
+        else
+        {
+            dumb_ptr<block_list> bl;
+            short x = 0, y = 0;
+            int id;
+            bool rel;
+            if (auto *u = AARG(0).get_if<ScriptDataInt>())
+                bl = map_id2bl(wrap<BlockId>(u->numi));
+            if (auto *g = AARG(0).get_if<ScriptDataStr>())
+            {
+                if (g->str == "rid"_s || g->str == "player"_s)
+                    bl = sd;
+                if (g->str == "relative"_s)
+                    rel = true;
+                else if (g->str == "oid"_s || g->str == "npc"_s)
+                    bl = map_id2bl(st->oid);
+                else
+                    bl = npc_name2id(stringish<NpcName>(g->str));
+            }
+            if (HARG(1) && HARG(2))
+            {
+                x = conv_num(st, &AARG(1));
+                y = conv_num(st, &AARG(2));
+            }
+            if (rel)
+                clif_npc_action(sd, st->oid, 4, 0, x, y); // camera relative from current camera
+            else
+                clif_npc_action(sd, st->oid, 2, unwrap<BlockId>(bl->bl_id), x, y); // camera to actor
+        }
+    }
+
+    else
+        clif_npc_action(sd, st->oid, 3, 0, 0, 0); // return camera
 }
 
 static
@@ -4328,7 +4528,8 @@ void builtin_mapexit(ScriptState *)
 
 BuiltinFunction builtin_functions[] =
 {
-    BUILTIN(mes, "s"_s, '\0'),
+    BUILTIN(mes, "?"_s, '\0'),
+    BUILTIN(clear, ""_s, '\0'),
     BUILTIN(goto, "L"_s, '\0'),
     BUILTIN(callfunc, "F"_s, '\0'),
     BUILTIN(call, "F?*"_s, '.'),
@@ -4349,6 +4550,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(eltlvl, "i"_s, 'i'),
     BUILTIN(injure, "iii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
+    BUILTIN(requestitem, "N?"_s, '\0'),
+    BUILTIN(requestlang, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
     BUILTIN(elif, "iF*"_s, '\0'),
     BUILTIN(else, "F*"_s, '\0'),
@@ -4399,6 +4602,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(setnpctimer, "i?"_s, '\0'),
     BUILTIN(setnpcdirection, "iii?"_s, '\0'),
     BUILTIN(npcaction, "i???"_s, '\0'),
+    BUILTIN(camera, "???"_s, '\0'),
     BUILTIN(announce, "si"_s, '\0'),
     BUILTIN(mapannounce, "Msi"_s, '\0'),
     BUILTIN(getusers, "i"_s, 'i'),

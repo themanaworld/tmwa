@@ -148,6 +148,7 @@ struct map_session_data : block_list, SessionData
         unsigned seen_motd:1;
         unsigned pvpchannel;
         unsigned pvp_rank;
+        unsigned npc_dialog_mes:1;
     } state;
     struct
     {
