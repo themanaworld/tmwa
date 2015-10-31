@@ -667,7 +667,6 @@ void run_func(ScriptState *st)
         {
             PRINTF("script:run_func (return) return without callfunc or callsub!\n"_fmt);
             st->state = ScriptEndState::END;
-            abort();
         }
         assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
         st->scriptp.code = Some(conv_script(st, &st->stack->stack_datav[olddefsp - 1]));   // スクリプトを復元

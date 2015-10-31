@@ -452,7 +452,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         ZString::iterator tmpp = skip_space(p + 1);
         if (*tmpp == ';' || *tmpp == ',')
         {
-            disp_error_message("error: implicit 'next statement' label"_s, p);
+            //disp_error_message("error: implicit 'next statement' label"_s, p);
             add_scriptl(borrow(LABEL_NEXTLINE_));
             p++;
             return p;
@@ -593,7 +593,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
     p = skip_space(p);
     if (*p == ';')
     {
-        disp_error_message("Double semi-colon"_s, p);
+        //disp_error_message("Double semi-colon"_s, p);
         ++p;
         return p;
     }
@@ -751,10 +751,10 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         p = skip_space(p);
         if (*skip_space(skip_word(p)) == ':')
         {
-            if (can_step)
+            /*if (can_step)
             {
                 disp_error_message("error: implicit fallthrough"_s, p);
-            }
+            }*/
             can_step = true;
 
             ZString::iterator tmpp = skip_word(p);
@@ -778,7 +778,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
 
         if (!can_step)
         {
-            disp_error_message("error: unreachable statement"_s, p);
+            //disp_error_message("error: unreachable statement"_s, p);
         }
         // 他は全部一緒くた
         p = parse_line(p, &can_step);
@@ -793,7 +793,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
 
     if (can_step && !implicit_end)
     {
-        disp_error_message("error: implicit end"_s, p);
+        //disp_error_message("error: implicit end"_s, p);
     }
     add_scriptc(ByteCode::NOP);
 
@@ -824,10 +824,10 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         ScriptLabel key = pair.first;
         if (key.startswith("On"_s))
             continue;
-        if (!(key.startswith("L_"_s) || key.startswith("S_"_s)))
-            disp_error_message(STRPRINTF("error: ugly label: %s\n"_fmt, key),p);
-        else if (!probable_labels.count(key))
-            disp_error_message(STRPRINTF("error: unused label: %s\n"_fmt, key),p);
+        //if (!(key.startswith("L_"_s) || key.startswith("S_"_s)))
+        //    disp_error_message(STRPRINTF("error: ugly label: %s\n"_fmt, key),p);
+        //else if (!probable_labels.count(key))
+        //    disp_error_message(STRPRINTF("error: unused label: %s\n"_fmt, key),p);
     }
     for (ScriptLabel used : probable_labels)
     {
