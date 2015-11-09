@@ -205,7 +205,7 @@ namespace admin
 //
 //  sex <account_name> <sex>
 //    Modify the sex of an account.
-//    <example> sex testname Male
+//    <example> sex testname M
 //
 //  state <account_name> <new_state> <error_message_#7>
 //    Change the state of an account.
@@ -490,7 +490,7 @@ void display_help(ZString param)
     {
         PRINTF("sex <account_name> <sex>\n"_fmt);
         PRINTF("  Modify the sex of an account.\n"_fmt);
-        PRINTF("  <example> sex testname Male\n"_fmt);
+        PRINTF("  <example> sex testname M\n"_fmt);
     }
     else if (command == "state"_s)
     {
@@ -627,7 +627,7 @@ void addaccount(ZString param, int emailflag)
     if (!name.is_print())
         return;
 
-    if (!"MF"_s.contains(sex))
+    if (!"MFN"_s.contains(sex))
     {
         PRINTF("Illegal gender [%c]. Please input M or F.\n"_fmt, sex);
         LADMIN_LOG("Illegal gender [%c]. Please input M or F.\n"_fmt, sex);
@@ -1291,7 +1291,7 @@ void changesex(ZString param)
     if (!qsplit(param, &name, &sex_))
     {
         PRINTF("Please input an account name and a sex.\n"_fmt);
-        PRINTF("<example> sex testname Male\n"_fmt);
+        PRINTF("<example> sex testname M\n"_fmt);
         LADMIN_LOG("Incomplete parameters to change the sex of an account ('sex' command).\n"_fmt);
         return;
     }
@@ -1303,7 +1303,7 @@ void changesex(ZString param)
         return;
     }
 
-    if (!"MF"_s.contains(sex))
+    if (!"MFN"_s.contains(sex))
     {
         PRINTF("Illegal gender [%c]. Please input M or F.\n"_fmt, sex);
         LADMIN_LOG("Illegal gender [%c]. Please input M or F.\n"_fmt, sex);
@@ -1750,6 +1750,8 @@ void parse_fromlogin(Session *s)
                                 PRINTF("%-5s "_fmt, "Femal"_s);
                             else if (info.sex == SEX::MALE)
                                 PRINTF("%-5s "_fmt, "Male"_s);
+                            else if (info.sex == SEX::NEUTRAL)
+                                PRINTF("%-5s "_fmt, "None"_s);
                             else
                                 PRINTF("%-5s "_fmt, "Servr"_s);
                             PRINTF("%6d "_fmt, info.login_count);
@@ -2347,6 +2349,8 @@ void parse_fromlogin(Session *s)
                             PRINTF(" Sex:    Female\n"_fmt);
                         else if (sex == SEX::MALE)
                             PRINTF(" Sex:    Male\n"_fmt);
+                        else if (sex == SEX::NEUTRAL)
+                            PRINTF(" Sex:    None\n"_fmt);
                         else // doesn't happen anymore
                             PRINTF(" Sex:    Server\n"_fmt);
                         PRINTF(" E-mail: %s\n"_fmt, email);

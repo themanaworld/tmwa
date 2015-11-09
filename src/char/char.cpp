@@ -235,6 +235,16 @@ AString mmo_char_tostr(struct CharPair *cp)
     {
         p->last_point = char_conf.start_point;
     }
+    if (p->sex == SEX::UNSPECIFIED)
+    {
+        for (AuthFifoEntry& afi : auth_fifo)
+        {
+            if (afi.account_id == k->account_id)
+            {
+                p->sex = afi.sex;
+            }
+        }
+    }
 
     MString str_p;
     str_p += STRPRINTF(
@@ -251,7 +261,8 @@ AString mmo_char_tostr(struct CharPair *cp)
             "%d,%d,%d\t"
             "%d,%d,%d,%d,%d\t"
             "%s,%d,%d\t"
-            "%s,%d,%d,%d\t"_fmt,
+            "%s,%d,%d,%d\t"
+            "%c\t"_fmt,
             k->char_id,
             k->account_id, k->char_num,
             k->name,
@@ -265,10 +276,8 @@ AString mmo_char_tostr(struct CharPair *cp)
             p->hair, p->hair_color, p->clothes_color,
             p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom,
             p->last_point.map_, p->last_point.x, p->last_point.y,
-            p->save_point.map_, p->save_point.x, p->save_point.y, p->partner_id);
-
-    // memos were here (no longer supported)
-    str_p += '\t';
+            p->save_point.map_, p->save_point.x, p->save_point.y, p->partner_id,
+            sex_to_char(p->sex));
 
     for (IOff0 i : IOff0::iter())
     {
@@ -352,6 +361,7 @@ bool impl_extract(XString str, CharPair *cp)
     CharData *p = cp->data.get();
 
     uint32_t unused_guild_id, unused_pet_id;
+    VString<1> sex;
     XString unused_memos;
     std::vector<Item> inventory;
     XString unused_cart;
@@ -377,13 +387,17 @@ bool impl_extract(XString str, CharPair *cp)
                     // of this, instead of adding a new \t
                     // or putting it elsewhere, like by pet/guild
                     record<','>(&p->save_point.map_, &p->save_point.x, &p->save_point.y, &p->partner_id),
-                    &unused_memos,
+                    &sex,
                     vrec<' '>(&inventory),
                     &unused_cart,
                     vrec<' '>(&skills),
                     vrec<' '>(&vars))))
         return false;
 
+    if (sex.size() != 1)
+        p->sex = SEX::UNSPECIFIED;
+    else
+        p->sex = sex_from_char(sex.front());
     // leftover corruption from Platinum
     if (hair_style == "-1"_s)
     {
@@ -706,6 +720,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     ck.char_num = slot;
     ck.name = name;
     cd.species = Species();
+    cd.sex = SEX::NEUTRAL;
     cd.base_level = 1;
     cd.job_level = 1;
     cd.base_exp = 0;
@@ -978,7 +993,10 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
         sel.stats.dex = saturate<uint8_t>(p->attrs[ATTR::DEX]);
         sel.stats.luk = saturate<uint8_t>(p->attrs[ATTR::LUK]);
         sel.char_num = k->char_num;
-        sel.unused = 0;
+        if (p->sex == SEX::UNSPECIFIED)
+            sel.sex = sd->sex;
+        else
+            sel.sex = p->sex;
 
         repeat_6b.push_back(info);
     }
@@ -1257,29 +1275,6 @@ void parse_tologin(Session *ls)
                     SEX sex = fixed.sex;
                     if (acc)
                     {
-                        for (CharPair& cp : char_keys)
-                        {
-                            CharKey& ck = cp.key;
-                            CharData& cd = *cp.data;
-                            if (ck.account_id == acc)
-                            {
-                                cd.sex = sex;
-//                      auth_fifo[i].sex = sex;
-                                // to avoid any problem with equipment and invalid sex, equipment is unequiped.
-                                for (IOff0 j : IOff0::iter())
-                                {
-                                    if (cd.inventory[j].nameid
-                                        && bool(cd.inventory[j].equip))
-                                        cd.inventory[j].equip = EPOS::ZERO;
-                                }
-                                cd.weapon = ItemLook::NONE;
-                                cd.shield = ItemNameId();
-                                cd.head_top = ItemNameId();
-                                cd.head_mid = ItemNameId();
-                                cd.head_bottom = ItemNameId();
-                            }
-                        }
-                        // disconnect player if online on char-server
                         disconnect_player(acc);
                     }
                     Packet_Fixed<0x2b0d> fixed_0d;
@@ -1984,6 +1979,8 @@ void parse_frommap(Session *ms)
                                 break;
                             }
                             case 5:    // changesex
+                            case 6:    // changesex
+                            case 7:    // changesex
                             {
                                 if (!acc
                                     || isGM(acc).overwhelms(isGM(ck->account_id)))
@@ -1992,7 +1989,19 @@ void parse_frommap(Session *ms)
                                     {   // don't send request if no login-server
                                         Packet_Fixed<0x2727> fixed_27;
                                         fixed_27.account_id = ck->account_id;
-                                        send_fpacket<0x2727, 6>(login_session, fixed_27);
+                                        switch (operation)
+                                        {
+                                            case 5:
+                                                fixed_27.sex = SEX::FEMALE;
+                                                break;
+                                            case 6:
+                                                fixed_27.sex = SEX::MALE;
+                                                break;
+                                            case 7:
+                                                fixed_27.sex = SEX::NEUTRAL;
+                                                break;
+                                        }
+                                        send_fpacket<0x2727, 7>(login_session, fixed_27);
                                     }
                                     else
                                         fixed_0f.error = 3;
@@ -2437,7 +2446,7 @@ void parse_char(Session *s)
                 fixed_6d.char_select.stats.dex = saturate<uint8_t>(cd->attrs[ATTR::DEX]);
                 fixed_6d.char_select.stats.luk = saturate<uint8_t>(cd->attrs[ATTR::LUK]);
                 fixed_6d.char_select.char_num = ck->char_num;
-                fixed_6d.char_select.unused2 = 0;
+                fixed_6d.char_select.sex = cd->sex;
 
                 send_fpacket<0x006d, 108>(s, fixed_6d);
                 break;

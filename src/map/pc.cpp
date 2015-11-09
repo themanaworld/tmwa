@@ -627,7 +627,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
         return 1;
 
     P<struct item_data> item = TRY_UNWRAP(sd->inventory_data[n], return 0);
-    if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
+    if (item->sex != SEX::UNSPECIFIED && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -2129,7 +2129,7 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
 
-    if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
+    if (item->sex != SEX::UNSPECIFIED && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -3493,7 +3493,33 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             }
             break;
         case SP::SEX:
-            chrif_char_ask_name(AccountId(), sd->status_key.name, 5, HumanTimeDiff());
+            int operation;
+            switch (val)
+            {
+            case 0:
+                sd->sex = sd->status.sex = SEX::FEMALE;
+                operation = 5;
+                break;
+            case 1:
+                sd->sex = sd->status.sex = SEX::MALE;
+                operation = 6;
+                break;
+            default:
+                sd->sex = sd->status.sex = SEX::NEUTRAL;
+                operation = 7;
+                break;
+            }
+            for (IOff0 j : IOff0::iter())
+            {
+                if (sd->status.inventory[j].nameid
+                    && bool(sd->status.inventory[j].equip))
+                    pc_unequipitem(sd, j, CalcStatus::LATER);
+            }
+            pc_calcstatus(sd, 0);
+            chrif_save(sd);
+            sd->login_id1++;
+            clif_fixpcpos(sd);
+            chrif_char_ask_name(AccountId(), sd->status_key.name, operation, HumanTimeDiff());
             break;
         case SP::WEIGHT:
             sd->weight = val;
