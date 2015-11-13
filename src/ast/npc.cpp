@@ -42,9 +42,9 @@ namespace npc
     static
     Result<Warp> parse_warp(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
     {
-        if (bits.size() != 4)
+        if (bits.size() != 3)
         {
-            return Err(span.error_str("expect 4 |component|s"_s));
+            return Err(span.error_str("expect 3 |component|s"_s));
         }
         if (bits[0].data.size() != 3)
         {
@@ -52,13 +52,9 @@ namespace npc
         }
         assert(bits[1].data.size() == 1);
         assert(bits[1].data[0].data == "warp"_s);
-        if (bits[2].data.size() != 1)
+        if (bits[2].data.size() != 5)
         {
-            return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
-        }
-        if (bits[3].data.size() != 5)
-        {
-            return Err(bits[3].span.error_str("in |component 4| expect 5 ,component,s"_s));
+            return Err(bits[2].span.error_str("in |component 3| expect 5 ,component,s"_s));
         }
 
         Warp warp;
@@ -66,18 +62,17 @@ namespace npc
         TRY_EXTRACT(bits[0].data[1], warp.x);
         TRY_EXTRACT(bits[0].data[2], warp.y);
         warp.key_span = bits[1].data[0].span;
-        TRY_EXTRACT(bits[2].data[0], warp.name);
-        if (bits[3].data[0].data == "-1"_s)
-            bits[3].data[0].data = "4294967295"_s;
-        TRY_EXTRACT(bits[3].data[0], warp.xs);
+        if (bits[2].data[0].data == "-1"_s)
+            bits[2].data[0].data = "4294967295"_s;
+        TRY_EXTRACT(bits[2].data[0], warp.xs);
         warp.xs.data += 2;
-        if (bits[3].data[1].data == "-1"_s)
-            bits[3].data[1].data = "4294967295"_s;
-        TRY_EXTRACT(bits[3].data[1], warp.ys);
+        if (bits[2].data[1].data == "-1"_s)
+            bits[2].data[1].data = "4294967295"_s;
+        TRY_EXTRACT(bits[2].data[1], warp.ys);
         warp.ys.data += 2;
-        TRY_EXTRACT(bits[3].data[2], warp.to_m);
-        TRY_EXTRACT(bits[3].data[3], warp.to_x);
-        TRY_EXTRACT(bits[3].data[4], warp.to_y);
+        TRY_EXTRACT(bits[2].data[2], warp.to_m);
+        TRY_EXTRACT(bits[2].data[3], warp.to_x);
+        TRY_EXTRACT(bits[2].data[4], warp.to_y);
         return Ok(std::move(warp));
     }
     static

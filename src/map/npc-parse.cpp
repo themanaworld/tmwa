@@ -153,7 +153,7 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->dir = DIR::S;
     nd->flag = 0;
     nd->sit = DamageType::STAND;
-    nd->name = warp.name.data;
+    nd->name = stringish<NpcName>(STRPRINTF("w%c%i"_fmt, 6, nd->bl_id));
 
     nd->npc_class = WARP_CLASS;
     nd->speed = 200_ms;
