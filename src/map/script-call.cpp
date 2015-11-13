@@ -583,9 +583,8 @@ void run_func(ScriptState *st)
         start_sp--;
         if (start_sp == 0)
         {
-            if (battle_config.error_log)
-                PRINTF("function not found\n"_fmt);
-            st->state = ScriptEndState::END;
+            dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+            PRINTF("run_func: function not found! @ %s\n"_fmt, nd ? nd->name : NpcName());
             abort();
         }
     }
@@ -597,12 +596,8 @@ void run_func(ScriptState *st)
     if (!st->stack->stack_datav[st->start].is<ScriptDataFuncRef>())
     {
         dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
-        if(nd)
-            PRINTF("run_func: not a function or statement! @ %s\n"_fmt, nd->name);
-        else
-            PRINTF("run_func: not a function or statement! (no npc)\n"_fmt);
-
-        st->state = ScriptEndState::END;
+        PRINTF("run_func: not a function or statement! @ %s\n"_fmt,
+                nd ? nd->name : NpcName());
         abort();
     }
     size_t func = st->stack->stack_datav[st->start].get_if<ScriptDataFuncRef>()->numi;
@@ -670,8 +665,9 @@ void run_func(ScriptState *st)
         if (st->defsp < 4
             || !st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
         {
-            PRINTF("script:run_func (return) return without callfunc or callsub!\n"_fmt);
-            st->state = ScriptEndState::END;
+            dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+            PRINTF("run_func: return without callfunc or callsub! @ %s\n"_fmt,
+                    nd ? nd->name : NpcName());
             abort();
         }
         assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
@@ -766,8 +762,9 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                     st->state = ScriptEndState::ZERO;
                     if (st->freeloop != 1 && gotocount > 0 && (--gotocount) <= 0)
                     {
-                        PRINTF("run_script: infinity loop !\n"_fmt);
-                        st->state = ScriptEndState::END;
+                        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+                        PRINTF("run_script: infinity loop! @ %s\n"_fmt,
+                                nd ? nd->name : NpcName());
                         abort();
                     }
                 }
@@ -824,12 +821,12 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                     }
                 }
                 abort();
-                break;
         }
         if (st->freeloop != 1 && cmdcount > 0 && (--cmdcount) <= 0)
         {
-            PRINTF("run_script: infinity loop !\n"_fmt);
-            st->state = ScriptEndState::END;
+            dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+            PRINTF("run_script: infinity loop! @ %s\n"_fmt,
+                    nd ? nd->name : NpcName());
             abort();
         }
     }
