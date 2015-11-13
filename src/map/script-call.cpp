@@ -596,7 +596,12 @@ void run_func(ScriptState *st)
 
     if (!st->stack->stack_datav[st->start].is<ScriptDataFuncRef>())
     {
-        PRINTF("run_func: not function and command! \n"_fmt);
+        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+        if(nd)
+            PRINTF("run_func: not a function or statement! @ %s\n"_fmt, nd->name);
+        else
+            PRINTF("run_func: not a function or statement! (no npc)\n"_fmt);
+
         st->state = ScriptEndState::END;
         abort();
     }
@@ -667,7 +672,6 @@ void run_func(ScriptState *st)
         {
             PRINTF("script:run_func (return) return without callfunc or callsub!\n"_fmt);
             st->state = ScriptEndState::END;
-            abort();
         }
         assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
         st->scriptp.code = Some(conv_script(st, &st->stack->stack_datav[olddefsp - 1]));   // スクリプトを復元
