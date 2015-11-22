@@ -89,9 +89,9 @@ namespace npc
         {
             //        1         2         3         4
             //234567890123456789012345678901234567890123456789
-            "map.gat,1,2|warp|To Other Map|3,4,other.gat,7,8"_s,
-            "map.gat,1,2|warp|To Other Map|3,4,other.gat,7,8\n"_s,
-            "map.gat,1,2|warp|To Other Map|3,4,other.gat,7,8{"_s,
+            "map.gat,1,2|warp|3,4,other.gat,7,8"_s,
+            "map.gat,1,2|warp|3,4,other.gat,7,8\n"_s,
+            "map.gat,1,2|warp|3,4,other.gat,7,8{"_s,
             // no optional fields in warp
         };
         for (auto input : inputs)
@@ -100,7 +100,7 @@ namespace npc
             auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            EXPECT_SPAN(top.span, 1,1, 1,47);
+            EXPECT_SPAN(top.span, 1,1, 1,34);
             auto p = top.get_if<Warp>();
             EXPECT_TRUE(p);
             if (p)
@@ -112,17 +112,15 @@ namespace npc
                 EXPECT_SPAN(p->y.span, 1,11, 1,11);
                 EXPECT_EQ(p->y.data, 2);
                 EXPECT_SPAN(p->key_span, 1,13, 1,16);
-                EXPECT_SPAN(p->name.span, 1,18, 1,29);
-                EXPECT_EQ(p->name.data, stringish<NpcName>("To Other Map"_s));
-                EXPECT_SPAN(p->xs.span, 1,31, 1,31);
+                EXPECT_SPAN(p->xs.span, 1,18, 1,18);
                 EXPECT_EQ(p->xs.data, 5);
-                EXPECT_SPAN(p->ys.span, 1,33, 1,33);
+                EXPECT_SPAN(p->ys.span, 1,20, 1,20);
                 EXPECT_EQ(p->ys.data, 6);
-                EXPECT_SPAN(p->to_m.span, 1,35, 1,43);
+                EXPECT_SPAN(p->to_m.span, 1,22, 1,30);
                 EXPECT_EQ(p->to_m.data, stringish<MapName>("other"_s));
-                EXPECT_SPAN(p->to_x.span, 1,45, 1,45);
+                EXPECT_SPAN(p->to_x.span, 1,32, 1,32);
                 EXPECT_EQ(p->to_x.data, 7);
-                EXPECT_SPAN(p->to_y.span, 1,47, 1,47);
+                EXPECT_SPAN(p->to_y.span, 1,34, 1,34);
                 EXPECT_EQ(p->to_y.data, 8);
             }
         }
