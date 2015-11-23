@@ -1,3 +1,5 @@
+v15.11.23
+  - Remove warp name from warp script headers, auto-generate warp npc name
 v15.10.01
   - Make travis use the container-based builds
   - Update the travis builds to use newer clang and gcc
