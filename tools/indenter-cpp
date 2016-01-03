@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash -e
+#!/usr/bin/env bash -e
 # this is the implementation of indenter -cpp
 set -o pipefail
 expand |

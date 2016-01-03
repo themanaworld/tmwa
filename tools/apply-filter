@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash -eu
+#!/usr/bin/env bash -eu
 # Apply a filter command to a set of files
 
 filter=$1; shift
