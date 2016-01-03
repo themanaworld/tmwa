@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/usr/local/bin/bash -eu
 # Apply a filter command to a set of files
 
 filter=$1; shift

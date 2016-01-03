@@ -22,7 +22,11 @@
 
 #include <sys/wait.h>
 
-#include <alloca.h>
+#if defined (__FreeBSD__)
+	#include <stdlib.h>
+#else
+	#include <alloca.h>
+#endif
 #include <unistd.h>
 
 #include <csignal>

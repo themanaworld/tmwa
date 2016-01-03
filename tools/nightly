@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/local/bin/bash -e
 #
 # The buildbot script is only intended to run on Debian amd64
 #

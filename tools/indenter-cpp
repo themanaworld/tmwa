@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/local/bin/bash -e
 # this is the implementation of indenter -cpp
 set -o pipefail
 expand |

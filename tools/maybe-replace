@@ -1,3 +1,3 @@
-#!/bin/bash -eu
+#!/usr/local/bin/bash -eu
 cat > "$1.tmp"
 maybe-mv "$1.tmp" "$1"

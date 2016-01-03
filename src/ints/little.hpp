@@ -19,12 +19,18 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "fwd.hpp"
-
+#if defined (__FreeBSD__)
+	#include <sys/endian.h>
+#else
 #include <endian.h>
-
+#endif
 #include <cstdint>
 
-
+#if defined (__FreeBSD__)
+	#define __BYTE_ORDER _BYTE_ORDER
+	#define __BIG_ENDIAN _BIG_ENDIAN
+	#define __LITTLE_ENDIAN _LITTLE_ENDIAN
+#endif
 namespace tmwa
 {
 // We implement our own actual swapping, because glibc emits assembly
@@ -37,12 +43,14 @@ namespace ints
 {
     // gcc doesn't always provide a builtin for this,
     // but it *does* optimize hand-written ones
+	#if defined (__FreeBSD__)
+	#else
     constexpr
     uint16_t bswap16(uint16_t v)
     {
         return v >> 8 | v << 8;
     }
-
+	#endif
     // TODO hoist this to byte.hpp and also implement big.hpp
     struct Byte
     {

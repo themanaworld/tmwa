@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/usr/local/bin/bash -eu
 # Replace one file with another, but maybe don't update the timestamp
 if cmp "$1" "$2"
 then
