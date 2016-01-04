@@ -1,5 +1,6 @@
-#!/usr/bin/env -S bash -eu
+#!/usr/bin/env bash
 # Replace one file with another, but maybe don't update the timestamp
+set -eu
 if cmp "$1" "$2"
 then
     rm "$1"

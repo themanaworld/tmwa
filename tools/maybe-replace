@@ -1,3 +1,4 @@
-#!/usr/bin/env -S bash -eu
+#!/usr/bin/env bash
+set -eu
 cat > "$1.tmp"
 maybe-mv "$1.tmp" "$1"

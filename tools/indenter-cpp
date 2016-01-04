@@ -1,5 +1,6 @@
-#!/usr/bin/env -S bash -e
+#!/usr/bin/env bash
 # this is the implementation of indenter -cpp
+set -e
 set -o pipefail
 expand |
 sed -e 's:^ *//:&&:' -e 's:^ *#://#:' |
