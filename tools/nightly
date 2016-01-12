@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash -e
 #
 # The buildbot script is only intended to run on Debian amd64
 #
-set -e
+
 WWW=${HOME}/www/
 
 BUILD=x86_64-linux-gnu

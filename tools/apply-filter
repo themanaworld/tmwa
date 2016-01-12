@@ -1,6 +1,5 @@
-#!/usr/bin/env bash 
+#!/bin/bash -eu
 # Apply a filter command to a set of files
-set -eu
 
 filter=$1; shift
 trap 'rm -f "$arg.tmp"' EXIT
