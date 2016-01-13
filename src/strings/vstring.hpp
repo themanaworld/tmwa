@@ -23,8 +23,9 @@
 #include <cstdio>
 
 #include "base.hpp"
+
 #if defined (__FreeBSD__)
-	#include <cstdarg>
+#include <cstdarg>
 #endif
 
 namespace tmwa

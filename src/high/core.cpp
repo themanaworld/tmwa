@@ -23,9 +23,9 @@
 #include <sys/wait.h>
 
 #if defined (__FreeBSD__)
-	#include <stdlib.h>
+#include <stdlib.h>
 #else
-	#include <alloca.h>
+#include <alloca.h>
 #endif
 #include <unistd.h>
 

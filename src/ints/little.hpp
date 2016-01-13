@@ -19,18 +19,18 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "fwd.hpp"
+
 #if defined (__FreeBSD__)
-	#include <sys/endian.h>
+#include <sys/endian.h>
+#define __BYTE_ORDER _BYTE_ORDER
+#define __BIG_ENDIAN _BIG_ENDIAN
+#define __LITTLE_ENDIAN _LITTLE_ENDIAN
 #else
 #include <endian.h>
 #endif
+
 #include <cstdint>
 
-#if defined (__FreeBSD__)
-	#define __BYTE_ORDER _BYTE_ORDER
-	#define __BIG_ENDIAN _BIG_ENDIAN
-	#define __LITTLE_ENDIAN _LITTLE_ENDIAN
-#endif
 namespace tmwa
 {
 // We implement our own actual swapping, because glibc emits assembly

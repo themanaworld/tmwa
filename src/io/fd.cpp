@@ -86,7 +86,7 @@ namespace io
     int FD::sendmmsg(struct mmsghdr *msgvec, unsigned int vlen, unsigned int flags)
     {
 		#if defined (__FreeBSD__)
-		return 0; // Not implemented on FreeBSD -- Need manual use of sendmsg
+		return 0; // Not implemented on FreeBSD
 		#else
         return ::sendmmsg(fd, msgvec, vlen, flags);
 		#endif
