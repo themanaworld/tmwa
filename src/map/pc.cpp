@@ -3361,7 +3361,7 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
             val = unwrap<Species>(sd->status.species);
             break;
         case SP::SEX:
-            val = static_cast<uint8_t>(sd->sex);
+            val = static_cast<uint8_t>(sd->status.sex);
             break;
         case SP::WEIGHT:
             val = sd->weight;

@@ -659,7 +659,7 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.manner = sd->status.manner;
     fixed_1d8.opt3 = sd->opt3;
     fixed_1d8.karma = sd->status.karma;
-    fixed_1d8.sex = sd->sex;
+    fixed_1d8.sex = sd->status.sex;
     fixed_1d8.pos.x = sd->bl_x;
     fixed_1d8.pos.y = sd->bl_y;
     fixed_1d8.pos.dir = sd->dir;
@@ -713,7 +713,7 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.manner = sd->status.manner;
     fixed_1d8.opt3 = sd->opt3;
     fixed_1d8.karma = sd->status.karma;
-    fixed_1d8.sex = sd->sex;
+    fixed_1d8.sex = sd->status.sex;
     fixed_1d8.pos.x = sd->bl_x;
     fixed_1d8.pos.y = sd->bl_y;
     fixed_1d8.pos.dir = sd->dir;
@@ -766,7 +766,7 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1da.manner = sd->status.manner;
     fixed_1da.opt3 = sd->opt3;
     fixed_1da.karma = sd->status.karma;
-    fixed_1da.sex = sd->sex;
+    fixed_1da.sex = sd->status.sex;
     fixed_1da.pos2.x0 = sd->bl_x;
     fixed_1da.pos2.y0 = sd->bl_y;
     fixed_1da.pos2.x1 = sd->to_x;
