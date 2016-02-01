@@ -1689,7 +1689,6 @@ void parse_frommap(Session *ms)
                         Packet_Payload<0x2afd> payload_fd; // not file descriptor
                         payload_fd.account_id = account_id;
                         payload_fd.login_id2 = afi.login_id2;
-                        cd->sex = afi.sex;
                         payload_fd.packet_client_version = afi.packet_client_version;
                         FPRINTF(stderr,
                                 "From queue index %zd: recalling packet version %d\n"_fmt,

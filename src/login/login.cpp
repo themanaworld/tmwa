@@ -879,7 +879,6 @@ void parse_fromchar(Session *s)
                         if (auth_fifo[i].account_id == acc &&
                             auth_fifo[i].login_id1 == fixed.login_id1 &&
                             auth_fifo[i].login_id2 == fixed.login_id2 &&    // relate to the versions higher than 18
-                            auth_fifo[i].sex == fixed.sex &&
                             auth_fifo[i].ip == fixed.ip
                             && !auth_fifo[i].delflag)
                         {

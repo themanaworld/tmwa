@@ -657,12 +657,6 @@ int pc_authok(AccountId id, int login_id2,
     sd->status_key = *st_key;
     sd->status = *st_data;
 
-    if (sd->status.sex != sd->sex)
-    {
-        clif_authfail_fd(sd->sess, 0);
-        return 1;
-    }
-
     MAP_LOG_STATS(sd, "LOGIN"_fmt);
     MAP_LOG_XP(sd, "LOGIN"_fmt);
     MAP_LOG_MAGIC(sd, "LOGIN"_fmt);
