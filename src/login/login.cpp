@@ -1175,52 +1175,6 @@ void parse_fromchar(Session *s)
                 break;
             }
 
-            case 0x2727:       // Change of sex (sex is reversed)
-            {
-                Packet_Fixed<0x2727> fixed;
-                rv = recv_fpacket<0x2727, 7>(s, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                {
-                    AccountId acc = fixed.account_id;
-                    for (AuthData& ad : auth_data)
-                    {
-                        if (ad.account_id == acc)
-                        {
-                            {
-                                SEX sex = fixed.sex;
-                                LOGIN_LOG("Char-server '%s': Sex change (account: %d, new sex %c, ip: %s).\n"_fmt,
-                                        server[id].name, acc,
-                                        sex_to_char(sex),
-                                        ip);
-                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
-                                {
-                                    if (auth_fifo[j].account_id == acc)
-                                        auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
-                                }
-                                ad.sex = sex;
-
-                                Packet_Fixed<0x2723> fixed_23;
-                                fixed_23.account_id = acc;
-                                fixed_23.sex = sex;
-
-                                for (Session *ss : iter_char_sessions())
-                                {
-                                    send_fpacket<0x2723, 7>(ss, fixed_23);
-                                }
-                            }
-                            goto x2727_out;
-                        }
-                    }
-                    LOGIN_LOG("Char-server '%s': Error of sex change (account: %d not found, sex would be reversed, ip: %s).\n"_fmt,
-                            server[id].name, acc, ip);
-                x2727_out:
-                    ;
-                }
-                break;
-            }
-
             case 0x2728:       // We receive account_reg2 from a char-server, and we send them to other char-servers.
             {
                 Packet_Head<0x2728> head;

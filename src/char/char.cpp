@@ -1977,38 +1977,6 @@ void parse_frommap(Session *ms)
                                     fixed_0f.error = 2;
                                 break;
                             }
-                            case 5:    // changesex
-                            case 6:    // changesex
-                            case 7:    // changesex
-                            {
-                                if (!acc
-                                    || isGM(acc).overwhelms(isGM(ck->account_id)))
-                                {
-                                    if (login_session)
-                                    {   // don't send request if no login-server
-                                        Packet_Fixed<0x2727> fixed_27;
-                                        fixed_27.account_id = ck->account_id;
-                                        switch (operation)
-                                        {
-                                            case 5:
-                                                fixed_27.sex = SEX::FEMALE;
-                                                break;
-                                            case 6:
-                                                fixed_27.sex = SEX::MALE;
-                                                break;
-                                            case 7:
-                                                fixed_27.sex = SEX::NEUTRAL;
-                                                break;
-                                        }
-                                        send_fpacket<0x2727, 7>(login_session, fixed_27);
-                                    }
-                                    else
-                                        fixed_0f.error = 3;
-                                }
-                                else
-                                    fixed_0f.error = 2;
-                                break;
-                            }
                         }
                     }
                     else
