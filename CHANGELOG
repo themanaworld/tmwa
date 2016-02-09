@@ -1,3 +1,9 @@
+v16.2.9
+  - make crashes a (tiny) bit more verbose
+  - fix @pvp broken nick problem
+  - add third gender
+  - allow to not allocate stats on char creation
+  - move gender from account to char
 v15.11.23
   - Remove warp name from warp script headers, auto-generate warp npc name
 v15.10.01
