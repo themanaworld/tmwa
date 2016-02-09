@@ -127,7 +127,7 @@ namespace item
                 EXPECT_SPAN(p->slot_unused.span, 1,31, 1,32);
                 EXPECT_EQ(p->slot_unused.data, "xx"_s);
                 EXPECT_SPAN(p->gender.span, 1,34, 1,34);
-                EXPECT_EQ(p->gender.data, SEX::NEUTRAL);
+                EXPECT_EQ(p->gender.data, SEX::UNSPECIFIED);
                 EXPECT_SPAN(p->loc.span, 1,36, 1,37);
                 EXPECT_EQ(p->loc.data, EPOS::MISC1);
                 EXPECT_SPAN(p->wlv.span, 1,39, 1,40);

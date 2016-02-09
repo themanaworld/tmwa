@@ -2348,12 +2348,36 @@ ATCE atcommand_char_change_sex(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
+    VString<1> gender;
+    int operation;
 
-    if (!asplit(message, &character))
-        return ATCE::USAGE;
-
+    if (!extract(message, record<' ', 1>(&character, &gender)))
     {
-        chrif_char_ask_name(sd->status_key.account_id, character, 5, HumanTimeDiff());
+        clif_displaymessage(s,
+                "Please, enter a char name (usage: @charchangesex <char name> [Gender])."_s);
+        return ATCE::USAGE;
+    }
+    else
+    {
+        if (sex_from_char(gender.front()) == SEX::FEMALE)
+        {
+                operation = 5;
+        }
+        else if (sex_from_char(gender.front()) == SEX::MALE)
+        {
+                operation = 6;
+        }
+        else if (sex_from_char(gender.front()) == SEX::NEUTRAL)
+        {
+                operation = 7;
+        }
+        else
+        {
+            clif_displaymessage(s,
+                    "Please, enter a char name (usage: @charchangesex <char name> [Gender])."_s);
+            return ATCE::USAGE;
+        }
+        chrif_char_ask_name(sd->status_key.account_id, character, operation, HumanTimeDiff());
         // type: 5 - changesex
         clif_displaymessage(s, "Character name sends to char-server to ask it."_s);
     }
@@ -5215,9 +5239,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"allstats"_s, {"[value]"_s,
         60, atcommand_all_stats,
         "Adjust all stats by value (or maximum)"_s}},
-    {"charchangesex"_s, {"<charname>"_s,
+    {"charchangesex"_s, {"<charname> <sex>"_s,
         60, atcommand_char_change_sex,
-        "Flip a characters sex and disconnect them"_s}},
+        "Change a characters sex and disconnect them"_s}},
     {"block"_s, {"<charname>"_s,
         60, atcommand_char_block,
         "Permanently block a player's account from the server"_s}},

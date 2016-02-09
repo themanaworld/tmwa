@@ -554,10 +554,7 @@ void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
     {
         if (sd != nullptr && sd->status.sex != sex)
         {
-            if (sd->status.sex == SEX::MALE)
-                sd->sex = sd->status.sex = SEX::FEMALE;
-            else if (sd->status.sex == SEX::FEMALE)
-                sd->sex = sd->status.sex = SEX::MALE;
+            sd->sex = sd->status.sex = sex;
             // to avoid any problem with equipment and invalid sex, equipment is unequiped.
             for (IOff0 i : IOff0::iter())
             {

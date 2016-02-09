@@ -441,8 +441,6 @@ bool impl_extract(XString line, AuthData *ad)
     if (sex.size() != 1)
         return false;
     ad->sex  = sex_from_char(sex.front());
-    if (ad->sex == SEX::NEUTRAL)
-        return false;
 
     if (!e_mail_check(ad->email))
         ad->email = DEFAULT_EMAIL;
@@ -881,7 +879,6 @@ void parse_fromchar(Session *s)
                         if (auth_fifo[i].account_id == acc &&
                             auth_fifo[i].login_id1 == fixed.login_id1 &&
                             auth_fifo[i].login_id2 == fixed.login_id2 &&    // relate to the versions higher than 18
-                            auth_fifo[i].sex == fixed.sex &&
                             auth_fifo[i].ip == fixed.ip
                             && !auth_fifo[i].delflag)
                         {
@@ -1178,56 +1175,6 @@ void parse_fromchar(Session *s)
                 break;
             }
 
-            case 0x2727:       // Change of sex (sex is reversed)
-            {
-                Packet_Fixed<0x2727> fixed;
-                rv = recv_fpacket<0x2727, 6>(s, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                {
-                    AccountId acc = fixed.account_id;
-                    for (AuthData& ad : auth_data)
-                    {
-                        if (ad.account_id == acc)
-                        {
-                            {
-                                SEX sex;
-                                if (ad.sex == SEX::FEMALE)
-                                    sex = SEX::MALE;
-                                else
-                                    sex = SEX::FEMALE;
-                                LOGIN_LOG("Char-server '%s': Sex change (account: %d, new sex %c, ip: %s).\n"_fmt,
-                                        server[id].name, acc,
-                                        sex_to_char(sex),
-                                        ip);
-                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
-                                {
-                                    if (auth_fifo[j].account_id == acc)
-                                        auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
-                                }
-                                ad.sex = sex;
-
-                                Packet_Fixed<0x2723> fixed_23;
-                                fixed_23.account_id = acc;
-                                fixed_23.sex = sex;
-
-                                for (Session *ss : iter_char_sessions())
-                                {
-                                    send_fpacket<0x2723, 7>(ss, fixed_23);
-                                }
-                            }
-                            goto x2727_out;
-                        }
-                    }
-                    LOGIN_LOG("Char-server '%s': Error of sex change (account: %d not found, sex would be reversed, ip: %s).\n"_fmt,
-                            server[id].name, acc, ip);
-                x2727_out:
-                    ;
-                }
-                break;
-            }
-
             case 0x2728:       // We receive account_reg2 from a char-server, and we send them to other char-servers.
             {
                 Packet_Head<0x2728> head;
@@ -1504,7 +1451,7 @@ void parse_admin(Session *s)
                         LOGIN_LOG("'ladmin': Attempt to create an invalid account (account or pass is too short, ip: %s)\n"_fmt,
                                 ip);
                     }
-                    else if (ma.sex != SEX::FEMALE && ma.sex != SEX::MALE)
+                    else if (ma.sex != SEX::FEMALE && ma.sex != SEX::MALE && ma.sex != SEX::NEUTRAL)
                     {
                         LOGIN_LOG("'ladmin': Attempt to create an invalid account (account: %s, invalid sex, ip: %s)\n"_fmt,
                                 ma.userid, ip);
@@ -1765,7 +1712,7 @@ void parse_admin(Session *s)
 
                 {
                     SEX sex = fixed.sex;
-                    if (sex != SEX::FEMALE && sex != SEX::MALE)
+                    if (sex != SEX::FEMALE && sex != SEX::MALE && sex != SEX::NEUTRAL)
                     {
                         LOGIN_LOG("'ladmin': Attempt to give an invalid sex (account: %s, received sex: %c, ip: %s)\n"_fmt,
                                 account_name, sex_to_char(sex), ip);

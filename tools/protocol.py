@@ -1638,7 +1638,7 @@ def build_context():
 
                 at(98, stats6, 'stats'),
                 at(104, u8, 'char num'),
-                at(105, u8, 'unused2'),
+                at(105, sex, 'sex'),
             ],
             size=106,
     )
@@ -4971,8 +4971,9 @@ def build_context():
         fixed=[
             at(0, u16, 'packet id'),
             at(2, account_id, 'account id'),
+            at(6, sex, 'sex'),
         ],
-        fixed_size=6,
+        fixed_size=7,
         pre=[0x2b0e],
         post=[0x2723],
         desc='''
@@ -5406,7 +5407,7 @@ def build_context():
             at(6, sex, 'sex'),
         ],
         fixed_size=7,
-        pre=[0x2723],
+        pre=[NOTHING],
         post=[0x00ac, 0x01d7, 0x2b01, 0x3011],
         xpost=[SCRIPT, 0x0080, 0x0081, 0x0088, 0x0091, 0x00a0, 0x00b0, 0x00b1, 0x00be, 0x00c0, 0x00e9, 0x00ee, 0x00fd, 0x0106, 0x010f, 0x0119, 0x013a, 0x0141, 0x0196, 0x01b1, 0x01d8, 0x01da, 0x2b05, 0x3022],
         desc='''

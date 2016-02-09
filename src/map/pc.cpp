@@ -627,7 +627,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
         return 1;
 
     P<struct item_data> item = TRY_UNWRAP(sd->inventory_data[n], return 0);
-    if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
+    if (item->sex != SEX::UNSPECIFIED && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -656,12 +656,6 @@ int pc_authok(AccountId id, int login_id2,
 
     sd->status_key = *st_key;
     sd->status = *st_data;
-
-    if (sd->status.sex != sd->sex)
-    {
-        clif_authfail_fd(sd->sess, 0);
-        return 1;
-    }
 
     MAP_LOG_STATS(sd, "LOGIN"_fmt);
     MAP_LOG_XP(sd, "LOGIN"_fmt);
@@ -2129,7 +2123,7 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
 
-    if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
+    if (item->sex != SEX::UNSPECIFIED && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -3361,7 +3355,7 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
             val = unwrap<Species>(sd->status.species);
             break;
         case SP::SEX:
-            val = static_cast<uint8_t>(sd->sex);
+            val = static_cast<uint8_t>(sd->status.sex);
             break;
         case SP::WEIGHT:
             val = sd->weight;
@@ -3493,7 +3487,28 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             }
             break;
         case SP::SEX:
-            chrif_char_ask_name(AccountId(), sd->status_key.name, 5, HumanTimeDiff());
+            switch (val)
+            {
+            case 0:
+                sd->sex = sd->status.sex = SEX::FEMALE;
+                break;
+            case 1:
+                sd->sex = sd->status.sex = SEX::MALE;
+                break;
+            default:
+                sd->sex = sd->status.sex = SEX::NEUTRAL;
+                break;
+            }
+            for (IOff0 j : IOff0::iter())
+            {
+                if (sd->status.inventory[j].nameid
+                    && bool(sd->status.inventory[j].equip)
+                    && !pc_isequip(sd, j))
+                    pc_unequipitem(sd, j, CalcStatus::LATER);
+            }
+            pc_calcstatus(sd, 0);
+            chrif_save(sd);
+            clif_fixpcpos(sd);
             break;
         case SP::WEIGHT:
             sd->weight = val;
