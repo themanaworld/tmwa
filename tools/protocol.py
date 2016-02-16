@@ -1962,8 +1962,9 @@ def build_context():
             at(6, account_name, 'account name'),
             at(30, account_pass, 'account pass'),
             at(54, u8, 'version'),
+            at(55, account_email, 'email'),
         ],
-        fixed_size=55,
+        fixed_size=95,
         pre=[HUMAN, 0x7531],
         post=[0x0063, 0x0069, 0x006a, 0x0081],
         desc='''
