@@ -224,6 +224,14 @@ void builtin_close(ScriptState *st)
 static
 void builtin_close2(ScriptState *st)
 {
+    if (st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
+    {
+        dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
+        if(nd)
+            PRINTF("Deprecated: close2 in a callfunc or callsub! @ %s\n"_fmt, nd->name);
+        else
+            PRINTF("Deprecated: close2 in a callfunc or callsub! (no npc)\n"_fmt);
+    }
     st->state = ScriptEndState::STOP;
     clif_scriptclose(script_rid2sd(st), st->oid);
 }
