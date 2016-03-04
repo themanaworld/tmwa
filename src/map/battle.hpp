@@ -67,6 +67,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
 
 int battle_is_unarmed(dumb_ptr<block_list> bl);
 Species battle_get_class(dumb_ptr<block_list> bl);
+VString<23> battle_get_name(dumb_ptr<block_list> bl);
 DIR battle_get_dir(dumb_ptr<block_list> bl);
 int battle_get_lv(dumb_ptr<block_list> bl);
 int battle_get_range(dumb_ptr<block_list> bl);
