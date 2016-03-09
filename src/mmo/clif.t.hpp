@@ -234,7 +234,8 @@ enum class SP : uint16_t
     MAXSP                       = 8,
     // sent to client
     STATUSPOINT                 = 9,
-
+    // sent to client
+    HEALXP                      = 10,
     // sent to client
     BASELEVEL                   = 11,
     // sent to client

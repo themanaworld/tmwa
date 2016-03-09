@@ -3445,6 +3445,9 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::MAXHP:
             val = battle_get_max_hp(bl);
             break;
+        case SP::HEALXP:
+            val = sd ? sd->heal_xp : 0;
+            break;
         case SP::SP:
             val = sd ? sd->status.sp : 0;
             break;
