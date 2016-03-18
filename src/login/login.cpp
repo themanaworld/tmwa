@@ -703,7 +703,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
 
     // Account creation with _M/_F
     if (account->passwdenc == 0
-        && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s))
+        && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s) || account->userid.endswith("_O"_s))
         && login_conf.new_account && account_id_count < END_ACCOUNT_NUM
         && (account->userid.size() - 2) >= 4 && account->passwd.size() >= 4)
     {
