@@ -669,11 +669,6 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
                 xs = m->npc[i]->is_warp()->warp.xs;
                 ys = m->npc[i]->is_warp()->warp.ys;
                 break;
-            case NpcSubtype::MESSAGE:
-                assert (0 && "I'm pretty sure these are never put on a map"_s);
-                xs = 0;
-                ys = 0;
-                break;
             case NpcSubtype::SCRIPT:
                 xs = m->npc[i]->is_script()->scr.xs;
                 ys = m->npc[i]->is_script()->scr.ys;
@@ -702,9 +697,6 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
             skill_stop_dancing(sd, 0);
             pc_setpos(sd, m->npc[i]->is_warp()->warp.name,
                        m->npc[i]->is_warp()->warp.x, m->npc[i]->is_warp()->warp.y, BeingRemoveWhy::GONE);
-            break;
-        case NpcSubtype::MESSAGE:
-            assert (0 && "I'm pretty sure these NPCs are never put on a map."_s);
             break;
         case NpcSubtype::SCRIPT:
         {
@@ -793,13 +785,6 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
         case NpcSubtype::SCRIPT:
             sd->npc_pos = run_script(ScriptPointer(script_or_parent(nd->is_script()), 0), sd->bl_id, id);
             break;
-        case NpcSubtype::MESSAGE:
-            if (nd->is_message()->message)
-            {
-                clif_scriptmes(sd, id, nd->is_message()->message);
-                clif_scriptclose(sd, id);
-            }
-            break;
     }
 
     return 0;
@@ -825,7 +810,7 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
 
     nd = map_id_is_npc(id);
 
-    if (!nd /* NPC was disposed? */  || nd->npc_subtype == NpcSubtype::MESSAGE)
+    if (!nd /* NPC was disposed? */)
     {
         clif_scriptclose(sd, id);
         npc_event_dequeue(sd);
@@ -1022,11 +1007,6 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
         nd->scr.timer_eventv.clear();
         nd->scr.script.reset();
         nd->scr.label_listv.clear();
-    }
-    else if (nd_->npc_subtype == NpcSubtype::MESSAGE)
-    {
-        dumb_ptr<npc_data_message> nd = nd_->is_message();
-        nd->message = AString();
     }
     if (nd_->name)
         npcs_by_name.put(nd_->name, nullptr);

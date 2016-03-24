@@ -99,12 +99,9 @@ void register_npc_name(dumb_ptr<npc_data> nd)
         "WARP"_s,
         "SHOP"_s,
         "SCRIPT"_s,
-        "MESSAGE"_s,
     }};
     if (!nd->name)
     {
-        if (nd->npc_subtype == NpcSubtype::MESSAGE)
-            return;
         PRINTF("WARNING: npc with no name:\n%s @ %s,%d,%d\n"_fmt,
                 types[nd->npc_subtype],
                 nd->bl_m->name_, nd->bl_x, nd->bl_y);
@@ -653,33 +650,6 @@ bool npc_load_script_any(ast::npc::Script *script)
     }
     MATCH_END ();
     abort();
-}
-
-dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
-        Species npc_class, NpcName name, AString message)
-{
-    dumb_ptr<npc_data_message> retval;
-    retval.new_();
-    retval->bl_id = npc_get_new_npc_id();
-    retval->bl_x = x;
-    retval->bl_y = y;
-    retval->bl_m = m;
-    retval->bl_type = BL::NPC;
-    retval->npc_subtype = NpcSubtype::MESSAGE;
-
-    retval->name = name;
-    if (message)
-        retval->message = message;
-
-    retval->npc_class = npc_class;
-    retval->speed = 200_ms;
-
-    clif_spawnnpc(retval);
-    map_addblock(retval);
-    map_addiddb(retval);
-    register_npc_name(retval);
-
-    return retval;
 }
 
 static

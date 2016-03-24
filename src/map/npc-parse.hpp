@@ -29,14 +29,6 @@ namespace map
 {
 bool npc_load_warp(ast::npc::Warp& warp);
 
-/**
- * Spawns and installs a talk-only NPC
- *
- * \param message The message to speak.  If message is nullptr, the NPC will not do anything at all.
- */
-dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
-        Species class_, NpcName name, AString message);
-
 void npc_addsrcfile(AString name);
 void npc_delsrcfile(XString name);
 void register_npc_name(dumb_ptr<npc_data> nd);

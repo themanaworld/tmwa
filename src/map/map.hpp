@@ -342,12 +342,10 @@ private:
     dumb_ptr<npc_data_script> as_script();
     dumb_ptr<npc_data_shop> as_shop();
     dumb_ptr<npc_data_warp> as_warp();
-    dumb_ptr<npc_data_message> as_message();
 public:
     dumb_ptr<npc_data_script> is_script();
     dumb_ptr<npc_data_shop> is_shop();
     dumb_ptr<npc_data_warp> is_warp();
-    dumb_ptr<npc_data_message> is_message();
 };
 
 class npc_data_script : public npc_data
@@ -400,12 +398,6 @@ public:
         short x, y;
         MapName name;
     } warp;
-};
-
-class npc_data_message : public npc_data
-{
-public:
-    RString message;
 };
 
 constexpr int MOB_XP_BONUS_BASE = 1024;
@@ -684,12 +676,10 @@ inline dumb_ptr<flooritem_data> block_list::is_item() { return bl_type == BL::IT
 inline dumb_ptr<npc_data_script> npc_data::as_script() { return dumb_ptr<npc_data_script>(static_cast<npc_data_script *>(this)) ; }
 inline dumb_ptr<npc_data_shop> npc_data::as_shop() { return dumb_ptr<npc_data_shop>(static_cast<npc_data_shop *>(this)) ; }
 inline dumb_ptr<npc_data_warp> npc_data::as_warp() { return dumb_ptr<npc_data_warp>(static_cast<npc_data_warp *>(this)) ; }
-inline dumb_ptr<npc_data_message> npc_data::as_message() { return dumb_ptr<npc_data_message>(static_cast<npc_data_message *>(this)) ; }
 
 inline dumb_ptr<npc_data_script> npc_data::is_script() { return npc_subtype == NpcSubtype::SCRIPT ? as_script() : nullptr ; }
 inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSubtype::SHOP ? as_shop() : nullptr ; }
 inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
-inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }
 
 void map_addmap(MapName mapname);
 void map_delmap(MapName mapname);
