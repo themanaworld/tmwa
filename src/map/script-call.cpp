@@ -908,7 +908,6 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
     if (st->state != ScriptEndState::END)
     {
         // 再開するためにスタック情報を保存
-        dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
         if (sd)
         {
             sd->npc_stackbuf = stack->stack_datav;
@@ -938,17 +937,20 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     if (oid)
     {
         dumb_ptr<block_list> oid_bl = map_id2bl(oid);
-        if (oid_bl->bl_type == BL::NPC)
+        if (oid_bl)
         {
-            dumb_ptr<npc_data> nd = oid_bl->is_npc();
-            if(nd->npc_subtype == NpcSubtype::SCRIPT)
+            if (oid_bl->bl_type == BL::NPC)
             {
-                dumb_ptr<npc_data_script> nds = nd->is_script();
-                if (nds->scr.parent)
+                dumb_ptr<npc_data> nd = oid_bl->is_npc();
+                if(nd->npc_subtype == NpcSubtype::SCRIPT)
                 {
-                    dumb_ptr<npc_data_script> parent = map_id2bl(nds->scr.parent)->is_npc()->is_script();
-                    assert(parent->bl_type == BL::NPC && parent->npc_subtype == NpcSubtype::SCRIPT);
-                    sp = ScriptPointer(borrow(*parent->scr.script), sp.pos);
+                    dumb_ptr<npc_data_script> nds = nd->is_script();
+                    if (nds->scr.parent)
+                    {
+                        dumb_ptr<npc_data_script> parent = map_id2bl(nds->scr.parent)->is_npc()->is_script();
+                        assert(parent->bl_type == BL::NPC && parent->npc_subtype == NpcSubtype::SCRIPT);
+                        sp = ScriptPointer(borrow(*parent->scr.script), sp.pos);
+                    }
                 }
             }
         }

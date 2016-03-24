@@ -617,6 +617,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
 
     {
         // TODO should be LString, but no heterogenous lookup yet
+        // FIXME / TODO: allow destroy to both be a statement and a terminator
         static
         std::set<ZString> terminators =
         {

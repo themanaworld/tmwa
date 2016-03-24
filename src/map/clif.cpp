@@ -2550,7 +2550,9 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
     nullpo_retz(src);
     nullpo_retz(dst);
 
-    sc_data = battle_get_sc_data(dst);
+    int target_hp = battle_get_hp(dst);
+    if (target_hp < damage)
+        damage = target_hp; // limit damage to hp
 
     Packet_Fixed<0x008a> fixed_8a;
     fixed_8a.src_id = src->bl_id;
@@ -4422,6 +4424,8 @@ RecvResult clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
     if (sd->npc_id)
+        return rv;
+    if (battle_get_class(map_id2bl(fixed.block_id)) == INVISIBLE_CLASS)
         return rv;
     npc_click(sd, fixed.block_id);
 

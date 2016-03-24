@@ -323,12 +323,8 @@ enum class SP : uint16_t
 
     // sent to client
     ATTACKRANGE                 = 1000,
-#if 0
-    ATKELE                      = 1001,
-#endif
-#if 0
-    DEFELE                      = 1002,
-#endif
+    ELTLVL                      = 1001,
+    ELTTYPE                     = 1002,
 #if 0
     CASTRATE                    = 1003,
 #endif

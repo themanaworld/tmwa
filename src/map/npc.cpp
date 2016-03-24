@@ -202,23 +202,23 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
     auto pair = magic_tokenise(source_invocation);
     // Spell Cast
     NpcEvent spell_event = spell_event2id(pair.first);
-    PRINTF("Cast: %s\n"_fmt, RString(pair.first));
 
     RString spell_params = pair.second;
 
-    dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
-
-    if (nd)
+    if (spell_event.npc)
     {
-        PRINTF("NPC:  '%s' %d\n"_fmt, nd->name, nd->bl_id);
-        PRINTF("Params:  '%s'\n"_fmt, spell_params);
-        argrec_t arg[1] =
-        {
-            {"@args$"_s, spell_params},
-        };
+        dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
 
-        npc_event(caster, spell_event, 0, arg);
-        return 1;
+        if (nd)
+        {
+            argrec_t arg[1] =
+            {
+                {"@args$"_s, spell_params},
+            };
+
+            npc_event(caster, spell_event, 0, arg);
+            return 1;
+        }
     }
     return 0;
 }
@@ -274,7 +274,7 @@ void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
 
     if (name == p)
     {
-        if (ev->nd->disposable)
+        if (ev->nd->scr.parent != BlockId())
             return; // temporary npcs only respond to commands directly issued to them
         run_script_l(ScriptPointer(script_or_parent(ev->nd), ev->pos), rid, ev->nd->bl_id,
                 argv);
@@ -647,7 +647,7 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
  */
 int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int x, int y)
 {
-    int i, f = 1;
+    int i;
     int xs, ys;
 
     nullpo_retr(1, sd);
@@ -658,10 +658,7 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
     for (i = 0; i < m->npc_num; i++)
     {
         if (m->npc[i]->flag & 1)
-        {                       // 無効化されている
-            f = 0;
             continue;
-        }
 
         switch (m->npc[i]->npc_subtype)
         {
@@ -684,11 +681,6 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
     }
     if (i == m->npc_num)
     {
-        if (f)
-        {
-            if (battle_config.error_log)
-                PRINTF("npc_touch_areanpc : some bug \n"_fmt);
-        }
         return 1;
     }
     switch (m->npc[i]->npc_subtype)
@@ -1005,6 +997,19 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
         dumb_ptr<npc_data_script> nd = nd_->is_script();
         nd->scr.timerid.cancel();
         nd->scr.timer_eventv.clear();
+        nd->eventqueuel.clear();
+        for (int i = 0; i < MAX_EVENTTIMER; i++)
+            nd->eventtimer[i].cancel();
+
+        // destroy all children (puppets), if any
+        if (nd_->name && nd->scr.parent == BlockId())
+        {
+            for (auto& pair : npcs_by_name)
+                if (pair.second->npc_subtype == NpcSubtype::SCRIPT
+                    && pair.second->is_script()->scr.parent == nd_->bl_id)
+                        npc_free(pair.second);
+        }
+
         nd->scr.script.reset();
         nd->scr.label_listv.clear();
     }

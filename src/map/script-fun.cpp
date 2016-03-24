@@ -472,14 +472,43 @@ void builtin_max(ScriptState *st)
 static
 void builtin_min(ScriptState *st)
 {
-    int min, num;
-    min = conv_num(st, &AARG(0));
+    int min = 0xFFFFFFF6, num;
 
-    for (int i = 1; HARG(i); i++)
+    if (HARG(1))
     {
-        num = conv_num(st, &AARG(i));
-        if (num < min)
-            min = num;
+        min = conv_num(st, &AARG(0));
+        for (int i = 1; HARG(i); i++)
+        {
+            num = conv_num(st, &AARG(i));
+            if (num < min)
+                min = num;
+        }
+    }
+    else
+    {
+        SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
+        ZString name = variable_names.outtern(reg.base());
+        char prefix = name.front();
+        if (prefix != '$' && prefix != '@' && prefix != '.')
+        {
+            PRINTF("builtin_max: illegal scope!\n"_fmt);
+            return;
+        }
+        for (int i = reg.index(); i < 256; i++)
+        {
+            struct script_data vd = get_val2(st, reg.iplus(i));
+            MATCH_BEGIN (vd)
+            {
+                MATCH_CASE (const ScriptDataInt&, u)
+                {
+                    if (u.numi < min)
+                        min = u.numi;
+                    continue;
+                }
+            }
+            MATCH_END ();
+            abort();
+        }
     }
 
     push_int<ScriptDataInt>(st->stack, min);
@@ -611,28 +640,6 @@ void builtin_heal(ScriptState *st)
         pc_itemheal(sd, hp, sp);
     else
         pc_heal(sd, hp, sp);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_elttype(ScriptState *st)
-{
-    int element_type = static_cast<int>(battle_get_element(map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))))).element);
-    push_int<ScriptDataInt>(st->stack, element_type);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_eltlvl(ScriptState *st)
-{
-    int element_lvl = static_cast<int>(battle_get_element(map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))))).level);
-    push_int<ScriptDataInt>(st->stack, element_lvl);
 }
 
 /*==========================================
@@ -816,8 +823,7 @@ void builtin_requestitem(ScriptState *st)
     if (prefix != '$' && prefix != '@' && prefix != '.')
     {
         PRINTF("builtin_requestitem: illegal scope!\n"_fmt);
-        runflag = 0;
-        return;
+        abort();
     }
 
     sd = script_rid2sd(st);
@@ -867,7 +873,7 @@ void builtin_requestitem(ScriptState *st)
                 RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
                 if (item_name == ""_s)
                     goto fail;
-                if (prefix == '.' && name[1] == '@')
+                if (name.startswith(".@"_s))
                 {
                     struct script_data vd = script_data(ScriptDataStr{item_name});
                     set_scope_reg(st, reg.iplus(j), &vd);
@@ -877,7 +883,7 @@ void builtin_requestitem(ScriptState *st)
             }
             else
             {
-                if (prefix == '.' && name[1] == '@')
+                if (name.startswith(".@"_s))
                 {
                     struct script_data vd = script_data(ScriptDataInt{num});
                     set_scope_reg(st, reg.iplus(j), &vd);
@@ -907,21 +913,19 @@ void builtin_requestlang(ScriptState *st)
     assert (scrd.is<ScriptDataVariable>());
     SIR reg = scrd.get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
-    char prefix = name.front();
     char postfix = name.back();
 
     if (postfix != '$')
     {
         PRINTF("builtin_requestlang: illegal type (expects string)!\n"_fmt);
-        runflag = 0;
-        return;
+        abort();
     }
 
     if (sd->state.menu_or_input)
     {
         // Second time (rerunline)
         sd->state.menu_or_input = 0;
-        if (prefix == '.' && name[1] == '@')
+        if (name.startswith(".@"_s))
         {
             struct script_data vd = script_data(ScriptDataStr{sd->npc_str});
             set_scope_reg(st, reg, &vd);
@@ -1102,7 +1106,7 @@ void builtin_destroy(ScriptState *st)
     dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
     if(!nd)
         return;
-    assert(nd->disposable == true);
+    //assert(nd->disposable == true); we don't care about it anymore
     npc_free(nd);
     if (!HARG(0))
         st->state = ScriptEndState::END;
@@ -1131,11 +1135,9 @@ void builtin_puppet(ScriptState *st)
 
     nd->bl_prev = nd->bl_next = nullptr;
     nd->scr.event_needs_map = false;
-    nd->disposable = true; // allow to destroy
 
     // PlayerName::SpellName
     NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
-    PRINTF("Npc: %s\n"_fmt, npc);
     nd->name = npc;
 
     // Dynamically set location
@@ -1285,7 +1287,7 @@ void builtin_set(ScriptState *st)
             get_val(st, sdata);
             if(prefix == '.')
             {
-                if (name_[1] == '@')
+                if (name_.startswith(".@"_s))
                 {
                     PRINTF("builtin_set: illegal scope!\n"_fmt);
                     return;
@@ -1322,7 +1324,7 @@ void builtin_set(ScriptState *st)
         {
             if(prefix == '.')
             {
-                if (name_[1] == '@')
+                if (name_.startswith(".@"_s))
                 {
                         set_scope_reg(st, reg, &AARG(1));
                     return;
@@ -1351,6 +1353,45 @@ void builtin_set(ScriptState *st)
 
 }
 
+// this is a special function that returns array index for a variable stored in another being
+static
+int getarraysize2(SIR reg, dumb_ptr<block_list> bl)
+{
+    int i = reg.index(), c = i;
+    bool zero = true; // index zero is empty
+    for (; i < 256; i++)
+    {
+        struct script_data vd = ScriptDataVariable{reg.iplus(i)};
+        get_val(bl, &vd);
+        MATCH_BEGIN (vd)
+        {
+            MATCH_CASE (const ScriptDataStr&, u)
+            {
+                if (u.str[0])
+                {
+                    if (i == 0)
+                        zero = false; // index zero is not empty
+                    c = i;
+                }
+                continue;
+            }
+            MATCH_CASE (const ScriptDataInt&, u)
+            {
+                if (u.numi)
+                {
+                    if (i == 0)
+                        zero = false; // index zero is not empty
+                    c = i;
+                }
+                continue;
+            }
+        }
+        MATCH_END ();
+        abort();
+    }
+    return (c == 0 && zero) ? c : (c + 1);
+}
+
 /*==========================================
  * 配列変数設定
  *------------------------------------------
@@ -1363,20 +1404,51 @@ void builtin_setarray(ScriptState *st)
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
+    int i = 1, j = 0;
 
     if (prefix != '$' && prefix != '@' && prefix != '.')
     {
         PRINTF("builtin_setarray: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.' && name[1] != '@')
-        bl = map_id2bl(st->oid)->is_npc();
-    else if (prefix != '$' && !(prefix == '.' && name[1] == '@'))
+    if (prefix == '.' && !name.startswith(".@"_s))
+    {
+        struct script_data *sdata = &AARG(1);
+        get_val(st, sdata);
+        i++; // 2nd argument is npc, not an array element
+        if (sdata->is<ScriptDataStr>())
+        {
+            ZString tn = conv_str(st, sdata);
+            if (tn == "this"_s || tn == "oid"_s)
+                bl = map_id2bl(st->oid)->is_npc();
+            else
+            {
+                NpcName name_ = stringish<NpcName>(tn);
+                bl = npc_name2id(name_);
+            }
+        }
+        else
+        {
+            int tid = conv_num(st, sdata);
+            if (tid == 0)
+                bl = map_id2bl(st->oid)->is_npc();
+            else
+               bl = map_id2bl(wrap<BlockId>(tid))->is_npc();
+        }
+        if (!bl)
+        {
+            PRINTF("builtin_setarray: npc not found\n"_fmt);
+            return;
+        }
+        if (st->oid && bl->bl_id != st->oid)
+            j = getarraysize2(reg, bl);
+    }
+    else if (prefix != '$' && !name.startswith(".@"_s))
         bl = map_id2bl(st->rid)->is_player();
 
-    for (int j = 0, i = 1; i < st->end - st->start - 2 && j < 256; i++, j++)
+    for (; i < st->end - st->start - 2 && j < 256; i++, j++)
     {
-        if (prefix == '.' && name[1] == '@')
+        if (name.startswith(".@"_s))
             set_scope_reg(st, reg.iplus(j), &AARG(i));
         else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARG(i)));
@@ -1404,14 +1476,14 @@ void builtin_cleararray(ScriptState *st)
         PRINTF("builtin_cleararray: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.' && name[1] != '@')
+    if (prefix == '.' && !name.startswith(".@"_s))
         bl = map_id2bl(st->oid)->is_npc();
-    else if (prefix != '$' && !(prefix == '.' && name[1] == '@'))
+    else if (prefix != '$' && !name.startswith(".@"_s))
         bl = map_id2bl(st->rid)->is_player();
 
     for (int i = 0; i < sz; i++)
     {
-        if (prefix == '.' && name[1] == '@')
+        if (name.startswith(".@"_s))
             set_scope_reg(st, reg.iplus(i), &AARG(i));
         else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARG(1)));
@@ -2673,8 +2745,7 @@ void builtin_camera(ScriptState *st)
         {
             dumb_ptr<block_list> bl;
             short x = 0, y = 0;
-            int id;
-            bool rel;
+            bool rel = false;
             if (auto *u = AARG(0).get_if<ScriptDataInt>())
                 bl = map_id2bl(wrap<BlockId>(u->numi));
             if (auto *g = AARG(0).get_if<ScriptDataStr>())
@@ -3109,7 +3180,13 @@ void builtin_resetstatus(ScriptState *st)
 static
 void builtin_attachrid(ScriptState *st)
 {
-    st->rid = wrap<BlockId>(conv_num(st, &AARG(0)));
+    dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
+    BlockId newid = wrap<BlockId>(conv_num(st, &AARG(0)));
+
+    if (sd && newid != st->rid)
+        sd->npc_id = BlockId();
+
+    st->rid = newid;
     push_int<ScriptDataInt>(st->stack, (map_id2sd(st->rid) != nullptr));
 }
 
@@ -3121,6 +3198,9 @@ void builtin_attachrid(ScriptState *st)
 static
 void builtin_detachrid(ScriptState *st)
 {
+    dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
+    if (sd)
+        sd->npc_id = BlockId();
     st->rid = BlockId();
 }
 
@@ -3433,7 +3513,7 @@ void builtin_chr(ScriptState *st)
 static
 void builtin_ord(ScriptState *st)
 {
-    const char ascii = conv_str(st, &AARG(0))[0];
+    const char ascii = conv_str(st, &AARG(0)).front();
     push_int<ScriptDataInt>(st->stack, static_cast<int>(ascii));
 }
 
@@ -3443,7 +3523,7 @@ void builtin_explode(ScriptState *st)
     dumb_ptr<block_list> bl = nullptr;
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
-    const char separator = conv_str(st, &AARG(2))[0];
+    const char separator = conv_str(st, &AARG(2)).front();
     RString str = conv_str(st, &AARG(1));
     RString val;
     char prefix = name.front();
@@ -3454,7 +3534,7 @@ void builtin_explode(ScriptState *st)
         PRINTF("builtin_explode: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.' && name[1] != '@')
+    if (prefix == '.' && !name.startswith(".@"_s))
         bl = map_id2bl(st->oid)->is_npc();
     else if (prefix != '$' && prefix != '.')
         bl = map_id2bl(st->rid)->is_player();
@@ -3464,7 +3544,7 @@ void builtin_explode(ScriptState *st)
         auto find = std::find(str.begin(), str.end(), separator);
         if (find == str.end())
         {
-            if (prefix == '.' && name[1] == '@')
+            if (name.startswith(".@"_s))
             {
                 struct script_data vd = script_data(ScriptDataInt{atoi(str.c_str())});
                 if (postfix == '$')
@@ -3481,7 +3561,7 @@ void builtin_explode(ScriptState *st)
             val = str.xislice_h(find);
             str = str.xislice_t(find + 1);
 
-            if (prefix == '.' && name[1] == '@')
+            if (name.startswith(".@"_s))
             {
                 struct script_data vd = script_data(ScriptDataInt{atoi(val.c_str())});
                 if (postfix == '$')
@@ -3749,7 +3829,7 @@ void builtin_get(ScriptState *st)
 
     if(prefix == '.')
     {
-        if (name_[1] == '@')
+        if (name_.startswith(".@"_s))
         {
             PRINTF("builtin_get: illegal scope!\n"_fmt);
             return;
@@ -3807,7 +3887,7 @@ void builtin_get(ScriptState *st)
         int var;
         if (prefix == '#' && bl)
         {
-            if (name_[1] == '#')
+            if (name_.startswith("##"_s))
                 var = pc_readaccountreg2(bl->is_player(), stringish<VarName>(name_));
             else
                 var = pc_readaccountreg(bl->is_player(), stringish<VarName>(name_));
@@ -4546,8 +4626,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(warp, "Mxy"_s, '\0'),
     BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
     BUILTIN(heal, "ii?"_s, '\0'),
-    BUILTIN(elttype, "i"_s, 'i'),
-    BUILTIN(eltlvl, "i"_s, 'i'),
     BUILTIN(injure, "iii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(requestitem, "N?"_s, '\0'),
@@ -4680,7 +4758,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(if_then_else, "iii"_s, '.'),
     BUILTIN(max, "e?*"_s, 'i'),
-    BUILTIN(min, "ii*"_s, 'i'),
+    BUILTIN(min, "e?*"_s, 'i'),
     BUILTIN(average, "ii*"_s, 'i'),
     BUILTIN(sqrt, "i"_s, 'i'),
     BUILTIN(cbrt, "i"_s, 'i'),

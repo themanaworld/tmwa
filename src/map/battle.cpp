@@ -85,6 +85,8 @@ Species battle_get_class(dumb_ptr<block_list> bl)
     nullpo_retr(Species(), bl);
     if (bl->bl_type == BL::MOB)
         return bl->is_mob()->mob_class;
+    else if (bl->bl_type == BL::NPC)
+        return bl->is_npc()->npc_class;
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->status.species;
     else
