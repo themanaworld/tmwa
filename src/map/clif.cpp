@@ -3790,6 +3790,20 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
     return rv;
 }
 
+static
+void clif_message_sub(Buffer& buf, dumb_ptr<block_list> bl, AString msg)
+{
+    VString<23> name = battle_get_name(bl);
+    msg = STRPRINTF("%s : %s"_fmt, name, msg);
+    size_t msg_len = msg.size() + 1;
+    if (msg_len + 16 > 512)
+        return;
+
+    Packet_Head<0x008d> head_8d;
+    head_8d.block_id = bl->bl_id;
+    buf = create_vpacket<0x008d, 8, 1>(head_8d, msg);
+}
+
 /*==========================================
  * Validate and process transmission of a
  * global/public message.
@@ -3825,10 +3839,8 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         }
 
         /* It's not a spell/magic message, so send the message to others. */
-        Packet_Head<0x008d> head_8d;
-        head_8d.block_id = sd->bl_id;
-        XString repeat_8d = mbuf;
-        Buffer sendbuf = create_vpacket<0x008d, 8, 1>(head_8d, repeat_8d);
+        Buffer sendbuf;
+        clif_message_sub(sendbuf, sd, mbuf);
 
         clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC, MIN_CLIENT_VERSION);
     }
@@ -3837,18 +3849,6 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
     send_packet_repeatonly<0x008e, 4, 1>(s, repeat);
 
     return rv;
-}
-
-static
-void clif_message_sub(Buffer& buf, dumb_ptr<block_list> bl, XString msg)
-{
-    size_t msg_len = msg.size() + 1;
-    if (msg_len + 16 > 512)
-        return;
-
-    Packet_Head<0x008d> head_8d;
-    head_8d.block_id = bl->bl_id;
-    buf = create_vpacket<0x008d, 8, 1>(head_8d, msg);
 }
 
 void clif_npc_send_title(Session *s, BlockId npcid, XString msg)
@@ -5670,10 +5670,6 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
     if (sd->auto_ban_info.in_progress)
         return AString();
 
-    Session *s = sd->sess;
-    size_t name_len = sd->status_key.name.to__actual().size();
-    XString pbuf = buf;
-
     /*
      * The client attempted to exceed the maximum message length.
      *
@@ -5688,21 +5684,20 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
         return AString();
     }
 
-    if (type == ChatType::Global)
+    // ManaPlus remote command vulnerability fix
+    if (buf.contains_seq("@@="_s) && buf.contains('|'))
     {
-        XString p = pbuf;
-        if (!(p.startswith(sd->status_key.name.to__actual()) && p.xslice_t(name_len).startswith(" : "_s)))
-        {
-            /* Disallow malformed/spoofed messages. */
-            clif_setwaitclose(s);
-            WARN_MALFORMED_MSG(sd, "spoofed name/invalid format"_s);
-            return AString();
-        }
-        /* Step beyond the separator. */
-        XString xs = p.xslice_t(name_len + 3);
-        return xs;
+        clif_setwaitclose(sd->sess);
+        WARN_MALFORMED_MSG(sd, "remote command exploit attempt"_s);
+        return AString();
     }
-    return pbuf;
+
+    // Step beyond the separator. for older clients
+    if (type == ChatType::Global && sd->client_version < 6)
+        return buf.xslice_t(sd->status_key.name.to__actual().size() + 3);
+
+    // newer clients will not send the name
+    return buf;
 }
 
 /*==========================================

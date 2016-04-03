@@ -182,6 +182,27 @@ int battle_get_max_hp(dumb_ptr<block_list> bl)
     }
 }
 
+VString<23> battle_get_name(dumb_ptr<block_list> bl)
+{
+    VString<23> name;
+    nullpo_retr(name, bl);
+
+    switch (bl->bl_type)
+    {
+        case BL::PC:
+            name = bl->is_player()->status_key.name.to__actual();
+            break;
+        case BL::NPC:
+            name = bl->is_npc()->name;
+            break;
+        case BL::MOB:
+            name = bl->is_mob()->name;
+            break;
+    }
+
+    return name;
+}
+
 /*==========================================
  * 対象のStrを返す(汎用)
  * 戻りは整数で0以上
