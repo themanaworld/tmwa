@@ -5670,10 +5670,6 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
     if (sd->auto_ban_info.in_progress)
         return AString();
 
-    Session *s = sd->sess;
-    size_t name_len = sd->status_key.name.to__actual().size();
-    XString pbuf = buf;
-
     /*
      * The client attempted to exceed the maximum message length.
      *
@@ -5688,21 +5684,20 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
         return AString();
     }
 
-    if (type == ChatType::Global && sd->client_version < 6)
+    // ManaPlus remote command vulnerability fix
+    if (buf.contains_seq("@@="_s) && buf.contains('|'))
     {
-        XString p = pbuf;
-        if (!(p.startswith(sd->status_key.name.to__actual()) && p.xslice_t(name_len).startswith(" : "_s)))
-        {
-            /* Disallow malformed/spoofed messages. */
-            clif_setwaitclose(s);
-            WARN_MALFORMED_MSG(sd, "spoofed name/invalid format"_s);
-            return AString();
-        }
-        /* Step beyond the separator. */
-        XString xs = p.xslice_t(name_len + 3);
-        return xs;
+        clif_setwaitclose(sd->sess);
+        WARN_MALFORMED_MSG(sd, "remote command exploit attempt"_s);
+        return AString();
     }
-    return pbuf;
+
+    // Step beyond the separator. for older clients
+    if (type == ChatType::Global && sd->client_version < 6)
+        return buf.xslice_t(sd->status_key.name.to__actual().size() + 3);
+
+    // newer clients will not send the name
+    return buf;
 }
 
 /*==========================================
