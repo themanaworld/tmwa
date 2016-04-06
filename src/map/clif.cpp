@@ -3846,7 +3846,7 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
     }
 
     /* Send the message back to the speaker. */
-    send_packet_repeatonly<0x008e, 4, 1>(s, repeat);
+    send_packet_repeatonly<0x008e, 4, 1>(s, STRPRINTF("%s : %s"_fmt, battle_get_name(sd), mbuf));
 
     return rv;
 }
