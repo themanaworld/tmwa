@@ -1615,6 +1615,7 @@ ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
                 if (sd->bl_m == pl_sd->bl_m)
                 {
                     pl_sd->pvp_timer.cancel();
+                    clif_map_pvp(pl_sd);
                 }
             }
         }
@@ -1674,8 +1675,9 @@ ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
                 {
                     pl_sd->pvp_timer = Timer(gettick() + 200_ms,
                             std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl_id));
-                    pl_sd->pvp_rank = 0;
-                    pl_sd->pvp_point = 5;
+                    //pl_sd->pvp_rank = 0;
+                    //pl_sd->pvp_point = 5;
+                    clif_map_pvp(pl_sd);
                 }
             }
         }
