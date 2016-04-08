@@ -1,3 +1,7 @@
+v16.4.8
+  - fix pvpoff
+  - broadcast map pvp status on pvpon/pvpoff
+  - send nick to self in chat messages
 v16.4.3
   - add player nicks back to messages
   - prevent remote execution exploit (ManaPlus)
