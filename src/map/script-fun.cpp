@@ -2316,7 +2316,7 @@ void builtin_pvpoff(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str), return);
-    if (m->flag.get(MapFlag::PVP) && m->flag.get(MapFlag::NOPVP))
+    if (m->flag.get(MapFlag::PVP))
     {
         m->flag.set(MapFlag::PVP, 0);
 
