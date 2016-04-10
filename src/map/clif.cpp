@@ -3852,9 +3852,18 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         }
 
         /* It's not a spell/magic message, so send the message to others. */
+
         Buffer sendbuf;
         clif_message_sub(sendbuf, sd, mbuf);
-        clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC);
+
+        Buffer filteredBuf; // ManaPlus remote execution exploit prevention
+        XString filtered = mbuf;
+        if (mbuf.contains_seq("@@="_s) && mbuf.contains('|'))
+            filtered = "##B##3[##1Impossible to see this message. Please update your client.##3]"_s;
+        clif_message_sub(filteredBuf, sd, filtered);
+
+        clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC,
+            wrap<ClientVersion>(6), filteredBuf);
     }
 
     /* Send the message back to the speaker. */
@@ -5689,14 +5698,6 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
     if (buf.size() >= battle_config.chat_maxline)
     {
         WARN_MALFORMED_MSG(sd, "exceeded maximum message length"_s);
-        return AString();
-    }
-
-    // ManaPlus remote command vulnerability fix
-    if (buf.contains_seq("@@="_s) && buf.contains('|'))
-    {
-        clif_setwaitclose(sd->sess);
-        WARN_MALFORMED_MSG(sd, "remote command exploit attempt"_s);
         return AString();
     }
 
