@@ -62,6 +62,21 @@ namespace ints
         {
             return l._value < r._value;
         }
+        template<class W, typename=typename W::wrapped_type>
+        bool operator > (W l, W r)
+        {
+            return l._value > r._value;
+        }
+        template<class W, typename=typename W::wrapped_type>
+        bool operator <= (W l, W r)
+        {
+            return l._value <= r._value;
+        }
+        template<class W, typename=typename W::wrapped_type>
+        bool operator >= (W l, W r)
+        {
+            return l._value >= r._value;
+        }
 
         template<class T>
         struct Sub : T

@@ -99,7 +99,7 @@ struct char_session_data : SessionData
     AccountId account_id;
     int login_id1, login_id2;
     SEX sex;
-    unsigned short packet_client_version;
+    ClientVersion client_version;
     AccountEmail email;
 };
 } // namespace char_
@@ -1193,10 +1193,9 @@ void parse_tologin(Session *ls)
             case 0x2713:
             {
                 Packet_Fixed<0x2713> fixed;
-                rv = recv_fpacket<0x2713, 51>(ls, fixed);
+                rv = recv_fpacket<0x2713, 55>(ls, fixed);
                 if (rv != RecvResult::Complete)
                     break;
-
                 for (io::FD i : iter_fds())
                 {
                     AccountId acc = fixed.account_id;
@@ -1218,6 +1217,7 @@ void parse_tologin(Session *ls)
                             sd->email = stringish<AccountEmail>(fixed.email);
                             if (!e_mail_check(sd->email))
                                 sd->email = DEFAULT_EMAIL;
+                            sd->client_version = fixed.client_protocol_version;
                             // send characters to player
                             mmo_char_send006b(s2, sd);
                         }
@@ -1689,10 +1689,10 @@ void parse_frommap(Session *ms)
                         Packet_Payload<0x2afd> payload_fd; // not file descriptor
                         payload_fd.account_id = account_id;
                         payload_fd.login_id2 = afi.login_id2;
-                        payload_fd.packet_client_version = afi.packet_client_version;
+                        payload_fd.client_protocol_version = afi.client_version;
                         FPRINTF(stderr,
                                 "From queue index %zd: recalling packet version %d\n"_fmt,
-                                (&afi - &auth_fifo.front()), afi.packet_client_version);
+                                (&afi - &auth_fifo.front()), afi.client_version);
                         payload_fd.char_key = *ck;
                         payload_fd.char_data = *cd;
                         send_ppacket<0x2afd>(ms, payload_fd);
@@ -2178,7 +2178,7 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             auth_fifo_iter->delflag = 0;
             auth_fifo_iter->sex = sd->sex;
             auth_fifo_iter->ip = s->client_ip;
-            auth_fifo_iter->packet_client_version = sd->packet_client_version;
+            auth_fifo_iter->client_version = sd->client_version;
             auth_fifo_iter++;
         }
     }
@@ -2249,21 +2249,12 @@ void parse_char(Session *s)
                     sd->account_id = account_id;
                     sd->login_id1 = fixed.login_id1;
                     sd->login_id2 = fixed.login_id2;
-                    sd->packet_client_version = fixed.packet_client_version;
                     sd->sex = fixed.sex;
 
                     // formerly: send back account_id
                     Packet_Payload<0x8000> special;
                     special.magic_packet_length = 4;
                     send_ppacket<0x8000>(s, special);
-
-                    if(sd->packet_client_version < MIN_CLIENT_VERSION)
-                    {
-                        Packet_Fixed<0x006a> fixed_6a;
-                        fixed_6a.error_code = 5;
-                        send_fpacket<0x006a, 23>(s, fixed_6a);
-                        goto x65_out;
-                    }
 
                     // search authentification
                     for (AuthFifoEntry& afi : auth_fifo)
@@ -2285,9 +2276,7 @@ void parse_char(Session *s)
                                     fixed_16.account_id = sd->account_id;
                                     send_fpacket<0x2716, 6>(login_session, fixed_16);
                                 }
-                                // Record client version
-                                afi.packet_client_version =
-                                    sd->packet_client_version;
+
                                 // send characters to player
                                 mmo_char_send006b(s, sd);
                             }

@@ -114,6 +114,8 @@ bool extract(XString str, login::ACO *aco)
 }
 namespace login
 {
+#define VERSION_2_UPDATEHOST (1<<0)
+
 struct mmo_account
 {
     AccountName userid;
@@ -908,8 +910,9 @@ void parse_fromchar(Session *s)
                                     fixed_13.account_id = acc;
                                     fixed_13.invalid = 0;
                                     fixed_13.email = ad.email;
+                                    fixed_13.client_protocol_version = auth_fifo[i].client_version;
 
-                                    send_fpacket<0x2713, 51>(s, fixed_13);
+                                    send_fpacket<0x2713, 55>(s, fixed_13);
                                     break;
                                 }
                             }
@@ -928,7 +931,7 @@ void parse_fromchar(Session *s)
                         // fixed_13.email
                         // fixed_13.connect_until
 
-                        send_fpacket<0x2713, 51>(s, fixed_13);
+                        send_fpacket<0x2713, 55>(s, fixed_13);
                     }
                 }
                 break;
@@ -2441,7 +2444,7 @@ void parse_login(Session *s)
                 result = mmo_auth(&account, s);
                 if (result == -1)
                 {
-                    if (fixed.version < MIN_CLIENT_VERSION)
+                    if (fixed.client_protocol_version < wrap<ClientVersion>(MIN_CLIENT_VERSION))
                         result = 5; // client too old
                 }
                 if (result == -1)
@@ -2478,7 +2481,7 @@ void parse_login(Session *s)
                          *
                          * All supported clients now send both, so the check is removed.
                          */
-                        // if (version_2 & VERSION_2_UPDATEHOST)
+                        if (fixed.flags & VERSION_2_UPDATEHOST)
                         {
                             if (login_conf.update_host)
                             {
@@ -2488,7 +2491,7 @@ void parse_login(Session *s)
 
                         // Load list of char servers into outbound packet
                         std::vector<Packet_Repeat<0x0069>> repeat_69;
-                        // if (version_2 & VERSION_2_SERVERORDER)
+                        //if (fixed.flags & VERSION_2_SERVERORDER)
                         for (int i = 0; i < MAX_SERVERS; i++)
                         {
                             if (server_session[i])
@@ -2531,6 +2534,8 @@ void parse_login(Session *s)
                             auth_fifo[auth_fifo_pos].delflag = 0;
                             auth_fifo[auth_fifo_pos].ip =
                                 s->client_ip;
+                            auth_fifo[auth_fifo_pos].client_version =
+                                fixed.client_protocol_version;
                             auth_fifo_pos++;
                             // if no char-server, don't send void list of servers, just disconnect the player with proper message
                         }

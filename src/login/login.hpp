@@ -79,6 +79,7 @@ struct AuthFifo
     IP4Address ip;
     SEX sex;
     int delflag;
+    ClientVersion client_version;
 };
 } // namespace login
 } // namespace tmwa

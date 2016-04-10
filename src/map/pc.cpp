@@ -640,8 +640,8 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
  * char鯖から送られてきたステータスを設定
  *------------------------------------------
  */
-int pc_authok(AccountId id, int login_id2,
-        short client_version, const CharKey *st_key, const CharData *st_data)
+int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
+    const CharKey *st_key, const CharData *st_data)
 {
     dumb_ptr<map_session_data> sd = nullptr;
 
