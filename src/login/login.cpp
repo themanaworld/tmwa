@@ -118,6 +118,7 @@ struct mmo_account
 {
     AccountName userid;
     AccountPass passwd;
+    AccountEmail email;
     int passwdenc;
 
     AccountId account_id;
@@ -703,7 +704,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
 
     // Account creation with _M/_F
     if (account->passwdenc == 0
-        && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s))
+        && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s) || account->userid.endswith("_O"_s))
         && login_conf.new_account && account_id_count < END_ACCOUNT_NUM
         && (account->userid.size() - 2) >= 4 && account->passwd.size() >= 4)
     {
@@ -789,12 +790,14 @@ int mmo_auth(struct mmo_account *account, Session *s)
         }
         else
         {
-            AccountId new_id = mmo_auth_new(account, sex_from_char(new_account_sex), DEFAULT_EMAIL);
-            LOGIN_LOG("Account creation and authentification accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)\n"_fmt,
+            AccountId new_id = mmo_auth_new(account, sex_from_char(new_account_sex), account->email);
+            LOGIN_LOG("Account creation and authentification accepted (account %s (id: %d), email: %s sex: %c, Account Creation, ip: %s)\n"_fmt,
                     account->userid, new_id,
-                    new_account_sex, ip);
+                    account->email, new_account_sex, ip);
             ad = &auth_data.back();
         }
+
+        ad = &auth_data.back();
     }
 
     timestamp_milliseconds_buffer tmpstr;
@@ -2407,7 +2410,7 @@ void parse_login(Session *s)
             case 0x64:         // Ask connection of a client
             {
                 Packet_Fixed<0x0064> fixed;
-                rv = recv_fpacket<0x0064, 55>(s, fixed);
+                rv = recv_fpacket<0x0064, 95>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
@@ -2421,6 +2424,7 @@ void parse_login(Session *s)
 
                 account.userid = fixed.account_name;
                 account.passwd = fixed.account_pass;
+                account.email = fixed.email;
                 account.passwdenc = 0;
 
                 LOGIN_LOG("Request for connection (non encryption mode) of %s (ip: %s).\n"_fmt,
