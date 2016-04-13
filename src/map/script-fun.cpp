@@ -1161,7 +1161,7 @@ static
 void builtin_getversion(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);;
-    push_int<ScriptDataInt>(st->stack, sd->client_version);
+    push_int<ScriptDataInt>(st->stack, unwrap<ClientVersion>(sd->client_version));
 }
 
 /*==========================================

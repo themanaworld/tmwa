@@ -44,6 +44,7 @@ class PartyId;
 class ItemNameId;
 class BlockId;
 class GmLevel;
+class ClientVersion;
 
 class AccountName;
 class AccountPass;

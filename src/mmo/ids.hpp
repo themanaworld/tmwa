@@ -41,6 +41,7 @@ class ItemNameId : public Wrapped<uint16_t> { public: constexpr ItemNameId() : W
 
 class BlockId : public Wrapped<uint32_t> { public: constexpr BlockId() : Wrapped<uint32_t>() {} protected: constexpr explicit BlockId(uint32_t a) : Wrapped<uint32_t>(a) {} };
 class QuestId : public Wrapped<uint16_t> { public: constexpr QuestId() : Wrapped<uint16_t>() {} protected: constexpr explicit QuestId(uint16_t a) : Wrapped<uint16_t>(a) {} };
+class ClientVersion : public Wrapped<uint32_t>{ public: constexpr ClientVersion() : Wrapped<uint32_t>() {} protected: constexpr explicit ClientVersion(uint32_t a) : Wrapped<uint32_t>(a) {} };
 
 bool impl_extract(XString str, GmLevel *lvl);
 class GmLevel

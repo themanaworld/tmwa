@@ -217,7 +217,8 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
  */
 static
 void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
-        dumb_ptr<block_list> src_bl, SendWho type, short min_version)
+        dumb_ptr<block_list> src_bl, SendWho type, ClientVersion min_version,
+        const Buffer& elseBuf)
 {
     nullpo_retv(bl);
     dumb_ptr<map_session_data> sd = bl->is_player();
@@ -245,12 +246,10 @@ void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
 
     if (sd->sess != nullptr)
     {
-        {
-            if (sd->client_version >= min_version)
-            {
-                send_buffer(sd->sess, buf);
-            }
-        }
+        if (sd->client_version >= min_version)
+            send_buffer(sd->sess, buf);
+        else if (!elseBuf.bytes.empty())
+            send_buffer(sd->sess, elseBuf);
     }
 }
 
@@ -259,7 +258,7 @@ void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
  *------------------------------------------
  */
 static
-int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short min_version)
+int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, ClientVersion min_version, const Buffer& elseBuf)
 {
     int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
 
@@ -327,7 +326,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short mi
         {
             if (bl->bl_m != borrow(undefined_gat))
             {
-                map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, type, min_version),
+                map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, type, min_version, elseBuf),
                         bl->bl_m,
                         bl->bl_x - AREA_SIZE, bl->bl_y - AREA_SIZE,
                         bl->bl_x + AREA_SIZE, bl->bl_y + AREA_SIZE,
@@ -339,7 +338,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short mi
         {
             if (bl->bl_m != borrow(undefined_gat))
             {
-                map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, SendWho::AREA_CHAT_WOC, min_version),
+                map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, bl, SendWho::AREA_CHAT_WOC, min_version, elseBuf),
                         bl->bl_m,
                         bl->bl_x - (AREA_SIZE), bl->bl_y - (AREA_SIZE),
                         bl->bl_x + (AREA_SIZE), bl->bl_y + (AREA_SIZE),
@@ -392,9 +391,9 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short mi
                              sd->bl_x > x1 || sd->bl_y > y1))
                             continue;
                         if (sd->client_version >= min_version)
-                        {
                             send_buffer(sd->sess, buf);
-                        }
+                        else if (!elseBuf.bytes.empty())
+                            send_buffer(sd->sess, elseBuf);
                     }
                 }
                 for (io::FD i : iter_fds())
@@ -408,9 +407,9 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short mi
                         if (sd->partyspy == p.party_id)
                         {
                             if (sd->client_version >= min_version)
-                            {
                                 send_buffer(sd->sess, buf);
-                            }
+                            else if (!elseBuf.bytes.empty())
+                                send_buffer(sd->sess, elseBuf);
                         }
                     }
                 }
@@ -425,6 +424,8 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short mi
             {
                 if (sd->client_version >= min_version)
                     send_buffer(sd->sess, buf);
+                else if (!elseBuf.bytes.empty())
+                    send_buffer(sd->sess, elseBuf);
             }
         }
             break;
@@ -436,6 +437,19 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, short mi
     }
 
     return 0;
+}
+
+static
+int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, ClientVersion min_version)
+{
+    Buffer emptyBuf;
+    return clif_send(buf, bl, type, min_version, emptyBuf);
+}
+
+static
+int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type)
+{
+    return clif_send(buf, bl, type, wrap<ClientVersion>(MIN_CLIENT_VERSION));
 }
 
 //
@@ -542,7 +556,7 @@ int clif_dropflooritem(dumb_ptr<flooritem_data> fitem)
 
     Buffer buf;
     clif_set009e(fitem, buf);
-    clif_send(buf, fitem, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, fitem, SendWho::AREA);
 
     return 0;
 }
@@ -561,7 +575,7 @@ int clif_clearflooritem(dumb_ptr<flooritem_data> fitem, Session *s)
     if (!s)
     {
         Buffer buf = create_fpacket<0x00a1, 6>(fixed_a1);
-        clif_send(buf, fitem, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buf, fitem, SendWho::AREA);
     }
     else
     {
@@ -586,14 +600,14 @@ int clif_clearchar(dumb_ptr<block_list> bl, BeingRemoveWhy type)
     {
         fixed_80.type = BeingRemoveWhy::GONE;
         Buffer buf = create_fpacket<0x0080, 7>(fixed_80);
-        clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buf, bl, SendWho::AREA);
     }
     else
     {
         fixed_80.type = type;
         Buffer buf = create_fpacket<0x0080, 7>(fixed_80);
         clif_send(buf, bl,
-                   type == BeingRemoveWhy::DEAD ? SendWho::AREA : SendWho::AREA_WOS, MIN_CLIENT_VERSION);
+                   type == BeingRemoveWhy::DEAD ? SendWho::AREA : SendWho::AREA_WOS);
     }
 
     return 0;
@@ -814,8 +828,6 @@ void clif_npc_action(dumb_ptr<map_session_data> sd, BlockId npcid,
         short command, int id, short x, short y)
 {
     nullpo_retv(sd);
-    if(sd->client_version < 2)
-        return;
 
     Packet_Fixed<0x0212> fixed_212;
     fixed_212.npc_id = npcid;
@@ -825,7 +837,7 @@ void clif_npc_action(dumb_ptr<map_session_data> sd, BlockId npcid,
     fixed_212.y = y;
 
     Buffer buf = create_fpacket<0x0212, 16>(fixed_212);
-    send_buffer(sd->sess, buf);
+    clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(2));
 }
 
 /*==========================================
@@ -938,7 +950,7 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
     Buffer buf;
     clif_set0078_alt_1d9(sd, buf);
 
-    clif_send(buf, sd, SendWho::AREA_WOS, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::AREA_WOS);
 
     clif_pvpstatus(sd);
 
@@ -977,17 +989,17 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
     fixed_7c.pos.y = nd->bl_y;
 
     Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
-    clif_send(buf, nd, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, nd, SendWho::AREA);
     */
     Buffer buf;
     clif_npc0078(nd, buf);
-    clif_send(buf, nd, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, nd, SendWho::AREA);
 
     if(nd->sit == DamageType::SIT)
     {
         Buffer buff;
         clif_sitnpc_sub(buff, nd, nd->sit);
-        clif_send(buff, nd, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buff, nd, SendWho::AREA);
     }
 
     return 0;
@@ -1046,12 +1058,12 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
         fixed_7c.pos.x = md->bl_x;
         fixed_7c.pos.y = md->bl_y;
         Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
-        clif_send(buf, md, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buf, md, SendWho::AREA);
     }
 
     Buffer buf;
     clif_mob0078(md, buf);
-    clif_send(buf, md, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, md, SendWho::AREA);
 
     return 0;
 }
@@ -1105,7 +1117,7 @@ int clif_movechar(dumb_ptr<map_session_data> sd)
     Buffer buf;
     clif_set007b(sd, buf);
 
-    clif_send(buf, sd, SendWho::AREA_WOS, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::AREA_WOS);
 
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
         clif_changelook(sd, LOOK::CLOTHES_COLOR,
@@ -1200,7 +1212,7 @@ void clif_fixpos(dumb_ptr<block_list> bl)
     fixed_88.y = bl->bl_y;
 
     Buffer buf = create_fpacket<0x0088, 10>(fixed_88);
-    clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, bl, SendWho::AREA);
 }
 
 /*==========================================
@@ -1878,9 +1890,9 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
 
         Buffer buf = create_fpacket<0x01d7, 11>(fixed_1d7);
         if (dstsd)
-            clif_send(buf, dstsd, SendWho::SELF, MIN_CLIENT_VERSION);
+            clif_send(buf, dstsd, SendWho::SELF);
         else
-            clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+            clif_send(buf, bl, SendWho::AREA);
     }
     else
     {
@@ -1892,9 +1904,9 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
 
         Buffer buf = create_fpacket<0x01d7, 11>(fixed_1d7);
         if (dstsd)
-            clif_send(buf, dstsd, SendWho::SELF, MIN_CLIENT_VERSION);
+            clif_send(buf, dstsd, SendWho::SELF);
         else
-            clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+            clif_send(buf, bl, SendWho::AREA);
     }
     return 0;
 }
@@ -2058,7 +2070,7 @@ int clif_misceffect(dumb_ptr<block_list> bl, int type)
     fixed_19b.type = type;
     Buffer buf = create_fpacket<0x019b, 10>(fixed_19b);
 
-    clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, bl, SendWho::AREA);
 
     return 0;
 }
@@ -2071,7 +2083,7 @@ void clif_map_pvp(dumb_ptr<map_session_data> sd)
     fixed_199.status = sd->bl_m->flag.get(MapFlag::PVP)? 1: 0;
     Buffer buf = create_fpacket<0x0199, 4>(fixed_199);
 
-    clif_send(buf, sd, SendWho::SELF, 2);
+    clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(2));
 }
 
 static
@@ -2091,7 +2103,7 @@ void clif_pvpstatus(dumb_ptr<map_session_data> sd)
     nullpo_retv(sd);
     Buffer buf;
     clif_pvpstatus_towards(buf, sd);
-    clif_send(buf, sd, SendWho::AREA, 2);
+    clif_send(buf, sd, SendWho::AREA, wrap<ClientVersion>(2));
 }
 
 /*==========================================
@@ -2115,7 +2127,7 @@ int clif_changeoption(dumb_ptr<block_list> bl)
     fixed_119.zero = 0;
     Buffer buf = create_fpacket<0x0119, 13>(fixed_119);
 
-    clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, bl, SendWho::AREA);
 
     return 0;
 }
@@ -2147,7 +2159,7 @@ int clif_useitemack(dumb_ptr<map_session_data> sd, IOff0 index, int amount,
         fixed_1c8.amount = amount;
         fixed_1c8.ok = ok;
         Buffer buf = create_fpacket<0x01c8, 13>(fixed_1c8);
-        clif_send(buf, sd, SendWho::SELF, MIN_CLIENT_VERSION);
+        clif_send(buf, sd, SendWho::SELF);
     }
 
     return 0;
@@ -2404,7 +2416,7 @@ void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
 
     Buffer buff;
     clif_pvpstatus_towards(buff, dstsd);
-    clif_send(buff, sd, SendWho::SELF, 2);
+    clif_send(buff, sd, SendWho::SELF, wrap<ClientVersion>(2));
 
     if (battle_config.save_clothcolor == 1 && dstsd->status.clothes_color > 0)
         clif_changelook(dstsd, LOOK::CLOTHES_COLOR,
@@ -2452,18 +2464,19 @@ void clif_movemob_sub(dumb_ptr<block_list> sd_bl, dumb_ptr<mob_data> md)
     dumb_ptr<map_session_data> sd = sd_bl->is_player();
     Buffer buf;
 
-    if (sd->client_version < 3 || sd->client_version >= 4)
+    if (sd->client_version < wrap<ClientVersion>(3) ||
+        sd->client_version >= wrap<ClientVersion>(4))
         clif_mob007b(md, buf); // backward compatibility for old clients
     else
     {
         Buffer buf2;
         clif_mob0078(md, buf2);
-        clif_send(buf2, sd, SendWho::SELF, MIN_CLIENT_VERSION);
+        clif_send(buf2, sd, SendWho::SELF);
 
         clif_0225_being_move3(md, buf);
     }
 
-    clif_send(buf, sd, SendWho::SELF, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::SELF);
 }
 
 int clif_movemob(dumb_ptr<mob_data> md)
@@ -2495,7 +2508,7 @@ int clif_fixmobpos(dumb_ptr<mob_data> md)
     {
         Buffer buf;
         clif_mob0078(md, buf);
-        clif_send(buf, md, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buf, md, SendWho::AREA);
     }
 
     return 0;
@@ -2513,13 +2526,13 @@ int clif_fixpcpos(dumb_ptr<map_session_data> sd)
     {
         Buffer buf;
         clif_set007b(sd, buf);
-        clif_send(buf, sd, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buf, sd, SendWho::AREA);
     }
     else
     {
         Buffer buf;
         clif_set0078_main_1d8(sd, buf);
-        clif_send(buf, sd, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buf, sd, SendWho::AREA);
     }
     clif_changelook_accessories(sd, nullptr);
 
@@ -2552,7 +2565,7 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
     fixed_8a.damage_type = type;
     fixed_8a.damage2 = 0;
     Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
-    clif_send(buf, src, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, src, SendWho::AREA);
 
     return 0;
 }
@@ -2872,7 +2885,7 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
     fixed_1de.div = div;
     fixed_1de.type_or_hit = (type > 0) ? type : skill_get_hit(skill_id);
     Buffer buf = create_fpacket<0x01de, 33>(fixed_1de);
-    clif_send(buf, src, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, src, SendWho::AREA);
 
     return 0;
 }
@@ -2890,7 +2903,7 @@ int clif_status_change(dumb_ptr<block_list> bl, StatusChange type, int flag)
     fixed_196.block_id = bl->bl_id;
     fixed_196.flag = flag;
     Buffer buf = create_fpacket<0x0196, 9>(fixed_196);
-    clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, bl, SendWho::AREA);
     return 0;
 }
 
@@ -2920,7 +2933,7 @@ void clif_GMmessage(dumb_ptr<block_list> bl, XString mes, int flag)
                (flag == 1) ? SendWho::ALL_SAMEMAP :
                (flag == 2) ? SendWho::AREA :
                (flag == 3) ? SendWho::SELF :
-               SendWho::ALL_CLIENT, MIN_CLIENT_VERSION);
+               SendWho::ALL_CLIENT);
 }
 
 /*==========================================
@@ -2937,7 +2950,7 @@ void clif_resurrection(dumb_ptr<block_list> bl, int type)
     Buffer buf = create_fpacket<0x0148, 8>(fixed_148);
 
     clif_send(buf, bl,
-            type == 1 ? SendWho::AREA : SendWho::AREA_WOS, MIN_CLIENT_VERSION);
+            type == 1 ? SendWho::AREA : SendWho::AREA_WOS);
 }
 
 /*==========================================
@@ -3024,7 +3037,7 @@ int clif_party_info(PartyPair p, Session *s)
     if (sd != nullptr)
     {
         Buffer buf = create_vpacket<0x00fb, 28, 46>(head_fb, repeat_fb);
-        clif_send(buf, sd, SendWho::PARTY, MIN_CLIENT_VERSION);
+        clif_send(buf, sd, SendWho::PARTY);
     }
     return 0;
 }
@@ -3101,7 +3114,7 @@ void clif_party_option(PartyPair p, dumb_ptr<map_session_data> sd, int flag)
     if (flag == 0)
     {
         Buffer buf = create_fpacket<0x0101, 6>(fixed_101);
-        clif_send(buf, sd, SendWho::PARTY, MIN_CLIENT_VERSION);
+        clif_send(buf, sd, SendWho::PARTY);
     }
     else
     {
@@ -3135,7 +3148,7 @@ void clif_party_leaved(PartyPair p, dumb_ptr<map_session_data> sd,
         if (sd != nullptr)
         {
             Buffer buf = create_fpacket<0x0105, 31>(fixed_105);
-            clif_send(buf, sd, SendWho::PARTY, MIN_CLIENT_VERSION);
+            clif_send(buf, sd, SendWho::PARTY);
         }
     }
     else if (sd != nullptr)
@@ -3165,7 +3178,7 @@ void clif_party_message(PartyPair p, AccountId account_id, XString mes)
         Packet_Head<0x0109> head_109;
         head_109.account_id = account_id;
         Buffer buf = create_vpacket<0x0109, 8, 1>(head_109, mes);
-        clif_send(buf, sd, SendWho::PARTY, MIN_CLIENT_VERSION);
+        clif_send(buf, sd, SendWho::PARTY);
     }
 }
 
@@ -3182,7 +3195,7 @@ int clif_party_xy(PartyPair , dumb_ptr<map_session_data> sd)
     fixed_107.x = sd->bl_x;
     fixed_107.y = sd->bl_y;
     Buffer buf = create_fpacket<0x0107, 10>(fixed_107);
-    clif_send(buf, sd, SendWho::PARTY_SAMEMAP_WOS, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::PARTY_SAMEMAP_WOS);
     return 0;
 }
 
@@ -3200,7 +3213,7 @@ int clif_party_hp(PartyPair , dumb_ptr<map_session_data> sd)
     fixed_106.max_hp =
         (sd->status.max_hp > 0x7fff) ? 0x7fff : sd->status.max_hp;
     Buffer buf = create_fpacket<0x0106, 10>(fixed_106);
-    clif_send(buf, sd, SendWho::PARTY_AREA_WOS, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::PARTY_AREA_WOS);
     return 0;
 }
 
@@ -3237,7 +3250,7 @@ void clif_emotion(dumb_ptr<block_list> bl, int type)
     fixed_c0.block_id = bl->bl_id;
     fixed_c0.type = type;
     Buffer buf = create_fpacket<0x00c0, 7>(fixed_c0);
-    clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, bl, SendWho::AREA);
 }
 
 void clif_emotion_towards(dumb_ptr<block_list> bl,
@@ -3270,7 +3283,7 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
     fixed_8a.src_id = sd->bl_id;
     fixed_8a.damage_type = DamageType::SIT;
     Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
-    clif_send(buf, sd, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::AREA);
 }
 
 static
@@ -3294,7 +3307,7 @@ void clif_sitnpc_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd, D
 
     Buffer buf;
     clif_sitnpc_sub(buf, nd, dmg);
-    clif_send(buf, sd, SendWho::SELF, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::SELF);
 }
 
 void clif_sitnpc(dumb_ptr<npc_data> nd, DamageType dmg)
@@ -3303,7 +3316,7 @@ void clif_sitnpc(dumb_ptr<npc_data> nd, DamageType dmg)
 
     Buffer buf;
     clif_sitnpc_sub(buf, nd, dmg);
-    clif_send(buf, nd, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, nd, SendWho::AREA);
 }
 
 static
@@ -3340,7 +3353,7 @@ void clif_setnpcdirection_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_da
 
     Buffer buf;
     clif_setnpcdirection_sub(buf, nd, direction);
-    clif_send(buf, sd, SendWho::SELF, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::SELF);
 }
 
 void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction)
@@ -3349,7 +3362,7 @@ void clif_setnpcdirection(dumb_ptr<npc_data> nd, DIR direction)
 
     Buffer buf;
     clif_setnpcdirection_sub(buf, nd, direction);
-    clif_send(buf, nd, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, nd, SendWho::AREA);
 }
 
 /*==========================================
@@ -3408,9 +3421,9 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
         }
     }
     else if (flag == 1)
-        clif_send(buf, bl, SendWho::SELF, MIN_CLIENT_VERSION);
+        clif_send(buf, bl, SendWho::SELF);
     else if (!flag)
-        clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buf, bl, SendWho::AREA);
 
     return 0;
 
@@ -3839,10 +3852,18 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         }
 
         /* It's not a spell/magic message, so send the message to others. */
+
         Buffer sendbuf;
         clif_message_sub(sendbuf, sd, mbuf);
 
-        clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC, MIN_CLIENT_VERSION);
+        Buffer filteredBuf; // ManaPlus remote execution exploit prevention
+        XString filtered = mbuf;
+        if (mbuf.contains_seq("@@="_s) && mbuf.contains('|'))
+            filtered = "##B##3[##1Impossible to see this message. Please update your client.##3]"_s;
+        clif_message_sub(filteredBuf, sd, filtered);
+
+        clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC,
+            wrap<ClientVersion>(6), filteredBuf);
     }
 
     /* Send the message back to the speaker. */
@@ -3868,8 +3889,6 @@ void clif_npc_send_title(Session *s, BlockId npcid, XString msg)
 void clif_change_music(dumb_ptr<map_session_data> sd, XString music)
 {
     nullpo_retv(sd);
-    if(sd->client_version < 2)
-        return;
 
     size_t msg_len = music.size();
     if (msg_len > 128)
@@ -3878,7 +3897,7 @@ void clif_change_music(dumb_ptr<map_session_data> sd, XString music)
     Packet_Head<0x0227> head_227;
     Buffer buf = create_vpacket<0x0227, 4, 1>(head_227, music);
 
-    send_buffer(sd->sess, buf);
+    clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(2));
 }
 
 void clif_message_towards(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl, XString msg)
@@ -3891,7 +3910,7 @@ void clif_message_towards(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl
 
     Buffer buf;
     clif_message_sub(buf, bl, msg);
-    clif_send(buf, sd, SendWho::SELF, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::SELF);
 }
 
 void clif_message(dumb_ptr<block_list> bl, XString msg)
@@ -3900,20 +3919,18 @@ void clif_message(dumb_ptr<block_list> bl, XString msg)
 
     Buffer buf;
     clif_message_sub(buf, bl, msg);
-    clif_send(buf, bl, SendWho::AREA, MIN_CLIENT_VERSION);
+    clif_send(buf, bl, SendWho::AREA);
 }
 
 void clif_send_mask(dumb_ptr<map_session_data> sd, int map_mask)
 {
     nullpo_retv(sd);
-    if(sd->client_version < 2)
-        return;
 
     Packet_Fixed<0x0226> fixed_226;
     fixed_226.mask = map_mask;
 
     Buffer buf = create_fpacket<0x0226, 10>(fixed_226);
-    send_buffer(sd->sess, buf);
+    clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(2));
 }
 
 /*==========================================
@@ -3957,7 +3974,7 @@ RecvResult clif_parse_ChangeDir(Session *s, dumb_ptr<map_session_data> sd)
     fixed_9c.client_dir = client_dir;
     Buffer buf = create_fpacket<0x009c, 9>(fixed_9c);
 
-    clif_send(buf, sd, SendWho::AREA_WOS, MIN_CLIENT_VERSION);
+    clif_send(buf, sd, SendWho::AREA_WOS);
 
     return rv;
 }
@@ -3982,7 +3999,7 @@ RecvResult clif_parse_Emotion(Session *s, dumb_ptr<map_session_data> sd)
         fixed_c0.block_id = sd->bl_id;
         fixed_c0.type = emote;
         Buffer buf = create_fpacket<0x00c0, 7>(fixed_c0);
-        clif_send(buf, sd, SendWho::AREA, MIN_CLIENT_VERSION);
+        clif_send(buf, sd, SendWho::AREA);
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 1);
@@ -4053,7 +4070,7 @@ RecvResult clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
             fixed_8a.src_id = sd->bl_id;
             fixed_8a.damage_type = DamageType::STAND;
             Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
-            clif_send(buf, sd, SendWho::AREA, MIN_CLIENT_VERSION);
+            clif_send(buf, sd, SendWho::AREA);
             break;
     }
 
@@ -4951,7 +4968,7 @@ void clif_sendallquest(dumb_ptr<map_session_data> sd)
     if (!sd->sess)
         return;
 
-    if(sd->client_version < 2) // require 1.5.5.9 or above
+    if(sd->client_version < wrap<ClientVersion>(2)) // require 1.5.5.9 or above
         return;
 
     Session *s = sd->sess;
@@ -4988,7 +5005,7 @@ void clif_sendquest(dumb_ptr<map_session_data> sd, QuestId questid, int value)
     if (!sd->sess)
         return;
 
-    if(sd->client_version < 2) // require 1.5.5.9 or above
+    if(sd->client_version < wrap<ClientVersion>(2)) // require 1.5.5.9 or above
         return;
 
     Session *s = sd->sess;
@@ -5684,16 +5701,8 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
         return AString();
     }
 
-    // ManaPlus remote command vulnerability fix
-    if (buf.contains_seq("@@="_s) && buf.contains('|'))
-    {
-        clif_setwaitclose(sd->sess);
-        WARN_MALFORMED_MSG(sd, "remote command exploit attempt"_s);
-        return AString();
-    }
-
     // Step beyond the separator. for older clients
-    if (type == ChatType::Global && sd->client_version < 6)
+    if (type == ChatType::Global && sd->client_version < wrap<ClientVersion>(6))
         return buf.xslice_t(sd->status_key.name.to__actual().size() + 3);
 
     // newer clients will not send the name

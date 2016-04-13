@@ -320,6 +320,12 @@ class NativeType(LowType):
     def a_tag(self):
         return self.name
 
+    def native_tag(self):
+        return self.name
+
+    def network_tag(self):
+        return self.name
+
 class NetworkType(LowType):
     __slots__ = ('name')
 
@@ -1419,6 +1425,7 @@ def build_context():
     ItemNameId = ids_h.native('ItemNameId')
     BlockId = ids_h.native('BlockId')
     GmLevel = ids_h.native('GmLevel')
+    ClientVersion = ids_h.native('ClientVersion')
 
     party_member = consts_h.native('PartyMember')
 
@@ -1524,6 +1531,7 @@ def build_context():
 
     species = ctx.wrap(Species, u16)
     account_id = ctx.wrap(AccountId, u32)
+    client_version = ctx.wrap(ClientVersion, u32)
     char_id = ctx.wrap(CharId, u32)
     party_id = ctx.wrap(PartyId, u32)
     item_name_id = ctx.wrap(ItemNameId, u16)
@@ -1958,10 +1966,10 @@ def build_context():
         define='CMSG_LOGIN_REGISTER',
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, u32, 'unknown'),
+            at(2, client_version, 'client protocol version'),
             at(6, account_name, 'account name'),
             at(30, account_pass, 'account pass'),
-            at(54, u8, 'version'),
+            at(54, u8, 'flags'),
         ],
         fixed_size=55,
         pre=[HUMAN, 0x7531],
@@ -1979,7 +1987,7 @@ def build_context():
             at(2, account_id, 'account id'),
             at(6, u32, 'login id1'),
             at(10, u32, 'login id2'),
-            at(14, u16, 'packet client version'),
+            at(14, u16, 'unused client protocol version'),
             at(16, sex, 'sex'),
         ],
         fixed_size=17,
@@ -4811,8 +4819,9 @@ def build_context():
             at(6, u8, 'invalid'),
             at(7, account_email, 'email'),
             at(47, time32, 'unused connect until'),
+            at(51, client_version, 'client protocol version'),
         ],
-        fixed_size=51,
+        fixed_size=55,
         pre=[0x2712],
         post=[0x006b, 0x006c],
         desc='''
@@ -5201,8 +5210,8 @@ def build_context():
             at(4, account_id, 'account id'),
             at(8, u32, 'login id2'),
             at(12, time32, 'unused connect until'),
-            at(16, u16, 'packet client version'),
-            at(18, char_key, 'char key'),
+            at(16, client_version, 'client protocol version'),
+            at(20, char_key, 'char key'),
             at(None, char_data, 'char data'),
         ],
         payload_size=None,
@@ -5407,7 +5416,7 @@ def build_context():
             at(6, sex, 'sex'),
         ],
         fixed_size=7,
-        pre=[NOTHING],
+        pre=[0x2723],
         post=[0x00ac, 0x01d7, 0x2b01, 0x3011],
         xpost=[SCRIPT, 0x0080, 0x0081, 0x0088, 0x0091, 0x00a0, 0x00b0, 0x00b1, 0x00be, 0x00c0, 0x00e9, 0x00ee, 0x00fd, 0x0106, 0x010f, 0x0119, 0x013a, 0x0141, 0x0196, 0x01b1, 0x01d8, 0x01da, 0x2b05, 0x3022],
         desc='''
