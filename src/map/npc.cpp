@@ -121,26 +121,25 @@ int npc_enable(NpcName name, bool flag)
     {                           // 有効化
         nd->flag &= ~1;
         clif_spawnnpc(nd);
+        int xs = 0, ys = 0;
+        if (dumb_ptr<npc_data_script> nd_ = nd->is_script())
+        {
+            xs = nd_->scr.xs;
+            ys = nd_->scr.ys;
+        }
+
+        if (flag && (xs > 0 || ys > 0))
+            map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
+                    nd->bl_m,
+                    nd->bl_x - xs, nd->bl_y - ys,
+                    nd->bl_x + xs, nd->bl_y + ys,
+                    BL::PC);
     }
-    else
+    else if (!(nd->flag & 1))
     {                           // 無効化
-        nd->flag |= 1;
         clif_clearchar(nd, BeingRemoveWhy::GONE);
+        nd->flag |= 1;
     }
-
-    int xs = 0, ys = 0;
-    if (dumb_ptr<npc_data_script> nd_ = nd->is_script())
-    {
-        xs = nd_->scr.xs;
-        ys = nd_->scr.ys;
-    }
-
-    if (flag && (xs > 0 || ys > 0))
-        map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
-                nd->bl_m,
-                nd->bl_x - xs, nd->bl_y - ys,
-                nd->bl_x + xs, nd->bl_y + ys,
-                BL::PC);
 
     return 0;
 }
