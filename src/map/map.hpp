@@ -145,7 +145,6 @@ struct map_session_data : block_list, SessionData
         unsigned shroud_hides_name_talking:1;
         unsigned shroud_disappears_on_pickup:1;
         unsigned shroud_disappears_on_talk:1;
-        unsigned seen_motd:1;
         unsigned pvpchannel;
         unsigned pvp_rank;
         unsigned npc_dialog_mes:1;

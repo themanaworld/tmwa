@@ -3504,21 +3504,10 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     //clif_authok();
     if (sd->npc_id)
         npc_event_dequeue(sd);
-    clif_skillinfoblock(sd);
-    pc_checkitem(sd);
     //guild_info();
 
     // loadendack時
     // next exp
-    clif_updatestatus(sd, SP::NEXTBASEEXP);
-    clif_updatestatus(sd, SP::NEXTJOBEXP);
-    // skill point
-    clif_updatestatus(sd, SP::SKILLPOINT);
-    // item
-    clif_itemlist(sd);
-    clif_equiplist(sd);
-    // param all
-    clif_initialstatus(sd);
     // party
     party_send_movemap(sd);
     // 119
@@ -3532,14 +3521,11 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     map_addblock(sd);     // ブロック登録
     clif_spawnpc(sd);          // spawn
 
-    clif_map_pvp(sd); // send map pvp status
-
-    // weight max , now
-    clif_updatestatus(sd, SP::MAXWEIGHT);
-    clif_updatestatus(sd, SP::WEIGHT);
+    if (sd->bl_m->flag.get(MapFlag::PVP))
+        clif_map_pvp(sd); // send map pvp status
 
     // pvp
-    if (!battle_config.pk_mode)
+    /*if (!battle_config.pk_mode)
         sd->pvp_timer.cancel();
 
     if (sd->bl_m->flag.get(MapFlag::PVP))
@@ -3557,18 +3543,13 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     else
     {
         // sd->pvp_timer = nullptr;
-    }
-
-    sd->state.connect_new = 0;
+    }*/
 
     // view equipment item
-    clif_changelook(sd, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::NONE));
-    if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
-        clif_changelook(sd, LOOK::CLOTHES_COLOR,
-                         sd->status.clothes_color);
+    //if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
+    //    clif_changelook(sd, LOOK::CLOTHES_COLOR,
+    //                     sd->status.clothes_color);
 
-    // option
-    clif_changeoption(sd);
     // broken equipment
 
 //        clif_changelook_accessories(sd, nullptr);
@@ -3579,8 +3560,25 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
             sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
             BL::NUL);
 
-    if (!sd->state.seen_motd)
-        pc_show_motd(sd);
+    if (!sd->state.connect_new)
+        return rv;
+
+    // all the code below is only executed once, on login
+    pc_show_motd(sd);
+    clif_skillinfoblock(sd);
+    pc_checkitem(sd);
+    clif_updatestatus(sd, SP::NEXTBASEEXP);
+    clif_updatestatus(sd, SP::NEXTJOBEXP);
+    clif_updatestatus(sd, SP::SKILLPOINT);
+    clif_itemlist(sd);
+    clif_equiplist(sd);
+    clif_initialstatus(sd);
+    clif_changeoption(sd);
+    clif_changelook(sd, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::NONE));
+    clif_updatestatus(sd, SP::MAXWEIGHT);
+    clif_updatestatus(sd, SP::WEIGHT);
+    npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
+    sd->state.connect_new = 0;
 
     return rv;
 }
