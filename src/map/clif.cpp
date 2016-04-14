@@ -3886,6 +3886,26 @@ void clif_npc_send_title(Session *s, BlockId npcid, XString msg)
     send_buffer(s, buf);
 }
 
+void clif_server_message(dumb_ptr<map_session_data> sd, uint8_t type, XString msg)
+{
+    nullpo_retv(sd);
+
+    size_t msg_len = msg.size() + 8;
+    if (msg_len > 512)
+        return;
+
+    // for newer clients
+    Packet_Head<0x0229> head_229;
+    head_229.message_type = type;
+    Buffer buf = create_vpacket<0x0229, 5, 1>(head_229, msg);
+
+    // falback for older clients
+    Packet_Head<0x008d> head_8d;
+    Buffer altbuf = create_vpacket<0x008d, 8, 1>(head_8d, msg);
+
+    clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(5), altbuf);
+}
+
 void clif_change_music(dumb_ptr<map_session_data> sd, XString music)
 {
     nullpo_retv(sd);

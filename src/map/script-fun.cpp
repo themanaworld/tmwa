@@ -2950,6 +2950,28 @@ void builtin_title(ScriptState *st)
 }
 
 static
+void builtin_smsg(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (HARG(2))
+    {
+        CharName player = stringish<CharName>(ZString(conv_str(st, &AARG(2))));
+        sd = map_nick2sd(player);
+        if (sd == nullptr)
+            return;
+    }
+
+    int type = HARG(1) ? conv_num(st, &AARG(0)) : 0;
+    ZString msg = ZString(conv_str(st, (HARG(1) ? &AARG(1) : &AARG(0))));
+    if (sd == nullptr)
+        return;
+    if (type < 0 || type > 0xFF)
+        type = 0;
+
+    clif_server_message(sd, type, msg);
+}
+
+static
 void builtin_music(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
@@ -3490,6 +3512,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "ss?"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
+    BUILTIN(smsg, "e??"_s, '\0'),
     BUILTIN(music, "s"_s, '\0'),
     BUILTIN(mapmask, "i?"_s, '\0'),
     BUILTIN(getmask, ""_s, 'i'),
