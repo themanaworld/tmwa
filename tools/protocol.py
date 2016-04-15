@@ -4761,6 +4761,41 @@ def build_context():
             Change npc title
         ''',
     )
+    map_user.s(0x0229, 'script message',
+        define='SMSG_SCRIPT_MESSAGE',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, u8, 'message type'),
+        ],
+        head_size=5,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send server message
+        ''',
+    )
+    map_user.s(0x0230, 'remote client command',
+        define='SMSG_PLAYER_CLIENT_COMMAND',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Execute a client command remotely
+        ''',
+    )
 
     # TOC_LOGINCHAR
     # login char
