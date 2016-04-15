@@ -3906,6 +3906,20 @@ void clif_server_message(dumb_ptr<map_session_data> sd, uint8_t type, XString ms
     clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(5), altbuf);
 }
 
+void clif_remote_command(dumb_ptr<map_session_data> sd, XString cmd)
+{
+    nullpo_retv(sd);
+
+    size_t msg_len = cmd.size() + 4;
+    if (msg_len > 512)
+        return;
+
+    Packet_Head<0x0230> head_230;
+    Buffer buf = create_vpacket<0x0230, 4, 1>(head_230, cmd);
+
+    clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(6));
+}
+
 void clif_change_music(dumb_ptr<map_session_data> sd, XString music)
 {
     nullpo_retv(sd);

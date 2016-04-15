@@ -4779,6 +4779,23 @@ def build_context():
             Send server message
         ''',
     )
+    map_user.s(0x0230, 'remote client command',
+        define='SMSG_PLAYER_CLIENT_COMMAND',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'c'),
+        ],
+        repeat_size=1,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Execute a client command remotely
+        ''',
+    )
 
     # TOC_LOGINCHAR
     # login char
