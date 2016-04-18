@@ -3482,8 +3482,8 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::INT:
         case SP::DEX:
         case SP::LUK:
-            if (bl && bl->bl_type == BL::PC)
-                val = bl->is_player()->status.attrs[sp_to_attr(type)];
+            if (sd)
+                val = sd->status.attrs[sp_to_attr(type)];
             else
                 val = battle_get_stat(type, bl);
             break;
@@ -3530,10 +3530,10 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             val = sd ? unwrap<CharId>(sd->status_key.char_id) : 0;
             break;
         case SP::ELTLVL:
-            val = static_cast<int>(battle_get_element(sd).level);
+            val = static_cast<int>(battle_get_element(bl).level);
             break;
         case SP::ELTTYPE:
-            val = static_cast<int>(battle_get_element(sd).element);
+            val = static_cast<int>(battle_get_element(bl).element);
             break;
     }
 
