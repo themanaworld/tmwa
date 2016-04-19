@@ -54,7 +54,6 @@
 #include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
-#include "magic-stmt.hpp"
 #include "map.hpp"
 #include "map_conf.hpp"
 #include "npc.hpp"
@@ -635,6 +634,51 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
     return 1;
 }
 
+void pc_set_weapon_icon(dumb_ptr<map_session_data> sd, int count,
+        StatusChange icon, ItemNameId look)
+{
+    const StatusChange old_icon = sd->attack_spell_icon_override;
+
+    sd->attack_spell_icon_override = icon;
+    sd->attack_spell_look_override = look;
+
+    if (old_icon != StatusChange::ZERO && old_icon != icon)
+        clif_status_change(sd, old_icon, 0);
+
+    clif_fixpcpos(sd);
+    if (count)
+    {
+        clif_changelook(sd, LOOK::WEAPON, unwrap<ItemNameId>(look));
+        if (icon != StatusChange::ZERO)
+            clif_status_change(sd, icon, 1);
+    }
+    else
+    {
+        /* Set it to `normal' */
+        clif_changelook(sd, LOOK::WEAPON,
+                static_cast<uint16_t>(sd->status.weapon));
+    }
+}
+
+void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int range)
+{
+    sd->attack_spell_delay = speed;
+    sd->attack_spell_range = range;
+
+    if (speed == interval_t::zero())
+    {
+        pc_calcstatus(sd, 1);
+        clif_updatestatus(sd, SP::ASPD);
+        clif_updatestatus(sd, SP::ATTACKRANGE);
+    }
+    else
+    {
+        sd->aspd = speed;
+        clif_updatestatus(sd, SP::ASPD);
+        clif_updatestatus(sd, SP::ATTACKRANGE);
+    }
+}
+
 /*==========================================
  * session idに問題無し
  * char鯖から送られてきたステータスを設定
@@ -697,7 +741,7 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     // The above is no longer accurate now that we use <chrono>, but
     // I'm still not reverting this.
     // -o11c
-    sd->cast_tick = tick; // + pc_readglobalreg (sd, "MAGIC_CAST_TICK"_s);
+    //sd->cast_tick = tick; // + pc_readglobalreg (sd, "MAGIC_CAST_TICK"_s);
 
     // アカウント変数の送信要求
     intif_request_accountreg(sd);
@@ -806,10 +850,7 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
     // If you remove the sending of this message,
     // the license does not permit you to publicly use this software.
 
-    clif_displaymessage(sd->sess, "Server : ##7This server is Free Software, for details type @source in chat or use the tmwa-source tool"_s);
-    npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
-
-    sd->state.seen_motd = true;
+    clif_displaymessage(sd->sess, "Server : ##7This server is Free Software, for details type @source in chat."_s);
 }
 
 /*==========================================
@@ -2413,9 +2454,7 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
             }
         }
 
-        if (bool(map_getcell(sd->bl_m, x, y) & MapCell::NPC_NEAR))
-            npc_touch_areanpc(sd, sd->bl_m, x, y);
-        else
+        if (npc_touch_areanpc(sd, sd->bl_m, x, y) != 2)
             sd->areanpc_id = BlockId();
     }
     interval_t i = calc_next_walk_step(sd);
@@ -2519,9 +2558,7 @@ int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
 
 void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd)
 {
-    if (bool(map_getcell(sd->bl_m, sd->bl_x, sd->bl_y) & MapCell::NPC_NEAR))
-        npc_touch_areanpc(sd, sd->bl_m, sd->bl_x, sd->bl_y);
-    else
+    if (npc_touch_areanpc(sd, sd->bl_m, sd->bl_x, sd->bl_y) != 2)
         sd->areanpc_id = BlockId();
 }
 
@@ -2608,13 +2645,23 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     if (sd->attackabletime > tick)
         return;               // cannot attack yet
 
-    interval_t attack_spell_delay = sd->attack_spell_delay;
-    if (sd->attack_spell_override   // [Fate] If we have an active attack spell, use that
-        && magic::spell_attack(id, sd->attacktarget))
+    if (sd->attack_spell_override)   // [Fate] If we have an active attack spell, use that
     {
-        // Return if the spell succeeded.  If the spell had disspiated, spell_attack() may fail.
-        sd->attackabletime = tick + attack_spell_delay;
-
+        // call_spell_event_script
+        argrec_t arg[1] =
+        {
+            {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
+        };
+        npc_event_do_l(sd->magic_attack, sd->bl_id, arg);
+        sd->attackabletime = tick + sd->attack_spell_delay;
+        sd->attack_spell_charges--;
+        if (!sd->attack_spell_charges)
+        {
+            sd->attack_spell_override = BlockId();
+            pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
+            pc_set_attack_info(sd, interval_t::zero(), 0);
+            pc_calcstatus(sd, 0);
+        }
     }
     else
     {
@@ -2681,7 +2728,8 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
 
     if (bl->bl_type == BL::NPC)
     {                           // monster npcs [Valaris]
-        npc_click(sd, target_id);
+        if (battle_get_class(bl) != INVISIBLE_CLASS && !pc_isdead(sd))
+            npc_click(sd, target_id);
         return 0;
     }
 
@@ -3217,8 +3265,8 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     clif_updatestatus(sd, SP::HP);
     pc_calcstatus(sd, 0);
     // [Fate] Reset magic
-    sd->cast_tick = gettick();
-    magic::magic_stop_completely(sd);
+    //sd->cast_tick = gettick();
+    //magic_stop_completely(sd);
 
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {
@@ -3302,13 +3350,10 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     if (src && src->bl_type == BL::PC)
     {
         // [Fate] PK death, trigger scripts
-        argrec_t arg[3] =
+        argrec_t arg[1] =
         {
-            {"@killerrid"_s, static_cast<int32_t>(unwrap<BlockId>(src->bl_id))},
             {"@victimrid"_s, static_cast<int32_t>(unwrap<BlockId>(sd->bl_id))},
-            {"@victimlvl"_s, sd->status.base_level},
         };
-        npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"_s), sd->bl_id, arg);
         npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"_s), src->bl_id, arg);
 
         sd->state.pvp_rank = 0;
@@ -3328,64 +3373,108 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
  * script用PCステータス読み出し
  *------------------------------------------
  */
-int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
+int pc_readparam(dumb_ptr<block_list> bl, SP type)
 {
+    nullpo_retz(bl);
+    dumb_ptr<map_session_data> sd;
+    dumb_ptr<npc_data> nd;
+    dumb_ptr<mob_data> md;
     int val = 0;
 
-    nullpo_retz(sd);
+    if (bl->bl_type == BL::PC)
+        sd = bl->is_player();
+    else if (bl->bl_type == BL::MOB)
+        md = bl->is_mob();
+    else if (bl->bl_type == BL::NPC)
+        nd = bl->is_npc();
+    else
+        return val;
 
     switch (type)
     {
         case SP::SKILLPOINT:
-            val = sd->status.skill_point;
+            val = sd ? sd->status.skill_point : 0;
             break;
         case SP::STATUSPOINT:
-            val = sd->status.status_point;
+            val = sd ? sd->status.status_point : 0;
             break;
         case SP::ZENY:
-            val = sd->status.zeny;
+            val = sd ? sd->status.zeny : 0;
             break;
         case SP::BASELEVEL:
-            val = sd->status.base_level;
+            val = battle_get_lv(bl);
             break;
         case SP::JOBLEVEL:
-            val = sd->status.job_level;
+            val = sd ? sd->status.job_level : 0;
             break;
         case SP::CLASS:
-            val = unwrap<Species>(sd->status.species);
+            val = unwrap<Species>(battle_get_class(bl));
             break;
         case SP::SEX:
-            val = static_cast<uint8_t>(sd->status.sex);
+            if (sd)
+                val = static_cast<uint8_t>(sd->status.sex);
+            else if (nd)
+                val = static_cast<uint8_t>(nd->sex);
             break;
         case SP::WEIGHT:
-            val = sd->weight;
+            val = sd ? sd->weight : 0;
             break;
         case SP::MAXWEIGHT:
-            val = sd->max_weight;
+            val = sd ? sd->max_weight : 0;
             break;
         case SP::BASEEXP:
-            val = sd->status.base_exp;
+            val = sd ? sd->status.base_exp : 0;
             break;
         case SP::JOBEXP:
-            val = sd->status.job_exp;
+            val = sd ? sd->status.job_exp : 0;
             break;
         case SP::NEXTBASEEXP:
-            val = pc_nextbaseexp(sd);
+            val = sd ? pc_nextbaseexp(sd) : 0;
             break;
         case SP::NEXTJOBEXP:
-            val = pc_nextjobexp(sd);
+            val = sd ? pc_nextjobexp(sd) : 0;
             break;
         case SP::HP:
-            val = sd->status.hp;
+            val = battle_get_hp(bl);
             break;
         case SP::MAXHP:
-            val = sd->status.max_hp;
+            val = battle_get_max_hp(bl);
+            break;
+        case SP::HEALXP:
+            val = sd ? sd->heal_xp : 0;
             break;
         case SP::SP:
-            val = sd->status.sp;
+            val = sd ? sd->status.sp : 0;
             break;
         case SP::MAXSP:
-            val = sd->status.max_sp;
+            val = sd ? sd->status.max_sp : 0;
+            break;
+        case SP::BASE_ATK:
+            val = battle_get_baseatk(bl);
+            break;
+        case SP::ATK1:
+            val = battle_get_atk(bl);
+            break;
+        case SP::ATK2:
+            val = battle_get_atk2(bl);
+            break;
+        case SP::DEF1:
+            val = battle_get_def(bl);
+            break;
+        case SP::DEF2:
+            val = battle_get_def2(bl);
+            break;
+        case SP::MATK1:
+            val = battle_get_matk1(bl);
+            break;
+        case SP::MATK2:
+            val = battle_get_matk2(bl);
+            break;
+        case SP::MDEF1:
+            val = battle_get_mdef(bl);
+            break;
+        case SP::MDEF2:
+            val = battle_get_mdef2(bl);
             break;
         case SP::STR:
         case SP::AGI:
@@ -3393,7 +3482,58 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
         case SP::INT:
         case SP::DEX:
         case SP::LUK:
-            val = sd->status.attrs[sp_to_attr(type)];
+            if (sd)
+                val = sd->status.attrs[sp_to_attr(type)];
+            else
+                val = battle_get_stat(type, bl);
+            break;
+        case SP::SPEED:
+            val = battle_get_speed(bl).count();
+            break;
+        case SP::HIT:
+            val = battle_get_hit(bl);
+            break;
+        case SP::FLEE1:
+            val = battle_get_flee(bl);
+            break;
+        case SP::FLEE2:
+            val = battle_get_flee2(bl);
+            break;
+        case SP::CRITICAL:
+            val = battle_get_critical(bl);
+            break;
+        case SP::GM:
+            val = sd ? pc_isGM(sd).get_all_bits() : 0;
+            break;
+        case SP::ATTACKRANGE:
+            val = battle_get_range(bl);
+            break;
+        case SP::POS_X:
+            val = bl->bl_x;
+            break;
+        case SP::POS_Y:
+            val = bl->bl_y;
+            break;
+        case SP::PVP_CHANNEL:
+            val = sd ? sd->state.pvpchannel : 0;
+            break;
+        case SP::BL_ID:
+            val = unwrap<BlockId>(bl->bl_id);
+            break;
+        case SP::BL_TYPE:
+            val = static_cast<uint8_t>(bl->bl_type);
+            break;
+        case SP::PARTNER:
+            val = sd ? unwrap<CharId>(sd->status.partner_id) : 0;
+            break;
+        case SP::CHAR_ID:
+            val = sd ? unwrap<CharId>(sd->status_key.char_id) : 0;
+            break;
+        case SP::ELTLVL:
+            val = static_cast<int>(battle_get_element(bl).level);
+            break;
+        case SP::ELTTYPE:
+            val = static_cast<int>(battle_get_element(bl).element);
             break;
     }
 
@@ -3535,6 +3675,21 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
         case SP::DEX:
         case SP::LUK:
             pc_statusup2(sd, type, (val - sd->status.attrs[sp_to_attr(type)]));
+            break;
+        case SP::PARTNER:
+            dumb_ptr<block_list> p_bl;
+            if (val < 2000000 && val >= 150000)
+            {
+                dumb_ptr<map_session_data> p_sd = nullptr;
+                if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(val)))) != nullptr)
+                    p_bl = map_id2bl(p_sd->bl_id);
+            }
+            else
+                p_bl = map_id2bl(wrap<BlockId>(val));
+            if (val < 1)
+                pc_divorce(sd);
+            else
+                p_bl ? pc_marriage(sd, p_bl->is_player()) : 0;
             break;
     }
     clif_updatestatus(sd, type);
@@ -3760,7 +3915,7 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
  * script用変数の値を読む
  *------------------------------------------
  */
-int pc_readreg(dumb_ptr<map_session_data> sd, SIR reg)
+int pc_readreg(dumb_ptr<block_list> sd, SIR reg)
 {
     nullpo_retz(sd);
 
@@ -3771,7 +3926,7 @@ int pc_readreg(dumb_ptr<map_session_data> sd, SIR reg)
  * script用変数の値を設定
  *------------------------------------------
  */
-void pc_setreg(dumb_ptr<map_session_data> sd, SIR reg, int val)
+void pc_setreg(dumb_ptr<block_list> sd, SIR reg, int val)
 {
     nullpo_retv(sd);
 
@@ -3782,7 +3937,7 @@ void pc_setreg(dumb_ptr<map_session_data> sd, SIR reg, int val)
  * script用文字列変数の値を読む
  *------------------------------------------
  */
-ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
+ZString pc_readregstr(dumb_ptr<block_list> sd, SIR reg)
 {
     nullpo_retr(ZString(), sd);
 
@@ -3794,7 +3949,7 @@ ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
  * script用文字列変数の値を設定
  *------------------------------------------
  */
-void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, RString str)
+void pc_setregstr(dumb_ptr<block_list> sd, SIR reg, RString str)
 {
     nullpo_retv(sd);
 
@@ -4933,11 +5088,6 @@ void do_init_pc(void)
     Timer(gettick() + map_conf.autosave_time,
             pc_autosave
     ).detach();
-}
-
-void pc_cleanup(dumb_ptr<map_session_data> sd)
-{
-    magic::magic_stop_completely(sd);
 }
 
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)

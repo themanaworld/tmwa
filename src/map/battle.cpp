@@ -85,6 +85,8 @@ Species battle_get_class(dumb_ptr<block_list> bl)
     nullpo_retr(Species(), bl);
     if (bl->bl_type == BL::MOB)
         return bl->is_mob()->mob_class;
+    else if (bl->bl_type == BL::NPC)
+        return bl->is_npc()->npc_class;
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->status.species;
     else
@@ -134,7 +136,9 @@ int battle_get_range(dumb_ptr<block_list> bl)
     if (bl->bl_type == BL::MOB)
         return get_mob_db(bl->is_mob()->mob_class).range;
     else if (bl->bl_type == BL::PC)
-        return bl->is_player()->attackrange;
+        return (bl->is_player()->attack_spell_override
+                    ? bl->is_player()->attack_spell_range
+                    : bl->is_player()->attackrange);
     else
         return 0;
 }
@@ -341,7 +345,6 @@ int battle_get_luk(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_flee(dumb_ptr<block_list> bl)
 {
     int flee = 1;
@@ -370,7 +373,6 @@ int battle_get_flee(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_hit(dumb_ptr<block_list> bl)
 {
     int hit = 1;
@@ -398,7 +400,6 @@ int battle_get_hit(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_flee2(dumb_ptr<block_list> bl)
 {
     int flee2 = 1;
@@ -430,7 +431,6 @@ int battle_get_flee2(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_critical(dumb_ptr<block_list> bl)
 {
     int critical = 1;
@@ -457,7 +457,6 @@ int battle_get_critical(dumb_ptr<block_list> bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-static
 int battle_get_baseatk(dumb_ptr<block_list> bl)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -484,7 +483,6 @@ int battle_get_baseatk(dumb_ptr<block_list> bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static
 int battle_get_atk(dumb_ptr<block_list> bl)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -507,7 +505,6 @@ int battle_get_atk(dumb_ptr<block_list> bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static
 int battle_get_atk2(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);
@@ -530,7 +527,6 @@ int battle_get_atk2(dumb_ptr<block_list> bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static
 int battle_get_matk1(dumb_ptr<block_list> bl)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -554,7 +550,6 @@ int battle_get_matk1(dumb_ptr<block_list> bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static
 int battle_get_matk2(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);

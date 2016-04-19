@@ -234,7 +234,8 @@ enum class SP : uint16_t
     MAXSP                       = 8,
     // sent to client
     STATUSPOINT                 = 9,
-
+    // sent to client
+    HEALXP                      = 10,
     // sent to client
     BASELEVEL                   = 11,
     // sent to client
@@ -307,8 +308,9 @@ enum class SP : uint16_t
     // sent to client
     JOBLEVEL                    = 55,
 
-#if 0
     PARTNER                     = 57,
+
+#if 0
     CART                        = 58,
     FAME                        = 59,
     UNBREAKABLE                 = 60,
@@ -321,12 +323,8 @@ enum class SP : uint16_t
 
     // sent to client
     ATTACKRANGE                 = 1000,
-#if 0
-    ATKELE                      = 1001,
-#endif
-#if 0
-    DEFELE                      = 1002,
-#endif
+    ELTLVL                      = 1001,
+    ELTTYPE                     = 1002,
 #if 0
     CASTRATE                    = 1003,
 #endif
@@ -469,6 +467,13 @@ enum class SP : uint16_t
 #if 0
     RANDOM_ATTACK_INCREASE      = 1072,
 #endif
+
+    POS_X                       = 1074,
+    POS_Y                       = 1075,
+    PVP_CHANNEL                 = 1076,
+    BL_ID                       = 1077,
+    BL_TYPE                     = 1078,
+    CHAR_ID                     = 1079,
 };
 
 constexpr

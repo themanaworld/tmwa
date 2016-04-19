@@ -27,7 +27,6 @@
 #include "battle_conf.hpp"
 #include "itemdb.hpp"
 #include "quest.hpp"
-#include "magic-interpreter.hpp"
 #include "map_conf.hpp"
 #include "mob.hpp"
 #include "npc-internal.hpp"
@@ -51,17 +50,6 @@ namespace tmwa
         std::map<MapName, RString> resnametable;
         Map<ItemNameId, item_data> item_db;
         Map<QuestId, quest_data> quest_db;
-        namespace magic
-        {
-            // Global magic conf
-            magic_conf_t magic_conf;
-            env_t magic_default_env = { &magic_conf, nullptr };
-            namespace magic_v2
-            {
-                std::map<RString, proc_t> procs;
-                std::map<RString, val_t> const_defm;
-            } // namespace magic_v2
-        } // namespace magic
 
         DMap<BlockId, dumb_ptr<block_list>> id_db;
         UPMap<MapName, map_abstract> maps_db;
@@ -85,6 +73,7 @@ namespace tmwa
         BlockId npc_id = START_NPC_NUM;
         Map<NpcEvent, struct event_data> ev_db;
         DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
+        DMap<RString, NpcEvent> spells_by_events;
         // used for clock-based event triggers
         // only tm_min, tm_hour, and tm_mday are used
         tm ev_tm_b =
@@ -141,9 +130,5 @@ namespace tmwa
         //      BuiltinFunction builtin_functions[];
         //  src/map/clif.cpp:
         //      func_table clif_parse_func_table[0x0220];
-        //  src/map/magic-expr.cpp:
-        //      std::map<ZString, fun_t> functions;
-        //  src/map/magic-stmt.cpp:
-        //      std::map<ZString, op_t> operations;
     } // namespace map
 } // namespace tmwa

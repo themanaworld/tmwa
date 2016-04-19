@@ -43,14 +43,12 @@ enum class BL : uint8_t
     NPC,
     MOB,
     ITEM,
-    SPELL,
 };
 enum class NpcSubtype : uint8_t
 {
     WARP,
     SHOP,
     SCRIPT,
-    MESSAGE,
 
     COUNT,
 };
@@ -186,8 +184,6 @@ enum class MapCell : uint8_t
     UNWALKABLE  = 0x01,
     // not in tmwa data
     _range      = 0x04,
-    // set in code, not imported
-    NPC_NEAR    = 0x80,
 };
 ENUM_BITWISE_OPERATORS(MapCell)
 }

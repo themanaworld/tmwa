@@ -62,8 +62,6 @@
 #include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
-#include "magic.hpp"
-#include "magic-stmt.hpp"
 #include "map.hpp"
 #include "map_conf.hpp"
 #include "npc.hpp"
@@ -231,6 +229,8 @@ void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
             break;
 
         case SendWho::AREA_CHAT_WOC:
+            if (bl && bl == src_bl)
+                break;
             if (is_deaf(bl)
                 && !(bl->bl_type == BL::PC
                      && pc_isGM(src_bl->is_player())))
@@ -238,8 +238,6 @@ void clif_send_sub(dumb_ptr<block_list> bl, const Buffer& buf,
                 clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
                 return;
             }
-            if (bl && bl == src_bl)
-                return;
 
             break;
     }
@@ -2552,7 +2550,9 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
     nullpo_retz(src);
     nullpo_retz(dst);
 
-    sc_data = battle_get_sc_data(dst);
+    int target_hp = battle_get_hp(dst);
+    if (target_hp < damage)
+        damage = target_hp; // limit damage to hp
 
     Packet_Fixed<0x008a> fixed_8a;
     fixed_8a.src_id = src->bl_id;
@@ -2640,12 +2640,6 @@ void clif_getareachar(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             break;
         case BL::ITEM:
             clif_getareachar_item(sd, bl->is_item());
-            break;
-        case BL::SPELL:
-            // spell objects are not visible
-            // (at least, I *think* that's what this code is for)
-            // in any case, this is not a behavior change, just silencing
-            // the below warning
             break;
         default:
             if (battle_config.error_log)
@@ -3510,21 +3504,10 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     //clif_authok();
     if (sd->npc_id)
         npc_event_dequeue(sd);
-    clif_skillinfoblock(sd);
-    pc_checkitem(sd);
     //guild_info();
 
     // loadendack時
     // next exp
-    clif_updatestatus(sd, SP::NEXTBASEEXP);
-    clif_updatestatus(sd, SP::NEXTJOBEXP);
-    // skill point
-    clif_updatestatus(sd, SP::SKILLPOINT);
-    // item
-    clif_itemlist(sd);
-    clif_equiplist(sd);
-    // param all
-    clif_initialstatus(sd);
     // party
     party_send_movemap(sd);
     // 119
@@ -3538,14 +3521,11 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     map_addblock(sd);     // ブロック登録
     clif_spawnpc(sd);          // spawn
 
-    clif_map_pvp(sd); // send map pvp status
-
-    // weight max , now
-    clif_updatestatus(sd, SP::MAXWEIGHT);
-    clif_updatestatus(sd, SP::WEIGHT);
+    if (sd->bl_m->flag.get(MapFlag::PVP))
+        clif_map_pvp(sd); // send map pvp status
 
     // pvp
-    if (!battle_config.pk_mode)
+    /*if (!battle_config.pk_mode)
         sd->pvp_timer.cancel();
 
     if (sd->bl_m->flag.get(MapFlag::PVP))
@@ -3563,18 +3543,13 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     else
     {
         // sd->pvp_timer = nullptr;
-    }
-
-    sd->state.connect_new = 0;
+    }*/
 
     // view equipment item
-    clif_changelook(sd, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::NONE));
-    if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
-        clif_changelook(sd, LOOK::CLOTHES_COLOR,
-                         sd->status.clothes_color);
+    //if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
+    //    clif_changelook(sd, LOOK::CLOTHES_COLOR,
+    //                     sd->status.clothes_color);
 
-    // option
-    clif_changeoption(sd);
     // broken equipment
 
 //        clif_changelook_accessories(sd, nullptr);
@@ -3585,8 +3560,25 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
             sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
             BL::NUL);
 
-    if (!sd->state.seen_motd)
-        pc_show_motd(sd);
+    if (!sd->state.connect_new)
+        return rv;
+
+    // all the code below is only executed once, on login
+    pc_show_motd(sd);
+    clif_skillinfoblock(sd);
+    pc_checkitem(sd);
+    clif_updatestatus(sd, SP::NEXTBASEEXP);
+    clif_updatestatus(sd, SP::NEXTJOBEXP);
+    clif_updatestatus(sd, SP::SKILLPOINT);
+    clif_itemlist(sd);
+    clif_equiplist(sd);
+    clif_initialstatus(sd);
+    clif_changeoption(sd);
+    clif_changelook(sd, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::NONE));
+    clif_updatestatus(sd, SP::MAXWEIGHT);
+    clif_updatestatus(sd, SP::WEIGHT);
+    npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
+    sd->state.connect_new = 0;
 
     return rv;
 }
@@ -3792,7 +3784,6 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
             send_fpacket<0x0095, 30>(s, fixed_95);
         }
             break;
-        // case BL::SPELL
         default:
             if (battle_config.error_log)
                 PRINTF("clif_parse_GetCharNameRequest : bad type %d (%d)\n"_fmt,
@@ -3839,35 +3830,31 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
 
+    if (magic_message(sd, mbuf))
+        return rv;
+
     if (is_atcommand(s, sd, mbuf, GmLevel()))
         return rv;
 
-    if (!magic::magic_message(sd, mbuf))
+    /* Don't send chat that results in an automatic ban. */
+    if (tmw_CheckChatSpam(sd, mbuf))
     {
-        /* Don't send chat that results in an automatic ban. */
-        if (tmw_CheckChatSpam(sd, mbuf))
-        {
-            clif_displaymessage(s, "Your message could not be sent."_s);
-            return rv;
-        }
-
-        /* It's not a spell/magic message, so send the message to others. */
-
-        Buffer sendbuf;
-        clif_message_sub(sendbuf, sd, mbuf);
-
-        Buffer filteredBuf; // ManaPlus remote execution exploit prevention
-        XString filtered = mbuf;
-        if (mbuf.contains_seq("@@="_s) && mbuf.contains('|'))
-            filtered = "##B##3[##1Impossible to see this message. Please update your client.##3]"_s;
-        clif_message_sub(filteredBuf, sd, filtered);
-
-        clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC,
-            wrap<ClientVersion>(6), filteredBuf);
+        clif_displaymessage(s, "Your message could not be sent."_s);
+        return rv;
     }
 
-    /* Send the message back to the speaker. */
-    send_packet_repeatonly<0x008e, 4, 1>(s, STRPRINTF("%s : %s"_fmt, battle_get_name(sd), mbuf));
+
+    Buffer sendbuf;
+    clif_message_sub(sendbuf, sd, mbuf);
+
+    Buffer filteredBuf; // ManaPlus remote execution exploit prevention
+    XString filtered = mbuf;
+    if (mbuf.contains_seq("@@="_s) && mbuf.contains('|'))
+        filtered = "##B##3[##1Impossible to see this message. Please update your client.##3]"_s;
+    clif_message_sub(filteredBuf, sd, filtered);
+
+    clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC,
+        wrap<ClientVersion>(6), filteredBuf);
 
     return rv;
 }
@@ -4273,8 +4260,8 @@ RecvResult clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
         || abs(sd->bl_y - fitem->bl_y) >= 2)
         return rv;                 // too far away to pick up
 
-    if (sd->state.shroud_active && sd->state.shroud_disappears_on_pickup)
-        magic::magic_unshroud(sd);
+//    if (sd->state.shroud_active && sd->state.shroud_disappears_on_pickup)
+//        magic_unshroud(sd);
 
     pc_takeitem(sd, fitem);
 
@@ -4435,6 +4422,8 @@ RecvResult clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
     if (sd->npc_id)
+        return rv;
+    if (battle_get_class(map_id2bl(fixed.block_id)) == INVISIBLE_CLASS)
         return rv;
     npc_click(sd, fixed.block_id);
 

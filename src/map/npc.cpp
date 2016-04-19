@@ -61,6 +61,15 @@ namespace tmwa
 {
 namespace map
 {
+static const std::vector<ByteCode> fake_buffer;
+static const ScriptBuffer& fake_script = reinterpret_cast<const ScriptBuffer&>(fake_buffer);
+
+static
+Borrowed<const ScriptBuffer> script_or_parent(dumb_ptr<npc_data_script> nd)
+{
+    return borrow(nd->scr.parent ? fake_script : *nd->scr.script);
+}
+
 BlockId npc_get_new_npc_id(void)
 {
     BlockId rv = npc_id;
@@ -112,26 +121,25 @@ int npc_enable(NpcName name, bool flag)
     {                           // 有効化
         nd->flag &= ~1;
         clif_spawnnpc(nd);
+        int xs = 0, ys = 0;
+        if (dumb_ptr<npc_data_script> nd_ = nd->is_script())
+        {
+            xs = nd_->scr.xs;
+            ys = nd_->scr.ys;
+        }
+
+        if (flag && (xs > 0 || ys > 0))
+            map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
+                    nd->bl_m,
+                    nd->bl_x - xs, nd->bl_y - ys,
+                    nd->bl_x + xs, nd->bl_y + ys,
+                    BL::PC);
     }
-    else
+    else if (!(nd->flag & 1))
     {                           // 無効化
-        nd->flag |= 1;
         clif_clearchar(nd, BeingRemoveWhy::GONE);
+        nd->flag |= 1;
     }
-
-    int xs = 0, ys = 0;
-    if (dumb_ptr<npc_data_script> nd_ = nd->is_script())
-    {
-        xs = nd_->scr.xs;
-        ys = nd_->scr.ys;
-    }
-
-    if (flag && (xs > 0 || ys > 0))
-        map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
-                nd->bl_m,
-                nd->bl_x - xs, nd->bl_y - ys,
-                nd->bl_x + xs, nd->bl_y + ys,
-                BL::PC);
 
     return 0;
 }
@@ -143,6 +151,75 @@ int npc_enable(NpcName name, bool flag)
 dumb_ptr<npc_data> npc_name2id(NpcName name)
 {
     return npcs_by_name.get(name);
+}
+
+/*==========================================
+ * NPC Spells Events
+ *------------------------------------------
+ */
+static
+NpcEvent spell_event2id(RString name)
+{
+    return spells_by_events.get(name);
+}
+
+/*==========================================
+ * Spell Toknise
+ * Return a pair of strings, {spellname, parameter}
+ * Parameter may be empty.
+ *------------------------------------------
+ */
+static
+std::pair<XString, XString> magic_tokenise(XString src)
+{
+    auto seeker = std::find(src.begin(), src.end(), ' ');
+
+    if (seeker == src.end())
+    {
+        return {src, XString()};
+    }
+    else
+    {
+        XString rv1 = src.xislice_h(seeker);
+        ++seeker;
+
+        while (seeker != src.end() && *seeker == ' ')
+            ++seeker;
+
+        // Note: this very well could be empty
+        XString rv2 = src.xislice_t(seeker);
+        return {rv1, rv2};
+    }
+}
+
+/*==========================================
+ * NPC Spell
+ *------------------------------------------
+ */
+int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
+{
+    auto pair = magic_tokenise(source_invocation);
+    // Spell Cast
+    NpcEvent spell_event = spell_event2id(pair.first);
+
+    RString spell_params = pair.second;
+
+    if (spell_event.npc)
+    {
+        dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
+
+        if (nd)
+        {
+            argrec_t arg[1] =
+            {
+                {"@args$"_s, spell_params},
+            };
+
+            npc_event(caster, spell_event, 0, arg);
+            return 1;
+        }
+    }
+    return 0;
 }
 
 /*==========================================
@@ -196,7 +273,9 @@ void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
 
     if (name == p)
     {
-        run_script_l(ScriptPointer(borrow(*ev->nd->scr.script), ev->pos), rid, ev->nd->bl_id,
+        if (ev->nd->scr.parent != BlockId())
+            return; // temporary npcs only respond to commands directly issued to them
+        run_script_l(ScriptPointer(script_or_parent(ev->nd), ev->pos), rid, ev->nd->bl_id,
                 argv);
         (*c)++;
     }
@@ -208,34 +287,6 @@ int npc_event_doall_l(ScriptLabel name, BlockId rid, Slice<argrec_t> args)
 
     for (auto& pair : ev_db)
         npc_event_doall_sub(pair.first, &pair.second, &c, name, rid, args);
-    return c;
-}
-
-static
-void npc_event_do_sub(NpcEvent key, struct event_data *ev,
-        int *c, NpcEvent name, BlockId rid, Slice<argrec_t> argv)
-{
-    nullpo_retv(ev);
-
-    if (name == key)
-    {
-        run_script_l(ScriptPointer(borrow(*ev->nd->scr.script), ev->pos), rid, ev->nd->bl_id,
-                argv);
-        (*c)++;
-    }
-}
-
-int npc_event_do_l(NpcEvent name, BlockId rid, Slice<argrec_t> args)
-{
-    int c = 0;
-
-    if (!name.npc)
-    {
-        return npc_event_doall_l(name.label, rid, args);
-    }
-
-    for (auto& pair : ev_db)
-        npc_event_do_sub(pair.first, &pair.second, &c, name, rid, args);
     return c;
 }
 
@@ -286,6 +337,94 @@ int npc_event_do_oninit(void)
     return 0;
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void npc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
+{
+    Option<P<struct event_data>> ev_ = ev_db.search(data);
+    dumb_ptr<npc_data_script> nd;
+    dumb_ptr<block_list> bl = map_id2bl(id);
+
+    if (ev_.is_none() && data.label == stringish<ScriptLabel>("OnTouch"_s))
+        return;
+
+    P<struct event_data> ev = TRY_UNWRAP(ev_,
+    {
+        if (battle_config.error_log)
+            PRINTF("npc_event: event not found [%s]\n"_fmt,
+                    data);
+        return;
+    });
+    if ((nd = ev->nd) == nullptr)
+    {
+        if (battle_config.error_log)
+            PRINTF("npc_event: event not found [%s]\n"_fmt,
+                    data);
+        return;
+    }
+
+    if (nd->scr.event_needs_map)
+    {
+        int xs = nd->scr.xs;
+        int ys = nd->scr.ys;
+        if (nd->bl_m != bl->bl_m)
+            return;
+        if (xs > 0
+            && (bl->bl_x < nd->bl_x - xs / 2 || nd->bl_x + xs / 2 < bl->bl_x))
+            return;
+        if (ys > 0
+            && (bl->bl_y < nd->bl_y - ys / 2 || nd->bl_y + ys / 2 < bl->bl_y))
+            return;
+    }
+
+    run_script(ScriptPointer(script_or_parent(nd), ev->pos), id, nd->bl_id);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int npc_addeventtimer(dumb_ptr<block_list> bl, interval_t tick, NpcEvent name)
+{
+    int i;
+
+    nullpo_retz(bl);
+    if (bl->bl_type == BL::MOB)
+    {
+        dumb_ptr<mob_data> md = bl->is_mob();
+        for (i = 0; i < MAX_EVENTTIMER; i++)
+            if (!md->eventtimer[i])
+                break;
+
+        if (i < MAX_EVENTTIMER)
+        {
+            md->eventtimer[i] = Timer(gettick() + tick,
+                    std::bind(npc_eventtimer, ph::_1, ph::_2,
+                        md->bl_id, name));
+            return 1;
+        }
+    }
+    if (bl->bl_type == BL::NPC)
+    {
+        dumb_ptr<npc_data> nd = bl->is_npc();
+        for (i = 0; i < MAX_EVENTTIMER; i++)
+            if (!nd->eventtimer[i])
+                break;
+
+        if (i < MAX_EVENTTIMER)
+        {
+            nd->eventtimer[i] = Timer(gettick() + tick,
+                    std::bind(npc_eventtimer, ph::_1, ph::_2,
+                        nd->bl_id, name));
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /// Callback for npc OnTimer*: labels.
 /// This will be called later if you call npc_timerevent_start.
 /// This function may only expire, but not deactivate, the counter.
@@ -313,7 +452,7 @@ void npc_timerevent(TimerData *, tick_t tick, BlockId id, interval_t data)
                     id, next));
     }
 
-    run_script(ScriptPointer(borrow(*nd->scr.script), te->pos), BlockId(), nd->bl_id);
+    run_script(ScriptPointer(script_or_parent(nd), te->pos), BlockId(), nd->bl_id);
 }
 
 /// Start (or resume) counting ticks to the next npc_timerevent.
@@ -423,62 +562,81 @@ void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer)
  *------------------------------------------
  */
 int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
-        int mob_kill)
+        int mob_kill, Slice<argrec_t> args)
 {
+    if (!eventname.npc)
+    {
+        return npc_event_doall_l(eventname.label, sd->bl_id, args); // XXX maybe merge this into npc_event?
+    }
+
     Option<P<struct event_data>> ev_ = ev_db.search(eventname);
     dumb_ptr<npc_data_script> nd;
-
-    if (sd == nullptr)
-    {
-        PRINTF("npc_event nullpo?\n"_fmt);
-    }
 
     if (ev_.is_none() && eventname.label == stringish<ScriptLabel>("OnTouch"_s))
         return 1;
 
-    P<struct event_data> ev = TRY_UNWRAP(ev_,
+    bool failed = false;
+    struct event_data ev {};
+    P<struct event_data> ev2 = TRY_UNWRAP(ev_,{ failed = true; });
+    if(failed)
+    {
+        if (!eventname.label && eventname.npc && sd)
+        {
+            ev.nd = npc_name2id(eventname.npc)->is_script();
+            ev.pos = 0; // start from the beginning of a npc
+        }
+        else
+        {
+            if (!mob_kill && battle_config.error_log)
+                PRINTF("npc_event: event not found [%s]\n"_fmt,
+                        eventname);
+            return 0;
+        }
+    }
+    else
+    {
+        ev.nd = ev2->nd;
+        ev.pos = ev2->pos;
+    }
+
+    if ((nd = ev.nd) == nullptr)
     {
         if (!mob_kill && battle_config.error_log)
             PRINTF("npc_event: event not found [%s]\n"_fmt,
                     eventname);
         return 0;
-    });
-    if ((nd = ev->nd) == nullptr)
+    }
+    if (sd)
     {
-        if (!mob_kill && battle_config.error_log)
-            PRINTF("npc_event: event not found [%s]\n"_fmt,
-                    eventname);
-        return 0;
-    }
-
-    if (nd->scr.event_needs_map)
-    {
-        int xs = nd->scr.xs;
-        int ys = nd->scr.ys;
-        if (nd->bl_m != sd->bl_m)
+        if (nd->scr.event_needs_map)
+        {
+            int xs = nd->scr.xs;
+            int ys = nd->scr.ys;
+            if (nd->bl_m != sd->bl_m)
+                return 1;
+            if (xs > 0
+                && (sd->bl_x < nd->bl_x - xs / 2 || nd->bl_x + xs / 2 < sd->bl_x))
+                return 1;
+            if (ys > 0
+                && (sd->bl_y < nd->bl_y - ys / 2 || nd->bl_y + ys / 2 < sd->bl_y))
+                return 1;
+        }
+        if (sd->npc_id && sd->npc_pos > -1 && args.size() < 1) // if called from a timer we process async, otherwise sync
+        {
+            sd->eventqueuel.push_back(eventname);
             return 1;
-        if (xs > 0
-            && (sd->bl_x < nd->bl_x - xs / 2 || nd->bl_x + xs / 2 < sd->bl_x))
-            return 1;
-        if (ys > 0
-            && (sd->bl_y < nd->bl_y - ys / 2 || nd->bl_y + ys / 2 < sd->bl_y))
-            return 1;
+        }
+        if (nd->flag & 1)
+        {                           // 無効化されている
+            npc_event_dequeue(sd);
+            return 0;
+        }
+        sd->npc_id = nd->bl_id;
     }
-
-    if (sd->npc_id)
-    {
-        sd->eventqueuel.push_back(eventname);
-        return 1;
-    }
-    if (nd->flag & 1)
-    {                           // 無効化されている
-        npc_event_dequeue(sd);
-        return 0;
-    }
-
-    sd->npc_id = nd->bl_id;
-    sd->npc_pos =
-        run_script(ScriptPointer(borrow(*nd->scr.script), ev->pos), sd->bl_id, nd->bl_id);
+    int pos = run_script_l(ScriptPointer(script_or_parent(nd), ev.pos),
+                            (sd? sd->bl_id : BlockId()), nd->bl_id, args);
+    if (sd)
+        sd->npc_pos = pos;
     return 0;
 }
 
@@ -488,7 +646,7 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
  */
 int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int x, int y)
 {
-    int i, f = 1;
+    int i;
     int xs, ys;
 
     nullpo_retr(1, sd);
@@ -499,21 +657,13 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
     for (i = 0; i < m->npc_num; i++)
     {
         if (m->npc[i]->flag & 1)
-        {                       // 無効化されている
-            f = 0;
             continue;
-        }
 
         switch (m->npc[i]->npc_subtype)
         {
             case NpcSubtype::WARP:
                 xs = m->npc[i]->is_warp()->warp.xs;
                 ys = m->npc[i]->is_warp()->warp.ys;
-                break;
-            case NpcSubtype::MESSAGE:
-                assert (0 && "I'm pretty sure these are never put on a map"_s);
-                xs = 0;
-                ys = 0;
                 break;
             case NpcSubtype::SCRIPT:
                 xs = m->npc[i]->is_script()->scr.xs;
@@ -530,11 +680,6 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
     }
     if (i == m->npc_num)
     {
-        if (f)
-        {
-            if (battle_config.error_log)
-                PRINTF("npc_touch_areanpc : some bug \n"_fmt);
-        }
         return 1;
     }
     switch (m->npc[i]->npc_subtype)
@@ -544,9 +689,6 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
             pc_setpos(sd, m->npc[i]->is_warp()->warp.name,
                        m->npc[i]->is_warp()->warp.x, m->npc[i]->is_warp()->warp.y, BeingRemoveWhy::GONE);
             break;
-        case NpcSubtype::MESSAGE:
-            assert (0 && "I'm pretty sure these NPCs are never put on a map."_s);
-            break;
         case NpcSubtype::SCRIPT:
         {
             NpcEvent aname;
@@ -554,12 +696,12 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
             aname.label = stringish<ScriptLabel>("OnTouch"_s);
 
             if (sd->areanpc_id == m->npc[i]->bl_id)
-                return 1;
+                return 2;
 
             sd->areanpc_id = m->npc[i]->bl_id;
             if (npc_event(sd, aname, 0) > 0)
                 npc_click(sd, m->npc[i]->bl_id);
-            break;
+            return 2;
         }
     }
     return 0;
@@ -632,14 +774,7 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
             npc_event_dequeue(sd);
             break;
         case NpcSubtype::SCRIPT:
-            sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), sd->bl_id, id);
-            break;
-        case NpcSubtype::MESSAGE:
-            if (nd->is_message()->message)
-            {
-                clif_scriptmes(sd, id, nd->is_message()->message);
-                clif_scriptclose(sd, id);
-            }
+            sd->npc_pos = run_script(ScriptPointer(script_or_parent(nd->is_script()), 0), sd->bl_id, id);
             break;
     }
 
@@ -666,14 +801,14 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
 
     nd = map_id_is_npc(id);
 
-    if (!nd /* NPC was disposed? */  || nd->npc_subtype == NpcSubtype::MESSAGE)
+    if (!nd /* NPC was disposed? */)
     {
         clif_scriptclose(sd, id);
         npc_event_dequeue(sd);
         return 0;
     }
 
-    sd->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), sd->npc_pos), sd->bl_id, id);
+    sd->npc_pos = run_script(ScriptPointer(script_or_parent(nd->is_script()), sd->npc_pos), sd->bl_id, id);
 
     return 0;
 }
@@ -859,18 +994,26 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     if (nd_->npc_subtype == NpcSubtype::SCRIPT)
     {
         dumb_ptr<npc_data_script> nd = nd_->is_script();
+        nd->scr.timerid.cancel();
         nd->scr.timer_eventv.clear();
+        nd->eventqueuel.clear();
+        for (int i = 0; i < MAX_EVENTTIMER; i++)
+            nd->eventtimer[i].cancel();
 
+        // destroy all children (puppets), if any
+        if (nd_->name && nd->scr.parent == BlockId())
         {
-            nd->scr.script.reset();
-            nd->scr.label_listv.clear();
+            for (auto& pair : npcs_by_name)
+                if (pair.second->npc_subtype == NpcSubtype::SCRIPT
+                    && pair.second->is_script()->scr.parent == nd_->bl_id)
+                        npc_free(pair.second);
         }
+
+        nd->scr.script.reset();
+        nd->scr.label_listv.clear();
     }
-    else if (nd_->npc_subtype == NpcSubtype::MESSAGE)
-    {
-        dumb_ptr<npc_data_message> nd = nd_->is_message();
-        nd->message = AString();
-    }
+    if (nd_->name)
+        npcs_by_name.put(nd_->name, nullptr);
     nd_.delete_();
 }
 

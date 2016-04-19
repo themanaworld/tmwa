@@ -78,14 +78,12 @@ dumb_ptr<map_session_data> script_rid2sd(ScriptState *st)
  * 変数の読み取り
  *------------------------------------------
  */
-void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
+void get_val(dumb_ptr<block_list> sd, struct script_data *data)
 {
     MATCH_BEGIN (*data)
     {
         MATCH_CASE (const ScriptDataParam&, u)
         {
-            if (sd == nullptr)
-                PRINTF("get_val error param SP::%d\n"_fmt, u.reg.sp());
             int numi = 0;
             if (sd)
                 numi = pc_readparam(sd, u.reg.sp());
@@ -106,7 +104,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
             if (postfix == '$')
             {
                 RString str;
-                if (prefix == '@')
+                if (prefix == '@' || prefix == '.')
                 {
                     if (sd)
                         str = pc_readregstr(sd, u.reg);
@@ -130,7 +128,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
             else
             {
                 int numi = 0;
-                if (prefix == '@')
+                if (prefix == '@' || prefix == '.')
                 {
                     if (sd)
                         numi = pc_readreg(sd, u.reg);
@@ -144,18 +142,18 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
                     if (name[1] == '#')
                     {
                         if (sd)
-                            numi = pc_readaccountreg2(sd, name);
+                            numi = pc_readaccountreg2(sd->is_player(), name);
                     }
                     else
                     {
                         if (sd)
-                            numi = pc_readaccountreg(sd, name);
+                            numi = pc_readaccountreg(sd->is_player(), name);
                     }
                 }
                 else
                 {
                     if (sd)
-                        numi = pc_readglobalreg(sd, name);
+                        numi = pc_readglobalreg(sd->is_player(), name);
                 }
                 *data = ScriptDataInt{numi};
             }
@@ -166,8 +164,39 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
 
 void get_val(ScriptState *st, struct script_data *data)
 {
-    dumb_ptr<map_session_data> sd = st->rid ? map_id2sd(st->rid) : nullptr;
-    get_val(sd, data);
+    dumb_ptr<block_list> bl = nullptr;
+    MATCH_BEGIN (*data)
+    {
+        MATCH_CASE (const ScriptDataParam&, u)
+        {
+            (void)u; // XXX travis complains if we don't use u
+            bl = map_id2bl(st->rid);
+        }
+        MATCH_CASE (const ScriptDataVariable&, u)
+        {
+            ZString name_ = variable_names.outtern(u.reg.base());
+            VarName name = stringish<VarName>(name_);
+            char prefix = name.front();
+            if (prefix == '.' && name[1] == '@')
+            {
+                if (name.back() == '$')
+                {
+                    Option<P<RString>> s = st->regstrm.search(u.reg);
+                    ZString val = s.map([](P<RString> s_) -> ZString { return *s_; }).copy_or(""_s);
+                    *data = ScriptDataStr{val};
+                }
+                else
+                    *data = ScriptDataInt{st->regm.get(u.reg)};
+                return;
+            }
+            if (prefix == '.' && st->oid)
+                bl = map_id2bl(st->oid);
+            else if (prefix != '$' && st->rid)
+                bl = map_id2bl(st->rid);
+        }
+    }
+    MATCH_END ();
+    get_val(bl, data);
 }
 
 /*==========================================
@@ -185,12 +214,12 @@ struct script_data get_val2(ScriptState *st, SIR reg)
  * 変数設定用
  *------------------------------------------
  */
-void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, struct script_data vd)
+void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_data vd)
 {
     if (type == VariableCode::PARAM)
     {
         int val = vd.get_if<ScriptDataInt>()->numi;
-        pc_setparam(sd, reg.sp(), val);
+        pc_setparam(sd->is_player(), reg.sp(), val);
         return;
     }
     assert (type == VariableCode::VARIABLE);
@@ -203,7 +232,7 @@ void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, struct s
     if (postfix == '$')
     {
         RString str = vd.get_if<ScriptDataStr>()->str;
-        if (prefix == '@')
+        if (prefix == '@' || prefix == '.')
         {
             pc_setregstr(sd, reg, str);
         }
@@ -219,7 +248,7 @@ void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, struct s
     else
     {
         int val = vd.get_if<ScriptDataInt>()->numi;
-        if (prefix == '@')
+        if (prefix == '@' || prefix == '.')
         {
             pc_setreg(sd, reg, val);
         }
@@ -230,24 +259,47 @@ void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, struct s
         else if (prefix == '#')
         {
             if (name[1] == '#')
-                pc_setaccountreg2(sd, name, val);
+                pc_setaccountreg2(sd->is_player(), name, val);
             else
-                pc_setaccountreg(sd, name, val);
+                pc_setaccountreg(sd->is_player(), name, val);
         }
         else
         {
-            pc_setglobalreg(sd, name, val);
+            pc_setglobalreg(sd->is_player(), name, val);
         }
     }
 }
 
-void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, int id)
+void set_scope_reg(ScriptState *st, SIR reg, struct script_data *vd)
+{
+    ZString name = variable_names.outtern(reg.base());
+    if (name.back() == '$')
+    {
+        if (auto *u = vd->get_if<ScriptDataStr>())
+        {
+            if (!u->str)
+            {
+                st->regstrm.erase(reg);
+                return;
+            }
+            st->regstrm.insert(reg, u->str);
+        }
+        else
+            st->regstrm.insert(reg, conv_str(st, vd));
+    }
+    else if (auto *u = vd->get_if<ScriptDataInt>())
+        st->regm.put(reg, u->numi);
+    else
+        st->regm.put(reg, conv_num(st, vd));
+}
+
+void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, int id)
 {
     struct script_data vd = ScriptDataInt{id};
     set_reg(sd, type, reg, vd);
 }
 
-void set_reg(dumb_ptr<map_session_data> sd, VariableCode type, SIR reg, RString zd)
+void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, RString zd)
 {
     struct script_data vd = ScriptDataStr{zd};
     set_reg(sd, type, reg, vd);
@@ -676,7 +728,7 @@ void run_func(ScriptState *st)
         st->defsp = conv_num(st, &st->stack->stack_datav[olddefsp - 3]); // 基準スタックポインタを復元
         // Number of arguments.
         int i = conv_num(st, &st->stack->stack_datav[olddefsp - 4]); // 引数の数所得
-        assert (i == 0);
+        //assert (i == 0);
 
         pop_stack(st->stack, olddefsp - 4 - i, olddefsp);  // 要らなくなったスタック(引数と復帰用データ)削除
 
@@ -830,20 +882,25 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
             abort();
         }
     }
+    dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
     switch (st->state)
     {
         case ScriptEndState::STOP:
+            if (sd && sd->npc_id == st->oid)
+                sd->state.npc_dialog_mes = 0;
             break;
         case ScriptEndState::END:
-        {
-            dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
             st->scriptp.code = None;
             st->scriptp.pos = -1;
             if (sd && sd->npc_id == st->oid)
+            {
+                sd->state.npc_dialog_mes = 0;
                 npc_event_dequeue(sd);
-        }
+            }
             break;
         case ScriptEndState::RERUNLINE:
+            if (sd && sd->npc_id == st->oid)
+                sd->state.npc_dialog_mes = 0;
             st->scriptp.pos = rerun_pos;
             break;
     }
@@ -851,7 +908,6 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
     if (st->state != ScriptEndState::END)
     {
         // 再開するためにスタック情報を保存
-        dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
         if (sd)
         {
             sd->npc_stackbuf = stack->stack_datav;
@@ -876,7 +932,29 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
 {
     struct script_stack stack;
     ScriptState st;
-    dumb_ptr<map_session_data> sd = map_id2sd(rid);
+    dumb_ptr<block_list> bl = map_id2bl(rid);
+    dumb_ptr<map_session_data> sd = bl? bl->is_player(): nullptr;
+    if (oid)
+    {
+        dumb_ptr<block_list> oid_bl = map_id2bl(oid);
+        if (oid_bl)
+        {
+            if (oid_bl->bl_type == BL::NPC)
+            {
+                dumb_ptr<npc_data> nd = oid_bl->is_npc();
+                if(nd->npc_subtype == NpcSubtype::SCRIPT)
+                {
+                    dumb_ptr<npc_data_script> nds = nd->is_script();
+                    if (nds->scr.parent)
+                    {
+                        dumb_ptr<npc_data_script> parent = map_id2bl(nds->scr.parent)->is_npc()->is_script();
+                        assert(parent->bl_type == BL::NPC && parent->npc_subtype == NpcSubtype::SCRIPT);
+                        sp = ScriptPointer(borrow(*parent->scr.script), sp.pos);
+                    }
+                }
+            }
+        }
+    }
     P<const ScriptBuffer> rootscript = TRY_UNWRAP(sp.code, return -1);
     int i;
     if (sp.pos >> 24)
@@ -892,6 +970,7 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     st.scriptp = sp;
     st.rid = rid;
     st.oid = oid;
+
     for (i = 0; i < args.size(); i++)
     {
         if (args[i].name.back() == '$')

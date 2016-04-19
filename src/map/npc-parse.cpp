@@ -92,7 +92,6 @@ void npc_delsrcfile(XString name)
     }
 }
 
-static
 void register_npc_name(dumb_ptr<npc_data> nd)
 {
     earray<LString, NpcSubtype, NpcSubtype::COUNT> types //=
@@ -100,12 +99,9 @@ void register_npc_name(dumb_ptr<npc_data> nd)
         "WARP"_s,
         "SHOP"_s,
         "SCRIPT"_s,
-        "MESSAGE"_s,
     }};
     if (!nd->name)
     {
-        if (nd->npc_subtype == NpcSubtype::MESSAGE)
-            return;
         PRINTF("WARNING: npc with no name:\n%s @ %s,%d,%d\n"_fmt,
                 types[nd->npc_subtype],
                 nd->bl_m->name_, nd->bl_x, nd->bl_y);
@@ -166,21 +162,6 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->warp.y = to_y;
     nd->warp.xs = xs;
     nd->warp.ys = ys;
-
-    for (int i = 0; i < ys; i++)
-    {
-        for (int j = 0; j < xs; j++)
-        {
-            int x_lo = x - xs / 2;
-            int y_lo = y - ys / 2;
-            int xc = x_lo + j;
-            int yc = y_lo + i;
-            MapCell t = map_getcell(m, xc, yc);
-            if (bool(t & MapCell::UNWALKABLE))
-                continue;
-            map_setcell(m, xc, yc, t | MapCell::NPC_NEAR);
-        }
-    }
 
     npc_warp++;
     nd->bl_type = BL::NPC;
@@ -474,6 +455,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
 
+    id_db.put(nd->bl_id, nd); // fix to get the oid in OnInit
     register_npc_name(nd);
 
     for (auto& pair : scriptlabel_db)
@@ -554,21 +536,6 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     int xs = script_map.xs.data, ys = script_map.ys.data;
 
     {
-        for (int i = 0; i < ys; i++)
-        {
-            for (int j = 0; j < xs; j++)
-            {
-                int x_lo = x - xs / 2;
-                int y_lo = y - ys / 2;
-                int xc = x_lo + j;
-                int yc = y_lo + i;
-                MapCell t = map_getcell(m, xc, yc);
-                if (bool(t & MapCell::UNWALKABLE))
-                    continue;
-                map_setcell(m, xc, yc, t | MapCell::NPC_NEAR);
-            }
-        }
-
         nd->scr.xs = xs;
         nd->scr.ys = ys;
         nd->scr.event_needs_map = true;
@@ -683,33 +650,6 @@ bool npc_load_script_any(ast::npc::Script *script)
     }
     MATCH_END ();
     abort();
-}
-
-dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
-        Species npc_class, NpcName name, AString message)
-{
-    dumb_ptr<npc_data_message> retval;
-    retval.new_();
-    retval->bl_id = npc_get_new_npc_id();
-    retval->bl_x = x;
-    retval->bl_y = y;
-    retval->bl_m = m;
-    retval->bl_type = BL::NPC;
-    retval->npc_subtype = NpcSubtype::MESSAGE;
-
-    retval->name = name;
-    if (message)
-        retval->message = message;
-
-    retval->npc_class = npc_class;
-    retval->speed = 200_ms;
-
-    clif_spawnnpc(retval);
-    map_addblock(retval);
-    map_addiddb(retval);
-    register_npc_name(retval);
-
-    return retval;
 }
 
 static

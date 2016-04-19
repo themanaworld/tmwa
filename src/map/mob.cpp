@@ -1396,6 +1396,16 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
     return 0;
 }
 
+int mob_aggravate(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl)
+{
+    if (md->bl_type != BL::MOB)
+        return 0;
+    mob_target(md, bl, battle_get_range(bl));
+    md->target_id = bl->bl_id;
+    md->attacked_id = bl->bl_id;
+    return 1;
+}
+
 /*==========================================
  * The ?? routine of an active monster
  *------------------------------------------
@@ -2691,7 +2701,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     }                           // [MouseJstr]
 
     // SCRIPT実行
-    if (md->npc_event)
     {
         if (sd == nullptr)
         {
@@ -2701,7 +2710,17 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
         }
         if (sd)
-            npc_event(sd, md->npc_event, 0);
+        {
+            if (md->npc_event)
+                npc_event(sd, md->npc_event, 0);
+
+            // TODO: in the future, OnPCKillEvent, OnMobKillEvent and OnPCDieEvent should be combined
+            argrec_t arg[1] =
+            {
+                {"@mobID"_s, static_cast<int32_t>(unwrap<Species>(md->mob_class))},
+            };
+            npc_event_doall_l(stringish<ScriptLabel>("OnMobKillEvent"_s), sd->bl_id, arg);
+        }
     }
 
     clif_clearchar(md, BeingRemoveWhy::DEAD);

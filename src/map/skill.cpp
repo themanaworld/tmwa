@@ -51,7 +51,6 @@
 #include "battle_conf.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
-#include "magic-stmt.hpp"
 #include "mob.hpp"
 #include "pc.hpp"
 
@@ -822,13 +821,6 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
     if (bl->bl_type == BL::PC)
         sd = bl->is_player();
 
-    if (sc_data[type].spell_invocation)
-    {                           // Must report termination
-        magic::spell_effect_report_termination(sc_data[type].spell_invocation,
-                                         bl->bl_id, type, 0);
-        sc_data[type].spell_invocation = BlockId();
-    }
-
     switch (type)
     {
         case StatusChange::SC_POISON:
@@ -900,12 +892,12 @@ int skill_status_change_start(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
         interval_t tick)
 {
-    return skill_status_effect(bl, type, val1, tick, BlockId());
+    return skill_status_effect(bl, type, val1, tick);
 }
 
 int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
-        interval_t tick, BlockId spell_invocation)
+        interval_t tick)
 {
     dumb_ptr<map_session_data> sd = nullptr;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -1009,10 +1001,10 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
             break;
 
         case StatusChange::SC_HASTE:
-            calc_flag = 1;
-            break;
         case StatusChange::SC_PHYS_SHIELD:
         case StatusChange::SC_MBARRIER:
+            calc_flag = 1;
+            break;
         case StatusChange::SC_HALT_REGENERATE:
         case StatusChange::SC_HIDE:
             break;
@@ -1050,11 +1042,6 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         clif_changeoption(bl);
 
     sc_data[type].val1 = val1;
-    if (sc_data[type].spell_invocation) // Supplant by newer spell
-        magic::spell_effect_report_termination(sc_data[type].spell_invocation,
-                                         bl->bl_id, type, 1);
-
-    sc_data[type].spell_invocation = spell_invocation;
 
     /* タイマー設定 */
     sc_data[type].timer = Timer(gettick() + tick,

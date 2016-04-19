@@ -108,7 +108,7 @@ int skill_castcancel(dumb_ptr<block_list> bl, int type);
 // ステータス異常
 int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
-        interval_t tick, BlockId spell_invocation);
+        interval_t tick);
 int skill_status_change_start(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
         interval_t tick);

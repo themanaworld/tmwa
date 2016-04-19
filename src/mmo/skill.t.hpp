@@ -41,11 +41,7 @@ enum class StatusChange : uint16_t
     // these ones are used by clif_status_change,
     // e.g. by the magic system
     ZERO                = 0,
-    ATTACK_ICON_GENERIC = 2000,
-    ATTACK_ICON_SHEARING = 2001,
-    CART                = 0x0c,
     CLIF_OPTION_SC_INVISIBILITY = 0x1000,
-    CLIF_OPTION_SC_SCRIBE = 0x1001,
 
     // the rest are the normal effects
     SC_SLOWPOISON       = 14,   // item script

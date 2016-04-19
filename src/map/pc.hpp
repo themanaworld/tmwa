@@ -80,6 +80,8 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
 void pc_makesavestatus(dumb_ptr<map_session_data>);
 int pc_setnewpc(dumb_ptr<map_session_data>, AccountId, CharId, int, uint32_t /*tick_t*/, SEX);
+void pc_set_weapon_icon(dumb_ptr<map_session_data> sd, int count,StatusChange icon, ItemNameId look);
+void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int range);
 int pc_authok(AccountId, int, ClientVersion, const CharKey *, const CharData *);
 int pc_authfail(AccountId accid);
 
@@ -140,12 +142,12 @@ int pc_heal(dumb_ptr<map_session_data>, int, int);
 int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp);
 int pc_changelook(dumb_ptr<map_session_data>, LOOK, int);
 
-int pc_readparam(dumb_ptr<map_session_data>, SP);
+int pc_readparam(dumb_ptr<block_list>, SP);
 int pc_setparam(dumb_ptr<map_session_data>, SP, int);
-int pc_readreg(dumb_ptr<map_session_data>, SIR);
-void pc_setreg(dumb_ptr<map_session_data>, SIR, int);
-ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg);
-void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, RString str);
+int pc_readreg(dumb_ptr<block_list>, SIR);
+void pc_setreg(dumb_ptr<block_list>, SIR, int);
+ZString pc_readregstr(dumb_ptr<block_list> sd, SIR reg);
+void pc_setregstr(dumb_ptr<block_list> sd, SIR reg, RString str);
 void update_quest(dumb_ptr<map_session_data> sd, VarName quest_var, int value);
 void update_allquest(dumb_ptr<map_session_data> sd);
 int pc_readglobalreg(dumb_ptr<map_session_data>, VarName );
@@ -168,7 +170,6 @@ int pc_divorce(dumb_ptr<map_session_data> sd);
 dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd);
 void pc_set_gm_level(AccountId account_id, GmLevel level);
 void pc_setstand(dumb_ptr<map_session_data> sd);
-void pc_cleanup(dumb_ptr<map_session_data> sd);  // [Fate] Clean up after a logged-out PC
 
 int pc_read_gm_account(Session *, const std::vector<Packet_Repeat<0x2b15>>&);
 int pc_setpvptimer(dumb_ptr<map_session_data> sd, interval_t);
