@@ -1,3 +1,28 @@
+v16.4.21
+  - use the client version sent to login server, ignore client version sent to char server
+  - allow remote execution for newer clients (protocol 6+)
+  - implement SMSG_SCRIPT_MESSAGE, add smsg builtin
+  - implement SMSG_PLAYER_CLIENT_COMMAND, add remotecmd builtin
+  - add builtin areatimer
+  - add builtin foreach
+  - add builtin aggravate
+  - add builtin overrideattack
+  - add builtin injure
+  - add builtin summon
+  - add builtin getdir
+  - add builtin addnpctimer
+  - add builtin get
+  - add builtin chr
+  - add builtin ord
+  - add builtin void
+  - add builtin getarg
+  - add builtin call
+  - remove magic-v2, keep sexpr parser
+  - implement puppet npcs
+  - add scope variables
+  - add npc variables
+  - expose some more params
+  - remove MESSAGE npc subtype
 v16.4.8
   - fix pvpoff
   - broadcast map pvp status on pvpon/pvpoff
