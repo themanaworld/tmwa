@@ -3263,10 +3263,15 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     pc_setglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"_s), ++sd->die_counter);  //死にカウンター書き込み
     skill_status_change_clear(sd, 0); // ステータス異常を解除する
     clif_updatestatus(sd, SP::HP);
-    pc_calcstatus(sd, 0);
     // [Fate] Reset magic
-    //sd->cast_tick = gettick();
-    //magic_stop_completely(sd);
+    // FIXME: make spells manage their own charge counter, and reset on death
+    if (sd->attack_spell_override)
+    {
+        sd->attack_spell_override = BlockId();
+        pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
+        pc_set_attack_info(sd, interval_t::zero(), 0);
+    }
+    pc_calcstatus(sd, 0);
 
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {
