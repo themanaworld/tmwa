@@ -334,7 +334,8 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
     fixed_02.login_id1 = sd->login_id1;
     fixed_02.login_id2 = sd->login_id2;
     fixed_02.ip = s_ip;
-    send_fpacket<0x2b02, 18>(char_session, fixed_02);
+    fixed_02.client_protocol_version = sd->client_version;
+    send_fpacket<0x2b02, 22>(char_session, fixed_02);
 
     return 0;
 }

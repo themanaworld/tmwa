@@ -5321,8 +5321,9 @@ def build_context():
             at(6, u32, 'login id1'),
             at(10, u32, 'login id2'),
             at(14, ip4, 'ip'),
+            at(18, client_version, 'client protocol version'),
         ],
-        fixed_size=18,
+        fixed_size=22,
         pre=[0x00b2],
         post=[0x2b03],
         desc='''

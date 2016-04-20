@@ -1781,7 +1781,7 @@ void parse_frommap(Session *ms)
             case 0x2b02:
             {
                 Packet_Fixed<0x2b02> fixed;
-                rv = recv_fpacket<0x2b02, 18>(ms, fixed);
+                rv = recv_fpacket<0x2b02, 22>(ms, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
@@ -1794,6 +1794,7 @@ void parse_frommap(Session *ms)
                 auth_fifo_iter->login_id2 = fixed.login_id2;
                 auth_fifo_iter->delflag = 2;
                 auth_fifo_iter->ip = fixed.ip;
+                auth_fifo_iter->client_version = fixed.client_protocol_version;
                 auth_fifo_iter++;
 
                 Packet_Fixed<0x2b03> fixed_03;
@@ -2276,6 +2277,8 @@ void parse_char(Session *s)
                                     fixed_16.account_id = sd->account_id;
                                     send_fpacket<0x2716, 6>(login_session, fixed_16);
                                 }
+
+                                sd->client_version = afi.client_version;
 
                                 // send characters to player
                                 mmo_char_send006b(s, sd);
