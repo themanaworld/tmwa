@@ -1,3 +1,5 @@
+v16.4.21.1
+  - send client version from map server to char server when switching char
 v16.4.21
   - use the client version sent to login server, ignore client version sent to char server
   - allow remote execution for newer clients (protocol 6+)
