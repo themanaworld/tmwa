@@ -3544,155 +3544,170 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
  * script用PCステータス設定
  *------------------------------------------
  */
-int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
+int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
 {
+    nullpo_retz(bl);
+    dumb_ptr<map_session_data> sd;
+    dumb_ptr<npc_data> nd;
+    dumb_ptr<mob_data> md;
+
+    if (bl->bl_type == BL::PC)
+        sd = bl->is_player();
+    else if (bl->bl_type == BL::MOB)
+        md = bl->is_mob();
+    else if (bl->bl_type == BL::NPC)
+        nd = bl->is_npc();
+    else
+        return 0;
+
     int i = 0, up_level = 50;
 
-    nullpo_retz(sd);
-
-    switch (type)
+    if (sd)
     {
-        case SP::BASELEVEL:
-            if (val > sd->status.base_level)
-            {
-                for (i = 1; i <= (val - sd->status.base_level); i++)
-                    sd->status.status_point +=
-                        (sd->status.base_level + i + 14) / 4;
-            }
-            sd->status.base_level = val;
-            sd->status.base_exp = 0;
-            clif_updatestatus(sd, SP::BASELEVEL);
-            clif_updatestatus(sd, SP::NEXTBASEEXP);
-            clif_updatestatus(sd, SP::STATUSPOINT);
-            clif_updatestatus(sd, SP::BASEEXP);
-            pc_calcstatus(sd, 0);
-            pc_heal(sd, sd->status.max_hp, sd->status.max_sp);
-            break;
-        case SP::JOBLEVEL:
-            up_level -= 40;
-            if (val >= sd->status.job_level)
-            {
-                if (val > up_level)
-                    val = up_level;
-                sd->status.skill_point += (val - sd->status.job_level);
-                sd->status.job_level = val;
-                sd->status.job_exp = 0;
-                clif_updatestatus(sd, SP::JOBLEVEL);
-                clif_updatestatus(sd, SP::NEXTJOBEXP);
-                clif_updatestatus(sd, SP::JOBEXP);
-                clif_updatestatus(sd, SP::SKILLPOINT);
+        switch (type)
+        {
+            case SP::BASELEVEL:
+                if (val > sd->status.base_level)
+                {
+                    for (i = 1; i <= (val - sd->status.base_level); i++)
+                        sd->status.status_point +=
+                            (sd->status.base_level + i + 14) / 4;
+                }
+                sd->status.base_level = val;
+                sd->status.base_exp = 0;
+                clif_updatestatus(sd, SP::BASELEVEL);
+                clif_updatestatus(sd, SP::NEXTBASEEXP);
+                clif_updatestatus(sd, SP::STATUSPOINT);
+                clif_updatestatus(sd, SP::BASEEXP);
                 pc_calcstatus(sd, 0);
-                clif_misceffect(sd, 1);
-            }
-            else
-            {
-                sd->status.job_level = val;
-                sd->status.job_exp = 0;
-                clif_updatestatus(sd, SP::JOBLEVEL);
-                clif_updatestatus(sd, SP::NEXTJOBEXP);
-                clif_updatestatus(sd, SP::JOBEXP);
-                pc_calcstatus(sd, 0);
-            }
-            clif_updatestatus(sd, type);
-            break;
-        case SP::CLASS:
-            sd->status.species = wrap<Species>(val);
-            clif_changelook(sd, LOOK::BASE, val);
-            return 0;
-        case SP::SKILLPOINT:
-            sd->status.skill_point = val;
-            break;
-        case SP::STATUSPOINT:
-            sd->status.status_point = val;
-            break;
-        case SP::ZENY:
-            sd->status.zeny = val;
-            break;
-        case SP::BASEEXP:
-            if (pc_nextbaseexp(sd) > 0)
-            {
-                sd->status.base_exp = val;
-                if (sd->status.base_exp < 0)
-                    sd->status.base_exp = 0;
-                pc_checkbaselevelup(sd);
-            }
-            break;
-        case SP::JOBEXP:
-            if (pc_nextjobexp(sd) > 0)
-            {
-                sd->status.job_exp = val;
-                if (sd->status.job_exp < 0)
+                pc_heal(sd, sd->status.max_hp, sd->status.max_sp);
+                break;
+            case SP::JOBLEVEL:
+                up_level -= 40;
+                if (val >= sd->status.job_level)
+                {
+                    if (val > up_level)
+                        val = up_level;
+                    sd->status.skill_point += (val - sd->status.job_level);
+                    sd->status.job_level = val;
                     sd->status.job_exp = 0;
-                pc_checkjoblevelup(sd);
-            }
-            break;
-        case SP::SEX:
-            switch (val)
-            {
-            case 0:
-                sd->sex = sd->status.sex = SEX::FEMALE;
+                    clif_updatestatus(sd, SP::JOBLEVEL);
+                    clif_updatestatus(sd, SP::NEXTJOBEXP);
+                    clif_updatestatus(sd, SP::JOBEXP);
+                    clif_updatestatus(sd, SP::SKILLPOINT);
+                    pc_calcstatus(sd, 0);
+                    clif_misceffect(sd, 1);
+                }
+                else
+                {
+                    sd->status.job_level = val;
+                    sd->status.job_exp = 0;
+                    clif_updatestatus(sd, SP::JOBLEVEL);
+                    clif_updatestatus(sd, SP::NEXTJOBEXP);
+                    clif_updatestatus(sd, SP::JOBEXP);
+                    pc_calcstatus(sd, 0);
+                }
+                clif_updatestatus(sd, type);
                 break;
-            case 1:
-                sd->sex = sd->status.sex = SEX::MALE;
+            case SP::CLASS:
+                sd->status.species = wrap<Species>(val);
+                clif_changelook(sd, LOOK::BASE, val);
+                return 0;
+            case SP::SKILLPOINT:
+                sd->status.skill_point = val;
                 break;
-            default:
-                sd->sex = sd->status.sex = SEX::NEUTRAL;
+            case SP::STATUSPOINT:
+                sd->status.status_point = val;
                 break;
-            }
-            for (IOff0 j : IOff0::iter())
-            {
-                if (sd->status.inventory[j].nameid
-                    && bool(sd->status.inventory[j].equip)
-                    && !pc_isequip(sd, j))
-                    pc_unequipitem(sd, j, CalcStatus::LATER);
-            }
-            pc_calcstatus(sd, 0);
-            chrif_save(sd);
-            clif_fixpcpos(sd);
-            break;
-        case SP::WEIGHT:
-            sd->weight = val;
-            break;
-        case SP::MAXWEIGHT:
-            sd->max_weight = val;
-            break;
-        case SP::HP:
-            sd->status.hp = val;
-            break;
-        case SP::MAXHP:
-            sd->status.max_hp = val;
-            break;
-        case SP::SP:
-            sd->status.sp = val;
-            break;
-        case SP::MAXSP:
-            sd->status.max_sp = val;
-            break;
-        case SP::STR:
-        case SP::AGI:
-        case SP::VIT:
-        case SP::INT:
-        case SP::DEX:
-        case SP::LUK:
-            pc_statusup2(sd, type, (val - sd->status.attrs[sp_to_attr(type)]));
-            break;
-        case SP::PARTNER:
-            dumb_ptr<block_list> p_bl;
-            if (val < 2000000 && val >= 150000)
-            {
-                dumb_ptr<map_session_data> p_sd = nullptr;
-                if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(val)))) != nullptr)
-                    p_bl = map_id2bl(p_sd->bl_id);
-            }
-            else
-                p_bl = map_id2bl(wrap<BlockId>(val));
-            if (val < 1)
-                pc_divorce(sd);
-            else
-                p_bl ? pc_marriage(sd, p_bl->is_player()) : 0;
-            break;
+            case SP::ZENY:
+                sd->status.zeny = val;
+                break;
+            case SP::BASEEXP:
+                if (pc_nextbaseexp(sd) > 0)
+                {
+                    sd->status.base_exp = val;
+                    if (sd->status.base_exp < 0)
+                        sd->status.base_exp = 0;
+                    pc_checkbaselevelup(sd);
+                }
+                break;
+            case SP::JOBEXP:
+                if (pc_nextjobexp(sd) > 0)
+                {
+                    sd->status.job_exp = val;
+                    if (sd->status.job_exp < 0)
+                        sd->status.job_exp = 0;
+                    pc_checkjoblevelup(sd);
+                }
+                break;
+            case SP::SEX:
+                switch (val)
+                {
+                case 0:
+                    sd->sex = sd->status.sex = SEX::FEMALE;
+                    break;
+                case 1:
+                    sd->sex = sd->status.sex = SEX::MALE;
+                    break;
+                default:
+                    sd->sex = sd->status.sex = SEX::NEUTRAL;
+                    break;
+                }
+                for (IOff0 j : IOff0::iter())
+                {
+                    if (sd->status.inventory[j].nameid
+                        && bool(sd->status.inventory[j].equip)
+                        && !pc_isequip(sd, j))
+                        pc_unequipitem(sd, j, CalcStatus::LATER);
+                }
+                pc_calcstatus(sd, 0);
+                chrif_save(sd);
+                clif_fixpcpos(sd);
+                break;
+            case SP::WEIGHT:
+                sd->weight = val;
+                break;
+            case SP::MAXWEIGHT:
+                sd->max_weight = val;
+                break;
+            case SP::HP:
+                sd->status.hp = val;
+                break;
+            case SP::MAXHP:
+                sd->status.max_hp = val;
+                break;
+            case SP::SP:
+                sd->status.sp = val;
+                break;
+            case SP::MAXSP:
+                sd->status.max_sp = val;
+                break;
+            case SP::STR:
+            case SP::AGI:
+            case SP::VIT:
+            case SP::INT:
+            case SP::DEX:
+            case SP::LUK:
+                pc_statusup2(sd, type, (val - sd->status.attrs[sp_to_attr(type)]));
+                break;
+            case SP::PARTNER:
+                dumb_ptr<block_list> p_bl;
+                if (val < 2000000 && val >= 150000)
+                {
+                    dumb_ptr<map_session_data> p_sd = nullptr;
+                    if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(val)))) != nullptr)
+                        p_bl = map_id2bl(p_sd->bl_id);
+                }
+                else
+                    p_bl = map_id2bl(wrap<BlockId>(val));
+                if (val < 1)
+                    pc_divorce(sd);
+                else
+                    p_bl ? pc_marriage(sd, p_bl->is_player()) : 0;
+                break;
+        }
+        clif_updatestatus(sd, type);
     }
-    clif_updatestatus(sd, type);
 
     return 0;
 }
