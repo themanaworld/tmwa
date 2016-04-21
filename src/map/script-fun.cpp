@@ -3813,7 +3813,10 @@ void builtin_get(ScriptState *st)
         }
 
         if (bl == nullptr)
+        {
+            push_int<ScriptDataInt>(st->stack, -1);
             return;
+        }
         int var = pc_readparam(bl, reg.sp());
         push_int<ScriptDataInt>(st->stack, var);
         return;
@@ -3869,9 +3872,8 @@ void builtin_get(ScriptState *st)
 
     if (!bl)
     {
-        PRINTF("builtin_get: no block list attached %s!\n"_fmt, conv_str(st, &AARG(1)));
         if (postfix == '$')
-            push_str<ScriptDataStr>(st->stack, conv_str(st, &AARG(1)));
+            push_str<ScriptDataStr>(st->stack, ""_s);
         else
             push_int<ScriptDataInt>(st->stack, 0);
         return;
