@@ -3339,16 +3339,11 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
             sd->pvp_point -= 5;
             if (src && src->bl_type == BL::PC)
                 src->is_player()->pvp_point++;
-            pc_setdead(sd);
         }
         // 強制送還
         if (sd->pvp_point < 0)
         {
             sd->pvp_point = 0;
-            pc_setstand(sd);
-            pc_setrestartvalue(sd, 3);
-            pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x,
-                       sd->status.save_point.y, BeingRemoveWhy::GONE);
         }
     }
 
