@@ -1121,6 +1121,13 @@ void builtin_puppet(ScriptState *st)
 {
     int x, y;
 
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
+    if (npc_name2id(npc) != nullptr)
+    {
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
     dumb_ptr<block_list> bl = map_id2bl(st->oid);
     dumb_ptr<npc_data_script> parent_nd = bl->is_npc()->is_script();
     dumb_ptr<npc_data_script> nd;
@@ -1137,7 +1144,6 @@ void builtin_puppet(ScriptState *st)
     nd->scr.event_needs_map = false;
 
     // PlayerName::SpellName
-    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
     nd->name = npc;
 
     // Dynamically set location
