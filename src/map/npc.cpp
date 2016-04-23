@@ -366,6 +366,12 @@ void npc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
         return;
     }
 
+    if (nd->scr.parent && map_id2bl(nd->scr.parent) == nullptr)
+    {
+        npc_free(nd);
+        return;
+    }
+
     if (nd->scr.event_needs_map)
     {
         int xs = nd->scr.xs;
@@ -435,6 +441,12 @@ void npc_timerevent(TimerData *, tick_t tick, BlockId id, interval_t data)
     assert (nd != nullptr);
     assert (nd->npc_subtype == NpcSubtype::SCRIPT);
     assert (nd->scr.next_event != nd->scr.timer_eventv.end());
+
+    if (nd->scr.parent && map_id2bl(nd->scr.parent) == nullptr)
+    {
+        npc_free(nd);
+        return;
+    }
 
     nd->scr.timertick = tick;
     const auto te = nd->scr.next_event;
@@ -606,6 +618,13 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
                     eventname);
         return 0;
     }
+
+    if (nd->scr.parent && map_id2bl(nd->scr.parent) == nullptr)
+    {
+        npc_free(nd);
+        return 0;
+    }
+
     if (sd)
     {
         if (nd->scr.event_needs_map)
@@ -774,7 +793,13 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
             npc_event_dequeue(sd);
             break;
         case NpcSubtype::SCRIPT:
-            sd->npc_pos = run_script(ScriptPointer(script_or_parent(nd->is_script()), 0), sd->bl_id, id);
+            dumb_ptr<npc_data_script> nds = nd->is_script();
+            if (nds->scr.parent && map_id2bl(nds->scr.parent) == nullptr)
+            {
+                npc_free(nds);
+                return 1;
+            }
+            sd->npc_pos = run_script(ScriptPointer(script_or_parent(nds), 0), sd->bl_id, id);
             break;
     }
 
@@ -805,6 +830,13 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
     {
         clif_scriptclose(sd, id);
         npc_event_dequeue(sd);
+        return 0;
+    }
+
+    if (nd->is_script()->scr.parent &&
+        map_id2bl(nd->is_script()->scr.parent) == nullptr)
+    {
+        npc_free(nd);
         return 0;
     }
 
