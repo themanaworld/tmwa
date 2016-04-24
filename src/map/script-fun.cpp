@@ -90,6 +90,8 @@ static
 void builtin_mes(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (sd == nullptr)
+        return;
     sd->state.npc_dialog_mes = 1;
     RString mes = HARG(0) ? conv_str(st, &AARG(0)) : ""_s;
     clif_scriptmes(sd, st->oid, mes);
@@ -327,6 +329,8 @@ void builtin_close(ScriptState *st)
     }
     st->state = ScriptEndState::END;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (sd == nullptr)
+        return;
     if (sd->state.npc_dialog_mes)
         clif_scriptclose(sd, st->oid);
     else
@@ -338,6 +342,8 @@ void builtin_close2(ScriptState *st)
 {
     st->state = ScriptEndState::STOP;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (sd == nullptr)
+        return;
     if (sd->state.npc_dialog_mes)
         clif_scriptclose(sd, st->oid);
     else
