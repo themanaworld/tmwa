@@ -90,6 +90,8 @@ static
 void builtin_mes(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (sd == nullptr)
+        return;
     sd->state.npc_dialog_mes = 1;
     RString mes = HARG(0) ? conv_str(st, &AARG(0)) : ""_s;
     clif_scriptmes(sd, st->oid, mes);
@@ -327,6 +329,8 @@ void builtin_close(ScriptState *st)
     }
     st->state = ScriptEndState::END;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (sd == nullptr)
+        return;
     if (sd->state.npc_dialog_mes)
         clif_scriptclose(sd, st->oid);
     else
@@ -338,6 +342,8 @@ void builtin_close2(ScriptState *st)
 {
     st->state = ScriptEndState::STOP;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    if (sd == nullptr)
+        return;
     if (sd->state.npc_dialog_mes)
         clif_scriptclose(sd, st->oid);
     else
@@ -1121,6 +1127,13 @@ void builtin_puppet(ScriptState *st)
 {
     int x, y;
 
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
+    if (npc_name2id(npc) != nullptr)
+    {
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
     dumb_ptr<block_list> bl = map_id2bl(st->oid);
     dumb_ptr<npc_data_script> parent_nd = bl->is_npc()->is_script();
     dumb_ptr<npc_data_script> nd;
@@ -1137,8 +1150,8 @@ void builtin_puppet(ScriptState *st)
     nd->scr.event_needs_map = false;
 
     // PlayerName::SpellName
-    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
     nd->name = npc;
+    nd->sex = SEX::UNSPECIFIED;
 
     // Dynamically set location
     nd->bl_m = m;
@@ -3813,7 +3826,10 @@ void builtin_get(ScriptState *st)
         }
 
         if (bl == nullptr)
+        {
+            push_int<ScriptDataInt>(st->stack, -1);
             return;
+        }
         int var = pc_readparam(bl, reg.sp());
         push_int<ScriptDataInt>(st->stack, var);
         return;
@@ -3869,9 +3885,8 @@ void builtin_get(ScriptState *st)
 
     if (!bl)
     {
-        PRINTF("builtin_get: no block list attached %s!\n"_fmt, conv_str(st, &AARG(1)));
         if (postfix == '$')
-            push_str<ScriptDataStr>(st->stack, conv_str(st, &AARG(1)));
+            push_str<ScriptDataStr>(st->stack, ""_s);
         else
             push_int<ScriptDataInt>(st->stack, 0);
         return;
