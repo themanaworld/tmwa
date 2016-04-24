@@ -3818,10 +3818,16 @@ void builtin_get(ScriptState *st)
                 if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(num)))) != nullptr)
                     id = p_sd->bl_id;
                 else
+                {
+                    push_int<ScriptDataInt>(st->stack, -1);
                     return;
+                }
             }
             else
+            {
+                push_int<ScriptDataInt>(st->stack, -1);
                 return;
+            }
             bl = map_id2bl(id);
         }
 
@@ -3848,6 +3854,7 @@ void builtin_get(ScriptState *st)
         if (name_.startswith(".@"_s))
         {
             PRINTF("builtin_get: illegal scope!\n"_fmt);
+            push_int<ScriptDataInt>(st->stack, 0);
             return;
         }
         NpcName name;
@@ -3880,6 +3887,7 @@ void builtin_get(ScriptState *st)
     else
     {
         PRINTF("builtin_get: illegal scope !\n"_fmt);
+        push_int<ScriptDataInt>(st->stack, 0);
         return;
     }
 
