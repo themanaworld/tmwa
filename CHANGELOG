@@ -1,3 +1,10 @@
+v16.4.24
+  - make tmwa use resave mapflags when you die in a pvpon map
+  - make the `get` builtin silently ignore errors
+  - allow to set params in mob/npcs (only some params so far)
+  - explicitly check that the parent still exists for puppets
+  - add INVISIBLE and HIDDEN params
+  - add missing null pointer check in builtin_close
 v16.4.21.1
   - send client version from map server to char server when switching char
 v16.4.21
