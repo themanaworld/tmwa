@@ -474,6 +474,7 @@ enum class SP : uint16_t
     BL_ID                       = 1077,
     BL_TYPE                     = 1078,
     CHAR_ID                     = 1079,
+    INVISIBLE                   = 1080,
 };
 
 constexpr

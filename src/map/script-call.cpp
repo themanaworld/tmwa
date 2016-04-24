@@ -219,7 +219,7 @@ void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_
     if (type == VariableCode::PARAM)
     {
         int val = vd.get_if<ScriptDataInt>()->numi;
-        pc_setparam(sd->is_player(), reg.sp(), val);
+        pc_setparam(sd, reg.sp(), val);
         return;
     }
     assert (type == VariableCode::VARIABLE);
