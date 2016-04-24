@@ -3541,6 +3541,10 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             if (nd)
                 val = bool(nd->flag & 1);
             break;
+        case SP::HIDDEN:
+            if (sd)
+                val = bool(sd->status.option & Opt0::HIDE);
+            break;
     }
 
     return val;
@@ -3756,6 +3760,14 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                 pc_invisibility(sd, (val > 0) ? 1 : 0);
             else if (nd)
                 npc_enable(nd->name, (val > 0) ? false : true);
+            break;
+        case SP::HIDDEN:
+            nullpo_retz(sd);
+            if (val == 1)
+                sd->status.option |= Opt0::HIDE;
+            else
+                sd->status.option &= ~Opt0::HIDE;
+            clif_changeoption(sd);
             break;
     }
 
