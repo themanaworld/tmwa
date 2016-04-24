@@ -142,6 +142,7 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->bl_id = npc_get_new_npc_id();
     nd->n = map_addnpc(m, nd);
 
+    nd->sex = SEX::UNSPECIFIED;
     nd->bl_prev = nd->bl_next = nullptr;
     nd->bl_m = m;
     nd->bl_x = x;
@@ -208,6 +209,7 @@ bool npc_load_shop(ast::npc::Shop& shop)
         }
     }
 
+    nd->sex = SEX::UNSPECIFIED;
     nd->bl_prev = nd->bl_next = nullptr;
     nd->bl_m = m;
     nd->bl_x = x;
@@ -435,6 +437,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
 
     nd->name = script_none.name.data;
 
+    nd->sex = SEX::UNSPECIFIED;
     nd->bl_prev = nd->bl_next = nullptr;
     nd->bl_m = borrow(undefined_gat);
     nd->bl_x = 0;
@@ -542,7 +545,7 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     }
 
     nd->name = script_map.name.data;
-
+    nd->sex = SEX::UNSPECIFIED;
     nd->bl_prev = nd->bl_next = nullptr;
     nd->bl_m = m;
     nd->bl_x = x;

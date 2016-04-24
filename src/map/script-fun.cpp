@@ -1145,6 +1145,7 @@ void builtin_puppet(ScriptState *st)
 
     // PlayerName::SpellName
     nd->name = npc;
+    nd->sex = SEX::UNSPECIFIED;
 
     // Dynamically set location
     nd->bl_m = m;

@@ -115,6 +115,7 @@ enum class SEX : uint8_t
     // TODO switch to Option<SEX> where appropriate.
     UNSPECIFIED = 2,
     NEUTRAL = 3,
+    __OTHER = 4, // used in ManaPlus only
 };
 inline
 char sex_to_char(SEX sex)

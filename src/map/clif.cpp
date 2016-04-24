@@ -913,7 +913,15 @@ void clif_npc0078(dumb_ptr<npc_data> nd, Buffer& buf)
     fixed_78.pos.x = nd->bl_x;
     fixed_78.pos.y = nd->bl_y;
     fixed_78.pos.dir = nd->dir;
-    fixed_78.sex = nd->sex;
+
+    // ManaPlus uses a different sex enum for npcs...
+    if (nd->sex == SEX::FEMALE)
+        fixed_78.sex = SEX::UNSPECIFIED;
+    else if (nd->sex == SEX::MALE)
+        fixed_78.sex = SEX::NEUTRAL;
+    else if (nd->sex == SEX::NEUTRAL)
+        fixed_78.sex = SEX::__OTHER;
+
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
 
