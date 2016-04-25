@@ -1465,12 +1465,13 @@ void builtin_setarray(ScriptState *st)
             j = getarraysize2(reg, bl);
     }
     else if (prefix != '$' && !name.startswith(".@"_s))
-        bl = map_id_is_player(st->rid);
-
-    if (!bl)
     {
-        PRINTF("builtin_setarray: rid not attached\n"_fmt);
-        return;
+        bl = map_id_is_player(st->rid);
+        if (!bl)
+        {
+            PRINTF("builtin_setarray: rid not attached\n"_fmt);
+            return;
+        }
     }
 
     for (; i < st->end - st->start - 2 && j < 256; i++, j++)
@@ -1506,12 +1507,13 @@ void builtin_cleararray(ScriptState *st)
     if (prefix == '.' && !name.startswith(".@"_s))
         bl = map_id_is_npc(st->oid);
     else if (prefix != '$' && !name.startswith(".@"_s))
-        bl = map_id_is_player(st->rid);
-
-    if (!bl)
     {
-        PRINTF("builtin_cleararray: no block list\n"_fmt);
-        return;
+        bl = map_id_is_player(st->rid);
+        if (!bl)
+        {
+            PRINTF("builtin_cleararray: no block list\n"_fmt);
+            return;
+        }
     }
 
     for (int i = 0; i < sz; i++)
