@@ -1,3 +1,5 @@
+v16.4.25
+  - check for null pointers in the new/modified builtins
 v16.4.24
   - make tmwa use resave mapflags when you die in a pvpon map
   - make the `get` builtin silently ignore errors
