@@ -3949,7 +3949,7 @@ void builtin_get(ScriptState *st)
     }
     else
     {
-        int var;
+        int var = 0;
         if (prefix == '#' && bl)
         {
             if (name_.startswith("##"_s))
