@@ -693,6 +693,12 @@ void builtin_target(ScriptState *st)
     int flag = conv_num(st, &AARG(2));
     int val = 0;
 
+    if (!source || !target)
+    {
+        push_int<ScriptDataInt>(st->stack, val);
+        return;
+    }
+
     if (flag & 0x01)
     {
         int x0 = source->bl_x - AREA_SIZE;
@@ -1109,9 +1115,11 @@ void builtin_destroy(ScriptState *st)
     else
         id = st->oid;
 
-    dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
-    if(!nd)
+    dumb_ptr<npc_data> nd = map_id_is_npc(id);
+    if(!nd || nd->npc_subtype != NpcSubtype::SCRIPT)
         return;
+
+    nd = nd->is_script();
     //assert(nd->disposable == true); we don't care about it anymore
     npc_free(nd);
     if (!HARG(0))
@@ -1276,7 +1284,7 @@ void builtin_set(ScriptState *st)
         }
 
         else
-            bl = script_rid2sd(st)->is_player();
+            bl = script_rid2sd(st);
 
         if (bl == nullptr)
             return;
@@ -1342,10 +1350,10 @@ void builtin_set(ScriptState *st)
                         set_scope_reg(st, reg, &AARG(1));
                     return;
                 }
-                bl = map_id2bl(st->oid)->is_npc();
+                bl = map_id_is_npc(st->oid);
             }
             else
-                bl = map_id2bl(st->rid)->is_player();
+                bl = map_id_is_player(st->rid);
         }
         if (bl == nullptr)
             return;
@@ -1433,7 +1441,7 @@ void builtin_setarray(ScriptState *st)
         {
             ZString tn = conv_str(st, sdata);
             if (tn == "this"_s || tn == "oid"_s)
-                bl = map_id2bl(st->oid)->is_npc();
+                bl = map_id_is_npc(st->oid);
             else
             {
                 NpcName name_ = stringish<NpcName>(tn);
@@ -1444,9 +1452,9 @@ void builtin_setarray(ScriptState *st)
         {
             int tid = conv_num(st, sdata);
             if (tid == 0)
-                bl = map_id2bl(st->oid)->is_npc();
+                bl = map_id_is_npc(st->oid);
             else
-               bl = map_id2bl(wrap<BlockId>(tid))->is_npc();
+               bl = map_id_is_npc(wrap<BlockId>(tid));
         }
         if (!bl)
         {
@@ -1457,7 +1465,13 @@ void builtin_setarray(ScriptState *st)
             j = getarraysize2(reg, bl);
     }
     else if (prefix != '$' && !name.startswith(".@"_s))
-        bl = map_id2bl(st->rid)->is_player();
+        bl = map_id_is_player(st->rid);
+
+    if (!bl)
+    {
+        PRINTF("builtin_setarray: rid not attached\n"_fmt);
+        return;
+    }
 
     for (; i < st->end - st->start - 2 && j < 256; i++, j++)
     {
@@ -1490,9 +1504,15 @@ void builtin_cleararray(ScriptState *st)
         return;
     }
     if (prefix == '.' && !name.startswith(".@"_s))
-        bl = map_id2bl(st->oid)->is_npc();
+        bl = map_id_is_npc(st->oid);
     else if (prefix != '$' && !name.startswith(".@"_s))
-        bl = map_id2bl(st->rid)->is_player();
+        bl = map_id_is_player(st->rid);
+
+    if (!bl)
+    {
+        PRINTF("builtin_cleararray: no block list\n"_fmt);
+        return;
+    }
 
     for (int i = 0; i < sz; i++)
     {
@@ -1969,7 +1989,7 @@ void builtin_getnpcid(ScriptState *st)
     if (HARG(0))
         nd = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
     else
-        nd = map_id2bl(st->oid)->is_npc();
+        nd = map_id_is_npc(st->oid);
     if (nd == nullptr)
     {
         push_int<ScriptDataInt>(st->stack, -1);
@@ -2002,9 +2022,15 @@ void builtin_strcharinfo(ScriptState *st)
     int num;
 
     if (HARG(1))    //指定したキャラを状態異常にする
-        sd = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))))->is_player();
+        sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(1))));
     else
         sd = script_rid2sd(st);
+
+    if (!sd)
+    {
+        PRINTF("builtin_strcharinfo: player not found\n"_fmt);
+        return;
+    }
 
     num = conv_num(st, &AARG(0));
     if (num == 0)
@@ -2434,6 +2460,12 @@ void builtin_summon(ScriptState *st)
     if (HARG(7))
         extract(ZString(conv_str(st, &AARG(7))), &event);
 
+    if (!owner_e)
+    {
+        PRINTF("builtin_summon: bad owner\n"_fmt);
+        return;
+    }
+
     if (monster_attitude == MonsterAttitude::SERVANT
         && owner_e->bl_type == BL::PC)
         owner = owner_e->is_player(); // XXX in the future this should also work with mobs as owner
@@ -2800,6 +2832,8 @@ void builtin_setnpcdirection(ScriptState *st)
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(3)))));
     else
         nd_ = map_id_is_npc(st->oid);
+
+    assert (nd_);
 
     if (bool(conv_num(st, &AARG(1))))
         action = DamageType::SIT;
@@ -3355,9 +3389,15 @@ void builtin_getpvpflag(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd;
     if (HARG(1))    //指定したキャラを状態異常にする
-        sd = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))))->is_player();
+        sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(1))));
     else
         sd = script_rid2sd(st);
+
+    if (!sd)
+    {
+        PRINTF("builtin_getpvpflag: player not found\n"_fmt);
+        return;
+    }
 
     int num = conv_num(st, &AARG(0));
     int flag = 0;
@@ -3551,6 +3591,8 @@ void builtin_explode(ScriptState *st)
         bl = map_id2bl(st->oid)->is_npc();
     else if (prefix != '$' && prefix != '.')
         bl = map_id2bl(st->rid)->is_player();
+
+    assert (bl);
 
     for (int j = 0; j < 256; j++)
     {
@@ -3915,7 +3957,7 @@ void builtin_get(ScriptState *st)
             else
                 var = pc_readaccountreg(bl->is_player(), stringish<VarName>(name_));
         }
-        else
+        else if (bl)
             var = pc_readreg(bl, reg);
 
         push_int<ScriptDataInt>(st->stack, var);
@@ -4317,6 +4359,8 @@ void builtin_getsavepoint(ScriptState *st)
 static
 void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent event)
 {
+    if (!bl)
+        return;
     if (bl->bl_type == BL::PC)
     {
         dumb_ptr<map_session_data> sd = map_id_is_player(bl->bl_id);
@@ -4540,7 +4584,7 @@ void builtin_strnpcinfo(ScriptState *st)
         else
         {
             BlockId id = wrap<BlockId>(conv_num(st, sdata));
-            nd = map_id2bl(id)->is_npc();
+            nd = map_id_is_npc(id);
         }
 
         if (!nd)
@@ -4551,6 +4595,8 @@ void builtin_strnpcinfo(ScriptState *st)
     } else {
         nd = map_id_is_npc(st->oid);
     }
+
+    assert (nd);
 
     switch(num)
     {
@@ -4592,6 +4638,8 @@ void builtin_getnpcx(ScriptState *st)
         nd = map_id_is_npc(st->oid);
     }
 
+    assert (nd);
+
     push_int<ScriptDataInt>(st->stack, nd->bl_x);
 }
 
@@ -4615,6 +4663,8 @@ void builtin_getnpcy(ScriptState *st)
     } else {
         nd = map_id_is_npc(st->oid);
     }
+
+    assert (nd);
 
     push_int<ScriptDataInt>(st->stack, nd->bl_y);
 }
