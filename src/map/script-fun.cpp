@@ -3592,9 +3592,11 @@ void builtin_explode(ScriptState *st)
     if (prefix == '.' && !name.startswith(".@"_s))
         bl = map_id2bl(st->oid)->is_npc();
     else if (prefix != '$' && prefix != '.')
+    {
         bl = map_id2bl(st->rid)->is_player();
+        assert (bl);
+    }
 
-    assert (bl);
 
     for (int j = 0; j < 256; j++)
     {
