@@ -2232,21 +2232,31 @@ static
 void builtin_overrideattack(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    int charges = conv_num(st, &AARG(0));
-    interval_t attack_delay = static_cast<interval_t>(conv_num(st, &AARG(1)));
-    int attack_range = conv_num(st, &AARG(2));
-    StatusChange icon = StatusChange(conv_num(st, &AARG(3)));
-    ItemNameId look = wrap<ItemNameId>(static_cast<uint16_t>(conv_num(st, &AARG(4))));
-    ZString event_ = ZString(conv_str(st, &AARG(5)));
+    if (HARG(0))
+    {
+        interval_t attack_delay = static_cast<interval_t>(conv_num(st, &AARG(0)));
+        int attack_range = conv_num(st, &AARG(1));
+        StatusChange icon = StatusChange(conv_num(st, &AARG(2)));
+        ItemNameId look = wrap<ItemNameId>(static_cast<uint16_t>(conv_num(st, &AARG(3))));
+        ZString event_ = ZString(conv_str(st, &AARG(4)));
 
-    NpcEvent event;
-    extract(event_, &event);
+        NpcEvent event;
+        extract(event_, &event);
 
-    sd->attack_spell_override = st->oid;
-    sd->attack_spell_charges = charges;
-    sd->magic_attack = event;
-    pc_set_weapon_icon(sd, charges, icon, look);
-    pc_set_attack_info(sd, attack_delay, attack_range);
+        sd->attack_spell_override = st->oid;
+        sd->attack_spell_charges = 1;
+        sd->magic_attack = event;
+        pc_set_weapon_icon(sd, 1, icon, look);
+        pc_set_attack_info(sd, attack_delay, attack_range);
+    }
+    else
+    {
+        // explicit discharge
+        sd->attack_spell_override = BlockId();
+        pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
+        pc_set_attack_info(sd, interval_t::zero(), 0);
+        pc_calcstatus(sd, 0);
+    }
 }
 
 /*==========================================
@@ -4733,7 +4743,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(skill, "ii?"_s, '\0'),
     BUILTIN(setskill, "ii"_s, '\0'),
     BUILTIN(getskilllv, "i"_s, 'i'),
-    BUILTIN(overrideattack, "iiiiiE"_s, '\0'),
+    BUILTIN(overrideattack, "?????"_s, '\0'),
     BUILTIN(getgmlevel, ""_s, 'i'),
     BUILTIN(end, ""_s, '\0'),
     BUILTIN(getopt2, ""_s, 'i'),
