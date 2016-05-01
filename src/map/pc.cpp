@@ -3435,6 +3435,8 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             val = sd ? pc_nextjobexp(sd) : 0;
             break;
         case SP::HP:
+            if (sd && pc_isdead(sd))
+                break; // val = 0
             val = battle_get_hp(bl);
             break;
         case SP::MAXHP:
