@@ -3222,16 +3222,9 @@ void builtin_resetstatus(ScriptState *st)
 static
 void builtin_attachrid(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
-    BlockId newid = wrap<BlockId>(conv_num(st, &AARG(0)));
-
-    if (sd && newid != st->rid)
-        sd->npc_id = BlockId();
-
-    st->rid = newid;
+    st->rid = wrap<BlockId>(conv_num(st, &AARG(0)));
     push_int<ScriptDataInt>(st->stack, (map_id2sd(st->rid) != nullptr));
 }
-
 
 /*==========================================
  * RIDのデタッチ
@@ -3240,9 +3233,6 @@ void builtin_attachrid(ScriptState *st)
 static
 void builtin_detachrid(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
-    if (sd)
-        sd->npc_id = BlockId();
     st->rid = BlockId();
 }
 
