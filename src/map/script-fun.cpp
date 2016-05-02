@@ -2976,35 +2976,17 @@ void builtin_getmapusers(ScriptState *st)
 }
 
 static
-void builtin_aggravate_sub(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int effect)
-{
-    dumb_ptr<mob_data> md = bl->is_mob();
-
-    if (mob_aggravate(md, target))
-        clif_misceffect(bl, effect);
-}
-
-static
 void builtin_aggravate(ScriptState *st)
 {
-    dumb_ptr<block_list> target = map_id2bl(st->rid);
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-    int x0 = conv_num(st, &AARG(1));
-    int y0 = conv_num(st, &AARG(2));
-    int x1 = conv_num(st, &AARG(3));
-    int y1 = conv_num(st, &AARG(4));
-    int effect = conv_num(st, &AARG(5));
-    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str),
+    dumb_ptr<mob_data> md = map_id_is_mob(wrap<BlockId>(conv_num(st, &AARG(0))));
+    if (md)
     {
-        push_int<ScriptDataInt>(st->stack, -1);
-        return;
-    });
+        dumb_ptr<block_list> target = script_rid2sd(st);
+        if (HARG(1))
+            target = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
 
-    map_foreachinarea(std::bind(builtin_aggravate_sub, ph::_1, target, effect),
-            m,
-            x0, y0,
-            x1, y1,
-            BL::MOB);
+        mob_aggravate(md, target);
+    }
 }
 
 /*==========================================
@@ -4836,7 +4818,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(iscollision, "Mxy"_s, 'i'),
     BUILTIN(shop, "s"_s, '\0'),
     BUILTIN(isdead, ""_s, 'i'),
-    BUILTIN(aggravate, "Mxyxyi"_s, '\0'),
+    BUILTIN(aggravate, "i?"_s, '\0'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
     BUILTIN(puppet, "mxysi??"_s, 'i'),
     BUILTIN(destroy, "?"_s, '\0'),
