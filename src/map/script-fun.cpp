@@ -1065,7 +1065,7 @@ void builtin_foreach(ScriptState *st)
 {
     int x0, y0, x1, y1, bl_num;
 
-    dumb_ptr<block_list> caster = map_id2bl(st->rid);
+    dumb_ptr<block_list> sd;
     bl_num = conv_num(st, &AARG(0));
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
     x0 = conv_num(st, &AARG(2));
@@ -1096,8 +1096,17 @@ void builtin_foreach(ScriptState *st)
         default:
             return;
     }
+    if (HARG(7))
+        sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(7))));
+    else if (st->rid)
+        sd = script_rid2sd(st);
 
-    map_foreachinarea(std::bind(builtin_foreach_sub, ph::_1, event, caster->bl_id),
+    if (sd == nullptr)
+    {
+        PRINTF("builtin_foreach: player not attached.\n"_fmt);
+    }
+
+    map_foreachinarea(std::bind(builtin_foreach_sub, ph::_1, event, sd->bl_id),
             m,
             x0, y0,
             x1, y1,
@@ -4815,7 +4824,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getlook, "i"_s, 'i'),
     BUILTIN(getsavepoint, "i"_s, '.'),
     BUILTIN(areatimer, "MxyxytEi"_s, '\0'),
-    BUILTIN(foreach, "iMxyxyE"_s, '\0'),
+    BUILTIN(foreach, "iMxyxyE?"_s, '\0'),
     BUILTIN(isin, "Mxyxy"_s, 'i'),
     BUILTIN(iscollision, "Mxy"_s, 'i'),
     BUILTIN(shop, "s"_s, '\0'),
