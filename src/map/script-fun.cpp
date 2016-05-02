@@ -2640,11 +2640,23 @@ void builtin_donpcevent(ScriptState *st)
 static
 void builtin_addtimer(ScriptState *st)
 {
+    dumb_ptr<map_session_data> sd;
     interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(0)));
     ZString event_ = ZString(conv_str(st, &AARG(1)));
     NpcEvent event;
     extract(event_, &event);
-    pc_addeventtimer(script_rid2sd(st), tick, event);
+
+    if (HARG(2))
+        sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(2))));
+    else if (st->rid)
+        sd = script_rid2sd(st);
+
+    if (sd == nullptr)
+    {
+        PRINTF("builtin_addtimer: player not attached.\n"_fmt);
+    }
+
+    pc_addeventtimer(sd, tick, event);
 }
 
 /*==========================================
@@ -4736,7 +4748,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(areamonster, "Mxyxysmi?"_s, '\0'),
     BUILTIN(killmonster, "ME"_s, '\0'),
     BUILTIN(donpcevent, "E"_s, '\0'),
-    BUILTIN(addtimer, "tE"_s, '\0'),
+    BUILTIN(addtimer, "tE?"_s, '\0'),
     BUILTIN(addnpctimer, "tE"_s, '\0'),
     BUILTIN(initnpctimer, "?"_s, '\0'),
     BUILTIN(startnpctimer, "?"_s, '\0'),
