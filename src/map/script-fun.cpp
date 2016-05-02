@@ -584,6 +584,7 @@ void builtin_warp(ScriptState *st)
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
+
     pc_setpos(sd, str, x, y, BeingRemoveWhy::GONE);
 }
 
@@ -4561,7 +4562,12 @@ void builtin_getdir(ScriptState *st)
 static
 void builtin_getmap(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    dumb_ptr<map_session_data> sd;
+
+    if (HARG(0))    //指定したキャラを状態異常にする
+        sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(0))));
+    else
+        sd = script_rid2sd(st);
 
     push_str<ScriptDataStr>(st->stack, sd->bl_m->name_);
 }
@@ -4830,7 +4836,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getnpcx, "?"_s, 'i'),
     BUILTIN(getnpcy, "?"_s, 'i'),
     BUILTIN(strnpcinfo, "i?"_s, 's'),
-    BUILTIN(getmap, ""_s, 's'),
+    BUILTIN(getmap, "?"_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(if_then_else, "iii"_s, '.'),
