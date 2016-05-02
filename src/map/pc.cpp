@@ -3710,8 +3710,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
         case SP::HP:
             nullpo_retz(sd);
             // TODO: mob mutation
-            sd->status.hp = val;
-            clif_updatestatus(sd, type);
+            pc_heal(sd, (val - sd->status.hp), 0);
             break;
         case SP::MAXHP:
             nullpo_retz(sd);
