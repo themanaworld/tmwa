@@ -3844,6 +3844,12 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
     if (is_atcommand(s, sd, mbuf, GmLevel()))
         return rv;
 
+    if (sd->mute.global)
+    {
+        clif_displaymessage(s, "Your message could not be sent: you are muted."_s);
+        return rv;
+    }
+
     /* Don't send chat that results in an automatic ban. */
     if (tmw_CheckChatSpam(sd, mbuf))
     {
@@ -4188,8 +4194,17 @@ RecvResult clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
 
+    if (magic_message(sd, mbuf))
+        return rv;
+
     if (is_atcommand(s, sd, mbuf, GmLevel()))
     {
+        return rv;
+    }
+
+    if (sd->mute.whisper)
+    {
+        clif_displaymessage(s, "Your message could not be sent: you are muted."_s);
         return rv;
     }
 
@@ -4974,8 +4989,17 @@ RecvResult clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
 
+    if (magic_message(sd, mbuf))
+        return rv;
+
     if (is_atcommand(s, sd, mbuf, GmLevel()))
         return rv;
+
+    if (sd->mute.party)
+    {
+        clif_displaymessage(s, "Your message could not be sent: you are muted."_s);
+        return rv;
+    }
 
     /* Don't send chat that results in an automatic ban. */
     if (tmw_CheckChatSpam(sd, mbuf))

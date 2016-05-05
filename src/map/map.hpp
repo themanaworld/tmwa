@@ -290,6 +290,14 @@ struct map_session_data : block_list, SessionData
     int chat_total_repeats;
     RString chat_lastmsg;
 
+    struct
+    {
+        unsigned global:1;
+        unsigned party:1;
+        unsigned whisper:1;
+        unsigned guild:1;
+    } mute;
+
     tick_t flood_rates[0x220];
     tick_t packet_flood_reset_due;
     int packet_flood_in;

@@ -476,6 +476,10 @@ enum class SP : uint16_t
     CHAR_ID                     = 1079,
     INVISIBLE                   = 1080,
     HIDDEN                      = 1081,
+    MUTE_GLOBAL                 = 1082,
+    MUTE_WHISPER                = 1083,
+    MUTE_PARTY                  = 1084,
+    MUTE_GUILD                  = 1085,
 };
 
 constexpr
