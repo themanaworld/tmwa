@@ -827,6 +827,12 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->chat_repeat_reset_due = tick_t();
     sd->chat_lastmsg = RString();
 
+    // Initialize mute vars
+    sd->mute.global = 0;
+    sd->mute.party = 0;
+    sd->mute.whisper = 0;
+    sd->mute.guild = 0;
+
     for (tick_t& t : sd->flood_rates)
         t = tick_t();
     sd->packet_flood_reset_due = tick_t();
@@ -3547,6 +3553,18 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             if (sd)
                 val = bool(sd->status.option & Opt0::HIDE);
             break;
+        case SP::MUTE_GLOBAL:
+            val = sd ? sd->mute.global : 0;
+            break;
+        case SP::MUTE_PARTY:
+            val = sd ? sd->mute.party : 0;
+            break;
+        case SP::MUTE_WHISPER:
+            val = sd ? sd->mute.whisper : 0;
+            break;
+        case SP::MUTE_GUILD:
+            val = sd ? sd->mute.guild : 0;
+            break;
     }
 
     return val;
@@ -3769,6 +3787,22 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             else
                 sd->status.option &= ~Opt0::HIDE;
             clif_changeoption(sd);
+            break;
+        case SP::MUTE_GLOBAL:
+            nullpo_retz(sd);
+            sd->mute.global = (val == 1);
+            break;
+        case SP::MUTE_PARTY:
+            nullpo_retz(sd);
+            sd->mute.party = (val == 1);
+            break;
+        case SP::MUTE_WHISPER:
+            nullpo_retz(sd);
+            sd->mute.whisper = (val == 1);
+            break;
+        case SP::MUTE_GUILD:
+            nullpo_retz(sd);
+            sd->mute.guild = (val == 1);
             break;
     }
 
