@@ -1,3 +1,15 @@
+v16.5.12
+  - add target argument to the getmap() builtin
+  - make builtin overrideattack dumber; make scripts handle the logic
+  - make builtin aggravate dumber; make scripts handle the logic
+  - send 0 for param HP when player is dead, even if player has hp
+  - revert attachrid modifications (temporary measure, please avoid attachrid)
+  - add target argument to the addtimer builtin
+  - add target argument to the foreach builtin
+  - use pc_heal when changing hp using params
+  - add MUTE params (global mute, party mute, whisper mute, guild mute)
+  - don't allow to talk when muted
+  - allow to use custom commands (ie magic) in whispers and party
 v16.4.25
   - check for null pointers in the new/modified builtins
 v16.4.24
