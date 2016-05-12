@@ -4252,9 +4252,9 @@ void builtin_npctalk(ScriptState *st)
     dumb_ptr<npc_data> nd;
     RString str = conv_str(st, &AARG(1));
 
-    dumb_ptr<npc_data> nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
-    assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
-    nd = nd_->is_script();
+    nd = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
+    if (nd == nullptr)
+        return;
 
 
     if(HARG(2)){
