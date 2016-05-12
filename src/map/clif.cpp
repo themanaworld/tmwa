@@ -3806,7 +3806,8 @@ static
 void clif_message_sub(Buffer& buf, dumb_ptr<block_list> bl, AString msg)
 {
     VString<23> name = battle_get_name(bl);
-    msg = STRPRINTF("%s : %s"_fmt, name, msg);
+    if (name.size() >= 4) // client limitation
+        msg = STRPRINTF("%s : %s"_fmt, name, msg);
     size_t msg_len = msg.size() + 1;
     if (msg_len + 16 > 512)
         return;
