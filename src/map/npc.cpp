@@ -1052,6 +1052,9 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
 static
 void npc_propagate_update(dumb_ptr<npc_data> nd)
 {
+    if (nd->bl_m == borrow(undefined_gat))
+        return;
+
     int xs = 0, ys = 0;
     if (dumb_ptr<npc_data_script> nd_ = nd->is_script())
     {
