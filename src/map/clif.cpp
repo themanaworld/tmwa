@@ -305,16 +305,19 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, ClientVe
             }
             break;
         case SendWho::ALL_SAMEMAP:      // 同じマップの全クライアントに送信
-            for (io::FD i : iter_fds())
+            if (bl->bl_m != borrow(undefined_gat))
             {
-                Session *s = get_session(i);
-                if (!s)
-                    continue;
-                dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-                if (sd && sd->state.auth && !sd->state.connect_new && sd->bl_m == bl->bl_m)
+                for (io::FD i : iter_fds())
                 {
+                    Session *s = get_session(i);
+                    if (!s)
+                        continue;
+                    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+                    if (sd && sd->state.auth && !sd->state.connect_new && sd->bl_m == bl->bl_m)
                     {
-                        send_buffer(s, buf);
+                        {
+                            send_buffer(s, buf);
+                        }
                     }
                 }
             }
