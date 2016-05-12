@@ -197,7 +197,12 @@ VString<23> battle_get_name(dumb_ptr<block_list> bl)
             name = bl->is_player()->status_key.name.to__actual();
             break;
         case BL::NPC:
-            name = bl->is_npc()->name;
+            {
+                name = bl->is_npc()->name;
+                // [fate] elim hashed out/invisible names for the client
+                auto it = std::find(name.begin(), name.end(), '#');
+                name = name.xislice_h(it);
+            }
             break;
         case BL::MOB:
             name = bl->is_mob()->name;
