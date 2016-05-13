@@ -4796,6 +4796,26 @@ def build_context():
             Execute a client command remotely
         ''',
     )
+    map_user.s(0x0231, 'send area collision',
+        define='SMSG_MAP_SET_TILES_TYPE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'x1'),
+            at(4, u16, 'y1'),
+            at(6, u16, 'x2'),
+            at(8, u16, 'y2'),
+            at(10, u32, 'mask'),
+            at(14, u32, 'unused layer'),
+            at(18, map_name, 'map'),
+        ],
+        fixed_size=34,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Set updated collision for a square area
+        ''',
+    )
+
 
     # TOC_LOGINCHAR
     # login char
