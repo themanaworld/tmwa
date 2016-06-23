@@ -5796,11 +5796,11 @@ void clif_parse(Session *s)
     //  dispatches to actual function
     //   if error, close socket
 
+    uint16_t packet_id;
     dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
 
     if (!sd || (sd && !sd->state.auth))
     {
-        uint16_t packet_id;
         if (!packet_peek_id(s, &packet_id))
             return;
 
@@ -5823,7 +5823,6 @@ void clif_parse(Session *s)
         return;
     }
 
-    uint16_t packet_id;
     RecvResult rv = RecvResult::Complete;
     while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
@@ -5880,10 +5879,15 @@ unknown_packet:
     {
         if (battle_config.error_log)
         {
+            uint16_t packet_id;
+            if (!packet_peek_id(s, &packet_id))
+                return;
+
             if (s)
+            {
+                dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
                 PRINTF("\nclif_parse: session #%d, packet 0x%x, lenght %zu\n"_fmt,
                         s, packet_id, packet_avail(s));
-            {
                 if (sd && sd->state.auth)
                 {
                     PRINTF("Unknown packet: Account ID %d, character ID %d, player name %s.\n"_fmt,
