@@ -5796,37 +5796,36 @@ void clif_parse(Session *s)
     //  dispatches to actual function
     //   if error, close socket
 
-    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+    uint16_t packet_id;
+    RecvResult rv = RecvResult::Complete;
+    dumb_ptr<map_session_data> sd;
 
-    if (!sd || (sd && !sd->state.auth))
+    while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
-        uint16_t packet_id;
-        if (!packet_peek_id(s, &packet_id))
-            return;
+        sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
 
-        if (packet_id != 0x0072 && packet_id != 0x7530)
+        if (!sd || (sd && !sd->state.auth))
         {
-            // first packet must be auth or finger
+            if (packet_id != 0x0072 && packet_id != 0x7530)
+            {
+                // first packet must be auth or finger
+                s->set_eof();
+                return;
+            }
+        }
+
+        if (!chrif_isconnect())
+        {
             s->set_eof();
             return;
         }
-    }
 
-    if (!chrif_isconnect())
-    {
-        s->set_eof();
-        return;
-    }
-    if (sd && sd->state.auth == 1 && sd->state.waitingdisconnect == 1)
-    {
-        packet_discard(s, packet_avail(s));
-        return;
-    }
+        if (sd && sd->state.auth == 1 && sd->state.waitingdisconnect == 1)
+        {
+            packet_discard(s, packet_avail(s));
+            return;
+        }
 
-    uint16_t packet_id;
-    RecvResult rv = RecvResult::Complete;
-    while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
-    {
         switch (packet_id)
         {
             case 0x7530:
