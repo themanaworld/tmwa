@@ -1,3 +1,5 @@
+v16.11.9
+  - fix a bug that did not decrease the npc counter on npc despawn
 v16.5.12
   - add target argument to the getmap() builtin
   - make builtin overrideattack dumber; make scripts handle the logic

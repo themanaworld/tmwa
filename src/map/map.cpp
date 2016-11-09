@@ -208,6 +208,9 @@ int map_delblock(dumb_ptr<block_list> bl)
         return 0;
     }
 
+    if (bl->bl_type == BL::NPC)
+        bl->bl_m->npc_num--;
+
     if (bl->bl_type == BL::PC)
         bl->bl_m->users--;
 
