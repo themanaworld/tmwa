@@ -675,6 +675,9 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
 
     for (i = 0; i < m->npc_num; i++)
     {
+        if (m->npc[i] == nullptr)
+            continue;
+
         if (m->npc[i]->flag & 1)
             continue;
 
@@ -697,7 +700,7 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
             && y < m->npc[i]->bl_y - ys / 2 + ys)
             break;
     }
-    if (i == m->npc_num)
+    if (i == m->npc_num || m->npc[i] == nullptr)
     {
         return 1;
     }

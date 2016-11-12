@@ -1012,16 +1012,23 @@ dumb_ptr<block_list> map_id2bl(BlockId id)
 int map_addnpc(Borrowed<map_local> m, dumb_ptr<npc_data> nd)
 {
     int i;
+    bool reuse_npc = false;
+
     for (i = 0; i < m->npc_num && i < MAX_NPC_PER_MAP; i++)
+    {
         if (m->npc[i] == nullptr)
+        {
+            reuse_npc = true;
             break;
+        }
+    }
     if (i == MAX_NPC_PER_MAP)
     {
         if (battle_config.error_log)
             PRINTF("too many NPCs in one map %s\n"_fmt, m->name_);
         return -1;
     }
-    if (i == m->npc_num)
+    if (reuse_npc == true || i == m->npc_num)
     {
         m->npc_num++;
     }
