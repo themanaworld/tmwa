@@ -4187,6 +4187,38 @@ void builtin_remotecmd(ScriptState *st)
 }
 
 static
+void builtin_sendcollision(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    MapName map_name = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    int mask = conv_num(st, &AARG(1));
+    short x1, y1, x2, y2;
+    x1 = x2 = conv_num(st, &AARG(2));
+    y1 = y2 = conv_num(st, &AARG(3));
+
+    if (HARG(5))
+    {
+        x2 = conv_num(st, &AARG(4));
+        y2 = conv_num(st, &AARG(5));
+        if (HARG(6))
+        {
+            CharName player = stringish<CharName>(ZString(conv_str(st, &AARG(6))));
+            sd = map_nick2sd(player);
+        }
+    }
+
+    else if (HARG(4))
+    {
+        CharName player = stringish<CharName>(ZString(conv_str(st, &AARG(4))));
+        sd = map_nick2sd(player);
+    }
+
+    if (sd == nullptr)
+        return;
+    clif_update_collision(sd, x1, y1, x2, y2, map_name, mask);
+}
+
+static
 void builtin_music(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
@@ -4818,6 +4850,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(title, "s"_s, '\0'),
     BUILTIN(smsg, "e??"_s, '\0'),
     BUILTIN(remotecmd, "s?"_s, '\0'),
+    BUILTIN(sendcollision, "Mixy???"_s, '\0'),
     BUILTIN(music, "s"_s, '\0'),
     BUILTIN(mapmask, "i?"_s, '\0'),
     BUILTIN(getmask, ""_s, 'i'),

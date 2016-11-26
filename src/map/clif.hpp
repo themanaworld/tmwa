@@ -107,6 +107,7 @@ void clif_setnpcdirection_towards(dumb_ptr<map_session_data> sd, dumb_ptr<npc_da
 void clif_npc_send_title(Session *s, BlockId npcid, XString msg);
 void clif_server_message(dumb_ptr<map_session_data>, uint8_t, XString msg);
 void clif_remote_command(dumb_ptr<map_session_data>, XString);
+void clif_update_collision(dumb_ptr<map_session_data>, short, short, short, short, MapName, int);
 void clif_change_music(dumb_ptr<map_session_data> sd, XString music);
 void clif_npc_action(dumb_ptr<map_session_data>, BlockId, short, int, short, short);
 void clif_send_mask(dumb_ptr<map_session_data>, int);
