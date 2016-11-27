@@ -4806,7 +4806,7 @@ def build_context():
             at(8, u16, 'y2'),
             at(10, u32, 'mask'),
             at(14, u32, 'unused layer'),
-            at(18, map_name, 'map'),
+            at(18, str16, 'map'),
         ],
         fixed_size=34,
         pre=[NOTHING],

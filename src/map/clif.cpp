@@ -3930,6 +3930,8 @@ void clif_update_collision(dumb_ptr<map_session_data> sd, short x1, short y1,
 {
     nullpo_retv(sd);
 
+    VString<15> gat_name = STRPRINTF("%s.gat"_fmt, map_name);
+
     Packet_Fixed<0x0231> fixed_231;
     fixed_231.x1 = x1;
     fixed_231.y1 = y1;
@@ -3937,7 +3939,7 @@ void clif_update_collision(dumb_ptr<map_session_data> sd, short x1, short y1,
     fixed_231.y2 = y2;
     fixed_231.mask = mask;
     fixed_231.unused_layer = 0;
-    fixed_231.map = map_name;
+    fixed_231.map = gat_name;
     Buffer buf = create_fpacket<0x0231, 34>(fixed_231);
 
     clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(7));
