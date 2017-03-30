@@ -4232,7 +4232,7 @@ ATCE atcommand_chareffect(Session *s, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(target);
-    if (pl_sd == nullptr)
+    if (pl_sd == nullptr || (pl_sd != nullptr && !(pc_isGM(sd).detects(pc_isGM(pl_sd)))))
         return ATCE::EXIST;
 
     clif_specialeffect(pl_sd, type, 0);
