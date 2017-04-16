@@ -1790,6 +1790,21 @@ void builtin_checkweight(ScriptState *st)
 
 }
 
+static
+void builtin_getitemstack(ScriptState *st)
+{
+    struct script_data *data;
+    int stackable = 0;
+    data = &AARG(0);
+    ZString name = conv_str(st, data);
+
+    ItemNameId item_id;
+    Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+    if OPTION_IS_SOME(item_data, item_data_)
+        stackable = !itemdb_isequip(item_data->nameid);
+    push_int<ScriptDataInt>(st->stack, stackable);
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -4761,6 +4776,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(setlook, "ii"_s, '\0'),
     BUILTIN(countitem, "I"_s, 'i'),
     BUILTIN(checkweight, "Ii"_s, 'i'),
+    BUILTIN(getitemstack, "I"_s, 'i'),
     BUILTIN(getitem, "Ii??"_s, '\0'),
     BUILTIN(makeitem, "IiMxy"_s, '\0'),
     BUILTIN(delitem, "Ii"_s, '\0'),
