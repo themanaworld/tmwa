@@ -20,6 +20,9 @@
 
 #include "fwd.hpp"
 
+#if defined (__FreeBSD__)
+#include <sys/uio.h>
+#endif
 #include <sys/select.h>
 #include <sys/socket.h>
 
