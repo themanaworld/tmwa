@@ -1048,6 +1048,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     dumb_ptr<mob_data> md = src->is_mob(), tmd = nullptr;
     int hitrate, flee, cri = 0, atkmin, atkmax;
     int target_count = 1;
+    int temp_def1;
     int def1 = battle_get_def(target);
     int def2 = battle_get_def2(target);
     int t_vit = battle_get_vit(target);
@@ -1220,6 +1221,25 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
                             t_vit = 1;
                     }
                 }
+                
+                
+                if (battle_config.taper_armor_def) {
+                    // 100% of def1 from 0 to taper_armor_def_min
+                    // 50% of def1 from taper_armor_def_min to taper_armor_def_max
+                    // 25% of def1 over taper_armor_def_max
+                    temp_def1 = def1;
+                    if (temp_def1 > battle_config.taper_armor_def_min) {
+                        def1 = battle_config.taper_armor_def_min;
+                        if (temp_def1 > battle_config.taper_armor_def_max) {
+                            def1 += (battle_config.taper_armor_def_max - battle_config.taper_armor_def_min) / 2;
+                            def1 += (temp_def1 - battle_config.taper_armor_def_max) / 4;
+                        }
+                        else {
+                            def1 += (temp_def1 - battle_config.taper_armor_def_min) / 2;
+                        }
+                    }
+                }
+                
                 t_def = def2 * 8 / 10;
 
                 vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
@@ -1322,6 +1342,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     dumb_ptr<mob_data> tmd = nullptr;
     int hitrate, flee, cri = 0, atkmin, atkmax;
     int dex, target_count = 1;
+    int temp_def1;
     int def1 = battle_get_def(target);
     int def2 = battle_get_def2(target);
     int t_vit = battle_get_vit(target);
@@ -1556,6 +1577,24 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
                             t_vit = 1;
                     }
                 }
+                
+                if (battle_config.taper_armor_def) {
+                    // 100% of def1 from 0 to taper_armor_def_min
+                    // 50% of def1 from taper_armor_def_min to taper_armor_def_max
+                    // 25% of def1 over taper_armor_def_max
+                    temp_def1 = def1;
+                    if (temp_def1 > battle_config.taper_armor_def_min) {
+                        def1 = battle_config.taper_armor_def_min;
+                        if (temp_def1 > battle_config.taper_armor_def_max) {
+                            def1 += (battle_config.taper_armor_def_max - battle_config.taper_armor_def_min) / 2;
+                            def1 += (temp_def1 - battle_config.taper_armor_def_max) / 4;
+                        }
+                        else {
+                            def1 += (temp_def1 - battle_config.taper_armor_def_min) / 2;
+                        }
+                    }
+                }
+                
                 t_def = def2 * 8 / 10;
                 vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
 

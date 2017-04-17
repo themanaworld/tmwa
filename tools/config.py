@@ -677,6 +677,9 @@ def build_config():
     battle_conf.opt('drop_pickup_safety_zone', i32, '20')
     battle_conf.opt('itemheal_regeneration_factor', i32, '1')
     battle_conf.opt('mob_splash_radius', i32, '-1', min='-1')
+    battle_conf.opt('taper_armor_def', bool, 'false')
+    battle_conf.opt('taper_armor_def_min', percent, '70')
+    battle_conf.opt('taper_armor_def_max', percent, '90')
 
     return rv
 
