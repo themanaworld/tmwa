@@ -421,11 +421,11 @@ namespace npc
         {
             //        1         2         3
             //23456789012345678901234567890123456789
-            "-|script|#config|32767{end;}"_s,
+            "-|script|#config{end;}"_s,
             //                    123456
-            "-|script|#config|32767\n{end;}\n"_s,
+            "-|script|#config\n{end;}\n"_s,
             //                      1234567
-            "-|script|#config|32767\n \n {end;} "_s,
+            "-|script|#config\n \n {end;} "_s,
         };
         for (auto input : inputs)
         {
@@ -433,7 +433,7 @@ namespace npc
             auto res = TRY_UNWRAP(parse_top(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            EXPECT_SPAN(top.span, 1,1, 1,22);
+            EXPECT_SPAN(top.span, 1,1, 1,16);
             auto script = top.get_if<Script>();
             EXPECT_TRUE(script);
             auto p = script->get_if<ScriptNone>();
@@ -444,10 +444,9 @@ namespace npc
                 EXPECT_SPAN(script->key_span, 1,3, 1,8);
                 EXPECT_SPAN(p->name.span, 1,10, 1,16);
                 EXPECT_EQ(p->name.data, stringish<NpcName>("#config"_s));
-                EXPECT_SPAN(p->key4_span, 1,18, 1,22);
                 if (input.endswith('}'))
                 {
-                    EXPECT_SPAN(script->body.span, 1,23, 1,28);
+                    EXPECT_SPAN(script->body.span, 1,17, 1,22);
                 }
                 else if (input.endswith('\n'))
                 {

@@ -301,10 +301,10 @@ namespace npc
     static
     Result<ScriptNone> parse_script_none_head(io::LineSpan span, std::vector<Spanned<std::vector<Spanned<RString>>>>& bits)
     {
-        //  ScriptNone:         -|script|script name|32767{code}
-        if (bits.size() != 4)
+        //  ScriptNone:         -|script|script name{code}
+        if (bits.size() != 3)
         {
-            return Err(span.error_str("expect 4 |component|s"_s));
+            return Err(span.error_str("expect 3 |component|s"_s));
         }
         assert(bits[0].data.size() == 1);
         assert(bits[0].data[0].data == "-"_s);
@@ -314,16 +314,10 @@ namespace npc
         {
             return Err(bits[2].span.error_str("in |component 3| expect 1 ,component,s"_s));
         }
-        assert(bits[3].data[0].data == "32767"_s);
-        if (bits[3].data.size() != 1)
-        {
-            return Err(bits[3].span.error_str("in |component 4| should be just 32767"_s));
-        }
 
         ScriptNone script_none;
         script_none.key1_span = bits[0].data[0].span;
         TRY_EXTRACT(bits[2].data[0], script_none.name);
-        script_none.key4_span = bits[3].data[0].span;
         // also expect '{' and parse real script (in caller)
         return Ok(std::move(script_none));
     }
@@ -402,7 +396,7 @@ namespace npc
 
             ast::script::ScriptOptions opt;
             opt.implicit_start = true;
-            opt.no_start = true;
+            opt.default_label = "OnCall"_s;
             rv.body = TRY(ast::script::parse_script_body(lr, opt));
             return Ok(std::move(rv));
         }
