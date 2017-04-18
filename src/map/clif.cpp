@@ -4050,6 +4050,8 @@ RecvResult clif_parse_Emotion(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
+    nullpo_retr(rv, sd);
+
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_EMOTE) >= 1)
     {
