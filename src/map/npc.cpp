@@ -738,6 +738,8 @@ int npc_checknear(dumb_ptr<map_session_data> sd, BlockId id)
     nullpo_retz(sd);
 
     nd = map_id_is_npc(id);
+    if (pc_isdead(sd))
+        return 1;
     // this actually happens
     if (nd == nullptr)
         return 1;
