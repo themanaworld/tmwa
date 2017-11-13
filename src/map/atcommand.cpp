@@ -3610,6 +3610,8 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
             for (int i = 0; i < m_id->npc_num;)
             {
                 nd = m_id->npc[i];
+                if (nd == nullptr) continue;
+
                 switch (nd->dir)
                 {
                     case DIR::S:

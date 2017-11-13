@@ -675,6 +675,9 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
 
     for (i = 0; i < m->npc_num; i++)
     {
+        if (m->npc[i] == nullptr)
+            continue;
+
         if (m->npc[i]->flag & 1)
             continue;
 
@@ -1046,6 +1049,11 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     }
     if (nd_->name)
         npcs_by_name.put(nd_->name, nullptr);
+
+    if (nd_->bl_m != borrow(undefined_gat)) {
+        nd_->bl_m->npc[nd_->n] = nullptr;
+    }
+
     nd_.delete_();
 }
 
