@@ -1009,12 +1009,9 @@ dumb_ptr<block_list> map_id2bl(BlockId id)
 int map_addnpc(Borrowed<map_local> m, dumb_ptr<npc_data> nd)
 {
     int i;
-    for (i = 0; i < m->npc_num && i < MAX_NPC_PER_MAP; i++) {
-        if (m->npc[i] == nullptr) {
-            PRINTF(">>>>>> reusing npc %i\n"_fmt, i);
+    for (i = 0; i < m->npc_num && i < MAX_NPC_PER_MAP; i++)
+        if (m->npc[i] == nullptr)
             break;
-        }
-    }
     if (i == MAX_NPC_PER_MAP)
     {
         if (battle_config.error_log)
@@ -1023,7 +1020,6 @@ int map_addnpc(Borrowed<map_local> m, dumb_ptr<npc_data> nd)
     }
     if (i == m->npc_num)
     {
-        PRINTF(">>>>>> using new npc %i\n"_fmt, i);
         m->npc_num++;
     }
 
