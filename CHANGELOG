@@ -1,3 +1,5 @@
+v17.11.12
+  - fix a bug that did not decrease the npc counter on npc despawn (REDUX)
 v16.11.28
   - revert v16.11.9
   - force sending the .gat extension in SMSG_SET_TILES_TYPE
