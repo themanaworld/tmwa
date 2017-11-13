@@ -4224,7 +4224,7 @@ ATCE atcommand_addwarp(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_chareffect(Session *s, dumb_ptr<map_session_data>,
+ATCE atcommand_chareffect(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName target;
