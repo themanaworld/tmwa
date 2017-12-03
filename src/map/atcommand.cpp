@@ -27,6 +27,9 @@
 #include "../compat/nullpo.hpp"
 #include "../compat/fun.hpp"
 
+#include "script-call-internal.hpp"
+#include "../generic/intern-pool.hpp"
+
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
@@ -4665,6 +4668,112 @@ ATCE atcommand_set_magic(Session *s, dumb_ptr<map_session_data>,
 }
 
 static
+ATCE atcommand_set_var(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    CharName character;
+    XString vname;
+    XString value;
+    XString vindex;
+    char prefix;
+    char postfix;
+
+    if (!asplit(message, &vname, &vindex, &value, &character))
+    {
+        clif_displaymessage(s,
+                "Usage: @set <var> <index> <value> <char-name>"_s);
+        return ATCE::USAGE;
+    }
+
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
+    prefix = vname.front();
+    postfix = vname.back();
+    SIR reg = SIR::from(variable_names.intern(vname), atoi((RString(vindex)).c_str()));
+
+    if (prefix != '.' && prefix != '$')
+    {
+        if (pl_sd == nullptr)
+        {
+            clif_displaymessage(s, "Character not found."_s);
+            return ATCE::EXIST;
+        }
+    }
+
+    if (postfix == '$')
+    {
+        set_reg(pl_sd, VariableCode::VARIABLE, reg, value);
+    }
+    else
+    {
+        int val = atoi((RString(value)).c_str());
+        set_reg(pl_sd, VariableCode::VARIABLE, reg, val);
+    }
+
+    AString output = STRPRINTF("variable %s[%s] = `%s`."_fmt,
+            RString(vname), RString(vindex), RString(value));
+
+    if (pl_sd != nullptr)
+    {
+        output = STRPRINTF("variable %s[%s] = `%s` for player %s."_fmt,
+            RString(vname), RString(vindex), RString(value), character);
+
+        if (pl_sd->sess != sd->sess)
+        {
+            clif_displaymessage(pl_sd->sess, output);
+        }
+    }
+
+    clif_displaymessage(sd->sess, output);
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_get_var(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    CharName character;
+    XString vname;
+    XString vindex;
+    char prefix;
+    char postfix;
+
+    if (!asplit(message, &vname, &vindex, &character))
+    {
+        clif_displaymessage(s,
+                "Usage: @get <var> <index> <char-name>"_s);
+        return ATCE::USAGE;
+    }
+
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
+    prefix = vname.front();
+    postfix = vname.back();
+    SIR reg = SIR::from(variable_names.intern(vname), atoi((RString(vindex)).c_str()));
+
+    struct script_data dat = ScriptDataVariable{reg};
+    get_val(pl_sd, &dat);
+
+    RString rval;
+    MATCH_BEGIN (dat)
+    {
+        MATCH_CASE (const ScriptDataStr&, u)
+        {
+            rval = u.str;
+        }
+        MATCH_CASE (const ScriptDataInt&, u)
+        {
+            rval = STRPRINTF("%i"_fmt, u.numi);
+        }
+    }
+    MATCH_END ();
+
+    AString output = STRPRINTF("variable %s[%s] == `%s` for player %s."_fmt,
+            RString(vname), RString(vindex), rval, character);
+
+    clif_displaymessage(sd->sess, output);
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_log(Session *, dumb_ptr<map_session_data>,
         ZString)
 {
@@ -5351,6 +5460,12 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"setmagic"_s, {"<school> <value> <charname>"_s,
         80, atcommand_set_magic,
         "Force magic skill level"_s}},
+    {"setvar"_s, {"<variable> <index> <value> <charname>"_s,
+        40, atcommand_set_var,
+        "Sets an arbitrary variable."_s}},
+    {"getvar"_s, {"<variable> <index> <charname>"_s,
+        40, atcommand_get_var,
+        "Gets the value of an arbitrary variable."_s}},
     {"magicinfo"_s, {"<charname>"_s,
         80, atcommand_magic_info,
         "Show magic skills of a palyer"_s}},
