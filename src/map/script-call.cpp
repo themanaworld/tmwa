@@ -720,7 +720,6 @@ void run_func(ScriptState *st)
             dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
             PRINTF("run_func: return without callfunc or callsub! @ %s\n"_fmt,
                     nd ? nd->name : NpcName());
-            abort();
         }
         assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
         st->scriptp.code = Some(conv_script(st, &st->stack->stack_datav[olddefsp - 1]));   // スクリプトを復元
@@ -817,7 +816,6 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                         dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
                         PRINTF("run_script: infinity loop! @ %s\n"_fmt,
                                 nd ? nd->name : NpcName());
-                        abort();
                     }
                 }
                 break;
@@ -879,7 +877,6 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
             dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
             PRINTF("run_script: infinity loop! @ %s\n"_fmt,
                     nd ? nd->name : NpcName());
-            abort();
         }
     }
     dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
