@@ -5830,6 +5830,20 @@ def build_context():
             3. logged out
         ''',
     )
+    char_map.r(0x3026, 'party change leader',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, u8, 'leader'),
+        ],
+        fixed_size=11,
+        pre=[],
+        post=[0x3828],
+        desc='''
+            Explicitly request a change of party leader.
+        ''',
+    )
     char_map.r(0x3027, 'party message remote begin',
         head=[
             at(0, u16, 'packet id'),
@@ -6106,6 +6120,20 @@ def build_context():
         post=[0x00c0, 0x0109],
         desc='''
             Actually send a party message to other map servers.
+        ''',
+    )
+    char_map.s(0x3828, 'party change leader notify',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, party_id, 'party id'),
+            at(6, account_id, 'account id'),
+            at(10, u8, 'leader'),
+        ],
+        fixed_size=11,
+        pre=[0x3026],
+        post=[],
+        desc='''
+            Party leader was changed.
         ''',
     )
 

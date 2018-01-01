@@ -234,6 +234,18 @@ void intif_party_changeoption(PartyId party_id, AccountId account_id, int exp, i
     send_fpacket<0x3023, 14>(char_session, fixed_23);
 }
 
+void intif_party_changeleader(PartyId party_id, AccountId account_id, int leader)
+{
+    if (!char_session)
+        return;
+
+    Packet_Fixed<0x3026> fixed_26;
+    fixed_26.party_id = party_id;
+    fixed_26.account_id = account_id;
+    fixed_26.leader = leader;
+    send_fpacket<0x3026, 11>(char_session, fixed_26);
+}
+
 // パーティ脱退要求
 void intif_party_leave(PartyId party_id, AccountId account_id)
 {
@@ -488,6 +500,34 @@ void intif_parse_PartyOptionChanged(Session *, const Packet_Fixed<0x3823>& fixed
             fixed.item, fixed.flag);
 }
 
+static
+void intif_parse_PartyLeaderChanged(Session *, const Packet_Fixed<0x3828>& fixed)
+{
+    int i;
+    PartyPair p = TRY_UNWRAP(party_search(fixed.party_id), return);
+
+    for (i = 0; i < MAX_PARTY; i++)
+    {
+        PartyMember *m = &p->member[i];
+
+        if (m->account_id == fixed.account_id)
+        {
+            dumb_ptr<map_session_data> sd = map_id2sd(wrap<BlockId>(unwrap<AccountId>(fixed.account_id)));
+            m->leader = (fixed.leader > 0 ? 1 : 0);
+
+            if (sd != nullptr)
+            {
+                AString msg = STRPRINTF("You are %s a leader of %s."_fmt,
+                    fixed.leader > 0 ? "now"_s : "no longer"_s, p->name);
+                clif_displaymessage(sd->sess, msg);
+            }
+            break;
+        }
+    }
+
+    clif_party_info(p, nullptr);
+}
+
 // パーティ脱退通知
 static
 void intif_parse_PartyMemberLeaved(Session *, const Packet_Fixed<0x3824>& fixed)
@@ -691,6 +731,16 @@ RecvResult intif_parse(Session *s, uint16_t packet_id)
                 return rv;
 
             intif_parse_PartyMessage(s, head, repeat);
+            break;
+        }
+        case 0x3828:
+        {
+            Packet_Fixed<0x3828> fixed;
+            rv = recv_fpacket<0x3828, 11>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            intif_parse_PartyLeaderChanged(s, fixed);
             break;
         }
         default:

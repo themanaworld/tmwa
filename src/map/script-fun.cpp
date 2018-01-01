@@ -1130,8 +1130,9 @@ void builtin_destroy(ScriptState *st)
         return;
 
     nd = nd->is_script();
-    //assert(nd->disposable == true); we don't care about it anymore
     npc_free(nd);
+    st->oid = BlockId();
+
     if (!HARG(0))
         st->state = ScriptEndState::END;
 }
@@ -1195,6 +1196,8 @@ void builtin_puppet(ScriptState *st)
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
     npc_script++;
+
+    nd->deletion_pending = false;
 
     nd->n = map_addnpc(nd->bl_m, nd);
 

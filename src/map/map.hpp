@@ -340,6 +340,8 @@ struct npc_data : block_list
     Opt0 option;
     short flag;
 
+    bool deletion_pending;
+
     std::list<RString> eventqueuel;
     Array<Timer, MAX_EVENTTIMER> eventtimer;
     short arenaflag;

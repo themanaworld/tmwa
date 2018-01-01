@@ -902,8 +902,8 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
                     AString output;
                     if (pl_gm_level)
                         output = STRPRINTF(
-                                "Name: %s (GM:%d) | Party: '%s'"_fmt,
-                                pl_sd->status_key.name, pl_gm_level, temp0);
+                                "Name: %s (GM:%d) | Party: '%s' (%i)"_fmt,
+                                pl_sd->status_key.name, pl_gm_level, temp0, pl_sd->status.party_id);
                     clif_displaymessage(s, output);
                     count++;
                 }
@@ -1019,11 +1019,11 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
                     PartyName temp0 = p_.pmd_pget(&PartyMost::name).copy_or(stringish<PartyName>("None"_s));
                     AString output;
                     if (pl_gm_level)
-                        output = STRPRINTF("Name: %s (GM:%d) | Party: '%s'"_fmt,
-                                pl_sd->status_key.name, pl_gm_level, temp0);
+                        output = STRPRINTF("Name: %s (GM:%d) | Party: '%s' (%i)"_fmt,
+                                pl_sd->status_key.name, pl_gm_level, temp0, pl_sd->status.party_id);
                     else
-                        output = STRPRINTF("Name: %s | Party: '%s'"_fmt,
-                                pl_sd->status_key.name, temp0);
+                        output = STRPRINTF("Name: %s | Party: '%s' (%i)"_fmt,
+                                pl_sd->status_key.name, temp0, pl_sd->status.party_id);
                     clif_displaymessage(s, output);
                     count++;
                 }
@@ -1092,8 +1092,8 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
                         Option<PartyPair> p_ = party_search(pl_sd->status.party_id);
                         PartyName temp0 = p_.pmd_pget(&PartyMost::name).copy_or(stringish<PartyName>("None"_s));
                         output = STRPRINTF(
-                                "       Party: '%s'"_fmt,
-                                temp0);
+                                "       Party: '%s' (%i)"_fmt,
+                                temp0, pl_sd->status.party_id);
                         clif_displaymessage(s, output);
                         count++;
                     }
@@ -3709,6 +3709,46 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_setpartyleader(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    CharName character;
+    PartyName party_name;
+    int value = 0;
+
+    if (!asplit(message, &party_name, &value, &character))
+        return ATCE::USAGE;
+
+
+    // name first to avoid error when name begin with a number
+    Option<PartyPair> p_ = party_searchname(party_name);
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
+
+    // try with party id
+    if (p_.is_none())
+        p_ = party_search(wrap<PartyId>(static_cast<uint32_t>(atoi(party_name.c_str()))));
+
+    if (p_.is_none() || pl_sd == nullptr)
+        return ATCE::EXIST;
+
+    OMATCH_BEGIN (p_)
+    {
+        OMATCH_CASE_SOME (p)
+        {
+            intif_party_changeleader(p.party_id, pl_sd->status_key.account_id, value < 1 ? 0 : 1);
+            clif_displaymessage(s, "Party leader changed."_s);
+        }
+        OMATCH_CASE_NONE ()
+        {
+            clif_displaymessage(s, "Incorrect party name, or no one from the party is online."_s);
+            return ATCE::EXIST;
+        }
+    }
+    OMATCH_END ();
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_enablenpc(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
@@ -5295,6 +5335,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"party"_s, {"<name>"_s,
         99, atcommand_party,
         "Create a new party"_s}},
+    {"setpartyleader"_s, {"<party-name-or-id> <flag> <player>"_s,
+        40, atcommand_setpartyleader,
+        "Change the leader of a party"_s}},
     {"mapexit"_s, {""_s,
         99, atcommand_mapexit,
         "Try to kill the server kindly"_s}},

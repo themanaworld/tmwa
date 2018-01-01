@@ -164,6 +164,8 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->warp.xs = xs;
     nd->warp.ys = ys;
 
+    nd->deletion_pending = false;
+
     npc_warp++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::WARP;
@@ -225,6 +227,8 @@ bool npc_load_shop(ast::npc::Shop& shop)
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
+
+    nd->deletion_pending = false;
 
     npc_shop++;
     nd->bl_type = BL::NPC;
@@ -454,6 +458,8 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
 
+    nd->deletion_pending = false;
+
     npc_script++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
@@ -561,6 +567,8 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
+
+    nd->deletion_pending = false;
 
     npc_script++;
     nd->bl_type = BL::NPC;

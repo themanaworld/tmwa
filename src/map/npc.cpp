@@ -358,7 +358,7 @@ void npc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
                     data);
         return;
     });
-    if ((nd = ev->nd) == nullptr)
+    if ((nd = ev->nd) == nullptr || nd->deletion_pending == true)
     {
         if (battle_config.error_log)
             PRINTF("npc_event: event not found [%s]\n"_fmt,
@@ -611,7 +611,7 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
         ev.pos = ev2->pos;
     }
 
-    if ((nd = ev.nd) == nullptr)
+    if ((nd = ev.nd) == nullptr || nd->deletion_pending == true)
     {
         if (!mob_kill && battle_config.error_log)
             PRINTF("npc_event: event not found [%s]\n"_fmt,
@@ -1078,6 +1078,10 @@ void npc_propagate_update(dumb_ptr<npc_data> nd)
 
 void npc_free(dumb_ptr<npc_data> nd)
 {
+    if (nd == nullptr || nd->deletion_pending == true)
+        return;
+
+    nd->deletion_pending = true;
     clif_clearchar(nd, BeingRemoveWhy::GONE);
     npc_propagate_update(nd);
     map_deliddb(nd);

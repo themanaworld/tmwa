@@ -383,6 +383,9 @@ void pop_stack(struct script_stack *stack, int start, int end)
 static
 ByteCode get_com(ScriptPointer *script)
 {
+    if (script == nullptr)
+        return ByteCode::NOP;
+
     if (static_cast<uint8_t>(script->peek()) >= 0x80)
     {
         // synthetic! Does not advance pos yet.
@@ -742,9 +745,15 @@ void run_func(ScriptState *st)
 static
 void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
 {
+    if (st == nullptr)
+        return;
+
     int cmdcount = script_config.check_cmdcount;
     int gotocount = script_config.check_gotocount;
     struct script_stack *stack = st->stack;
+
+    if (stack == nullptr)
+        return;
 
     st->defsp = stack->stack_datav.size();
 

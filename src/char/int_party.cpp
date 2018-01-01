@@ -416,6 +416,20 @@ void mapif_party_optionchanged(Session *s, PartyPair p, AccountId account_id,
             account_id, p->exp, p->item, flag);
 }
 
+static
+void mapif_party_leaderchanged(Session *s, PartyPair p, AccountId account_id,
+                               int leader)
+{
+    Packet_Fixed<0x3828> fixed_28;
+    fixed_28.party_id = p.party_id;
+    fixed_28.account_id = account_id;
+    fixed_28.leader = leader;
+    for (Session *ss : iter_map_sessions())
+    {
+        send_fpacket<0x3828, 11>(ss, fixed_28);
+    }
+}
+
 // パーティ脱退通知
 static
 void mapif_party_leaved(PartyId party_id, AccountId account_id, CharName name)
@@ -603,6 +617,23 @@ void mapif_parse_PartyChangeOption(Session *s, PartyId party_id, AccountId accou
     mapif_party_optionchanged(s, p, account_id, flag);
 }
 
+static
+void mapif_parse_PartyChangeLeader(Session *s, PartyId party_id, AccountId account_id,
+        int leader)
+{
+    PartyPair p{party_id, TRY_UNWRAP(party_db.search(party_id), return)};
+
+    for (int i = 0; i < MAX_PARTY; i++)
+    {
+        if (p->member[i].account_id != account_id)
+            continue;
+
+        mapif_party_leaderchanged(s, p, account_id, leader);
+        p->member[i].leader = leader;
+        return;
+    }
+}
+
 // パーティ脱退要求
 void mapif_parse_PartyLeave(Session *, PartyId party_id, AccountId account_id)
 {
@@ -775,6 +806,22 @@ RecvResult inter_party_parse_frommap(Session *ms, uint16_t packet_id)
                     map,
                     online,
                     lv);
+            break;
+        }
+        case 0x3026:
+        {
+            Packet_Fixed<0x3026> fixed;
+            rv = recv_fpacket<0x3026, 11>(ms, fixed);
+            if (rv != RecvResult::Complete)
+                break;
+
+            PartyId party_id = fixed.party_id;
+            AccountId account_id = fixed.account_id;
+            uint8_t leader = fixed.leader;
+            mapif_parse_PartyChangeLeader(ms,
+                    party_id,
+                    account_id,
+                    leader);
             break;
         }
         case 0x3027:
