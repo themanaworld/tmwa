@@ -342,9 +342,7 @@ struct npc_data : block_list
 
     bool deletion_pending;
 
-    std::list<RString> eventqueuel;
     Array<Timer, MAX_EVENTTIMER> eventtimer;
-    short arenaflag;
 
 private:
     dumb_ptr<npc_data_script> as_script();

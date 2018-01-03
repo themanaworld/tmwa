@@ -1026,14 +1026,16 @@ int npc_selllist(dumb_ptr<map_session_data> sd,
 static
 void npc_free_internal(dumb_ptr<npc_data> nd_)
 {
+    for (int i = 0; i < MAX_EVENTTIMER; i++)
+    {
+        nd->eventtimer[i].cancel();
+    }
+
     if (nd_->npc_subtype == NpcSubtype::SCRIPT)
     {
         dumb_ptr<npc_data_script> nd = nd_->is_script();
         nd->scr.timerid.cancel();
         nd->scr.timer_eventv.clear();
-        nd->eventqueuel.clear();
-        for (int i = 0; i < MAX_EVENTTIMER; i++)
-            nd->eventtimer[i].cancel();
 
         // destroy all children (puppets), if any
         if (nd_->name && nd->scr.parent == BlockId())
