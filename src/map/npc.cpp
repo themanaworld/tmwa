@@ -1069,6 +1069,7 @@ void npc_free(dumb_ptr<npc_data> nd)
         return;
 
     nd->deletion_pending = true;
+    nd->flag |= 1;
     clif_clearchar(nd, BeingRemoveWhy::GONE);
     npc_propagate_update(nd);
     map_deliddb(nd);
