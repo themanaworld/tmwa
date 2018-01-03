@@ -96,18 +96,13 @@ void get_val(dumb_ptr<block_list> sd, struct script_data *data)
             char prefix = name.front();
             char postfix = name.back();
 
-            if (prefix != '$')
-            {
-                if (sd == nullptr)
-                    PRINTF("get_val error name?:%s\n"_fmt, name);
-            }
             if (postfix == '$')
             {
                 RString str;
-                if (prefix == '@' || prefix == '.')
+                if (prefix == '@' || (prefix == '.' && name[1] != '@'))
                 {
                     if (sd)
-                        str = pc_readregstr(sd, u.reg);
+                        str = pc_readregstr(sd, u.reg); // sd can also be a nd: they're handled the same way
                 }
                 else if (prefix == '$')
                 {
@@ -128,10 +123,10 @@ void get_val(dumb_ptr<block_list> sd, struct script_data *data)
             else
             {
                 int numi = 0;
-                if (prefix == '@' || prefix == '.')
+                if (prefix == '@' || (prefix == '.' && name[1] != '@'))
                 {
                     if (sd)
-                        numi = pc_readreg(sd, u.reg);
+                        numi = pc_readreg(sd, u.reg); // sd can also be a nd: they're handled the same way
                 }
                 else if (prefix == '$')
                 {
