@@ -398,21 +398,6 @@ int npc_addeventtimer(dumb_ptr<block_list> bl, interval_t tick, NpcEvent name)
     int i;
 
     nullpo_retz(bl);
-    if (bl->bl_type == BL::MOB)
-    {
-        dumb_ptr<mob_data> md = bl->is_mob();
-        for (i = 0; i < MAX_EVENTTIMER; i++)
-            if (!md->eventtimer[i])
-                break;
-
-        if (i < MAX_EVENTTIMER)
-        {
-            md->eventtimer[i] = Timer(gettick() + tick,
-                    std::bind(npc_eventtimer, ph::_1, ph::_2,
-                        md->bl_id, name));
-            return 1;
-        }
-    }
     if (bl->bl_type == BL::NPC)
     {
         dumb_ptr<npc_data> nd = bl->is_npc();

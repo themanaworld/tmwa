@@ -4409,10 +4409,6 @@ void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent ev
         dumb_ptr<map_session_data> sd = map_id_is_player(bl->bl_id);
         pc_addeventtimer(sd, tick, event);
     }
-    else
-    {
-        npc_addeventtimer(bl, tick, event);
-    }
 }
 
 static
@@ -4438,12 +4434,6 @@ void builtin_areatimer(ScriptState *st)
     {
         case 0:
             block_type = BL::PC;
-            break;
-        case 1:
-            block_type = BL::NPC;
-            break;
-        case 2:
-            block_type = BL::MOB;
             break;
         default:
             return;
