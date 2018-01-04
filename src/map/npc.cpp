@@ -1013,7 +1013,7 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
 {
     for (int i = 0; i < MAX_EVENTTIMER; i++)
     {
-        nd->eventtimer[i].cancel();
+        nd_->eventtimer[i].cancel();
     }
 
     if (nd_->npc_subtype == NpcSubtype::SCRIPT)

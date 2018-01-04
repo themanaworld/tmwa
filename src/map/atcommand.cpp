@@ -3749,6 +3749,45 @@ ATCE atcommand_setpartyleader(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_setleader(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    CharName character;
+    short mask = 0;
+    int i = 0;
+
+    if (!asplit(message, &character))
+        return ATCE::USAGE;
+
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
+
+    if (pl_sd == nullptr || pl_sd->status.party_id == PartyId())
+        return ATCE::EXIST;
+
+    PartyPair p_ = TRY_UNWRAP(party_search(pl_sd->status.party_id), return ATCE::EXIST);
+
+    for (i = 0; i < MAX_PARTY; i++)
+    {
+        if (p_->member[i].account_id == sd->status_key.account_id)
+            mask |= p_->member[i].leader ? 3 : 1;
+
+        if (p_->member[i].account_id == pl_sd->status_key.account_id)
+            mask |= p_->member[i].leader ? 12 : 4;
+
+        if (mask & 5)
+            break;
+    }
+
+    if (!(mask & 2))
+        return ATCE::PERM;
+
+    intif_party_changeleader(pl_sd->status.party_id, pl_sd->status_key.account_id, (mask & 8) ? 0 : 1);
+    clif_displaymessage(s, "Party leader changed."_s);
+
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_enablenpc(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
@@ -5338,6 +5377,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"setpartyleader"_s, {"<party-name-or-id> <flag> <player>"_s,
         40, atcommand_setpartyleader,
         "Change the leader of a party"_s}},
+    {"setleader"_s, {"<player>"_s,
+        0, atcommand_setleader,
+        "Add/remove a leader to the current party"_s}},
     {"mapexit"_s, {""_s,
         99, atcommand_mapexit,
         "Try to kill the server kindly"_s}},
