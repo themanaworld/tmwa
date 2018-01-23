@@ -1419,7 +1419,7 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
 
     P<struct item_data> item_data = TRY_UNWRAP(extract_item_opt(item_name), return ATCE::EXIST);
     ItemNameId item_id = item_data->nameid;
-    assert (item_id);
+    assert(item_id >= wrap<ItemNameId>(0));
 
     {
         get_count = number;
@@ -3859,7 +3859,7 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
 
     P<struct item_data> item_data = TRY_UNWRAP(extract_item_opt(item_name), return ATCE::EXIST);
     ItemNameId item_id = item_data->nameid;
-    assert (item_id);
+    assert(item_id >= wrap<ItemNameId>(0));
 
     {
         dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);

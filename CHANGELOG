@@ -1,3 +1,5 @@
+v18.1.23
+  - fixed a crash that happened when trying to create item id 0
 v18.1.3
   - remove mob timers (unused)
   - properly clear timers of all npcs (not just script)
