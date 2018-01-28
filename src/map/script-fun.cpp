@@ -757,6 +757,9 @@ void builtin_injure(ScriptState *st)
     dumb_ptr<block_list> target = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
     int damage_caused = conv_num(st, &AARG(2));
 
+    if (source != nullptr && source->bl_type == BL::PC)
+        pc_setstand(source->is_player());
+
     // display damage first, because dealing damage may deallocate the target.
     clif_damage(source, target,
             gettick(), interval_t::zero(), interval_t::zero(),
