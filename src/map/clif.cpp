@@ -757,7 +757,9 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1da.hair_style = sd->status.hair;
     IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
     IOff0 sidx = sd->equip_index_maybe[EQUIP::SHIELD];
-    if (widx.ok() && sd->inventory_data[widx].is_some())
+    if (sd->attack_spell_override)
+        fixed_1da.weapon = sd->attack_spell_look_override;
+    else if (widx.ok() && sd->inventory_data[widx].is_some())
     {
         fixed_1da.weapon = sd->status.inventory[widx].nameid;
     }
