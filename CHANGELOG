@@ -1,3 +1,5 @@
+v18.1.28
+  - fixed issues with magic weapon overrides
 v18.1.23
   - fixed a crash that happened when trying to create item id 0
 v18.1.3
