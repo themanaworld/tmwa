@@ -2257,7 +2257,7 @@ void builtin_overrideattack(ScriptState *st)
         extract(event_, &event);
 
         sd->attack_spell_override = st->oid;
-        sd->attack_spell_charges = 1;
+        sd->attack_spell_charges = HARG(5) ? conv_num(st, &AARG(5)) : 1;
         sd->magic_attack = event;
         pc_set_weapon_icon(sd, 1, icon, look);
         pc_set_attack_info(sd, attack_delay, attack_range);
@@ -4767,7 +4767,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(skill, "ii?"_s, '\0'),
     BUILTIN(setskill, "ii"_s, '\0'),
     BUILTIN(getskilllv, "i"_s, 'i'),
-    BUILTIN(overrideattack, "?????"_s, '\0'),
+    BUILTIN(overrideattack, "??????"_s, '\0'),
     BUILTIN(getgmlevel, ""_s, 'i'),
     BUILTIN(end, ""_s, '\0'),
     BUILTIN(getopt2, ""_s, 'i'),
