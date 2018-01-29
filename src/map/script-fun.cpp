@@ -23,6 +23,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "../compat/fun.hpp"
+#include "../compat/nullpo.hpp"
 
 #include "../generic/db.hpp"
 #include "../generic/dumb_ptr.hpp"
@@ -90,8 +91,7 @@ static
 void builtin_mes(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
     sd->state.npc_dialog_mes = 1;
     RString mes = HARG(0) ? conv_str(st, &AARG(0)) : ""_s;
     clif_scriptmes(sd, st->oid, mes);
@@ -100,7 +100,9 @@ void builtin_mes(ScriptState *st)
 static
 void builtin_clear(ScriptState *st)
 {
-    clif_npc_action(script_rid2sd(st), st->oid, 9, 0, 0, 0);
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
+    clif_npc_action(sd, st->oid, 9, 0, 0, 0);
 }
 
 /*==========================================
@@ -308,8 +310,10 @@ void builtin_return(ScriptState *st)
 static
 void builtin_next(ScriptState *st)
 {
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
     st->state = ScriptEndState::STOP;
-    clif_scriptnext(script_rid2sd(st), st->oid);
+    clif_scriptnext(sd, st->oid);
 }
 
 /*==========================================
@@ -329,8 +333,8 @@ void builtin_close(ScriptState *st)
     }
     st->state = ScriptEndState::END;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
+
     if (sd->state.npc_dialog_mes)
         clif_scriptclose(sd, st->oid);
     else
@@ -342,8 +346,7 @@ void builtin_close2(ScriptState *st)
 {
     st->state = ScriptEndState::STOP;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
     if (sd->state.npc_dialog_mes)
         clif_scriptclose(sd, st->oid);
     else
@@ -358,6 +361,7 @@ static
 void builtin_menu(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     if (sd->state.menu_or_input == 0)
     {
@@ -564,8 +568,7 @@ void builtin_isat(ScriptState *st)
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
 
-    if (!sd)
-        return;
+    nullpo_retv(sd);
 
     push_int<ScriptDataInt>(st->stack,
             (x == sd->bl_x) && (y == sd->bl_y)
@@ -584,6 +587,7 @@ void builtin_warp(ScriptState *st)
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
+    nullpo_retv(sd);
 
     pc_setpos(sd, str, x, y, BeingRemoveWhy::GONE);
 }
@@ -635,6 +639,7 @@ void builtin_heal(ScriptState *st)
 
     hp = conv_num(st, &AARG(0));
     sp = conv_num(st, &AARG(1));
+    nullpo_retv(sd);
 
     if(sd != nullptr && (sd->status.hp < 1 && hp > 0)){
         pc_setstand(sd);
@@ -787,6 +792,7 @@ void builtin_input(ScriptState *st)
     char postfix = name.back();
 
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
     if (sd->state.menu_or_input)
     {
         // Second time (rerun)
@@ -843,6 +849,7 @@ void builtin_requestitem(ScriptState *st)
     }
 
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
     if (sd->state.menu_or_input)
     {
         // Second time (rerunline)
@@ -930,6 +937,8 @@ void builtin_requestlang(ScriptState *st)
     SIR reg = scrd.get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char postfix = name.back();
+
+    nullpo_retv(sd);
 
     if (postfix != '$')
     {
@@ -1104,10 +1113,7 @@ void builtin_foreach(ScriptState *st)
     else if (st->rid)
         sd = script_rid2sd(st);
 
-    if (sd == nullptr)
-    {
-        PRINTF("builtin_foreach: player not attached.\n"_fmt);
-    }
+    nullpo_retv(sd);
 
     map_foreachinarea(std::bind(builtin_foreach_sub, ph::_1, event, sd->bl_id),
             m,
@@ -1300,10 +1306,11 @@ void builtin_set(ScriptState *st)
         }
 
         else
+        {
             bl = script_rid2sd(st);
+            nullpo_retv(bl);
+        }
 
-        if (bl == nullptr)
-            return;
         int val = conv_num(st, &AARG(1));
         set_reg(bl, VariableCode::PARAM, reg, val);
         return;
@@ -1684,6 +1691,7 @@ void builtin_gmlog(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     ZString message = ZString(conv_str(st, &AARG(0)));
+    nullpo_retv(sd);
     log_atcommand(sd, STRPRINTF("{SCRIPT} %s"_fmt, message));
 }
 
@@ -1694,10 +1702,12 @@ void builtin_gmlog(ScriptState *st)
 static
 void builtin_setlook(ScriptState *st)
 {
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
     LOOK type = LOOK(conv_num(st, &AARG(0)));
     int val = conv_num(st, &AARG(1));
+    nullpo_retv(sd);
 
-    pc_changelook(script_rid2sd(st), type, val);
+    pc_changelook(sd, type, val);
 
 }
 
@@ -1715,6 +1725,7 @@ void builtin_countitem(ScriptState *st)
     struct script_data *data;
 
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     data = &AARG(0);
     get_val(st, data);
@@ -1761,6 +1772,7 @@ void builtin_checkweight(ScriptState *st)
     struct script_data *data;
 
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     data = &AARG(0);
     get_val(st, data);
@@ -1809,6 +1821,7 @@ void builtin_getitem(ScriptState *st)
     struct script_data *data;
 
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     data = &AARG(0);
     get_val(st, data);
@@ -1912,6 +1925,7 @@ void builtin_delitem(ScriptState *st)
     struct script_data *data;
 
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     data = &AARG(0);
     get_val(st, data);
@@ -1961,7 +1975,8 @@ void builtin_delitem(ScriptState *st)
 static
 void builtin_getversion(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);;
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
     push_int<ScriptDataInt>(st->stack, unwrap<ClientVersion>(sd->client_version));
 }
 
@@ -1980,11 +1995,9 @@ void builtin_getcharid(ScriptState *st)
         sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARG(1)))));
     else
         sd = script_rid2sd(st);
-    if (sd == nullptr)
-    {
-        push_int<ScriptDataInt>(st->stack, -1);
-        return;
-    }
+
+    nullpo_retv(sd);
+
     if (num == 0)
         push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status_key.char_id));
     if (num == 1)
@@ -2044,11 +2057,7 @@ void builtin_strcharinfo(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
-    if (!sd)
-    {
-        PRINTF("builtin_strcharinfo: player not found\n"_fmt);
-        return;
-    }
+    nullpo_retv(sd);
 
     num = conv_num(st, &AARG(0));
     if (num == 0)
@@ -2104,11 +2113,8 @@ void builtin_getequipid(ScriptState *st)
         sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARG(1)))));
     else
         sd = script_rid2sd(st);
-    if (sd == nullptr)
-    {
-        PRINTF("getequipid: sd == nullptr\n"_fmt);
-        return;
-    }
+
+    nullpo_retv(sd);
     num = conv_num(st, &AARG(0));
     IOff0 i = pc_checkequip(sd, equip[num - 1]);
     if (i.ok())
@@ -2166,6 +2172,7 @@ void builtin_bonus(ScriptState *st)
         type = SP(conv_num(st, &AARG(0)));
     int val = conv_num(st, &AARG(1));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
     pc_bonus(sd, type, val);
 
 }
@@ -2185,6 +2192,7 @@ void builtin_bonus2(ScriptState *st)
     int type2 = conv_num(st, &AARG(1));
     int val = conv_num(st, &AARG(2));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
     pc_bonus2(sd, type, type2, val);
 
 }
@@ -2204,6 +2212,7 @@ void builtin_skill(ScriptState *st)
     if (HARG(2))
         flag = conv_num(st, &AARG(2));
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
     pc_skill(sd, id, level, flag);
     clif_skillinfoblock(sd);
 
@@ -2222,6 +2231,7 @@ void builtin_setskill(ScriptState *st)
     SkillID id = static_cast<SkillID>(conv_num(st, &AARG(0)));
     level = conv_num(st, &AARG(1));
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     level = std::min(level, MAX_SKILL_LEVEL);
     level = std::max(level, 0);
@@ -2236,8 +2246,10 @@ void builtin_setskill(ScriptState *st)
 static
 void builtin_getskilllv(ScriptState *st)
 {
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
     SkillID id = SkillID(conv_num(st, &AARG(0)));
-    push_int<ScriptDataInt>(st->stack, pc_checkskill(script_rid2sd(st), id));
+    nullpo_retv(sd);
+    push_int<ScriptDataInt>(st->stack, pc_checkskill(sd, id));
 }
 
 /*==========================================
@@ -2248,6 +2260,8 @@ static
 void builtin_overrideattack(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
+
     if (HARG(0))
     {
         interval_t attack_delay = static_cast<interval_t>(conv_num(st, &AARG(0)));
@@ -2282,7 +2296,10 @@ void builtin_overrideattack(ScriptState *st)
 static
 void builtin_getgmlevel(ScriptState *st)
 {
-    push_int<ScriptDataInt>(st->stack, pc_isGM(script_rid2sd(st)).get_all_bits());
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
+
+    push_int<ScriptDataInt>(st->stack, pc_isGM(sd).get_all_bits());
 }
 
 /*==========================================
@@ -2314,6 +2331,7 @@ void builtin_getopt2(ScriptState *st)
     dumb_ptr<map_session_data> sd;
 
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     push_int<ScriptDataInt>(st->stack, static_cast<uint16_t>(sd->opt2));
 
@@ -2331,6 +2349,8 @@ void builtin_setopt2(ScriptState *st)
 
     Opt2 new_opt2 = Opt2(conv_num(st, &AARG(0)));
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
+
     if (new_opt2 == sd->opt2)
         return;
     sd->opt2 = new_opt2;
@@ -2346,11 +2366,14 @@ void builtin_setopt2(ScriptState *st)
 static
 void builtin_savepoint(ScriptState *st)
 {
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int x, y;
-
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    nullpo_retv(sd);
+
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
+
     pc_setsavepoint(script_rid2sd(st), str, x, y);
 }
 
@@ -2445,6 +2468,7 @@ void builtin_openstorage(ScriptState *st)
 //  int sync = 0;
 //  if (st->end >= 3) sync = conv_num(st,& (st->stack->stack_data[st->start+2]));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
 //  if (sync) {
     st->state = ScriptEndState::STOP;
@@ -2463,6 +2487,7 @@ void builtin_getexp(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int base = 0, job = 0;
+    nullpo_retv(sd);
 
     base = conv_num(st, &AARG(0));
     job = conv_num(st, &AARG(1));
@@ -2666,10 +2691,7 @@ void builtin_addtimer(ScriptState *st)
     else if (st->rid)
         sd = script_rid2sd(st);
 
-    if (sd == nullptr)
-    {
-        PRINTF("builtin_addtimer: player not attached.\n"_fmt);
-    }
+    nullpo_retv(sd);
 
     pc_addeventtimer(sd, tick, event);
 }
@@ -2802,6 +2824,7 @@ void builtin_npcaction(ScriptState *st)
     int id = 0;
     short x = HARG(2) ? conv_num(st, &AARG(2)) : 0;
     short y = HARG(3) ? conv_num(st, &AARG(3)) : 0;
+    nullpo_retv(sd);
 
     if(HARG(1))
     {
@@ -2822,6 +2845,8 @@ static
 void builtin_camera(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
+
     if (HARG(0))
     {
         if (HARG(1) && !HARG(2))
@@ -2889,6 +2914,7 @@ void builtin_setnpcdirection(ScriptState *st)
     if (st->rid)
     {
         dumb_ptr<map_session_data> sd = script_rid2sd(st);
+        nullpo_retv(sd);
         clif_sitnpc_towards(sd, nd_, action);
         clif_setnpcdirection_towards(sd, nd_, dir);
     }
@@ -2917,6 +2943,7 @@ void builtin_announce(ScriptState *st)
             bl = map_id2bl(st->oid);
         else
             bl = script_rid2sd(st);
+        nullpo_retv(bl);
         clif_GMmessage(bl, str, flag);
     }
     else
@@ -3012,6 +3039,7 @@ void builtin_aggravate(ScriptState *st)
         if (HARG(1))
             target = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
 
+        nullpo_retv(target);
         mob_aggravate(md, target);
     }
 }
@@ -3239,6 +3267,7 @@ void builtin_resetstatus(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd;
     sd = script_rid2sd(st);
+    nullpo_retv(sd);
     pc_resetstate(sd);
 }
 
@@ -3393,6 +3422,7 @@ void builtin_setpvpchannel(ScriptState *st)
     if (flag < 1)
         flag = 0;
 
+    nullpo_retv(sd);
     sd->state.pvpchannel = flag;
 }
 
@@ -3405,11 +3435,7 @@ void builtin_getpvpflag(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
-    if (!sd)
-    {
-        PRINTF("builtin_getpvpflag: player not found\n"_fmt);
-        return;
-    }
+    nullpo_retv(sd);
 
     int num = conv_num(st, &AARG(0));
     int flag = 0;
@@ -3564,7 +3590,7 @@ static
 void builtin_getpartnerid2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-
+    nullpo_retv(sd);
     push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status.partner_id));
 }
 
@@ -3654,8 +3680,8 @@ void builtin_getinventorylist(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int j = 0;
-    if (!sd)
-        return;
+    nullpo_retv(sd);
+
     for (IOff0 i : IOff0::iter())
     {
         if (sd->status.inventory[i].nameid
@@ -3681,8 +3707,7 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
     int skill_pool_size = skill_pool(sd, pool_skills);
     int i, count = 0;
 
-    if (!sd)
-        return;
+    nullpo_retv(sd);
 
     for (i = 0; i < skill_pool_size; i++)
     {
@@ -3711,8 +3736,7 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int i, count = 0;
 
-    if (!sd)
-        return;
+    nullpo_retv(sd);
 
     for (i = 0; i < skill_pool_skills.size(); i++)
     {
@@ -3740,7 +3764,7 @@ void builtin_poolskill(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     SkillID skill_id = SkillID(conv_num(st, &AARG(0)));
-
+    nullpo_retv(sd);
     skill_pool_activate(sd, skill_id);
     clif_skillinfoblock(sd);
 
@@ -3751,7 +3775,7 @@ void builtin_unpoolskill(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     SkillID skill_id = SkillID(conv_num(st, &AARG(0)));
-
+    nullpo_retv(sd);
     skill_pool_deactivate(sd, skill_id);
     clif_skillinfoblock(sd);
 
@@ -3836,8 +3860,7 @@ void builtin_specialeffect2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
 
     clif_specialeffect(sd,
                         conv_num(st,
@@ -3988,8 +4011,7 @@ void builtin_nude(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
 
     for (EQUIP i : EQUIPs)
     {
@@ -4010,8 +4032,7 @@ static
 void builtin_unequipbyid(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
 
     EQUIP slot_id = EQUIP(conv_num(st, &AARG(0)));
 
@@ -4151,8 +4172,7 @@ void builtin_title(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     ZString msg = ZString(conv_str(st, &AARG(0)));
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
     clif_npc_send_title(sd->sess, st->oid, msg);
 }
 
@@ -4160,6 +4180,8 @@ static
 void builtin_smsg(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
+
     if (HARG(2))
     {
         CharName player = stringish<CharName>(ZString(conv_str(st, &AARG(2))));
@@ -4180,6 +4202,8 @@ static
 void builtin_remotecmd(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
+
     if (HARG(1))
     {
         CharName player = stringish<CharName>(ZString(conv_str(st, &AARG(1))));
@@ -4201,6 +4225,7 @@ void builtin_sendcollision(ScriptState *st)
     short x1, y1, x2, y2;
     x1 = x2 = conv_num(st, &AARG(2));
     y1 = y2 = conv_num(st, &AARG(3));
+    nullpo_retv(sd);
 
     if (HARG(5))
     {
@@ -4229,8 +4254,7 @@ void builtin_music(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     ZString msg = ZString(conv_str(st, &AARG(0)));
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
     clif_change_music(sd, msg);
 }
 
@@ -4251,8 +4275,7 @@ void builtin_mapmask(ScriptState *st)
     else if(HARG(1) && nd)
         nd->bl_m->mask = map_mask;
 
-    if (sd == nullptr)
-        return;
+    nullpo_retv(sd);
     clif_send_mask(sd, map_mask);
 }
 
@@ -4329,9 +4352,10 @@ static
 void builtin_getlook(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-
     LOOK type = LOOK(conv_num(st, &AARG(0)));
     int val = -1;
+    nullpo_retv(sd);
+
     switch (type)
     {
         case LOOK::HAIR:        //1
@@ -4373,9 +4397,8 @@ static
 void builtin_getsavepoint(ScriptState *st)
 {
     int x, y, type;
-    dumb_ptr<map_session_data> sd;
-
-    sd = script_rid2sd(st);
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     type = conv_num(st, &AARG(0));
 
@@ -4465,8 +4488,7 @@ void builtin_isin(ScriptState *st)
     x2 = conv_num(st, &AARG(3));
     y2 = conv_num(st, &AARG(4));
 
-    if (!sd)
-        return;
+    nullpo_retv(sd);
 
     push_int<ScriptDataInt>(st->stack,
               (sd->bl_x >= x1 && sd->bl_x <= x2)
@@ -4499,8 +4521,7 @@ void builtin_shop(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     dumb_ptr<npc_data> nd;
 
-    if (!sd)
-        return;
+    nullpo_retv(sd);
 
     NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARG(0))));
     nd = npc_name2id(name);
@@ -4522,6 +4543,7 @@ static
 void builtin_isdead(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    nullpo_retv(sd);
 
     push_int<ScriptDataInt>(st->stack, pc_isdead(sd));
 }
@@ -4559,7 +4581,7 @@ static
 void builtin_getx(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-
+    nullpo_retv(sd);
     push_int<ScriptDataInt>(st->stack, sd->bl_x);
 }
 
@@ -4571,7 +4593,7 @@ static
 void builtin_gety(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-
+    nullpo_retv(sd);
     push_int<ScriptDataInt>(st->stack, sd->bl_y);
 }
 
@@ -4583,7 +4605,7 @@ static
 void builtin_getdir(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-
+    nullpo_retv(sd);
     push_int<ScriptDataInt>(st->stack, static_cast<uint8_t>(sd->dir));
 }
 
@@ -4600,6 +4622,7 @@ void builtin_getmap(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
+    nullpo_retv(sd);
     push_str<ScriptDataStr>(st->stack, sd->bl_m->name_);
 }
 

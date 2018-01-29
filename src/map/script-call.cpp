@@ -70,6 +70,8 @@ dumb_ptr<map_session_data> script_rid2sd(ScriptState *st)
     if (!sd)
     {
         PRINTF("script_rid2sd: fatal error ! player not attached!\n"_fmt);
+        st->state = ScriptEndState::END;
+        return nullptr;
     }
     return sd;
 }
@@ -871,7 +873,8 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                     if (st->rid)
                     {
                         dumb_ptr<map_session_data> sd = script_rid2sd(st);
-                        PRINTF("PC => %s\n"_fmt, sd->status_key.name.to__actual());
+                        if (sd)
+                            PRINTF("PC => %s\n"_fmt, sd->status_key.name.to__actual());
                     }
                 }
                 abort();
