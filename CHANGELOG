@@ -1,3 +1,7 @@
+v18.1.29.1
+  - fix the previous release *facepalm*
+v18.1.29
+  - added missing nullpo checks in script commands
 v18.1.28
   - fixed issues with magic weapon overrides
 v18.1.23

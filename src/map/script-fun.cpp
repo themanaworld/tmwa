@@ -1996,7 +1996,10 @@ void builtin_getcharid(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
-    nullpo_retv(sd);
+    if (sd == nullptr) {
+        push_int<ScriptDataInt>(st->stack, -1);
+        return;
+    }
 
     if (num == 0)
         push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status_key.char_id));
