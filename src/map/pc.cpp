@@ -3780,6 +3780,12 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             else if (nd)
                 npc_enable(nd->name, (val > 0) ? false : true);
             break;
+        case SP::GM:
+            nullpo_retz(sd);
+            pc_set_gm_level(sd->status_key.account_id, GmLevel::from(static_cast<uint32_t>(val)));
+            clif_updatestatus(sd, SP::GM); // propagate to self
+            clif_fixpcpos(sd); // propagate to others
+            break;
         case SP::HIDDEN:
             nullpo_retz(sd);
             if (val == 1)
