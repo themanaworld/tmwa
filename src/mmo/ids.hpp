@@ -90,7 +90,7 @@ public:
     constexpr
     uint16_t get_public_word() const
     {
-        return (bits == 60 || bits == 99) ? 0x0080 : 0;
+        return ((bits == 1 || bits == 99) || (bits >= 10 && !(bits % 10))) ? bits : 0;
     }
 
     constexpr
