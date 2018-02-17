@@ -27,9 +27,9 @@ def hit_breakpoint():
         def compare(value, expected):
             return value == expected
     if not compare(value, expected):
-        print 'Error: mismatch, aborting ...'
-        print 'actual: %r' % value
-        print 'expect: %r' % str(expected)
+        print('Error: mismatch, aborting ...')
+        print('actual: %r' % value)
+        print('expect: %r' % str(expected))
         gdb.execute('bt')
         sys.exit(1)
 end
