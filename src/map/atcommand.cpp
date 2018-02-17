@@ -4815,8 +4815,6 @@ ATCE atcommand_get_var(Session *s, dumb_ptr<map_session_data> sd,
     CharName character;
     XString vname;
     XString vindex;
-    char prefix;
-    char postfix;
 
     if (!asplit(message, &vname, &vindex, &character))
     {
@@ -4826,8 +4824,6 @@ ATCE atcommand_get_var(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    prefix = vname.front();
-    postfix = vname.back();
     SIR reg = SIR::from(variable_names.intern(vname), atoi((RString(vindex)).c_str()));
 
     struct script_data dat = ScriptDataVariable{reg};

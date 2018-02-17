@@ -86,7 +86,7 @@ matrix:
           - valgrind
           - gdb
     - compiler: gcc
-      env: REAL_CC=gcc-4.7     REAL_CXX=g++-4.7
+      env: REAL_CC=gcc-4.7     REAL_CXX=g++-4.7   LDFLAGS="-fuse-ld=gold"
       addons:
         apt:
           sources:
@@ -98,7 +98,7 @@ matrix:
           - valgrind
           - gdb
     - compiler: gcc
-      env: REAL_CC=gcc-4.8     REAL_CXX=g++-4.8
+      env: REAL_CC=gcc-4.8     REAL_CXX=g++-4.8   LDFLAGS="-fuse-ld=gold"
       addons:
         apt:
           sources:
@@ -110,7 +110,7 @@ matrix:
           - valgrind
           - gdb
     - compiler: gcc
-      env: REAL_CC=gcc-4.9     REAL_CXX=g++-4.9
+      env: REAL_CC=gcc-4.9     REAL_CXX=g++-4.9   LDFLAGS="-fuse-ld=gold"
       addons:
         apt:
           sources:
@@ -122,7 +122,7 @@ matrix:
           - valgrind
           - gdb
     - compiler: gcc
-      env: REAL_CC=gcc-5     REAL_CXX=g++-5
+      env: REAL_CC=gcc-5     REAL_CXX=g++-5   LDFLAGS="-fuse-ld=gold"
       addons:
         apt:
           sources:
@@ -136,7 +136,7 @@ matrix:
     # Can't use valgrind and asan at the same time.
     # Should probably fix the test leaks though.
     - compiler: gcc
-      env: REAL_CC=gcc-5     REAL_CXX=g++-5  REAL_EXTRA=-fsanitize=address  FORCE_TESTER='' ASAN_OPTIONS=detect_leaks=0
+      env: REAL_CC=gcc-5     REAL_CXX=g++-5  REAL_EXTRA=-fsanitize=address  FORCE_TESTER='' ASAN_OPTIONS=detect_leaks=0   LDFLAGS="-fuse-ld=gold"
       addons:
         apt:
           sources:
@@ -149,7 +149,7 @@ matrix:
           - gdb
     # LTO is buggy.
     - compiler: gcc
-      env: REAL_CC=gcc-5     REAL_CXX=g++-5  REAL_EXTRA=-flto
+      env: REAL_CC=gcc-5     REAL_CXX=g++-5  REAL_EXTRA=-flto   LDFLAGS="-fuse-ld=gold"
       addons:
         apt:
           sources:
@@ -161,7 +161,7 @@ matrix:
           - valgrind
           - gdb
   allow_failures:
-    - env: REAL_CC=gcc-5     REAL_CXX=g++-5  REAL_EXTRA=-flto
+    - env: REAL_CC=gcc-5     REAL_CXX=g++-5  REAL_EXTRA=-flto  LDFLAGS="-fuse-ld=gold"
 
 # everything that was pushed to stable was already on 'master', except
 # the version change and some doc changes.
