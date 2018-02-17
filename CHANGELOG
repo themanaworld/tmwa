@@ -1,3 +1,5 @@
+v18.2.17.1
+  - fix a few compilation errors
 v18.2.17
   - fix players sometimes facing the wrong direction after magic attacks
   - fix attoconf build
