@@ -34,6 +34,8 @@
 
 #include "script.hpp"
 
+#include <vector>
+
 
 namespace tmwa
 {

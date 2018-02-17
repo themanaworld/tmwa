@@ -29,6 +29,8 @@
 #include "../generic/db.hpp"
 #include "script-persist.hpp"
 
+#include <vector>
+
 
 namespace tmwa
 {
