@@ -467,29 +467,18 @@ TEST(Option, cmp)
     using option::Some;
     using option::None;
 
-    Option<int> none = None;
-
-    EQ(none, none);
-    EQ(none, None);
-    LT(none, Some(-1));
-    LT(none, Some(0));
-    LT(none, Some(1));
-    EQ((None), none);
     // EQ((None), None); // actually a function template
     LT((None), Some(-1));
     LT((None), Some(0));
     LT((None), Some(1));
-    GT(Some(-1), none);
     GT(Some(-1), None);
     EQ(Some(-1), Some(-1));
     LT(Some(-1), Some(0));
     LT(Some(-1), Some(1));
-    GT(Some(0), none);
     GT(Some(0), None);
     GT(Some(0), Some(-1));
     EQ(Some(0), Some(0));
     LT(Some(0), Some(1));
-    GT(Some(1), none);
     GT(Some(1), None);
     GT(Some(1), Some(-1));
     GT(Some(1), Some(0));
