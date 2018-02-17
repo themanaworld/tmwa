@@ -822,14 +822,16 @@ void create_online_files(void)
                         // without/with 'GM' display
                         GmLevel gml = isGM(cd.key.account_id);
                         {
-                            if (gml.satisfies(char_conf.online_gm_display_min_level))
+                            if ((gml.satisfies(char_conf.online_gm_display_min_level) &&
+                                !(gml.get_all_bits() % 10)) || gml.satisfies(GmLevel::from(99_u32)))
                                 FPRINTF(fp, "%-24s (GM) "_fmt, cd.key.name);
                             else
                                 FPRINTF(fp, "%-24s      "_fmt, cd.key.name);
                         }
                         // name of the character in the html (no < >, because that create problem in html code)
                         FPRINTF(fp2, "        <td>"_fmt);
-                        if (gml.satisfies(char_conf.online_gm_display_min_level))
+                        if ((gml.satisfies(char_conf.online_gm_display_min_level) &&
+                            !(gml.get_all_bits() % 10)) || gml.satisfies(GmLevel::from(99_u32)))
                             FPRINTF(fp2, "<b>"_fmt);
                         for (char c : cd.key.name.to__actual())
                         {
@@ -849,7 +851,8 @@ void create_online_files(void)
                                 break;
                             };
                         }
-                        if (gml.satisfies(char_conf.online_gm_display_min_level))
+                        if ((gml.satisfies(char_conf.online_gm_display_min_level) &&
+                            !(gml.get_all_bits() % 10)) || gml.satisfies(GmLevel::from(99_u32)))
                             FPRINTF(fp2, "</b> (GM)"_fmt);
                         FPRINTF(fp2, "</td>\n"_fmt);
                     }
