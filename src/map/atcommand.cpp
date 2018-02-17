@@ -4600,6 +4600,8 @@ ATCE atcommand_adjgmlvl(Session *s, dumb_ptr<map_session_data>,
         return ATCE::EXIST;
 
     pc_set_gm_level(pl_sd->status_key.account_id, newlev);
+    clif_updatestatus(pl_sd, SP::GM); // propagate to self
+    clif_fixpcpos(pl_sd); // propagate to others
 
     return ATCE::OKAY;
 }
