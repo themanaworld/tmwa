@@ -2653,6 +2653,12 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
 
     if (sd->attack_spell_override)   // [Fate] If we have an active attack spell, use that
     {
+        if (battle_config.player_attack_direction_change)
+            sd->dir = sd->head_dir = map_calc_dir(sd, bl->bl_x, bl->bl_y);
+
+        if (sd->walktimer)
+            pc_stop_walking(sd, 1);
+
         // call_spell_event_script
         argrec_t arg[1] =
         {
