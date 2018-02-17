@@ -106,10 +106,9 @@ def main():
     srcdir = os.path.dirname(sys.argv[0])
     proj = Configuration(
             srcdir=srcdir,
-            package='tmwa',
-            package_name='The Mana World (Athena server)',
             template_files=['Makefile'],
     )
+    proj.set_package('tmwa', 'The Mana World (Athena server)');
     proj.jiggle()
     build = proj.build('.')
     build.configure(sys.argv[1:], os.environ)
