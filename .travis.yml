@@ -10,12 +10,6 @@ notifications:
   email:
     on_success: changed
     on_failure: always
-  ## Are we going to want this on or off?
-  irc:
-    channels:   "chat.freenode.net#tmwa"
-    on_success: always
-    on_failure: always
-    use_notice: true
 
 ## Use the container-based infrastructure
 sudo: false
