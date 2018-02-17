@@ -5042,7 +5042,6 @@ RecvResult clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
 void clif_sendallquest(dumb_ptr<map_session_data> sd)
 {
     int i;
-    QuestId questid;
     if (!sd)
         return;
 

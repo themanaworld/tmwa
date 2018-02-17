@@ -417,7 +417,7 @@ void mapif_party_optionchanged(Session *s, PartyPair p, AccountId account_id,
 }
 
 static
-void mapif_party_leaderchanged(Session *s, PartyPair p, AccountId account_id,
+void mapif_party_leaderchanged(Session *, PartyPair p, AccountId account_id,
                                int leader)
 {
     Packet_Fixed<0x3828> fixed_28;

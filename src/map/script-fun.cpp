@@ -3572,7 +3572,6 @@ void builtin_getitemlink(ScriptState *st)
     data = &AARG(0);
     ZString name = conv_str(st, data);
 
-    ItemNameId item_id;
     Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
     OMATCH_BEGIN (item_data_)
     {

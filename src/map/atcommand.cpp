@@ -3709,7 +3709,7 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_setpartyleader(Session *s, dumb_ptr<map_session_data> sd,
+ATCE atcommand_setpartyleader(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
