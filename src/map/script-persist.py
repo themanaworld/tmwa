@@ -3,6 +3,7 @@ class script_data(object):
 
     test_extra = '''
     #include "../strings/literal.hpp"
+    #include <vector>
     using tmwa::operator "" _s;
 
     #include "../map/script-parse-internal.hpp"
