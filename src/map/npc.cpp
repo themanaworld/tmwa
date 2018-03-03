@@ -579,7 +579,14 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
     {
         if (!eventname.label && eventname.npc && sd)
         {
-            ev.nd = npc_name2id(eventname.npc)->is_script();
+            dumb_ptr<npc_data> fnd = npc_name2id(eventname.npc);
+            if (fnd == nullptr)
+            {
+                PRINTF("npc_event: NPC not found when calling event [%s]\n"_fmt,
+                        eventname.npc);
+                return 0;
+            }
+            ev.nd = fnd->is_script();
             ev.pos = 0; // start from the beginning of a npc
         }
         else
