@@ -566,6 +566,9 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
         return npc_event_doall_l(eventname.label, sd->bl_id, args); // XXX maybe merge this into npc_event?
     }
 
+    if (eventname.npc.front() == '~')
+        return 0; // phony event (used mostly to uniquely identify mob spawns)
+
     Option<P<struct event_data>> ev_ = ev_db.search(eventname);
     dumb_ptr<npc_data_script> nd;
 
