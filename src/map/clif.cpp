@@ -680,6 +680,7 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.pos.dir = sd->dir;
     fixed_1d8.gm_bits = pc_isGM(sd).get_public_word();
     fixed_1d8.dead_sit = sd->state.dead_sit;
+    fixed_1d8.base_level = sd->status.base_level;
     fixed_1d8.unused = 0;
 
     buf = create_fpacket<0x01d8, 54>(fixed_1d8);
@@ -733,7 +734,8 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.pos.y = sd->bl_y;
     fixed_1d8.pos.dir = sd->dir;
     fixed_1d8.gm_bits = pc_isGM(sd).get_public_word();
-    fixed_1d8.unused = 0;
+    fixed_1d8.dead_sit = sd->state.dead_sit;
+    fixed_1d8.base_level = sd->status.base_level;
 
     buf = create_fpacket<0x01d9, 53>(fixed_1d8);
 }
@@ -790,6 +792,7 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1da.pos2.y1 = sd->to_y;
     fixed_1da.gm_bits = pc_isGM(sd).get_public_word();
     fixed_1da.five = 5;
+    fixed_1da.base_level = sd->status.base_level;
     fixed_1da.unused = 0;
 
     buf = create_fpacket<0x01da, 60>(fixed_1da);
