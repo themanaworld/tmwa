@@ -14,6 +14,8 @@ notifications:
 ## Use the container-based infrastructure
 sudo: false
 dist: trusty
+python:
+  - 2.7
 
 ## Commands before installing
 before_install:
@@ -22,6 +24,7 @@ before_install:
 
 install:
   - make --version
+  - python --version
   - mkdir build
   - cd build
   - git init
