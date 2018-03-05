@@ -71,6 +71,7 @@
 #include "storage.hpp"
 #include "tmw.hpp"
 #include "trade.hpp"
+#include "mob.hpp"
 
 #include "../poison.hpp"
 
@@ -1028,6 +1029,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
     if (!s)
         return 0;
 
+    /* manaplus skips this packet
     Packet_Fixed<0x007c> fixed_7c;
     fixed_7c.block_id = fake_npc_id;
     fixed_7c.speed = interval_t();
@@ -1037,7 +1039,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
     fixed_7c.species = FAKE_NPC_CLASS;
     fixed_7c.pos.x = sd->bl_x;
     fixed_7c.pos.y = sd->bl_y;
-    send_fpacket<0x007c, 41>(s, fixed_7c);
+    send_fpacket<0x007c, 41>(s, fixed_7c);*/
 
     Packet_Fixed<0x0078> fixed_78;
     fixed_78.block_id = fake_npc_id;
@@ -1061,7 +1063,7 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
 {
     nullpo_retz(md);
 
-    {
+    /*{ manaplus skips this packet
         Packet_Fixed<0x007c> fixed_7c;
         fixed_7c.block_id = md->bl_id;
         fixed_7c.speed = interval_t(md->stats[mob_stat::SPEED]);
@@ -1073,11 +1075,21 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
         fixed_7c.pos.y = md->bl_y;
         Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
         clif_send(buf, md, SendWho::AREA);
+    }*/
+    {
+        Buffer buf;
+        clif_mob0078(md, buf);
+        clif_send(buf, md, SendWho::AREA);
     }
 
-    Buffer buf;
-    clif_mob0078(md, buf);
-    clif_send(buf, md, SendWho::AREA);
+    // custom mob names
+    if (md->name != MobName() && md->name != get_mob_db(md->mob_class).name)
+    {
+        Packet_Fixed<0x0095> fixed_95;
+        fixed_95.char_name = stringish<CharName>(md->name);
+        Buffer buf = create_fpacket<0x0095, 30>(fixed_95);
+        clif_send(buf, md, SendWho::AREA);
+    }
 
     return 0;
 }
@@ -2605,6 +2617,15 @@ void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
         Buffer buf;
         clif_mob0078(md, buf);
         send_buffer(sd->sess, buf);
+    }
+
+    // custom mob names
+    if (md->name != MobName() && md->name != get_mob_db(md->mob_class).name)
+    {
+        Packet_Fixed<0x0095> fixed_95;
+        fixed_95.char_name = stringish<CharName>(md->name);
+        Buffer buf = create_fpacket<0x0095, 30>(fixed_95);
+        clif_send(buf, md, SendWho::AREA);
     }
 }
 
