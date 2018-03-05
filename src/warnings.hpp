@@ -124,7 +124,7 @@ DIAG_E(missing_variable_declarations);
 #else
 DIAG_I(missing_variable_declarations);
 #endif
-DIAG_E(mudflap);
+//DIAG_E(mudflap); this was removed in GCC 4.9
 DIAG_E(multichar);
 DIAG_E(narrowing);
 DIAG_W(noexcept);
@@ -151,7 +151,7 @@ DIAG_W(return_local_addr);
 DIAG_E(return_type);
 DIAG_E(sequence_point);
 DIAG_E(shadow);
-DIAG_E(shadow_ivar);
+//DIAG_E(shadow_ivar); <= this is actually a ObjC++ warning
 DIAG_E(shift_count_negative);
 DIAG_E(shift_count_overflow);
 DIAG_X(sign_compare);
