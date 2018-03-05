@@ -632,7 +632,7 @@ void clif_clearchar_id(BlockId id, BeingRemoveWhy type, Session *s)
  *------------------------------------------
  */
 static
-void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
+void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_client)
 {
     nullpo_retv(sd);
 
@@ -679,7 +679,7 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.pos.x = sd->bl_x;
     fixed_1d8.pos.y = sd->bl_y;
     fixed_1d8.pos.dir = sd->dir;
-    fixed_1d8.gm_bits = pc_isGM(sd).get_public_word();
+    fixed_1d8.gm_bits = old_client ? (pc_isGM(sd).get_all_bits() == 60 || pc_isGM(sd).get_all_bits() >= 99 ? 0x80 : 0) : pc_isGM(sd).get_public_word();
     fixed_1d8.dead_sit = sd->state.dead_sit;
     fixed_1d8.base_level = sd->status.base_level;
     fixed_1d8.unused = 0;
@@ -687,7 +687,7 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf)
     buf = create_fpacket<0x01d8, 54>(fixed_1d8);
 }
 static
-void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
+void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_client)
 {
     nullpo_retv(sd);
 
@@ -734,7 +734,7 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1d8.pos.x = sd->bl_x;
     fixed_1d8.pos.y = sd->bl_y;
     fixed_1d8.pos.dir = sd->dir;
-    fixed_1d8.gm_bits = pc_isGM(sd).get_public_word();
+    fixed_1d8.gm_bits = old_client ? (pc_isGM(sd).get_all_bits() == 60 || pc_isGM(sd).get_all_bits() >= 99 ? 0x80 : 0) : pc_isGM(sd).get_public_word();
     fixed_1d8.dead_sit = sd->state.dead_sit;
     fixed_1d8.base_level = sd->status.base_level;
 
@@ -746,7 +746,7 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf)
  *------------------------------------------
  */
 static
-void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
+void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_client)
 {
     nullpo_retv(sd);
 
@@ -791,7 +791,7 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
     fixed_1da.pos2.y0 = sd->bl_y;
     fixed_1da.pos2.x1 = sd->to_x;
     fixed_1da.pos2.y1 = sd->to_y;
-    fixed_1da.gm_bits = pc_isGM(sd).get_public_word();
+    fixed_1da.gm_bits = old_client ? (pc_isGM(sd).get_all_bits() == 60 || pc_isGM(sd).get_all_bits() >= 99 ? 0x80 : 0) : pc_isGM(sd).get_public_word();
     fixed_1da.five = 5;
     fixed_1da.base_level = sd->status.base_level;
     fixed_1da.unused = 0;
@@ -963,9 +963,11 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
     nullpo_retz(sd);
 
     Buffer buf;
-    clif_set0078_alt_1d9(sd, buf);
+    Buffer elseBuf;
+    clif_set0078_alt_1d9(sd, elseBuf, true);
+    clif_set0078_alt_1d9(sd, buf, false);
 
-    clif_send(buf, sd, SendWho::AREA_WOS);
+    clif_send(buf, sd, SendWho::AREA_WOS, wrap<ClientVersion>(8), elseBuf);
 
     clif_pvpstatus(sd);
 
@@ -1141,9 +1143,11 @@ int clif_movechar(dumb_ptr<map_session_data> sd)
     nullpo_retz(sd);
 
     Buffer buf;
-    clif_set007b(sd, buf);
+    Buffer elseBuf;
+    clif_set007b(sd, elseBuf, true);
+    clif_set007b(sd, buf, false);
 
-    clif_send(buf, sd, SendWho::AREA_WOS);
+    clif_send(buf, sd, SendWho::AREA_WOS, wrap<ClientVersion>(8), elseBuf);
 
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
         clif_changelook(sd, LOOK::CLOTHES_COLOR,
@@ -2438,15 +2442,18 @@ void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
     nullpo_retv(dstsd);
 
     Buffer buf;
+    Buffer elseBuf;
     if (dstsd->walktimer)
     {
-        clif_set007b(dstsd, buf);
+        clif_set007b(dstsd, elseBuf, true);
+        clif_set007b(dstsd, buf, false);
     }
     else
     {
-        clif_set0078_main_1d8(dstsd, buf);
+        clif_set0078_main_1d8(dstsd, elseBuf, true);
+        clif_set0078_main_1d8(dstsd, buf, false);
     }
-    send_buffer(sd->sess, buf);
+    clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(8), elseBuf);
 
     Buffer buff;
     clif_pvpstatus_towards(buff, dstsd);
@@ -2556,18 +2563,22 @@ int clif_fixpcpos(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
 
+    Buffer buf;
+    Buffer elseBuf;
+
     if (sd->walktimer)
     {
-        Buffer buf;
-        clif_set007b(sd, buf);
-        clif_send(buf, sd, SendWho::AREA);
+        clif_set007b(sd, elseBuf, true);
+        clif_set007b(sd, buf, false);
     }
     else
     {
-        Buffer buf;
-        clif_set0078_main_1d8(sd, buf);
-        clif_send(buf, sd, SendWho::AREA);
+        clif_set0078_main_1d8(sd, elseBuf, true);
+        clif_set0078_main_1d8(sd, buf, false);
     }
+
+    clif_send(buf, sd, SendWho::AREA, wrap<ClientVersion>(8), elseBuf);
+
     clif_changelook_accessories(sd, nullptr);
 
     return 0;
