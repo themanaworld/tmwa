@@ -72,6 +72,7 @@ matrix:
           - gdb
     - compiler: gcc
       env: REAL_CC=gcc-5     REAL_CXX=g++-5   LDFLAGS="-fuse-ld=gold"
+      sudo: true
       addons:
         apt:
           sources:
@@ -84,6 +85,7 @@ matrix:
           - gdb
     - compiler: gcc
       env: REAL_CC=gcc-6     REAL_CXX=g++-6   LDFLAGS="-fuse-ld=gold"
+      sudo: true
       addons:
         apt:
           sources:
@@ -94,21 +96,18 @@ matrix:
           - libgtest-dev
           - valgrind
           - gdb
-    # Can't use valgrind and asan at the same time.
-    # Should probably fix the test leaks though.
-    # Nevermind: we can't use asan without sudo anymore: travis no longer allows disabling ASLR
-    #- compiler: gcc
-    #  env: REAL_CC=gcc-5     REAL_CXX=g++-5  REAL_EXTRA=-fsanitize=address  FORCE_TESTER='' ASAN_OPTIONS=detect_leaks=0   LDFLAGS="-fuse-ld=gold"
-    #  addons:
-    #    apt:
-    #      sources:
-    #      - ubuntu-toolchain-r-test
-    #      packages:
-    #      - g++-5
-    #      - libstdc++6-5-dbg
-    #      - libgtest-dev
-    #      # - valgrind
-    #      - gdb
+    - compiler: gcc
+      env: REAL_CC=gcc-6     REAL_CXX=g++-6  REAL_EXTRA=-fsanitize=address  FORCE_TESTER='' ASAN_OPTIONS=detect_leaks=0   LDFLAGS="-fuse-ld=gold"
+      sudo: true
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-6
+          - libstdc++6-6-dbg
+          - libgtest-dev
+          - gdb
 
 # everything that was pushed to stable was already on 'master', except
 # the version change and some doc changes.
