@@ -425,7 +425,7 @@ namespace option
 #define OMATCH_BEGIN(expr)              \
     {                                   \
         auto&& _omatch_var = (expr);    \
-        switch (_omatch_var.is_some())  \
+        switch (_omatch_var.is_some() ? 1 : 0)  \
         {                               \
             {                           \
                 {                       \
@@ -448,7 +448,7 @@ namespace option
         break;                                          \
     }                                                   \
     {                                                   \
-        case true:                                      \
+        case 1:                                      \
         {                                               \
             auto&& var = *_omatch_var.ptr_or(nullptr);  \
     /*}}}}*/
@@ -458,7 +458,7 @@ namespace option
         break;              \
     }                       \
     {                       \
-        case false:         \
+        case 0:         \
         {                   \
     /*}}}}*/
 } // namespace option
