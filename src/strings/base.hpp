@@ -107,7 +107,6 @@ namespace strings
         // the existence of this has led to bugs
         // it's not really sane from a unicode perspective anyway ...
         // prefer startswith or extract
-        __attribute__((deprecated))
         char operator[](size_t i) const;
         char front() const;
         char back() const;

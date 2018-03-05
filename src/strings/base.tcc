@@ -145,7 +145,6 @@ namespace strings
     }
 
     template<class T, class O, class P>
-    __attribute__((deprecated))
     char _crtp_string<T, O, P>::operator[](size_t i) const
     {
         return begin()[i];
