@@ -1203,6 +1203,14 @@ void clif_changemap(dumb_ptr<map_session_data> sd, MapName mapname, int x, int y
 
     if(sd->bl_m->mask > 0)
         clif_send_mask(sd, sd->bl_m->mask);
+
+    if (pc_isdead(sd))
+    {
+        Packet_Fixed<0x0080> fixed_80;
+        fixed_80.block_id = sd->bl_id;
+        fixed_80.type = BeingRemoveWhy::DEAD;
+        send_fpacket<0x0080, 7>(s, fixed_80);
+    }
 }
 
 /*==========================================
