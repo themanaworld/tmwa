@@ -422,13 +422,13 @@ namespace option
         tmwa::option::option_unwrap(std::move(o));              \
     }).maybe_ref_fun()
 
-#define OMATCH_BEGIN(expr)              \
-    {                                   \
-        auto&& _omatch_var = (expr);    \
+#define OMATCH_BEGIN(expr)                      \
+    {                                           \
+        auto&& _omatch_var = (expr);            \
         switch (_omatch_var.is_some() ? 1 : 0)  \
-        {                               \
-            {                           \
-                {                       \
+        {                                       \
+            {                                   \
+                {                               \
     /*}}}}*/
 #define OMATCH_END()        \
     /*{{{{*/                \
@@ -448,7 +448,7 @@ namespace option
         break;                                          \
     }                                                   \
     {                                                   \
-        case 1:                                      \
+        case 1:                                         \
         {                                               \
             auto&& var = *_omatch_var.ptr_or(nullptr);  \
     /*}}}}*/
@@ -458,7 +458,7 @@ namespace option
         break;              \
     }                       \
     {                       \
-        case 0:         \
+        case 0:             \
         {                   \
     /*}}}}*/
 } // namespace option
