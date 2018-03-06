@@ -502,7 +502,7 @@ obj/gtest%.pdc.o: ${GTEST_DIR}/src/gtest%.cc
 DTEST_OBJS := $(filter obj/debug-debug/%.pdc.o,${PDC_OBJECTS})
 DTEST_STAMPS := $(patsubst bin/tests/%.elf,stamp/run-%.stamp,${DTEST_BINARIES})
 ${DTEST_OBJS}: override CXXFLAGS += -g -O0 -gdwarf-3
-${DTEST_STAMPS}: override TESTER=${GDB} -return-child-result -nx -batch -ex 'python2.7 file_to_load = "$<"' -x ${SRC_DIR}/tools/debug-debug.gdb --args false
+${DTEST_STAMPS}: override TESTER=${GDB} -return-child-result -nx -batch -ex 'python file_to_load = "$<"' -x ${SRC_DIR}/tools/debug-debug.gdb --args false
 ${DTEST_STAMPS}: tools/debug-debug.gdb
 ifeq '$(findstring clang,${CXX})' 'clang'
 ${DTEST_STAMPS}:

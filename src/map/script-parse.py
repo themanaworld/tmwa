@@ -20,6 +20,8 @@ class ScriptBuffer(object):
     FUNC_REF,
         '''.replace(',', '').split()
         ci = int(b[i])
+        if ci < 0:
+            ci += 256
         if ci >= 0x80:
             rv = 0
             sh = 0
@@ -35,6 +37,8 @@ class ScriptBuffer(object):
                     i = next(r)
                     ci = int(b[i])
 
+                    if ci < 0:
+                        ci += 256
                     rv += (ci & 0x7f) << sh
                     sh += 6
                     if not (ci >= 0xc0):
@@ -81,7 +85,7 @@ class ScriptBuffer(object):
                 if ci == 0:
                     break
                 buf.append(ci)
-            return 'STR "%s"' % str(buf).replace('\\', '\\\\').replace('"', '\\"')
+            return 'STR "%s"' % bytes(buf).decode("utf-8").replace('\\', '\\\\').replace('"', '\\"')
         elif cs == 'EOL':
             return cs + '\n'
         return cs
