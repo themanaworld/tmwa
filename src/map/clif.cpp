@@ -1088,6 +1088,7 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
     if (md->name != MobName() && md->name != get_mob_db(md->mob_class).name)
     {
         Packet_Fixed<0x0095> fixed_95;
+        fixed_95.block_id = md->bl_id;
         fixed_95.char_name = stringish<CharName>(md->name);
         Buffer buf = create_fpacket<0x0095, 30>(fixed_95);
         clif_send(buf, md, SendWho::AREA);
@@ -2642,6 +2643,7 @@ void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
     if (md->name != MobName() && md->name != get_mob_db(md->mob_class).name)
     {
         Packet_Fixed<0x0095> fixed_95;
+        fixed_95.block_id = md->bl_id;
         fixed_95.char_name = stringish<CharName>(md->name);
         Buffer buf = create_fpacket<0x0095, 30>(fixed_95);
         clif_send(buf, md, SendWho::AREA);
