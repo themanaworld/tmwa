@@ -1,18 +1,23 @@
-#The Mana World Athena Readme
+# The Mana World Athena
 
 ![The Mana World logo](share/tmwa/TheManaWorldLogo.png)
 
-This is TMWA, an MMORPG server used by The Mana World that uses a protocol
-based on one of many projects that foolishly chose the name "Athena".
+This is TMWA, an MMORPG server used by The Mana World Legacy that uses a
+protocol based on one of many projects that foolishly chose the name "Athena".
 Specifically, it was forked from eAthena, a Ragnarok Online clone, in 2004.
 
-TMWA is maintained in conjunction with The Mana World, but is not tied to
-it. However, please read the note about server-data below.
+# TMWA IS NO LONGER SUPPORTED! don't use this
 
+<br><br>
+
+<details>
+<summary>click _here_ for the old readme</summary>
+
+<br>
 
 Take a look at the [wiki](http://wiki.themanaworld.org/index.php/How_to_Develop) for user instructions.
 
-<b>Important note:</b> building from a github-generated tarball does not work!
+**Important note:** building from a github-generated tarball does not work!
 You must either build from a git checkout or from a 'make dist' tarball.
 
 
@@ -40,49 +45,49 @@ I'm active in the Pacific timezone, but I might not have internet access
 all the time. I'm usually never AFK longer than 48 hours; when there is an
 exception, I always tell the content devs who also idle there.
 
-##1. Distributors.
-###Important notes:
+## 1. Distributors.
+### Important notes:
 
 - Go read [version.make](version.make)
 - TMWA requires git to build by default, use 'make dist' to get a tarball.
 
-###Platform dependencies:
-####Architecture:
+### Platform dependencies:
+#### Architecture:
 
     tested: x86, amd64, x32
     likely to work: all architectures (patches welcome if they don't)
 
-####Operating system:
+#### Operating system:
     known bad: Linux 2.6.26 and earlier
     maintained: Linux 3.2 and later
     likely to break: Cygwin, BSD
-####Filesystem:
+#### Filesystem:
     must support symlinks
 
-###Build dependencies:
-####Python:
+### Build dependencies:
+#### Python:
     required: 2.7.x only, installed in $PATH as 'python'
-####C library:
+#### C library:
     recommended: glibc 2.17 or higher
     supported: glibc 2.13
     known bad: glibc 2.8 or below
     unsupported: anything that's not glibc
-####C++ compiler:
+#### C++ compiler:
     required: g++ 4.7.2 or higher
     recommended: g++ 4.8.1 or higher
     not recommended: clang++ 3.3 or higher (all versions have unfixed bugs)
-####C++ library:
+#### C++ library:
     recommended: libstdc++ to match g++; may need patch for clang++
     may work: libc++
-####attoconf:
+#### attoconf:
     special: see below
-###Runtime dependencies:
-####glibc:
+### Runtime dependencies:
+#### glibc:
     depends on what it was built against
-####libstdc++:
+#### libstdc++:
     depends on what it was built against
-###Instructions:
-####Configuration:
+### Instructions:
+#### Configuration:
     ./configure
 _Takes most of the options GNU Autoconf's configure does - I won't
     repeat the output of `./configure --help` here._
@@ -95,25 +100,25 @@ _Out-of-tree builds work._
 _Note that there is no option to disable dependency tracking, as it
     is also used to generate link information. There is also no option
     to ignore unknown options - I refuse to lie._
-####Build:
+#### Build:
     make -jN
-####Build test:
+#### Build test:
     make test
 
 _Nowhere near complete useful yet. Requires source of Google Test._
 
     make format; git diff --exit-code
-####Install:
+#### Install:
     make install DESTDIR=/whatever
 
 _See [what is installed](#what-is-installed) below_
-####Install test:
+#### Install test:
 _not implemented_
-####Distribution tarballs:
+#### Distribution tarballs:
     make dist
     make bindist
 
-###Note about attoconf:
+### Note about attoconf:
 TMWA's `./configure` script is implemented using a python package
 'attoconf', which I wrote over a weekend after reading GNU autoconf's
 documentation and realizing that it was 1. insane, and 2. still trying
@@ -132,8 +137,8 @@ of work, but it is not known if this would benefit anybody.
 If you're Arch - you broke Python for us all, you clean up your own mess.
 Patches to call a nonexistent `/usr/bin/python2` will NOT be accepted.
 
-###What is installed:
-####Overview:
+### What is installed:
+#### Overview:
 Currently, `make install` installs 5 binaries, along with a handful
 of libraries, headers, data files, config files, and debug files, each
 of which has a `make install-something` target.
@@ -150,8 +155,8 @@ since the files are dependent on the server-data. However, a migration
 to installed files has begun.
 
 
-####tmwa-monitor:
-<DEPRECATED>
+#### tmwa-monitor:
+&lt;DEPRECATED&gt;
 Formerly known as `eathena-monitor`.
 
 An unmaintained tool whose job was to keep restarting the servers
@@ -161,11 +166,11 @@ but it proved inflexible and has't really been kept up-to-date with our
 There are also a number of other Open Source programs that monitor
 services already.
 
-There is a `run-all` script in the server-data repo that starts the 
-appropriate server for that config. On the main server, we instead 
+There is a `run-all` script in the server-data repo that starts the
+appropriate server for that config. On the main server, we instead
 start the servers (and bots) individually in a tmux.
 
-####tmwa-admin:
+#### tmwa-admin:
 Formerly known as `ladmin` ("local").
 
 This is an essential tool to maintain the server's flatfile "databases".
@@ -179,7 +184,7 @@ Postgres, but people seem to think it's hard to install (that's not my
 experience on Debian though. Did they ever try themselves, or are they
 just repeating what they've heard?)
 
-####tmwa-login:
+#### tmwa-login:
 Formerly known as `login-server`.
 
 User-facing server to deal with account checks.
@@ -187,7 +192,7 @@ User-facing server to deal with account checks.
 Also accepts internal connections from `tmwa-admin` and `tmwa-char`,
 subject to a plaintext password (and for `tmwa-admin`, also an IP check).
 
-####tmwa-char:
+#### tmwa-char:
 Formerly known as `char-server`.
 
 User-facing server to deal with character persistence.
@@ -198,7 +203,7 @@ Note that it is fully supported for more than one `tmwa-char` to connect
 to the same `tmwa-login`; the client will be presented with a list of
 "worlds" before leaving the login server.
 
-####tmwa-map:
+#### tmwa-map:
 Formerly known as `map-server`.
 
 Connects to `tmwa-char`.
@@ -207,7 +212,7 @@ It is technically possible for more than one `tmwa-map` to connect to
 a single tmwa-char, but this is poorly supported by our current config
 and moderation tools, and there are likely undiscovered bugs.
 
-####About server data:
+#### About server data:
 Just having the binaries is not enough: you also need a complete set of
 content: config files, game scripts, savefiles, and client updates.
 
@@ -236,7 +241,7 @@ and nobody seems to know of the foreign servers are keeping active.
 Note also that The Mana World has not investigated the copyright status
 of other sets of server data.
 
-##2. Contributors.
+## 2. Contributors.
 The most important thing if you want to help improve TMWA is *talk* to me.
 No, wait, that's the second most important thing.
 
@@ -270,3 +275,4 @@ The following skills are good to know required for various tasks:
     tasks. Particularly, reread the bit about review.)
   - C++11 (Not a low entry barrier. I'm not really expecting help with this,
     and since this is conflict heavy, please do the other tasks first).
+</details>
