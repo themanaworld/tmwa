@@ -286,7 +286,7 @@ void builtin_callsub(ScriptState *st)
 static
 void builtin_return(ScriptState *st)
 {
-    if (!(st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>()))
+    if (st->defsp < 1 || !(st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>()))
     {
         dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
         if(nd)
@@ -323,7 +323,7 @@ void builtin_next(ScriptState *st)
 static
 void builtin_close(ScriptState *st)
 {
-    if (st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
+    if (st->defsp >= 1 && st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
     {
         dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
         if(nd)
@@ -2312,7 +2312,7 @@ void builtin_getgmlevel(ScriptState *st)
 static
 void builtin_end(ScriptState *st)
 {
-    if (st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
+    if (st->defsp >= 1 && st->stack->stack_datav[st->defsp - 1].is<ScriptDataRetInfo>())
     {
         dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
         if(nd)
