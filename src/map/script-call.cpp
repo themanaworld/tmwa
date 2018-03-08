@@ -822,6 +822,7 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                         dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
                         PRINTF("run_script: infinity loop! @ %s\n"_fmt,
                                 nd ? nd->name : NpcName());
+                        st->state = ScriptEndState::END;
                     }
                 }
                 break;
@@ -884,6 +885,7 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
             dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
             PRINTF("run_script: infinity loop! @ %s\n"_fmt,
                     nd ? nd->name : NpcName());
+            st->state = ScriptEndState::END;
         }
     }
     dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
@@ -974,6 +976,8 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     st.scriptp = sp;
     st.rid = rid;
     st.oid = oid;
+    st.freeloop = 0;
+    st.is_true = 0;
 
     for (i = 0; i < args.size(); i++)
     {
