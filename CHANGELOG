@@ -1,3 +1,7 @@
+v18.3.11
+  - fix custom mob name handling
+  - fix out-of-memory reads
+  - don't send useless info for bots
 v18.3.5
   - send the base level of players in visible/update1/update2
   - fix a bug introduced by 1c5159c & d0ea549 (gm command hierarchy)
