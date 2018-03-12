@@ -681,7 +681,7 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_
     fixed_1d8.pos.dir = sd->dir;
     fixed_1d8.gm_bits = old_client ? (pc_isGM(sd).get_all_bits() == 60 || pc_isGM(sd).get_all_bits() >= 99 ? 0x80 : 0) : pc_isGM(sd).get_public_word();
     fixed_1d8.dead_sit = sd->state.dead_sit;
-    fixed_1d8.base_level = sd->status.base_level;
+    fixed_1d8.base_level = pc_isGM(sd).get_all_bits() == 1 ? 0 : sd->status.base_level;
     fixed_1d8.unused = 0;
 
     buf = create_fpacket<0x01d8, 54>(fixed_1d8);
@@ -736,7 +736,7 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_c
     fixed_1d8.pos.dir = sd->dir;
     fixed_1d8.gm_bits = old_client ? (pc_isGM(sd).get_all_bits() == 60 || pc_isGM(sd).get_all_bits() >= 99 ? 0x80 : 0) : pc_isGM(sd).get_public_word();
     fixed_1d8.dead_sit = sd->state.dead_sit;
-    fixed_1d8.base_level = sd->status.base_level;
+    fixed_1d8.base_level = pc_isGM(sd).get_all_bits() == 1 ? 0 : sd->status.base_level;
 
     buf = create_fpacket<0x01d9, 53>(fixed_1d8);
 }
@@ -793,7 +793,7 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_client)
     fixed_1da.pos2.y1 = sd->to_y;
     fixed_1da.gm_bits = old_client ? (pc_isGM(sd).get_all_bits() == 60 || pc_isGM(sd).get_all_bits() >= 99 ? 0x80 : 0) : pc_isGM(sd).get_public_word();
     fixed_1da.five = 5;
-    fixed_1da.base_level = sd->status.base_level;
+    fixed_1da.base_level = pc_isGM(sd).get_all_bits() == 1 ? 0 : sd->status.base_level;
     fixed_1da.unused = 0;
 
     buf = create_fpacket<0x01da, 60>(fixed_1da);
