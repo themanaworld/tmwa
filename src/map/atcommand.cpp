@@ -4897,11 +4897,29 @@ ATCE atcommand_jump_iterate(Session *s, dumb_ptr<map_session_data> sd,
     if (!pl_sd)
         pl_sd = get_start();
 
-    if (pl_sd == sd)
+    for (int i = 0, e = map_getusers(); i <= e; ++i)
     {
+        if (pl_sd != sd && !bool(pl_sd->status.option & Opt0::HIDE))
+            break;
+
+        // the target player is either hidden or is ourselves, so find another one
         pl_sd = get_next(pl_sd);
         if (!pl_sd)
             pl_sd = get_start();
+
+        if (i == e)
+        {
+            // we reached the end of the list, and couldn't find anyone else
+            if (e == map_getusers())
+            {
+                pl_sd = sd; // silently warp to ourselves if no new user came online
+                break;
+            }
+
+            // or, if number of online players changed, try again
+            i = 0;
+            e = map_getusers();
+        }
     }
 
     if (pl_sd->bl_m->flag.get(MapFlag::NOWARPTO)
