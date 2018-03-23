@@ -1121,6 +1121,7 @@ void builtin_foreach(ScriptState *st)
             x1, y1,
             block_type);
 }
+
 /*========================================
  * Destructs a temp NPC
  *----------------------------------------
@@ -1129,6 +1130,8 @@ static
 void builtin_destroy(ScriptState *st)
 {
     BlockId id;
+    dumb_ptr<map_session_data> sd;
+
     if (HARG(0))
         id = wrap<BlockId>(conv_num(st, &AARG(0)));
     else
@@ -1137,6 +1140,14 @@ void builtin_destroy(ScriptState *st)
     dumb_ptr<npc_data> nd = map_id_is_npc(id);
     if(!nd || nd->npc_subtype != NpcSubtype::SCRIPT)
         return;
+
+    /* If we have a player attached, make sure it is cleared. */
+    /* Not safe to call destroy if others may also be paused on this NPC! */
+    if (st->rid) {
+        sd = script_rid2sd(st);
+        nullpo_retv(sd);
+        npc_event_dequeue(sd);
+    }
 
     nd = nd->is_script();
     npc_free(nd);
