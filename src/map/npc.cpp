@@ -635,6 +635,10 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
                 && (sd->bl_y < nd->bl_y - ys / 2 || nd->bl_y + ys / 2 < sd->bl_y))
                 return 1;
         }
+
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+
         if (sd->npc_id && sd->npc_pos > -1 && args.size() < 1) // if called from a timer we process async, otherwise sync
         {
             sd->eventqueuel.push_back(eventname);
@@ -768,9 +772,14 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
 
     if (sd->npc_id)
     {
-        if (battle_config.error_log)
-            PRINTF("npc_click: npc_id != 0\n"_fmt);
-        return 1;
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+        {
+            if (battle_config.error_log)
+                PRINTF("npc_click: npc_id != 0\n"_fmt);
+            return 1;
+        }
     }
 
     if (npc_checknear(sd, id)) {

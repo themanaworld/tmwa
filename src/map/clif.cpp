@@ -3679,7 +3679,12 @@ RecvResult clif_parse_WalkToXY(Session *s, dumb_ptr<map_session_data> sd)
     }
 
     if (sd->npc_id || sd->state.storage_open)
-        return rv;
+    {
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+            return rv;
+    }
 
     if (sd->canmove_tick > gettick())
         return rv;
@@ -4138,7 +4143,12 @@ RecvResult clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
     if (sd->npc_id
         || bool(sd->opt1)
         || sd->state.storage_open)
-        return rv;
+    {
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+            return rv;
+    }
 
     tick_t tick = gettick();
 
@@ -4347,7 +4357,12 @@ RecvResult clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
 
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)   //会話禁止
-        return rv;
+    {
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+            return rv;
+    }
 
     if (fitem == nullptr || fitem->bl_m != sd->bl_m)
         return rv;
@@ -4389,8 +4404,13 @@ RecvResult clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)
     {
-        clif_displaymessage(sd->sess, "Can't drop items right now."_s);
-        return rv;
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+        {
+            clif_displaymessage(sd->sess, "Can't drop items right now."_s);
+            return rv;
+        }
     }
 
     if (!fixed.ioff2.ok())
@@ -4422,7 +4442,12 @@ RecvResult clif_parse_UseItem(Session *s, dumb_ptr<map_session_data> sd)
     }
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)   //会話禁止
-        return rv;
+    {
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+            return rv;
+    }
 
     if (sd->invincible_timer)
         pc_delinvincibletimer(sd);
@@ -4455,7 +4480,12 @@ RecvResult clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
         return RecvResult::Error;
     IOff0 index = fixed.ioff2.unshift();
     if (sd->npc_id)
-        return rv;
+    {
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+            return rv;
+    }
 
     OMATCH_BEGIN_SOME (sdidi, sd->inventory_data[index])
     {
@@ -4494,7 +4524,12 @@ RecvResult clif_parse_UnequipItem(Session *s, dumb_ptr<map_session_data> sd)
 
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)
-        return rv;
+    {
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+            return rv;
+    }
     pc_unequipitem(sd, index, CalcStatus::NOW);
 
     return rv;
@@ -4518,7 +4553,12 @@ RecvResult clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
     if (sd->npc_id)
-        return rv;
+    {
+        if (sd->npc_id && map_id_is_npc(sd->npc_id) == nullptr)
+            npc_event_dequeue(sd); // the NPC was previously freed, so we detach it
+        else
+            return rv;
+    }
     if (battle_get_class(map_id2bl(fixed.block_id)) == INVISIBLE_CLASS)
         return rv;
     npc_click(sd, fixed.block_id);
