@@ -342,11 +342,10 @@ int npc_event_do_oninit(void)
  *------------------------------------------
  */
 static
-void npc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
+void npc_eventtimer(TimerData *, tick_t, BlockId, NpcEvent data)
 {
     Option<P<struct event_data>> ev_ = ev_db.search(data);
     dumb_ptr<npc_data_script> nd;
-    dumb_ptr<block_list> bl = map_id2bl(id);
 
     if (ev_.is_none() && data.label == stringish<ScriptLabel>("OnTouch"_s))
         return;
@@ -372,21 +371,7 @@ void npc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
         return;
     }
 
-    if (nd->scr.event_needs_map)
-    {
-        int xs = nd->scr.xs;
-        int ys = nd->scr.ys;
-        if (nd->bl_m != bl->bl_m)
-            return;
-        if (xs > 0
-            && (bl->bl_x < nd->bl_x - xs / 2 || nd->bl_x + xs / 2 < bl->bl_x))
-            return;
-        if (ys > 0
-            && (bl->bl_y < nd->bl_y - ys / 2 || nd->bl_y + ys / 2 < bl->bl_y))
-            return;
-    }
-
-    run_script(ScriptPointer(script_or_parent(nd), ev->pos), id, nd->bl_id);
+    run_script(ScriptPointer(script_or_parent(nd), ev->pos), BlockId(), nd->bl_id);
 }
 
 /*==========================================
