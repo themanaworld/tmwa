@@ -2514,16 +2514,6 @@ void parse_login(Session *s)
                         // if at least 1 char-server
                         if (repeat_69.size())
                         {
-                            Packet_Head<0x0069> head_69;
-                            head_69.login_id1 = account.login_id1;
-                            head_69.account_id = account.account_id;
-                            head_69.login_id2 = account.login_id2;
-                            head_69.unused = 0;    // in old version, that was for ip (not more used)
-                            head_69.last_login_string = account.lastlogin;    // in old version, that was for name (not more used)
-                            head_69.unused2 = 0;
-                            head_69.sex = account.sex;
-                            send_vpacket<0x0069, 47, 32>(s, head_69, repeat_69);
-
                             if (auth_fifo_pos >= AUTH_FIFO_SIZE)
                                 auth_fifo_pos = 0;
                             auth_fifo[auth_fifo_pos].account_id =
@@ -2539,6 +2529,17 @@ void parse_login(Session *s)
                             auth_fifo[auth_fifo_pos].client_version =
                                 fixed.client_protocol_version;
                             auth_fifo_pos++;
+
+                            Packet_Head<0x0069> head_69;
+                            head_69.login_id1 = account.login_id1;
+                            head_69.account_id = account.account_id;
+                            head_69.login_id2 = account.login_id2;
+                            head_69.unused = 0;    // in old version, that was for ip (not longer used)
+                            head_69.last_login_string = account.lastlogin;    // in old version, that was for name (not longer used)
+                            head_69.unused2 = 0;
+                            head_69.sex = account.sex;
+                            send_vpacket<0x0069, 47, 32>(s, head_69, repeat_69);
+
                             // if no char-server, don't send void list of servers, just disconnect the player with proper message
                         }
                         else
