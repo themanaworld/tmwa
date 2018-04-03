@@ -913,14 +913,13 @@ void parse_fromchar(Session *s)
                                     fixed_13.client_protocol_version = auth_fifo[i].client_version;
 
                                     send_fpacket<0x2713, 55>(s, fixed_13);
-                                    break;
+                                    goto x2712_out;
                                 }
                             }
                             break;
                         }
                     }
                     // authentification not found
-                    if (i == AUTH_FIFO_SIZE)
                     {
                         LOGIN_LOG("Char-server '%s': authentification of the account %d REFUSED (ip: %s).\n"_fmt,
                                 server[id].name, acc, ip);
@@ -934,8 +933,9 @@ void parse_fromchar(Session *s)
                         send_fpacket<0x2713, 55>(s, fixed_13);
                     }
                 }
-                break;
             }
+        x2712_out:
+            break;
 
             case 0x2714:
             {
