@@ -874,6 +874,7 @@ void parse_fromchar(Session *s)
                     break;
 
                 {
+                    uint8_t invalid_code = 0x42; // 0x42 as default, for backward-compatibility with old clients
                     AccountId acc = fixed.account_id;
                     int i;
                     for (i = 0; i < AUTH_FIFO_SIZE; i++)
@@ -916,6 +917,7 @@ void parse_fromchar(Session *s)
                                     goto x2712_out;
                                 }
                             }
+                            invalid_code = 2; // login auth data not found
                             break;
                         }
                     }
@@ -926,7 +928,7 @@ void parse_fromchar(Session *s)
 
                         Packet_Fixed<0x2713> fixed_13;
                         fixed_13.account_id = acc;
-                        fixed_13.invalid = 1;
+                        fixed_13.invalid = invalid_code; // 0x42: login session not found
                         // fixed_13.email
                         // fixed_13.connect_until
 

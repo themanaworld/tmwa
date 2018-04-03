@@ -1211,7 +1211,7 @@ void parse_tologin(Session *ls)
                         if (fixed.invalid != 0)
                         {
                             Packet_Fixed<0x006c> fixed_6c;
-                            fixed_6c.code = 0x42;
+                            fixed_6c.code = fixed.invalid;
                             send_fpacket<0x006c, 3>(s2, fixed_6c);
                         }
                         else if (char_conf.max_connect_user == 0
