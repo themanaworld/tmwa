@@ -1237,6 +1237,26 @@ void parse_tologin(Session *ls)
                 break;
             }
 
+            case 0x2715:
+            {
+                Packet_Fixed<0x2715> fixed;
+                rv = recv_fpacket<0x2715, 22>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (auth_fifo_iter == auth_fifo.end())
+                    auth_fifo_iter = auth_fifo.begin();
+                auth_fifo_iter->account_id = fixed.account_id;
+                auth_fifo_iter->char_id = CharId();
+                auth_fifo_iter->login_id1 = fixed.login_id1;
+                auth_fifo_iter->login_id2 = fixed.login_id2;
+                auth_fifo_iter->delflag = 2;
+                auth_fifo_iter->ip = fixed.ip;
+                auth_fifo_iter->client_version = fixed.client_protocol_version;
+                auth_fifo_iter++;
+                break;
+            }
+
                 // Receiving of an e-mail/time limit from the login-server (answer of a request because a player comes back from map-server to char-server) by [Yor]
             case 0x2717:
             {

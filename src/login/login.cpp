@@ -2514,21 +2514,39 @@ void parse_login(Session *s)
                         // if at least 1 char-server
                         if (repeat_69.size())
                         {
-                            if (auth_fifo_pos >= AUTH_FIFO_SIZE)
-                                auth_fifo_pos = 0;
-                            auth_fifo[auth_fifo_pos].account_id =
-                                account.account_id;
-                            auth_fifo[auth_fifo_pos].login_id1 =
-                                account.login_id1;
-                            auth_fifo[auth_fifo_pos].login_id2 =
-                                account.login_id2;
-                            auth_fifo[auth_fifo_pos].sex = account.sex;
-                            auth_fifo[auth_fifo_pos].delflag = 0;
-                            auth_fifo[auth_fifo_pos].ip =
-                                s->client_ip;
-                            auth_fifo[auth_fifo_pos].client_version =
-                                fixed.client_protocol_version;
-                            auth_fifo_pos++;
+                            // pre-send the auth validation to char server
+                            {
+                                Packet_Fixed<0x2715> fixed_27;
+                                fixed_27.account_id = account.account_id;
+                                fixed_27.login_id1 = account.login_id1;
+                                fixed_27.login_id2 = account.login_id2;
+                                fixed_27.ip = s->client_ip;
+                                fixed_27.client_protocol_version = fixed.client_protocol_version;
+
+                                for (Session *ss : iter_char_sessions())
+                                    send_fpacket<0x2715, 22>(ss, fixed_27);
+                            }
+
+                            // since char server already knows our auth ids this
+                            // shouldn't be necessary, but we're keeping it just
+                            // in case, because why not
+                            {
+                                if (auth_fifo_pos >= AUTH_FIFO_SIZE)
+                                    auth_fifo_pos = 0;
+                                auth_fifo[auth_fifo_pos].account_id =
+                                    account.account_id;
+                                auth_fifo[auth_fifo_pos].login_id1 =
+                                    account.login_id1;
+                                auth_fifo[auth_fifo_pos].login_id2 =
+                                    account.login_id2;
+                                auth_fifo[auth_fifo_pos].sex = account.sex;
+                                auth_fifo[auth_fifo_pos].delflag = 0;
+                                auth_fifo[auth_fifo_pos].ip =
+                                    s->client_ip;
+                                auth_fifo[auth_fifo_pos].client_version =
+                                    fixed.client_protocol_version;
+                                auth_fifo_pos++;
+                            }
 
                             Packet_Head<0x0069> head_69;
                             head_69.login_id1 = account.login_id1;

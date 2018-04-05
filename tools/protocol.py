@@ -4904,6 +4904,22 @@ def build_context():
             This occurs every few seconds, so is also used for antifreeze if enabled.
         ''',
     )
+    login_char.r(0x2715, 'send auth',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'login id1'),
+            at(10, u32, 'login id2'),
+            at(14, ip4, 'ip'),
+            at(18, client_version, 'client protocol version'),
+        ],
+        fixed_size=22,
+        pre=[0x0065],
+        post=[0x006b, 0x006c],
+        desc='''
+            Send the auth data to char server
+        ''',
+    )
     login_char.r(0x2716, 'email limit',
         fixed=[
             at(0, u16, 'packet id'),
