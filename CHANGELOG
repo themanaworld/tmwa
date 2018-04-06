@@ -1,3 +1,12 @@
+v18.4.5
+  - make login server send auth data to char server witout waiting
+  - fix a race condition in login server
+  - make the server send keepalive (pong) packets to inactive sessions
+  - make the server kill sessions after 5 minutes of being inactive
+v18.3.23
+  - fix npc softlock ("freeze") on destroy
+v18.3.22
+  - don't iterate over hidden players with @hugo
 v18.3.11
   - fix custom mob name handling
   - fix out-of-memory reads
