@@ -77,8 +77,8 @@ struct Session
 
     /// Checks whether a newly-connected socket actually does anything
     TimeT created;
-    bool connected;
     TimeT last_tick;
+    bool connected;
 
 private:
     struct {
