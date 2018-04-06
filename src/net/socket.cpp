@@ -34,6 +34,10 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "../proto2/map-user.hpp"
+
+#include "../wire/packets.hpp"
+
 #include "timer.hpp"
 
 #include "../poison.hpp"
@@ -59,8 +63,8 @@ DIAG_POP();
 
 Session::Session(SessionIO io, SessionParsers p)
 : created()
+, last_tick()
 , connected()
-, eof()
 , timed_close()
 , rdata(), wdata()
 , max_rdata(), max_wdata()
@@ -75,6 +79,8 @@ Session::Session(SessionIO io, SessionParsers p)
 , session_data()
 , fd()
 {
+    flag.eof = 0;
+    flag.server = 0;
     set_io(io);
     set_parsers(p);
 }
@@ -143,6 +149,7 @@ void recv_to_fifo(Session *s)
     {
         s->rdata_size += len;
         s->connected = 1;
+        s->last_tick = TimeT::now();
     }
     else
     {
@@ -164,6 +171,7 @@ void send_from_fifo(Session *s)
                      s->wdata_size);
         }
         s->connected = 1;
+        s->last_tick = TimeT::now();
     }
     else
     {
@@ -295,6 +303,7 @@ Session *make_listen_port(uint16_t port, SessionParsers inferior)
 
     s->created = TimeT::now();
     s->connected = 1;
+    s->set_server();
 
     return s;
 }
@@ -351,6 +360,7 @@ Session *make_connection(IP4Address ip, uint16_t port, SessionParsers parsers)
     s->max_wdata = WFIFO_SIZE;
     s->created = TimeT::now();
     s->connected = 1;
+    s->set_server();
 
     return s;
 }
@@ -433,13 +443,13 @@ bool do_sendrecv(interval_t next_ms)
         Session *s = get_session(i);
         if (!s)
             continue;
-        if (wfd.isset(i) && !s->eof)
+        if (wfd.isset(i) && s->flag.eof != 1)
         {
             if (s->func_send)
                 //send_from_fifo(i);
                 s->func_send(s);
         }
-        if (rfd.isset(i) && !s->eof)
+        if (rfd.isset(i) && s->flag.eof != 1)
         {
             if (s->func_recv)
                 //recv_to_fifo(i);
@@ -457,13 +467,24 @@ bool do_parsepacket(void)
         Session *s = get_session(i);
         if (!s)
             continue;
-        if (!s->connected
-            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->created) > CONNECT_TIMEOUT)
+        if (s->connected && s->flag.server != 1
+            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->last_tick) > STALL_TIMEOUT / 2)
+        {
+            // send a keepalive packet
+            Packet_Fixed<0x007f> fixed_7f;
+            fixed_7f.tick = gettick();
+            send_fpacket<0x007f, 6>(s, fixed_7f);
+            // if this fails it will auto-eof
+        }
+        if ((!s->connected
+            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->created) > CONNECT_TIMEOUT) ||
+            (s->connected && s->flag.server != 1
+            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->last_tick) > STALL_TIMEOUT))
         {
             PRINTF("Session #%d timed out\n"_fmt, s);
             s->set_eof();
         }
-        if (s->rdata_size && !s->eof && s->func_parse)
+        if (s->rdata_size && s->flag.eof != 1 && s->func_parse)
         {
             s->func_parse(s);
             /// some func_parse may call delete_session
@@ -472,7 +493,7 @@ bool do_parsepacket(void)
             if (!s)
                 continue;
         }
-        if (s->eof)
+        if (s->flag.eof == 1)
         {
             delete_session(s);
             continue;

@@ -78,12 +78,17 @@ struct Session
     /// Checks whether a newly-connected socket actually does anything
     TimeT created;
     bool connected;
+    TimeT last_tick;
 
 private:
-    /// Flag needed since structure must be freed in a server-dependent manner
-    bool eof;
+    struct {
+        unsigned char eof : 1; /// Flag needed since structure must be freed in a server-dependent manner
+        unsigned char server : 1;
+    } flag;
+
 public:
-    void set_eof() { eof = true; }
+    void set_eof() { flag.eof = 1; }
+    void set_server() { flag.server = 1; }
 
     /// Currently used by clif_setwaitclose
     Timer timed_close;
@@ -141,6 +146,9 @@ constexpr int SOFT_LIMIT = FD_SETSIZE - 50;
 // socket timeout to establish a full connection in seconds
 constexpr int CONNECT_TIMEOUT = 15;
 
+// socket timeout (no activity at all) in seconds
+// the server will try to contact the session halfway through
+constexpr int STALL_TIMEOUT = 300; // 5 minutes
 
 void set_session(io::FD fd, std::unique_ptr<Session> sess);
 Session *get_session(io::FD fd);
