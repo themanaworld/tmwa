@@ -25,6 +25,8 @@
 #include "../compat/fwd.hpp" // rank 2
 #include "../generic/fwd.hpp" // rank 3
 #include "../io/fwd.hpp" // rank 4
+#include "../proto2/fwd.hpp" // rank 8
+#include "../wire/fwd.hpp" // rank 9
 // net/fwd.hpp is rank 5
 
 
