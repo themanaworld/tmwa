@@ -47,6 +47,7 @@
 #include "../strings/xstring.hpp"
 
 #include "../generic/array.hpp"
+#include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
@@ -2696,6 +2697,33 @@ void term_func(void)
     CHAR_LOG("----End of char-server (normal end with closing of all files).\n"_fmt);
 }
 
+static
+void party_corruption_fix()
+{
+    using namespace tmwa::char_;
+
+    for (auto& pair : party_db)
+    {
+        PartyPair pp{pair.first, borrow(pair.second)};
+
+        for (int i = 0; i < MAX_PARTY; i++)
+        {
+            if (!pp.party_most->member[i].account_id)
+                break;
+
+            for (const CharPair& cp : char_keys)
+            {
+                if (cp.key.account_id == pp.party_most->member[i].account_id &&
+                    cp.data->party_id != pp.party_id)
+                {
+                    CHAR_LOG("Fixing corrupt party on character %s...\n"_fmt, cp.key.name);
+                    cp.data->party_id = pp.party_id;
+                }
+            }
+        }
+    }
+}
+
 int do_init(Slice<ZString> argv)
 {
     using namespace tmwa::char_;
@@ -2742,6 +2770,7 @@ int do_init(Slice<ZString> argv)
 
     mmo_char_init();
     inter_init2();
+    party_corruption_fix();
 
     update_online = TimeT::now();
     create_online_files();     // update online players files at start of the server
