@@ -2714,6 +2714,7 @@ void party_corruption_fix()
             for (const CharPair& cp : char_keys)
             {
                 if (cp.key.account_id == pp.party_most->member[i].account_id &&
+                    cp.key.name == pp.party_most->member[i].name &&
                     cp.data->party_id != pp.party_id)
                 {
                     CHAR_LOG("Fixing corrupt party on character %s...\n"_fmt, cp.key.name);
