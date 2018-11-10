@@ -824,7 +824,7 @@ void create_online_files(void)
                         GmLevel gml = isGM(cd.key.account_id);
                         {
                             if ((gml.satisfies(char_conf.online_gm_display_min_level) &&
-                                !(gml.get_all_bits() % 10)) || gml.satisfies(GmLevel::from(99_u32)))
+                                !(gml.get_all_bits() == 60)) || gml.satisfies(GmLevel::from(99_u32)))
                                 FPRINTF(fp, "%-24s (GM) "_fmt, cd.key.name);
                             else
                                 FPRINTF(fp, "%-24s      "_fmt, cd.key.name);
@@ -853,8 +853,21 @@ void create_online_files(void)
                             };
                         }
                         if ((gml.satisfies(char_conf.online_gm_display_min_level) &&
-                            !(gml.get_all_bits() % 10)) || gml.satisfies(GmLevel::from(99_u32)))
-                            FPRINTF(fp2, "</b> (GM)"_fmt);
+                            !(gml.get_all_bits() % 10)) || gml.satisfies(GmLevel::from(99_u32))) {
+                                if (gml.get_all_bits() == 40) {
+                                    FPRINTF(fp2, "</b> (DEV)"_fmt);
+                                } if (gml.get_all_bits() == 50) {
+                                    FPRINTF(fp2, "</b> (EVTC)"_fmt);
+                                } if (gml.get_all_bits() == 60) {
+                                    FPRINTF(fp2, "</b> (GM)"_fmt);
+                                } if (gml.get_all_bits() == 80) {
+                                    FPRINTF(fp2, "</b> (DEV)"_fmt);
+                                } if (gml.get_all_bits() == 99) {
+                                    FPRINTF(fp2, "</b> (ADM)"_fmt);
+                                } else {
+                                    FPRINTF(fp2, "</b>"_fmt);
+                                }
+                            }
                         FPRINTF(fp2, "</td>\n"_fmt);
                     }
                     FPRINTF(fp, "\n"_fmt);
