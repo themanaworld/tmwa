@@ -3641,6 +3641,48 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     return rv;
 }
 
+static
+int clif_send_online_list(dumb_ptr<map_session_data> sd)
+{
+    Packet_Head<0x0211> head_211;
+    std::vector<Packet_Repeat<0x0211>> repeat_211;
+
+    for (io::FD i : iter_fds())
+    {
+        Session *s = get_session(i);
+        if (!s || !s->session_data)
+            continue;
+
+        dumb_ptr<map_session_data> p_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+        if (p_sd->state.auth && !bool(p_sd->status.option & Opt0::HIDE)) {
+            Packet_Repeat<0x0211> info;
+            info.account_id = p_sd->status_key.account_id;
+            info.char_name = p_sd->status_key.name;
+            info.level = p_sd->status.base_level;
+            info.gm_level = GmLevel::from(static_cast<uint32_t>(pc_isGM(p_sd).get_public_word()));
+            info.gender = p_sd->status.sex;
+            repeat_211.push_back(info);
+        }
+    }
+
+    Buffer buf = create_vpacket<0x0211, 4, 31>(head_211, repeat_211);
+    clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(8));
+    return 0;
+}
+
+static
+RecvResult clif_parse_OnlineListRequest(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x0210> fixed;
+    RecvResult rv = recv_fpacket<0x0210, 2>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    clif_send_online_list(sd);
+
+    return rv;
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -5715,7 +5757,7 @@ func_table clif_parse_func_table[0x0220] =
     {0,     VAR,nullptr,                        },  // 0x020d
     {0,     24, nullptr,                        },  // 0x020e
     {0,     0,  nullptr,                        },  // 0x020f
-    {0,     0,  nullptr,                        },  // 0x0210
+    {-1,    2,  clif_parse_OnlineListRequest,   },  // 0x0210
     {0,     0,  nullptr,                        },  // 0x0211
     {0,     0,  nullptr,                        },  // 0x0212
     {0,     0,  nullptr,                        },  // 0x0213

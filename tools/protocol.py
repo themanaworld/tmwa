@@ -1992,7 +1992,7 @@ def build_context():
         ],
         fixed_size=17,
         pre=[0x0069, 0x0092, 0x00b3],
-        post=[0x006b, 0x006c, 0x2712, 0x2716],
+        post=[0x006b, 0x006c, 0x2712, 0x2715, 0x2716],
         desc='''
             Begin connection to the char server, based on keys the login
             server gave us.
@@ -2117,7 +2117,7 @@ def build_context():
             at(0, char_select, 'char select'),
         ],
         repeat_size=106,
-        pre=[0x0065, 0x2713],
+        pre=[0x0065, 0x2713, 0x2715],
         post=[PRETTY],
         xpost=[0x0066, 0x0067, 0x0068],
         desc='''
@@ -2131,7 +2131,7 @@ def build_context():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
-        pre=[0x0065, 0x2713],
+        pre=[0x0065, 0x2713, 0x2715],
         post=[PRETTY],
         desc='''
             Refuse connection.
@@ -4634,8 +4634,39 @@ def build_context():
             The hash is rerandomized every restart.
         ''',
     )
-    # 0x0210 define='CMSG_ONLINE_LIST',
-    # 0x0211 define='SMSG_ONLINE_LIST',
+    map_user.r(0x0210, 'online list request',
+        define='CMSG_ONLINE_LIST',
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+        pre=[HUMAN],
+        post=[0x0211],
+        desc='''
+            Request the online list
+        ''',
+    )
+    map_user.s(0x0211, 'advanced online list',
+        define='SMSG_ONLINE_LIST',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, account_id, 'account id'),
+            at(4, char_name, 'char name'),
+            at(28, u8, 'level'),
+            at(29, gm1, 'gm level'),
+            at(30, sex, 'gender'),
+        ],
+        repeat_size=31,
+        pre=[0x0210],
+        post=[PRETTY],
+        desc='''
+            Info about all players.
+        ''',
+    )
     map_user.s(0x0212, 'npc command',
         define='SMSG_NPC_COMMAND',
         fixed=[
