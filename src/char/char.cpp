@@ -824,7 +824,7 @@ void create_online_files(void)
                         GmLevel gml = isGM(cd.key.account_id);
                         {
                             if ((gml.satisfies(char_conf.online_gm_display_min_level) &&
-                                !(gml.get_all_bits() == 60)) || gml.satisfies(GmLevel::from(99_u32)))
+                                (gml.get_all_bits() == 60)) || gml.satisfies(GmLevel::from(99_u32)))
                                 FPRINTF(fp, "%-24s (GM) "_fmt, cd.key.name);
                             else
                                 FPRINTF(fp, "%-24s      "_fmt, cd.key.name);
