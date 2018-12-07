@@ -20,6 +20,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/uio.h>
 
 #include "../strings/zstring.hpp"
 
