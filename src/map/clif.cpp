@@ -670,9 +670,20 @@ void clif_set0078_main_1d8(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_
     fixed_1d8.hair_color = sd->status.hair_color;
     fixed_1d8.clothes_color = sd->status.clothes_color;
     fixed_1d8.head_dir = sd->head_dir;
-    fixed_1d8.guild_id = 0;
-    fixed_1d8.guild_emblem_id = 0;
-    fixed_1d8.manner = sd->status.manner;
+
+    if (sd->client_version >= wrap<ClientVersion>(9))
+    {
+        fixed_1d8.hp = sd->status.hp;
+        fixed_1d8.part_of_max_hp = static_cast<short>(sd->status.max_hp & 0xffff);
+        fixed_1d8.manner_or_part_of_max_hp = static_cast<short>(sd->status.max_hp >> 16);
+    }
+    else
+    {
+        fixed_1d8.hp = 0; // guild id
+        fixed_1d8.part_of_max_hp = 0; // guild emblem id
+        fixed_1d8.manner_or_part_of_max_hp = sd->status.manner;
+    }
+
     fixed_1d8.opt3 = sd->opt3;
     fixed_1d8.karma = sd->status.karma;
     fixed_1d8.sex = sd->status.sex;
@@ -725,9 +736,20 @@ void clif_set0078_alt_1d9(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_c
     fixed_1d8.hair_color = sd->status.hair_color;
     fixed_1d8.clothes_color = sd->status.clothes_color;
     fixed_1d8.head_dir = sd->head_dir;
-    fixed_1d8.guild_id = 0;
-    fixed_1d8.guild_emblem_id = 0;
-    fixed_1d8.manner = sd->status.manner;
+
+    if (sd->client_version >= wrap<ClientVersion>(9))
+    {
+        fixed_1d8.hp = sd->status.hp;
+        fixed_1d8.part_of_max_hp = static_cast<short>(sd->status.max_hp & 0xffff);
+        fixed_1d8.manner_or_part_of_max_hp = static_cast<short>(sd->status.max_hp >> 16);
+    }
+    else
+    {
+        fixed_1d8.hp = 0; // guild id
+        fixed_1d8.part_of_max_hp = 0; // guild emblem id
+        fixed_1d8.manner_or_part_of_max_hp = sd->status.manner;
+    }
+
     fixed_1d8.opt3 = sd->opt3;
     fixed_1d8.karma = sd->status.karma;
     fixed_1d8.sex = sd->status.sex;
@@ -781,9 +803,20 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf, bool old_client)
     fixed_1da.hair_color = sd->status.hair_color;
     fixed_1da.clothes_color = sd->status.clothes_color;
     fixed_1da.head_dir = sd->head_dir;
-    fixed_1da.guild_id = 0;
-    fixed_1da.guild_emblem_id = 0;
-    fixed_1da.manner = sd->status.manner;
+
+    if (sd->client_version >= wrap<ClientVersion>(9))
+    {
+        fixed_1da.hp = sd->status.hp;
+        fixed_1da.part_of_max_hp = static_cast<short>(sd->status.max_hp & 0xffff);
+        fixed_1da.manner_or_part_of_max_hp = static_cast<short>(sd->status.max_hp >> 16);
+    }
+    else
+    {
+        fixed_1da.hp = 0; // guild id
+        fixed_1da.part_of_max_hp = 0; // guild emblem id
+        fixed_1da.manner_or_part_of_max_hp = sd->status.manner;
+    }
+
     fixed_1da.opt3 = sd->opt3;
     fixed_1da.karma = sd->status.karma;
     fixed_1da.sex = sd->status.sex;

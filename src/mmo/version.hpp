@@ -41,8 +41,11 @@ namespace tmwa
 // 3 = manaplus 1.5.5.23 to manaplus 1.5.8.15
 // 4 = manaplus 1.5.8.15 to manaplus 1.6.3.15
 // 5 = manaplus 1.6.3.15 to 1.6.4.23 (adds SMSG_SCRIPT_MESSAGE)
-// 6 = manaplus 1.6.4.23 and above
-#define MIN_CLIENT_VERSION 1
+// 6 = manaplus 1.6.4.23 to 1.6.5.7 (adds a filter to block remote commands)
+// 7 = manaplus 1.6.5.7 to 1.8.9.1 (adds SMSG_MAP_SET_TILES_TYPE)
+// 8 = manaplus 1.8.9.1 to ... (adds support for GM groups)
+// 9 = manaplus ... to (adds support for player HP)
+#define MIN_CLIENT_VERSION 6
 
 // TODO now that I generate the protocol, split 'flags' out of the struct
 struct Version
