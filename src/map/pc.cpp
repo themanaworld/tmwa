@@ -2802,7 +2802,7 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
         clif_updatestatus(sd, SP::BASELEVEL);
         clif_updatestatus(sd, SP::NEXTBASEEXP);
         pc_calcstatus(sd, 0);
-        pc_heal(sd, sd->status.max_hp, sd->status.max_sp);
+        pc_heal(sd, sd->status.max_hp, sd->status.max_sp, true);
 
         clif_misceffect(sd, 0);
         //レベルアップしたのでパーティー情報を更新する
@@ -3618,7 +3618,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             clif_updatestatus(sd, SP::STATUSPOINT);
             clif_updatestatus(sd, SP::BASEEXP);
             pc_calcstatus(sd, 0);
-            pc_heal(sd, sd->status.max_hp, sd->status.max_sp);
+            pc_heal(sd, sd->status.max_hp, sd->status.max_sp, true);
             break;
         case SP::JOBLEVEL:
             nullpo_retz(sd);
@@ -3825,7 +3825,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
  * HP/SP回復
  *------------------------------------------
  */
-int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
+int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp, bool levelup)
 {
     nullpo_retz(sd);
 
@@ -3855,7 +3855,16 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
     if (sd->status.sp <= 0)
         sd->status.sp = 0;
     if (hp)
+    {
         clif_updatestatus(sd, SP::HP);
+
+        if (hp > 0 && levelup) {
+            clif_send_hp_full(sd);
+        } else if (hp > 0) {
+            clif_send_hp_partial(sd);
+        }
+    }
+
     if (sp)
         clif_updatestatus(sd, SP::SP);
 
@@ -3870,6 +3879,10 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
     }                           // end addition [Valaris]
 
     return hp + sp;
+}
+int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
+{
+    return pc_heal(sd, hp, sp, false);
 }
 
 /*==========================================
@@ -3986,7 +3999,14 @@ int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp)
     if (sd->status.sp <= 0)
         sd->status.sp = 0;
     if (hp)
+    {
         clif_updatestatus(sd, SP::HP);
+
+        if (hp > 0) {
+            clif_send_hp_partial(sd);
+        }
+    }
+
     if (sp)
         clif_updatestatus(sd, SP::SP);
 
@@ -4959,7 +4979,10 @@ int pc_natural_heal_hp(dumb_ptr<map_session_data> sd)
         }
     }
     if (bhp != sd->status.hp)
+    {
         clif_updatestatus(sd, SP::HP);
+        clif_send_hp_partial(sd);
+    }
 
     sd->inchealhptick = interval_t::zero();
 

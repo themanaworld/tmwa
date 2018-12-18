@@ -4121,6 +4121,31 @@ void clif_send_mask(dumb_ptr<map_session_data> sd, int map_mask)
     clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(2));
 }
 
+void clif_send_hp_partial(dumb_ptr<map_session_data> sd)
+{
+    nullpo_retv(sd);
+
+    Packet_Fixed<0x0232> fixed_232;
+    fixed_232.account_id = sd->status_key.account_id;
+    fixed_232.hp = sd->status.hp;
+
+    Buffer buf = create_fpacket<0x0232, 10>(fixed_232);
+    clif_send(buf, sd, SendWho::AREA_WOS, wrap<ClientVersion>(9));
+}
+
+void clif_send_hp_full(dumb_ptr<map_session_data> sd)
+{
+    nullpo_retv(sd);
+
+    Packet_Fixed<0x0233> fixed_233;
+    fixed_233.account_id = sd->status_key.account_id;
+    fixed_233.hp = sd->status.hp;
+    fixed_233.max_hp = sd->status.max_hp;
+
+    Buffer buf = create_fpacket<0x0233, 14>(fixed_233);
+    clif_send(buf, sd, SendWho::AREA_WOS, wrap<ClientVersion>(9));
+}
+
 /*==========================================
  *
  *------------------------------------------

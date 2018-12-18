@@ -111,6 +111,8 @@ void clif_update_collision(dumb_ptr<map_session_data>, short, short, short, shor
 void clif_change_music(dumb_ptr<map_session_data> sd, XString music);
 void clif_npc_action(dumb_ptr<map_session_data>, BlockId, short, int, short, short);
 void clif_send_mask(dumb_ptr<map_session_data>, int);
+void clif_send_hp_partial(dumb_ptr<map_session_data>);
+void clif_send_hp_full(dumb_ptr<map_session_data>);
 
 // trade
 void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name);

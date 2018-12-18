@@ -4849,6 +4849,35 @@ def build_context():
             Set updated collision for a square area
         ''',
     )
+    map_user.s(0x0232, 'send hp update',
+        define='SMSG_PLAYER_HP',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'hp'),
+        ],
+        fixed_size=10,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send part of hp info
+        ''',
+    )
+    map_user.s(0x0233, 'send full hp',
+        define='SMSG_PLAYER_HP_FULL',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'hp'),
+            at(10, u32, 'max hp'),
+        ],
+        fixed_size=14,
+        pre=[NOTHING],
+        post=[PRETTY],
+        desc='''
+            Send both hp and max hp
+        ''',
+    )
 
 
     # TOC_LOGINCHAR
