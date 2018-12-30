@@ -69,5 +69,7 @@ struct ScriptState;
 struct str_data_t;
 class SIR;
 
+struct AuthFifoEntry;
+
 } // namespace map
 } // namespace tmwa

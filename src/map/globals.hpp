@@ -95,5 +95,8 @@ namespace tmwa
         extern earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
         extern BlockId skill_area_temp_id;
         extern int skill_area_temp_hp;
+
+        extern std::array<AuthFifoEntry, 256> auth_fifo;
+        extern AuthFifoEntry *auth_fifo_iter;
     } // namespace map
 } // namespace tmwa

@@ -340,6 +340,30 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+void chrif_parse_preauth(Session *s, const Packet_Fixed<0x3829>& fixed)
+{
+    if (auth_fifo_iter == auth_fifo.end())
+        auth_fifo_iter = auth_fifo.begin();
+    auth_fifo_iter->account_id = fixed.account_id;
+    auth_fifo_iter->char_id = fixed.char_id;
+    auth_fifo_iter->login_id1 = fixed.login_id1;
+    auth_fifo_iter->login_id2 = fixed.login_id2;
+    auth_fifo_iter->ip = fixed.ip;
+    auth_fifo_iter->delflag = 0;
+    auth_fifo_iter++;
+
+    // tell char server we accepted the auth details
+    Packet_Fixed<0x3830> fixed_3830;
+    fixed_3830.account_id = fixed.account_id;
+    fixed_3830.char_id = fixed.char_id;
+    fixed_3830.login_id1 = fixed.login_id1;
+    fixed_3830.login_id2 = fixed.login_id2;
+    fixed_3830.ip = fixed.ip;
+    send_fpacket<0x3830, 22>(s, fixed_3830);
+
+    MAP_LOG_AND_ECHO("Received pre-auth details for account %d [%s], replying to char server\n"_fmt, fixed.account_id, fixed.ip);
+}
+
 /*==========================================
  * Change Email
  *------------------------------------------

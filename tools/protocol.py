@@ -6231,6 +6231,38 @@ def build_context():
             Party leader was changed.
         ''',
     )
+    char_map.s(0x3829, 'account auth',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_id, 'char id'),
+            at(10, u32, 'login id1'),
+            at(14, u32, 'login id2'),
+            at(18, ip4, 'ip'),
+        ],
+        fixed_size=22,
+        pre=[],
+        post=[],
+        desc='''
+            send auth data to map server
+        ''',
+    )
+    char_map.r(0x3830, 'account auth reply',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, char_id, 'char id'),
+            at(10, u32, 'login id1'),
+            at(14, u32, 'login id2'),
+            at(18, ip4, 'ip'),
+        ],
+        fixed_size=22,
+        pre=[],
+        post=[],
+        desc='''
+            reply to char server
+        ''',
+    )
 
     # TOC_MISC
     # any client

@@ -44,6 +44,8 @@ void chrif_char_ask_name(AccountId id, CharName character_name, short operation_
 int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd);
 int chrif_send_divorce(CharId char_id);
 
+void chrif_parse_preauth(Session *s, const Packet_Fixed<0x3829>& fixed);
+
 void do_init_chrif(void);
 } // namespace map
 } // namespace tmwa

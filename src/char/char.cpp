@@ -103,6 +103,7 @@ struct char_session_data : SessionData
     SEX sex;
     ClientVersion client_version;
     AccountEmail email;
+    int consumed_by; // amount of map servers for which we are authed
 };
 } // namespace char_
 
@@ -1601,6 +1602,37 @@ void map_anti_freeze_system(TimerData *, tick_t)
 }
 
 static
+int search_mapserver(XString map)
+{
+    for (int i = 0; i < MAX_MAP_SERVERS; i++)
+    {
+        if (server_session[i])
+        {
+            for (int j = 0; server[i].maps[j]; j++)
+            {
+                if (server[i].maps[j] == map)
+                    return i;
+            }
+        }
+    }
+
+    return -1;
+}
+
+//-----------------------------------------------------
+// Test to know if an IP come from LAN or WAN. by [Yor]
+//-----------------------------------------------------
+static
+int lan_ip_check(IP4Address addr)
+{
+    bool lancheck = char_lan_conf.lan_subnet.covers(addr);
+
+    PRINTF("LAN test (result): %s.\n"_fmt,
+            (lancheck) ? SGR_BOLD SGR_CYAN "LAN source" SGR_RESET ""_s : SGR_BOLD SGR_GREEN "WAN source" SGR_RESET ""_s);
+    return lancheck;
+}
+
+static
 void parse_frommap(Session *ms)
 {
     int id;
@@ -2105,6 +2137,86 @@ void parse_frommap(Session *ms)
                 }
             }
 
+            case 0x3830:
+            {
+                Packet_Fixed<0x3830> fixed;
+                rv = recv_fpacket<0x3830, 22>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                for (io::FD i : iter_fds())
+                {
+                    Session *s2 = get_session(i);
+                    if (!s2)
+                        continue;
+                    struct char_session_data *sd = static_cast<char_session_data *>(s2->session_data.get());
+
+                    if (sd && sd->account_id == fixed.account_id &&
+                        sd->login_id1 == fixed.login_id1 &&
+                        sd->login_id2 == fixed.login_id2 /*&&
+                        sd->ip == fixed.ip &&*/)
+                    {
+                        sd->consumed_by++; // one char server consumed this
+
+                        CHAR_LOG_AND_ECHO("Map server %i accepted pre-auth details for account %d [%s].\n"_fmt,
+                                    id, fixed.account_id, fixed.ip);
+
+                        int server_count = 0;
+                        // FIXME: this is silly, we should have a active_map_servers global var
+                        for (Session *ss : iter_map_sessions())
+                            if (ss)
+                                server_count++;
+
+                        if (sd->consumed_by == server_count) {
+
+                            CHAR_LOG_AND_ECHO("All map servers accepted pre-auth details for account %d [%s], sending authorization to client...\n"_fmt,
+                                    fixed.account_id, fixed.ip);
+
+                            CharPair *cp = nullptr;
+                            for (CharPair& cdi : char_keys)
+                            {
+                                if (cdi.key.account_id == sd->account_id && cdi.key.char_id == fixed.char_id)
+                                {
+                                    cp = &cdi;
+                                    break;
+                                }
+                            }
+
+                            if (!cp)
+                                return;
+                            CharKey *ck = &cp->key;
+                            CharData *cd = cp->data.get();
+                            int mi = search_mapserver(cd->last_point.map_);
+
+                            // now that preauth is done we prepare for actual auth
+                            if (auth_fifo_iter == auth_fifo.end())
+                                auth_fifo_iter = auth_fifo.begin();
+                            auth_fifo_iter->account_id = sd->account_id;
+                            auth_fifo_iter->char_id = ck->char_id;
+                            auth_fifo_iter->login_id1 = sd->login_id1;
+                            auth_fifo_iter->login_id2 = sd->login_id2;
+                            auth_fifo_iter->delflag = 3;
+                            auth_fifo_iter->sex = sd->sex;
+                            auth_fifo_iter->ip = s2->client_ip;
+                            auth_fifo_iter->client_version = sd->client_version;
+                            auth_fifo_iter++;
+
+                            Packet_Fixed<0x0071> fixed_71;
+                            fixed_71.char_id = ck->char_id;
+                            fixed_71.map_name = cd->last_point.map_;
+                            if (lan_ip_check(s2->client_ip))
+                                fixed_71.ip = char_lan_conf.lan_map_ip;
+                            else
+                                fixed_71.ip = server[mi].ip;
+                            fixed_71.port = server[mi].port;
+                            send_fpacket<0x0071, 28>(s2, fixed_71);
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+
             default:
                 // inter server処理に渡す
             {
@@ -2123,37 +2235,6 @@ void parse_frommap(Session *ms)
     }
     if (rv == RecvResult::Error)
         ms->set_eof();
-}
-
-static
-int search_mapserver(XString map)
-{
-    for (int i = 0; i < MAX_MAP_SERVERS; i++)
-    {
-        if (server_session[i])
-        {
-            for (int j = 0; server[i].maps[j]; j++)
-            {
-                if (server[i].maps[j] == map)
-                    return i;
-            }
-        }
-    }
-
-    return -1;
-}
-
-//-----------------------------------------------------
-// Test to know if an IP come from LAN or WAN. by [Yor]
-//-----------------------------------------------------
-static
-int lan_ip_check(IP4Address addr)
-{
-    bool lancheck = char_lan_conf.lan_subnet.covers(addr);
-
-    PRINTF("LAN test (result): %s.\n"_fmt,
-            (lancheck) ? SGR_BOLD SGR_CYAN "LAN source" SGR_RESET ""_s : SGR_BOLD SGR_GREEN "WAN source" SGR_RESET ""_s);
-    return lancheck;
 }
 
 static
@@ -2206,27 +2287,16 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
                 }
             }
 
-            Packet_Fixed<0x0071> fixed_71;
-            fixed_71.char_id = ck->char_id;
-            fixed_71.map_name = cd->last_point.map_;
-            if (lan_ip_check(ip))
-                fixed_71.ip = char_lan_conf.lan_map_ip;
-            else
-                fixed_71.ip = server[i].ip;
-            fixed_71.port = server[i].port;
-            send_fpacket<0x0071, 28>(s, fixed_71);
-
-            if (auth_fifo_iter == auth_fifo.end())
-                auth_fifo_iter = auth_fifo.begin();
-            auth_fifo_iter->account_id = sd->account_id;
-            auth_fifo_iter->char_id = ck->char_id;
-            auth_fifo_iter->login_id1 = sd->login_id1;
-            auth_fifo_iter->login_id2 = sd->login_id2;
-            auth_fifo_iter->delflag = 3;
-            auth_fifo_iter->sex = sd->sex;
-            auth_fifo_iter->ip = s->client_ip;
-            auth_fifo_iter->client_version = sd->client_version;
-            auth_fifo_iter++;
+            // send auth details to map server, wait for a reply
+            Packet_Fixed<0x3829> fixed_3829;
+            fixed_3829.account_id = ck->account_id;
+            fixed_3829.char_id = ck->char_id;
+            fixed_3829.login_id1 = sd->login_id1;
+            fixed_3829.login_id2 = sd->login_id2;
+            fixed_3829.ip = ip;
+            sd->consumed_by = 0;
+            for (Session *ss : iter_map_sessions())
+                send_fpacket<0x3829, 22>(ss, fixed_3829);
         }
     }
 }
@@ -2305,6 +2375,7 @@ void parse_char(Session *s)
                     sd->login_id2 = fixed.login_id2;
                     sd->sex = fixed.sex;
                     sd->auth = false; // not authed yet
+                    sd->consumed_by = 0;
 
                     // formerly: send back account_id
                     Packet_Payload<0x8000> special;

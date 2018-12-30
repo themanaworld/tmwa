@@ -51,6 +51,9 @@ namespace tmwa
         Map<ItemNameId, item_data> item_db;
         Map<QuestId, quest_data> quest_db;
 
+        std::array<AuthFifoEntry, 256> auth_fifo;
+        decltype(auth_fifo)::iterator auth_fifo_iter = auth_fifo.begin();
+
         DMap<BlockId, dumb_ptr<block_list>> id_db;
         UPMap<MapName, map_abstract> maps_db;
         DMap<CharName, dumb_ptr<map_session_data>> nick_db;

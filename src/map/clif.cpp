@@ -3539,14 +3539,35 @@ RecvResult clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd
     if (rv != RecvResult::Complete)
         return rv;
 
-    {
-        account_id = fixed.account_id;
-    }
+    account_id = fixed.account_id;
 
     // formerly: account id
     Packet_Payload<0x8000> special;
     special.magic_packet_length = 4;
     send_ppacket<0x8000>(s, special);
+
+    bool is_valid = false;
+    for (AuthFifoEntry& afi : auth_fifo)
+    {
+        if (afi.account_id == fixed.account_id
+            && afi.char_id == fixed.char_id
+            && afi.login_id1 == fixed.login_id1
+            //&& afi.login_id2 == sd->login_id2
+            && afi.ip == s->client_ip
+            && afi.delflag == 0)
+        {
+            is_valid = true;
+            afi.delflag = 1;
+            break;
+        }
+    }
+
+    if (!is_valid)
+    {
+        MAP_LOG_AND_ECHO("Attempt to connect without correct authentication (REJECTED IP: %s)!\n"_fmt, s->client_ip);
+        s->set_eof();
+        return RecvResult::Complete;
+    }
 
     // if same account already connected, we disconnect the 2 sessions
     dumb_ptr<map_session_data> old_sd = map_id2sd(account_to_block(account_id));

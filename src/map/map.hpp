@@ -584,6 +584,12 @@ void map_log(XString line);
 #define MAP_LOG(format, ...)    \
     map_log(STRPRINTF(format, ## __VA_ARGS__))
 
+#define MAP_LOG_AND_ECHO(...) \
+    do { \
+      PRINTF(__VA_ARGS__); \
+      MAP_LOG(__VA_ARGS__); \
+    } while (0)
+
 #define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
             sd->status_key.char_id, (sd->bl_m->name_), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
@@ -691,6 +697,15 @@ struct charid2nick
 {
     CharName nick;
     int req_id;
+};
+
+struct AuthFifoEntry
+{
+    AccountId account_id;
+    CharId char_id;
+    int login_id1, login_id2;
+    IP4Address ip;
+    int delflag;
 };
 } // namespace map
 } // namespace tmwa
