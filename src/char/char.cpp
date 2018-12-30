@@ -143,7 +143,7 @@ void delete_frommap(Session *sess)
     auto it = std::find(server_session.begin(), server_session.end(), sess);
     assert (it != server_session.end());
     int id = it - server_session.begin();
-    PRINTF("Map-server %d (session #%d) has disconnected.\n"_fmt, id,
+    CHAR_LOG_AND_ECHO("Map-server %d (session #%d) has disconnected.\n"_fmt, id,
             sess);
     server[id] = mmo_map_server{};
     server_session[id] = nullptr;
@@ -465,9 +465,8 @@ int mmo_char_init(void)
     io::ReadFile in(char_conf.char_txt);
     if (!in.is_open())
     {
-        PRINTF("Characters file not found: %s.\n"_fmt, char_conf.char_txt);
-        CHAR_LOG("Characters file not found: %s.\n"_fmt, char_conf.char_txt);
-        CHAR_LOG("Id for the next created character: %d.\n"_fmt,
+        CHAR_LOG_AND_ECHO("Characters file not found: %s.\n"_fmt, char_conf.char_txt);
+        CHAR_LOG_AND_ECHO("Id for the next created character: %d.\n"_fmt,
                 char_id_count);
         return 0;
     }
@@ -494,7 +493,7 @@ int mmo_char_init(void)
         CharPair cd;
         if (!extract(line, &cd))
         {
-            CHAR_LOG("Char skipped\n%s"_fmt, line);
+            CHAR_LOG_AND_ECHO("Char skipped\n%s"_fmt, line);
             continue;
         }
         if (char_id_count < next(cd.key.char_id))
@@ -503,12 +502,10 @@ int mmo_char_init(void)
         online_chars.push_back(nullptr);
     }
 
-    PRINTF("mmo_char_init: %zu characters read in %s.\n"_fmt,
-            char_keys.size(), char_conf.char_txt);
-    CHAR_LOG("mmo_char_init: %zu characters read in %s.\n"_fmt,
+    CHAR_LOG_AND_ECHO("mmo_char_init: %zu characters read in %s.\n"_fmt,
             char_keys.size(), char_conf.char_txt);
 
-    CHAR_LOG("Id for the next created character: %d.\n"_fmt,
+    CHAR_LOG_AND_ECHO("Id for the next created character: %d.\n"_fmt,
             char_id_count);
 
     return 0;
@@ -523,8 +520,7 @@ void mmo_char_sync(void)
     io::WriteLock fp(char_conf.char_txt);
     if (!fp.is_open())
     {
-        PRINTF("WARNING: Server can't not save characters.\n"_fmt);
-        CHAR_LOG("WARNING: Server can't not save characters.\n"_fmt);
+        CHAR_LOG_AND_ECHO("WARNING: Server can't save characters!\n"_fmt);
         return;
     }
     {
@@ -1193,7 +1189,7 @@ void parse_tologin(Session *ls)
                 }
                 else
                 {
-                    PRINTF("Connected to login-server (connection #%d).\n"_fmt,
+                    CHAR_LOG_AND_ECHO("Connected to login-server (connection #%d).\n"_fmt,
                             ls);
                     // if no map-server already connected, display a message...
                     int i;
@@ -1228,6 +1224,8 @@ void parse_tologin(Session *ls)
                             Packet_Fixed<0x006c> fixed_6c;
                             fixed_6c.code = fixed.invalid;
                             send_fpacket<0x006c, 3>(s2, fixed_6c);
+
+                            CHAR_LOG_AND_ECHO("Account %d authentication REJECTED (login-server reply) (REJECTED IP: %s)\n"_fmt, acc, s2->client_ip);
                         }
                         else if (char_conf.max_connect_user == 0
                                  || count_users() < char_conf.max_connect_user)
@@ -1236,6 +1234,8 @@ void parse_tologin(Session *ls)
                             if (!e_mail_check(sd->email))
                                 sd->email = DEFAULT_EMAIL;
                             sd->client_version = fixed.client_protocol_version;
+
+                            CHAR_LOG_AND_ECHO("Account %d [%s] authentication accepted (login-server reply)\n"_fmt, acc, s2->client_ip);
 
                             // mark session as 'authed' (cleared as ok by reply from login server)
                             sd->auth = true;
@@ -1249,6 +1249,8 @@ void parse_tologin(Session *ls)
                             Packet_Fixed<0x006c> fixed_6c;
                             fixed_6c.code = 0;
                             send_fpacket<0x006c, 3>(s2, fixed_6c);
+
+                            CHAR_LOG_AND_ECHO("Account %d [%s] authentication acceptable (login-server reply), but server is too full!\n"_fmt, acc, s2->client_ip);
                         }
                         break;
                     }
@@ -1501,9 +1503,7 @@ void parse_tologin(Session *ls)
                         gm_accounts[k].account_id = repeat[k].account_id;
                         gm_accounts[k].level = repeat[k].gm_level;
                     }
-                    PRINTF("From login-server: receiving of %zu GM accounts information.\n"_fmt,
-                            gm_accounts.size());
-                    CHAR_LOG("From login-server: receiving of %zu GM accounts information.\n"_fmt,
+                    CHAR_LOG_AND_ECHO("From login-server: receiving %zu GM accounts.\n"_fmt,
                             gm_accounts.size());
                     create_online_files(); // update online players files (perhaps some online players change of GM level)
                     // send new gm acccounts level to map-servers
@@ -1578,9 +1578,7 @@ void map_anti_freeze_system(TimerData *, tick_t)
         {                       // if map-server is online
             if (server_freezeflag[i]-- < 1)
             {                   // Map-server anti-freeze system. Counter. 5 ok, 4...0 freezed
-                PRINTF("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n"_fmt,
-                        i);
-                CHAR_LOG("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n"_fmt,
+                CHAR_LOG_AND_ECHO("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n"_fmt,
                         i);
                 server_session[i]->set_eof();
             }
@@ -1625,10 +1623,7 @@ void parse_frommap(Session *ms)
                 const size_t j = repeat.size();
 
                 {
-                    PRINTF("Map-Server %d connected: %zu maps, from IP %s port %d.\n"_fmt,
-                            id, j, server[id].ip, server[id].port);
-                    PRINTF("Map-server %d loading complete.\n"_fmt, id);
-                    CHAR_LOG("Map-Server %d connected: %zu maps, from IP %s port %d. Map-server %d loading complete.\n"_fmt,
+                    CHAR_LOG_AND_ECHO("Map-Server %d connected: %zu maps, from IP %s port %d. Map-server %d loading complete.\n"_fmt,
                             id, j, server[id].ip,
                             server[id].port, id);
                 }
@@ -1640,8 +1635,7 @@ void parse_frommap(Session *ms)
                 {
                     if (j == 0)
                     {
-                        PRINTF("WARNING: Map-Server %d have NO map.\n"_fmt, id);
-                        CHAR_LOG("WARNING: Map-Server %d have NO map.\n"_fmt,
+                        CHAR_LOG_AND_ECHO("WARNING: Map-Server %d has NO maps.\n"_fmt,
                                 id);
                         // Transmitting maps information to the other map-servers
                     }
@@ -1735,6 +1729,7 @@ void parse_frommap(Session *ms)
                         FPRINTF(stderr,
                                 "From queue index %zd: recalling packet version %d\n"_fmt,
                                 (&afi - &auth_fifo.front()), afi.client_version);
+                        CHAR_LOG_AND_ECHO("Authenticated account %d [%s] for map server %d.\n"_fmt, account_id, ip, id);
                         payload_fd.char_key = *ck;
                         payload_fd.char_data = *cd;
                         send_ppacket<0x2afd>(ms, payload_fd);
@@ -1745,8 +1740,7 @@ void parse_frommap(Session *ms)
                     Packet_Fixed<0x2afe> fixed_fe;
                     fixed_fe.account_id = account_id;
                     send_fpacket<0x2afe, 6>(ms, fixed_fe);
-                    PRINTF("auth_fifo search error! account %d not authentified.\n"_fmt,
-                            account_id);
+                    CHAR_LOG_AND_ECHO("REJECTED authentication of account %d (REJECTED IP: %s) for map server %d.\n"_fmt, account_id, ip, id);
                 }
             x2afc_out:
                 break;
@@ -2166,7 +2160,7 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             CharKey *ck = &cp->key;
             CharData *cd = cp->data.get();
 
-            CHAR_LOG("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]\n"_fmt,
+            CHAR_LOG_AND_ECHO("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]\n"_fmt,
                     sd->account_id, rfifob_2,
                     ck->name, ip);
             // searching map server
@@ -2201,10 +2195,6 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             Packet_Fixed<0x0071> fixed_71;
             fixed_71.char_id = ck->char_id;
             fixed_71.map_name = cd->last_point.map_;
-            PRINTF("Character selection '%s' (account: %d, slot: %d) [%s]\n"_fmt,
-                    ck->name,
-                    sd->account_id, ck->char_num, ip);
-            PRINTF("--Send IP of map-server. "_fmt);
             if (lan_ip_check(ip))
                 fixed_71.ip = char_lan_conf.lan_map_ip;
             else
@@ -2254,8 +2244,12 @@ void parse_char(Session *s)
                 rv = recv_fpacket<0x0061, 50>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
-                if (!sd || !sd->auth)
-                    break;
+                if (!sd || !sd->auth) {
+                    if (sd)
+                        CHAR_LOG_AND_ECHO("Unauthenticated attempt to change password of account %d (REJECTED IP: %s)!\n"_fmt, sd->account_id, s->client_ip);
+                    s->set_eof();
+                    return;
+                }
 
                 {
                     Packet_Fixed<0x2740> fixed_40;
@@ -2281,10 +2275,10 @@ void parse_char(Session *s)
                     AccountId account_id = fixed.account_id;
                     GmLevel GM_value = isGM(account_id);
                     if (GM_value)
-                        PRINTF("Account Logged On; Account ID: %d (GM level %d).\n"_fmt,
+                        CHAR_LOG_AND_ECHO("Account logging on - Account ID: %d (GM level %d).\n"_fmt,
                                 account_id, GM_value);
                     else
-                        PRINTF("Account Logged On; Account ID: %d.\n"_fmt,
+                        CHAR_LOG_AND_ECHO("Account logging on - Account ID: %d.\n"_fmt,
                                 account_id);
                     if (sd == nullptr)
                     {
@@ -2326,6 +2320,8 @@ void parse_char(Session *s)
 
                                 sd->client_version = afi.client_version;
 
+                                CHAR_LOG_AND_ECHO("Account %d [%s] authentication accepted (precached)\n"_fmt, account_id, ip);
+
                                 // User is now authed (credentials found in preloaded auth_fifo)
                                 sd->auth = true;
 
@@ -2338,6 +2334,8 @@ void parse_char(Session *s)
                                 Packet_Fixed<0x006c> fixed_6c;
                                 fixed_6c.code = 0;
                                 send_fpacket<0x006c, 3>(s, fixed_6c);
+
+                                CHAR_LOG_AND_ECHO("Account %d [%s] authentication acceptable (precached), but server is too full!\n"_fmt, account_id, ip);
                             }
                             goto x65_out;
                         }
@@ -2353,6 +2351,8 @@ void parse_char(Session *s)
                             fixed_12.sex = sd->sex;
                             fixed_12.ip = s->client_ip;
                             send_fpacket<0x2712, 19>(login_session, fixed_12);
+
+                            CHAR_LOG_AND_ECHO("Account %d [%s] authentication deferred, sending request to login-server for confirmation\n"_fmt, account_id, ip);
                         }
                     }
                 }
@@ -2367,14 +2367,13 @@ void parse_char(Session *s)
                 rv = recv_fpacket<0x0066, 3>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
-                if (!sd || !sd->auth)
-                    break;
-
-                if (!sd)
-                {
+                if (!sd || !sd->auth) {
+                    if (sd)
+                        CHAR_LOG_AND_ECHO("Unauthenticated attempt to select character from account %d (REJECTED IP: %s)!\n"_fmt, sd->account_id, ip);
                     s->set_eof();
                     return;
                 }
+
                 handle_x0066(s, sd, fixed.code, ip);
                 break;
             }
@@ -2387,13 +2386,13 @@ void parse_char(Session *s)
                 if (rv != RecvResult::Complete)
                     break;
                 if (!sd || !sd->auth)
-                  break;
-
-                if (!sd)
                 {
+                    if (sd)
+                        CHAR_LOG_AND_ECHO("Unauthenticated attempt to create character on account %d (REJECTED IP: %s)!\n"_fmt, sd->account_id, ip);
                     s->set_eof();
                     return;
                 }
+
                 CharName name = fixed.char_name;
                 Stats6 stats = fixed.stats;
                 uint8_t slot = fixed.slot;
@@ -2473,10 +2472,9 @@ void parse_char(Session *s)
                 if (rv != RecvResult::Complete)
                     break;
                 if (!sd || !sd->auth)
-                    break;
-
-                if (!sd)
                 {
+                    if (sd)
+                        CHAR_LOG_AND_ECHO("Unauthenticated attempt to delete character on account %d (REJECTED IP: %s)!\n"_fmt, sd->account_id, ip);
                     s->set_eof();
                     return;
                 }
@@ -2541,6 +2539,9 @@ void parse_char(Session *s)
                 if (i == MAX_MAP_SERVERS || userid_ != char_conf.userid
                     || passwd_ != char_conf.passwd)
                 {
+                    if (i != MAX_MAP_SERVERS) {
+                        CHAR_LOG_AND_ECHO("Attempt to connect as map-server without correct authentication (REJECTED IP: %s)!\n"_fmt, ip);
+                    }
                     fixed_f9.code = 3;
                     send_fpacket<0x2af9, 3>(s, fixed_f9);
                 }
@@ -2730,7 +2731,7 @@ void term_func(void)
     delete_session(login_session);
     delete_session(char_session);
 
-    CHAR_LOG("----End of char-server (normal end with closing of all files).\n"_fmt);
+    CHAR_LOG_AND_ECHO("----End of char-server (normal end with closing of all files).\n"_fmt);
 }
 
 static
@@ -2753,7 +2754,7 @@ void party_corruption_fix()
                     cp.key.name == pp.party_most->member[i].name &&
                     cp.data->party_id != pp.party_id)
                 {
-                    CHAR_LOG("Fixing corrupt party on character %s...\n"_fmt, cp.key.name);
+                    CHAR_LOG_AND_ECHO("Fixing corrupt party on character %s...\n"_fmt, cp.key.name);
                     cp.data->party_id = pp.party_id;
                 }
             }
@@ -2801,7 +2802,7 @@ int do_init(Slice<ZString> argv)
 
     // a newline in the log...
     CHAR_LOG(""_fmt);
-    CHAR_LOG("The char-server starting...\n"_fmt);
+    CHAR_LOG("do_init: char-server starting...\n"_fmt);
 
     runflag &= lan_check();
 
