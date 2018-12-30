@@ -1,5 +1,7 @@
 v18.12.30
   - Fixes a very old login/char authentication exploit
+  - Fixes the double login kick exploit
+  - Improves logging in login and char server
 v18.12.18
   - add packets that tell ManaPlus to update player HP
 v18.12.13
