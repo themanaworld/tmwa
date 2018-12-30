@@ -1,3 +1,5 @@
+v18.12.30
+  - Fixes a very old login/char authentication exploit
 v18.12.18
   - add packets that tell ManaPlus to update player HP
 v18.12.13

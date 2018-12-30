@@ -97,6 +97,7 @@ namespace char_
 {
 struct char_session_data : SessionData
 {
+    bool auth; // whether the session is authed or not
     AccountId account_id;
     int login_id1, login_id2;
     SEX sex;
@@ -1235,6 +1236,10 @@ void parse_tologin(Session *ls)
                             if (!e_mail_check(sd->email))
                                 sd->email = DEFAULT_EMAIL;
                             sd->client_version = fixed.client_protocol_version;
+
+                            // mark session as 'authed' (cleared as ok by reply from login server)
+                            sd->auth = true;
+
                             // send characters to player
                             mmo_char_send006b(s2, sd);
                         }
@@ -2249,6 +2254,8 @@ void parse_char(Session *s)
                 rv = recv_fpacket<0x0061, 50>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
+                if (!sd || !sd->auth)
+                    break;
 
                 {
                     Packet_Fixed<0x2740> fixed_40;
@@ -2262,6 +2269,7 @@ void parse_char(Session *s)
                 break;
             }
 
+            // User connection request (not authed yet)
             case 0x65:         // 接続要求
             {
                 Packet_Fixed<0x0065> fixed;
@@ -2288,6 +2296,7 @@ void parse_char(Session *s)
                     sd->login_id1 = fixed.login_id1;
                     sd->login_id2 = fixed.login_id2;
                     sd->sex = fixed.sex;
+                    sd->auth = false; // not authed yet
 
                     // formerly: send back account_id
                     Packet_Payload<0x8000> special;
@@ -2316,6 +2325,9 @@ void parse_char(Session *s)
                                 }
 
                                 sd->client_version = afi.client_version;
+
+                                // User is now authed (credentials found in preloaded auth_fifo)
+                                sd->auth = true;
 
                                 // send characters to player
                                 mmo_char_send006b(s, sd);
@@ -2348,11 +2360,14 @@ void parse_char(Session *s)
                 break;
             }
 
+            // Character selection
             case 0x66:         // キャラ選択
             {
                 Packet_Fixed<0x0066> fixed;
                 rv = recv_fpacket<0x0066, 3>(s, fixed);
                 if (rv != RecvResult::Complete)
+                    break;
+                if (!sd || !sd->auth)
                     break;
 
                 if (!sd)
@@ -2364,12 +2379,15 @@ void parse_char(Session *s)
                 break;
             }
 
+            // Character creation
             case 0x67:         // 作成
             {
                 Packet_Fixed<0x0067> fixed;
                 rv = recv_fpacket<0x0067, 37>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
+                if (!sd || !sd->auth)
+                  break;
 
                 if (!sd)
                 {
@@ -2454,6 +2472,8 @@ void parse_char(Session *s)
                 rv = recv_fpacket<0x0068, 46>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
+                if (!sd || !sd->auth)
+                    break;
 
                 if (!sd)
                 {
@@ -2501,6 +2521,7 @@ void parse_char(Session *s)
                 break;
             }
 
+            // Map server connecting (not authed yet)
             case 0x2af8:       // マップサーバーログイン
             {
                 Packet_Fixed<0x2af8> fixed;
@@ -2556,6 +2577,7 @@ void parse_char(Session *s)
                 break;
             }
 
+            // Request char server version
             case 0x7530:       // Athena情報所得
             {
                 Packet_Fixed<0x7530> fixed;
@@ -2569,6 +2591,7 @@ void parse_char(Session *s)
                 break;
             }
 
+            // Explicit disconnection request
             case 0x7532:       // 接続の切断(defaultと処理は一緒だが明示的にするため)
             {
                 Packet_Fixed<0x7532> fixed;
