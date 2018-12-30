@@ -136,6 +136,11 @@ struct mmo_account
 //------------------------------
 #define LOGIN_LOG(fmt, ...) \
     tmwa::login::login_log(STRPRINTF(fmt, ## __VA_ARGS__))
+#define LOGIN_LOG_AND_ECHO(...) \
+    do { \
+      PRINTF(__VA_ARGS__); \
+      LOGIN_LOG(__VA_ARGS__); \
+    } while (0)
 static
 void login_log(XString line)
 {
@@ -199,12 +204,9 @@ int read_gm_account(void)
     io::ReadFile fp(login_conf.gm_account_filename);
     if (!fp.is_open())
     {
-        PRINTF("read_gm_account: GM accounts file [%s] not found.\n"_fmt,
+        LOGIN_LOG_AND_ECHO("read_gm_account: GM accounts file [%s] not found.\n"_fmt,
                 login_conf.gm_account_filename);
-        PRINTF("                 Actually, there is no GM accounts on the server.\n"_fmt);
-        LOGIN_LOG("read_gm_account: GM accounts file [%s] not found.\n"_fmt,
-                login_conf.gm_account_filename);
-        LOGIN_LOG("                 Actually, there is no GM accounts on the server.\n"_fmt);
+        LOGIN_LOG_AND_ECHO("                 No GM accounts on the server!\n"_fmt);
         return 1;
     }
     // limited to 4000, because we send information to char-servers (more than 4000 GM accounts???)
@@ -216,7 +218,7 @@ int read_gm_account(void)
             continue;
         GM_Account p {};
         if (!extract(line, record<' '>(&p.account_id, &p.level)))
-            PRINTF("read_gm_account: file [%s], invalid 'id_acount level' format: '%s'\n"_fmt,
+            LOGIN_LOG_AND_ECHO("read_gm_account: file [%s], invalid 'id_account level' format: '%s'\n"_fmt,
                     login_conf.gm_account_filename, line);
         else
         {
@@ -224,10 +226,10 @@ int read_gm_account(void)
             if (GM_level)
             {                   // if it's not a new account
                 if (GM_level == p.level)
-                    PRINTF("read_gm_account: GM account %d defined twice (same level: %d).\n"_fmt,
+                    LOGIN_LOG_AND_ECHO("read_gm_account: GM account %d defined twice (same level: %d).\n"_fmt,
                             p.account_id, p.level);
                 else
-                    PRINTF("read_gm_account: GM account %d defined twice (levels: %d and %d).\n"_fmt,
+                    LOGIN_LOG_AND_ECHO("read_gm_account: GM account %d defined twice (levels: %d and %d).\n"_fmt,
                             p.account_id, GM_level, p.level);
             }
             if (GM_level != p.level)
@@ -238,17 +240,14 @@ int read_gm_account(void)
                     c++;
                     if (c >= 4000)
                     {
-                        PRINTF("***WARNING: 4000 GM accounts found. Next GM accounts are not readed.\n"_fmt);
-                        LOGIN_LOG("***WARNING: 4000 GM accounts found. Next GM accounts are not readed.\n"_fmt);
+                        LOGIN_LOG_AND_ECHO("***WARNING: 4000 GM accounts found. No more GM accounts will be read.\n"_fmt);
                     }
                 }
             }
         }
     }
 
-    PRINTF("read_gm_account: file '%s' readed (%d GM accounts found).\n"_fmt,
-            login_conf.gm_account_filename, c);
-    LOGIN_LOG("read_gm_account: file '%s' readed (%d GM accounts found).\n"_fmt,
+    LOGIN_LOG_AND_ECHO("read_gm_account: file '%s' read (%d GM accounts found).\n"_fmt,
             login_conf.gm_account_filename, c);
 
     return 0;
@@ -300,9 +299,9 @@ bool check_ip(IP4Address ip)
     }
 
     return flag == ACF::ALLOW || login_conf.order == ACO::DENY_ALLOW;
-    // With 'mutual-failture', only 'allow' and non 'deny' IP are authorised.
+    // With 'mutual-failure', only 'allow' and non 'deny' IP are authorised.
     //   A non 'allow' (even non 'deny') IP is not authorised. It's like: if allowed and not denied, it's authorised.
-    //   So, it's disapproval if you have no description at the time of 'mutual-failture'.
+    //   So, it's disapproval if you have no description at the time of 'mutual-failure'.
     // With 'deny,allow' (allow if not deny), because here it's not deny, we authorise.
 }
 
@@ -496,7 +495,7 @@ int mmo_auth_init(void)
                     account_id_count = ad.account_id;
             }
             else
-                LOGIN_LOG("Account skipped\n%s"_fmt, line);
+                LOGIN_LOG_AND_ECHO("Account skipped\n%s"_fmt, line);
             continue;
         }
 
@@ -564,8 +563,8 @@ void mmo_auth_sync(void)
 
 // We want to sync the DB to disk as little as possible as it's fairly
 // resource intensive. therefore most player-triggerable events that
-// update the account DB will not immideately trigger a save. Instead
-// we save periodicly on a timer.
+// update the account DB will not immediately trigger a save. Instead
+// we save periodically on a timer.
 //-----------------------------------------------------
 static
 void check_auth_sync(TimerData *, tick_t)
@@ -721,7 +720,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
         int encpasswdok = 0;
         if (new_account_sex)
         {
-            LOGIN_LOG("Attempt of creation of an already existant account (account: %s_%c, ip: %s)\n"_fmt,
+            LOGIN_LOG("Attempt to create an already existing account (account: %s_%c, ip: %s)\n"_fmt,
                     account->userid, new_account_sex, ip);
             return 9;           // 9 = Account already exists
         }
@@ -747,7 +746,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
                 case 4:        // 3 = Rejected from Server
                 case 5:        // 4 = You have been blocked by the GM Team
                 case 6:        // 5 = Your Game's EXE file is not the latest version
-                case 7:        // 6 = Your are Prohibited to log in until %s
+                case 7:        // 6 = You are Prohibited to log in until %s
                 case 8:        // 7 = Server is jammed due to over populated
                 case 9:        // 8 = No MSG (actually, all states after 9 except 99 are No MSG, use only this)
                 case 100:      // 99 = This ID has been totally erased
@@ -767,7 +766,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
                 // always banned
                 LOGIN_LOG("Connection refused (account: %s, banned until %s, ip: %s)\n"_fmt,
                         account->userid, tmpstr, ip);
-                return 6;       // 6 = Your are Prohibited to log in until %s
+                return 6;       // 6 = You are Prohibited to log in until %s
             }
             else
             {
@@ -778,7 +777,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
             }
         }
 
-        LOGIN_LOG("Authentification accepted (account: %s (id: %d), ip: %s)\n"_fmt,
+        LOGIN_LOG_AND_ECHO("Authentication accepted (account: %s (id: %d), ip: %s)\n"_fmt,
                 account->userid, ad->account_id, ip);
     }
     else
@@ -792,7 +791,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
         else
         {
             AccountId new_id = mmo_auth_new(account, sex_from_char(new_account_sex), DEFAULT_EMAIL);
-            LOGIN_LOG("Account creation and authentification accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)\n"_fmt,
+            LOGIN_LOG_AND_ECHO("Account creation and authentication accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)\n"_fmt,
                     account->userid, new_id,
                     new_account_sex, ip);
             ad = &auth_data.back();
@@ -886,8 +885,8 @@ void parse_fromchar(Session *s)
                             && !auth_fifo[i].delflag)
                         {
                             auth_fifo[i].delflag = 1;
-                            LOGIN_LOG("Char-server '%s': authentification of the account %d accepted (ip: %s).\n"_fmt,
-                                    server[id].name, acc, ip);
+                            LOGIN_LOG_AND_ECHO("Char-server '%s' (ip %s): authentication of the account %d accepted (ip: %s).\n"_fmt,
+                                    server[id].name, ip, acc, fixed.ip);
                             for (const AuthData& ad : auth_data)
                             {
                                 if (ad.account_id == acc)
@@ -923,8 +922,8 @@ void parse_fromchar(Session *s)
                     }
                     // authentification not found
                     {
-                        LOGIN_LOG("Char-server '%s': authentification of the account %d REFUSED (ip: %s).\n"_fmt,
-                                server[id].name, acc, ip);
+                        LOGIN_LOG_AND_ECHO("Char-server '%s' (ip %s): authentication of the account %d REJECTED (REJECTED IP: %s).\n"_fmt,
+                                server[id].name, ip, acc, fixed.ip);
 
                         Packet_Fixed<0x2713> fixed_13;
                         fixed_13.account_id = acc;
@@ -965,8 +964,8 @@ void parse_fromchar(Session *s)
                 {
                     if (ad.account_id == account_id)
                     {
-                        LOGIN_LOG("Char-server '%s': e-mail of the account %d found (ip: %s).\n"_fmt,
-                                server[id].name, account_id, ip);
+                        LOGIN_LOG("Char-server '%s' (ip %s): e-mail of the account %d found.\n"_fmt,
+                                server[id].name, ip, account_id);
 
                         Packet_Fixed<0x2717> fixed_17;
                         fixed_17.account_id = account_id;
@@ -978,8 +977,8 @@ void parse_fromchar(Session *s)
                         goto x2716_end;
                     }
                 }
-                LOGIN_LOG("Char-server '%s': e-mail of the account %d NOT found (ip: %s).\n"_fmt,
-                        server[id].name, account_id, ip);
+                LOGIN_LOG("Char-server '%s' (ip: %s): e-mail of the account %d NOT found.\n"_fmt,
+                        server[id].name, ip, account_id);
             x2716_end:
                 break;
             }
@@ -997,14 +996,14 @@ void parse_fromchar(Session *s)
                     AccountEmail actual_email = stringish<AccountEmail>(fixed.old_email.to_print());
                     AccountEmail new_email = fixed.new_email;
                     if (!e_mail_check(actual_email))
-                        LOGIN_LOG("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but actual email is invalid (account: %d, ip: %s)\n"_fmt,
-                                server[id].name, acc, ip);
+                        LOGIN_LOG("Char-server '%s' (ip: %s): Attempt to modify an e-mail on an account (@email GM command), but actual email is invalid (account: %d)\n"_fmt,
+                                server[id].name, ip, acc);
                     else if (!e_mail_check(new_email))
-                        LOGIN_LOG("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command) with a invalid new e-mail (account: %d, ip: %s)\n"_fmt,
-                                server[id].name, acc, ip);
+                        LOGIN_LOG("Char-server '%s' (ip: %s): Attempt to modify an e-mail on an account (@email GM command) with a invalid new e-mail (account: %d)\n"_fmt,
+                                server[id].name, ip, acc);
                     else if (new_email == DEFAULT_EMAIL)
-                        LOGIN_LOG("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command) with a default e-mail (account: %d, ip: %s)\n"_fmt,
-                                server[id].name, acc, ip);
+                        LOGIN_LOG("Char-server '%s' (ip: %s): Attempt to modify an e-mail on an account (@email GM command) with a default e-mail (account: %d)\n"_fmt,
+                                server[id].name, ip, acc);
                     else
                     {
                         for (AuthData& ad : auth_data)
@@ -1014,20 +1013,20 @@ void parse_fromchar(Session *s)
                                 if (ad.email == actual_email)
                                 {
                                     ad.email = new_email;
-                                    LOGIN_LOG("Char-server '%s': Modify an e-mail on an account (@email GM command) (account: %d (%s), new e-mail: %s, ip: %s).\n"_fmt,
-                                            server[id].name, acc,
-                                            ad.userid, new_email, ip);
+                                    LOGIN_LOG("Char-server '%s' (ip: %s): Modify an e-mail on an account (@email GM command) (account: %d (%s), old e-mail: %s -> new e-mail: %s).\n"_fmt,
+                                            server[id].name, ip, acc,
+                                            ad.userid, actual_email, new_email);
                                 }
                                 else
-                                    LOGIN_LOG("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but actual e-mail is incorrect (account: %d (%s), actual e-mail: %s, proposed e-mail: %s, ip: %s).\n"_fmt,
-                                            server[id].name, acc,
+                                    LOGIN_LOG("Char-server '%s' (ip: %s): Attempt to modify an e-mail on an account (@email GM command), but actual e-mail is incorrect (account: %d (%s), actual e-mail: %s, proposed e-mail: %s).\n"_fmt,
+                                            server[id].name, ip, acc,
                                             ad.userid,
-                                            ad.email, actual_email, ip);
+                                            ad.email, actual_email);
                                 goto x2722_out;
                             }
                         }
-                        LOGIN_LOG("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but account doesn't exist (account: %d, ip: %s).\n"_fmt,
-                                server[id].name, acc, ip);
+                        LOGIN_LOG("Char-server '%s' (ip: %s): Attempt to modify an e-mail on an account (@email GM command), but account doesn't exist (account: %d).\n"_fmt,
+                                server[id].name, ip, acc);
                     }
                 }
             x2722_out:
@@ -1051,9 +1050,8 @@ void parse_fromchar(Session *s)
                         {
                             if (ad.state != statut)
                             {
-                                LOGIN_LOG("Char-server '%s': Status change (account: %d, new status %d, ip: %s).\n"_fmt,
-                                        server[id].name, acc, statut,
-                                        ip);
+                                LOGIN_LOG("Char-server '%s' (ip: %s): Status change (account: %d, new status %d).\n"_fmt,
+                                        server[id].name, ip, acc, statut);
                                 if (statut != 0)
                                 {
                                     Packet_Fixed<0x2731> fixed_31;
@@ -1075,14 +1073,13 @@ void parse_fromchar(Session *s)
                                 ad.state = statut;
                             }
                             else
-                                LOGIN_LOG("Char-server '%s':  Error of Status change - actual status is already the good status (account: %d, status %d, ip: %s).\n"_fmt,
-                                        server[id].name, acc, statut,
-                                        ip);
+                                LOGIN_LOG("Char-server '%s' (ip: %s):  Error of Status change - actual status is already the good status (account: %d, status %d).\n"_fmt,
+                                        server[id].name, ip, acc, statut);
                             goto x2724_out;
                         }
                     }
-                    LOGIN_LOG("Char-server '%s': Error of Status change (account: %d not found, suggested status %d, ip: %s).\n"_fmt,
-                            server[id].name, acc, statut, ip);
+                    LOGIN_LOG("Char-server '%s' (ip: %s): Error of Status change (account: %d not found, suggested status %d).\n"_fmt,
+                            server[id].name, ip, acc, statut);
                 x2724_out:
                     ;
                 }
@@ -1129,11 +1126,10 @@ void parse_fromchar(Session *s)
                                         timestamp_seconds_buffer tmpstr;
                                         if (timestamp)
                                             stamp_time(tmpstr, &timestamp);
-                                        LOGIN_LOG("Char-server '%s': Ban request (account: %d, new final date of banishment: %lld (%s), ip: %s).\n"_fmt,
-                                                server[id].name, acc,
+                                        LOGIN_LOG("Char-server '%s' (ip: %s): Ban request (account: %d, new final date of banishment: %lld (%s)).\n"_fmt,
+                                                server[id].name, ip, acc,
                                                 timestamp,
-                                                tmpstr,
-                                                ip);
+                                                tmpstr);
                                         Packet_Fixed<0x2731> fixed_31;
                                         fixed_31.account_id = ad.account_id;
                                         fixed_31.ban_not_status = 1;
@@ -1152,28 +1148,27 @@ void parse_fromchar(Session *s)
                                     }
                                     else
                                     {
-                                        LOGIN_LOG("Char-server '%s': Error of ban request (account: %d, new date unbans the account, ip: %s).\n"_fmt,
-                                                server[id].name, acc,
-                                                ip);
+                                        LOGIN_LOG("Char-server '%s' (ip: %s): Error of ban request (account: %d, new date unbans the account).\n"_fmt,
+                                                server[id].name, ip, acc);
                                     }
                                     ad.ban_until_time = timestamp;
                                 }
                                 else
                                 {
-                                    LOGIN_LOG("Char-server '%s': Error of ban request (account: %d, no change for ban date, ip: %s).\n"_fmt,
-                                            server[id].name, acc, ip);
+                                    LOGIN_LOG("Char-server '%s' (ip: %s): Error of ban request (account: %d, no change for ban date).\n"_fmt,
+                                            server[id].name, ip, acc);
                                 }
                             }
                             else
                             {
-                                LOGIN_LOG("Char-server '%s': Error of ban request (account: %d, invalid date, ip: %s).\n"_fmt,
-                                        server[id].name, acc, ip);
+                                LOGIN_LOG("Char-server '%s' (ip: %s): Error of ban request (account: %d, invalid date).\n"_fmt,
+                                        server[id].name, ip, acc);
                             }
                             goto x2725_out;
                         }
                     }
-                    LOGIN_LOG("Char-server '%s': Error of ban request (account: %d not found, ip: %s).\n"_fmt,
-                            server[id].name, acc, ip);
+                    LOGIN_LOG("Char-server '%s' (ip: %s): Error of ban request (account: %d not found).\n"_fmt,
+                            server[id].name, ip, acc);
                 x2725_out:
                     ;
                 }
@@ -1194,8 +1189,8 @@ void parse_fromchar(Session *s)
                     {
                         if (ad.account_id == acc)
                         {
-                            LOGIN_LOG("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d, ip: %s).\n"_fmt,
-                                    server[id].name, acc, ip);
+                            LOGIN_LOG("Char-server '%s' (ip %s): receiving (from the char-server) of account_reg2 (account: %d).\n"_fmt,
+                                    server[id].name, ip, acc);
 
                             const size_t count = std::min(ACCOUNT_REG2_NUM, repeat.size());
                             for (size_t j = 0; j < count; ++j)
@@ -1224,8 +1219,8 @@ void parse_fromchar(Session *s)
                             goto x2728_out;
                         }
                     }
-                    LOGIN_LOG("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d not found, ip: %s).\n"_fmt,
-                            server[id].name, acc, ip);
+                    LOGIN_LOG("Char-server '%s' (ip %s): receiving (from the char-server) of account_reg2 (account: %d not found).\n"_fmt,
+                            server[id].name, ip, acc);
                 }
             x2728_out:
                 break;
@@ -1247,19 +1242,19 @@ void parse_fromchar(Session *s)
                             if (ad.ban_until_time)
                             {
                                 ad.ban_until_time = TimeT();
-                                LOGIN_LOG("Char-server '%s': UnBan request (account: %d, ip: %s).\n"_fmt,
-                                        server[id].name, acc, ip);
+                                LOGIN_LOG("Char-server '%s' (ip: %s): UnBan request (account: %d).\n"_fmt,
+                                        server[id].name, ip, acc);
                             }
                             else
                             {
-                                LOGIN_LOG("Char-server '%s': Error of UnBan request (account: %d, no change for unban date, ip: %s).\n"_fmt,
-                                        server[id].name, acc, ip);
+                                LOGIN_LOG("Char-server '%s' (ip: %s): Error of UnBan request (account: %d, no change for unban date).\n"_fmt,
+                                        server[id].name, ip, acc);
                             }
                             goto x272a_out;
                         }
                     }
-                    LOGIN_LOG("Char-server '%s': Error of UnBan request (account: %d not found, ip: %s).\n"_fmt,
-                            server[id].name, acc, ip);
+                    LOGIN_LOG("Char-server '%s' (ip: %s): Error of UnBan request (account: %d not found).\n"_fmt,
+                              server[id].name, ip, acc);
                 x272a_out:
                     ;
                 }
@@ -1293,17 +1288,17 @@ void parse_fromchar(Session *s)
                                 {
                                     status = 1;
                                     ad.pass = MD5_saltcrypt(new_pass, make_salt());
-                                    LOGIN_LOG("Char-server '%s': Change pass success (account: %d (%s), ip: %s.\n"_fmt,
-                                            server[id].name, acc,
-                                            ad.userid, ip);
+                                    LOGIN_LOG_AND_ECHO("Char-server '%s' (ip: %s): Change pass success (account: %d (%s)).\n"_fmt,
+                                            server[id].name, ip, acc,
+                                            ad.userid);
                                 }
                             }
                             else
                             {
                                 status = 2;
-                                LOGIN_LOG("Char-server '%s': Attempt to modify a pass failed, wrong password. (account: %d (%s), ip: %s).\n"_fmt,
-                                        server[id].name, acc,
-                                        ad.userid, ip);
+                                LOGIN_LOG_AND_ECHO("Char-server '%s' (ip: %s): Attempt to modify a pass failed, wrong password. (account: %d (%s)).\n"_fmt,
+                                        server[id].name, ip, acc,
+                                        ad.userid);
                             }
                             goto x2740_out;
                         }
@@ -1332,10 +1327,10 @@ void parse_fromchar(Session *s)
                     FPRINTF(stderr, "Detail (in hex):\n"_fmt);
                     packet_dump(s);
                 }
-                PRINTF("parse_fromchar: Unknown packet 0x%x (from a char-server)! -> disconnection.\n"_fmt,
+                LOGIN_LOG_AND_ECHO("parse_fromchar: Unknown packet 0x%x (from a char-server)! -> disconnection.\n"_fmt,
                         packet_id);
                 s->set_eof();
-                PRINTF("Char-server has been disconnected (unknown packet).\n"_fmt);
+                LOGIN_LOG_AND_ECHO("Char-server has been disconnected (unknown packet).\n"_fmt);
                 return;
             }
         }
@@ -2379,7 +2374,7 @@ bool lan_ip_check(IP4Address p)
 }
 
 //----------------------------------------------------------------------------------------
-// Default packet parsing (normal players or administation/char-server connexion requests)
+// Default packet parsing (normal players or administration/char-server connection requests)
 //----------------------------------------------------------------------------------------
 static
 void parse_login(Session *s)
@@ -2433,7 +2428,7 @@ void parse_login(Session *s)
 
                 if (!check_ip(ip))
                 {
-                    LOGIN_LOG("Connection refused: IP isn't authorised (deny/allow, ip: %s).\n"_fmt,
+                    LOGIN_LOG("Connection refused: IP isn't authorised (REJECTED IP: %s) (deny/allow).\n"_fmt,
                             ip);
 
                     Packet_Fixed<0x006a> fixed_6a;
@@ -2444,6 +2439,11 @@ void parse_login(Session *s)
                 }
 
                 result = mmo_auth(&account, s);
+                if (result == 1)
+                {
+                    // Incorrect password, log for anti-bruteforcing
+                    LOGIN_LOG_AND_ECHO("Incorrect password in login attempt for account %s (REJECTED IP: %s)\n"_fmt, account.userid, ip);
+                }
                 if (result == -1)
                 {
                     if (fixed.client_protocol_version < wrap<ClientVersion>(MIN_CLIENT_VERSION))
@@ -2466,11 +2466,11 @@ void parse_login(Session *s)
                         // int version_2 = RFIFOB(fd, 54);   // version 2
 
                         if (gm_level)
-                            PRINTF("Connection of the GM (level:%d) account '%s' accepted.\n"_fmt,
-                                    gm_level, account.userid);
+                            LOGIN_LOG_AND_ECHO("Connection of the GM (level:%d) account '%s' accepted (ip: %s).\n"_fmt,
+                                    gm_level, account.userid, ip);
                         else
-                            PRINTF("Connection of the account '%s' accepted.\n"_fmt,
-                                    account.userid);
+                            LOGIN_LOG_AND_ECHO("Connection of the account '%s' accepted (ip: %s).\n"_fmt,
+                                    account.userid, ip);
 
                         /*
                          * Add a 0x0063 packet, which contains the name of the update host.  The packet will only
@@ -2676,9 +2676,9 @@ void parse_login(Session *s)
                     }
                     {
                     x2710_refused:
-                        LOGIN_LOG("Connexion of the char-server '%s' REFUSED (account: %s, pass: %s, ip: %s)\n"_fmt,
-                                server_name, account.userid,
-                                account.passwd, ip);
+                        LOGIN_LOG_AND_ECHO("Connection of the char-server '%s' REJECTED (REJECTED IP: %s) (account: %s, pass: %s)\n"_fmt,
+                                server_name, ip, account.userid,
+                                account.passwd);
                         Packet_Fixed<0x2711> fixed_11;
                         fixed_11.code = 3;
                         send_fpacket<0x2711, 3>(s, fixed_11);
@@ -2697,7 +2697,7 @@ void parse_login(Session *s)
                 if (rv != RecvResult::Complete)
                     break;
 
-                LOGIN_LOG("Sending of the server version (ip: %s)\n"_fmt,
+                LOGIN_LOG("Sending the server version (ip: %s)\n"_fmt,
                         ip);
 
                 Packet_Fixed<0x7531> fixed_31;
@@ -2751,17 +2751,17 @@ void parse_login(Session *s)
                             s->set_parsers(SessionParsers{.func_parse= parse_admin, .func_delete= delete_admin});
                         }
                         else if (!login_conf.admin_state)
-                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REFUSED - remote administration is disabled (non encrypted password: %s, ip: %s)\n"_fmt,
+                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REJECTED - remote administration is disabled (non encrypted password: %s, ip: %s)\n"_fmt,
                                     password, ip);
                         else
-                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REFUSED - invalid password (non encrypted password: %s, ip: %s)\n"_fmt,
+                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REJECTED - invalid password (non encrypted password: %s, ip: %s)\n"_fmt,
                                     password, ip);
                     }
                     else
                     {
                         // encrypted password
                         {
-                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REFUSED - encrypted login is disabled (ip: %s)\n"_fmt,
+                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REJECTED - encrypted login is disabled (ip: %s)\n"_fmt,
                                     ip);
                         }
                     }
@@ -2880,14 +2880,14 @@ bool display_conf_warnings(void)
         // ACO::MUTUAL_FAILURE
         if (login_conf.allow.empty())
         {
-            PRINTF("***WARNING: The IP security order is 'mutual-failture'\n"_fmt);
+            PRINTF("***WARNING: The IP security order is 'mutual-failure'\n"_fmt);
             PRINTF("            (allow if in the allow list and not in the deny list).\n"_fmt);
             PRINTF("            But, NO IP IS AUTHORISED!\n"_fmt);
             rv = false;
         }
         else if (login_conf.deny.size() == 1 && login_conf.deny.front().mask() == IP4Address())
         {
-            PRINTF("***WARNING: The IP security order is mutual-failture\n"_fmt);
+            PRINTF("***WARNING: The IP security order is mutual-failure\n"_fmt);
             PRINTF("            (allow if in the allow list and not in the deny list).\n"_fmt);
             PRINTF("            But, you refuse ALL IP!\n"_fmt);
             rv = false;
@@ -3002,7 +3002,7 @@ void save_config_in_log(void)
     }
     else
     {                           // ACO_MUTUAL_FAILTURE
-        LOGIN_LOG("- with the IP security order: 'mutual-failture' (allow if in the allow list and not in the deny list).\n"_fmt);
+        LOGIN_LOG("- with the IP security order: 'mutual-failure' (allow if in the allow list and not in the deny list).\n"_fmt);
         if (login_conf.allow.empty())
         {
             LOGIN_LOG("  But, NO IP IS AUTHORISED!\n"_fmt);
