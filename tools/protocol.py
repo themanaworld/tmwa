@@ -5250,6 +5250,22 @@ def build_context():
             Password changed or not.
         ''',
     )
+    login_char.r(0x2742, 'auth send success',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u32, 'login id1'),
+            at(10, u32, 'login id2'),
+            at(14, ip4, 'ip'),
+            at(18, client_version, 'client protocol version'),
+        ],
+        fixed_size=22,
+        pre=[0x0065],
+        post=[0x006b, 0x006c],
+        desc='''
+            Notify login server that we accepted the auth data
+        ''',
+    )
 
     # TOC_CHARMAP
     # char map

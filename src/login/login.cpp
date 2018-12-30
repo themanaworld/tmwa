@@ -82,13 +82,21 @@
 
 namespace tmwa
 {
-DIAG_PUSH();
-DIAG_I(missing_noreturn);
-void SessionDeleter::operator()(SessionData *)
+namespace login
 {
-    assert(false && "login server does not have sessions anymore"_s);
+struct login_session_data : SessionData
+{
+    AccountId account_id;
+    int login_id1, login_id2;
+    IP4Address client_ip;
+    int auth_fifo_pos;
+};
+} // namespace login
+
+void SessionDeleter::operator()(SessionData *sd)
+{
+    really_delete1 static_cast<login::login_session_data *>(sd);
 }
-DIAG_POP();
 
 // out of namespace because ADL is dumb
 bool extract(XString str, login::ACO *aco)
@@ -837,6 +845,9 @@ void char_anti_freeze_system(TimerData *, tick_t)
     }
 }
 
+static
+bool lan_ip_check(IP4Address p);
+
 //--------------------------------
 // Packet parsing for char-servers
 //--------------------------------
@@ -865,79 +876,6 @@ void parse_fromchar(Session *s)
 
         switch (packet_id)
         {
-            case 0x2712:       // request from char-server to authentify an account
-            {
-                Packet_Fixed<0x2712> fixed;
-                rv = recv_fpacket<0x2712, 19>(s, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                {
-                    uint8_t invalid_code = 0x42; // 0x42 as default, for backward-compatibility with old clients
-                    AccountId acc = fixed.account_id;
-                    int i;
-                    for (i = 0; i < AUTH_FIFO_SIZE; i++)
-                    {
-                        if (auth_fifo[i].account_id == acc &&
-                            auth_fifo[i].login_id1 == fixed.login_id1 &&
-                            auth_fifo[i].login_id2 == fixed.login_id2 &&    // relate to the versions higher than 18
-                            auth_fifo[i].ip == fixed.ip
-                            && !auth_fifo[i].delflag)
-                        {
-                            auth_fifo[i].delflag = 1;
-                            LOGIN_LOG_AND_ECHO("Char-server '%s' (ip %s): authentication of the account %d accepted (ip: %s).\n"_fmt,
-                                    server[id].name, ip, acc, fixed.ip);
-                            for (const AuthData& ad : auth_data)
-                            {
-                                if (ad.account_id == acc)
-                                {
-                                    Packet_Head<0x2729> head_29;
-                                    head_29.account_id = acc;
-                                    std::vector<Packet_Repeat<0x2729>> repeat_29;
-                                    int j;
-                                    for (j = 0;
-                                         j < ad.account_reg2_num;
-                                         j++)
-                                    {
-                                        Packet_Repeat<0x2729> item;
-                                        item.name = ad.account_reg2[j].str;
-                                        item.value = ad.account_reg2[j].value;
-                                        repeat_29.push_back(item);
-                                    }
-                                    send_vpacket<0x2729, 8, 36>(s, head_29, repeat_29);
-
-                                    Packet_Fixed<0x2713> fixed_13;
-                                    fixed_13.account_id = acc;
-                                    fixed_13.invalid = 0;
-                                    fixed_13.email = ad.email;
-                                    fixed_13.client_protocol_version = auth_fifo[i].client_version;
-
-                                    send_fpacket<0x2713, 55>(s, fixed_13);
-                                    goto x2712_out;
-                                }
-                            }
-                            invalid_code = 2; // login auth data not found
-                            break;
-                        }
-                    }
-                    // authentification not found
-                    {
-                        LOGIN_LOG_AND_ECHO("Char-server '%s' (ip %s): authentication of the account %d REJECTED (REJECTED IP: %s).\n"_fmt,
-                                server[id].name, ip, acc, fixed.ip);
-
-                        Packet_Fixed<0x2713> fixed_13;
-                        fixed_13.account_id = acc;
-                        fixed_13.invalid = invalid_code; // 0x42: login session not found
-                        // fixed_13.email
-                        // fixed_13.connect_until
-
-                        send_fpacket<0x2713, 55>(s, fixed_13);
-                    }
-                }
-            }
-        x2712_out:
-            break;
-
             case 0x2714:
             {
                 Packet_Fixed<0x2714> fixed;
@@ -1310,6 +1248,79 @@ void parse_fromchar(Session *s)
                     send_fpacket<0x2741, 7>(s, fixed_41);
                 }
 
+                break;
+            }
+
+            case 0x2742:
+            {
+                Packet_Fixed<0x2742> fixed;
+                rv = recv_fpacket<0x2742, 22>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                for (io::FD i : iter_fds())
+                {
+                    Session *s2 = get_session(i);
+                    if (!s2)
+                        continue;
+                    struct login_session_data *sd = static_cast<login_session_data *>(s2->session_data.get());
+
+                    if (sd && sd->account_id == fixed.account_id &&
+                        sd->login_id1 == fixed.login_id1 &&
+                        sd->login_id2 == fixed.login_id2 &&
+                        sd->client_ip == fixed.ip &&
+                        auth_fifo[sd->auth_fifo_pos].account_id == fixed.account_id)
+                    {
+                        auth_fifo[sd->auth_fifo_pos].consumed_by++; // one char server consumed this
+
+                        LOGIN_LOG_AND_ECHO("Char server %i accepted auth details for account %d [%s].\n"_fmt,
+                                    id, fixed.account_id, fixed.ip);
+
+                        int server_count = 0;
+                        // FIXME: this is silly, we should have a active_char_servers global var
+                        for (int k = 0; k < MAX_SERVERS; k++)
+                            if (server_session[k])
+                                server_count++;
+
+                        if (auth_fifo[sd->auth_fifo_pos].consumed_by == server_count) {
+                            auth_fifo[sd->auth_fifo_pos].delflag = 1;
+
+                            LOGIN_LOG_AND_ECHO("All char servers accepted auth details for account %d [%s], sending authorization to client...\n"_fmt,
+                                    fixed.account_id, fixed.ip);
+
+                            // Load list of char servers into outbound packet
+                            std::vector<Packet_Repeat<0x0069>> repeat_69;
+                            for (int e = 0; e < MAX_SERVERS; e++)
+                            {
+                                if (server_session[e])
+                                {
+                                    Packet_Repeat<0x0069> info;
+                                    if (lan_ip_check(ip))
+                                        info.ip = login_lan_conf.lan_char_ip;
+                                    else
+                                        info.ip = server[e].ip;
+                                    info.port = server[e].port;
+                                    info.server_name = server[e].name;
+                                    info.users = server[e].users;
+                                    info.maintenance = 0; //maintenance;
+                                    info.is_new = 0; //is_new;
+                                    repeat_69.push_back(info);
+                                }
+                            }
+
+                            Packet_Head<0x0069> head_69;
+                            head_69.login_id1 = fixed.login_id1;
+                            head_69.account_id = fixed.account_id;
+                            head_69.login_id2 = fixed.login_id2;
+                            head_69.unused = 0;
+                            //head_69.last_login_string = account.lastlogin;
+                            head_69.unused2 = 0;
+                            head_69.sex = SEX::UNSPECIFIED;
+                            send_vpacket<0x0069, 47, 32>(s2, head_69, repeat_69);
+                        }
+                        break;
+                    }
+                }
                 break;
             }
 
@@ -2491,74 +2502,51 @@ void parse_login(Session *s)
                             }
                         }
 
-                        // Load list of char servers into outbound packet
-                        std::vector<Packet_Repeat<0x0069>> repeat_69;
-                        //if (fixed.flags & VERSION_2_SERVERORDER)
+                        // send to char server and wait for a reply
+                        bool has_char_server = false;
+                        // FIXME: this is silly, we should have a active_char_servers global var
                         for (int i = 0; i < MAX_SERVERS; i++)
                         {
                             if (server_session[i])
                             {
-                                Packet_Repeat<0x0069> info;
-                                if (lan_ip_check(ip))
-                                    info.ip = login_lan_conf.lan_char_ip;
-                                else
-                                    info.ip = server[i].ip;
-                                info.port = server[i].port;
-                                info.server_name = server[i].name;
-                                info.users = server[i].users;
-                                info.maintenance = 0; //maintenance;
-                                info.is_new = 0; //is_new;
-                                repeat_69.push_back(info);
+                                has_char_server = true;
+                                break;
                             }
                         }
-                        // if at least 1 char-server
-                        if (repeat_69.size())
+
+                        if (has_char_server)
                         {
-                            // pre-send the auth validation to char server
-                            {
-                                Packet_Fixed<0x2715> fixed_27;
-                                fixed_27.account_id = account.account_id;
-                                fixed_27.login_id1 = account.login_id1;
-                                fixed_27.login_id2 = account.login_id2;
-                                fixed_27.ip = s->client_ip;
-                                fixed_27.client_protocol_version = fixed.client_protocol_version;
-
-                                for (Session *ss : iter_char_sessions())
-                                    send_fpacket<0x2715, 22>(ss, fixed_27);
-                            }
-
-                            // since char server already knows our auth ids this
-                            // shouldn't be necessary, but we're keeping it just
-                            // in case, because why not
-                            {
+                            { // this will be verified after we receive 0x2742
                                 if (auth_fifo_pos >= AUTH_FIFO_SIZE)
                                     auth_fifo_pos = 0;
-                                auth_fifo[auth_fifo_pos].account_id =
-                                    account.account_id;
-                                auth_fifo[auth_fifo_pos].login_id1 =
-                                    account.login_id1;
-                                auth_fifo[auth_fifo_pos].login_id2 =
-                                    account.login_id2;
+                                auth_fifo[auth_fifo_pos].account_id = account.account_id;
+                                auth_fifo[auth_fifo_pos].login_id1 = account.login_id1;
+                                auth_fifo[auth_fifo_pos].login_id2 = account.login_id2;
                                 auth_fifo[auth_fifo_pos].sex = account.sex;
                                 auth_fifo[auth_fifo_pos].delflag = 0;
-                                auth_fifo[auth_fifo_pos].ip =
-                                    s->client_ip;
-                                auth_fifo[auth_fifo_pos].client_version =
-                                    fixed.client_protocol_version;
+                                auth_fifo[auth_fifo_pos].consumed_by = 0; // 0 char servers replied yet
+                                auth_fifo[auth_fifo_pos].ip = s->client_ip;
+                                auth_fifo[auth_fifo_pos].client_version = fixed.client_protocol_version;
                                 auth_fifo_pos++;
+
+                                s->session_data = make_unique<login_session_data, SessionDeleter>();
+                                struct login_session_data *sd = static_cast<login_session_data *>(s->session_data.get());
+                                sd->account_id = account.account_id;
+                                sd->login_id1 = account.login_id1;
+                                sd->login_id2 = account.login_id2;
+                                sd->client_ip = s->client_ip;
+                                sd->auth_fifo_pos = auth_fifo_pos - 1;
                             }
 
-                            Packet_Head<0x0069> head_69;
-                            head_69.login_id1 = account.login_id1;
-                            head_69.account_id = account.account_id;
-                            head_69.login_id2 = account.login_id2;
-                            head_69.unused = 0;    // in old version, that was for ip (not longer used)
-                            head_69.last_login_string = account.lastlogin;    // in old version, that was for name (not longer used)
-                            head_69.unused2 = 0;
-                            head_69.sex = account.sex;
-                            send_vpacket<0x0069, 47, 32>(s, head_69, repeat_69);
+                            Packet_Fixed<0x2715> fixed_27;
+                            fixed_27.account_id = account.account_id;
+                            fixed_27.login_id1 = account.login_id1;
+                            fixed_27.login_id2 = account.login_id2;
+                            fixed_27.ip = s->client_ip;
+                            fixed_27.client_protocol_version = fixed.client_protocol_version;
 
-                            // if no char-server, don't send void list of servers, just disconnect the player with proper message
+                            for (Session *ss : iter_char_sessions())
+                                send_fpacket<0x2715, 22>(ss, fixed_27);
                         }
                         else
                         {

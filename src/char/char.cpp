@@ -1275,6 +1275,20 @@ void parse_tologin(Session *ls)
                 auth_fifo_iter->ip = fixed.ip;
                 auth_fifo_iter->client_version = fixed.client_protocol_version;
                 auth_fifo_iter++;
+
+                if (login_session)
+                {
+                    // tell login server we accepted the auth details
+                    Packet_Fixed<0x2742> fixed_2742;
+                    fixed_2742.account_id = fixed.account_id;
+                    fixed_2742.login_id1 = fixed.login_id1;
+                    fixed_2742.login_id2 = fixed.login_id2;
+                    fixed_2742.ip = fixed.ip;
+                    fixed_2742.client_protocol_version = fixed.client_protocol_version;
+                    send_fpacket<0x2742, 22>(login_session, fixed_2742);
+
+                    CHAR_LOG_AND_ECHO("Received auth details for account %d [%s], replying to login server\n"_fmt, fixed.account_id, fixed.ip);
+                }
                 break;
             }
 
@@ -1705,7 +1719,7 @@ void parse_frommap(Session *ms)
                         // here, it's the only area where it's possible that we doesn't know login_id2 (map-server asks just after 0x72 packet, that doesn't given the value)
                         (afi.login_id2 == login_id2 || login_id2 == 0) &&  // relate to the versions higher than 18
                         afi.ip == ip
-                        && !afi.delflag)
+                        && afi.delflag == 3)
                     {
                         CharPair *cp = nullptr;
                         for (CharPair& cdi : char_keys)
@@ -2208,7 +2222,7 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             auth_fifo_iter->char_id = ck->char_id;
             auth_fifo_iter->login_id1 = sd->login_id1;
             auth_fifo_iter->login_id2 = sd->login_id2;
-            auth_fifo_iter->delflag = 0;
+            auth_fifo_iter->delflag = 3;
             auth_fifo_iter->sex = sd->sex;
             auth_fifo_iter->ip = s->client_ip;
             auth_fifo_iter->client_version = sd->client_version;
@@ -2343,16 +2357,9 @@ void parse_char(Session *s)
                     // authentification not found
                     {
                         {
-                            // there is always a login-server
-                            Packet_Fixed<0x2712> fixed_12;
-                            fixed_12.account_id = sd->account_id;
-                            fixed_12.login_id1 = sd->login_id1;
-                            fixed_12.login_id2 = sd->login_id2;  // relate to the versions higher than 18
-                            fixed_12.sex = sd->sex;
-                            fixed_12.ip = s->client_ip;
-                            send_fpacket<0x2712, 19>(login_session, fixed_12);
-
-                            CHAR_LOG_AND_ECHO("Account %d [%s] authentication deferred, sending request to login-server for confirmation\n"_fmt, account_id, ip);
+                            if (sd)
+                                CHAR_LOG_AND_ECHO("Unauthenticated attempt to request chars from account %d (REJECTED IP: %s)!\n"_fmt, sd->account_id, ip);
+                            s->set_eof();
                         }
                     }
                 }
