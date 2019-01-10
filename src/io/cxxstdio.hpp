@@ -81,14 +81,14 @@ namespace cxxstdio
         }
     };
 
-#define XPRINTF(out, fmt, ...)                                              \
-    ({                                                                      \
-        struct format_impl                                                  \
-        {                                                                   \
-            constexpr static                                                \
-            FormatString print_format() { return fmt; }                     \
-        };                                                                  \
-        cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);  \
+#define XPRINTF(out, fmt, ...)                                                      \
+    ({                                                                              \
+        struct format_impl                                                          \
+        {                                                                           \
+            constexpr static                                                        \
+            FormatString print_format() __asm__("_print_format") { return fmt; }    \
+        };                                                                          \
+        cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);          \
     })
 
 #define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)

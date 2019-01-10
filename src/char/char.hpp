@@ -71,10 +71,10 @@ void char_log(XString line);
 
 #define CHAR_LOG(fmt, ...)  \
     char_log(STRPRINTF(fmt, ## __VA_ARGS__))
-#define CHAR_LOG_AND_ECHO(...) \
-    do { \
-      PRINTF(__VA_ARGS__); \
-      CHAR_LOG(__VA_ARGS__); \
+#define CHAR_LOG_AND_ECHO(...)  \
+    do {                        \
+      PRINTF(__VA_ARGS__);      \
+      CHAR_LOG(__VA_ARGS__);    \
     } while (0)
 } // namespace char_
 } // namespace tmwa

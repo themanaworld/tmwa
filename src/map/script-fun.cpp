@@ -4150,8 +4150,10 @@ void builtin_npcareawarp(ScriptState *st)
         }
     }
     else
+    {
         x = random_::in(x0, x1);
         y = random_::in(y0, y1);
+    }
 
     npc_enable(npc, 0);
     map_delblock(nd); /* [Freeyorp] */

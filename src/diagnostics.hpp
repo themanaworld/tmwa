@@ -771,7 +771,7 @@ namespace tmwa
 /// Warn when a noexcept expression evaluates to
 /// false even though the expression can't actually
 /// throw
-#define DIAG_noexcept "-Wnoexcept"
+#define DIAG_noexcept "-Wno-noexcept-type -Wnoexcept"
 #if GCC
 # define HAS_DIAG_noexcept 1
 #else

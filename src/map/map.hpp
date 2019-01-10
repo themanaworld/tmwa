@@ -584,10 +584,10 @@ void map_log(XString line);
 #define MAP_LOG(format, ...)    \
     map_log(STRPRINTF(format, ## __VA_ARGS__))
 
-#define MAP_LOG_AND_ECHO(...) \
-    do { \
-      PRINTF(__VA_ARGS__); \
-      MAP_LOG(__VA_ARGS__); \
+#define MAP_LOG_AND_ECHO(...)   \
+    do {                        \
+      PRINTF(__VA_ARGS__);      \
+      MAP_LOG(__VA_ARGS__);     \
     } while (0)
 
 #define MAP_LOG_PC(sd, fmt, ...)    \

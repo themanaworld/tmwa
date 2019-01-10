@@ -1992,7 +1992,7 @@ def build_context():
         ],
         fixed_size=17,
         pre=[0x0069, 0x0092, 0x00b3],
-        post=[0x006b, 0x006c, 0x2712, 0x2715, 0x2716],
+        post=[0x006b, 0x006c, 0x2712, 0x2715, 0x2716, 0x2742],
         desc='''
             Begin connection to the char server, based on keys the login
             server gave us.
@@ -2117,7 +2117,7 @@ def build_context():
             at(0, char_select, 'char select'),
         ],
         repeat_size=106,
-        pre=[0x0065, 0x2713, 0x2715],
+        pre=[0x0065, 0x2713, 0x2715, 0x2742],
         post=[PRETTY],
         xpost=[0x0066, 0x0067, 0x0068],
         desc='''
@@ -2131,7 +2131,7 @@ def build_context():
             at(2, u8, 'code'),
         ],
         fixed_size=3,
-        pre=[0x0065, 0x2713, 0x2715],
+        pre=[0x0065, 0x2713, 0x2715, 0x2742],
         post=[PRETTY],
         desc='''
             Refuse connection.

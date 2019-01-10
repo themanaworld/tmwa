@@ -145,9 +145,9 @@ struct mmo_account
 #define LOGIN_LOG(fmt, ...) \
     tmwa::login::login_log(STRPRINTF(fmt, ## __VA_ARGS__))
 #define LOGIN_LOG_AND_ECHO(...) \
-    do { \
-      PRINTF(__VA_ARGS__); \
-      LOGIN_LOG(__VA_ARGS__); \
+    do {                        \
+      PRINTF(__VA_ARGS__);      \
+      LOGIN_LOG(__VA_ARGS__);   \
     } while (0)
 static
 void login_log(XString line)

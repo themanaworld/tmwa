@@ -33,7 +33,7 @@ PRAGMA(GCC diagnostic warning "-Wextra");
 PRAGMA(GCC diagnostic warning "-Wunused");
 PRAGMA(GCC diagnostic warning "-Wformat");
 
-DIAG_E(abi);
+DIAG_W(abi);
 DIAG_I(abi_tag);
 DIAG_E(address);
 DIAG_I(aggregate_return);
