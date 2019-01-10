@@ -1266,16 +1266,28 @@ void parse_tologin(Session *ls)
                 if (rv != RecvResult::Complete)
                     break;
 
-                if (auth_fifo_iter == auth_fifo.end())
-                    auth_fifo_iter = auth_fifo.begin();
-                auth_fifo_iter->account_id = fixed.account_id;
-                auth_fifo_iter->char_id = CharId();
-                auth_fifo_iter->login_id1 = fixed.login_id1;
-                auth_fifo_iter->login_id2 = fixed.login_id2;
-                auth_fifo_iter->delflag = 2;
-                auth_fifo_iter->ip = fixed.ip;
-                auth_fifo_iter->client_version = fixed.client_protocol_version;
-                auth_fifo_iter++;
+                // re-use any previous fifo entry instead of flooding the queue
+                AuthFifoEntry *found = nullptr;
+                for (AuthFifoEntry& afi : auth_fifo)
+                    if (afi.account_id == fixed.account_id)
+                        found = &afi; // found: update entry
+
+                // not found: add new entry
+                if (found == nullptr)
+                {
+                    if (auth_fifo_iter == auth_fifo.end())
+                        auth_fifo_iter = auth_fifo.begin();
+                    found = auth_fifo_iter;
+                    auth_fifo_iter++;
+                }
+
+                found->account_id = fixed.account_id;
+                found->char_id = CharId();
+                found->login_id1 = fixed.login_id1;
+                found->login_id2 = fixed.login_id2;
+                found->delflag = 2;
+                found->ip = fixed.ip;
+                found->client_version = fixed.client_protocol_version;
 
                 if (login_session)
                 {
