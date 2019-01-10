@@ -39,7 +39,6 @@ namespace tmwa
         extern Array<Session *, MAX_SERVERS> server_session;
         extern Array<int, MAX_SERVERS> server_freezeflag;
         extern Session *login_session;
-        extern Array<AuthFifo, AUTH_FIFO_SIZE> auth_fifo;
         extern int auth_fifo_pos;
         extern std::vector<AuthData> auth_data;
         extern Map<AccountId, GM_Account> gm_account_db;

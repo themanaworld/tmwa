@@ -1002,12 +1002,6 @@ void parse_fromchar(Session *s)
                                     {
                                         send_fpacket<0x2731, 11>(ss, fixed_31);
                                     }
-
-                                    for (int j = 0; j < AUTH_FIFO_SIZE; j++)
-                                    {
-                                        if (auth_fifo[j].account_id == acc)
-                                            auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
-                                    }
                                 }
                                 ad.state = statut;
                             }
@@ -1077,12 +1071,6 @@ void parse_fromchar(Session *s)
                                         for (Session *ss : iter_char_sessions())
                                         {
                                             send_fpacket<0x2731, 11>(ss, fixed_31);
-                                        }
-
-                                        for (int j = 0; j < AUTH_FIFO_SIZE; j++)
-                                        {
-                                            if (auth_fifo[j].account_id == acc)
-                                                auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                                         }
                                     }
                                     else
@@ -1623,11 +1611,6 @@ void parse_admin(Session *s)
                                 {
                                     send_fpacket<0x2731, 11>(ss, fixed_31);
                                 }
-
-                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
-                                    if (auth_fifo[j].account_id ==
-                                        ad->account_id)
-                                        auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                             }
                             ad->state = statut;
                             ad->error_message = error_message;
@@ -1738,12 +1721,6 @@ void parse_admin(Session *s)
                             if (ad->sex != sex)
                             {
                                 fixed_3d.account_id = ad->account_id;
-                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
-                                {
-                                    if (auth_fifo[j].account_id ==
-                                        ad->account_id)
-                                        auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
-                                }
                                 ad->sex = sex;
                                 LOGIN_LOG("'ladmin': Modification of a sex (account: %s, new sex: %c, ip: %s)\n"_fmt,
                                         ad->userid, sex_to_char(sex), ip);
@@ -2074,13 +2051,6 @@ void parse_admin(Session *s)
                                 {
                                     send_fpacket<0x2731, 11>(ss, fixed_31);
                                 }
-
-                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
-                                {
-                                    if (auth_fifo[j].account_id ==
-                                        ad->account_id)
-                                        auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
-                                }
                             }
                             ad->ban_until_time = timestamp;
                         }
@@ -2158,13 +2128,6 @@ void parse_admin(Session *s)
                                     for (Session *ss : iter_char_sessions())
                                     {
                                         send_fpacket<0x2731, 11>(ss, fixed_31);
-                                    }
-
-                                    for (int j = 0; j < AUTH_FIFO_SIZE; j++)
-                                    {
-                                        if (auth_fifo[j].account_id ==
-                                            ad->account_id)
-                                            auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                                     }
                                 }
                                 ad->ban_until_time = timestamp;
@@ -3103,8 +3066,6 @@ int do_init(Slice<ZString> argv)
     login::save_config_in_log();
     runflag &= login::lan_check();
 
-    for (int i = 0; i < login::AUTH_FIFO_SIZE; i++)
-        login::auth_fifo[i].delflag = 1;
     for (int i = 0; i < login::MAX_SERVERS; i++)
         login::server_session[i] = nullptr;
 

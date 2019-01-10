@@ -39,7 +39,6 @@ namespace login
 {
     struct LoginConf;
     struct LoginLanConf;
-    struct AuthFifo;
     struct mmo_char_server;
     struct AuthData;
     // meh, add more when I feel like it

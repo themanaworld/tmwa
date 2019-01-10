@@ -71,16 +71,5 @@ struct mmo_char_server
     uint16_t port;
     uint16_t users;
 };
-
-struct AuthFifo
-{
-    AccountId account_id;
-    int login_id1, login_id2;
-    IP4Address ip;
-    SEX sex;
-    int delflag;
-    int consumed_by;
-    ClientVersion client_version;
-};
 } // namespace login
 } // namespace tmwa

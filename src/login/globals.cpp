@@ -42,9 +42,6 @@ namespace tmwa
         Array<int, MAX_SERVERS> server_freezeflag;
         Session *login_session;
         // minimum level of player/GM (0: player, 1-99: gm) to connect on the server
-        Array<AuthFifo, AUTH_FIFO_SIZE> auth_fifo;
-        // TODO replace with auto_fifo_it
-        int auth_fifo_pos = 0;
         std::vector<AuthData> auth_data;
         // TODO make this just be Map<AccountId, GmLevel>
         Map<AccountId, GM_Account> gm_account_db;
