@@ -164,7 +164,7 @@ void delete_login(Session *sess)
     (void)sess;
 }
 
-std::vector<IP4Address> recent_ips;
+static std::vector<IP4Address> recent_ips;
 
 static
 void conn_limit_empty(TimerData *, tick_t)
@@ -2355,6 +2355,16 @@ bool lan_ip_check(IP4Address p)
     return lancheck;
 }
 
+static
+void login_waitclose(TimerData *, tick_t, Session *s)
+{
+    if (s)
+    {
+        LOGIN_LOG_AND_ECHO("Idle session: disconnecting IP %s.\n"_fmt, s->client_ip);
+        s->set_eof();
+    }
+}
+
 //----------------------------------------------------------------------------------------
 // Default packet parsing (normal players or administration/char-server connection requests)
 //----------------------------------------------------------------------------------------
@@ -2367,6 +2377,15 @@ void parse_login(Session *s)
     IP4Address ip = s->client_ip;
     RecvResult rv = RecvResult::Complete;
     uint16_t packet_id;
+
+    if (!login_lan_conf.lan_subnet.covers(ip) && !s->timed_close)
+    {
+        // there is no valid reason to stay connected to login-server longer
+        // than a few seconds, even with huge network lag
+        s->timed_close = Timer(gettick() + 90_s, std::bind(login_waitclose,
+            std::placeholders::_1, std::placeholders::_2, s));
+    }
+
     while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
         if (login_conf.display_parse_login)
