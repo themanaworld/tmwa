@@ -523,6 +523,8 @@ def build_config():
     login_conf.opt('main_server', ServerName, '{}')
     login_conf.opt('userid', AccountName, '{}')
     login_conf.opt('passwd', AccountPass, '{}')
+    login_conf.opt('conn_limit_enable', bool, 'true')
+    login_conf.opt('conn_limit_interval', seconds, '5_s')
 
 
     admin_conf.opt('login_ip', IP4Address, 'IP4_LOCALHOST')

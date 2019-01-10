@@ -139,7 +139,6 @@ struct mmo_account
     SEX sex;
 };
 
-
 //------------------------------
 // Writing function of logs file
 //------------------------------
@@ -163,6 +162,14 @@ static
 void delete_login(Session *sess)
 {
     (void)sess;
+}
+
+std::vector<IP4Address> recent_ips;
+
+static
+void conn_limit_empty(TimerData *, tick_t)
+{
+    recent_ips.clear();
 }
 
 static
@@ -2413,6 +2420,22 @@ void parse_login(Session *s)
                     break;
                 }
 
+                if (login_conf.conn_limit_enable && !login_lan_conf.lan_subnet.covers(ip))
+                {
+                    if (std::find(recent_ips.begin(), recent_ips.end(), ip) != recent_ips.end())
+                    {
+                        LOGIN_LOG_AND_ECHO("Connection refused: Login request flood detected. (REJECTED IP: %s)\n"_fmt, ip);
+                        Packet_Fixed<0x0081> fixed_81;
+                        fixed_81.error_code = 2; // already logged in (for lack of better error message)
+                        send_fpacket<0x0081, 3>(s, fixed_81);
+                        break;
+                    }
+                    else
+                    {
+                        recent_ips.push_back(ip);
+                    }
+                }
+
                 result = mmo_auth(&account, s);
                 if (result == 1)
                 {
@@ -3085,6 +3108,14 @@ int do_init(Slice<ZString> argv)
         Timer(gettick() + 1_s,
                 login::char_anti_freeze_system,
                 login::login_conf.anti_freeze_interval
+        ).detach();
+    }
+
+    if (login::login_conf.conn_limit_enable)
+    {
+        Timer(gettick() + 1_s,
+                login::conn_limit_empty,
+                login::login_conf.conn_limit_interval
         ).detach();
     }
 
