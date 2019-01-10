@@ -89,7 +89,8 @@ struct login_session_data : SessionData
     AccountId account_id;
     int login_id1, login_id2;
     IP4Address client_ip;
-    int auth_fifo_pos;
+    bool verified;
+    short consumed_by;
 };
 } // namespace login
 
@@ -1269,9 +1270,9 @@ void parse_fromchar(Session *s)
                         sd->login_id1 == fixed.login_id1 &&
                         sd->login_id2 == fixed.login_id2 &&
                         sd->client_ip == fixed.ip &&
-                        auth_fifo[sd->auth_fifo_pos].account_id == fixed.account_id)
+                        sd->verified == true)
                     {
-                        auth_fifo[sd->auth_fifo_pos].consumed_by++; // one char server consumed this
+                        sd->consumed_by++; // one char server consumed this
 
                         LOGIN_LOG_AND_ECHO("Char server %i accepted auth details for account %d [%s].\n"_fmt,
                                     id, fixed.account_id, fixed.ip);
@@ -1282,8 +1283,8 @@ void parse_fromchar(Session *s)
                             if (server_session[k])
                                 server_count++;
 
-                        if (auth_fifo[sd->auth_fifo_pos].consumed_by == server_count) {
-                            auth_fifo[sd->auth_fifo_pos].delflag = 1;
+                        if (sd->consumed_by == server_count) {
+                            sd->verified = false; // only valid for one authentication
 
                             LOGIN_LOG_AND_ECHO("All char servers accepted auth details for account %d [%s], sending authorization to client...\n"_fmt,
                                     fixed.account_id, fixed.ip);
@@ -2517,25 +2518,14 @@ void parse_login(Session *s)
                         if (has_char_server)
                         {
                             { // this will be verified after we receive 0x2742
-                                if (auth_fifo_pos >= AUTH_FIFO_SIZE)
-                                    auth_fifo_pos = 0;
-                                auth_fifo[auth_fifo_pos].account_id = account.account_id;
-                                auth_fifo[auth_fifo_pos].login_id1 = account.login_id1;
-                                auth_fifo[auth_fifo_pos].login_id2 = account.login_id2;
-                                auth_fifo[auth_fifo_pos].sex = account.sex;
-                                auth_fifo[auth_fifo_pos].delflag = 0;
-                                auth_fifo[auth_fifo_pos].consumed_by = 0; // 0 char servers replied yet
-                                auth_fifo[auth_fifo_pos].ip = s->client_ip;
-                                auth_fifo[auth_fifo_pos].client_version = fixed.client_protocol_version;
-                                auth_fifo_pos++;
-
                                 s->session_data = make_unique<login_session_data, SessionDeleter>();
                                 struct login_session_data *sd = static_cast<login_session_data *>(s->session_data.get());
                                 sd->account_id = account.account_id;
                                 sd->login_id1 = account.login_id1;
                                 sd->login_id2 = account.login_id2;
                                 sd->client_ip = s->client_ip;
-                                sd->auth_fifo_pos = auth_fifo_pos - 1;
+                                sd->verified = true;
+                                sd->consumed_by = 0;
                             }
 
                             Packet_Fixed<0x2715> fixed_27;
