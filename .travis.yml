@@ -10,6 +10,11 @@ notifications:
   email:
     on_success: changed
     on_failure: always
+  irc:
+    channels:
+      - "ircs://chat.freenode.net:8000/#evol-dev"
+    on_success: change
+    on_failure: always
 
 ## Use the container-based infrastructure
 sudo: required
