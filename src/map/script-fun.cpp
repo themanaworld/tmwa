@@ -4637,7 +4637,9 @@ void builtin_getmap(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
-    nullpo_retv(sd);
+    if (!sd || !as_raw_pointer(Some(sd->bl_m)) || sd->bl_m == borrow(undefined_gat))
+        return;
+
     push_str<ScriptDataStr>(st->stack, sd->bl_m->name_);
 }
 

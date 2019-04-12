@@ -833,6 +833,8 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->mute.whisper = 0;
     sd->mute.guild = 0;
 
+    sd->automod = AutoMod::off;
+
     for (tick_t& t : sd->flood_rates)
         t = tick_t();
     sd->packet_flood_reset_due = tick_t();
@@ -2414,6 +2416,27 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
             return;
         }
 
+        // Prsm-sitting countermeasures
+        dumb_ptr<block_list> d_bl = sd->bl_m->blocks.ref((x + dx) / BLOCK_SIZE, (y + dy) / BLOCK_SIZE).normal;
+        for (; d_bl; d_bl = d_bl->bl_next)
+        {
+            if (d_bl->bl_type == BL::PC && d_bl->bl_x == (x + dx) && d_bl->bl_y == (y + dy))
+            {
+                dumb_ptr<map_session_data> d_sd = d_bl->is_player();
+
+                if (pc_issit(d_sd))
+                {
+                    switch (d_sd->automod)
+                    {
+                    case AutoMod::autoblock:
+                        clif_update_collision(sd, x + dx, y + dy, x + dx, y + dy, sd->bl_m->name_, 5); // BlockType::PLAYERWALL
+                        pc_stop_walking(sd, 1);
+                        return;
+                    }
+                }
+            }
+        }
+
         moveblock = (x / BLOCK_SIZE != (x + dx) / BLOCK_SIZE
                      || y / BLOCK_SIZE != (y + dy) / BLOCK_SIZE);
 
@@ -3571,6 +3594,9 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::MUTE_GUILD:
             val = sd ? sd->mute.guild : 0;
             break;
+        case SP::AUTOMOD:
+            val = sd ? (int)sd->automod : 0;
+            break;
     }
 
     return val;
@@ -3815,6 +3841,10 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
         case SP::MUTE_GUILD:
             nullpo_retz(sd);
             sd->mute.guild = (val == 1);
+            break;
+        case SP::AUTOMOD:
+            nullpo_retz(sd);
+            sd->automod = (AutoMod)val;
             break;
     }
 
@@ -5205,6 +5235,9 @@ void pc_setstand(dumb_ptr<map_session_data> sd)
     nullpo_retv(sd);
 
     sd->state.dead_sit = 0;
+
+    if (sd->automod == AutoMod::autoblock)
+        clif_gm_collision(sd, 0);
 }
 
 static

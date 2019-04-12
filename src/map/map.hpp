@@ -121,6 +121,15 @@ struct quick_regeneration
     unsigned char tickdelay;    // number of ticks to next update
 };
 
+enum class AutoMod
+{
+    off = 0,
+    autokill,
+    automove,
+    autoblock,
+    autokick,
+};
+
 struct map_session_data : block_list, SessionData
 {
     struct
@@ -297,6 +306,8 @@ struct map_session_data : block_list, SessionData
         unsigned whisper:1;
         unsigned guild:1;
     } mute;
+
+    AutoMod automod;
 
     tick_t flood_rates[0x220];
     tick_t packet_flood_reset_due;

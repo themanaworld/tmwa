@@ -480,6 +480,7 @@ enum class SP : uint16_t
     MUTE_WHISPER                = 1083,
     MUTE_PARTY                  = 1084,
     MUTE_GUILD                  = 1085,
+    AUTOMOD                     = 1086,
 };
 
 constexpr

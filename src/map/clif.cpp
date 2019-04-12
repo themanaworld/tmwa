@@ -35,6 +35,8 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../generic/random.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
 #include "../io/write.hpp"
@@ -610,6 +612,13 @@ int clif_clearchar(dumb_ptr<block_list> bl, BeingRemoveWhy type)
         Buffer buf = create_fpacket<0x0080, 7>(fixed_80);
         clif_send(buf, bl,
                    type == BeingRemoveWhy::DEAD ? SendWho::AREA : SendWho::AREA_WOS);
+    }
+
+    if (bl->bl_type == BL::PC)
+    {
+        dumb_ptr<map_session_data> sd = bl->is_player();
+        if (sd->automod == AutoMod::autoblock)
+            clif_gm_collision(sd, 0);
     }
 
     return 0;
@@ -2499,6 +2508,9 @@ void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
 
     clif_changelook_accessories(sd, dstsd);
     clif_changelook_accessories(dstsd, sd);
+
+    if (dstsd->automod == AutoMod::autoblock && pc_issit(dstsd))
+        clif_update_collision(sd, dstsd->bl_x, dstsd->bl_y, dstsd->bl_x, dstsd->bl_y, dstsd->bl_m->name_, 5); // BlockType::PLAYERWALL
 }
 
 /*==========================================
@@ -2759,6 +2771,9 @@ void clif_pcoutsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             {
                 clif_clearchar_id(dstsd->bl_id, BeingRemoveWhy::GONE, sd->sess);
                 clif_clearchar_id(sd->bl_id, BeingRemoveWhy::GONE, dstsd->sess);
+
+                if (dstsd->automod == AutoMod::autoblock)
+                    clif_update_collision(sd, dstsd->bl_x, dstsd->bl_y, dstsd->bl_x, dstsd->bl_y, dstsd->bl_m->name_, 0);
             }
             break;
         case BL::NPC:
@@ -3369,6 +3384,61 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
     fixed_8a.damage_type = DamageType::SIT;
     Buffer buf = create_fpacket<0x008a, 29>(fixed_8a);
     clif_send(buf, sd, SendWho::AREA);
+
+    if (sd->automod == AutoMod::autoblock)
+        clif_gm_collision(sd, 5);
+
+    // Prsm-sitting countermeasures
+    dumb_ptr<block_list> d_bl = sd->bl_m->blocks.ref(sd->bl_x / BLOCK_SIZE, sd->bl_y / BLOCK_SIZE).normal;
+    for (; d_bl; d_bl = d_bl->bl_next)
+    {
+        if (d_bl->bl_type == BL::PC && d_bl->bl_x == sd->bl_x && d_bl->bl_y == sd->bl_y && d_bl->bl_id != sd->bl_id)
+        {
+            dumb_ptr<map_session_data> d_sd = d_bl->is_player();
+
+            switch (d_sd->automod)
+            {
+            case AutoMod::autoblock:
+                // at this point, this should be impossible, so fallback to kill
+            case AutoMod::autokill:
+                pc_damage(nullptr, sd, sd->status.hp);
+                clif_displaymessage(sd->sess, "The holy messenger has given judgement."_s);
+                // now fallthrough to move
+            case AutoMod::automove:
+                {
+                    unsigned short x0 = std::max(0, sd->bl_x - 5),
+                                   y0 = std::max(0, sd->bl_y - 5),
+                                   x1 = std::min(sd->bl_m->xs, (short)(sd->bl_x + 5)),
+                                   y1 = std::min(sd->bl_m->ys, (short)(sd->bl_y + 5));
+                    unsigned short x = x0,
+                                   y = y0;
+
+                    for (unsigned short i = 0; i < 1000; i++)
+                    {
+                        x = random_::in(x0, x1);
+                        y = random_::in(y0, y1);
+
+                        if (!bool(map_getcell(sd->bl_m, x, y) & MapCell::UNWALKABLE))
+                            break;
+                    }
+                    pc_setpos(sd, sd->bl_m->name_, x, y, BeingRemoveWhy::WARPED);
+
+                    if (sd->status.hp > 0)
+                    {
+                        // we're still sitting
+                        Packet_Fixed<0x008a> fixed_8a_2;
+                        fixed_8a_2.src_id = sd->bl_id;
+                        fixed_8a_2.damage_type = DamageType::SIT;
+                        Buffer buf2 = create_fpacket<0x008a, 29>(fixed_8a_2);
+                        clif_send(buf2, sd, SendWho::SELF);
+                    }
+                }
+                break;
+            case AutoMod::autokick:
+                clif_GM_kick(d_sd, sd, 1);
+            }
+        }
+    }
 }
 
 static
@@ -4073,6 +4143,25 @@ void clif_remote_command(dumb_ptr<map_session_data> sd, XString cmd)
     Buffer buf = create_vpacket<0x0230, 4, 1>(head_230, cmd);
 
     clif_send(buf, sd, SendWho::SELF, wrap<ClientVersion>(6));
+}
+
+void clif_gm_collision(dumb_ptr<map_session_data> sd, int mask)
+{
+    nullpo_retv(sd);
+
+    VString<15> gat_name = STRPRINTF("%s.gat"_fmt, sd->bl_m->name_);
+
+    Packet_Fixed<0x0231> fixed_231;
+    fixed_231.x1 = sd->bl_x;
+    fixed_231.y1 = sd->bl_y;
+    fixed_231.x2 = sd->bl_x;
+    fixed_231.y2 = sd->bl_y;
+    fixed_231.mask = mask;
+    fixed_231.unused_layer = 0;
+    fixed_231.map = gat_name;
+    Buffer buf = create_fpacket<0x0231, 34>(fixed_231);
+
+    clif_send(buf, sd, SendWho::AREA_WOS, wrap<ClientVersion>(7));
 }
 
 void clif_update_collision(dumb_ptr<map_session_data> sd, short x1, short y1,
