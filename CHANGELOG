@@ -1,3 +1,6 @@
+v19.4.15
+  - add a way for GMs to prevent players from sitting on them
+  - add a built-in way to delay gm log messages (to avoid relying on an external timer)
 v19.1.10
   - completely remove the fifo queue in login server
   - limit the number of requests and idle sessions in login server
