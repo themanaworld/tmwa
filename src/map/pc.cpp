@@ -3595,7 +3595,7 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             val = sd ? sd->mute.guild : 0;
             break;
         case SP::AUTOMOD:
-            val = sd ? (int)sd->automod : 0;
+            val = sd ? static_cast<int>(sd->automod) : 0;
             break;
     }
 
@@ -3844,7 +3844,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             break;
         case SP::AUTOMOD:
             nullpo_retz(sd);
-            sd->automod = (AutoMod)val;
+            sd->automod = static_cast<AutoMod>(val);
             break;
     }
 

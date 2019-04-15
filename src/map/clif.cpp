@@ -3403,13 +3403,13 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
             case AutoMod::autokill:
                 pc_damage(nullptr, sd, sd->status.hp);
                 clif_displaymessage(sd->sess, "The holy messenger has given judgement."_s);
-                // now fallthrough to move
+                FALLTHROUGH;
             case AutoMod::automove:
                 {
                     unsigned short x0 = std::max(0, sd->bl_x - 5),
                                    y0 = std::max(0, sd->bl_y - 5),
-                                   x1 = std::min(sd->bl_m->xs, (short)(sd->bl_x + 5)),
-                                   y1 = std::min(sd->bl_m->ys, (short)(sd->bl_y + 5));
+                                   x1 = std::min(sd->bl_m->xs, static_cast<short>(sd->bl_x + 5)),
+                                   y1 = std::min(sd->bl_m->ys, static_cast<short>(sd->bl_y + 5));
                     unsigned short x = x0,
                                    y = y0;
 
