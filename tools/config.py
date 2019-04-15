@@ -680,6 +680,8 @@ def build_config():
     battle_conf.opt('itemheal_regeneration_factor', i32, '1')
     battle_conf.opt('mob_splash_radius', i32, '-1', min='-1')
 
+    battle_conf.opt('gm_log_delay', milliseconds, '60_min')
+
     return rv
 
 def main():

@@ -208,19 +208,24 @@ bool asplit(ZString raw, F *first_arg, R *... rest_args)
 static
 io::AppendFile *get_gm_log();
 
-void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
+static
+void real_log_atcommand(TimerData *, tick_t, AString cmd)
 {
     io::AppendFile *fp = get_gm_log();
     if (!fp)
         return;
+    FPRINTF(*fp, "%s\n"_fmt, cmd);
+}
+
+void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
+{
     timestamp_seconds_buffer tmpstr;
     stamp_time(tmpstr);
     MapName map = (sd->bl_m->name_);
-    FPRINTF(*fp, "[%s] %s(%d,%d) %s(%d) : %s\n"_fmt,
-            tmpstr,
-            map, sd->bl_x, sd->bl_y,
-            sd->status_key.name, sd->status_key.account_id,
-            cmd);
+    AString str = STRPRINTF("[%s] %s(%d,%d) %s(%d) : %s"_fmt, tmpstr,
+                  map, sd->bl_x, sd->bl_y, sd->status_key.name,
+                  sd->status_key.account_id, cmd);
+    Timer(gettick() + battle_config.gm_log_delay, std::bind(real_log_atcommand, ph::_1, ph::_2, str)).detach();
 }
 
 io::AppendFile *get_gm_log()
