@@ -1,3 +1,5 @@
+v19.4.15.1
+  - a few refinements to automod
 v19.4.15
   - add a way for GMs to prevent players from sitting on them
   - add a built-in way to delay gm log messages (to avoid relying on an external timer)
