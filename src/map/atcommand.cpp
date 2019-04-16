@@ -4294,8 +4294,8 @@ ATCE atcommand_addwarp(Session *s, dumb_ptr<map_session_data> sd,
     warp.x.data = sd->bl_x;
     warp.y.data = sd->bl_y;
     warp.name.data = w3name;
-    warp.xs.data = 1+2;
-    warp.ys.data = 1+2;
+    warp.xs.data = 1;
+    warp.ys.data = 1;
     warp.to_m.data = mapname;
     warp.to_x.data = x;
     warp.to_y.data = y;
