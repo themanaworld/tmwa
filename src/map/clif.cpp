@@ -3392,9 +3392,11 @@ void clif_sitting(Session *, dumb_ptr<map_session_data> sd)
     dumb_ptr<block_list> d_bl = sd->bl_m->blocks.ref(sd->bl_x / BLOCK_SIZE, sd->bl_y / BLOCK_SIZE).normal;
     for (; d_bl; d_bl = d_bl->bl_next)
     {
-        if (d_bl->bl_type == BL::PC && d_bl->bl_x == sd->bl_x && d_bl->bl_y == sd->bl_y && d_bl->bl_id != sd->bl_id)
+        if (d_bl->bl_type == BL::PC && d_bl->bl_x == sd->bl_x && d_bl->bl_y == sd->bl_y)
         {
             dumb_ptr<map_session_data> d_sd = d_bl->is_player();
+            if (d_sd == sd || bool(d_sd->status.option & Opt0::INVISIBILITY))
+                continue;
 
             switch (d_sd->automod)
             {
