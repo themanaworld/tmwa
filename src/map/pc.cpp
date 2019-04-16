@@ -2424,13 +2424,15 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
             {
                 dumb_ptr<map_session_data> d_sd = d_bl->is_player();
 
-                if (pc_issit(d_sd))
+                if (pc_issit(d_sd) && d_sd != sd)
                 {
                     switch (d_sd->automod)
                     {
                     case AutoMod::autoblock:
                         clif_update_collision(sd, x + dx, y + dy, x + dx, y + dy, sd->bl_m->name_, 5); // BlockType::PLAYERWALL
                         pc_stop_walking(sd, 1);
+                        // clif_changemap(sd, sd->mapname_, x, y); <= FIXME: crashes manaplus!
+                        pc_setpos(sd, sd->mapname_, x, y, BeingRemoveWhy::WARPED);
                         return;
                     }
                 }
