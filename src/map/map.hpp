@@ -482,7 +482,8 @@ struct mob_data : block_list
     struct mob_skill *skillidx;
     std::unique_ptr<tick_t[]> skilldelayup; // [MAX_MOBSKILL];
     LevelElement def_ele;
-    BlockId master_id;
+    BlockId parent_id; // monster that spawned this mob
+    BlockId master_id; // player that owns the parent
     BlockId last_master_id;
     int master_dist;
     int exclusion_src, exclusion_party;

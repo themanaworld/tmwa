@@ -2070,9 +2070,9 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
     if (src->bl_type == BL::MOB)
     {
         dumb_ptr<mob_data> md = src->is_mob();
-        if (md && md->master_id)
+        if (md && (md->master_id || md->parent_id))
         {
-            if (md->master_id == target->bl_id)    // 主なら肯定
+            if (md->master_id == target->bl_id || md->parent_id == target->bl_id)    // 主なら肯定
                 return 1;
             if (md->state.special_mob_ai)
             {

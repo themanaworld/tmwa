@@ -532,7 +532,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     switch (skillid)
     {
         case SkillID::NPC_SUMMONSLAVE:
-            if (md && !md->master_id)
+            if (md && !md->parent_id)
             {
                 mob_summonslave(md,
                         md->skillidx->val,
