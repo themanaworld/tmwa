@@ -4572,7 +4572,6 @@ ATCE atcommand_summon(Session *s, dumb_ptr<map_session_data> sd,
             tick_t tick = gettick();
 
             md->master_id = sd->bl_id;
-            md->state.special_mob_ai = 1;
             md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
             md->deletetimer = Timer(tick + (std::max(minutes, 120) * 1_min),
                                 std::bind(mob_timer_delete, ph::_1, ph::_2,

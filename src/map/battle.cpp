@@ -2072,28 +2072,22 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         dumb_ptr<mob_data> md = src->is_mob();
         if (md && (md->master_id || md->parent_id))
         {
-            if (md->master_id == target->bl_id || md->parent_id == target->bl_id)    // 主なら肯定
+            if (md->master_id == target->bl_id || md->parent_id == target->bl_id) // can't attack my master or my parent
                 return 1;
-            if (md->state.special_mob_ai)
+
+            if (target->bl_type == BL::MOB)
             {
-                if (target->bl_type == BL::MOB)
-                {               //special_mob_aiで対象がMob
-                    dumb_ptr<mob_data> tmd = target->is_mob();
-                    if (tmd)
-                    {
-                        if (tmd->master_id != md->master_id)    //召喚主が一緒でなければ否定
-                            return 0;
-                        else
-                        {       //召喚主が一緒なので肯定したいけど自爆は否定
-                            if (md->state.special_mob_ai > 2)
-                                return 0;
-                            else
-                                return 1;
-                        }
-                    }
+                dumb_ptr<mob_data> tmd = target->is_mob();
+                if (tmd)
+                {
+                    if (tmd->master_id != md->master_id && tmd->parent_id != md->parent_id) // different master and parent
+                        return 0;
+                    else
+                        return 1; // can't attack a mob that has the same master or parent as me
                 }
             }
-            if ((ss = map_id2bl(md->master_id)) == nullptr)
+
+            if ((ss = map_id2bl(md->parent_id)) == nullptr)
                 return -1;
         }
     }
