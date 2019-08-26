@@ -1,3 +1,5 @@
+v19.8.26
+  - fix a regression introduced in v19.8.23 that prevented slaves from attacking
 v19.8.23
   - allow summoned mobs to use skills
   - allow to summon more than 1 mob with @summon
