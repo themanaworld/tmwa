@@ -1863,7 +1863,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         if (((bl = map_id2bl(md->last_master_id)) != nullptr && md->bl_m != bl->bl_m) || (bl = map_id2bl(md->last_master_id)) == nullptr)
         {
             md->last_master_id = BlockId();
-            md->parent_id = BlockId();
+            md->master_id = BlockId();
             md->mode = get_mob_db(md->mob_class).mode;
             md->target_id = BlockId();
             md->attacked_id = BlockId();
@@ -3318,9 +3318,6 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
     max_hp = battle_get_max_hp(md);
 
     if (battle_config.mob_skill_use == 0 || md->skilltimer)
-        return 0;
-
-    if (md->master_id && md->parent_id) // slaves of summoned mobs
         return 0;
 
     for (mob_skill& msii : ms)
