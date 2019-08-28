@@ -1152,7 +1152,6 @@ int mob_spawn(BlockId id)
         md->stats[mob_stat::SPEED] = get_mob_db(md->mob_class).speed.count();
     md->def_ele = get_mob_db(md->mob_class).element;
     md->master_id = BlockId();
-    md->parent_id = BlockId();
     md->master_dist = 0;
 
     md->state.state = MS::IDLE;
@@ -1574,13 +1573,13 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
 
     nullpo_retz(md);
 
-    if ((bl = map_id2bl(md->parent_id)) != nullptr)
+    if ((bl = map_id2bl(md->master_id)) != nullptr)
         mmd = bl->is_mob();
 
     mode = get_mob_db(md->mob_class).mode;
 
     // It is not main monster/leader.
-    if (!mmd || mmd->bl_type != BL::MOB || mmd->bl_id != md->parent_id)
+    if (!mmd || mmd->bl_type != BL::MOB || mmd->bl_id != md->master_id)
         return 0;
 
     // Since it is in the map on which the master is not, teleport is carried out and it pursues.
@@ -1679,8 +1678,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
                     || race == Race::_insect
                     || race == Race::_demon))
             {                   // 妨害がないか判定
-                md->master_id = mmd->master_id;
-                md->mode |= mmd->mode ^ get_mob_db(mmd->mob_class).mode;
+
                 md->target_id = sd->bl_id;
                 md->state.attackable = true;
                 md->min_chase =
@@ -1858,19 +1856,19 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
 
     md->state.master_check = 0;
     // Processing of summoned monster attacked by owner
-    if (md->last_master_id)
+    if (md->last_master_id && md->state.special_mob_ai)
     {
         if (((bl = map_id2bl(md->last_master_id)) != nullptr && md->bl_m != bl->bl_m) || (bl = map_id2bl(md->last_master_id)) == nullptr)
         {
             md->last_master_id = BlockId();
-            md->master_id = BlockId();
+            md->state.special_mob_ai = 0;
             md->mode = get_mob_db(md->mob_class).mode;
             md->target_id = BlockId();
             md->attacked_id = BlockId();
         }
     }
     // Processing of slave monster
-    if (md->parent_id)
+    if (md->master_id && md->state.special_mob_ai == 0)
         mob_ai_sub_hard_slavemob(md, tick);
 
     // アクティヴモンスターの策敵 (?? of a bitter taste TIVU monster)
@@ -1879,7 +1877,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         && battle_config.monster_active_enable == 1)
     {
         i = 0;
-        if (md->master_id)
+        if (md->state.special_mob_ai)
         {
             map_foreachinarea(std::bind(mob_ai_sub_hard_activesearch, ph::_1, md, &i),
                     md->bl_m,
@@ -2073,7 +2071,8 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     // mobs that are not slaves can random-walk
     if (bool(mode & MobMode::CAN_MOVE)
         && mob_can_move(md)
-        && (!md->parent_id || md->master_dist > 10))
+        && (!md->master_id || md->state.special_mob_ai
+            || md->master_dist > 10))
     {
         // if walktime is more than 7 seconds in the future,
         // set it to somewhere between 3 and 5 seconds
@@ -2163,7 +2162,7 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
             // MOB which is not not the summons MOB but BOSS, either sometimes reboils.
             else if (random_::chance(MOB_LAZYWARPPERC)
                     && md->spawn.x0 <= 0
-                    && md->parent_id
+                    && md->master_id
                     && !bool(get_mob_db(md->mob_class).mode & MobMode::BOSS))
                 mob_spawn(md->bl_id);
 
@@ -2175,7 +2174,7 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
             // MOB which is not BOSS which is not Summons MOB, either -- a case -- sometimes -- leaping
             if (random_::chance(MOB_LAZYWARPPERC)
                 && md->spawn.x0 <= 0
-                && md->parent_id
+                && md->master_id
                 && !bool(get_mob_db(md->mob_class).mode & MobMode::BOSS))
                 mob_warp(md, nullptr, -1, -1, BeingRemoveWhy::NEGATIVE1);
         }
@@ -2335,7 +2334,7 @@ void mob_deleteslave_sub(dumb_ptr<block_list> bl, BlockId id)
     nullpo_retv(bl);
     md = bl->is_mob();
 
-    if (md->parent_id && md->parent_id == id)
+    if (md->master_id && md->master_id == id)
         mob_damage(nullptr, md, md->hp, 1);
 }
 
@@ -2383,19 +2382,9 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         /* If the master hits a monster, have the monster turn against him */
         md->last_master_id = md->master_id;
         md->master_id = BlockId();
+        md->mode = MobMode::war;        /* Regular war mode */
         md->target_id = src->bl_id;
         md->attacked_id = src->bl_id;
-
-        if (md->parent_id) {
-            dumb_ptr<mob_data> p_md = map_id_is_mob(md->parent_id);
-
-            if (p_md != nullptr) {
-                // turn the parent against the master
-                p_md->last_master_id = p_md->master_id;
-                p_md->master_id = BlockId();
-                mob_aggravate(p_md, src);
-            }
-        }
     }
 
     max_hp = battle_get_max_hp(md);
@@ -2460,11 +2449,11 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
         damage_logged_pc:
 
-            if (!md->attacked_id)
+            if (!md->attacked_id && md->state.special_mob_ai == 0)
                 md->attacked_id = sd->bl_id;
         }
         if (src && src->bl_type == BL::MOB
-            && src->is_mob()->master_id)
+            && src->is_mob()->state.special_mob_ai)
         {
             dumb_ptr<mob_data> md2 = src->is_mob();
             dumb_ptr<block_list> master_bl = map_id2bl(md2->master_id);
@@ -2492,7 +2481,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 app.dmg = damage;
                 md->dmglogv.push_back(app);
 
-                if (!md->attacked_id)
+                if (!md->attacked_id && md->state.special_mob_ai == 0)
                     md->attacked_id = md2->master_id;
             }
         damage_logged_slave:
@@ -2543,17 +2532,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         std::vector<DmgLogParty> ptv;
 
         int mvp_dmg = 0, second_dmg = 0, third_dmg = 0;
-        bool summoned_by_nongm = false;
-
-        if (md->master_id && battle_config.alchemist_summon_reward != 1)
-        {
-            dumb_ptr<map_session_data> m_sd = map_id_is_player(md->master_id);
-
-            if (!m_sd || !pc_isGM(m_sd).satisfies(GmLevel::from(60_u32))) {
-                summoned_by_nongm = true;
-            }
-        }
-
         for (mob_data::DmgLogEntry& dle : md->dmglogv)
         {
             dumb_ptr<map_session_data> tmpsdi = map_id2sd(dle.id);
@@ -2613,10 +2591,9 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             {
                 base_exp *= 1.15;   // pk_mode additional exp if monster >20 levels [Valaris]
             }
-            if (summoned_by_nongm)
-            {
-                    base_exp = 0; // no exp for mobs summoned by non-GMs
-            }
+            if (md->state.special_mob_ai >= 1
+                && battle_config.alchemist_summon_reward != 1)
+                base_exp = 0;   // Added [Valaris]
             job_exp = get_mob_db(md->mob_class).job_exp * per / 256;
             if (job_exp < 1)
                 job_exp = 1;
@@ -2625,10 +2602,9 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             {
                 job_exp *= 1.15;    // pk_mode additional exp if monster >20 levels [Valaris]
             }
-            if (summoned_by_nongm)
-            {
-                    job_exp = 0; // no exp for mobs summoned by non-GMs
-            }
+            if (md->state.special_mob_ai >= 1
+                && battle_config.alchemist_summon_reward != 1)
+                job_exp = 0;    // Added [Valaris]
 
             PartyId pid = tmpsdi->status.party_id;
             if (pid)
@@ -2673,8 +2649,8 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         {
             for (int i = 0; i < 8; i++)
             {
-                if (summoned_by_nongm)
-                    break; // no drops for mobs spawned by non-GMs
+                if (md->state.special_mob_ai >= 1 && battle_config.alchemist_summon_reward != 1)    // Added [Valaris]
+                    break;      // End
 
                 if (!get_mob_db(md->mob_class).dropitem[i].nameid)
                     continue;
@@ -2781,7 +2757,7 @@ void mob_warpslave_sub(dumb_ptr<block_list> bl, BlockId id, int x, int y)
 {
     dumb_ptr<mob_data> md = bl->is_mob();
 
-    if (md->parent_id == id)
+    if (md->master_id == id)
     {
         mob_warp(md, nullptr, x, y, BeingRemoveWhy::QUIT);
     }
@@ -2897,7 +2873,7 @@ void mob_countslave_sub(dumb_ptr<block_list> bl, BlockId id, int *c)
     nullpo_retv(bl);
     md = bl->is_mob();
 
-    if (md->parent_id == id)
+    if (md->master_id == id)
         (*c)++;
 }
 
@@ -2993,12 +2969,8 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
             map_addiddb(md);
             mob_spawn(md->bl_id);
 
-            if (flag) {
-                md->master_id = md2->master_id; // tell the subslave who actually owns them
-                md->parent_id = md2->bl_id; // tell the subslave who spawned them
-                md->mode = get_mob_db(md->mob_class).mode;
-                md->mode |= md2->mode ^ get_mob_db(md2->mob_class).mode; // if our mode has special flags, hand them to our children too
-            }
+            if (flag)
+                md->master_id = md2->bl_id;
         }
     }
     return 0;
@@ -3318,6 +3290,9 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
     max_hp = battle_get_max_hp(md);
 
     if (battle_config.mob_skill_use == 0 || md->skilltimer)
+        return 0;
+
+    if (md->state.special_mob_ai)
         return 0;
 
     for (mob_skill& msii : ms)

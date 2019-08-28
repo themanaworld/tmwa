@@ -532,7 +532,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     switch (skillid)
     {
         case SkillID::NPC_SUMMONSLAVE:
-            if (md)
+            if (md && !md->master_id)
             {
                 mob_summonslave(md,
                         md->skillidx->val,
@@ -542,10 +542,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
             break;
 
         case SkillID::NPC_EMOTION:
-            if (dstsd)
-                clif_emotion(dstsd,
-                        md->skillidx->val[0]);
-            else if (md)
+            if (md)
                 clif_emotion(md,
                         md->skillidx->val[0]);
             break;

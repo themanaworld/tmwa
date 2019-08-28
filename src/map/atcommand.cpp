@@ -4523,80 +4523,37 @@ ATCE atcommand_leaves(Session *, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_summon(Session *s, dumb_ptr<map_session_data> sd,
+ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MobName name;
     Species mob_id;
-    int number = 0;
-    int minutes = 0;
+    int x = 0;
+    int y = 0;
+    tick_t tick = gettick();
 
-    if (!extract(message, record<' ', 1>(&name, &number, &minutes)))
+    if (!extract(message, &name) || !name)
         return ATCE::USAGE;
 
-    if ((mob_id = mobdb_searchname(name)) == Species())
-        mob_id = mobdb_checkid(wrap<Species>(atoi(name.c_str())));
-
+    if ((mob_id = wrap<Species>(static_cast<uint16_t>(atoi(name.c_str())))) == Species())
+        mob_id = mobdb_searchname(name);
     if (mob_id == Species())
         return ATCE::EXIST;
 
-    if (number <= 0)
-        number = 1;
+    x = sd->bl_x + random_::in(-5, 4);
+    y = sd->bl_y + random_::in(-5, 4);
 
-    if (minutes <= 0)
-        minutes = 10;
-
-    if (battle_config.atcommand_spawn_quantity_limit >= 1
-        && number > battle_config.atcommand_spawn_quantity_limit)
-        number = battle_config.atcommand_spawn_quantity_limit;
-
-    int count = 0;
-    int range = (sqrt(number) / 2) * 2 + 5;
-
-    for (int i = 0; i < number; i++)
+    BlockId id = mob_once_spawn(sd, MOB_THIS_MAP, x, y, JAPANESE_NAME, mob_id, 1, NpcEvent());
+    dumb_ptr<mob_data> md = map_id_is_mob(id);
+    if (md)
     {
-        int j = 0;
-        BlockId k;
-
-        while (j++ < 8 && !k)
-        {
-            // try 8 times to spawn the monster (needed for close area)
-            int mx = sd->bl_x + random_::in(-range / 2, range / 2 );
-            int my = sd->bl_y + random_::in(-range / 2, range / 2);
-            k = mob_once_spawn(sd, MOB_THIS_MAP, mx, my, MobName(), mob_id, 1, NpcEvent());
-        }
-
-        if (k)
-        {
-            dumb_ptr<mob_data> md = map_id_is_mob(k);
-            tick_t tick = gettick();
-
-            md->master_id = sd->bl_id;
-            md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
-            md->deletetimer = Timer(tick + (std::max(minutes, 120) * 1_min),
-                                std::bind(mob_timer_delete, ph::_1, ph::_2,
-                                    k));
-            count++;
-        }
-    }
-
-    if (count != 0)
-    {
-        if (number == count)
-        {
-            clif_displaymessage(s, "All monster summoned!"_s);
-        }
-        else
-        {
-            AString output = STRPRINTF("%d monster(s) summoned!"_fmt,
-                    count);
-            clif_displaymessage(s, output);
-        }
-    }
-    else
-    {
-        clif_displaymessage(s, "Invalid monster ID or name."_s);
-        return ATCE::EXIST;
+        md->master_id = sd->bl_id;
+        md->state.special_mob_ai = 1;
+        md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
+        md->deletetimer = Timer(tick + 1_min,
+                std::bind(mob_timer_delete, ph::_1, ph::_2,
+                    id));
+        clif_misceffect(md, 344);
     }
 
     return ATCE::OKAY;
@@ -5591,7 +5548,7 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"leaves"_s, {""_s,
         98, atcommand_leaves,
         "Enable the leaves mapflag"_s}},
-    {"summon"_s, {"<mob-id-or-name> [count] [minutes]"_s,
+    {"summon"_s, {"<mob-id-or-name>"_s,
         50, atcommand_summon,
         "Summon a slave monster temporarily"_s}},
     {"adjgmlvl"_s, {"<level> <charname>"_s,
