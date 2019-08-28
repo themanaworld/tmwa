@@ -106,11 +106,11 @@ namespace io
     {
         return ::recvmsg(fd, msg, flags);
     }
-    ssize_t FD::pread(void *buf, size_t count, off_t offset)
+    ssize_t FD::pread(void *buf, size_t count, int64_t offset)
     {
         return ::pread(fd, buf, count, offset);
     }
-    ssize_t FD::pwrite(const void *buf, size_t count, off_t offset)
+    ssize_t FD::pwrite(const void *buf, size_t count, int64_t offset)
     {
         return ::pwrite(fd, buf, count, offset);
     }
@@ -122,11 +122,11 @@ namespace io
     {
         return ::writev(fd, iov, iovcnt);
     }
-    ssize_t FD::preadv(const struct iovec *iov, int iovcnt, off_t offset)
+    ssize_t FD::preadv(const struct iovec *iov, int iovcnt, int64_t offset)
     {
         return ::preadv(fd, iov, iovcnt, offset);
     }
-    ssize_t FD::pwritev(const struct iovec *iov, int iovcnt, off_t offset)
+    ssize_t FD::pwritev(const struct iovec *iov, int iovcnt, int64_t offset)
     {
         return ::pwritev(fd, iov, iovcnt, offset);
     }

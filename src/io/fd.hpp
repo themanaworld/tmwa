@@ -49,11 +49,11 @@ namespace io
         FD cast_dammit(int f) { return FD(f); }
 
         static
-        FD stdin() { return FD(0); }
+        FD stdin_() { return FD(0); }
         static
-        FD stdout() { return FD(1); }
+        FD stdout_() { return FD(1); }
         static
-        FD stderr() { return FD(2); }
+        FD stderr_() { return FD(2); }
 
         static const int DEFAULT_MODE = 0666;
 
@@ -87,12 +87,12 @@ namespace io
         ssize_t recvfrom(void *buf, size_t len, int flags,
                  struct sockaddr *src_addr, socklen_t *addrlen);
         ssize_t recvmsg(struct msghdr *msg, int flags);
-        ssize_t pread(void *buf, size_t count, off_t offset);
-        ssize_t pwrite(const void *buf, size_t count, off_t offset);
+        ssize_t pread(void *buf, size_t count, int64_t offset);
+        ssize_t pwrite(const void *buf, size_t count, int64_t offset);
         ssize_t readv(const struct iovec *iov, int iovcnt);
         ssize_t writev(const struct iovec *iov, int iovcnt);
-        ssize_t preadv(const struct iovec *iov, int iovcnt, off_t offset);
-        ssize_t pwritev(const struct iovec *iov, int iovcnt, off_t offset);
+        ssize_t preadv(const struct iovec *iov, int iovcnt, int64_t offset);
+        ssize_t pwritev(const struct iovec *iov, int iovcnt, int64_t offset);
 
         int close();
         int shutdown(int);

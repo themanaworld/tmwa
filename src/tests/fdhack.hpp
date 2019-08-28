@@ -51,7 +51,7 @@ public:
 class QuietFd : ReplaceFd
 {
 public:
-    QuietFd(io::FD num=io::FD::stderr())
+    QuietFd(io::FD num=io::FD::stderr_())
     : ReplaceFd(num, io::FD::open("/dev/null"_s, O_RDONLY), true)
     {}
 };

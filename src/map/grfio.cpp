@@ -100,7 +100,7 @@ std::vector<uint8_t> grfio_reads(MapName rname)
                 rname, lfname);
         return {};
     }
-    off_t len = lseek(fd, 0, SEEK_END);
+    int64_t len = lseek(fd, 0, SEEK_END);
     assert (len != -1);
     std::vector<uint8_t> buffer(len);
     ssize_t err = pread(fd, buffer.data(), len, 0);
