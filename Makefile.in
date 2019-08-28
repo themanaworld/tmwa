@@ -561,7 +561,7 @@ install-bin:
 	@echo + Installing binaries
 	${install_dir} ${DESTDIR}${BINDIR}
 	for exe in $(patsubst bin/%.elf,%,${BINARIES}); do \
-	${install_exe} -T bin/$${exe}.elf ${DESTDIR}${BINDIR}/$${exe}; \
+	${install_exe} bin/$${exe}.elf ${DESTDIR}${BINDIR}/$${exe}; \
 	done
 uninstall: uninstall-bin
 uninstall-bin:
