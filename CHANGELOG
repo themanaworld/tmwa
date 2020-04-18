@@ -1,3 +1,8 @@
+v20.4.18
+  - allow GM command logging to be silenced for specific commands
+v19.8.26~
+  - fix the errors that prevented compiling with musl-libc (now fully compatible with Alpine)
+  - increase the level cap to 135
 v19.8.26
   - fix a regression introduced in v19.8.23 that prevented slaves from attacking
 v19.8.23
