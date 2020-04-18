@@ -29,3 +29,6 @@
 /build-mips-linux-gnu/
 /build-mipsel-linux-gnu/
 /build-powerpc-linux-gnu/
+
+# generic build
+/build/

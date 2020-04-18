@@ -91,6 +91,7 @@ namespace map
 enum class ATCE
 {
     OKAY,
+    OKAY_NOLOG,
     USAGE,
     EXIST,
     RANGE,
@@ -310,6 +311,9 @@ bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
                 // Don't log level 0 commands
                 if (info->level)
                     log_atcommand(sd, message);
+                break;
+            case ATCE::OKAY_NOLOG:
+                // explicitly don't log
                 break;
             case ATCE::USAGE:
                 clif_displaymessage(s, "Command failed: usage error"_s);
@@ -809,7 +813,7 @@ ATCE atcommand_jump(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::RANGE;
     }
 
-    return ATCE::OKAY;
+    return ATCE::OKAY_NOLOG;
 }
 
 static
@@ -1222,7 +1226,7 @@ ATCE atcommand_storage(Session *s, dumb_ptr<map_session_data> sd,
 
     storage_storageopen(sd);
 
-    return ATCE::OKAY;
+    return ATCE::OKAY_NOLOG;
 }
 
 static
@@ -4624,7 +4628,7 @@ ATCE atcommand_trade(Session *, dumb_ptr<map_session_data> sd,
     if (pl_sd)
     {
         trade_traderequest(sd, pl_sd->bl_id);
-        return ATCE::OKAY;
+        return ATCE::OKAY_NOLOG;
     }
     return ATCE::EXIST;
 }
@@ -4947,7 +4951,7 @@ ATCE atcommand_jump_iterate(Session *s, dumb_ptr<map_session_data> sd,
 
     sd->followtarget = pl_sd->bl_id;
 
-    return ATCE::OKAY;
+    return ATCE::OKAY_NOLOG;
 }
 
 static
