@@ -75,18 +75,22 @@ namespace map
 
 #define BUILTIN_NAME() (builtin_functions[st->stack->stack_datav[st->start].get_if<ScriptDataFuncRef>()->numi].name)
 
-#define script_nullpo_end(t, error) \
-    if (nullpo_chk(__FILE__, __LINE__, __PRETTY_FUNCTION__, t)) { \
-        if (st->oid) { \
-            dumb_ptr<npc_data> nullpo_nd = map_id_is_npc(st->oid); \
-            if (nullpo_nd && nullpo_nd->name) { \
-                PRINTF("script:%s: " #error " @ %s\n"_fmt, BUILTIN_NAME(), nullpo_nd->name); \
-            } else { \
-                PRINTF("script:%s: " #error " (no npc)\n"_fmt, BUILTIN_NAME()); \
-            } \
-        } \
-        st->state = ScriptEndState::END; \
-        return; \
+#define script_nullpo_end(t, error)                                                             \
+    if (nullpo_chk(__FILE__, __LINE__, __PRETTY_FUNCTION__, t)) {                               \
+        if (st->oid) {                                                                          \
+            dumb_ptr<npc_data> nullpo_nd = map_id_is_npc(st->oid);                              \
+            if (nullpo_nd && nullpo_nd->name) {                                                 \
+                PRINTF("script:%s: " #error " @ %s\n"_fmt, BUILTIN_NAME(), nullpo_nd->name);    \
+            } else if (nullpo_nd) {                                                             \
+                PRINTF("script:%s: " #error " (unnamed npc)\n"_fmt, BUILTIN_NAME());            \
+            } else {                                                                            \
+                PRINTF("script:%s: " #error " (no npc)\n"_fmt, BUILTIN_NAME());                 \
+            }                                                                                   \
+        } else {                                                                                \
+            PRINTF("script:%s: " #error " (no npc)\n"_fmt, BUILTIN_NAME());                     \
+        }                                                                                       \
+        st->state = ScriptEndState::END;                                                        \
+        return;                                                                                 \
     }
 
 enum class MonsterAttitude
