@@ -706,6 +706,28 @@ void run_func(ScriptState *st)
     }
     builtin_functions[func].func(st);
 
+    if (builtin_functions[func].ret != '\0') {
+        // this builtin is expected to return a value
+        script_data &back = st->stack->stack_datav.back();
+
+        if (builtin_functions[func].ret == 'i' && !back.is<ScriptDataInt>()) {
+            PRINTF("script-call:run_func: expected %s to push an integer but none was found. aborting script execution.\n"_fmt, builtin_functions[func].name);
+            st->state = ScriptEndState::END;
+        } else if (builtin_functions[func].ret == 's' && !back.is<ScriptDataStr>()) {
+            PRINTF("script-call:run_func: expected %s to push a string but none was found. aborting script execution.\n"_fmt, builtin_functions[func].name);
+            st->state = ScriptEndState::END;
+        } else if (builtin_functions[func].ret == 'v' && !back.is<ScriptDataStr>() && !back.is<ScriptDataInt>() && !back.is<ScriptDataParam>() && !back.is<ScriptDataVariable>()) {
+            PRINTF("script-call:run_func: expected %s to push a value but none was found. aborting script execution.\n"_fmt, builtin_functions[func].name);
+            st->state = ScriptEndState::END;
+        } else if (builtin_functions[func].ret == 'r' && !back.is<ScriptDataVariable>()) {
+            PRINTF("script-call:run_func: expected %s to push a variable reference but none was found. aborting script execution.\n"_fmt, builtin_functions[func].name);
+            st->state = ScriptEndState::END;
+        } else if (builtin_functions[func].ret == 'l' && !back.is<ScriptDataPos>()) {
+            PRINTF("script-call:run_func: expected %s to push a label pos but none was found. aborting script execution.\n"_fmt, builtin_functions[func].name);
+            st->state = ScriptEndState::END;
+        }
+    }
+
     pop_stack(st->stack, start_sp, end_sp);
 
     if (st->state == ScriptEndState::RETFUNC)
