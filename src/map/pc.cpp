@@ -779,24 +779,25 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     // イベント関係の初期化
     sd->eventqueuel.clear();
 
-    // 位置の設定
-    pc_setpos(sd, sd->status.last_point.map_, sd->status.last_point.x,
-               sd->status.last_point.y, BeingRemoveWhy::GONE);
-
     {
         Opt0 old_option = sd->status.option;
         sd->status.option = Opt0::ZERO;
 
-        // This would leak information.
-        // It's better to make it obvious that players can see you.
-        if (false && bool(old_option & Opt0::INVISIBILITY))
-            is_atcommand(sd->sess, sd, "@invisible"_s, GmLevel());
+        if (bool(old_option & Opt0::INVISIBILITY) && can_use_atcommand(sd, "@invisible"_s)) {
+            // prevent leaking by first applying hide before status_change
+            sd->status.option |= Opt0::HIDE;
+            sd->status.option |= Opt0::INVISIBILITY;
+            clif_status_change(sd, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 1);
+        } else if (bool(old_option & Opt0::HIDE) && can_use_atcommand(sd, "@hide"_s)) {
+            sd->status.option |= Opt0::HIDE;
+        }
 
-        if (bool(old_option & Opt0::HIDE))
-            is_atcommand(sd->sess, sd, "@hide"_s, GmLevel());
-        // atcommand_hide might already send it, but also might not
         clif_changeoption(sd);
     }
+
+    // 位置の設定
+    pc_setpos(sd, sd->status.last_point.map_, sd->status.last_point.x,
+               sd->status.last_point.y, BeingRemoveWhy::GONE);
 
     // パーティ、ギルドデータの要求
     if (sd->status.party_id

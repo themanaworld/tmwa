@@ -30,6 +30,8 @@ namespace map
 bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
         ZString message, GmLevel gmlvl);
 
+bool can_use_atcommand(dumb_ptr<map_session_data> sd, ZString message);
+
 bool atcommand_config_read(ZString cfgName);
 
 void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd);

@@ -337,6 +337,31 @@ bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
     }
 }
 
+bool can_use_atcommand(dumb_ptr<map_session_data> sd, ZString message)
+{
+    nullpo_retr(false, sd);
+
+    if (!message.startswith('@'))
+        return false;
+
+    XString command;
+    ZString arg;
+    asplit(message, &command, &arg);
+
+    GmLevel gmlvl = pc_isGM(sd);
+
+    if (battle_config.atcommand_gm_only != 0 && !gmlvl)
+        return false; // level 0 commands are disabled
+
+    Option<P<AtCommandInfo>> info_ = atcommand(command);
+    P<AtCommandInfo> info = TRY_UNWRAP(info_,
+    {
+        return false; // command not found
+    });
+
+    return gmlvl.satisfies(info->level);
+}
+
 Option<Borrowed<AtCommandInfo>> atcommand(XString cmd)
 {
     if (cmd.startswith('@'))

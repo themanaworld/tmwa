@@ -812,8 +812,17 @@ void create_online_files(void)
                 // display each player.
                 for (CharPair& cd : char_keys)
                 {
+                    CharData *p = nullptr;
+
                     if (!server_for(&cd))
                         continue;
+                    
+                    p = cd.data.get();
+
+                    // failsafe
+                    if (bool(p->option & Opt0::HIDE))
+                        continue;
+
                     players++;
                     FPRINTF(fp2, "      <tr>\n"_fmt);
                     // displaying the character name

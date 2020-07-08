@@ -1090,7 +1090,7 @@ int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
     *opt1 = Opt1::ZERO;
     *opt2 = Opt2::ZERO;
     *opt3 = Opt3::ZERO;
-    *option = Opt0::ZERO;
+    //*option = Opt0::ZERO;
 
     if (type == 0 || type & 2)
         clif_changeoption(bl);
