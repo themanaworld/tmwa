@@ -27,6 +27,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <array>
 
 #include "../ints/wrap.hpp"
 
