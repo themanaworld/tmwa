@@ -53,6 +53,8 @@ enum class StatusChange : uint16_t
     SC_HEALING          = 70,   // item script
 
     SC_COOLDOWN         = 71,   // Spell cooldown
+    SC_COOLDOWN_MG      = 72,   // Mana Guardian cooldown
+    SC_COOLDOWN_MT      = 73,   // Mana Tyrant cooldown
 
     SC_POISON           = 132,  // bad; actually used
 
