@@ -6837,7 +6837,107 @@ def build_context():
             Reload GM file request.
         ''',
     )
-
+    login_admin.r(0x7956, 'get all account reg2',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+        ],
+        fixed_size=6,
+        pre=[ADMIN],
+        post=[0x7957],
+        desc='''
+            Request all login-stored ##registers of an account.
+        ''',
+    )
+    login_admin.s(0x7957, 'get all account reg2 result',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, account_id, 'account id'),
+        ],
+        head_size=8,
+        repeat=[
+            at(0, var_name, 'name'),
+            at(32, u32, 'value'),
+        ],
+        repeat_size=36,
+        pre=[0x7956],
+        post=[IDLE],
+        desc='''
+            Recive all login-stored ##registers of an account.
+        ''',
+    )
+    login_admin.r(0x7958, 'get account reg2',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, var_name, 'name'),
+        ],
+        fixed_size=38,
+        pre=[ADMIN],
+        post=[0x7959],
+        desc='''
+            Request a login-stored ##register of an account.
+        ''',
+    )
+    login_admin.s(0x7959, 'get account reg2 result',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, var_name, 'name'),
+            at(38, u32, 'value'),
+        ],
+        fixed_size=42,
+        pre=[0x7958],
+        post=[IDLE],
+        desc='''
+            Recive a login-stored ##register of an account.
+        ''',
+    )
+    login_admin.r(0x795a, 'set account reg2',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, var_name, 'name'),
+            at(38, u32, 'value'),
+        ],
+        fixed_size=42,
+        pre=[ADMIN],
+        post=[0x795b],
+        desc='''
+            Modify a login-stored ##register of an account.
+        ''',
+    )
+    login_admin.s(0x795b, 'set/del account reg2 result',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, u8, 'operation'),
+            at(7, u8, 'result'),
+        ],
+        fixed_size=8,
+        pre=[0x795a, 0x795c],
+        post=[IDLE],
+        desc='''
+            Modify/Delete login-stored ##register of an account result.
+            operation: 0=set 1=del
+            result:    0=success 1=(set) new var created/(del) err var to delete not found 2=(set) err max vars reached
+        ''',
+    )
+    login_admin.r(0x795c, 'del account reg2',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_id, 'account id'),
+            at(6, var_name, 'name'),
+        ],
+        fixed_size=38,
+        pre=[ADMIN],
+        post=[0x795b],
+        desc='''
+            delete a login-stored ##register of an account.
+        ''',
+    )
+    
     # TOC_NEW
     ## new-style packets
     # notify packets, standalone, can occur at any time; always 'payload'

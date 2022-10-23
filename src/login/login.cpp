@@ -391,7 +391,7 @@ AString mmo_auth_tostr(const AuthData *p)
             p->memo,
             p->ban_until_time);
 
-    assert (p->account_reg2_num < ACCOUNT_REG2_NUM);
+    assert (p->account_reg2_num <= ACCOUNT_REG2_NUM);
     for (int i = 0; i < p->account_reg2_num; i++)
         if (p->account_reg2[i].str)
             str += STRPRINTF("%s,%d "_fmt,
@@ -863,7 +863,7 @@ static
 void parse_fromchar(Session *s)
 {
     IP4Address ip = s->client_ip;
-
+    
     int id;
     for (id = 0; id < MAX_SERVERS; id++)
         if (server_session[id] == s)
@@ -1116,7 +1116,6 @@ void parse_fromchar(Session *s)
                 rv = recv_vpacket<0x2728, 8, 36>(s, head, repeat);
                 if (rv != RecvResult::Complete)
                     break;
-
                 {
                     AccountId acc = head.account_id;
                     for (AuthData& ad : auth_data)
@@ -1354,8 +1353,10 @@ static
 void parse_admin(Session *s)
 {
     IP4Address ip = s->client_ip;
+
     RecvResult rv = RecvResult::Complete;
     uint16_t packet_id;
+
     while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
         if (login_conf.display_parse_admin)
@@ -2312,6 +2313,224 @@ void parse_admin(Session *s)
                 read_gm_account();
                 // send GM accounts to all char-servers
                 send_GM_accounts();
+                break;
+            }
+
+            case 0x7956:       // Request all login-stored ##registers of an account (by account id)
+            {
+                Packet_Fixed<0x7956> fixed;
+                rv = recv_fpacket<0x7956, 6>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                Packet_Head<0x7957> head_57;
+                std::vector<Packet_Repeat<0x7957>> repeat_57;
+                head_57.account_id = AccountId();
+                for (const AuthData& ad : auth_data)
+                {
+                    if (ad.account_id == account_id)
+                    {
+                        head_57.account_id = ad.account_id;
+                        LOGIN_LOG("'ladmin': Request (by id) to get all login-stored ##registers of an account (account: %s, id: %d, ip: %s)\n"_fmt,
+                                ad.userid, account_id, ip);
+                        for (size_t j = 0; j < ad.account_reg2_num; ++j)
+                        {
+                            Packet_Repeat<0x7957> info;
+                            info.name = ad.account_reg2[j].str;
+                            info.value = ad.account_reg2[j].value;
+                            repeat_57.push_back(info);
+                        }
+                        goto x7957_out;
+                    }
+                }
+                LOGIN_LOG("'ladmin': Request (by id) to get all login-stored ##registers of an unknown account (id: %d, ip: %s)\n"_fmt,
+                        account_id, ip);
+            x7957_out:
+                send_vpacket<0x7957, 8, 36>(s, head_57, repeat_57);
+                break;
+            }
+
+            case 0x7958:       // Request a login-stored ##register of an account (by account id)
+            {
+                Packet_Fixed<0x7958> fixed;
+                rv = recv_fpacket<0x7958, 38>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                Packet_Fixed<0x7959> fixed_59;
+                GlobalReg reg2;
+                fixed_59.account_id = AccountId();
+                reg2.str = fixed.name;
+
+                for (const AuthData& ad : auth_data)
+                {
+                    if (ad.account_id == account_id)
+                    {
+                        fixed_59.account_id = ad.account_id;
+                        LOGIN_LOG("'ladmin': Request (by id) to get a login-stored ##register of an account (account: %s, id: %d, ip: %s)\n"_fmt,
+                                ad.userid, account_id, ip);
+                        for (size_t j = 0; j < ad.account_reg2_num; ++j)
+                        {
+                            if (ad.account_reg2[j].str == reg2.str)
+                            {
+                                fixed_59.name = ad.account_reg2[j].str;
+                                fixed_59.value = ad.account_reg2[j].value;
+                                goto x7959_out;
+                            }
+                        }
+                        // reg2 not found
+                        fixed_59.name = stringish<VarName>(""_s);
+                        fixed_59.value = 0;
+                        goto x7959_out;
+                    }
+                }
+                LOGIN_LOG("'ladmin': Request (by id) to get a login-stored ##register of an unknown account (id: %d, ip: %s)\n"_fmt,
+                        account_id, ip);
+            x7959_out:
+                send_fpacket<0x7959, 42>(s, fixed_59);
+                break;
+            }
+
+            case 0x795a:       // Modify a login-stored ##register of an account (by account id)
+            {
+                Packet_Fixed<0x795a> fixed;
+                rv = recv_fpacket<0x795a, 42>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                Packet_Fixed<0x795b> fixed_5b;
+                GlobalReg reg2;
+                fixed_5b.account_id = AccountId();
+                fixed_5b.operation = 0;
+                reg2.str = fixed.name;
+                reg2.value = fixed.value;
+
+                for (AuthData& ad : auth_data)
+                {
+                    if (ad.account_id == account_id)
+                    {
+                        fixed_5b.account_id = ad.account_id;
+                        LOGIN_LOG("'ladmin': Request (by id) to modify or add a login-stored ##register of an account (account: %s, id: %d, ip: %s)\n"_fmt,
+                                ad.userid, account_id, ip);
+                        for (size_t j = 0; j < ad.account_reg2_num; ++j)
+                        {
+                            if (ad.account_reg2[j].str == reg2.str)
+                            {
+                                ad.account_reg2[j].str = fixed.name;
+                                ad.account_reg2[j].value = fixed.value;
+                                fixed_5b.result = 0;
+                                goto x795a_update;
+                            }
+                        }
+                        // reg2 not found create new one if possible
+                        if ( ad.account_reg2_num < ACCOUNT_REG2_NUM )
+                        {
+                            //add var
+                            ad.account_reg2[ad.account_reg2_num].str = fixed.name;
+                            ad.account_reg2[ad.account_reg2_num].value = fixed.value;                            
+                            ++ad.account_reg2_num;
+                            fixed_5b.result = 1;
+                            goto x795a_update;
+                        }
+                        // maximum number of reg2 reached
+                        fixed_5b.result = 2;
+                        goto x795a_out;
+
+                    x795a_update:
+                        // Sending information towards the other char-servers.
+                        Packet_Head<0x2729> head_29;
+                        std::vector<Packet_Repeat<0x2729>> repeat_29(ad.account_reg2_num);
+                        head_29.account_id = account_id;
+                        for (size_t j = 0; j < ad.account_reg2_num; ++j)
+                        {
+                            repeat_29[j].name = ad.account_reg2[j].str;
+                            repeat_29[j].value = ad.account_reg2[j].value;
+                        }
+
+                        for (Session *ss : iter_char_sessions())
+                        {
+                            if (ss == s)
+                                continue;
+                            send_vpacket<0x2729, 8, 36>(ss, head_29, repeat_29);
+                        }
+                        goto x795a_out;
+                    }
+                }
+                LOGIN_LOG("'ladmin': Request (by id) to modify or add a login-stored ##register of an unknown account (id: %d, ip: %s)\n"_fmt,
+                        account_id, ip);
+            x795a_out:
+                send_fpacket<0x795b, 8>(s, fixed_5b);
+                break;
+            }
+
+            case 0x795c:       // Delete a login-stored ##register of an account (by account id)
+            {
+                Packet_Fixed<0x795c> fixed;
+                rv = recv_fpacket<0x795c, 38>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId account_id = fixed.account_id;
+                Packet_Fixed<0x795b> fixed_5b;
+                GlobalReg reg2;
+                fixed_5b.account_id = AccountId();
+                fixed_5b.operation = 1;
+                reg2.str = fixed.name;
+
+                for (AuthData& ad : auth_data)
+                {
+                    if (ad.account_id == account_id)
+                    {
+                        fixed_5b.account_id = ad.account_id;
+                        LOGIN_LOG("'ladmin': Request (by id) to delete a login-stored ##register of an account (account: %s, id: %d, ip: %s)\n"_fmt,
+                                ad.userid, account_id, ip);
+                        for (size_t j = 0; j < ad.account_reg2_num; ++j)
+                        {
+                            if (ad.account_reg2[j].str == reg2.str)
+                            {
+                                for (size_t k = j; k < ad.account_reg2_num-1; ++k)
+                                {
+                                    ad.account_reg2[k].str = ad.account_reg2[k+1].str;
+                                    ad.account_reg2[k].value = ad.account_reg2[k+1].value;
+                                }
+                                ad.account_reg2[ad.account_reg2_num-1].str = stringish<VarName>(""_s);
+                                ad.account_reg2[ad.account_reg2_num-1].value = 0;
+                                --ad.account_reg2_num;
+                                fixed_5b.result = 0;
+                                goto x795c_update;
+                            }
+                        }
+                        // reg2 not found
+                        fixed_5b.result = 1;
+                        goto x795c_out;
+
+                    x795c_update:
+                        // Sending information towards the other char-servers.
+                        Packet_Head<0x2729> head_29;
+                        std::vector<Packet_Repeat<0x2729>> repeat_29(ACCOUNT_REG2_NUM); // all elements are needed to overwrite the deleted elements on char server aswell
+                        head_29.account_id = account_id;
+                        for (size_t j = 0; j < ACCOUNT_REG2_NUM; ++j)
+                        {
+                            repeat_29[j].name = ad.account_reg2[j].str;
+                            repeat_29[j].value = ad.account_reg2[j].value;
+                        }
+
+                        for (Session *ss : iter_char_sessions())
+                        {
+                            if (ss == s)
+                                continue;
+                            send_vpacket<0x2729, 8, 36>(ss, head_29, repeat_29);
+                        }
+                        goto x795c_out;
+                    }
+                }
+                LOGIN_LOG("'ladmin': Name request (by id) to delete a login-stored ##register of an unknown account (id: %d, ip: %s)\n"_fmt,
+                        account_id, ip);
+            x795c_out:
+                send_fpacket<0x795b, 8>(s, fixed_5b);
                 break;
             }
 

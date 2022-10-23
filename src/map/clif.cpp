@@ -5354,7 +5354,7 @@ void clif_sendallquest(dumb_ptr<map_session_data> sd)
     Packet_Head<0x0215> head_215;
     std::vector<Packet_Repeat<0x0215>> repeat_215;
 
-    assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
+    assert (sd->status.global_reg_num <= GLOBAL_REG_NUM);
     for (QuestId q = wrap<QuestId>(0); q < wrap<QuestId>(-1); q = next(q))
     {
         P<struct quest_data> quest_data_ = TRY_UNWRAP(questdb_exists(q), continue);

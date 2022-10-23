@@ -68,7 +68,7 @@ namespace char_
 static
 AString inter_accreg_tostr(struct accreg *reg)
 {
-    assert(reg->reg_num < ACCOUNT_REG_NUM);
+    assert(reg->reg_num <= ACCOUNT_REG_NUM);
     MString str;
     str += STRPRINTF("%d\t"_fmt, reg->account_id);
     for (int j = 0; j < reg->reg_num; j++)
@@ -236,7 +236,7 @@ void mapif_account_reg_reply(Session *s, AccountId account_id)
     OMATCH_BEGIN_SOME (reg, reg_)
     {
         repeat_04.resize(reg->reg_num);
-        assert (reg->reg_num < ACCOUNT_REG_NUM);
+        assert (reg->reg_num <= ACCOUNT_REG_NUM);
         for (size_t j = 0; j < reg->reg_num; ++j)
         {
             repeat_04[j].name = reg->reg[j].str;

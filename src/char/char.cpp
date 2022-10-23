@@ -317,7 +317,7 @@ AString mmo_char_tostr(struct CharPair *cp)
     }
     str_p += '\t';
 
-    assert (p->global_reg_num < GLOBAL_REG_NUM);
+    assert (p->global_reg_num <= GLOBAL_REG_NUM);
     for (int i = 0; i < p->global_reg_num; i++)
     {
         if (p->global_reg[i].str)
@@ -1034,7 +1034,7 @@ static
 int set_account_reg2(AccountId acc, Slice<GlobalReg> reg)
 {
     size_t num = reg.size();
-    assert (num < ACCOUNT_REG2_NUM);
+    assert (num <= ACCOUNT_REG2_NUM);
     int c = 0;
     for (CharPair& cd : char_keys)
     {
@@ -1409,7 +1409,7 @@ void parse_tologin(Session *ls)
                 break;
             }
 
-                // account_reg2変更通知
+                // account_reg2変更通知 | account_reg2 Change Notification
             case 0x2729:
             {
                 Packet_Head<0x2729> head;
@@ -1459,7 +1459,7 @@ void parse_tologin(Session *ls)
                 AccountId aid = fixed.account_id;
 
                 // Deletion of all characters of the account
-//#warning "This comment is a lie, but it's still true."
+                //#warning "This comment is a lie, but it's still true."
                 // needs to use index because they may move during resize
                 for (int idx = 0; idx < char_keys.size(); idx++)
                 {
@@ -2098,7 +2098,7 @@ void parse_frommap(Session *ms)
                 }
             }
 
-                // account_reg保存要求
+                // account_reg保存要求 | account_reg preservation requirements
             case 0x2b10:
             {
                 Packet_Head<0x2b10> head;
@@ -2117,11 +2117,12 @@ void parse_frommap(Session *ms)
                         reg[j].value = repeat[j].value;
                     }
                     set_account_reg2(acc, Slice<GlobalReg>(reg.begin(), jlim));
-                    // loginサーバーへ送る
+                    // loginサーバーへ送る | login Send to server
                     if (login_session)
                     {
                         // don't send request if no login-server
                         Packet_Head<0x2728> head_28;
+                        head_28.account_id = head.account_id;
                         std::vector<Packet_Repeat<0x2728>> repeat_28(repeat.size());
                         for (size_t j = 0; j < repeat.size(); ++j)
                         {

@@ -606,6 +606,7 @@ void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
 
 /*==========================================
  * アカウント変数保存要求
+ * Account variable save request
  *------------------------------------------
  */
 int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd)
@@ -637,6 +638,7 @@ int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * アカウント変数通知
+ * Account variable notifications
  *------------------------------------------
  */
 static
