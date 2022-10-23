@@ -78,6 +78,7 @@ dumb_ptr<map_session_data> script_rid2sd(ScriptState *st)
 
 /*==========================================
  * 変数の読み取り
+ * Reading variables
  *------------------------------------------
  */
 void get_val(dumb_ptr<block_list> sd, struct script_data *data)
@@ -198,6 +199,7 @@ void get_val(ScriptState *st, struct script_data *data)
 
 /*==========================================
  * 変数の読み取り2
+ * Reading Variables2
  *------------------------------------------
  */
 struct script_data get_val2(ScriptState *st, SIR reg)
@@ -209,6 +211,7 @@ struct script_data get_val2(ScriptState *st, SIR reg)
 
 /*==========================================
  * 変数設定用
+ * For setting variables
  *------------------------------------------
  */
 void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_data vd)

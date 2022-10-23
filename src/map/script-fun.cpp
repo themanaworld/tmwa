@@ -101,7 +101,7 @@ enum class MonsterAttitude
     FROZEN      = 3,
 };
 //
-// 埋め込み関数
+// 埋め込み関数 | Embedded functions
 //
 /*==========================================
  *
@@ -145,6 +145,7 @@ void builtin_goto(ScriptState *st)
 
 /*==========================================
  * ユーザー定義関数の呼び出し
+ * Calling user-defined functions
  *------------------------------------------
  */
 static
@@ -163,10 +164,10 @@ void builtin_callfunc(ScriptState *st)
             for (int i = st->start + 3; i < st->end; i++, j++)
                 push_copy(st->stack, i);
 #endif
-            push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
-            push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
-            push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-            push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
+            push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ | Push the number of arguments
+            push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ | Push current reference stack pointer
+            push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ | Push Current Script Position
+            push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ | Push Current Script
 
             st->scriptp = ScriptPointer(scr, 0);
             st->defsp = st->start + 4 + j;
@@ -182,6 +183,10 @@ void builtin_callfunc(ScriptState *st)
     OMATCH_END ();
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_call(ScriptState *st)
 {
@@ -201,10 +206,10 @@ void builtin_call(ScriptState *st)
                 for (int i = st->start + 3; i < st->end; i++, j++)
                     push_copy(st->stack, i);
 
-                push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
-                push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
-                push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-                push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
+                push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ | Push the number of arguments
+                push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ | Push current reference stack pointer
+                push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ | Push Current Script Position
+                push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ | Push Current Script
 
                 st->scriptp = ScriptPointer(scr, 0);
                 st->defsp = st->start + 4 + j;
@@ -228,10 +233,10 @@ void builtin_call(ScriptState *st)
         for (int i = st->start + 3; i < st->end; i++, j++)
             push_copy(st->stack, i);
 
-        push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
-        push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
-        push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-        push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
+        push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ | Push the number of arguments
+        push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ | Push current reference stack pointer
+        push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ | Push Current Script Position
+        push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ | Push Current Script
 
         st->scriptp.pos = pos_;
         st->defsp = st->start + 4 + j;
@@ -240,6 +245,10 @@ void builtin_call(ScriptState *st)
 
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_getarg(ScriptState *st)
 {
@@ -268,6 +277,10 @@ void builtin_getarg(ScriptState *st)
     push_copy(st->stack, (st->defsp - 4 - i) + arg);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_void(ScriptState *)
 {
@@ -276,6 +289,7 @@ void builtin_void(ScriptState *)
 
 /*==========================================
  * サブルーティンの呼び出し
+ * Call of the Surbrutin
  *------------------------------------------
  */
 static
@@ -289,10 +303,10 @@ void builtin_callsub(ScriptState *st)
         push_copy(st->stack, i);
 #endif
 
-    push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ
-    push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ
-    push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
-    push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ
+    push_int<ScriptDataInt>(st->stack, j); // 引数の数をプッシュ | Push the number of arguments
+    push_int<ScriptDataInt>(st->stack, st->defsp); // 現在の基準スタックポインタをプッシュ | Push current reference stack pointer
+    push_int<ScriptDataInt>(st->stack, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ | Push Current Script Position
+    push_script<ScriptDataRetInfo>(st->stack, TRY_UNWRAP(st->scriptp.code, abort()));  // 現在のスクリプトをプッシュ | Push Current Script
 
     st->scriptp.pos = pos_;
     st->defsp = st->start + 4 + j;
@@ -301,6 +315,7 @@ void builtin_callsub(ScriptState *st)
 
 /*==========================================
  * サブルーチン/ユーザー定義関数の終了
+ * Terminating Subroutines/User-Defined Functions
  *------------------------------------------
  */
 static
@@ -316,7 +331,7 @@ void builtin_return(ScriptState *st)
     }
 
     if (HARG(0))
-    {                           // 戻り値有り
+    {                           // 戻り値有り | Return value available
         push_copy(st->stack, st->start + 2);
     }
 
@@ -361,6 +376,10 @@ void builtin_close(ScriptState *st)
         clif_npc_action(sd, st->oid, 5, 0, 0, 0);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_close2(ScriptState *st)
 {
@@ -455,6 +474,10 @@ void builtin_rand(ScriptState *st)
     }
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_max(ScriptState *st)
 {
@@ -500,6 +523,10 @@ void builtin_max(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, max);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_min(ScriptState *st)
 {
@@ -546,6 +573,10 @@ void builtin_min(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, min);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_average(ScriptState *st)
 {
@@ -558,18 +589,30 @@ void builtin_average(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, (total / i));
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_sqrt(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_cbrt(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, static_cast<int>(cbrt(conv_num(st, &AARG(0)))));
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_pow(ScriptState *st)
 {
@@ -616,6 +659,7 @@ void builtin_warp(ScriptState *st)
 
 /*==========================================
  * エリア指定ワープ
+ * Area Designation Warp
  *------------------------------------------
  */
 static
@@ -849,6 +893,10 @@ void builtin_input(ScriptState *st)
     }
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_requestitem(ScriptState *st)
 {
@@ -950,6 +998,10 @@ void builtin_requestitem(ScriptState *st)
     }
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_requestlang(ScriptState *st)
 {
@@ -1004,11 +1056,11 @@ void builtin_if (ScriptState *st)
     if (!sel)
         return;
 
-    // 関数名をコピー
+    // 関数名をコピー | Copy function name
     push_copy(st->stack, st->start + 3);
-    // 間に引数マーカを入れて
+    // 間に引数マーカを入れて | Put argument markers in between
     push_int<ScriptDataArg>(st->stack, 0);
-    // 残りの引数をコピー
+    // 残りの引数をコピー | Copy the remaining arguments
     for (i = st->start + 4; i < st->end; i++)
     {
         push_copy(st->stack, i);
@@ -1016,6 +1068,10 @@ void builtin_if (ScriptState *st)
     run_func(st);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_if_then_else (ScriptState *st)
 {
@@ -1023,6 +1079,10 @@ void builtin_if_then_else (ScriptState *st)
     push_copy(st->stack, st->start + (condition ? 3 : 4));
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_else (ScriptState *st)
 {
@@ -1038,11 +1098,11 @@ void builtin_else (ScriptState *st)
         return;
 
     st->is_true = 0;
-    // 関数名をコピー
+    // 関数名をコピー | Copy function name
     push_copy(st->stack, st->start + 2);
-    // 間に引数マーカを入れて
+    // 間に引数マーカを入れて | Put argument markers in between
     push_int<ScriptDataArg>(st->stack, 0);
-    // 残りの引数をコピー
+    // 残りの引数をコピー | Copy the remaining arguments
     for (i = st->start + 3; i < st->end; i++)
     {
         push_copy(st->stack, i);
@@ -1050,6 +1110,10 @@ void builtin_else (ScriptState *st)
     run_func(st);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_elif (ScriptState *st)
 {
@@ -1068,11 +1132,11 @@ void builtin_elif (ScriptState *st)
     if (!sel)
         return;
 
-    // 関数名をコピー
+    // 関数名をコピー | Copy function name
     push_copy(st->stack, st->start + 3);
-    // 間に引数マーカを入れて
+    // 間に引数マーカを入れて | Put argument markers in between
     push_int<ScriptDataArg>(st->stack, 0);
-    // 残りの引数をコピー
+    // 残りの引数をコピー | Copy the remaining arguments
     for (i = st->start + 4; i < st->end; i++)
     {
         push_copy(st->stack, i);
@@ -1094,6 +1158,11 @@ void builtin_foreach_sub(dumb_ptr<block_list> bl, NpcEvent event, BlockId caster
     };
     npc_event_do_l(event, caster, arg);
 }
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_foreach(ScriptState *st)
 {
@@ -1182,7 +1251,6 @@ void builtin_destroy(ScriptState *st)
  * Creates a temp NPC
  *----------------------------------------
  */
-
 static
 void builtin_puppet(ScriptState *st)
 {
@@ -1298,6 +1366,7 @@ void builtin_puppet(ScriptState *st)
 
 /*==========================================
  * 変数設定
+ * Variable settings
  *------------------------------------------
  */
 static
@@ -1417,20 +1486,23 @@ void builtin_set(ScriptState *st)
 
     if (postfix == '$')
     {
-        // 文字列
+        // 文字列 | string
         RString str = conv_str(st, &AARG(1));
         set_reg(bl, VariableCode::VARIABLE, reg, str);
     }
     else
     {
-        // 数値
+        // 数値 | numeric value
         int val = conv_num(st, &AARG(1));
         set_reg(bl, VariableCode::VARIABLE, reg, val);
     }
 
 }
 
-// this is a special function that returns array index for a variable stored in another being
+/*==========================================
+ * this is a special function that returns array index for a variable stored in another being
+ *------------------------------------------
+ */
 static
 int getarraysize2(SIR reg, dumb_ptr<block_list> bl)
 {
@@ -1471,6 +1543,7 @@ int getarraysize2(SIR reg, dumb_ptr<block_list> bl)
 
 /*==========================================
  * 配列変数設定
+ * Array variable settings
  *------------------------------------------
  */
 static
@@ -1535,6 +1608,7 @@ void builtin_setarray(ScriptState *st)
 
 /*==========================================
  * 配列変数クリア
+ * Clearing Array Variables
  *------------------------------------------
  */
 static
@@ -1574,6 +1648,7 @@ void builtin_cleararray(ScriptState *st)
 
 /*==========================================
  * 配列変数のサイズ所得
+ * Size of the array variable income
  *------------------------------------------
  */
 static
@@ -1604,6 +1679,10 @@ int getarraysize(ScriptState *st, SIR reg)
     return c + 1;
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_getarraysize(ScriptState *st)
 {
@@ -1622,6 +1701,7 @@ void builtin_getarraysize(ScriptState *st)
 
 /*==========================================
  * 指定要素を表す値(キー)を所得する
+ * Obtain a value (key) representing the specified element
  *------------------------------------------
  */
 static
@@ -1649,6 +1729,10 @@ void builtin_getelementofarray(ScriptState *st)
     }
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_array_search(ScriptState *st)
 {
@@ -1697,6 +1781,10 @@ void builtin_array_search(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, c);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_wgm(ScriptState *st)
 {
@@ -1707,6 +1795,10 @@ void builtin_wgm(ScriptState *st)
             STRPRINTF("[GM] %s"_fmt, message));
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_gmlog(ScriptState *st)
 {
@@ -1782,6 +1874,7 @@ void builtin_countitem(ScriptState *st)
 
 /*==========================================
  * 重量チェック
+ * Weight check
  *------------------------------------------
  */
 static
@@ -1869,9 +1962,9 @@ void builtin_getitem(ScriptState *st)
     {
         Item item_tmp {};
         item_tmp.nameid = nameid;
-        if (HARG(3))    //アイテムを指定したIDに渡す
+        if (HARG(3))    //アイテムを指定したIDに渡す | Pass an item to the specified ID
             sd = map_id2sd(wrap<BlockId>(conv_num(st, &AARG(3))));
-        if (sd == nullptr)         //アイテムを渡す相手がいなかったらお帰り
+        if (sd == nullptr)         //アイテムを渡す相手がいなかったらお帰り | If you don't have anyone to give the item to, go home
             return;
         PickupFail flag;
         if ((flag = pc_additem(sd, &item_tmp, amount)) != PickupFail::OKAY)
@@ -2002,7 +2095,8 @@ void builtin_getversion(ScriptState *st)
 }
 
 /*==========================================
- *キャラ関係のID取得
+ * キャラ関係のID取得
+ * Acquisition of ID related to characters
  *------------------------------------------
  */
 static
@@ -2055,7 +2149,8 @@ void builtin_getnpcid(ScriptState *st)
 }
 
 /*==========================================
- *指定IDのPT名取得
+ * 指定IDのPT名取得
+ * Obtaining PT name of specified ID
  *------------------------------------------
  */
 static
@@ -2068,6 +2163,7 @@ RString builtin_getpartyname_sub(PartyId party_id)
 
 /*==========================================
  * キャラクタの名前
+ * Character's name
  *------------------------------------------
  */
 static
@@ -2076,7 +2172,7 @@ void builtin_strcharinfo(ScriptState *st)
     dumb_ptr<map_session_data> sd;
     int num;
 
-    if (HARG(1))    //指定したキャラを状態異常にする
+    if (HARG(1))    //指定したキャラを状態異常にする | Make the specified character abnormal
         sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(1))));
     else
         sd = script_rid2sd(st);
@@ -2184,6 +2280,7 @@ void builtin_freeloop(ScriptState *st)
 
 /*==========================================
  * 装備品による能力値ボーナス
+ * Ability bonuses for equipment
  *------------------------------------------
  */
 static
@@ -2203,6 +2300,7 @@ void builtin_bonus(ScriptState *st)
 
 /*==========================================
  * 装備品による能力値ボーナス
+ * Ability bonuses for equipment
  *------------------------------------------
  */
 static
@@ -2223,6 +2321,7 @@ void builtin_bonus2(ScriptState *st)
 
 /*==========================================
  * スキル所得
+ * Skill Income
  *------------------------------------------
  */
 static
@@ -2265,6 +2364,7 @@ void builtin_setskill(ScriptState *st)
 
 /*==========================================
  * スキルレベル所得
+ * Skill Level Income
  *------------------------------------------
  */
 static
@@ -2348,7 +2448,6 @@ void builtin_end(ScriptState *st)
  * [Freeyorp] Return the current opt2
  *------------------------------------------
  */
-
 static
 void builtin_getopt2(ScriptState *st)
 {
@@ -2365,7 +2464,6 @@ void builtin_getopt2(ScriptState *st)
  * [Freeyorp] Sets opt2
  *------------------------------------------
  */
-
 static
 void builtin_setopt2(ScriptState *st)
 {
@@ -2384,7 +2482,8 @@ void builtin_setopt2(ScriptState *st)
 }
 
 /*==========================================
- *      セーブポイントの保存
+ * セーブポイントの保存
+ * Saving savepoints
  *------------------------------------------
  */
 static
@@ -2484,6 +2583,7 @@ void builtin_gettime(ScriptState *st)   /* Asgard Version */
 
 /*==========================================
  * カプラ倉庫を開く
+ * Opening a coupler warehouse
  *------------------------------------------
  */
 static
@@ -2504,6 +2604,7 @@ void builtin_openstorage(ScriptState *st)
 
 /*==========================================
  * NPCで経験値上げる
+ * Increase experience with NPCs
  *------------------------------------------
  */
 static
@@ -2522,6 +2623,10 @@ void builtin_getexp(ScriptState *st)
 
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_summon(ScriptState *st)
 {
@@ -2596,6 +2701,7 @@ void builtin_summon(ScriptState *st)
 
 /*==========================================
  * モンスター発生
+ * Monster Outbreak
  *------------------------------------------
  */
 static
@@ -2620,6 +2726,7 @@ void builtin_monster(ScriptState *st)
 
 /*==========================================
  * モンスター発生
+ * Monster Outbreak
  *------------------------------------------
  */
 static
@@ -2646,6 +2753,7 @@ void builtin_areamonster(ScriptState *st)
 
 /*==========================================
  * モンスター削除
+ * Monster Removal
  *------------------------------------------
  */
 static
@@ -2667,6 +2775,10 @@ void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event)
     }
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_killmonster(ScriptState *st)
 {
@@ -2686,6 +2798,7 @@ void builtin_killmonster(ScriptState *st)
 
 /*==========================================
  * NPC主体イベント実行
+ * NPC-Driven Event Execution
  *------------------------------------------
  */
 static
@@ -2699,6 +2812,7 @@ void builtin_donpcevent(ScriptState *st)
 
 /*==========================================
  * イベントタイマー追加
+ * Add Event Timer
  *------------------------------------------
  */
 static
@@ -2722,6 +2836,7 @@ void builtin_addtimer(ScriptState *st)
 
 /*==========================================
  * NPCイベントタイマー追加
+ * Add NPC Event Timer
  *------------------------------------------
  */
 static
@@ -2736,6 +2851,7 @@ void builtin_addnpctimer(ScriptState *st)
 
 /*==========================================
  * NPCタイマー初期化
+ * NPC Timer Initialization
  *------------------------------------------
  */
 static
@@ -2756,6 +2872,7 @@ void builtin_initnpctimer(ScriptState *st)
 
 /*==========================================
  * NPCタイマー開始
+ * NPC Timer Start
  *------------------------------------------
  */
 static
@@ -2775,6 +2892,7 @@ void builtin_startnpctimer(ScriptState *st)
 
 /*==========================================
  * NPCタイマー停止
+ * NPC Timer Stop
  *------------------------------------------
  */
 static
@@ -2794,6 +2912,7 @@ void builtin_stopnpctimer(ScriptState *st)
 
 /*==========================================
  * NPCタイマー情報所得
+ * NPC Timer Information Income
  *------------------------------------------
  */
 static
@@ -2827,6 +2946,7 @@ void builtin_getnpctimer(ScriptState *st)
 
 /*==========================================
  * NPCタイマー値設定
+ * Setting NPC Timer Values
  *------------------------------------------
  */
 static
@@ -2845,6 +2965,10 @@ void builtin_setnpctimer(ScriptState *st)
     npc_settimerevent_tick(nd, tick);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_npcaction(ScriptState *st)
 {
@@ -2870,6 +2994,10 @@ void builtin_npcaction(ScriptState *st)
     clif_npc_action(sd, st->oid, command, id, x, y);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_camera(ScriptState *st)
 {
@@ -2914,6 +3042,10 @@ void builtin_camera(ScriptState *st)
         clif_npc_action(sd, st->oid, 3, 0, 0, 0); // return camera
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_setnpcdirection(ScriptState *st)
 {
@@ -2956,6 +3088,7 @@ void builtin_setnpcdirection(ScriptState *st)
 
 /*==========================================
  * 天の声アナウンス
+ * Voice of Heaven Announcement
  *------------------------------------------
  */
 static
@@ -2981,6 +3114,7 @@ void builtin_announce(ScriptState *st)
 
 /*==========================================
  * 天の声アナウンス（特定マップ）
+ * Voice of Heaven Announcement (Specific Map)
  *------------------------------------------
  */
 static
@@ -2989,6 +3123,10 @@ void builtin_mapannounce_sub(dumb_ptr<block_list> bl, XString str, int flag)
     clif_GMmessage(bl, str, flag | 3);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_mapannounce(ScriptState *st)
 {
@@ -3008,6 +3146,7 @@ void builtin_mapannounce(ScriptState *st)
 
 /*==========================================
  * ユーザー数所得
+ * User Revenue
  *------------------------------------------
  */
 static
@@ -3030,6 +3169,7 @@ void builtin_getusers(ScriptState *st)
 
 /*==========================================
  * マップ指定ユーザー数所得
+ * maps Designated User Income
  *------------------------------------------
  */
  static
@@ -3040,6 +3180,10 @@ void builtin_getusers(ScriptState *st)
      (*users)++;
  }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_getmapusers(ScriptState *st)
 {
@@ -3058,6 +3202,10 @@ void builtin_getmapusers(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, users);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_aggravate(ScriptState *st)
 {
@@ -3075,6 +3223,7 @@ void builtin_aggravate(ScriptState *st)
 
 /*==========================================
  * エリア指定ユーザー数所得
+ * Area Designated User Income
  *------------------------------------------
  */
 
@@ -3087,6 +3236,10 @@ void builtin_getareausers_living_sub(dumb_ptr<block_list> bl, int *users)
         (*users)++;
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_getareausers(ScriptState *st)
 {
@@ -3117,6 +3270,7 @@ void builtin_getareausers(ScriptState *st)
 
 /*==========================================
  * エリア指定ドロップアイテム数所得
+ * Area Designated Drop Item Number Income
  *------------------------------------------
  */
 static
@@ -3129,6 +3283,10 @@ void builtin_getareadropitem_sub(dumb_ptr<block_list> bl, ItemNameId item, int *
 
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, ItemNameId item, int *amount)
 {
@@ -3142,6 +3300,10 @@ void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, ItemNameId i
     }
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_getareadropitem(ScriptState *st)
 {
@@ -3196,6 +3358,7 @@ void builtin_getareadropitem(ScriptState *st)
 
 /*==========================================
  * NPCの有効化
+ * Enabling NPCs
  *------------------------------------------
  */
 static
@@ -3207,6 +3370,7 @@ void builtin_enablenpc(ScriptState *st)
 
 /*==========================================
  * NPCの無効化
+ * Disabling NPCs
  *------------------------------------------
  */
 static
@@ -3218,6 +3382,7 @@ void builtin_disablenpc(ScriptState *st)
 
 /*==========================================
  * 状態異常にかかる
+ * Suffering from an abnormal condition
  *------------------------------------------
  */
 static
@@ -3237,7 +3402,7 @@ void builtin_sc_start(ScriptState *st)
         // all others used milliseconds
         tick *= 1000;
     val1 = conv_num(st, &AARG(2));
-    if (HARG(3))    //指定したキャラを状態異常にする
+    if (HARG(3))    //指定したキャラを状態異常にする | Make the specified character abnormal
         bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(3))));
     else
         bl = map_id2bl(st->rid);
@@ -3246,6 +3411,7 @@ void builtin_sc_start(ScriptState *st)
 
 /*==========================================
  * 状態異常が直る
+ * Abnormal condition is fixed
  *------------------------------------------
  */
 static
@@ -3253,7 +3419,7 @@ void builtin_sc_end(ScriptState *st)
 {
     dumb_ptr<block_list> bl;
     StatusChange type = StatusChange(conv_num(st, &AARG(0)));
-    if (HARG(1))    //指定したキャラを状態異常にする
+    if (HARG(1))    //指定したキャラを状態異常にする | Make the specified character abnormal
         bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
     else
         bl = map_id2bl(st->rid);
@@ -3261,12 +3427,16 @@ void builtin_sc_end(ScriptState *st)
     skill_status_change_end(bl, type, nullptr);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_sc_check(ScriptState *st)
 {
     dumb_ptr<block_list> bl;
     StatusChange type = StatusChange(conv_num(st, &AARG(0)));
-    if (HARG(1))    //指定したキャラを状態異常にする
+    if (HARG(1))    //指定したキャラを状態異常にする | Make the specified character abnormal
         bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(1))));
     else
         bl = map_id2bl(st->rid);
@@ -3289,6 +3459,7 @@ void builtin_debugmes(ScriptState *st)
 
 /*==========================================
  * ステータスリセット
+ * Status Reset
  *------------------------------------------
  */
 static
@@ -3302,6 +3473,7 @@ void builtin_resetstatus(ScriptState *st)
 
 /*==========================================
  * RIDのアタッチ
+ * Attach RID
  *------------------------------------------
  */
 static
@@ -3313,6 +3485,7 @@ void builtin_attachrid(ScriptState *st)
 
 /*==========================================
  * RIDのデタッチ
+ * Detach RID
  *------------------------------------------
  */
 static
@@ -3323,6 +3496,7 @@ void builtin_detachrid(ScriptState *st)
 
 /*==========================================
  * 存在チェック
+ * Existence check
  *------------------------------------------
  */
 static
@@ -3332,6 +3506,10 @@ void builtin_isloggedin(ScriptState *st)
               map_id2sd(wrap<BlockId>(conv_num(st, &AARG(0)))) != nullptr);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_setmapflag(ScriptState *st)
 {
@@ -3346,6 +3524,10 @@ void builtin_setmapflag(ScriptState *st)
     OMATCH_END ();
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_removemapflag(ScriptState *st)
 {
@@ -3360,6 +3542,10 @@ void builtin_removemapflag(ScriptState *st)
     OMATCH_END ();
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_getmapflag(ScriptState *st)
 {
@@ -3378,6 +3564,10 @@ void builtin_getmapflag(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, r);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_pvpon(ScriptState *st)
 {
@@ -3412,6 +3602,10 @@ void builtin_pvpon(ScriptState *st)
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_pvpoff(ScriptState *st)
 {
@@ -3442,6 +3636,10 @@ void builtin_pvpoff(ScriptState *st)
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_setpvpchannel(ScriptState *st)
 {
@@ -3455,11 +3653,15 @@ void builtin_setpvpchannel(ScriptState *st)
     sd->state.pvpchannel = flag;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_getpvpflag(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd;
-    if (HARG(1))    //指定したキャラを状態異常にする
+    if (HARG(1))    //指定したキャラを状態異常にする | Make the specified character abnormal
         sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(1))));
     else
         sd = script_rid2sd(st);
@@ -3482,10 +3684,10 @@ void builtin_getpvpflag(ScriptState *st)
 }
 
 /*==========================================
- *      NPCエモーション
+ * NPCエモーション
+ * NPC Emotion
  *------------------------------------------
  */
-
 static
 void builtin_emotion(ScriptState *st)
 {
@@ -3507,6 +3709,10 @@ void builtin_emotion(ScriptState *st)
         clif_emotion(map_id2bl(st->oid), type);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 {
@@ -3530,6 +3736,10 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
             BL::PC);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
 {
@@ -3537,6 +3747,10 @@ void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
         (*c)++;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 {
@@ -3561,6 +3775,10 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_marriage(ScriptState *st)
 {
@@ -3576,6 +3794,10 @@ void builtin_marriage(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, 1);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_divorce(ScriptState *st)
 {
@@ -3590,6 +3812,10 @@ void builtin_divorce(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, 1);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_getitemlink(ScriptState *st)
 {
@@ -3614,6 +3840,10 @@ void builtin_getitemlink(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, buf);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_getpartnerid2(ScriptState *st)
 {
@@ -3622,6 +3852,10 @@ void builtin_getpartnerid2(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status.partner_id));
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_chr(ScriptState *st)
 {
@@ -3629,6 +3863,10 @@ void builtin_chr(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, VString<1>(ascii));
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_ord(ScriptState *st)
 {
@@ -3636,6 +3874,10 @@ void builtin_ord(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, static_cast<int>(ascii));
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_explode(ScriptState *st)
 {
@@ -3701,6 +3943,7 @@ void builtin_explode(ScriptState *st)
 
 /*==========================================
  * PCの所持品情報読み取り
+ * Read personal belongings information on your PC
  *------------------------------------------
  */
 static
@@ -3727,6 +3970,10 @@ void builtin_getinventorylist(ScriptState *st)
     pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_count"_s)), j);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_getactivatedpoolskilllist(ScriptState *st)
 {
@@ -3758,6 +4005,10 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
 
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_getunactivatedpoolskilllist(ScriptState *st)
 {
@@ -3787,6 +4038,10 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
     pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_count"_s)), count);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_poolskill(ScriptState *st)
 {
@@ -3798,6 +4053,10 @@ void builtin_poolskill(ScriptState *st)
 
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_unpoolskill(ScriptState *st)
 {
@@ -3811,6 +4070,7 @@ void builtin_unpoolskill(ScriptState *st)
 
 /*==========================================
  * NPCから発生するエフェクト
+ * Effects generated by NPCs
  * misceffect(effect, [target])
  *
  * effect The effect type/ID.
@@ -3883,6 +4143,10 @@ void builtin_specialeffect(ScriptState *st)
 
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_specialeffect2(ScriptState *st)
 {
@@ -3897,6 +4161,10 @@ void builtin_specialeffect2(ScriptState *st)
 
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_get(ScriptState *st)
 {
@@ -4033,7 +4301,6 @@ void builtin_get(ScriptState *st)
  * Nude [Valaris]
  *------------------------------------------
  */
-
 static
 void builtin_nude(ScriptState *st)
 {
@@ -4055,7 +4322,6 @@ void builtin_nude(ScriptState *st)
  * UnequipById [Freeyorp]
  *------------------------------------------
  */
-
 static
 void builtin_unequipbyid(ScriptState *st)
 {
@@ -4179,7 +4445,6 @@ void builtin_npcareawarp(ScriptState *st)
  * message [MouseJstr]
  *------------------------------------------
  */
-
 static
 void builtin_message(ScriptState *st)
 {
@@ -4193,6 +4458,10 @@ void builtin_message(ScriptState *st)
 
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_title(ScriptState *st)
 {
@@ -4202,6 +4471,10 @@ void builtin_title(ScriptState *st)
     clif_npc_send_title(sd->sess, st->oid, msg);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_smsg(ScriptState *st)
 {
@@ -4222,6 +4495,10 @@ void builtin_smsg(ScriptState *st)
     clif_server_message(sd, type, msg);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_remotecmd(ScriptState *st)
 {
@@ -4240,6 +4517,10 @@ void builtin_remotecmd(ScriptState *st)
     clif_remote_command(sd, msg);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_sendcollision(ScriptState *st)
 {
@@ -4273,6 +4554,10 @@ void builtin_sendcollision(ScriptState *st)
     clif_update_collision(sd, x1, y1, x2, y2, map_name, mask);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_music(ScriptState *st)
 {
@@ -4282,6 +4567,10 @@ void builtin_music(ScriptState *st)
     clif_change_music(sd, msg);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_mapmask(ScriptState *st)
 {
@@ -4303,6 +4592,10 @@ void builtin_mapmask(ScriptState *st)
     clif_send_mask(sd, map_mask);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_getmask(ScriptState *st)
 {
@@ -4330,7 +4623,6 @@ void builtin_getmask(ScriptState *st)
  * area) [Valaris]
  *------------------------------------------
  */
-
 static
 void builtin_npctalk(ScriptState *st)
 {
@@ -4355,9 +4647,9 @@ void builtin_npctalk(ScriptState *st)
 }
 
 /*==========================================
-  * register cmd
-  *------------------------------------------
-  */
+ * register cmd
+ *------------------------------------------
+ */
 static
 void builtin_registercmd(ScriptState *st)
 {
@@ -4369,9 +4661,9 @@ void builtin_registercmd(ScriptState *st)
 }
 
 /*==========================================
-  * getlook char info. getlook(arg)
-  *------------------------------------------
-  */
+ * getlook char info. getlook(arg)
+ *------------------------------------------
+ */
 static
 void builtin_getlook(ScriptState *st)
 {
@@ -4414,9 +4706,9 @@ void builtin_getlook(ScriptState *st)
 }
 
 /*==========================================
-  *     get char save point. argument: 0- map name, 1- x, 2- y
-  *------------------------------------------
-*/
+ * get char save point. argument: 0- map name, 1- x, 2- y
+ *------------------------------------------
+ */
 static
 void builtin_getsavepoint(ScriptState *st)
 {
@@ -4446,7 +4738,7 @@ void builtin_getsavepoint(ScriptState *st)
 }
 
 /*==========================================
- *     areatimer
+ * areatimer
  *------------------------------------------
  */
 static
@@ -4461,6 +4753,10 @@ void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent ev
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void builtin_areatimer(ScriptState *st)
 {
@@ -4538,7 +4834,10 @@ void builtin_iscollision(ScriptState *st)
         bool(map_getcell(m, x, y) & MapCell::UNWALKABLE));
 }
 
-// Trigger the shop on a (hopefully) nearby shop NPC
+/*==========================================
+ * Trigger the shop on a (hopefully) nearby shop NPC
+ *------------------------------------------
+ */
 static
 void builtin_shop(ScriptState *st)
 {
@@ -4625,15 +4924,16 @@ void builtin_getdir(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, static_cast<uint8_t>(sd->dir));
 }
 
-/*
+/*==========================================
  * Get the PC's current map's name
+ *------------------------------------------
  */
 static
 void builtin_getmap(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd;
 
-    if (HARG(0))    //指定したキャラを状態異常にする
+    if (HARG(0))    //指定したキャラを状態異常にする | Make the specified character abnormal
         sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(0))));
     else
         sd = script_rid2sd(st);
@@ -4646,8 +4946,9 @@ void builtin_getmap(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, sd->bl_m->name_);
 }
 
-/*
+/*==========================================
  * Get the NPC's info
+ *------------------------------------------
  */
 static
 void builtin_strnpcinfo(ScriptState *st)
@@ -4739,6 +5040,10 @@ void builtin_getnpcy(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, nd->bl_y);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_mapexit(ScriptState *)
 {

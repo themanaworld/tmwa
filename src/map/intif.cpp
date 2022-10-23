@@ -116,14 +116,14 @@ void intif_wis_message_to_gm(CharName Wisp_name, GmLevel min_gm_level, ZString m
                 Wisp_name, min_gm_level, mes);
 }
 
-// アカウント変数送信
+// アカウント変数送信 | Account Variable Submission
 void intif_saveaccountreg(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
     if (!char_session)
         return;
 
-    assert (sd->status.account_reg_num < ACCOUNT_REG_NUM);
+    assert (sd->status.account_reg_num <= ACCOUNT_REG_NUM);
 
     Packet_Head<0x3004> head_04;
     head_04.account_id = block_to_account(sd->bl_id);
@@ -136,7 +136,7 @@ void intif_saveaccountreg(dumb_ptr<map_session_data> sd)
     send_vpacket<0x3004, 8, 36>(char_session, head_04, repeat_04);
 }
 
-// アカウント変数要求
+// アカウント変数要求 | Account variable requests
 void intif_request_accountreg(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);

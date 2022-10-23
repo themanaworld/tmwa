@@ -142,6 +142,7 @@ Borrowed<str_data_t> add_strp(XString p)
 
 /*==========================================
  * スクリプトバッファに１バイト書き込む
+ * Write 1 byte to script buffer
  *------------------------------------------
  */
 void ScriptBuffer::add_scriptc(ByteCode a)
@@ -151,6 +152,7 @@ void ScriptBuffer::add_scriptc(ByteCode a)
 
 /*==========================================
  * スクリプトバッファにデータタイプを書き込む
+ * Write the data type to the script buffer
  *------------------------------------------
  */
 void ScriptBuffer::add_scriptb(uint8_t a)
@@ -160,6 +162,7 @@ void ScriptBuffer::add_scriptb(uint8_t a)
 
 /*==========================================
  * スクリプトバッファに整数を書き込む
+ * Writing an integer to the script buffer
  *------------------------------------------
  */
 void ScriptBuffer::add_scripti(uint32_t a)
@@ -174,6 +177,7 @@ void ScriptBuffer::add_scripti(uint32_t a)
 
 /*==========================================
  * スクリプトバッファにラベル/変数/関数を書き込む
+ * Write labels/variables/functions to script buffer
  *------------------------------------------
  */
 // 最大16Mまで
@@ -219,6 +223,7 @@ void ScriptBuffer::add_scriptl(P<str_data_t> ld)
 
 /*==========================================
  * ラベルを解決する
+ * Resolving labels
  *------------------------------------------
  */
 void ScriptBuffer::set_label(Borrowed<str_data_t> ld, int pos_)
@@ -243,6 +248,7 @@ void ScriptBuffer::set_label(Borrowed<str_data_t> ld, int pos_)
 
 /*==========================================
  * スペース/コメント読み飛ばし
+ * Space/Comment Skipping
  *------------------------------------------
  */
 static
@@ -273,6 +279,7 @@ ZString::iterator skip_space(ZString::iterator p)
 
 /*==========================================
  * １単語スキップ
+ * 1 word skip
  *------------------------------------------
  */
 static
@@ -280,30 +287,31 @@ ZString::iterator skip_word(ZString::iterator p)
 {
     // prefix
     if (*p == '$')
-        p++;                    // MAP鯖内共有変数用
+        p++;                    // MAP鯖内共有変数用 | For shared variables in MAP server
     if (*p == '@')
-        p++;                    // 一時的変数用(like weiss)
+        p++;                    // 一時的変数用(like weiss) | For temporary variables
     if (*p == '.')
         p++;                    // npc
     if (*p == '@')
         p++;                    // scope
     if (*p == '#')
-        p++;                    // account変数用
+        p++;                    // account変数用 | For account variable
     if (*p == '#')
-        p++;                    // ワールドaccount変数用
+        p++;                    // ワールドaccount変数用 | For World Account variables
 
     while (isalnum(*p) || *p == '_')
         p++;
 
     // postfix
     if (*p == '$')
-        p++;                    // 文字列変数
+        p++;                    // 文字列変数 | String variables
 
     return p;
 }
 
 /*==========================================
  * エラーメッセージ出力
+ * Error message output
  *------------------------------------------
  */
 static
@@ -339,6 +347,7 @@ void disp_error_message(ZString mes, ZString::iterator pos_)
 
 /*==========================================
  * 項の解析
+ * Analyzing Terms
  *------------------------------------------
  */
 ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
@@ -442,6 +451,7 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
 
 /*==========================================
  * 式の解析
+ * Analyzing Expressions
  *------------------------------------------
  */
 ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
@@ -566,6 +576,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
 
 /*==========================================
  * 式の評価
+ * Evaluating Expressions
  *------------------------------------------
  */
 ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
@@ -587,6 +598,7 @@ ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
 
 /*==========================================
  * 行の解析
+ * Parsing Rows
  *------------------------------------------
  */
 ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
@@ -602,9 +614,9 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
         return p;
     }
 
-    parse_cmd_if = 0;           // warn_cmd_no_commaのために必要
+    parse_cmd_if = 0;           // warn_cmd_no_commaのために必要 | Needed for warn_cmd_no_comma
 
-    // 最初は関数名
+    // 最初は関数名 | Initially, the function name
     ZString::iterator p2 = p;
     p = parse_simpleexpr(p);
     p = skip_space(p);
@@ -640,7 +652,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
 
         p = parse_expr(p);
         p = skip_space(p);
-        // 引数区切りの,処理
+        // 引数区切りの,処理 | Argument-delimited,processing
         if (*p == ',')
             p++;
         else if (*p != ';' && script_config.warn_cmd_no_comma
@@ -689,6 +701,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
 
 /*==========================================
  * 組み込み関数の追加
+ * Adding built-in functions
  *------------------------------------------
  */
 static
@@ -711,6 +724,7 @@ std::unique_ptr<const ScriptBuffer> compile_script(RString debug_name, const ast
 
 /*==========================================
  * スクリプトの解析
+ * Parsing Scripts
  *------------------------------------------
  */
 void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
@@ -736,7 +750,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         }
     }
 
-    // 外部用label dbの初期化
+    // 外部用label dbの初期化 | Initializing an external label db
     scriptlabel_db.clear();
 
     // for error message
@@ -786,7 +800,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         {
             disp_error_message("error: unreachable statement"_s, p);
         }
-        // 他は全部一緒くた
+        // 他は全部一緒くた | Everything else is crap together
         p = parse_line(p, &can_step);
         p = skip_space(p);
         add_scriptc(ByteCode::EOL);

@@ -72,7 +72,7 @@ namespace tmwa
 {
 namespace map
 {
-// PVP順位計算の間隔
+// PVP順位計算の間隔 | Interval for PVP ranking calculation
 constexpr std::chrono::milliseconds PVP_CALCRANK_INTERVAL =
         1_s;
 
@@ -127,24 +127,25 @@ int sp_coefficient_0 = 100;
 static //const
 earray<interval_t, ItemLook, ItemLook::COUNT> aspd_base_0 //=
 {{
-650_ms,
-700_ms,
-750_ms,
-600_ms,
-2000_ms,
-2000_ms,
-800_ms,
-2000_ms,
-700_ms,
-700_ms,
-650_ms,
-900_ms,
-2000_ms,
-2000_ms,
-2000_ms,
-2000_ms,
-2000_ms,
+650_ms,  // 0 NONE
+700_ms,  // 1 BLADE or some other common weapons
+750_ms,  // 2
+600_ms,  // 3 SETZER_AND_SCYTHE
+2000_ms, // 4
+2000_ms, // 5
+800_ms,  // 6 Falchion
+2000_ms, // 7
+700_ms,  // 8
+700_ms,  // 9
+650_ms,  //10 STAFF / Sandcutter
+900_ms,  //11 BOW
+2000_ms, //12
+2000_ms, //13
+2000_ms, //14
+2000_ms, //15
+2000_ms, //16
 }};
+
 static const
 int exp_table_0[MAX_LEVEL] =
 {
@@ -191,6 +192,7 @@ int exp_table_0[MAX_LEVEL] =
     993241342,  1120376234, 1263784392, 1425548794, 1608019039,
     2147483647, 0
 };
+
 // is this *actually* used anywhere?
 static const
 int exp_table_7[MAX_LEVEL] =
@@ -198,6 +200,7 @@ int exp_table_7[MAX_LEVEL] =
     // 1 .. 9
         10, 18, 28, 40, 91, 151, 205, 268, 340
 };
+
 // TODO generate this table instead
 static int stat_p[MAX_LEVEL] =
 {
@@ -271,20 +274,48 @@ earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
     EPOS::ARROW,
 }};
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_checkoverhp(dumb_ptr<map_session_data> sd);
+
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_checkoversp(dumb_ptr<map_session_data> sd);
+
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_nextbaseafter(dumb_ptr<map_session_data> sd);
+
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_nextjobafter(dumb_ptr<map_session_data> sd);
+
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void pc_setdead(dumb_ptr<map_session_data> sd)
 {
     sd->state.dead_sit = 1;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 GmLevel pc_isGM(dumb_ptr<map_session_data> sd)
 {
     nullpo_retr(GmLevel(), sd);
@@ -295,6 +326,10 @@ GmLevel pc_isGM(dumb_ptr<map_session_data> sd)
     return GmLevel();
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_iskiller(dumb_ptr<map_session_data> src,
                  dumb_ptr<map_session_data> target)
 {
@@ -309,6 +344,10 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void pc_set_gm_level(AccountId account_id, GmLevel level)
 {
     if (level)
@@ -317,6 +356,10 @@ void pc_set_gm_level(AccountId account_id, GmLevel level)
         gm_accountm.erase(account_id);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int distance(int x0, int y0, int x1, int y1)
 {
@@ -327,6 +370,10 @@ int distance(int x0, int y0, int x1, int y1)
     return dx > dy ? dx : dy;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void pc_pvp_timer(TimerData *, tick_t, BlockId id)
 {
@@ -336,6 +383,10 @@ void pc_pvp_timer(TimerData *, tick_t, BlockId id)
     assert (sd->bl_type == BL::PC);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_setpvptimer(dumb_ptr<map_session_data> sd, interval_t val)
 {
     nullpo_retz(sd);
@@ -346,6 +397,10 @@ int pc_setpvptimer(dumb_ptr<map_session_data> sd, interval_t val)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_delpvptimer(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
@@ -354,6 +409,10 @@ int pc_delpvptimer(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void pc_invincible_timer(TimerData *, tick_t, BlockId id)
 {
@@ -363,6 +422,10 @@ void pc_invincible_timer(TimerData *, tick_t, BlockId id)
     assert (sd->bl_type == BL::PC);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t val)
 {
     nullpo_retz(sd);
@@ -373,6 +436,10 @@ int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t val)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_delinvincibletimer(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
@@ -381,6 +448,10 @@ int pc_delinvincibletimer(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type)
 {
     nullpo_retz(sd);
@@ -418,6 +489,7 @@ int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type)
 
 /*==========================================
  * 自分をロックしているMOBの数を数える(foreachclient)
+ * Count the number of MOBs that lock you (foreachclient)
  *------------------------------------------
  */
 static
@@ -445,6 +517,10 @@ void pc_counttargeted_sub(dumb_ptr<block_list> bl,
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
         ATK target_lv)
 {
@@ -459,6 +535,7 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
 
 /*==========================================
  * ローカルプロトタイプ宣言 (必要な物のみ)
+ * Local prototype declarations (only what is needed)
  *------------------------------------------
  */
 static
@@ -466,17 +543,18 @@ int pc_walktoxy_sub(dumb_ptr<map_session_data>);
 
 /*==========================================
  * saveに必要なステータス修正を行なう
+ * Make the necessary status corrections to save
  *------------------------------------------
  */
 void pc_makesavestatus(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    // 服の色は色々弊害が多いので保存対象にはしない
+    // 服の色は色々弊害が多いので保存対象にはしない | The color of clothes has many adverse effects, so do not store them
     if (!battle_config.save_clothcolor)
         sd->status.clothes_color = 0;
 
-    // 死亡状態だったのでhpを1、位置をセーブ場所に変更
+    // 死亡状態だったのでhpを1、位置をセーブ場所に変更 | Since he was dead, HP 1, changed position to save location
     if (pc_isdead(sd))
     {
         pc_setrestartvalue(sd, 0);
@@ -496,7 +574,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
         sd->status.last_point.y = sd->bl_y;
     }
 
-    // セーブ禁止マップだったので指定位置に移動
+    // セーブ禁止マップだったので指定位置に移動 | Since it was a save prohibited map, moved to the specified position
     if (sd->bl_m->flag.get(MapFlag::NOSAVE))
     {
         P<map_local> m = sd->bl_m;
@@ -509,6 +587,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * 接続時の初期化
+ * Initialization on connection
  *------------------------------------------
  */
 int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char_id,
@@ -537,6 +616,10 @@ int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n)
 {
     nullpo_retr(EPOS::ZERO, sd);
@@ -544,6 +627,10 @@ EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n)
     return sd->inventory_data[n].pmd_pget(&item_data::equip).copy_or(EPOS::ZERO);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_setinventorydata(dumb_ptr<map_session_data> sd)
 {
@@ -561,6 +648,10 @@ int pc_setinventorydata(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_calcweapontype(dumb_ptr<map_session_data> sd)
 {
@@ -572,6 +663,10 @@ int pc_calcweapontype(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_setequipindex(dumb_ptr<map_session_data> sd)
 {
@@ -623,11 +718,15 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
 {
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-    //転生や養子の場合の元の職業を算出する
+    //転生や養子の場合の元の職業を算出する | Calculate the original occupation in case of reincarnation or adoption
 
     nullpo_retz(sd);
 
@@ -646,6 +745,10 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
     return 1;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void pc_set_weapon_icon(dumb_ptr<map_session_data> sd, int count,
         StatusChange icon, ItemNameId look)
 {
@@ -672,6 +775,10 @@ void pc_set_weapon_icon(dumb_ptr<map_session_data> sd, int count,
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int range)
 {
     sd->attack_spell_delay = speed;
@@ -694,6 +801,8 @@ void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int ran
 /*==========================================
  * session idに問題無し
  * char鯖から送られてきたステータスを設定
+ * No problem with session id
+ * Set the status sent from char server
  *------------------------------------------
  */
 int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
@@ -718,7 +827,7 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     MAP_LOG_MAGIC(sd, "LOGIN"_fmt);
 
     really_memzero_this(&sd->state);
-    // 基本的な初期化
+    // 基本的な初期化 | Basic initialization
     sd->state.connect_new = 1;
     sd->bl_prev = sd->bl_next = nullptr;
 
@@ -755,28 +864,28 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     // -o11c
     //sd->cast_tick = tick; // + pc_readglobalreg (sd, "MAGIC_CAST_TICK"_s);
 
-    // アカウント変数の送信要求
+    // アカウント変数の送信要求 | Request to send account variables
     intif_request_accountreg(sd);
 
-    // アイテムチェック
+    // アイテムチェック | Item Check
     pc_setinventorydata(sd);
     pc_checkitem(sd);
 
-    // ステータス異常の初期化
+    // ステータス異常の初期化 | Initializing Status Anomalies
     for (StatusChange i : erange(StatusChange(), StatusChange::MAX_STATUSCHANGE))
     {
         // sd->sc_data[i].timer = nullptr;
         sd->sc_data[i].val1 = 0;
     }
 
-    // パーティー関係の初期化
+    // パーティー関係の初期化 | Initializing Party Relationships
     sd->party_sended = 0;
     sd->party_invite = PartyId();
     sd->party_x = -1;
     sd->party_y = -1;
     sd->party_hp = -1;
 
-    // イベント関係の初期化
+    // イベント関係の初期化 | Initializing Event Relationships
     sd->eventqueuel.clear();
 
     {
@@ -795,31 +904,31 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
         clif_changeoption(sd);
     }
 
-    // 位置の設定
+    // 位置の設定 | Setting the Position
     pc_setpos(sd, sd->status.last_point.map_, sd->status.last_point.x,
                sd->status.last_point.y, BeingRemoveWhy::GONE);
 
-    // パーティ、ギルドデータの要求
+    // パーティ、ギルドデータの要求 | Request for Party, Guild Data
     if (sd->status.party_id
         && party_search(sd->status.party_id).is_none())
         party_request_info(sd->status.party_id);
 
-    // pvpの設定
+    // pvpの設定 | Configuring PVP
     sd->pvp_rank = 0;
     sd->pvp_point = 0;
     // sd->pvp_timer = nullptr;
 
-    // 通知
+    // 通知 | notice
 
     clif_authok(sd);
     map_addnickdb(sd);
     if (!map_charid2nick(sd->status_key.char_id).to__actual())
         map_addchariddb(sd->status_key.char_id, sd->status_key.name);
 
-    //スパノビ用死にカウンターのスクリプト変数からの読み出しとsdへのセット
+    //スパノビ用死にカウンターのスクリプト変数からの読み出しとsdへのセット | Reading from Counter Script Variable to Death for Spa Novi and Set to SD
     sd->die_counter = pc_readglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"_s));
 
-    // ステータス初期計算など
+    // ステータス初期計算など | Status initial calculation, etc.
     pc_calcstatus(sd, 1);
 
     if (pc_isGM(sd))
@@ -876,6 +985,7 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * session idに問題ありなので後始末
+ * There is a problem with the session id, so clean up after it
  *------------------------------------------
  */
 int pc_authfail(AccountId id)
@@ -891,6 +1001,10 @@ int pc_authfail(AccountId id)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_calc_skillpoint(dumb_ptr<map_session_data> sd)
 {
@@ -910,6 +1024,7 @@ int pc_calc_skillpoint(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * 重量アイコンの確認
+ * Checking the weight icon
  *------------------------------------------
  */
 int pc_checkweighticon(dumb_ptr<map_session_data> sd)
@@ -946,6 +1061,10 @@ int pc_checkweighticon(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void pc_set_weapon_look(dumb_ptr<map_session_data> sd)
 {
@@ -962,6 +1081,10 @@ void pc_set_weapon_look(dumb_ptr<map_session_data> sd)
  * first==0の時、計算対象のパラメータが呼び出し前から
  * 変 化した場合自動でsendするが、
  * 能動的に変化させたパラメータは自前でsendするように
+ * Parameter Calculation
+ * When first==0, the parameter to be calculated is from before the call
+ * If it changes, it will automatically send it,
+ * Actively changed parameters should be send on their own
  *------------------------------------------
  */
 int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
@@ -1109,7 +1232,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     sd->paramcard = sd->parame;
 
-    // 装備品によるステータス変化はここで実行
+    // 装備品によるステータス変化はここで実行 | Status changes by equipment are performed here
     for (EQUIP i : EQUIPs_noarrow)
     {
         IOff0 index = sd->equip_index_maybe[i];
@@ -1135,7 +1258,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 }
                 else
                 {
-                    //二刀流武器以外
+                    //二刀流武器以外 | Other than two-pronged weapons
                     argrec_t arg[2] =
                     {
                         {"@slotId"_s, static_cast<int>(i)},
@@ -1176,7 +1299,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     {
         IOff0 index = aidx;
         OMATCH_BEGIN_SOME (sdidi, sd->inventory_data[index])
-        {                       //まだ属性が入っていない
+        {                       //まだ属性が入っていない | Attributes not yet included
             argrec_t arg[2] =
             {
                 {"@slotId"_s, static_cast<int>(EQUIP::ARROW)},
@@ -1299,7 +1422,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->mdef2 < 1)
         sd->mdef2 = 1;
 
-    // 二刀流 ASPD 修正
+    //二刀流 ASPD 修正 | Two-cut ASPD correction
     {
         sd->aspd += aspd_base_0[sd->status.weapon]
             - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
@@ -1308,7 +1431,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     aspd_rate = sd->aspd_rate;
 
-    //攻撃速度増加
+    //攻撃速度増加 | Increased attack speed
 
     if (sd->attackrange > 2)
     {
@@ -1335,7 +1458,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->status.max_hp <= 0)
         sd->status.max_hp = 1;  // end
 
-    // 最大SP計算
+    // 最大SP計算 | Maximum SP calculation
     sd->status.max_sp += ((sp_coefficient_0 * bl) + 1000)
         / 100 * (100 + sd->paramc[ATTR::INT]) / 100
         + (sd->parame[ATTR::INT] - sd->paramcard[ATTR::INT]);
@@ -1345,9 +1468,9 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->status.max_sp < 0 || sd->status.max_sp > battle_config.max_sp)
         sd->status.max_sp = battle_config.max_sp;
 
-    //自然回復HP
+    //自然回復HP | Natural Recovery HP
     sd->nhealhp = 1 + (sd->paramc[ATTR::VIT] / 5) + (sd->status.max_hp / 200);
-    //自然回復SP
+    //自然回復SP | Natural Recovery SP
     sd->nhealsp = 1 + (sd->paramc[ATTR::INT] / 6) + (sd->status.max_sp / 100);
     if (sd->paramc[ATTR::INT] >= 120)
         sd->nhealsp += ((sd->paramc[ATTR::INT] - 120) >> 1) + 4;
@@ -1365,10 +1488,10 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             sd->nhealsp = 1;
     }
 
-    // スキルやステータス異常による残りのパラメータ補正
+    //スキルやステータス異常による残りのパラメータ補正 | Correction of the remaining parameters due to skill or status anomalies
     {
-        // ATK/DEF変化形
-        if (sd->sc_data[StatusChange::SC_POISON].timer) // 毒状態
+        // ATK/DEF変化形 | ATK/DEF variants
+        if (sd->sc_data[StatusChange::SC_POISON].timer) // 毒状態 | Poisonous state
             sd->def2 = sd->def2 * 75 / 100;
 
         if (sd->sc_data[StatusChange::SC_ATKPOT].timer)
@@ -1485,6 +1608,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
 /*==========================================
  * 装 備品による能力等のボーナス設定
+ * Bonus settings such as abilities by equipment
  *------------------------------------------
  */
 int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
@@ -1779,6 +1903,7 @@ int pc_bonus2(dumb_ptr<map_session_data> sd, SP type, int type2, int val)
 
 /*==========================================
  * スクリプトによるスキル所得
+ * Skill Income by Script
  *------------------------------------------
  */
 int pc_skill(dumb_ptr<map_session_data> sd, SkillID id, int level, int flag)
@@ -1809,6 +1934,8 @@ int pc_skill(dumb_ptr<map_session_data> sd, SkillID id, int level, int flag)
 /*==========================================
  * アイテムを買った時に、新しいアイテム欄を使うか、
  * 3万個制限にかかるか確認
+ * When you buy an item, use the new item field, or
+ * Check if you hit the 30,000 limit
  *------------------------------------------
  */
 ADDITEM pc_checkadditem(dumb_ptr<map_session_data> sd, ItemNameId nameid, int amount)
@@ -1835,6 +1962,7 @@ ADDITEM pc_checkadditem(dumb_ptr<map_session_data> sd, ItemNameId nameid, int am
 
 /*==========================================
  * 空きアイテム欄の個数
+ * Number of free item fields
  *------------------------------------------
  */
 int pc_inventoryblank(dumb_ptr<map_session_data> sd)
@@ -1854,6 +1982,7 @@ int pc_inventoryblank(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * お金を払う
+ * Pay Money
  *------------------------------------------
  */
 int pc_payzeny(dumb_ptr<map_session_data> sd, int zeny)
@@ -1871,6 +2000,7 @@ int pc_payzeny(dumb_ptr<map_session_data> sd, int zeny)
 
 /*==========================================
  * お金を得る
+ * Get Money
  *------------------------------------------
  */
 int pc_getzeny(dumb_ptr<map_session_data> sd, int zeny)
@@ -1891,6 +2021,7 @@ int pc_getzeny(dumb_ptr<map_session_data> sd, int zeny)
 
 /*==========================================
  * アイテムを探して、インデックスを返す
+ * Find an item and return an index
  *------------------------------------------
  */
 IOff0 pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id)
@@ -1907,6 +2038,10 @@ IOff0 pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id)
     return IOff0::from(-1);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
 {
     int count = 0;
@@ -1922,6 +2057,10 @@ int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
     return count;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_remove_items(dumb_ptr<map_session_data> player, ItemNameId item_id, int count)
 {
     nullpo_retz(player);
@@ -1951,6 +2090,7 @@ int pc_remove_items(dumb_ptr<map_session_data> player, ItemNameId item_id, int c
 
 /*==========================================
  * アイテム追加。個数のみitem構造体の数字を無視
+ * Add Item. Ignore the number of items only in the structure
  *------------------------------------------
  */
 PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
@@ -2011,6 +2151,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
 
 /*==========================================
  * アイテムを減らす
+ * Reduce items
  *------------------------------------------
  */
 int pc_delitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, int type)
@@ -2044,6 +2185,7 @@ int pc_delitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, int type)
 
 /*==========================================
  * アイテムを落す
+ * Drop an item
  *------------------------------------------
  */
 int pc_dropitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount)
@@ -2075,9 +2217,9 @@ int pc_dropitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount)
 
 /*==========================================
  * アイテムを拾う
+ * Pick up items
  *------------------------------------------
  */
-
 static
 int can_pick_item_up_from(dumb_ptr<map_session_data> self, BlockId other_id)
 {
@@ -2116,6 +2258,10 @@ int can_pick_item_up_from(dumb_ptr<map_session_data> self, BlockId other_id)
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
 {
     tick_t tick = gettick();
@@ -2154,11 +2300,11 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
 
         PickupFail flag = pc_additem(sd, &fitem->item_data, fitem->item_data.amount);
         if (flag != PickupFail::OKAY)
-            // 重量overで取得失敗
+            //重量overで取得失敗 | Failure to get over weight
             clif_additem(sd, IOff0::from(0), 0, flag);
         else
         {
-            // 取得成功
+            //取得成功 | Succeed
             if (sd->attacktimer)
                 pc_stopattack(sd);
             clif_takeitem(sd, fitem);
@@ -2172,6 +2318,10 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
 {
@@ -2195,6 +2345,7 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
 
 /*==========================================
  * アイテムを使う
+ * Working with Items
  *------------------------------------------
  */
 int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
@@ -2227,11 +2378,9 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
     return 0;
 }
 
-//
-//
-//
 /*==========================================
  * PCの位置設定
+ * PC location setting
  *------------------------------------------
  */
 int pc_setpos(dumb_ptr<map_session_data> sd,
@@ -2241,17 +2390,17 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
 
     nullpo_retz(sd);
 
-    if (sd->trade_partner)      // 取引を中断する
+    if (sd->trade_partner)      //取引を中断する | Suspend a transaction
         trade_tradecancel(sd);
     if (sd->state.storage_open)
-        storage_storage_quit(sd);  // 倉庫を開いてるなら保存する
+        storage_storage_quit(sd);  //倉庫を開いてるなら保存する | If you have a warehouse open, save it
 
-    if (sd->party_invite)   // パーティ勧誘を拒否する
+    if (sd->party_invite)   //パーティ勧誘を拒否する | Refuse to solicit a party
         party_reply_invite(sd, sd->party_invite_account, 0);
 
-    skill_castcancel(sd, 0);  // 詠唱中断
-    pc_stop_walking(sd, 0);    // 歩行中断
-    pc_stopattack(sd);         // 攻撃中断
+    skill_castcancel(sd, 0);  //詠唱中断 | The singing is interrupted
+    pc_stop_walking(sd, 0);    //歩行中断 | Walking interruption
+    pc_stopattack(sd);         //攻撃中断 | Attack Interruption
 
     if (pc_issit(sd))
     {
@@ -2331,7 +2480,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
     sd->bl_x = x;
     sd->bl_y = y;
 
-//  map_addblock(sd);  // ブロック登録とspawnは
+//  map_addblock(sd);  //ブロック登録とspawnは | Block registration and spawn
 //  clif_spawnpc(sd);
 
     return 0;
@@ -2351,7 +2500,7 @@ int pc_can_reach(dumb_ptr<map_session_data> sd, int x, int y)
     if (sd->bl_x == x && sd->bl_y == y) // 同じマス
         return 1;
 
-    // 障害物判定
+    //障害物判定 | Obstacle determination
     wpd.path_len = 0;
     wpd.path_pos = 0;
     wpd.path_half = 0;
@@ -2359,10 +2508,11 @@ int pc_can_reach(dumb_ptr<map_session_data> sd, int x, int y)
 }
 
 //
-// 歩 行物
+// 歩 行物 | Walks
 //
 /*==========================================
  * 次の1歩にかかる時間を計算
+ * Calculate how long it will take to take the next step
  *------------------------------------------
  */
 static
@@ -2380,6 +2530,7 @@ interval_t calc_next_walk_step(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * 半歩進む(timer関数)
+ * Half a step forward (timer function)
  *------------------------------------------
  */
 static
@@ -2399,7 +2550,7 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
 
     sd->walkpath.path_half ^= 1;
     if (sd->walkpath.path_half == 0)
-    {                           // マス目中心へ到着
+    {                           //マス目中心へ到着 | Arrive at the center of the grid
         sd->walkpath.path_pos++;
         if (sd->state.change_walk_target)
         {
@@ -2408,7 +2559,7 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
         }
     }
     else
-    {                           // マス目境界へ到着
+    {                           //マス目境界へ到着 | Arriving at the grid boundary
         if (sd->walkpath.path[sd->walkpath.path_pos] >= DIR::COUNT)
             return;
 
@@ -2482,7 +2633,7 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
         // sd->walktimer = nullptr;
 
         if (sd->status.party_id)
-        {                       // パーティのＨＰ情報通知検査
+        {                       //パーティのＨＰ情報通知検査 | Inspection of the party's HP information notification
             Option<PartyPair> p = party_search(sd->status.party_id);
             if (p.is_some())
             {
@@ -2516,6 +2667,7 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
 
 /*==========================================
  * 移動可能か確認して、可能なら歩行開始
+ * Check if you can move and start walking if possible
  *------------------------------------------
  */
 static
@@ -2547,6 +2699,7 @@ int pc_walktoxy_sub(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * pc歩 行要求
+ * pc step request
  *------------------------------------------
  */
 int pc_walktoxy(dumb_ptr<map_session_data> sd, int x, int y)
@@ -2562,8 +2715,8 @@ int pc_walktoxy(dumb_ptr<map_session_data> sd, int x, int y)
 
     if (sd->walktimer && sd->state.change_walk_target == 0)
     {
-        // 現在歩いている最中の目的地変更なのでマス目の中心に来た時に
-        // timer関数からpc_walktoxy_subを呼ぶようにする
+        //現在歩いている最中の目的地変更なのでマス目の中心に来た時に | Since it is a destination change while currently walking, when you come to the center of the square
+        // timer関数からpc_walktoxy_subを呼ぶようにする | Make sure to call pc_walktoxy_sub from timer function
         sd->state.change_walk_target = 1;
     }
     else
@@ -2576,6 +2729,7 @@ int pc_walktoxy(dumb_ptr<map_session_data> sd, int x, int y)
 
 /*==========================================
  * 歩 行停止
+ * Walk stop
  *------------------------------------------
  */
 int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
@@ -2600,6 +2754,10 @@ int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd)
 {
     if (npc_touch_areanpc(sd, sd->bl_m, sd->bl_x, sd->bl_y) != 2)
@@ -2607,10 +2765,11 @@ void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd)
 }
 
 //
-// 武器戦闘
+// 武器戦闘 | Weapons Combat
 //
 /*==========================================
  * スキルの検索 所有していた場合Lvが返る
+ * Search for a skill If you owned it, it will return Lv
  *------------------------------------------
  */
 int pc_checkskill(dumb_ptr<map_session_data> sd, SkillID skill_id)
@@ -2623,6 +2782,7 @@ int pc_checkskill(dumb_ptr<map_session_data> sd, SkillID skill_id)
 
 /*==========================================
  * 装 備品のチェック
+ * Checking Equipment
  *------------------------------------------
  */
 IOff0 pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos)
@@ -2640,6 +2800,7 @@ IOff0 pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos)
 
 /*==========================================
  * PCの攻撃 (timer関数)
+ * PC Attack (Timer Function)
  *------------------------------------------
  */
 static
@@ -2664,12 +2825,12 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))
         return;
 
-    // 同じmapでないなら攻撃しない
-    // PCが死んでても攻撃しない
+    //同じmapでないなら攻撃しない | If it's not the same map, don't attack
+    //PCが死んでても攻撃しない | Does not attack even if the PC is dead
     if (sd->bl_m != bl->bl_m || pc_isdead(sd))
         return;
 
-    // 異常などで攻撃できない
+    //異常などで攻撃できない | Unable to attack due to abnormalities, etc.
     if (sd->opt1 != Opt1::ZERO)
         return;
 
@@ -2720,7 +2881,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
         if (sd->status.weapon != ItemLook::BOW)
             range++;
         if (dist > range)
-        {                       // 届 かないので移動
+        {                       //届 かないので移動 | Move because it does not arrive
             //if(pc_can_reach(sd,bl->bl_x,bl->bl_y))
             //clif_movetoattack(sd,bl);
             return;
@@ -2737,7 +2898,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
         else
         {
             if (battle_config.player_attack_direction_change)
-                sd->dir = sd->head_dir = map_calc_dir(sd, bl->bl_x, bl->bl_y);  // 向き設定
+                sd->dir = sd->head_dir = map_calc_dir(sd, bl->bl_x, bl->bl_y);  //向き設定 | Orientation setting
 
             if (sd->walktimer)
                 pc_stop_walking(sd, 1);
@@ -2764,6 +2925,8 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
 /*==========================================
  * 攻撃要求
  * typeが1なら継続攻撃
+ * Attack Requests
+ * If type is 1, continue attack
  *------------------------------------------
  */
 int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
@@ -2792,14 +2955,14 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
 
     interval_t d = sd->attackabletime - gettick();
     if (d > interval_t::zero() && d < 2_s)
-    {                           // 攻撃delay中
+    {                           //攻撃delay中 | Attack delaying
         sd->attacktimer = Timer(sd->attackabletime,
                 std::bind(pc_attack_timer, ph::_1, ph::_2,
                     sd->bl_id));
     }
     else
     {
-        // 本来timer関数なので引数を合わせる
+        //本来timer関数なので引数を合わせる | Since it is originally a timer function, match the arguments
         pc_attack_timer(nullptr, gettick(), sd->bl_id);
     }
 
@@ -2808,6 +2971,7 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
 
 /*==========================================
  * 継続攻撃停止
+ * Continuous Attack Halt
  *------------------------------------------
  */
 int pc_stopattack(dumb_ptr<map_session_data> sd)
@@ -2822,6 +2986,10 @@ int pc_stopattack(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
 {
@@ -2831,7 +2999,7 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
 
     if (sd->status.base_exp >= next && next > 0)
     {
-        // base側レベルアップ処理
+        //base側レベルアップ処理 | Base side level-up processing
         sd->status.base_exp -= next;
 
         sd->status.base_level++;
@@ -2843,8 +3011,8 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
         pc_heal(sd, sd->status.max_hp, sd->status.max_sp, true);
 
         clif_misceffect(sd, 0);
-        //レベルアップしたのでパーティー情報を更新する
-        //(公平範囲チェック)
+        //レベルアップしたのでパーティー情報を更新する | Now that you've leveled up, update your party information
+        //(公平範囲チェック) | (Fair Scope Check)
         party_send_movemap(sd);
         MAP_LOG_XP(sd, "LEVELUP"_fmt);
         return 1;
@@ -2853,6 +3021,10 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 inline
 int RAISE_COST(int x)
 {
@@ -2877,6 +3049,10 @@ int pc_skillpt_potential(dumb_ptr<map_session_data> sd)
     return potential;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
 {
@@ -2894,7 +3070,7 @@ int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
             return 0;
         }
 
-        // job側レベルアップ処理
+        //job側レベルアップ処理 | Job side level-up processing
         sd->status.job_exp -= next;
         clif_updatestatus(sd, SP::NEXTJOBEXP);
         sd->status.skill_point++;
@@ -2914,6 +3090,10 @@ int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
         PC_GAINEXP_REASON reason)
 {
@@ -3004,6 +3184,10 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_extract_healer_exp(dumb_ptr<map_session_data> sd, int max)
 {
     int amount;
@@ -3019,6 +3203,7 @@ int pc_extract_healer_exp(dumb_ptr<map_session_data> sd, int max)
 
 /*==========================================
  * base level側必要経験値計算
+ * Base Level side required experience calculation
  *------------------------------------------
  */
 int pc_nextbaseexp(dumb_ptr<map_session_data> sd)
@@ -3033,6 +3218,7 @@ int pc_nextbaseexp(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * job level側必要経験値計算
+ * Job level side required experience calculation
  *------------------------------------------
  */
 int pc_nextjobexp(dumb_ptr<map_session_data> sd)
@@ -3075,6 +3261,7 @@ int pc_nextjobafter(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * 必要ステータスポイント計算
+ * Calculating Required Status Points
  *------------------------------------------
  */
 // TODO: replace SP by ATTR
@@ -3093,6 +3280,7 @@ int pc_need_status_point(dumb_ptr<map_session_data> sd, SP type)
 
 /*==========================================
  * 能力値成長
+ * Ability Growth
  *------------------------------------------
  */
 int pc_statusup(dumb_ptr<map_session_data> sd, SP type)
@@ -3131,6 +3319,7 @@ int pc_statusup(dumb_ptr<map_session_data> sd, SP type)
 
 /*==========================================
  * 能力値成長
+ * Ability Growth
  *------------------------------------------
  */
 int pc_statusup2(dumb_ptr<map_session_data> sd, SP type, int val)
@@ -3158,6 +3347,7 @@ int pc_statusup2(dumb_ptr<map_session_data> sd, SP type, int val)
 
 /*==========================================
  * スキルポイント割り振り
+ * Skill Point Allocation
  *------------------------------------------
  */
 int pc_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
@@ -3236,6 +3426,7 @@ int pc_resetskill(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * pcにダメージを与える
+ * Damage your PC
  *------------------------------------------
  */
 int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
@@ -3243,10 +3434,10 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
 {
     nullpo_retz(sd);
 
-    // 既に死んでいたら無効
+    //既に死んでいたら無効 | Invalid if already dead
     if (pc_isdead(sd))
         return 0;
-    // 座ってたら立ち上がる
+    //座ってたら立ち上がる | Sit down and stand up
     if (pc_issit(sd))
     {
         pc_setstand(sd);
@@ -3269,7 +3460,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         MAP_LOG_PC(sd, "INJURED-BY null FOR %d"_fmt, damage);
 
     pc_stop_walking(sd, 3);
-    // 演奏/ダンスの中断
+    //演奏/ダンスの中断 | Performance/Dance Interruptions
     if (damage > sd->status.max_hp >> 2)
         skill_stop_dancing(sd, 0);
 
@@ -3277,7 +3468,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
 
     if (sd->status.hp > 0)
     {
-        // まだ生きているならHP更新
+        //まだ生きているならHP更新 | HP update if you're still alive
         clif_updatestatus(sd, SP::HP);
 
         sd->canlog_tick = gettick();
@@ -3308,10 +3499,10 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     pc_setdead(sd);
 
     pc_stop_walking(sd, 0);
-    skill_castcancel(sd, 0);  // 詠唱の中止
+    skill_castcancel(sd, 0);  //詠唱の中止 | Cessation of chanting
     clif_clearchar(sd, BeingRemoveWhy::DEAD);
-    pc_setglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"_s), ++sd->die_counter);  //死にカウンター書き込み
-    skill_status_change_clear(sd, 0); // ステータス異常を解除する
+    pc_setglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"_s), ++sd->die_counter);  //死にカウンター書き込み | Counter writing to death
+    skill_status_change_clear(sd, 0); //ステータス異常を解除する | Release status anomalies
     clif_updatestatus(sd, SP::HP);
     // [Fate] Reset magic
     // FIXME: make spells manage their own charge counter, and reset on death
@@ -3383,14 +3574,14 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     // pvp
     if (sd->bl_m->flag.get(MapFlag::PVP) && !battle_config.pk_mode)
     {                           // disable certain pvp functions on pk_mode [Valaris]
-        //ランキング計算
+        //ランキング計算 | Ranking Calculation
         if (!sd->bl_m->flag.get(MapFlag::PVP_NOCALCRANK))
         {
             sd->pvp_point -= 5;
             if (src && src->bl_type == BL::PC)
                 src->is_player()->pvp_point++;
         }
-        // 強制送還
+        //強制送還 | Deportation
         if (sd->pvp_point < 0)
         {
             sd->pvp_point = 0;
@@ -3417,10 +3608,11 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
 }
 
 //
-// script関 連
+// script関 連 | Script-related
 //
 /*==========================================
  * script用PCステータス読み出し
+ * Read PC status for script
  *------------------------------------------
  */
 int pc_readparam(dumb_ptr<block_list> bl, SP type)
@@ -3619,6 +3811,7 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
 
 /*==========================================
  * script用PCステータス設定
+ * PC status setting for script
  *------------------------------------------
  */
 int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
@@ -3868,6 +4061,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
 
 /*==========================================
  * HP/SP回復
+ * HP/SP Recovery
  *------------------------------------------
  */
 int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp, bool levelup)
@@ -3932,11 +4126,16 @@ int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
 
 /*==========================================
  * HP/SP回復
+ * HP/SP Recovery
  *------------------------------------------
  */
 static
 int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp);
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int                     // Compute how quickly we regenerate (less is faster) for that amount
 pc_heal_quick_speed(int amount)
@@ -3959,6 +4158,10 @@ pc_heal_quick_speed(int amount)
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void pc_heal_quick_accumulate(int new_amount,
                           struct quick_regeneration *quick_regen, int max)
@@ -3975,6 +4178,10 @@ void pc_heal_quick_accumulate(int new_amount,
     quick_regen->tickdelay = std::min(quick_regen->speed, quick_regen->tickdelay);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp)
 {
     /* defer healing */
@@ -4001,8 +4208,10 @@ int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp)
     return 0;
 }
 
-/* pc_itemheal_effect is invoked once every 0.5s whenever the pc
+/*==========================================
+ * pc_itemheal_effect is invoked once every 0.5s whenever the pc
  * has health recovery queued up (cf. pc_natural_heal_sub).
+ *------------------------------------------
  */
 static
 int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp)
@@ -4060,6 +4269,7 @@ int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp)
 
 /*==========================================
  * 見た目変更
+ * Change the look
  *------------------------------------------
  */
 int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
@@ -4102,6 +4312,7 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
 
 /*==========================================
  * script用変数の値を読む
+ * Read the value of a variable for script
  *------------------------------------------
  */
 int pc_readreg(dumb_ptr<block_list> sd, SIR reg)
@@ -4113,6 +4324,7 @@ int pc_readreg(dumb_ptr<block_list> sd, SIR reg)
 
 /*==========================================
  * script用変数の値を設定
+ * Set the value of a variable for script
  *------------------------------------------
  */
 void pc_setreg(dumb_ptr<block_list> sd, SIR reg, int val)
@@ -4124,6 +4336,7 @@ void pc_setreg(dumb_ptr<block_list> sd, SIR reg, int val)
 
 /*==========================================
  * script用文字列変数の値を読む
+ * Reading the value of a string variable for script
  *------------------------------------------
  */
 ZString pc_readregstr(dumb_ptr<block_list> sd, SIR reg)
@@ -4136,6 +4349,7 @@ ZString pc_readregstr(dumb_ptr<block_list> sd, SIR reg)
 
 /*==========================================
  * script用文字列変数の値を設定
+ * Set the value of a string variable for script
  *------------------------------------------
  */
 void pc_setregstr(dumb_ptr<block_list> sd, SIR reg, RString str)
@@ -4153,6 +4367,7 @@ void pc_setregstr(dumb_ptr<block_list> sd, SIR reg, RString str)
 
 /*==========================================
  * script用グローバル変数の値を読む
+ * Read the value of a global variable for script
  *------------------------------------------
  */
 int pc_readglobalreg(dumb_ptr<map_session_data> sd, VarName reg)
@@ -4165,7 +4380,7 @@ int pc_readglobalreg(dumb_ptr<map_session_data> sd, VarName reg)
     XString var = reg;
     VarName vr;
 
-    assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
+    assert (sd->status.global_reg_num <= GLOBAL_REG_NUM);
     Option<P<struct quest_data>> quest_data_ = questdb_searchname(var);
     OMATCH_BEGIN_SOME(quest_data, quest_data_)
     {
@@ -4196,6 +4411,7 @@ int pc_readglobalreg(dumb_ptr<map_session_data> sd, VarName reg)
 
 /*==========================================
  * script用グローバル変数の値を設定
+ * Set the value of a global variable for script
  *------------------------------------------
  */
 int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
@@ -4209,7 +4425,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
     XString var = reg;
     VarName vr;
 
-    //PC_DIE_COUNTERがスクリプトなどで変更された時の処理
+    //PC_DIE_COUNTERがスクリプトなどで変更された時の処理 | What to do when the PC_DIE_COUNTER is changed by script, etc.
     if (reg == stringish<VarName>("PC_DIE_COUNTER"_s) && sd->die_counter != val)
     {
         sd->die_counter = val;
@@ -4226,7 +4442,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
         assert (((1 << quest_mask) - 1) >= val);
     }
     OMATCH_END ();
-    assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
+    assert (sd->status.global_reg_num <= GLOBAL_REG_NUM);
     if (val == 0)
     {
         for (i = 0; i < sd->status.global_reg_num; i++)
@@ -4284,6 +4500,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
 
 /*==========================================
  * script用アカウント変数の値を読む
+ * Read the value of the account variable for script
  *------------------------------------------
  */
 int pc_readaccountreg(dumb_ptr<map_session_data> sd, VarName reg)
@@ -4292,7 +4509,7 @@ int pc_readaccountreg(dumb_ptr<map_session_data> sd, VarName reg)
 
     nullpo_retz(sd);
 
-    assert (sd->status.account_reg_num < ACCOUNT_REG_NUM);
+    assert (sd->status.account_reg_num <= ACCOUNT_REG_NUM);
     for (i = 0; i < sd->status.account_reg_num; i++)
     {
         if (sd->status.account_reg[i].str == reg)
@@ -4304,6 +4521,7 @@ int pc_readaccountreg(dumb_ptr<map_session_data> sd, VarName reg)
 
 /*==========================================
  * script用アカウント変数の値を設定
+ * Set the value of the account variable for script
  *------------------------------------------
  */
 int pc_setaccountreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
@@ -4353,6 +4571,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
 
 /*==========================================
  * script用アカウント変数2の値を読む
+ * Read the value of account variable 2 for script
  *------------------------------------------
  */
 int pc_readaccountreg2(dumb_ptr<map_session_data> sd, VarName reg)
@@ -4372,6 +4591,7 @@ int pc_readaccountreg2(dumb_ptr<map_session_data> sd, VarName reg)
 
 /*==========================================
  * script用アカウント変数2の値を設定
+ * Set the value of account variable 2 for script
  *------------------------------------------
  */
 int pc_setaccountreg2(dumb_ptr<map_session_data> sd, VarName reg, int val)
@@ -4421,6 +4641,7 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, VarName reg, int val)
 
 /*==========================================
  * イベントタイマー処理
+ * Event Timer Processing
  *------------------------------------------
  */
 static
@@ -4434,6 +4655,7 @@ void pc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
 
 /*==========================================
  * イベントタイマー追加
+ * Add Event Timer
  *------------------------------------------
  */
 int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, NpcEvent name)
@@ -4459,6 +4681,7 @@ int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, NpcEvent na
 
 /*==========================================
  * イベントタイマー全削除
+ * Delete all event timers
  *------------------------------------------
  */
 int pc_cleareventtimer(dumb_ptr<map_session_data> sd)
@@ -4472,10 +4695,11 @@ int pc_cleareventtimer(dumb_ptr<map_session_data> sd)
 }
 
 //
-// 装 備物
+// 装 備物 | Equipment
 //
 /*==========================================
  * アイテムを装備する
+ * Equip items
  *------------------------------------------
  */
 static
@@ -4494,10 +4718,14 @@ int pc_signal_advanced_equipment_change(dumb_ptr<map_session_data> sd, IOff0 n)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
 {
     ItemNameId nameid;
-    //ｿｽ]ｿｽｿｽｿｽｿｽｿｽ{ｿｽqｿｽﾌ場合ｿｽﾌ鯉ｿｽｿｽﾌ職ｿｽﾆゑｿｽｿｽZｿｽoｿｽｿｽｿｽｿｽ
+    //ｿｽ]ｿｽｿｽｿｽｿｽｿｽ{ｿｽqｿｽﾌ場合ｿｽﾌ鯉ｿｽｿｽﾌ職ｿｽﾆゑｿｽｿｽZｿｽoｿｽｿｽｿｽｿｽ | Sos] sos sos sos sos sos { sos q sos if sos f (???)
 
     nullpo_retz(sd);
 
@@ -4525,7 +4753,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
 //
     if (pos == (EPOS::MISC2 | EPOS::CAPE))
     {
-        // アクセサリ用例外処理
+        //アクセサリ用例外処理 | Accessory exception handling
         EPOS epor = EPOS::ZERO;
         IOff0 midx = sd->equip_index_maybe[EQUIP::MISC2];
         IOff0 cidx = sd->equip_index_maybe[EQUIP::CAPE];
@@ -4547,11 +4775,11 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
             *idx = n;
         }
     }
-    // 弓矢装備
+    //弓矢装備 | Bow and arrow equipment
     if (pos == EPOS::ARROW)
     {
         clif_arrowequip(sd, n);
-        clif_arrow_fail(sd, 3);    // 3=矢が装備できました
+        clif_arrow_fail(sd, 3);    //3=矢が装備できました | 3=Arrows can be equipped.
     }
     else
     {
@@ -4639,6 +4867,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
 
 /*==========================================
  * 装 備した物を外す
+ * Remove the attached object
  *------------------------------------------
  */
 int pc_unequipitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
@@ -4704,6 +4933,10 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
 {
     nullpo_retr(1, sd);
@@ -4726,6 +4959,8 @@ int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
 /*==========================================
  * アイテムのindex番号を詰めたり
  * 装 備品の装備可能チェックを行なう
+ * Stuffing the index number of the item or
+ * Check the equipping of equipment
  *------------------------------------------
  */
 int pc_checkitem(dumb_ptr<map_session_data> sd)
@@ -4770,6 +5005,10 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_checkoverhp(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
@@ -4786,6 +5025,10 @@ int pc_checkoverhp(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_checkoversp(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
@@ -4804,6 +5047,7 @@ int pc_checkoversp(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * PVP順位計算用(foreachinarea)
+ * For PVP ranking calculation (foreachinarea)
  *------------------------------------------
  */
 static
@@ -4821,6 +5065,7 @@ void pc_calc_pvprank_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd2
 
 /*==========================================
  * PVP順位計算
+ * PVP ranking calculation
  *------------------------------------------
  */
 int pc_calc_pvprank(dumb_ptr<map_session_data> sd)
@@ -4841,6 +5086,7 @@ int pc_calc_pvprank(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * PVP順位計算(timer)
+ * PVP ranking calculation (timer)
  *------------------------------------------
  */
 void pc_calc_pvprank_timer(TimerData *, tick_t, BlockId id)
@@ -4863,6 +5109,7 @@ void pc_calc_pvprank_timer(TimerData *, tick_t, BlockId id)
 
 /*==========================================
  * sdは結婚しているか(既婚の場合は相方のchar_idを返す)
+ * Is sd married (returns partner's char_id if married)
  *------------------------------------------
  */
 static
@@ -4878,6 +5125,7 @@ CharId pc_ismarried(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * sdがdstsdと結婚(dstsd→sdの結婚処理も同時に行う)
+ * sd marries dstsd (dstsd → sd marriage processing is also performed at the same time)
  *------------------------------------------
  */
 int pc_marriage(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> dstsd)
@@ -4892,6 +5140,7 @@ int pc_marriage(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> dstsd)
 
 /*==========================================
  * sdが離婚(相手はsd->status.partner_idに依る)(相手も同時に離婚・結婚指輪自動剥奪)
+ * sd is divorced (partner depends on sd->status.partner_id) (partner is also divorced at the same time and wedding ring is automatically stripped)
  *------------------------------------------
  */
 int pc_divorce(dumb_ptr<map_session_data> sd)
@@ -4925,6 +5174,7 @@ int pc_divorce(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * sdの相方のmap_session_dataを返す
+ * return map_session_data of sd's counterpart
  *------------------------------------------
  */
 dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd)
@@ -4945,13 +5195,13 @@ dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd)
 }
 
 //
-// 自然回復物
+// 自然回復物 | Natural Restoration
 //
 /*==========================================
  * SP回復量計算
+ * SP Recovery Calculator
  *------------------------------------------
  */
-
 static
 interval_t pc_spheal(dumb_ptr<map_session_data> sd)
 {
@@ -4966,6 +5216,7 @@ interval_t pc_spheal(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * HP回復量計算
+ * HP Recovery Calculator
  *------------------------------------------
  */
 static
@@ -4980,6 +5231,10 @@ interval_t pc_hpheal(dumb_ptr<map_session_data> sd)
     return a;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_natural_heal_hp(dumb_ptr<map_session_data> sd)
 {
@@ -5034,6 +5289,10 @@ int pc_natural_heal_hp(dumb_ptr<map_session_data> sd)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 int pc_natural_heal_sp(dumb_ptr<map_session_data> sd)
 {
@@ -5082,9 +5341,9 @@ int pc_natural_heal_sp(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * HP/SP 自然回復 各クライアント
+ * HP/SP Natural Recovery Each client
  *------------------------------------------
  */
-
 static
 int pc_quickregenerate_effect(struct quick_regeneration *quick_regen,
                            int heal_speed)
@@ -5105,6 +5364,10 @@ int pc_quickregenerate_effect(struct quick_regeneration *quick_regen,
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void pc_natural_heal_sub(dumb_ptr<map_session_data> sd)
 {
@@ -5168,6 +5431,7 @@ void pc_natural_heal_sub(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * HP/SP自然回復 (interval timer関数)
+ * HP/SP natural recovery (interval timer function)
  *------------------------------------------
  */
 static
@@ -5182,6 +5446,7 @@ void pc_natural_heal(TimerData *, tick_t tick)
 
 /*==========================================
  * セーブポイントの保存
+ * Saving savepoints
  *------------------------------------------
  */
 void pc_setsavepoint(dumb_ptr<map_session_data> sd, MapName mapname, int x, int y)
@@ -5195,6 +5460,7 @@ void pc_setsavepoint(dumb_ptr<map_session_data> sd, MapName mapname, int x, int 
 
 /*==========================================
  * 自動セーブ 各クライアント
+ * Autosave each client
  *------------------------------------------
  */
 static
@@ -5214,6 +5480,7 @@ void pc_autosave_sub(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * 自動セーブ (timer関数)
+ * Autosave (timer function)
  *------------------------------------------
  */
 static
@@ -5232,6 +5499,10 @@ void pc_autosave(TimerData *, tick_t)
     ).detach();
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_read_gm_account(Session *, const std::vector<Packet_Repeat<0x2b15>>& repeat)
 {
     gm_accountm.clear();
@@ -5245,6 +5516,10 @@ int pc_read_gm_account(Session *, const std::vector<Packet_Repeat<0x2b15>>& repe
     return gm_accountm.size();
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void pc_setstand(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
@@ -5255,6 +5530,10 @@ void pc_setstand(dumb_ptr<map_session_data> sd)
         clif_gm_collision(sd, 0);
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void pc_calc_sigma(void)
 {
@@ -5272,6 +5551,10 @@ void pc_calc_sigma(void)
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void do_init_pc(void)
 {
     pc_calc_sigma();
@@ -5285,6 +5568,10 @@ void do_init_pc(void)
     ).detach();
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)
 {
     if (enabled && !bool(sd->status.option & Opt0::INVISIBILITY))
@@ -5301,6 +5588,10 @@ void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int pc_logout(dumb_ptr<map_session_data> sd) // [fate] Player logs out
 {
     if (!sd)

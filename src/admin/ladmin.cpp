@@ -62,7 +62,6 @@
 
 #include "../poison.hpp"
 
-
 namespace tmwa
 {
 DIAG_PUSH();
@@ -537,10 +536,39 @@ void display_help(ZString param)
     }
     else if (command == "quit"_s
         || command == "exit"_s
-        || command == "end"_s)
+        || command == "end"_s
+        || command == "q"_s)
     {
-        PRINTF("quit/end/exit\n"_fmt);
+        PRINTF("quit/end/exit/q\n"_fmt);
         PRINTF("  End of the program of administration.\n"_fmt);
+    }
+    else if (command == "getallaccreg2"_s
+        || command == "getall"_s
+        || command == "ga"_s)
+    {
+        PRINTF("getallaccreg2/getall/ga <account id>\n"_fmt);
+        PRINTF("  Display all login-stored ##registers\n"_fmt);
+    }
+    else if (command == "getaccreg2"_s
+        || command == "get"_s
+        || command == "g"_s)
+    {
+        PRINTF("getaccreg2/get/g <account id> <variable>\n"_fmt);
+        PRINTF("  Display a login-stored ##register\n"_fmt);
+    }    
+    else if (command == "setaccreg2"_s
+        || command == "set"_s
+        || command == "s"_s)
+    {
+        PRINTF("setaccreg2/set/s <account id> <variable> <value>\n"_fmt);
+        PRINTF("  Modify or add a login-stored ##register\n"_fmt);
+    }
+    else if (command == "delaccreg2"_s
+        || command == "del"_s
+        || command == "d"_s)    
+    {
+        PRINTF("delaccreg2/del/d <account id> <variable>\n"_fmt);
+        PRINTF("  Delete a login-stored ##register\n"_fmt);
     }
     else
     {
@@ -575,7 +603,7 @@ void display_help(ZString param)
         PRINTF(" memo <account_name> <memo>           -- Modify the memo of an account\n"_fmt);
         PRINTF(" name <account_id>                    -- Give the name of an account\n"_fmt);
         PRINTF(" password <account_name> <new_password> -- Change the password of an account\n"_fmt);
-        PRINTF(" quit/end/exit                        -- End of the program of administation\n"_fmt);
+        PRINTF(" quit/end/exit/q                      -- End of the program of administation\n"_fmt);
         PRINTF(" reloadGM                             -- Reload GM configuration file\n"_fmt);
         PRINTF(" search <expression>                  -- Seek accounts\n"_fmt);
         PRINTF(" sex <nomcompte> <sexe>               -- Modify the sex of an account\n"_fmt);
@@ -584,7 +612,10 @@ void display_help(ZString param)
         PRINTF(" unblock <account name>               -- Set state 0 (Account ok) to an account\n"_fmt);
         PRINTF(" version                              -- Gives the version of the login-server\n"_fmt);
         PRINTF(" who <account name>                   -- Display all information of an account\n"_fmt);
-        PRINTF(" who <account name>                   -- Display all information of an account\n"_fmt);
+        PRINTF(" getallaccreg2/getall/ga <account id> -- Display all login-stored ##registers\n"_fmt);
+        PRINTF(" getaccreg2/get/g <account id> <variable> -- Display a login-stored ##register\n"_fmt);
+        PRINTF(" setaccreg2/set/s <account id> <variable> <value> -- Modify or add a login-stored ##register\n"_fmt);
+        PRINTF(" delaccreg2/del/d <account id> <variable> -- Delete a login-stored ##register\n"_fmt);
         PRINTF(" Note: To use spaces in an account name, type \"<account name>\" (or ').\n"_fmt);
     }
 }
@@ -1485,6 +1516,91 @@ void checkloginversion(void)
     bytes_to_read = 1;
 }
 
+//-----------------------------------------------
+// Sub-function: Display all login-stored ##registers
+//-----------------------------------------------
+static
+void get_all_accreg2(AccountId account_id)
+{
+    Packet_Fixed<0x7956> fixed_56;
+    fixed_56.account_id = account_id;
+    send_fpacket<0x7956, 6>(login_session, fixed_56);
+    bytes_to_read = 1;
+}
+
+//-----------------------------------------------
+// Sub-function: Display a login-stored ##register
+//-----------------------------------------------
+static
+void get_accreg2(ZString param)
+{
+    AccountId account_id;
+    GlobalReg reg2;
+
+    if (!qsplit(param, &account_id, &reg2.str))
+    {
+        PRINTF("Please input an account id and a variable to delete.\n"_fmt);
+        PRINTF("<example> getaccreg2 2000000 ##GLOBAL\n"_fmt);
+        LADMIN_LOG("Incomplete parameters to get a login-stored ##register of an account ('get' command).\n"_fmt);
+        return;
+    }
+
+    Packet_Fixed<0x7958> fixed_58;
+    fixed_58.account_id = account_id;
+    fixed_58.name = reg2.str;
+    send_fpacket<0x7958, 38>(login_session, fixed_58);
+    bytes_to_read = 1;
+}
+
+//-----------------------------------------------
+// Sub-function: Modify or add a login-stored ##register
+//-----------------------------------------------
+static
+void set_accreg2(ZString param)
+{
+    AccountId account_id;
+    GlobalReg reg2;
+
+    if (!qsplit(param, &account_id, &reg2.str, &reg2.value))
+    {
+        PRINTF("Please input an account id, a variable and the value for this variable.\n"_fmt);
+        PRINTF("<example> setaccreg2 2000000 ##GLOBAL 111\n"_fmt);
+        LADMIN_LOG("Incomplete parameters to modify or add a login-stored ##register of an account ('set' command).\n"_fmt);
+        return;
+    }
+
+    Packet_Fixed<0x795a> fixed_5a;
+    fixed_5a.account_id = account_id;
+    fixed_5a.name = reg2.str;
+    fixed_5a.value = reg2.value;
+    send_fpacket<0x795a, 42>(login_session, fixed_5a);
+    bytes_to_read = 1;
+}
+
+//-----------------------------------------------
+// Sub-function: Delete a login-stored ##register
+//-----------------------------------------------
+static
+void del_accreg2(ZString param)
+{
+    AccountId account_id;
+    GlobalReg reg2;
+
+    if (!qsplit(param, &account_id, &reg2.str))
+    {
+        PRINTF("Please input an account id and a variable to delete.\n"_fmt);
+        PRINTF("<example> delaccreg2 2000000 ##GLOBAL\n"_fmt);
+        LADMIN_LOG("Incomplete parameters to delete a login-stored ##register of an account ('del' command).\n"_fmt);
+        return;
+    }
+
+    Packet_Fixed<0x795c> fixed_5c;
+    fixed_5c.account_id = account_id;
+    fixed_5c.name = reg2.str;
+    send_fpacket<0x795c, 38>(login_session, fixed_5c);
+    bytes_to_read = 1;
+}
+
 //---------------------------------------------
 // Prompt function
 // this function wait until user type a command
@@ -1585,6 +1701,22 @@ void prompt(void)
             changeemail(parameters);
         else if (command == "getcount"_s)
             getlogincount();
+        else if (command == "getallaccreg2"_s
+            || command == "getall"_s
+            || command == "ga"_s)
+            get_all_accreg2(wrap<AccountId>(static_cast<uint32_t>(atoi(parameters.c_str()))));
+        else if (command == "getaccreg2"_s
+            || command == "get"_s
+            || command == "g"_s)
+            get_accreg2(parameters);
+        else if (command == "setaccreg2"_s
+            || command == "set"_s
+            || command == "s"_s)
+            set_accreg2(parameters);
+        else if (command == "delaccreg2"_s
+            || command == "del"_s
+            || command == "d"_s)
+            del_accreg2(parameters);
         else if (command == "gm"_s)
             changegmlevel(parameters);
         else if (command == "id"_s)
@@ -1625,7 +1757,8 @@ void prompt(void)
             whoaccount(parameters);
         else if (command == "quit"_s
             || command == "exit"_s
-            || command == "end"_s)
+            || command == "end"_s
+            || command == "q"_s)
         {
             PRINTF("Bye.\n"_fmt);
             exit(0);
@@ -1646,6 +1779,7 @@ void parse_fromlogin(Session *s)
 {
     RecvResult rv = RecvResult::Complete;
     uint16_t packet_id;
+
     while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
         switch (packet_id)
@@ -2155,9 +2289,9 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    PRINTF("The account [%s] have the id: %d.\n"_fmt,
+                    PRINTF("The account [%s] has the id: %d.\n"_fmt,
                             name, account_id);
-                    LADMIN_LOG("The account [%s] have the id: %d.\n"_fmt,
+                    LADMIN_LOG("The account [%s] has the id: %d.\n"_fmt,
                             name, account_id);
                 }
                 bytes_to_read = 0;
@@ -2182,9 +2316,9 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    PRINTF("The account [id: %d] have the name: %s.\n"_fmt,
+                    PRINTF("The account [id: %d] has the name: %s.\n"_fmt,
                             account_id, name);
-                    LADMIN_LOG("The account [id: %d] have the name: %s.\n"_fmt,
+                    LADMIN_LOG("The account [id: %d] has the name: %s.\n"_fmt,
                             account_id, name);
                 }
                 bytes_to_read = 0;
@@ -2319,16 +2453,16 @@ void parse_fromlogin(Session *s)
                     AString& memo = repeat;
                     if (!account_id)
                     {
-                        PRINTF("Unabled to find the account [%s]. Account doesn't exist.\n"_fmt,
+                        PRINTF("Unable to find the account [%s]. Account doesn't exist.\n"_fmt,
                                 userid);
-                        LADMIN_LOG("Unabled to find the account [%s]. Account doesn't exist.\n"_fmt,
+                        LADMIN_LOG("Unable to find the account [%s]. Account doesn't exist.\n"_fmt,
                                 userid);
                     }
                     else if (!userid)
                     {
-                        PRINTF("Unabled to find the account [id: %d]. Account doesn't exist.\n"_fmt,
+                        PRINTF("Unable to find the account [id: %d]. Account doesn't exist.\n"_fmt,
                                 account_id);
-                        LADMIN_LOG("Unabled to find the account [id: %d]. Account doesn't exist.\n"_fmt,
+                        LADMIN_LOG("Unable to find the account [id: %d]. Account doesn't exist.\n"_fmt,
                                 account_id);
                     }
                     else
@@ -2416,6 +2550,114 @@ void parse_fromlogin(Session *s)
                         PRINTF(" Memo:   '%s'\n"_fmt, memo);
                     }
                 }
+                bytes_to_read = 0;
+                break;
+            }
+
+            case 0x7957:       // Reply of the request to get all login-stored ##registers of an account (by account id)
+            {
+                Packet_Head<0x7957> head;
+                std::vector<Packet_Repeat<0x7957>> repeat;
+                rv = recv_vpacket<0x7957, 8, 36>(s, head, repeat);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (!head.account_id)
+                {
+                    PRINTF("Unable to find the account [id: %d]. Account doesn't exist.\n"_fmt,
+                            head.account_id);
+                    LADMIN_LOG("Unable to find the account [id: %d]. Account doesn't exist.\n"_fmt,
+                            head.account_id);
+                }
+                else
+                {
+                    PRINTF("Variables %i of %i used.\n"_fmt, repeat.size(), ACCOUNT_REG2_NUM);
+                    auto jlim = std::min(repeat.size(), ACCOUNT_REG2_NUM);
+                    for (size_t j = 0; j < jlim; ++j)
+                        PRINTF("Variable %s == `%i`\n"_fmt, repeat[j].name, repeat[j].value);
+                }
+                bytes_to_read = 0;
+                break;
+            }
+
+            case 0x7959:       // Reply of the request to get a login-stored ##register of an account (by account id)
+            {
+                Packet_Fixed<0x7959> fixed;
+                rv = recv_fpacket<0x7959, 42>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (!fixed.account_id)
+                {
+                    PRINTF("Unable to find the account [id: %d]. Account doesn't exist.\n"_fmt,
+                            fixed.account_id);
+                    LADMIN_LOG("Unable to find the account [id: %d]. Account doesn't exist.\n"_fmt,
+                            fixed.account_id);
+                }
+                else
+                    if (fixed.name == stringish<VarName>(""_s))
+                        PRINTF("Variable not found.\n"_fmt);
+                    else
+                        PRINTF("Variable %s == `%i`\n"_fmt, fixed.name, fixed.value);
+                bytes_to_read = 0;
+                break;
+            }
+
+            case 0x795b:       // Reply of the request to modify, add or delete a login-stored ##register of an account (by account id)
+            {
+                Packet_Fixed<0x795b> fixed;
+                rv = recv_fpacket<0x795b, 8>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                if (!fixed.account_id)
+                {
+                    PRINTF("Unable to find the account [id: %d]. Account doesn't exist.\n"_fmt,
+                            fixed.account_id);
+                    LADMIN_LOG("Unable to find the account [id: %d]. Account doesn't exist.\n"_fmt,
+                            fixed.account_id);
+                }
+                else
+                    switch (fixed.operation)
+                    {
+                        case 0: // set
+                            switch (fixed.result)
+                            {
+                             case 0:
+                                 PRINTF("Variable changed.\n"_fmt);
+                                 break;
+                             case 1:
+                                 PRINTF("New Variable created.\n"_fmt);
+                                 break;
+                             case 2:
+                                 PRINTF("Maximum number of Variables reached.\n"_fmt);
+                                 break;
+                             default:
+                                 PRINTF("ERROR: Wrong value for result.\n"_fmt);
+                                 break;
+                            }
+                            break;
+
+                        case 1: // del
+                            switch (fixed.result)
+                            {
+                             case 0:
+                                 PRINTF("Variable deleted.\n"_fmt);
+                                 break;
+                             case 1:
+                                 PRINTF("Variable not found.\n"_fmt);
+                                 break;
+                             default:
+                                 PRINTF("ERROR: Wrong value for result.\n"_fmt);
+                                 break;
+                            }
+                            break;
+
+                        default:
+                            PRINTF("ERROR: Wrong value for operation\n"_fmt);
+                            break;
+                    }
+
                 bytes_to_read = 0;
                 break;
             }
