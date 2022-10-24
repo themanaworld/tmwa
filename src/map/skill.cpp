@@ -662,11 +662,13 @@ int skill_castcancel(dumb_ptr<block_list> bl, int)
 
 /*----------------------------------------------------------------------------
  * ステータス異常
+ * Status anomalies
  *----------------------------------------------------------------------------
  */
 
 /*==========================================
  * ステータス異常終了
+ * Abnormal end of status
  *------------------------------------------
  */
 int skill_status_change_active(dumb_ptr<block_list> bl, StatusChange type)
@@ -732,26 +734,30 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
     assert (!sc_data[type].timer);
 
     switch (type)
-    {                       /* 異常の種類ごとの処理 */
-        case StatusChange::SC_SPEEDPOTION0:  /* 増速ポーション */
+    {                       /* 異常の種類ごとの処理 | Processing by type of anomaly */
+        case StatusChange::SC_SPEEDPOTION0:  /* 増速ポーション | Speed Increasing Potion */
         case StatusChange::SC_ATKPOT:    /* attack potion [Valaris] */
         case StatusChange::SC_MATKPOT:   /* magic attack potion [Valaris] */
         case StatusChange::SC_PHYS_SHIELD:
         case StatusChange::SC_HASTE:
-        case StatusChange::SC_COOLDOWN:
-        case StatusChange::SC_COOLDOWN_MG:
-        case StatusChange::SC_COOLDOWN_MT:
             calc_flag = 1;
             break;
 
+        case StatusChange::SC_COOLDOWN:
+        case StatusChange::SC_COOLDOWN_MG:
+        case StatusChange::SC_COOLDOWN_MT:
+        case StatusChange::SC_COOLDOWN_R:
+        case StatusChange::SC_COOLDOWN_AR:
+            break;
+
             /* option2 */
-        case StatusChange::SC_POISON:    /* 毒 */
+        case StatusChange::SC_POISON:    /* 毒 | poison */
             calc_flag = 1;
             break;
     }
 
     if (bl->bl_type == BL::PC && type < StatusChange::SC_SENDMAX)
-        clif_status_change(bl, type, 0);   /* アイコン消去 */
+        clif_status_change(bl, type, 0);   /* アイコン消去 | Icon Clearing */
 
     switch (type)
     {
@@ -778,11 +784,11 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
         break;
     }
 
-    if (opt_flag)           /* optionの変更を伝える */
+    if (opt_flag)           /* optionの変更を伝える | Communicate option changes */
         clif_changeoption(bl);
 
     if (bl->bl_type == BL::PC && calc_flag)
-        pc_calcstatus(bl->is_player(), 0);  /* ステータス再計算 */
+        pc_calcstatus(bl->is_player(), 0);  /* ステータス再計算 | Status Recalculation */
 }
 
 int skill_update_heal_animation(dumb_ptr<map_session_data> sd)
@@ -806,6 +812,7 @@ int skill_update_heal_animation(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * ステータス異常終了タイマー
+ * Status abnormal end timer
  *------------------------------------------
  */
 void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusChange type)
@@ -816,7 +823,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
 
     if ((bl = map_id2bl(id)) == nullptr)
         return;
-    //該当IDがすでに消滅しているというのはいかにもありそうなのでスルーしてみる
+    // 該当IDがすでに消滅しているというのはいかにもありそうなのでスルーしてみる | It seems that the corresponding ID has already disappeared, so let's go through it
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return;
@@ -870,7 +877,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
             // If you manually reschedule the timer, you MUST skip the
             // call to skill_status_change_end below.
 
-            /* 時間切れ無し？？ */
+            /* 時間切れ無し？？ | No time out? ? */
         case StatusChange::SC_WEIGHT50:
         case StatusChange::SC_WEIGHT90:
             sc_data[type].timer = Timer(tick + 10_min,
@@ -889,6 +896,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
 
 /*==========================================
  * ステータス異常開始
+ * Abnormal status start
  *------------------------------------------
  */
 int skill_status_change_start(dumb_ptr<block_list> bl, StatusChange type,
@@ -948,7 +956,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     }
 
     if (sc_data[type].timer)
-    {                           /* すでに同じ異常になっている場合タイマ解除 */
+    {                           /* すでに同じ異常になっている場合タイマ解除 | Cancel the timer if the same error has already occurred */
         if (sc_data[type].val1 > val1
             && type != StatusChange::SC_SPEEDPOTION0
             && type != StatusChange::SC_ATKPOT
@@ -957,7 +965,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         if (type == StatusChange::SC_POISON)
             return 0;
 
-        /* 継ぎ足しができない状態異常である時は状態異常を行わない */
+        /* 継ぎ足しができない状態異常である時は状態異常を行わない | If the status ailment cannot be replenished, the status ailment will not be applied. */
         {
             sc_data[type].timer.cancel();
         }
@@ -965,13 +973,13 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
 
     switch (type)
     {
-        /* 異常の種類ごとの処理 */
+        /* 異常の種類ごとの処理 | Actions by type of anomaly */
         case StatusChange::SC_SLOWPOISON:
             if (!sc_data[StatusChange::SC_POISON].timer)
                 return 0;
             break;
 
-        case StatusChange::SC_SPEEDPOTION0:  /* 増速ポーション */
+        case StatusChange::SC_SPEEDPOTION0:  /* 増速ポーション | speed boost potion */
             *opt2 |= Opt2::_speedpotion0;
             calc_flag = 1;
 //          val2 = 5*(2+type-StatusChange::SC_SPEEDPOTION0);
@@ -986,7 +994,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
             break;
 
             /* option2 */
-        case StatusChange::SC_POISON:        /* 毒 */
+        case StatusChange::SC_POISON:        /* 毒 | poison */
             calc_flag = 1;
             {
                 int sc_def =
@@ -1006,13 +1014,15 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         case StatusChange::SC_HASTE:
         case StatusChange::SC_PHYS_SHIELD:
         case StatusChange::SC_MBARRIER:
-        case StatusChange::SC_COOLDOWN:
-        case StatusChange::SC_COOLDOWN_MG:
-        case StatusChange::SC_COOLDOWN_MT:
             calc_flag = 1;
             break;
         case StatusChange::SC_HALT_REGENERATE:
         case StatusChange::SC_HIDE:
+        case StatusChange::SC_COOLDOWN:
+        case StatusChange::SC_COOLDOWN_MG:
+        case StatusChange::SC_COOLDOWN_MT:
+        case StatusChange::SC_COOLDOWN_R:
+        case StatusChange::SC_COOLDOWN_AR:
             break;
         case StatusChange::SC_FLYING_BACKPACK:
             updateflag = SP::WEIGHT;
@@ -1024,9 +1034,9 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     }
 
     if (bl->bl_type == BL::PC && type < StatusChange::SC_SENDMAX)
-        clif_status_change(bl, type, 1);   /* アイコン表示 */
+        clif_status_change(bl, type, 1);   /* アイコン表示 | Icon display */
 
-    /* optionの変更 */
+    /* optionの変更 | Changing an Option */
     switch (type)
     {
         case StatusChange::SC_POISON:
@@ -1044,27 +1054,28 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
             break;
     }
 
-    if (opt_flag)               /* optionの変更 */
+    if (opt_flag)               /* optionの変更 | Changing an Option */
         clif_changeoption(bl);
 
     sc_data[type].val1 = val1;
 
-    /* タイマー設定 */
+    /* タイマー設定 | timer setting */
     sc_data[type].timer = Timer(gettick() + tick,
             std::bind(skill_status_change_timer, ph::_1, ph::_2,
                 bl->bl_id, type));
 
     if (bl->bl_type == BL::PC && calc_flag)
-        pc_calcstatus(sd, 0);  /* ステータス再計算 */
+        pc_calcstatus(sd, 0);  /* ステータス再計算 | Status recalculation */
 
     if (bl->bl_type == BL::PC && updateflag != SP::ZERO)
-        clif_updatestatus(sd, updateflag); /* ステータスをクライアントに送る */
+        clif_updatestatus(sd, updateflag); /* ステータスをクライアントに送る | Send status to client */
 
     return 0;
 }
 
 /*==========================================
  * ステータス異常全解除
+ * Remove all status abnormalities
  *------------------------------------------
  */
 int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
