@@ -3393,14 +3393,29 @@ void builtin_sc_start(ScriptState *st)
     StatusChange type = static_cast<StatusChange>(conv_num(st, &AARG(0)));
     interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(1)));
     if (tick < 1_s)
-        // work around old behaviour of:
-        // speed potion
-        // atk potion
-        // matk potion
-        //
-        // which used to use seconds
-        // all others used milliseconds
-        tick *= 1000;
+        switch (type)
+        {
+            // all those use ms so this checks for < 1s are not needed on those
+            // and it would break the cooldown symbol since many spells have cooldowns less than 1s
+            case StatusChange::SC_PHYS_SHIELD:
+            case StatusChange::SC_MBARRIER:
+            case StatusChange::SC_COOLDOWN:
+            case StatusChange::SC_COOLDOWN_MG:
+            case StatusChange::SC_COOLDOWN_MT:
+            case StatusChange::SC_COOLDOWN_R:
+            case StatusChange::SC_COOLDOWN_AR:
+            break;
+
+            default:
+            // work around old behaviour of:
+            // speed potion
+            // atk potion
+            // matk potion
+            //
+            // which used to use seconds
+            // all others used milliseconds
+            tick *= 1000;
+        }
     val1 = conv_num(st, &AARG(2));
     if (HARG(3))    //指定したキャラを状態異常にする | Make the specified character abnormal
         bl = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(3))));

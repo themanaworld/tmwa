@@ -1691,6 +1691,8 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, Borrowed<Storage> stor)
 /*==========================================
  * ステータスを送りつける
  * 表示専用数字はこの中で計算して送る
+ * send status
+ * Display-only numbers are calculated and sent here
  *------------------------------------------
  */
 int clif_updatestatus(dumb_ptr<map_session_data> sd, SP type)
@@ -2189,6 +2191,7 @@ void clif_pvpstatus(dumb_ptr<map_session_data> sd)
 
 /*==========================================
  * 表示オプション変更
+ * Change display options
  *------------------------------------------
  */
 int clif_changeoption(dumb_ptr<block_list> bl)
@@ -2992,6 +2995,7 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 
 /*==========================================
  * 状態異常アイコン/メッセージ表示
+ * Abnormal status icon/message display
  *------------------------------------------
  */
 int clif_status_change(dumb_ptr<block_list> bl, StatusChange type, int flag)

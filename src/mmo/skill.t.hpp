@@ -55,6 +55,8 @@ enum class StatusChange : uint16_t
     SC_COOLDOWN         = 71,   // Spell cooldown
     SC_COOLDOWN_MG      = 72,   // Mana Guardian cooldown
     SC_COOLDOWN_MT      = 73,   // Mana Tyrant cooldown
+    SC_COOLDOWN_R       = 74,   // Kaflosh cooldown
+    SC_COOLDOWN_AR      = 75,   // Frillyar cooldown
 
     SC_POISON           = 132,  // bad; actually used
 
