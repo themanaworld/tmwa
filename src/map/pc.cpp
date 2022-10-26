@@ -5615,6 +5615,8 @@ int pc_logout(dumb_ptr<map_session_data> sd) // [fate] Player logs out
 #endif
         pc_setglobalreg(sd, stringish<VarName>("MAGIC_CAST_TICK"_s), 0);
 
+    npc_event_doall_l(stringish<ScriptLabel>("OnPCLogoutEvent"_s), sd->bl_id, nullptr);
+
     MAP_LOG_STATS(sd, "LOGOUT"_fmt);
     return 0;
 }
