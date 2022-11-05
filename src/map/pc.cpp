@@ -3124,7 +3124,10 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
     }
 
     // Double Xp Weekends
-    base_exp = (base_exp * static_cast<double>(battle_config.base_exp_rate) / 100.);
+    if (reason != PC_GAINEXP_REASON::SCRIPT)
+        base_exp = (base_exp * static_cast<double>(battle_config.base_exp_rate) / 100.);
+
+    // Sanitization
     if (base_exp <= 0)
         base_exp = 0;
     else if (base_exp > 1000000000)
