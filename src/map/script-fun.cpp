@@ -3157,9 +3157,9 @@ void builtin_getusers(ScriptState *st)
     int val = 0;
     switch (flag & 0x07)
     {
-        case 0:
+        /*case 0:
             val = bl->bl_m->users;
-            break;
+            break;*/
         case 1:
             val = map_getusers();
             break;
