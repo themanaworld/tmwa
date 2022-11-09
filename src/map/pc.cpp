@@ -1517,11 +1517,12 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->speed_rate != 100)
         sd->speed = sd->speed * sd->speed_rate / 100;
     sd->speed = std::max(sd->speed, 1_ms);
-    if (aspd_rate != 100)
-        sd->aspd = sd->aspd * aspd_rate / 100;
 
     if (sd->attack_spell_override)
         sd->aspd = sd->attack_spell_delay;
+
+    if (aspd_rate != 100)
+        sd->aspd = sd->aspd * aspd_rate / 100;
 
     sd->aspd = std::max(sd->aspd, battle_config.max_aspd);
     sd->amotion = sd->aspd;
