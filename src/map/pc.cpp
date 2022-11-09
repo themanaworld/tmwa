@@ -1524,6 +1524,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (aspd_rate != 100)
         sd->aspd = sd->aspd * aspd_rate / 100;
 
+    /* Red Threshold Calculation */
+    if (sd->aspd < 300_ms) {
+        sd->aspd = 300_ms + ((sd->aspd - 300_ms) / 2);
+    }
+
     sd->aspd = std::max(sd->aspd, battle_config.max_aspd);
     sd->amotion = sd->aspd;
     sd->dmotion = std::chrono::milliseconds(800 - sd->paramc[ATTR::AGI] * 4);

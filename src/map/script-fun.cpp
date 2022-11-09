@@ -3146,7 +3146,7 @@ void builtin_mapannounce(ScriptState *st)
 
 /*==========================================
  * ユーザー数所得
- * User Revenue
+ * User Count
  *------------------------------------------
  */
 static
@@ -3169,7 +3169,7 @@ void builtin_getusers(ScriptState *st)
 
 /*==========================================
  * マップ指定ユーザー数所得
- * maps Designated User Income
+ * maps Designated User Count
  *------------------------------------------
  */
  static
