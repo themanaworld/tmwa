@@ -792,7 +792,7 @@ void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int ran
     }
     else
     {
-        sd->aspd = speed;
+        pc_calcstatus(sd, 1);
         clif_updatestatus(sd, SP::ASPD);
         clif_updatestatus(sd, SP::ATTACKRANGE);
     }
@@ -1518,6 +1518,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->speed = sd->speed * sd->speed_rate / 100;
     sd->speed = std::max(sd->speed, 1_ms);
 
+    /* Magic speed */
     if (sd->attack_spell_override)
         sd->aspd = sd->attack_spell_delay;
 
@@ -2870,7 +2871,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
             {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
         };
         npc_event_do_l(sd->magic_attack, sd->bl_id, arg);
-        sd->attackabletime = tick + sd->attack_spell_delay;
+        sd->attackabletime = tick + (sd->aspd * 2); //sd->attack_spell_delay;
         sd->attack_spell_charges--;
         if (!sd->attack_spell_charges)
         {
