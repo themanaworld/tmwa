@@ -130,7 +130,7 @@ earray<interval_t, ItemLook, ItemLook::COUNT> aspd_base_0 //=
 650_ms,  // 0 NONE
 700_ms,  // 1 BLADE or some other common weapons
 750_ms,  // 2
-600_ms,  // 3 SETZER_AND_SCYTHE
+610_ms,  // 3 SETZER_AND_SCYTHE
 2000_ms, // 4
 2000_ms, // 5
 800_ms,  // 6 Falchion
