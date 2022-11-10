@@ -792,7 +792,7 @@ void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int ran
     }
     else
     {
-        sd->aspd = speed; //pc_calcstatus(sd, 1);
+        pc_calcstatus(sd, 9);
         clif_updatestatus(sd, SP::ASPD);
         clif_updatestatus(sd, SP::ATTACKRANGE);
     }
@@ -1085,6 +1085,12 @@ void pc_set_weapon_look(dumb_ptr<map_session_data> sd)
  * When first==0, the parameter to be calculated is from before the call
  * If it changes, it will automatically send it,
  * Actively changed parameters should be send on their own
+ *
+ * First is a bitmask
+ * &1 = ?
+ * &2 = ?
+ * &4 = ?
+ * &8 = magic override
  *------------------------------------------
  */
 int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
@@ -1519,7 +1525,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->speed = std::max(sd->speed, 1_ms);
 
     /* Magic speed */
-    if (sd->attack_spell_override)
+    if (sd->attack_spell_override || first & 8)
         sd->aspd = sd->attack_spell_delay;
 
     if (aspd_rate != 100)
@@ -1527,7 +1533,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     /* Red Threshold Calculation */
     if (sd->aspd < 300_ms) {
-        sd->aspd = 300_ms + ((sd->aspd - 300_ms) * 11 / 20);
+        sd->aspd = 300_ms + ((sd->aspd - 300_ms) * 15 / 20);
     }
 
     sd->aspd = std::max(sd->aspd, battle_config.max_aspd);
@@ -2871,7 +2877,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
             {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
         };
         npc_event_do_l(sd->magic_attack, sd->bl_id, arg);
-        sd->attackabletime = tick + sd->attack_spell_delay;
+        sd->attackabletime = tick + sd->aspd; // sd->attack_spell_delay
         sd->attack_spell_charges--;
         if (!sd->attack_spell_charges)
         {
