@@ -115,7 +115,7 @@ Species mobdb_searchname(MobName str)
 Species mobdb_checkid(Species id)
 {
     // value range is [1001, 2000]
-    if (wrap<Species>(1000) < id && id < wrap<Species>(2001))
+    if (wrap<Species>(MinMobID-1) < id && id < wrap<Species>(MaxMobID+1))
         return id;
     return Species();
 }
@@ -2647,7 +2647,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         // item drop
         if (!(type & 1))
         {
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < MaxDrops; i++)
             {
                 if (md->state.special_mob_ai >= 1 && battle_config.alchemist_summon_reward != 1)    // Added [Valaris]
                     break;      // End
@@ -3439,7 +3439,7 @@ int mob_makedummymobdb(Species mob_class)
     get_mob_db(mob_class).adelay = 1000_ms;
     get_mob_db(mob_class).amotion = 500_ms;
     get_mob_db(mob_class).dmotion = 500_ms;
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < MaxDrops; i++)
     {
         get_mob_db(mob_class).dropitem[i].nameid = ItemNameId();
         get_mob_db(mob_class).dropitem[i].p.num = 0;
@@ -3577,7 +3577,7 @@ bool mob_readdb(ZString filename)
             // TODO move this lower
             get_mob_db(mob_class) = std::move(mdbv);
 
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < MaxDrops; i++)
             {
                 int rate = get_mob_db(mob_class).dropitem[i].p.num;
                 if (rate < 1) rate = 1;

@@ -43,6 +43,10 @@ namespace map
 #define JAPANESE_NAME stringish<MobName>("--ja--"_s)
 #define MOB_THIS_MAP stringish<MapName>("this"_s)
 
+#define MaxDrops 8
+#define MinMobID 1001
+#define MaxMobID 2000
+
 struct mob_skill
 {
     MobSkillState state;
@@ -79,7 +83,7 @@ struct mob_db_
     {
         ItemNameId nameid;
         random_::Fixed<int, 10000> p;
-    } dropitem[8];
+    } dropitem[MaxDrops];
     short hair, hair_color, weapon;
     ItemNameId shield, head_top, head_mid, head_buttom;
     short option, clothes_color; // [Valaris]

@@ -36,6 +36,7 @@
 #include "../mmo/skill.t.hpp"
 
 #include "consts.hpp"
+#include "mob.hpp"
 #include "script-buffer.hpp"
 
 
@@ -63,7 +64,7 @@ namespace tmwa
         extern block_list bl_head;
         extern std::unique_ptr<io::AppendFile> map_logfile;
         extern long map_logfile_index;
-        extern mob_db_ mob_db[2001];
+        extern mob_db_ mob_db[MaxMobID+1];
         extern std::list<AString> npc_srcs;
         extern int npc_warp, npc_shop, npc_script, npc_mob;
         extern BlockId npc_id;

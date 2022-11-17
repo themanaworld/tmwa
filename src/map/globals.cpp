@@ -70,7 +70,7 @@ namespace tmwa
         block_list bl_head;
         std::unique_ptr<io::AppendFile> map_logfile;
         long map_logfile_index;
-        mob_db_ mob_db[2001];
+        mob_db_ mob_db[MaxMobID+1];
         std::list<AString> npc_srcs;
         int npc_warp, npc_shop, npc_script, npc_mob;
         BlockId npc_id = START_NPC_NUM;

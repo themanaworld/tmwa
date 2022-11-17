@@ -1822,6 +1822,172 @@ ATCE atcommand_hair_color(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_mobinfo(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    MobName name;
+    Species mob_id;
+    int exp;
+
+    if (!extract(message, &name) || !name)
+        return ATCE::USAGE;
+
+    if ((mob_id = wrap<Species>(static_cast<uint16_t>(atoi(name.c_str())))) == Species())
+        mob_id = mobdb_searchname(name);
+    else
+        mob_id = mobdb_checkid(mob_id);
+
+    if (mob_id == Species())
+        return ATCE::EXIST;
+
+    clif_displaymessage(s, STRPRINTF("Monster ID: %i, English Name: %s, Japanese Name: %s"_fmt, mob_id, get_mob_db(mob_id).name, get_mob_db(mob_id).jname));
+    clif_displaymessage(s, STRPRINTF("Level: %i, HP: %i, SP: %i, Base EXP: %i, JEXP: %i"_fmt, get_mob_db(mob_id).lv, get_mob_db(mob_id).max_hp, get_mob_db(mob_id).max_sp, get_mob_db(mob_id).base_exp, get_mob_db(mob_id).job_exp));
+    clif_displaymessage(s, STRPRINTF("Range1: %i, ATK1: %i, ATK2: %i, DEF: %i, MDEF: %i"_fmt, get_mob_db(mob_id).range, get_mob_db(mob_id).atk1, get_mob_db(mob_id).atk2, get_mob_db(mob_id).def, get_mob_db(mob_id).mdef));
+    clif_displaymessage(s, STRPRINTF("Stats: STR: %i, AGI: %i, VIT: %i, INT: %i, DEX:, %i LUK:, %i"_fmt, get_mob_db(mob_id).attrs[ATTR::STR], get_mob_db(mob_id).attrs[ATTR::AGI], get_mob_db(mob_id).attrs[ATTR::VIT], get_mob_db(mob_id).attrs[ATTR::INT], get_mob_db(mob_id).attrs[ATTR::DEX], get_mob_db(mob_id).attrs[ATTR::LUK]));
+    clif_displaymessage(s, STRPRINTF("Range2: %i, Range3: %i, Scale: %i, Race: %i, Element: %i, Element Level: %i, Mode: %i"_fmt, get_mob_db(mob_id).range2, get_mob_db(mob_id).range3, get_mob_db(mob_id).size, get_mob_db(mob_id).race, get_mob_db(mob_id).element.element, get_mob_db(mob_id).element.level, get_mob_db(mob_id).mode));
+    clif_displaymessage(s, STRPRINTF("Speed: %i, Adelay: %i, Amotion: %i, Dmotion: %i"_fmt, get_mob_db(mob_id).speed.count(), get_mob_db(mob_id).adelay.count(), get_mob_db(mob_id).amotion.count(), get_mob_db(mob_id).dmotion.count()));
+    if (get_mob_db(mob_id).mutations_nr)
+        clif_displaymessage(s, STRPRINTF("May mutate %i attribute up to %i%%"_fmt, get_mob_db(mob_id).mutations_nr, get_mob_db(mob_id).mutation_power));
+
+    for (int i = 0; i < MaxDrops; ++i)
+        if (get_mob_db(mob_id).dropitem[i].nameid)
+        {
+            Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[i].nameid));
+            RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+
+            int drop_rate = get_mob_db(mob_id).dropitem[i].p.num;
+
+            char str[6];
+            char strpos = 0;
+
+            char min = 0;
+            char mod = 0;
+            char fraction = drop_rate % 100;
+            char integer = drop_rate / 100;
+
+            if (fraction)
+            {
+                if (fraction < 10)
+                    min = 1;
+                do
+                {
+                    mod = fraction % 10;
+                    fraction = fraction / 10;
+                    if (!(strpos == 0 && mod == 0))
+                    {
+                        str[strpos] = '0' + mod;
+                        ++strpos;
+                    }
+                } while (fraction > 0);
+                if (min)
+                {
+                    str[strpos] = '0';
+                    ++strpos;
+                }
+                str[strpos] = '.';
+                ++strpos;
+            }
+            if (integer)
+            {
+                do
+                {
+                    mod = integer % 10;
+                    integer = integer / 10;
+                    str[strpos] = '0' + mod;
+                    ++strpos;
+                } while (integer > 0);
+            }
+            else
+            {
+                str[strpos] = '0';
+                ++strpos;
+            }
+            // flip string
+            for (char i=0, tmpstrpos=strpos-1; i <= tmpstrpos/2; ++i, --tmpstrpos)
+            {
+                char tmp = str[tmpstrpos];
+                str[tmpstrpos]=str[i];
+                str[i]=tmp;
+            }
+            str[strpos] = '\0';
+
+            int drop_rate2 = 10000/drop_rate;
+            clif_displaymessage(s, STRPRINTF("Drop ID %i: %i, Item Name: %s, Drop Chance: %s%% (1:%i)"_fmt,i+1, get_mob_db(mob_id).dropitem[i].nameid, item_name, str, drop_rate2));
+        }
+        else
+            break;
+
+    clif_displaymessage(s, STRPRINTF("Mob Mode Info:"_fmt));
+    if (!bool(get_mob_db(mob_id).mode & MobMode::ZERO))
+    {
+        if (bool(get_mob_db(mob_id).mode & MobMode::CAN_MOVE))
+            clif_displaymessage(s, STRPRINTF("Mobile"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::LOOTER))
+            clif_displaymessage(s, STRPRINTF("Picks up loot"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::AGGRESSIVE))
+            clif_displaymessage(s, STRPRINTF("Aggro"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::ASSIST))
+            clif_displaymessage(s, STRPRINTF("Assists"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::CAST_SENSOR))
+            clif_displaymessage(s, STRPRINTF("Cast Sensor"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::BOSS))
+            clif_displaymessage(s, STRPRINTF("Boss"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::PLANT))
+            clif_displaymessage(s, STRPRINTF("Plant"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::CAN_ATTACK))
+            clif_displaymessage(s, STRPRINTF("Can attack"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::DETECTOR))
+            clif_displaymessage(s, STRPRINTF("Detector"_fmt));
+        if (bool(get_mob_db(mob_id).mode & MobMode::CHANGE_TARGET))
+            clif_displaymessage(s, STRPRINTF("Change Target"_fmt));
+            /*
+            Not needed here i guess
+            SUMMONED
+            TURNS_AGAINST_BAD_MASTER
+            SENSIBLE_MASK
+            */
+    }
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    MobName name;
+    Species mob_id;
+    int x = 0;
+    int y = 0;
+    tick_t tick = gettick();
+
+    if (!extract(message, &name) || !name)
+        return ATCE::USAGE;
+
+    if ((mob_id = wrap<Species>(static_cast<uint16_t>(atoi(name.c_str())))) == Species())
+        mob_id = mobdb_searchname(name);
+    if (mob_id == Species())
+        return ATCE::EXIST;
+
+    x = sd->bl_x + random_::in(-5, 4);
+    y = sd->bl_y + random_::in(-5, 4);
+
+    BlockId id = mob_once_spawn(sd, MOB_THIS_MAP, x, y, JAPANESE_NAME, mob_id, 1, NpcEvent());
+    dumb_ptr<mob_data> md = map_id_is_mob(id);
+    if (md)
+    {
+        md->master_id = sd->bl_id;
+        md->state.special_mob_ai = 1;
+        md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
+        md->deletetimer = Timer(tick + 1_min,
+                std::bind(mob_timer_delete, ph::_1, ph::_2,
+                    id));
+        clif_misceffect(md, 344);
+    }
+
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_spawn(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
@@ -4552,43 +4718,6 @@ ATCE atcommand_leaves(Session *, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
-        ZString message)
-{
-    MobName name;
-    Species mob_id;
-    int x = 0;
-    int y = 0;
-    tick_t tick = gettick();
-
-    if (!extract(message, &name) || !name)
-        return ATCE::USAGE;
-
-    if ((mob_id = wrap<Species>(static_cast<uint16_t>(atoi(name.c_str())))) == Species())
-        mob_id = mobdb_searchname(name);
-    if (mob_id == Species())
-        return ATCE::EXIST;
-
-    x = sd->bl_x + random_::in(-5, 4);
-    y = sd->bl_y + random_::in(-5, 4);
-
-    BlockId id = mob_once_spawn(sd, MOB_THIS_MAP, x, y, JAPANESE_NAME, mob_id, 1, NpcEvent());
-    dumb_ptr<mob_data> md = map_id_is_mob(id);
-    if (md)
-    {
-        md->master_id = sd->bl_id;
-        md->state.special_mob_ai = 1;
-        md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
-        md->deletetimer = Timer(tick + 1_min,
-                std::bind(mob_timer_delete, ph::_1, ph::_2,
-                    id));
-        clif_misceffect(md, 344);
-    }
-
-    return ATCE::OKAY;
-}
-
-static
 ATCE atcommand_adjcmdlvl(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
@@ -5325,6 +5454,12 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"model"_s, {"<style> [color] [dye]"_s,
         98, atcommand_model,
         "Change your hairstyle and hair color"_s}},
+    {"mobinfo"_s, {"<mob-id-or-name>"_s,
+        20, atcommand_mobinfo,
+        "Show stats of a monster."_s}},
+    {"summon"_s, {"<mob-id-or-name>"_s,
+        50, atcommand_summon,
+        "Summon a slave monster temporarily"_s}},
     {"spawn"_s, {"<mob-name-or-id> [count] [x] [y]"_s,
         50, atcommand_spawn,
         "Spawn normal monsters at location."_s}},
@@ -5577,9 +5712,6 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"leaves"_s, {""_s,
         98, atcommand_leaves,
         "Enable the leaves mapflag"_s}},
-    {"summon"_s, {"<mob-id-or-name>"_s,
-        50, atcommand_summon,
-        "Summon a slave monster temporarily"_s}},
     {"adjgmlvl"_s, {"<level> <charname>"_s,
         98, atcommand_adjgmlvl,
         "Temporarily adjust the GM level of a player"_s}},

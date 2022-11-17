@@ -748,6 +748,8 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
         case StatusChange::SC_COOLDOWN_MT:
         case StatusChange::SC_COOLDOWN_R:
         case StatusChange::SC_COOLDOWN_AR:
+        case StatusChange::SC_COOLDOWN_ENCH:
+        case StatusChange::SC_COOLDOWN_KOY:
             break;
 
             /* option2 */
@@ -1023,6 +1025,8 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         case StatusChange::SC_COOLDOWN_MT:
         case StatusChange::SC_COOLDOWN_R:
         case StatusChange::SC_COOLDOWN_AR:
+        case StatusChange::SC_COOLDOWN_ENCH:
+        case StatusChange::SC_COOLDOWN_KOY:
             break;
         case StatusChange::SC_FLYING_BACKPACK:
             updateflag = SP::WEIGHT;
