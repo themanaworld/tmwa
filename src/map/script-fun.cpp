@@ -3578,7 +3578,9 @@ void builtin_getusers(ScriptState *st)
     switch (flag & 0x07)
     {
         case 0:
-            val = bl->bl_m->users;
+            // FIXME: SIGSEGV error
+            //val = bl->bl_m->users;
+            PRINTF("Sorry, but getusers(0) is disabled. Please use getmapusers() instead.\n"_fmt);
             break;
         case 1:
             val = map_getusers();
