@@ -2624,6 +2624,423 @@ void builtin_getexp(ScriptState *st)
 }
 
 /*==========================================
+ * Returns attributes of a monster
+ * return value -1 = mob not found
+ *------------------------------------------
+ */
+static
+void builtin_mobinfo(ScriptState *st)
+{
+    Species mob_id = wrap<Species>(conv_num(st, &AARG(0)));
+    MobInfo request = MobInfo(conv_num(st, &AARG(1)));
+    int info = 0;
+    AString info_str;
+    char mode = 0; // 0 = int, 1 = str
+
+    if (mobdb_checkid(mob_id) == Species())
+    {
+        push_int<ScriptDataInt>(st->stack, -1);
+        return;
+    }
+
+    switch (request)
+    {
+        case MobInfo::ID:
+            info = unwrap<Species>(mob_id);
+            break;
+        case MobInfo::ENG_NAME:
+            info_str = get_mob_db(mob_id).name;
+            mode = 1;
+            break;
+        case MobInfo::JAP_NAME:
+            info_str = get_mob_db(mob_id).jname;
+            mode = 1;
+            break;
+        case MobInfo::LVL:
+            info = get_mob_db(mob_id).lv;
+            break;
+        case MobInfo::HP:
+            info = get_mob_db(mob_id).max_hp;
+            break;
+        case MobInfo::SP:
+            info = get_mob_db(mob_id).max_sp;
+            break;
+        case MobInfo::BASE_EXP:
+            info = get_mob_db(mob_id).base_exp;
+            break;
+        case MobInfo::JOB_EXP:
+            info = get_mob_db(mob_id).job_exp;
+            break;
+        case MobInfo::RANGE1:
+            info = get_mob_db(mob_id).range;
+            break;
+        case MobInfo::ATK1:
+            info = get_mob_db(mob_id).atk1;
+            break;
+        case MobInfo::ATK2:
+            info = get_mob_db(mob_id).atk2;
+            break;
+        case MobInfo::DEF:
+            info = get_mob_db(mob_id).def;
+            break;
+        case MobInfo::MDEF:
+            info = get_mob_db(mob_id).mdef;
+            break;
+        case MobInfo::STR:
+            info = get_mob_db(mob_id).attrs[ATTR::STR];
+            break;
+        case MobInfo::AGI:
+            info = get_mob_db(mob_id).attrs[ATTR::AGI];
+            break;
+        case MobInfo::VIT:
+            info = get_mob_db(mob_id).attrs[ATTR::VIT];
+            break;
+        case MobInfo::INT:
+            info = get_mob_db(mob_id).attrs[ATTR::INT];
+            break;
+        case MobInfo::DEX:
+            info = get_mob_db(mob_id).attrs[ATTR::DEX];
+            break;
+        case MobInfo::LUK:
+            info = get_mob_db(mob_id).attrs[ATTR::LUK];
+            break;
+        case MobInfo::RANGE2:
+            info = get_mob_db(mob_id).range2;
+            break;
+        case MobInfo::RANGE3:
+            info = get_mob_db(mob_id).range3;
+            break;
+        case MobInfo::SCALE:
+            info = get_mob_db(mob_id).size;
+            break;
+        case MobInfo::RACE:
+            info = int(get_mob_db(mob_id).race);
+            break;
+        case MobInfo::ELEMENT:
+            info = int(get_mob_db(mob_id).element.element);
+            break;
+        case MobInfo::ELEMENT_LVL:
+            info = get_mob_db(mob_id).element.level;
+            break;
+        case MobInfo::MODE:
+            info = int(get_mob_db(mob_id).mode);
+            break;
+        case MobInfo::SPEED:
+            info = get_mob_db(mob_id).speed.count();
+            break;
+        case MobInfo::ADELAY:
+            info = get_mob_db(mob_id).adelay.count();
+            break;
+        case MobInfo::AMOTION:
+            info = get_mob_db(mob_id).amotion.count();
+            break;
+        case MobInfo::DMOTION:
+            info = get_mob_db(mob_id).dmotion.count();
+            break;
+        case MobInfo::MUTATION_NUM:
+            info = get_mob_db(mob_id).mutations_nr;
+            break;
+        case MobInfo::MUTATION_POWER:
+            info = get_mob_db(mob_id).mutation_power;
+            break;
+        case MobInfo::DROPID1:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[0].nameid);
+            break;
+        case MobInfo::DROPNAME1:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[0].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT1:
+            info = get_mob_db(mob_id).dropitem[0].p.num;
+            break;
+        case MobInfo::DROPID2:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[1].nameid);
+            break;
+        case MobInfo::DROPNAME2:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[1].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT2:
+            info = get_mob_db(mob_id).dropitem[1].p.num;
+            break;
+        case MobInfo::DROPID3:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[2].nameid);
+            break;
+        case MobInfo::DROPNAME3:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[2].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT3:
+            info = get_mob_db(mob_id).dropitem[2].p.num;
+            break;
+        case MobInfo::DROPID4:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[3].nameid);
+            break;
+        case MobInfo::DROPNAME4:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[3].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT4:
+            info = get_mob_db(mob_id).dropitem[3].p.num;
+            break;
+        case MobInfo::DROPID5:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[4].nameid);
+            break;
+        case MobInfo::DROPNAME5:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[4].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT5:
+            info = get_mob_db(mob_id).dropitem[4].p.num;
+            break;
+        case MobInfo::DROPID6:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[5].nameid);
+            break;
+        case MobInfo::DROPNAME6:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[5].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT6:
+            info = get_mob_db(mob_id).dropitem[5].p.num;
+            break;
+        case MobInfo::DROPID7:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[6].nameid);
+            break;
+        case MobInfo::DROPNAME7:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[6].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT7:
+            info = get_mob_db(mob_id).dropitem[6].p.num;
+            break;
+        case MobInfo::DROPID8:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[7].nameid);
+            break;
+        case MobInfo::DROPNAME8:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[7].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT8:
+            info = get_mob_db(mob_id).dropitem[7].p.num;
+            break;
+        default:
+            PRINTF("builtin_mobinfo: unknown request\n"_fmt);
+            push_int<ScriptDataInt>(st->stack, -1);
+            return;
+            break;
+    }
+    if (!mode)
+        push_int<ScriptDataInt>(st->stack, info);
+    else
+        push_str<ScriptDataStr>(st->stack, info_str);
+}
+
+/*==========================================
+ * Returns drops of a monster to an array
+ * return values:
+ * 0 = mob not found or error
+ * 1 = mob found and has drops
+ * 2 = mob found and has no drops
+ *------------------------------------------
+ */
+static
+void builtin_mobinfo_droparrays(ScriptState *st)
+{
+    dumb_ptr<block_list> bl = nullptr;
+
+    Species mob_id = wrap<Species>(conv_num(st, &AARG(0)));
+
+    MobInfo_DropArrays request = MobInfo_DropArrays(conv_num(st, &AARG(1)));
+
+    SIR reg = AARG(2).get_if<ScriptDataVariable>()->reg;
+    ZString name = variable_names.outtern(reg.base());
+
+    char prefix = name.front();
+    char postfix = name.back();
+    
+    int status = 0; // 0 = mob not found or error, 1 = mob found and has drops, 2 = mob found and has no drops
+
+    if (prefix != '$' && prefix != '@' && prefix != '.')
+    {
+        PRINTF("builtin_mobinfo_droparrays: illegal scope!\n"_fmt);
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
+    if (prefix == '.' && !name.startswith(".@"_s))
+        bl = map_id_is_npc(st->oid);
+    else if (prefix != '$' && !name.startswith(".@"_s))
+    {
+        bl = map_id_is_player(st->rid);
+        script_nullpo_end(bl, "player not found");
+    }
+
+    switch (request)
+    {
+        case MobInfo_DropArrays::IDS:
+            if (postfix == '$')
+            {
+                PRINTF("builtin_mobinfo_droparrays: wrong array type for ID's (Int expected but String found)!\n"_fmt);
+                push_int<ScriptDataInt>(st->stack, 0);
+                return;
+            }
+            break;
+        case MobInfo_DropArrays::NAMES:
+            if (postfix != '$')
+            {
+                PRINTF("builtin_mobinfo_droparrays: wrong array type for Names (String expected but Int found)!\n"_fmt);
+                push_int<ScriptDataInt>(st->stack, 0);
+                return;
+            }
+            break;
+        case MobInfo_DropArrays::PERCENTS:
+            if (postfix == '$')
+            {
+                PRINTF("builtin_mobinfo_droparrays: wrong array type for Percents (Int expected but String found)!\n"_fmt);
+                push_int<ScriptDataInt>(st->stack, 0);
+                return;
+            }
+            break;
+        default:
+            PRINTF("builtin_mobinfo_droparrays: unknown request\n"_fmt);
+            push_int<ScriptDataInt>(st->stack, 0);
+            return;
+            break;
+    }
+
+    if (mobdb_checkid(mob_id) == Species())
+    {
+        push_int<ScriptDataInt>(st->stack, status);
+        return;
+    }
+    
+    for (int i = 0; i < MaxDrops; ++i)
+        if (get_mob_db(mob_id).dropitem[i].nameid)
+        {
+            status = 1;
+            switch (request)
+            {
+                case MobInfo_DropArrays::IDS:
+                    if (name.startswith(".@"_s))
+                        {
+                            struct script_data vd = script_data(ScriptDataInt{unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[i].nameid)});
+                            set_scope_reg(st, reg.iplus(i), &vd);
+                        }
+                    else
+                        set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[i].nameid));
+                    break;
+                case MobInfo_DropArrays::NAMES:
+                    {
+                        Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[i].nameid));
+                        RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+
+                        if (name.startswith(".@"_s))
+                        {
+                            struct script_data vd = script_data(ScriptDataStr{item_name});
+                            set_scope_reg(st, reg.iplus(i), &vd);
+                        }
+                        else
+                            set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), item_name);
+                        break;
+                    }
+                case MobInfo_DropArrays::PERCENTS:
+                    if (name.startswith(".@"_s))
+                        {
+                            struct script_data vd = script_data(ScriptDataInt{get_mob_db(mob_id).dropitem[i].p.num});
+                            set_scope_reg(st, reg.iplus(i), &vd);
+                        }
+                    else
+                        set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), get_mob_db(mob_id).dropitem[i].p.num);
+                    break;
+            }
+        }
+        else
+        {
+            if (i == 0)
+                status = 2;
+            break;
+        }
+
+    push_int<ScriptDataInt>(st->stack, status);
+}
+
+/*==========================================
+ * Returns drops of a monster to standardized arrays
+ * return values:
+ * 0 = mob not found
+ * 1 = mob found and has drops
+ * 2 = mob found and has no drops
+ *------------------------------------------
+ */
+static
+void builtin_getmobdrops(ScriptState *st)
+{
+    dumb_ptr<block_list> bl = nullptr;
+
+    Species mob_id = wrap<Species>(conv_num(st, &AARG(0)));
+
+    int status = 0; // 0 = mob not found, 1 = mob found and has drops, 2 = mob found and has no drops
+    int i = 0;
+
+    if (mobdb_checkid(mob_id) == Species())
+    {
+        push_int<ScriptDataInt>(st->stack, status);
+        return;
+    }
+
+    status = 1;
+
+    for (; i < MaxDrops; ++i)
+        if (get_mob_db(mob_id).dropitem[i].nameid)
+        {
+            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_item"_s), i), get_mob_db(mob_id).dropitem[i].p.num);
+
+            Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[i].nameid));
+            RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_name$"_s), i), item_name);
+
+            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_rate"_s), i), get_mob_db(mob_id).dropitem[i].p.num);
+        }
+        else
+        {
+            if (i == 0)
+                status = 2;
+            break;
+        }
+
+    if (status == 1)
+        set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_count"_s), 0), i);
+    else
+        set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_count"_s), 0), 0);
+
+    push_int<ScriptDataInt>(st->stack, status);
+}
+
+/*==========================================
  *
  *------------------------------------------
  */
@@ -2636,11 +3053,12 @@ void builtin_summon(ScriptState *st)
     int y = conv_num(st, &AARG(2));
     dumb_ptr<block_list> owner_e = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(3))));
     dumb_ptr<map_session_data> owner = nullptr;
-    Species monster_id = wrap<Species>(conv_num(st, &AARG(4)));
-    MonsterAttitude monster_attitude = static_cast<MonsterAttitude>(conv_num(st, &AARG(5)));
-    interval_t lifespan = static_cast<interval_t>(conv_num(st, &AARG(6)));
+    MobName str = stringish<MobName>(ZString(conv_str(st, &AARG(4))));
+    Species monster_id = wrap<Species>(conv_num(st, &AARG(5)));
+    MonsterAttitude monster_attitude = static_cast<MonsterAttitude>(conv_num(st, &AARG(6)));
+    interval_t lifespan = static_cast<interval_t>(conv_num(st, &AARG(7)));
     if (HARG(7))
-        extract(ZString(conv_str(st, &AARG(7))), &event);
+        extract(ZString(conv_str(st, &AARG(8))), &event);
 
     if (!owner_e)
     {
@@ -2652,7 +3070,9 @@ void builtin_summon(ScriptState *st)
         && owner_e->bl_type == BL::PC)
         owner = owner_e->is_player(); // XXX in the future this should also work with mobs as owner
 
-    BlockId mob_id = mob_once_spawn(owner, map, x, y, MobName(), monster_id, 1, event);
+    if (!str)
+        str = MobName();
+    BlockId mob_id = mob_once_spawn(owner, map, x, y, str, monster_id, 1, event);
     dumb_ptr<mob_data> mob = map_id_is_mob(mob_id);
 
     if (mob)
@@ -3157,9 +3577,9 @@ void builtin_getusers(ScriptState *st)
     int val = 0;
     switch (flag & 0x07)
     {
-        /*case 0:
+        case 0:
             val = bl->bl_m->users;
-            break;*/
+            break;
         case 1:
             val = map_getusers();
             break;
@@ -3404,6 +3824,8 @@ void builtin_sc_start(ScriptState *st)
             case StatusChange::SC_COOLDOWN_MT:
             case StatusChange::SC_COOLDOWN_R:
             case StatusChange::SC_COOLDOWN_AR:
+            case StatusChange::SC_COOLDOWN_ENCH:
+            case StatusChange::SC_COOLDOWN_KOY:
             break;
 
             default:
@@ -5129,7 +5551,10 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(gettime, "i"_s, 'i'),
     BUILTIN(openstorage, ""_s, '\0'),
     BUILTIN(getexp, "ii"_s, '\0'),
-    BUILTIN(summon, "Mxysmii?"_s, '\0'),
+    BUILTIN(mobinfo, "ii"_s, 'v'),
+    BUILTIN(mobinfo_droparrays, "iiN"_s, 'i'),
+    BUILTIN(getmobdrops, "i"_s, 'i'),
+    BUILTIN(summon, "Mxyssmii?"_s, '\0'),
     BUILTIN(monster, "Mxysmi?"_s, '\0'),
     BUILTIN(areamonster, "Mxyxysmi?"_s, '\0'),
     BUILTIN(killmonster, "ME"_s, '\0'),
