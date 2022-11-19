@@ -3057,7 +3057,7 @@ void builtin_summon(ScriptState *st)
     Species monster_id = wrap<Species>(conv_num(st, &AARG(5)));
     MonsterAttitude monster_attitude = static_cast<MonsterAttitude>(conv_num(st, &AARG(6)));
     interval_t lifespan = static_cast<interval_t>(conv_num(st, &AARG(7)));
-    if (HARG(7))
+    if (HARG(8))
         extract(ZString(conv_str(st, &AARG(8))), &event);
 
     if (!owner_e)
