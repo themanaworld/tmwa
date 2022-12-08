@@ -4292,6 +4292,19 @@ void builtin_getpartnerid2(ScriptState *st)
 }
 
 /*==========================================
+ * Translatable string
+ *------------------------------------------
+ */
+static
+void builtin_l(ScriptState *st)
+{
+    RString mes = conv_str(st, &AARG(0));
+    // TODO: Format: src/map/script.c:5720
+    // TODO: Translation Table Lookup: src/emap/lang.c:161
+    push_str<ScriptDataStr>(st->stack, mes);
+}
+
+/*==========================================
  * 
  *------------------------------------------
  */
@@ -5658,6 +5671,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(distance, "ii?"_s, 'i'),
     BUILTIN(chr, "i"_s, 's'),
     BUILTIN(ord, "s"_s, 'i'),
+    BUILTIN(l, "s*"_s, 's'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
