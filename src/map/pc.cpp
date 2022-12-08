@@ -3747,6 +3747,17 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             else
                 val = battle_get_stat(type, bl);
             break;
+        case SP::STR2:
+        case SP::AGI2:
+        case SP::VIT2:
+        case SP::INT2:
+        case SP::DEX2:
+        case SP::LUK2:
+            if (sd)
+                val = sd->paramb[sp_to_attr(SP(static_cast<int>(type)-(static_cast<int>(SP::STR2)-static_cast<int>(SP::STR))))] + sd->parame[sp_to_attr(SP(static_cast<int>(type)-(static_cast<int>(SP::STR2)-static_cast<int>(SP::STR))))];
+            else
+                val = battle_get_stat(SP(static_cast<int>(type)-(static_cast<int>(SP::STR2)-static_cast<int>(SP::STR))), bl); // not sure if mobs can have equipment with stats so i only return thier normal stat
+            break;
         case SP::SPEED:
             val = battle_get_speed(bl).count();
             break;

@@ -316,6 +316,20 @@ enum class SP : uint16_t
     UNBREAKABLE                 = 60,
 #endif
 
+    // stats from equipment
+    STR2                        = 61, 
+    // sent to client
+    AGI2                        = 62,
+    // sent to client
+    VIT2                        = 63,
+    // sent to client
+    INT2                        = 64,
+    // sent to client
+    DEX2                        = 65,
+    // sent to client
+    LUK2                        = 66,
+    // sent to client
+
     DEAF                        = 70,
 
     // sent to client
