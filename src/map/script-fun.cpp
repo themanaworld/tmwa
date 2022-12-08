@@ -118,6 +118,20 @@ void builtin_mes(ScriptState *st)
 }
 
 static
+void builtin_mesq(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    script_nullpo_end(sd, "player not found");
+    sd->state.npc_dialog_mes = 1;
+    RString mes = HARG(0) ? conv_str(st, &AARG(0)) : ""_s;
+    MString mesq;
+    mesq += "\""_s;
+    mesq += mes;
+    mesq += "\""_s;
+    clif_scriptmes(sd, st->oid, RString(mesq));
+}
+
+static
 void builtin_clear(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
@@ -5509,6 +5523,7 @@ void builtin_mapexit(ScriptState *)
 BuiltinFunction builtin_functions[] =
 {
     BUILTIN(mes, "?"_s, '\0'),
+    BUILTIN(mesq, "?"_s, '\0'),
     BUILTIN(clear, ""_s, '\0'),
     BUILTIN(goto, "L"_s, '\0'),
     BUILTIN(callfunc, "F"_s, '\0'),
