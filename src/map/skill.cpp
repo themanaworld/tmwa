@@ -171,6 +171,7 @@ int skill_get_castnodex(SkillID id, int lv)
 
 /*==========================================
  * スキル追加効果
+ * Additional skill effect
  *------------------------------------------
  */
 int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
@@ -204,13 +205,13 @@ int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         sc_def_phys_shield_spell =
             battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD].val1;
 
-    //対象の耐性
+    // 対象の耐性 | Target resistance
     luk = battle_get_luk(bl);
     sc_def_mdef = 100 - (3 + battle_get_mdef(bl) + luk / 3);
     sc_def_vit = 100 - (3 + battle_get_vit(bl) + luk / 3);
     sc_def_int = 100 - (3 + battle_get_int(bl) + luk / 3);
     sc_def_luk = 100 - (3 + luk);
-    //自分の耐性
+    // 自分の耐性 | my tolerance
     luk = battle_get_luk(src);
 
     if (bl->bl_type == BL::MOB)
@@ -249,9 +250,16 @@ int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
  * flagの説明。16進図
  *      00XRTTff
  *  ff  = magicで計算に渡される）
- *      TT      = パケットのtype部分(0でデフォルト）
+ *  TT  = パケットのtype部分(0でデフォルト）
  *  X   = パケットのスキルLv
  *  R   = 予約（skill_area_subで使用する）
+ * Skill attack effect processing summary
+ * A description of the flag. hexadecimal diagram
+ *      00XRTTff
+ *  ff=magic passed to the calculation)
+ *  TT = packet type part (0 is default)
+ *  X = Packet skill Lv
+ *  R = reserved (used by skill_area_sub)
  *-------------------------------------------------------------------------
  */
 
@@ -269,23 +277,23 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
 
     sc_data = battle_get_sc_data(bl);
 
-//何もしない判定ここから
-    if (dsrc->bl_m != bl->bl_m)       //対象が同じマップにいなければ何もしない
+// 何もしない判定ここから | Judgment to do nothing from here
+    if (dsrc->bl_m != bl->bl_m)       // 対象が同じマップにいなければ何もしない | If the target is not on the same map, do nothing
         return 0;
-    if (src->bl_prev == nullptr || dsrc->bl_prev == nullptr || bl->bl_prev == nullptr)    //prevよくわからない※
+    if (src->bl_prev == nullptr || dsrc->bl_prev == nullptr || bl->bl_prev == nullptr)    // prevよくわからない※ | prevI'm not sure*
         return 0;
-    if (src->bl_type == BL::PC && pc_isdead(src->is_player()))  //術者？がPCですでに死んでいたら何もしない
+    if (src->bl_type == BL::PC && pc_isdead(src->is_player()))  // 術者？がPCですでに死んでいたら何もしない | Surgeon? is already dead on the PC, do nothing
         return 0;
-    if (dsrc->bl_type == BL::PC && pc_isdead(dsrc->is_player()))    //術者？がPCですでに死んでいたら何もしない
+    if (dsrc->bl_type == BL::PC && pc_isdead(dsrc->is_player()))    // 術者？がPCですでに死んでいたら何もしない | Surgeon? is already dead on the PC, do nothing
         return 0;
-    if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))    //対象がPCですでに死んでいたら何もしない
+    if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))    //対象がPCですでに死んでいたら何もしない | If the target is already dead on PC, do nothing
         return 0;
 
-//何もしない判定ここまで
+// 何もしない判定ここまで | Judgment to do nothing so far
 
     type = -1;
     lv = flag.level;
-    dmg = battle_calc_attack(attack_type, src, bl, skillid, skilllv, flag.lo); //ダメージ計算
+    dmg = battle_calc_attack(attack_type, src, bl, skillid, skilllv, flag.lo); // ダメージ計算 | damage calculation
 
     damage = dmg.damage;
 
@@ -307,10 +315,10 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
     }
 
     MapBlockLock lock;
-    /* 実際にダメージ処理を行う */
+    /* 実際にダメージ処理を行う | actually deal damage */
     battle_damage(src, bl, damage, 0);
 
-    /* ダメージがあるなら追加効果判定 */
+    /* ダメージがあるなら追加効果判定 | Additional effect judgment if there is damage */
     if (bl->bl_prev != nullptr)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
@@ -318,7 +326,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
         {
             if (damage > 0)
                 skill_additional_effect(src, bl, skillid, skilllv);
-            if (bl->bl_type == BL::MOB && src != bl)    /* スキル使用条件のMOBスキル */
+            if (bl->bl_type == BL::MOB && src != bl)    /* スキル使用条件のMOBスキル | MOB skills with skill usage conditions */
             {
                 dumb_ptr<mob_data> md = bl->is_mob();
                 if (battle_config.mob_changetarget_byskill == 1)
@@ -357,7 +365,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
             pc_heal(sd, hp, sp);
     }
 
-    return (dmg.damage);  /* 与ダメを返す */
+    return (dmg.damage);  /* 与ダメを返す | return damage dealt */
 }
 
 typedef int(*SkillFunc)(dumb_ptr<block_list>, dumb_ptr<block_list>,
@@ -382,6 +390,8 @@ void skill_area_sub(dumb_ptr<block_list> bl,
 /*==========================================
  * スキル使用（詠唱完了、ID指定攻撃系）
  * （スパゲッティに向けて１歩前進！(ダメポ)）
+ * Skill use (chanting complete, ID specified attack system)
+ *  (One step forward towards spaghetti! (Damepo))
  *------------------------------------------
  */
 int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
@@ -411,10 +421,10 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
                           flag);
             break;
 
-        case SkillID::NPC_SELFDESTRUCTION:  /* 自爆 */
+        case SkillID::NPC_SELFDESTRUCTION:  /* 自爆 | blew up */
             if (flag.lo & 1)
             {
-                /* 個別にダメージを与える */
+                /* 個別にダメージを与える | damage individually */
                 if (src->bl_type == BL::MOB)
                 {
                     dumb_ptr<mob_data> mb = src->is_mob();
@@ -443,7 +453,7 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
             }
             break;
 
-            /* HP吸収/HP吸収魔法 */
+            /* HP吸収/HP吸収魔法 | HP absorption/HP absorption magic */
         case SkillID::ZERO:
             if (sd)
             {
@@ -476,6 +486,7 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 
 /*==========================================
  * スキル使用（詠唱完了、ID指定支援系）
+ * Skill use (chanting complete, ID designation support system)
  *------------------------------------------
  */
 // skillid.nk == 1
@@ -553,6 +564,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 
 /*==========================================
  * 詠唱時間計算
+ * Casting time calculation
  *------------------------------------------
  */
 interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
@@ -605,6 +617,7 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
 
 /*==========================================
  * ディレイ計算
+ * delay calculation
  *------------------------------------------
  */
 interval_t skill_delayfix(dumb_ptr<block_list> bl, interval_t interval)
@@ -619,7 +632,7 @@ interval_t skill_delayfix(dumb_ptr<block_list> bl, interval_t interval)
 
     if (bl->bl_type == BL::PC)
     {
-        if (battle_config.delay_dependon_dex)   /* dexの影響を計算する */
+        if (battle_config.delay_dependon_dex)   /* dexの影響を計算する | Calculate dex impact */
             interval =
                 interval * (battle_config.castrate_dex_scale -
                         battle_get_dex(bl)) /
@@ -632,6 +645,7 @@ interval_t skill_delayfix(dumb_ptr<block_list> bl, interval_t interval)
 
 /*==========================================
  * スキル詠唱キャンセル
+ * Skill chant cancel
  *------------------------------------------
  */
 int skill_castcancel(dumb_ptr<block_list> bl, int)
@@ -1122,13 +1136,15 @@ int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
 /*
  *----------------------------------------------------------------------------
  * スキルユニット
+ * skill unit
  *----------------------------------------------------------------------------
  */
 
 /*==========================================
  * 演奏/ダンスをやめる
  * flag 1で合奏中なら相方にユニットを任せる
- *
+ * stop playing/dancing
+ * If you are playing in concert with flag 1, leave the unit to your partner
  *------------------------------------------
  */
 void skill_stop_dancing(dumb_ptr<block_list>, int)
@@ -1141,11 +1157,14 @@ void skill_unit_timer_sub_ondelete(dumb_ptr<block_list> bl,
 
 /*----------------------------------------------------------------------------
  * アイテム合成
+ * Item synthesis
  *----------------------------------------------------------------------------
  */
 
 /*----------------------------------------------------------------------------
  * 初期化系
+ * Initialization system
+ *----------------------------------------------------------------------------
  */
 
 static

@@ -35,7 +35,7 @@ namespace tmwa
 {
 namespace map
 {
-// ダメージ
+// ダメージ | damage
 struct Damage
 {
     int damage;
@@ -46,22 +46,22 @@ struct Damage
     ATK dmg_lv;
 };
 
-// ダメージ計算
+// ダメージ計算 | damage calculation
 
 struct Damage battle_calc_attack(BF attack_type,
         dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
         SkillID skill_num, int skill_lv, int flag);
 
-// 実際にHPを増減
+// 実際にHPを増減 | Actual HP increase/decrease
 int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
         int damage, int flag);
 int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
         int sp, int flag);
 
-// 攻撃や移動を止める
+// 攻撃や移動を止める | stop attacking or moving
 int battle_stopattack(dumb_ptr<block_list> bl);
 
-// 通常攻撃処理まとめ
+// 通常攻撃処理まとめ | Normal attack processing summary
 ATK battle_weapon_attack(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
         tick_t tick);
 

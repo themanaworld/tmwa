@@ -60,6 +60,8 @@ namespace map
 /*==========================================
  * 自分をロックしている対象の数を返す(汎用)
  * 戻りは整数で0以上
+ * Returns the number of targets that have locked me (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 static
@@ -78,6 +80,8 @@ int battle_counttargeted(dumb_ptr<block_list> bl, dumb_ptr<block_list> src,
 /*==========================================
  * 対象のClassを返す(汎用)
  * 戻りは整数で0以上
+ * Returns the target Class (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 Species battle_get_class(dumb_ptr<block_list> bl)
@@ -96,6 +100,8 @@ Species battle_get_class(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象の方向を返す(汎用)
  * 戻りは整数で0以上
+ * Returns the direction of the target (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 DIR battle_get_dir(dumb_ptr<block_list> bl)
@@ -112,6 +118,8 @@ DIR battle_get_dir(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のレベルを返す(汎用)
  * 戻りは整数で0以上
+ * Returns target level (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_lv(dumb_ptr<block_list> bl)
@@ -128,6 +136,8 @@ int battle_get_lv(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象の射程を返す(汎用)
  * 戻りは整数で0以上
+ * Returns target's range (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_range(dumb_ptr<block_list> bl)
@@ -146,6 +156,8 @@ int battle_get_range(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のHPを返す(汎用)
  * 戻りは整数で0以上
+ * Returns target's HP (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_hp(dumb_ptr<block_list> bl)
@@ -162,6 +174,8 @@ int battle_get_hp(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のMHPを返す(汎用)
  * 戻りは整数で0以上
+ * Return the target MHP (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_max_hp(dumb_ptr<block_list> bl)
@@ -186,6 +200,11 @@ int battle_get_max_hp(dumb_ptr<block_list> bl)
     }
 }
 
+/*==========================================
+ * Return the name of the target
+ * Returns an string
+ *------------------------------------------
+ */
 VString<23> battle_get_name(dumb_ptr<block_list> bl)
 {
     VString<23> name;
@@ -215,6 +234,8 @@ VString<23> battle_get_name(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のStrを返す(汎用)
  * 戻りは整数で0以上
+ * Returns the target Str (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_str(dumb_ptr<block_list> bl)
@@ -237,6 +258,8 @@ int battle_get_str(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のAgiを返す(汎用)
  * 戻りは整数で0以上
+ * Returns target Agi (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 
@@ -260,6 +283,8 @@ int battle_get_agi(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のVitを返す(汎用)
  * 戻りは整数で0以上
+ * Returns target Vit (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_vit(dumb_ptr<block_list> bl)
@@ -282,6 +307,8 @@ int battle_get_vit(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のIntを返す(汎用)
  * 戻りは整数で0以上
+ * Returns target Int (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_int(dumb_ptr<block_list> bl)
@@ -304,6 +331,8 @@ int battle_get_int(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のDexを返す(汎用)
  * 戻りは整数で0以上
+ * Returns the target Dex (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_dex(dumb_ptr<block_list> bl)
@@ -326,6 +355,8 @@ int battle_get_dex(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のLukを返す(汎用)
  * 戻りは整数で0以上
+ * Returns target Luk (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_luk(dumb_ptr<block_list> bl)
@@ -348,6 +379,8 @@ int battle_get_luk(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のFleeを返す(汎用)
  * 戻りは整数で1以上
+ * Returns target Flee (general purpose)
+ * Returns an integer greater than or equal to 1
  *------------------------------------------
  */
 int battle_get_flee(dumb_ptr<block_list> bl)
@@ -376,6 +409,8 @@ int battle_get_flee(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のHitを返す(汎用)
  * 戻りは整数で1以上
+ * Returns target hit (general purpose)
+ * Returns an integer greater than or equal to 1
  *------------------------------------------
  */
 int battle_get_hit(dumb_ptr<block_list> bl)
@@ -403,6 +438,8 @@ int battle_get_hit(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象の完全回避を返す(汎用)
  * 戻りは整数で1以上
+ * Returns full avoidance of the target (general purpose)
+ * Returns an integer greater than or equal to 1
  *------------------------------------------
  */
 int battle_get_flee2(dumb_ptr<block_list> bl)
@@ -434,6 +471,8 @@ int battle_get_flee2(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のクリティカルを返す(汎用)
  * 戻りは整数で1以上
+ * Returns target critical (general purpose)
+ * Returns an integer greater than or equal to 1
  *------------------------------------------
  */
 int battle_get_critical(dumb_ptr<block_list> bl)
@@ -460,6 +499,8 @@ int battle_get_critical(dumb_ptr<block_list> bl)
 /*==========================================
  * base_atkの取得
  * 戻りは整数で1以上
+ * get base_atk
+ * Returns an integer greater than or equal to 1
  *------------------------------------------
  */
 int battle_get_baseatk(dumb_ptr<block_list> bl)
@@ -470,22 +511,24 @@ int battle_get_baseatk(dumb_ptr<block_list> bl)
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
-        batk = bl->is_player()->base_atk;  //設定されているbase_atk
+        batk = bl->is_player()->base_atk;  // 設定されているbase_atk | set base_atk
     else
-    {                           //それ以外なら
+    {                           // それ以外なら | otherwise
         int str, dstr;
-        str = battle_get_str(bl);  //STR
+        str = battle_get_str(bl);  // STR
         dstr = str / 10;
-        batk = dstr * dstr + str;   //base_atkを計算する
+        batk = dstr * dstr + str;   // base_atkを計算する | Calculate base_atk
     }
     if (batk < 1)
-        batk = 1;               //base_atkは最低でも1
+        batk = 1;               // base_atkは最低でも1 | base_atk is at least 1
     return batk;
 }
 
 /*==========================================
  * 対象のAtkを返す(汎用)
  * 戻りは整数で0以上
+ * Returns target Atk (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_atk(dumb_ptr<block_list> bl)
@@ -508,6 +551,8 @@ int battle_get_atk(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のAtk2を返す(汎用)
  * 戻りは整数で0以上
+ * Returns target Atk2 (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_atk2(dumb_ptr<block_list> bl)
@@ -530,6 +575,8 @@ int battle_get_atk2(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のMAtk1を返す(汎用)
  * 戻りは整数で0以上
+ * Returns target MAtk1 (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_matk1(dumb_ptr<block_list> bl)
@@ -553,6 +600,8 @@ int battle_get_matk1(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のMAtk2を返す(汎用)
  * 戻りは整数で0以上
+ * Returns target MAtk2 (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_matk2(dumb_ptr<block_list> bl)
@@ -574,6 +623,8 @@ int battle_get_matk2(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のDefを返す(汎用)
  * 戻りは整数で0以上
+ * Returns the target Def (general purpose)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_def(dumb_ptr<block_list> bl)
@@ -596,7 +647,7 @@ int battle_get_def(dumb_ptr<block_list> bl)
     {
         if (sc_data)
         {
-            //毒にかかっている時は減算
+            // 毒にかかっている時は減算 | Subtract when poisoned
             if (sc_data[StatusChange::SC_POISON].timer
                 && bl->bl_type != BL::PC)
                 def = def * 75 / 100;
@@ -610,6 +661,8 @@ int battle_get_def(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のMDefを返す(汎用)
  * 戻りは整数で0以上
+ * Return target MDef (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_mdef(dumb_ptr<block_list> bl)
@@ -628,7 +681,7 @@ int battle_get_mdef(dumb_ptr<block_list> bl)
     {
         if (sc_data)
         {
-            //バリアー状態時はMDEF100
+            // バリアー状態時はMDEF100 | MDEF100 when in barrier state
             if (mdef < 90 && sc_data[StatusChange::SC_MBARRIER].timer)
             {
                 mdef += sc_data[StatusChange::SC_MBARRIER].val1;
@@ -645,6 +698,8 @@ int battle_get_mdef(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のDef2を返す(汎用)
  * 戻りは整数で1以上
+ * Returns target Def2 (generic)
+ * Returns an integer greater than or equal to 1
  *------------------------------------------
  */
 int battle_get_def2(dumb_ptr<block_list> bl)
@@ -673,6 +728,8 @@ int battle_get_def2(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のMDef2を返す(汎用)
  * 戻りは整数で0以上
+ * Returns target MDef2 (generic)
+ * Returns an integer greater than or equal to 0
  *------------------------------------------
  */
 int battle_get_mdef2(dumb_ptr<block_list> bl)
@@ -700,6 +757,9 @@ int battle_get_mdef2(dumb_ptr<block_list> bl)
  * 対象のSpeed(移動速度)を返す(汎用)
  * 戻りは整数で1以上
  * Speedは小さいほうが移動速度が速い
+ * Returns the target Speed (moving speed) (general purpose)
+ * Returns an integer greater than or equal to 1
+ * The smaller the Speed, the faster the movement speed.
  *------------------------------------------
  */
 interval_t battle_get_speed(dumb_ptr<block_list> bl)
@@ -720,6 +780,8 @@ interval_t battle_get_speed(dumb_ptr<block_list> bl)
 /*==========================================
  * 対象のaDelay(攻撃時ディレイ)を返す(汎用)
  * aDelayは小さいほうが攻撃速度が速い
+ * Returns target's aDelay (delay when attacking) (general purpose)
+ * Smaller aDelay means faster attack speed
  *------------------------------------------
  */
 // TODO figure out what all the doubling is about
@@ -751,6 +813,10 @@ interval_t battle_get_adelay(dumb_ptr<block_list> bl)
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 interval_t battle_get_amotion(dumb_ptr<block_list> bl)
 {
     nullpo_retr(2_s, bl);
@@ -778,6 +844,10 @@ interval_t battle_get_amotion(dumb_ptr<block_list> bl)
     }
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 interval_t battle_get_dmotion(dumb_ptr<block_list> bl)
 {
     nullpo_retr(interval_t::zero(), bl);
@@ -793,17 +863,25 @@ interval_t battle_get_dmotion(dumb_ptr<block_list> bl)
         return 2_s;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 LevelElement battle_get_element(dumb_ptr<block_list> bl)
 {
     LevelElement ret = {2, Element::neutral};
 
     nullpo_retr(ret, bl);
-    if (bl->bl_type == BL::MOB)   // 10の位＝Lv*2、１の位＝属性
+    if (bl->bl_type == BL::MOB)   // 10の位＝Lv*2、１の位＝属性 | Ten's place = Lv*2, One's place = Attribute
         ret = bl->is_mob()->def_ele;
 
     return ret;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 PartyId battle_get_party_id(dumb_ptr<block_list> bl)
 {
     nullpo_retr(PartyId(), bl);
@@ -819,6 +897,10 @@ PartyId battle_get_party_id(dumb_ptr<block_list> bl)
     return PartyId();
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 Race battle_get_race(dumb_ptr<block_list> bl)
 {
     nullpo_retr(Race::formless, bl);
@@ -830,15 +912,23 @@ Race battle_get_race(dumb_ptr<block_list> bl)
         return Race::formless;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 MobMode battle_get_mode(dumb_ptr<block_list> bl)
 {
     nullpo_retr(MobMode::CAN_MOVE, bl);
     if (bl->bl_type == BL::MOB)
         return get_mob_db(bl->is_mob()->mob_class).mode;
-    // とりあえず動くということで1
+    // とりあえず動くということで1 | For the time being, it will move 1
     return MobMode::CAN_MOVE;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int battle_get_stat(SP stat_id, dumb_ptr<block_list> bl)
 {
     switch (stat_id)
@@ -860,7 +950,11 @@ int battle_get_stat(SP stat_id, dumb_ptr<block_list> bl)
     }
 }
 
-// StatusChange系の所得
+/*==========================================
+ * 
+ *------------------------------------------
+ */
+// StatusChange系の所得 | StatusChange Income
 eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_get_sc_data(dumb_ptr<block_list> bl)
 {
     nullpo_retr(nullptr, bl);
@@ -875,6 +969,10 @@ eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_
     return nullptr;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 Opt1 *battle_get_opt1(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
@@ -887,6 +985,10 @@ Opt1 *battle_get_opt1(dumb_ptr<block_list> bl)
     return nullptr;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 Opt2 *battle_get_opt2(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
@@ -899,6 +1001,10 @@ Opt2 *battle_get_opt2(dumb_ptr<block_list> bl)
     return nullptr;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 Opt3 *battle_get_opt3(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
@@ -911,6 +1017,10 @@ Opt3 *battle_get_opt3(dumb_ptr<block_list> bl)
     return nullptr;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 Opt0 *battle_get_option(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
@@ -925,7 +1035,11 @@ Opt0 *battle_get_option(dumb_ptr<block_list> bl)
 
 //-------------------------------------------------------------------
 
-// ダメージの遅延
+/*==========================================
+ * 
+ *------------------------------------------
+ */
+// ダメージの遅延 | damage delay
 struct battle_delay_damage_
 {
     dumb_ptr<block_list> src, *target;
@@ -933,11 +1047,15 @@ struct battle_delay_damage_
     int flag;
 };
 
-// 実際にHPを操作
+/*==========================================
+ * 
+ *------------------------------------------
+ */
+// 実際にHPを操作 | Actually operate HP
 int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
                    int damage, int flag)
 {
-    nullpo_retz(target);    //blはNULLで呼ばれることがあるので他でチェック
+    nullpo_retz(target);    // blはNULLで呼ばれることがあるので他でチェック | bl may be called with NULL, so check elsewhere
 
     if (damage == 0)
         return 0;
@@ -957,7 +1075,7 @@ int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
     if (target->bl_type == BL::MOB)
     {                           // MOB
         dumb_ptr<mob_data> md = target->is_mob();
-        if (md && md->skilltimer && md->state.skillcastcancel)    // 詠唱妨害
+        if (md && md->skilltimer && md->state.skillcastcancel)    // 詠唱妨害 | chant obstruction
             skill_castcancel(target, 0);
         return mob_damage(bl, md, damage, 0);
     }
@@ -972,10 +1090,14 @@ int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
                  int sp, int flag)
 {
-    nullpo_retz(target);    //blはNULLで呼ばれることがあるので他でチェック
+    nullpo_retz(target);    // blはNULLで呼ばれることがあるので他でチェック | bl may be called with NULL, so check elsewhere
 
     if (target->bl_type == BL::PC
         && pc_isdead(target->is_player()))
@@ -993,7 +1115,11 @@ int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
     return 0;
 }
 
-// 攻撃停止
+/*==========================================
+ * 
+ *------------------------------------------
+ */
+// 攻撃停止 | stop attack
 int battle_stopattack(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);
@@ -1006,6 +1132,7 @@ int battle_stopattack(dumb_ptr<block_list> bl)
 
 /*==========================================
  * ダメージ最終計算
+ * Final damage calculation
  *------------------------------------------
  */
 static
@@ -1032,12 +1159,16 @@ int battle_calc_damage(dumb_ptr<block_list>, dumb_ptr<block_list> bl,
             damage = 3;
     }
 
-    if (md != nullptr && md->hp > 0 && damage > 0) // 反撃などのMOBスキル判定
+    if (md != nullptr && md->hp > 0 && damage > 0) // 反撃などのMOBスキル判定 | MOB skill judgment such as counterattack
         mobskill_event(md, flag);
 
     return damage;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
                                                     dumb_ptr<block_list> target,
@@ -1074,9 +1205,9 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     MobMode t_mode = battle_get_mode(target);
     t_sc_data = battle_get_sc_data(target);
 
-    flag = BF::SHORT | BF::WEAPON | BF::NORMAL;    // 攻撃の種類の設定
+    flag = BF::SHORT | BF::WEAPON | BF::NORMAL;    // 攻撃の種類の設定 | attack type settings
 
-    // 回避率計算、回避判定は後で
+    // 回避率計算、回避判定は後で | Evasion rate calculation, avoidance judgment later
     flee = battle_get_flee(target);
     if (battle_config.agi_penaly_type > 0
         || battle_config.vit_penaly_type > 0)
@@ -1140,8 +1271,8 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     if ((skill_num == SkillID::ZERO)
         && skill_lv >= 0 && battle_config.enemy_critical
         && random_::chance({cri, 1000}))
-        // 判定（スキルの場合は無視）
-        // 敵の判定
+        // 判定（スキルの場合は無視） | Judgment (ignored for skills)
+        // 敵の判定 | judgment of the enemy
     {
         damage += atkmax;
         type = DamageType::CRITICAL;
@@ -1161,10 +1292,10 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
         }
 
         {
-            // 対 象の防御力によるダメージの減少
-            // ディバインプロテクション（ここでいいのかな？）
+            // 対 象の防御力によるダメージの減少 | Decreased damage due to target's defense
+            // ディバインプロテクション（ここでいいのかな？） | Divine Protection (maybe here?)
             if (def1 < 1000000)
-            {                   //DEF, VIT無視
+            {                   // DEF, VIT無視 | DEF, VIT ignore
                 int t_def;
                 target_count =
                     1 + battle_counttargeted(target, src,
@@ -1233,11 +1364,11 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
         }
     }
 
-    // 0未満だった場合1に補正
+    // 0未満だった場合1に補正 | Corrected to 1 if less than 0
     if (damage < 1)
         damage = 1;
 
-    // 回避修正
+    // 回避修正 | avoidance fix
     if (hitrate < 1000000)
         hitrate = ((hitrate > 95) ? 95 : ((hitrate < 5) ? 5 : hitrate));
 
@@ -1254,7 +1385,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     if (damage < 0)
         damage = 0;
 
-    // 完全回避の判定
+    // 完全回避の判定 | Judgment of complete avoidance
     if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr
         && random_::chance({battle_get_flee2(target), 1000}))
     {
@@ -1291,6 +1422,10 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     return wd;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int battle_is_unarmed(dumb_ptr<block_list> bl)
 {
     if (!bl)
@@ -1310,6 +1445,7 @@ int battle_is_unarmed(dumb_ptr<block_list> bl)
 /*
  * =========================================================================
  * PCの武器による攻撃
+ * Attack with PC weapons
  *-------------------------------------------------------------------------
  */
 static
@@ -1341,47 +1477,47 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     nullpo_retr(wd, target);
     nullpo_retr(wd, sd);
 
-    // アタッカー
-    sc_data = battle_get_sc_data(src); //ステータス異常
+    // アタッカー | attacker
+    sc_data = battle_get_sc_data(src); // ステータス異常 | Abnormal status
 
-    sd->state.attack_type = BF::WEAPON;  //攻撃タイプは武器攻撃
+    sd->state.attack_type = BF::WEAPON;  // 攻撃タイプは武器攻撃 | Attack type is weapon attack
 
     // ターゲット
-    if (target->bl_type == BL::PC)  //対象がPCなら
-        tsd = target->is_player();   //tsdに代入(tmdはNULL)
-    else if (target->bl_type == BL::MOB)    //対象がMobなら
-        tmd = target->is_mob();   //tmdに代入(tsdはNULL)
-    MobMode t_mode = battle_get_mode(target);  //対象のMode
-    t_sc_data = battle_get_sc_data(target);    //対象のステータス異常
+    if (target->bl_type == BL::PC)  // 対象がPCなら | If the target is a PC
+        tsd = target->is_player();   // tsdに代入(tmdはNULL) | Assign to tsd (tmd is NULL)
+    else if (target->bl_type == BL::MOB)    // 対象がMobなら | If the target is a mob
+        tmd = target->is_mob();   // tmdに代入(tsdはNULL) | Assign to tmd (tsd is NULL)
+    MobMode t_mode = battle_get_mode(target);  // 対象のMode | Target Mode
+    t_sc_data = battle_get_sc_data(target);    // 対象のステータス異常 | Target status ailment
 
-    flag = BF::SHORT | BF::WEAPON | BF::NORMAL;    // 攻撃の種類の設定
+    flag = BF::SHORT | BF::WEAPON | BF::NORMAL;    // 攻撃の種類の設定 | attack type settings
 
-    // 回避率計算、回避判定は後で
+    // 回避率計算、回避判定は後で | Evasion rate calculation, avoidance judgment later
     flee = battle_get_flee(target);
-    if (battle_config.agi_penaly_type > 0 || battle_config.vit_penaly_type > 0) //AGI、VITペナルティ設定が有効
+    if (battle_config.agi_penaly_type > 0 || battle_config.vit_penaly_type > 0) // AGI、VITペナルティ設定が有効 | AGI and VIT penalty settings are enabled
         target_count += battle_counttargeted(target, src,
-                battle_config.agi_penaly_count_lv);  //対象の数を算出
+                battle_config.agi_penaly_count_lv);  // 対象の数を算出 | Calculate the number of targets
     if (battle_config.agi_penaly_type > 0)
     {
         if (target_count >= battle_config.agi_penaly_count)
-        {                       //ペナルティ設定より対象が多い
-            if (battle_config.agi_penaly_type == 1) //回避率がagi_penaly_num%ずつ減少
+        {                       // ペナルティ設定より対象が多い | More targets than penalty setting
+            if (battle_config.agi_penaly_type == 1) // 回避率がagi_penaly_num%ずつ減少 | Evasion rate decreased by agi_penaly_num%
                 flee =
                     (flee *
                      (100 -
                       (target_count -
                        (battle_config.agi_penaly_count -
                         1)) * battle_config.agi_penaly_num)) / 100;
-            else if (battle_config.agi_penaly_type == 2)    //回避率がagi_penaly_num分減少
+            else if (battle_config.agi_penaly_type == 2)    // 回避率がagi_penaly_num分減少 | Avoidance rate is reduced
                 flee -=
                     (target_count -
                      (battle_config.agi_penaly_count -
                       1)) * battle_config.agi_penaly_num;
             if (flee < 1)
-                flee = 1;       //回避率は最低でも1
+                flee = 1;       // 回避率は最低でも1 | Evasion rate is at least 1
         }
     }
-    hitrate = battle_get_hit(src) - flee + 80; //命中率計算
+    hitrate = battle_get_hit(src) - flee + 80; // 命中率計算 | hit rate calculation
 
     {                           // [fate] Reduce hit chance by distance
         int dx = abs(src->bl_x - target->bl_x);
@@ -1395,25 +1531,25 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     }
 
     dex = battle_get_dex(src); //DEX
-    watk = battle_get_atk(src);    //ATK
+    watk = battle_get_atk(src); //ATK
 
     type = DamageType::NORMAL;
-    div_ = 1;                   // single attack
+    div_ = 1; // single attack
 
     {
-        damage = battle_get_baseatk(sd);    //damega,damega2初登場、base_atkの取得
+        damage = battle_get_baseatk(sd); // damega,damega2初登場、base_atkの取得 | First appearance of damega and damega2, acquisition of base_atk
     }
     if (sd->attackrange > 2)
     {                           // [fate] ranged weapon?
-        const int range_damage_bonus = 80;  // up to 31.25% bonus for long-range hit
+        const int range_damage_bonus = 80; // up to 31.25% bonus for long-range hit
         damage =
             damage * (256 +
                       ((range_damage_bonus * target_distance) /
                        sd->attackrange)) >> 8;
     }
 
-    atkmin = dex;     //最低ATKはDEXで初期化？
-    sd->state.arrow_atk = 0;    //arrow_atk初期化
+    atkmin = dex; // 最低ATKはDEXで初期化？ | Minimum ATK initialized with DEX?
+    sd->state.arrow_atk = 0;    // arrow_atk初期化 | arrow_atk initialization
 
     IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
 
@@ -1426,10 +1562,10 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         OMATCH_END ();
     }
     if (sd->status.weapon == ItemLook::BOW)
-    {                           //武器が弓矢の場合
-        atkmin = watk * ((atkmin < watk) ? atkmin : watk) / 100;    //弓用最低ATK計算
-        flag = (flag & ~BF::RANGEMASK) | BF::LONG;    //遠距離攻撃フラグを有効
-        sd->state.arrow_atk = 1;    //arrow_atk有効化
+    {                           // 武器が弓矢の場合 | If the weapon is a bow and arrow
+        atkmin = watk * ((atkmin < watk) ? atkmin : watk) / 100; // 弓用最低ATK計算 | Bows are calculated with minimum ATK
+        flag = (flag & ~BF::RANGEMASK) | BF::LONG; // 遠距離攻撃フラグを有効 | Enable ranged attack flag
+        sd->state.arrow_atk = 1; // arrow_atk有効化 | arrow_atk enabled
     }
 
     {
@@ -1437,14 +1573,14 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     }
 
     if (atkmin > atkmax && !(sd->state.arrow_atk))
-        atkmin = atkmax;        //弓は最低が上回る場合あり
+        atkmin = atkmax; // 弓は最低が上回る場合あり | Bow may exceed minimum
 
     if (sd->double_rate > 0 && skill_num == SkillID::ZERO && skill_lv >= 0)
         da = random_::chance({sd->double_rate, 100});
 
     if (!da)
-    {                           //ダブルアタックが発動していない
-        // クリティカル計算
+    {                           // ダブルアタックが発動していない | Double Attack is not activated
+        // クリティカル計算 | critical calculation
         cri = battle_get_critical(src);
 
         if (sd->state.arrow_atk)
@@ -1457,8 +1593,8 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     if (tsd && tsd->critical_def)
         cri = cri * (100 - tsd->critical_def) / 100;
 
-    //ダブルアタックが発動していない
-    // 判定（スキルの場合は無視）
+    // ダブルアタックが発動していない | Double Attack is not activated
+    // 判定（スキルの場合は無視） | Judgment (ignored for skills)
     if (!da && skill_num == SkillID::ZERO && skill_lv >= 0
         && random_::chance({cri, 1000}))
     {
@@ -1497,10 +1633,10 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         }
 
         {
-            // 対 象の防御力によるダメージの減少
-            // ディバインプロテクション（ここでいいのかな？）
+            // 対 象の防御力によるダメージの減少 | Decreased damage due to target's defense
+            // ディバインプロテクション（ここでいいのかな？） | Divine Protection (maybe here?)
             if (def1 < 1000000)
-            {                   //DEF, VIT無視
+            {                   // DEF, VIT無視 | DEF, VIT ignore
                 int t_def;
                 target_count =
                     1 + battle_counttargeted(target, src,
@@ -1570,18 +1706,18 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
             }
         }
     }
-    // 精錬ダメージの追加
-    {                           //DEF, VIT無視
+    // 精錬ダメージの追加 | Add refining damage
+    {                           // DEF, VIT無視 | DEF, VIT ignore
         damage += battle_get_atk2(src);
     }
 
-    // 0未満だった場合1に補正
+    // 0未満だった場合1に補正 | Corrected to 1 if less than 0
     if (damage < 1)
         damage = 1;
 
-    // スキル修正２（修練系）
-    // 修練ダメージ(右手のみ) ソニックブロー時は別処理（1撃に付き1/8適応)
-    {                           //修練ダメージ無視
+    // スキル修正２（修練系） | Skill Modification 2 (Training)
+    // 修練ダメージ(右手のみ) ソニックブロー時は別処理（1撃に付き1/8適応) | Training damage (right hand only) Separate processing during sonic blow (1/8 adaptation per hit)
+    {                           //修練ダメージ無視 | Ignores training damage
     }
 
     if (sd->perfect_hit > 0)
@@ -1590,7 +1726,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
             hitrate = 1000000;
     }
 
-    // 回避修正
+    // 回避修正 | avoidance fix
     hitrate = (hitrate < 5) ? 5 : hitrate;
     if (type == DamageType::NORMAL && !random_::chance({hitrate, 100}))
     {
@@ -1605,15 +1741,15 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     if (damage < 0)
         damage = 0;
 
-    // 右手,短剣のみ
+    // 右手,短剣のみ | right hand, dagger only
     if (da)
-    {                           //ダブルアタックが発動しているか
+    {                           // ダブルアタックが発動しているか | Is double attack activated?
         div_ = 2;
         damage += damage;
         type = DamageType::DOUBLED;
     }
 
-    // 完全回避の判定
+    // 完全回避の判定 | Judgment of complete avoidance
     if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr && div_ < 255
         && random_::chance({battle_get_flee2(target), 1000}))
     {
@@ -1622,7 +1758,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         dmg_lv = ATK::LUCKY;
     }
 
-    // 対象が完全回避をする設定がONなら
+    // 対象が完全回避をする設定がONなら | If the setting to completely avoid the target is ON
     if (battle_config.enemy_perfect_flee)
     {
         if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != nullptr && div_ < 255
@@ -1634,7 +1770,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         }
     }
 
-    //MobのModeに頑強フラグが立っているときの処理
+    // MobのModeに頑強フラグが立っているときの処理 | Processing when the stubborn flag is set in the mob's mode
     if (bool(t_mode & MobMode::PLANT))
     {
         if (damage > 0)
@@ -1663,6 +1799,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
 /*==========================================
  * 武器ダメージ計算
+ * Weapon damage calculator
  *------------------------------------------
  */
 static
@@ -1686,6 +1823,7 @@ struct Damage battle_calc_weapon_attack(dumb_ptr<block_list> src,
 
 /*==========================================
  * 魔法ダメージ計算
+ * magic damage calculation
  *------------------------------------------
  */
 static
@@ -1723,7 +1861,7 @@ struct Damage battle_calc_magic_attack(dumb_ptr<block_list> bl,
 
     if (normalmagic_flag)
     {
-        // 一般魔法ダメージ計算
+        // 一般魔法ダメージ計算 | General magic damage calculation
         if (matk1 > matk2)
             damage = random_::in(matk2, matk1);
         else
@@ -1752,7 +1890,7 @@ struct Damage battle_calc_magic_attack(dumb_ptr<block_list> bl,
     if (bool(t_mode & MobMode::PLANT) && damage > 0)
         damage = 1;
 
-    damage = battle_calc_damage(bl, target, damage, div_, skill_num, skill_lv, aflag); // 最終修正
+    damage = battle_calc_damage(bl, target, damage, div_, skill_num, skill_lv, aflag); // 最終修正 | final revision
 
     md.damage = damage;
     md.div_ = div_;
@@ -1766,6 +1904,7 @@ struct Damage battle_calc_magic_attack(dumb_ptr<block_list> bl,
 
 /*==========================================
  * その他ダメージ計算
+ * Other damage calculation
  *------------------------------------------
  */
 static
@@ -1792,7 +1931,7 @@ struct Damage battle_calc_misc_attack(dumb_ptr<block_list> bl,
 
     switch (skill_num)
     {
-        case SkillID::NPC_SELFDESTRUCTION:  // 自爆
+        case SkillID::NPC_SELFDESTRUCTION:  // 自爆 | blew up
             damage = battle_get_hp(bl) - (bl == target ? 1 : 0);
             damagefix = 0;
             break;
@@ -1816,7 +1955,7 @@ struct Damage battle_calc_misc_attack(dumb_ptr<block_list> bl,
         damage = div_;
     }
 
-    damage = battle_calc_damage(bl, target, damage, div_, skill_num, skill_lv, aflag); // 最終修正
+    damage = battle_calc_damage(bl, target, damage, div_, skill_num, skill_lv, aflag); // 最終修正 | final revision
 
     md.damage = damage;
     md.div_ = div_;
@@ -1830,6 +1969,7 @@ struct Damage battle_calc_misc_attack(dumb_ptr<block_list> bl,
 
 /*==========================================
  * ダメージ計算一括処理用
+ * For damage calculation batch processing
  *------------------------------------------
  */
 struct Damage battle_calc_attack(BF attack_type,
@@ -1861,6 +2001,7 @@ struct Damage battle_calc_attack(BF attack_type,
 
 /*==========================================
  * 通常攻撃処理まとめ
+ * Normal attack processing summary
  *------------------------------------------
  */
 ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
@@ -1894,7 +2035,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
     if (battle_check_target(src, target, BCT_ENEMY) > 0 &&
         battle_check_range(src, target, 0))
     {
-        // 攻撃対象となりうるので攻撃
+        // 攻撃対象となりうるので攻撃 | Attack because it can be attacked
         if (sd && sd->status.weapon == ItemLook::BOW)
         {
             IOff0 aidx = sd->equip_index_maybe[EQUIP::ARROW];
@@ -2012,6 +2153,10 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
     return wd.dmg_lv;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 bool battle_check_undead(Race race, Element element)
 {
     if (battle_config.undead_detect_type == 0)
@@ -2035,6 +2180,12 @@ bool battle_check_undead(Race race, Element element)
  *                              = 0x20000:全て(ret:1=敵味方両方)
  *                              = 0x40000:敵か判定(ret:1=敵)
  *                              = 0x50000:パーティーじゃないか判定(ret:1=パーティでない)
+ * Friend or foe judgment (1=positive, 0=negative, -1=error)
+ * flag&0xf0000 = 0x00000: determine if it is an enemy (ret: 1 = not an enemy)
+ *                              = 0x10000: party judgment (ret: 1 = party member)
+ *                              = 0x20000: all (ret: 1 = both friend and foe)
+ *                              = 0x40000: Enemy or not (ret: 1 = enemy)
+ *                              = 0x50000: Determine if it is not a party (ret: 1 = not a party)
  *------------------------------------------
  */
 int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
@@ -2047,7 +2198,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
     nullpo_retz(target);
 
     if (flag & BCT_ENEMY)
-    {                           // 反転フラグ
+    {                           // 反転フラグ | reversal flag
         int ret = battle_check_target(src, target, flag & (BCT_PARTY | BCT_ALL));
         if (ret != -1)
             return !ret;
@@ -2066,25 +2217,25 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         && target->is_player()->invincible_timer)
         return -1;
 
-    // Mobでmaster_idがあってspecial_mob_aiなら、召喚主を求める
+    // Mobでmaster_idがあってspecial_mob_aiなら、召喚主を求める | If the mob has a master_id and a special_mob_ai, seek the summoner
     if (src->bl_type == BL::MOB)
     {
         dumb_ptr<mob_data> md = src->is_mob();
         if (md && md->master_id)
         {
-            if (md->master_id == target->bl_id)    // 主なら肯定
+            if (md->master_id == target->bl_id)    // 主なら肯定 | Yes if the main
                 return 1;
             if (md->state.special_mob_ai)
             {
                 if (target->bl_type == BL::MOB)
-                {               //special_mob_aiで対象がMob
+                {               // special_mob_aiで対象がMob | special_mob_ai targets mobs
                     dumb_ptr<mob_data> tmd = target->is_mob();
                     if (tmd)
                     {
-                        if (tmd->master_id != md->master_id)    //召喚主が一緒でなければ否定
+                        if (tmd->master_id != md->master_id)    // 召喚主が一緒でなければ否定 | Deny if the summoner is not with you
                             return 0;
                         else
-                        {       //召喚主が一緒なので肯定したいけど自爆は否定
+                        {       // 召喚主が一緒なので肯定したいけど自爆は否定 | I want to affirm because the summoner is the same, but I deny suicide bombing
                             if (md->state.special_mob_ai > 2)
                                 return 0;
                             else
@@ -2098,20 +2249,20 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         }
     }
 
-    if (src == target || ss == target)  // 同じなら肯定
+    if (src == target || ss == target)  // 同じなら肯定 | Yes if same
         return 1;
 
     if (target->bl_type == BL::PC
         && pc_isinvisible(target->is_player()))
         return -1;
 
-    if (src->bl_prev == nullptr ||    // 死んでるならエラー
+    if (src->bl_prev == nullptr ||    // 死んでるならエラー | error if dead
         (src->bl_type == BL::PC && pc_isdead(src->is_player())))
         return -1;
 
     if ((ss->bl_type == BL::PC && target->bl_type == BL::MOB) ||
         (ss->bl_type == BL::MOB && target->bl_type == BL::PC))
-        return 0;               // PCvsMOBなら否定
+        return 0;               // PCvsMOBなら否定 | Negative if PC vs MOB
 
     s_p = battle_get_party_id(ss);
 
@@ -2119,14 +2270,14 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 
     if (flag & BCT_PARTY)
     {
-        if (s_p && t_p && s_p == t_p)   // 同じパーティなら肯定（味方）
+        if (s_p && t_p && s_p == t_p)   // 同じパーティなら肯定（味方） | Yes if same party (ally)
             return 1;
-        else                    // パーティ検索なら同じパーティじゃない時点で否定
+        else                    // パーティ検索なら同じパーティじゃない時点で否定 | If it's a party search, deny it when it's not the same party
             return 0;
     }
 
     if (ss->bl_type == BL::PC && target->bl_type == BL::PC)
-    {                           // 両方PVPモードなら否定（敵）
+    {                           // 両方PVPモードなら否定（敵） | Deny if both are PVP mode (enemy)
         if (ss->bl_m->flag.get(MapFlag::PVP)
             || pc_iskiller(ss->is_player(), target->is_player()))
         {                       // [MouseJstr]
@@ -2139,11 +2290,12 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         }
     }
 
-    return 1;                   // 該当しないので無関係人物（まあ敵じゃないので味方）
+    return 1;                   // 該当しないので無関係人物（まあ敵じゃないので味方） | Unrelated person because it does not apply (Well, not an enemy, so an ally)
 }
 
 /*==========================================
  * 射程判定
+ * range judgment
  *------------------------------------------
  */
 int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
@@ -2163,19 +2315,19 @@ int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     rangey = abs(dy);
     arange = ((rangex > rangey) ? rangex : rangey);
 
-    if (src->bl_m != bl->bl_m)        // 違うマップ
+    if (src->bl_m != bl->bl_m)        // 違うマップ | different map
         return 0;
 
-    if (range > 0 && range < arange)    // 遠すぎる
+    if (range > 0 && range < arange)    // 遠すぎる  | too far
         return 0;
 
-    if (arange < 2)             // 同じマスか隣接
+    if (arange < 2)             // 同じマスか隣接 | same square or adjacent
         return 1;
 
 //  if(bl->bl_type == BL_SKILL && ((struct skill_unit *)bl)->group->unit_id == 0x8d)
 //      return 1;
 
-    // 障害物判定
+    // 障害物判定 | Obstacle judgment
     wpd.path_len = 0;
     wpd.path_pos = 0;
     wpd.path_half = 0;
