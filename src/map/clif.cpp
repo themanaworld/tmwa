@@ -6083,6 +6083,17 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
         WARN_MALFORMED_MSG(sd, "exceeded maximum message length"_s);
         return AString();
     }
+    // Try to grasp max allowed message for global accounting for CharName
+    if (type == ChatType::Global &&                                            \
+        (buf.size() >= (battle_config.chat_maxline - (2+sizeof(CharName)))) || \
+         buf.size() >= 486)       // 486 is hard clamp if battle_config.chat_maxline too small, etc
+    {
+        WARN_MALFORMED_MSG(sd, "exceeded maximum Global message length"_s);
+        AString hack_msg = STRPRINTF("[GM] %s attempted oversized Global chat message"_fmt,
+            sd->status_key.name);
+        tmw_GmHackMsg(hack_msg);  // alert GMs about possible exploit attempt.
+        return AString();
+    }
 
     // Step beyond the separator. for older clients
     if (type == ChatType::Global && sd->client_version < wrap<ClientVersion>(6))
