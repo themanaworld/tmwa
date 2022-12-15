@@ -42,7 +42,7 @@ constexpr int MAX_SKILL_PRODUCE_DB = 150;
 constexpr int MAX_SKILL_ARROW_DB = 150;
 constexpr int MAX_SKILL_ABRA_DB = 350;
 
-// スキルデータベース
+// スキルデータベース | skill database
 struct skill_db_
 {
     int range_k, hit, inf, pl, nk, max;
@@ -64,7 +64,7 @@ struct skill_db_
 
 struct skill_name_db
 {
-    SkillID id;                    // skill id
+    SkillID id;                   // skill id
     LString name;                 // search strings
     RString desc;                 // description that shows up for searches
 
@@ -79,7 +79,7 @@ skill_name_db& skill_lookup_by_name(XString name);
 
 bool skill_readdb(ZString filename);
 
-// スキルデータベースへのアクセサ
+// スキルデータベースへのアクセサ | Accessor to skills database
 int skill_get_hit(SkillID id);
 int skill_get_inf(SkillID id);
 int skill_get_nk(SkillID id);
@@ -93,7 +93,7 @@ int skill_get_delay(SkillID id, int lv);
 int skill_get_inf2(SkillID id);
 int skill_get_maxcount(SkillID id);
 
-// 追加効果
+// 追加効果 | additional effect
 int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         SkillID skillid, int skilllv);
 
@@ -102,10 +102,10 @@ interval_t skill_delayfix(dumb_ptr<block_list> bl, interval_t time);
 
 void skill_stop_dancing(dumb_ptr<block_list> src, int flag);
 
-// 詠唱キャンセル
+// 詠唱キャンセル | chant cancel
 int skill_castcancel(dumb_ptr<block_list> bl, int type);
 
-// ステータス異常
+// ステータス異常 | Abnormal status
 int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         int val1,
         interval_t tick);
@@ -116,7 +116,7 @@ int skill_status_change_active(dumb_ptr<block_list> bl, StatusChange type);  // 
 void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerData *tid);
 int skill_status_change_clear(dumb_ptr<block_list> bl, int type);
 
-// mobスキルのため
+// mobスキルのため | for mob skills
 int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         SkillID skillid, int skilllv);
 int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,

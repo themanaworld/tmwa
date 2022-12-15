@@ -1687,6 +1687,17 @@ ATCE atcommand_exprate(Session *s, dumb_ptr<map_session_data>,
 }
 
 static
+ATCE atcommand_rates(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    AString output = STRPRINTF("Experience rates: Base %d%% / Job %d%%"_fmt, battle_config.base_exp_rate, battle_config.job_exp_rate);
+    clif_displaymessage(s, output);
+    output = STRPRINTF("Drop rate: 100%%"_fmt);
+    clif_displaymessage(s, output);
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
@@ -1827,7 +1838,6 @@ ATCE atcommand_mobinfo(Session *s, dumb_ptr<map_session_data> sd,
 {
     MobName name;
     Species mob_id;
-    int exp;
 
     if (!extract(message, &name) || !name)
         return ATCE::USAGE;
@@ -2448,7 +2458,138 @@ ATCE atcommand_character_stats(Session *s, dumb_ptr<map_session_data>,
         return ATCE::EXIST;
     }
 
-    return ATCE::USAGE;
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_character_stats_full(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    CharName character;
+
+    if (!asplit(message, &character))
+        return ATCE::USAGE;
+
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
+    if (pl_sd != nullptr)
+    {
+            AString output;
+            output = STRPRINTF("------ Character Status Full ------"_fmt);
+            clif_displaymessage(s, output);
+            output = STRPRINTF(
+                    "Char-Name: %s | BLvl: %d | Job: Novice/Human (Lvl: %d) | HP: %d/%d | SP: %d/%d | Zeny: %d"_fmt,
+                    pl_sd->status_key.name, pl_sd->status.base_level,
+                    pl_sd->status.job_level,
+                    pl_sd->status.hp, pl_sd->status.max_hp,
+                    pl_sd->status.sp, pl_sd->status.max_sp,
+                    pl_sd->status.zeny);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("Base-Stats: STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d"_fmt,
+                    pl_sd->status.attrs[ATTR::STR],
+                    pl_sd->status.attrs[ATTR::AGI],
+                    pl_sd->status.attrs[ATTR::VIT],
+                    pl_sd->status.attrs[ATTR::INT],
+                    pl_sd->status.attrs[ATTR::DEX],
+                    pl_sd->status.attrs[ATTR::LUK]);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("Equipment-Stats (parame): STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d"_fmt,
+                    pl_sd->parame[ATTR::STR],
+                    pl_sd->parame[ATTR::AGI],
+                    pl_sd->parame[ATTR::VIT],
+                    pl_sd->parame[ATTR::INT],
+                    pl_sd->parame[ATTR::DEX],
+                    pl_sd->parame[ATTR::LUK]);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("Full-Stats (paramc): STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d"_fmt,
+                    pl_sd->paramc[ATTR::STR],
+                    pl_sd->paramc[ATTR::AGI],
+                    pl_sd->paramc[ATTR::VIT],
+                    pl_sd->paramc[ATTR::INT],
+                    pl_sd->paramc[ATTR::DEX],
+                    pl_sd->paramc[ATTR::LUK]);
+            clif_displaymessage(s, output);
+            // paramb seems to be unused atm
+            output = STRPRINTF("paramb: STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d"_fmt,
+                    pl_sd->paramb[ATTR::STR],
+                    pl_sd->paramb[ATTR::AGI],
+                    pl_sd->paramb[ATTR::VIT],
+                    pl_sd->paramb[ATTR::INT],
+                    pl_sd->paramb[ATTR::DEX],
+                    pl_sd->paramb[ATTR::LUK]);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("paramcard: STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d"_fmt,
+                    pl_sd->paramcard[ATTR::STR],
+                    pl_sd->paramcard[ATTR::AGI],
+                    pl_sd->paramcard[ATTR::VIT],
+                    pl_sd->paramcard[ATTR::INT],
+                    pl_sd->paramcard[ATTR::DEX],
+                    pl_sd->paramcard[ATTR::LUK]);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("BASE_ATK: %d | ATK1: %d | ATK2: %d | ATK_RATE: %d | MATK1: %d | MATK2: %d | MATK_RATE: %d"_fmt,
+                    pl_sd->base_atk,
+                    pl_sd->watk,
+                    pl_sd->watk2,
+                    pl_sd->atk_rate,
+                    pl_sd->matk1,
+                    pl_sd->matk2,
+                    pl_sd->matk_rate);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("ATTACKRANGE: %d | CRITICAL_DEF: %d | FLEE1: %d | FLEE_RATE: %d | FLEE2: %d | FLEE2_RATE: %d"_fmt,
+                    pl_sd->attackrange,
+                    pl_sd->critical_def,
+                    pl_sd->flee,
+                    pl_sd->flee_rate,
+                    pl_sd->flee2,
+                    pl_sd->flee2_rate);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("MDEF1: %d | MDEF_RATE: %d | MDEF2: %d | MDEF2_RATE: %d | DEF1: %d | DEF_RATE: %d | DEF2: %d | DEF2_RATE: %d"_fmt,
+                    pl_sd->mdef,
+                    pl_sd->mdef_rate,
+                    pl_sd->mdef2,
+                    pl_sd->mdef2_rate,
+                    pl_sd->def,
+                    pl_sd->def_rate,
+                    pl_sd->def2,
+                    pl_sd->def2_rate);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("ADD_SPEED: %d | SPEED_RATE: %d | SPEED_ADDRATE: %d | ASPD: %d | ASPD_RATE: %d | ASPD_ADDRATE: %d"_fmt,
+                    pl_sd->speed.count(),
+                    pl_sd->speed_rate,
+                    pl_sd->speed_add_rate,
+                    pl_sd->aspd.count(),
+                    pl_sd->aspd_rate,
+                    pl_sd->aspd_add_rate);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("MAXHPRATE: %d | HP_RECOV_RATE: %d | MAXSPRATE: %d | SP_RECOV_RATE: %d | DOUBLE_RATE: %d | DOUBLE_ADD_RATE: %d"_fmt,
+                    pl_sd->hprate,
+                    pl_sd->hprecov_rate,
+                    pl_sd->sprate,
+                    pl_sd->sprecov_rate,
+                    pl_sd->double_rate,
+                    pl_sd->double_add_rate);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("PERFECT_HIT_RATE: %d | PERFECT_HIT_ADD_RATE: %d | CRITICAL: %d | CRITICAL_RATE: %d | HIT: %d | HIT_RATE: %d"_fmt,
+                    pl_sd->perfect_hit,
+                    pl_sd->perfect_hit_add,
+                    pl_sd->critical,
+                    pl_sd->critical_rate,
+                    pl_sd->hit,
+                    pl_sd->hit_rate);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("HP_DRAIN_RATE: %d | HP_DRAIN_RATE per: %d | SP_DRAIN_RATE: %d | SP_DRAIN_RATE per: %d"_fmt,
+                    pl_sd->hp_drain_rate,
+                    pl_sd->hp_drain_per,
+                    pl_sd->sp_drain_rate,
+                    pl_sd->sp_drain_per);
+            clif_displaymessage(s, output);
+    }
+    else
+    {
+        clif_displaymessage(s, "Character not found."_s);
+        return ATCE::EXIST;
+    }
+
+    return ATCE::OKAY;
 }
 
 static
@@ -5448,6 +5589,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"exprate"_s, {"<percent>"_s,
         60, atcommand_exprate,
         "Set base job/exp rate"_s}},
+    {"rates"_s, {""_s,
+        0, atcommand_rates,
+        "Show base job/exp rate"_s}},
     {"pvpon"_s, {""_s,
         60, atcommand_pvpon,
         "Disable PvP on your map"_s}},
@@ -5509,7 +5653,10 @@ Map<XString, AtCommandInfo> atcommand_info =
         60, atcommand_revive,
         "Restore a player to full health"_s}},
     {"charstats"_s, {"<charname>"_s,
-        40, atcommand_character_stats,
+        60, atcommand_character_stats,
+        "Show a bunch of stats about a single user"_s}},
+    {"charstatsfull"_s, {"<charname>"_s,
+        60, atcommand_character_stats_full,
         "Show a bunch of stats about a single user"_s}},
     {"charstatsall"_s, {""_s,
         60, atcommand_character_stats_all,

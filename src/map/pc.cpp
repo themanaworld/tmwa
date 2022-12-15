@@ -1376,6 +1376,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->matk2 = 0;
     if (sd->matk1 < 0)
         sd->matk1 = 0;
+    else
+        if (sd->matk_rate != 100)
+        {
+            sd->matk1 = (sd->matk1 * sd->matk_rate) / 100;
+        }
 
     sd->hit += sd->paramc[ATTR::DEX] + sd->status.base_level;
     sd->flee += sd->paramc[ATTR::AGI] + sd->status.base_level;
@@ -1639,52 +1644,42 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->parame[sp_to_attr(type)] += val;
             break;
-#if 0
         case SP::ATK1:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->watk += val;
             break;
-#endif
-#if 0
         case SP::ATK2:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->watk2 += val;
             break;
-#endif
-#if 0
         case SP::BASE_ATK:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->base_atk += val;
             break;
-#endif
-#if 0
         case SP::MATK1:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->matk1 += val;
             break;
-#endif
-#if 0
         case SP::MATK2:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->matk2 += val;
             break;
-#endif
-#if 0
         case SP::DEF1:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->def += val;
             break;
-#endif
+        case SP::DEF2:
+            if (!sd->state.lr_flag_is_arrow_2)
+                sd->def2 += val;
+            break;
         case SP::MDEF1:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->mdef += val;
             break;
-#if 0
         case SP::MDEF2:
             if (!sd->state.lr_flag_is_arrow_2)
-                sd->mdef += val;
+                sd->mdef2 += val;
             break;
-#endif
         case SP::HIT:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->hit += val;
@@ -1695,12 +1690,10 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->flee += val;
             break;
-#if 0
         case SP::FLEE2:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->flee2 += val * 10;
             break;
-#endif
         case SP::CRITICAL:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->critical += val * 10;
@@ -1719,14 +1712,12 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->hprate += val;
             break;
-#if 0
         case SP::MAXSPRATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->sprate += val;
             break;
-#endif
 #if 0
-        case SP::SPRATE:
+        case SP::SPRATE: // mana is subtracted at serverdata this can only become useable if spells are handled by servercode
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->dsprate += val;
             break;
@@ -1737,13 +1728,10 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             else
                 sd->arrow_range += val;
             break;
-#if 0
         case SP::ADD_SPEED:
             if (!sd->state.lr_flag_is_arrow_2)
-                sd->speed -= val;
+                sd->speed -= interval_t(val);
             break;
-#endif
-#if 0
         case SP::SPEED_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
             {
@@ -1751,17 +1739,14 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
                     sd->speed_rate = 100 - val;
             }
             break;
-#endif
         case SP::SPEED_ADDRATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->speed_add_rate = sd->speed_add_rate * (100 - val) / 100;
             break;
-#if 0
         case SP::ASPD:
             if (!sd->state.lr_flag_is_arrow_2)
-                sd->aspd -= val * 10;
+                sd->aspd -= interval_t(val);
             break;
-#endif
         case SP::ASPD_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
             {
@@ -1769,84 +1754,62 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
                     sd->aspd_rate = 100 - val;
             }
             break;
-#if 0
         case SP::ASPD_ADDRATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->aspd_add_rate = sd->aspd_add_rate * (100 - val) / 100;
             break;
-#endif
         case SP::HP_RECOV_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->hprecov_rate += val;
             break;
-#if 0
         case SP::SP_RECOV_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->sprecov_rate += val;
             break;
-#endif
         case SP::CRITICAL_DEF:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->critical_def += val;
             break;
-#if 0
         case SP::DOUBLE_RATE:
             if (!sd->state.lr_flag_is_arrow_2 && sd->double_rate < val)
                 sd->double_rate = val;
             break;
-#endif
         case SP::DOUBLE_ADD_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->double_add_rate += val;
             break;
-#if 0
         case SP::MATK_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->matk_rate += val;
             break;
-#endif
-#if 0
         case SP::ATK_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->atk_rate += val;
             break;
-#endif
-#if 0
         case SP::PERFECT_HIT_RATE:
             if (!sd->state.lr_flag_is_arrow_2 && sd->perfect_hit < val)
                 sd->perfect_hit = val;
             break;
-#endif
-#if 0
         case SP::PERFECT_HIT_ADD_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->perfect_hit_add += val;
             break;
-#endif
-#if 0
         case SP::CRITICAL_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->critical_rate += val;
             break;
-#endif
-#if 0
         case SP::HIT_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->hit_rate += val;
             break;
-#endif
-#if 0
         case SP::FLEE_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->flee_rate += val;
             break;
-#endif
-#if 0
         case SP::FLEE2_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->flee2_rate += val;
             break;
-#endif
         case SP::DEF_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->def_rate += val;
@@ -1855,18 +1818,14 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->def2_rate += val;
             break;
-#if 0
         case SP::MDEF_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->mdef_rate += val;
             break;
-#endif
-#if 0
         case SP::MDEF2_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->mdef2_rate += val;
             break;
-#endif
         case SP::DEAF:
             sd->special_state.deaf = 1;
             break;
@@ -1896,7 +1855,6 @@ int pc_bonus2(dumb_ptr<map_session_data> sd, SP type, int type2, int val)
                 sd->hp_drain_per += val;
             }
             break;
-#if 0
         case SP::SP_DRAIN_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
             {
@@ -1904,7 +1862,6 @@ int pc_bonus2(dumb_ptr<map_session_data> sd, SP type, int type2, int val)
                 sd->sp_drain_per += val;
             }
             break;
-#endif
         default:
             if (battle_config.error_log)
                 PRINTF("pc_bonus2: unknown type %d %d %d!\n"_fmt,

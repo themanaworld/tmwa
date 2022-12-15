@@ -317,6 +317,7 @@ enum class SP : uint16_t
 #endif
 
     // stats from equipment
+    // sent to client
     STR2                        = 61, 
     // sent to client
     AGI2                        = 62,
@@ -328,7 +329,6 @@ enum class SP : uint16_t
     DEX2                        = 65,
     // sent to client
     LUK2                        = 66,
-    // sent to client
 
     DEAF                        = 70,
 
@@ -337,19 +337,17 @@ enum class SP : uint16_t
 
     // sent to client
     ATTACKRANGE                 = 1000,
+
     ELTLVL                      = 1001,
     ELTTYPE                     = 1002,
 #if 0
     CASTRATE                    = 1003,
 #endif
     MAXHPRATE                   = 1004,
-#if 0
     MAXSPRATE                   = 1005,
-#endif
 #if 0
-    SPRATE                      = 1006,
+    SPRATE                      = 1006, // mana is subtracted at serverdata this can only become useable if spells are handled by servercode
 #endif
-
 #if 0
     ADDEFF                      = 1012,
 #endif
@@ -359,12 +357,9 @@ enum class SP : uint16_t
     BASE_ATK                    = 1014,
     ASPD_RATE                   = 1015,
     HP_RECOV_RATE               = 1016,
-#if 0
     SP_RECOV_RATE               = 1017,
-#endif
-#if 0
+
     SPEED_RATE                  = 1018,
-#endif
     CRITICAL_DEF                = 1019,
 #if 0
     NEAR_ATK_DEF                = 1020,
@@ -372,29 +367,24 @@ enum class SP : uint16_t
 #if 0
     LONG_ATK_DEF                = 1021,
 #endif
-#if 0
+
     DOUBLE_RATE                 = 1022,
-#endif
     DOUBLE_ADD_RATE             = 1023,
 #if 0
     MATK                        = 1024,
 #endif
-#if 0
+
     MATK_RATE                   = 1025,
-#endif
 #if 0
     IGNORE_DEF_ELE              = 1026,
 #endif
 #if 0
     IGNORE_DEF_RACE             = 1027,
 #endif
-#if 0
+
     ATK_RATE                    = 1028,
-#endif
     SPEED_ADDRATE               = 1029,
-#if 0
     ASPD_ADDRATE                = 1030,
-#endif
 #if 0
     MAGIC_ATK_DEF               = 1031,
 #endif
@@ -408,22 +398,15 @@ enum class SP : uint16_t
     IGNORE_MDEF_RACE            = 1034,
 #endif
 
-#if 0
     PERFECT_HIT_RATE            = 1038,
-#endif
-#if 0
     PERFECT_HIT_ADD_RATE        = 1039,
-#endif
-#if 0
     CRITICAL_RATE               = 1040,
-#endif
 #if 0
     GET_ZENY_NUM                = 1041,
 #endif
 #if 0
     ADD_GET_ZENY_NUM            = 1042,
 #endif
-
 #if 0
     ADD_MONSTER_DROP_ITEM       = 1047,
 #endif
@@ -433,26 +416,15 @@ enum class SP : uint16_t
 #if 0
     DEF_RATIO_ATK_RACE          = 1049,
 #endif
-#if 0
+
     ADD_SPEED                   = 1050,
-#endif
-#if 0
     HIT_RATE                    = 1051,
-#endif
-#if 0
     FLEE_RATE                   = 1052,
-#endif
-#if 0
     FLEE2_RATE                  = 1053,
-#endif
     DEF_RATE                    = 1054,
     DEF2_RATE                   = 1055,
-#if 0
     MDEF_RATE                   = 1056,
-#endif
-#if 0
     MDEF2_RATE                  = 1057,
-#endif
 #if 0
     SPLASH_RANGE                = 1058,
 #endif
@@ -461,23 +433,28 @@ enum class SP : uint16_t
 #endif
 
     HP_DRAIN_RATE               = 1061,
-#if 0
     SP_DRAIN_RATE               = 1062,
-#endif
 #if 0
     SHORT_WEAPON_DAMAGE_RETURN  = 1063,
 #endif
 #if 0
     LONG_WEAPON_DAMAGE_RETURN   = 1064,
 #endif
-
 #if 0
     ADDEFF2                     = 1067,
 #endif
+#if 0
     BREAK_WEAPON_RATE           = 1068,
+#endif
+#if 0
     BREAK_ARMOR_RATE            = 1069,
+#endif
+#if 0
     ADD_STEAL_RATE              = 1070,
+#endif
+#if 0
     MAGIC_DAMAGE_RETURN         = 1071,
+#endif
 #if 0
     RANDOM_ATTACK_INCREASE      = 1072,
 #endif
