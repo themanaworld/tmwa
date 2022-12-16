@@ -43,7 +43,7 @@ namespace map
 #define JAPANESE_NAME stringish<MobName>("--ja--"_s)
 #define MOB_THIS_MAP stringish<MapName>("this"_s)
 
-#define MaxDrops 8
+#define MaxDrops 10
 #define MinMobID 1001
 #define MaxMobID 2000
 
@@ -69,7 +69,7 @@ struct mob_db_
     int max_hp, max_sp;
     int base_exp, job_exp;
     int atk1, atk2;
-    int def, mdef;
+    int def, mdef, critical_def;
     earray<int, ATTR, ATTR::COUNT> attrs;
     int range, range2, range3;
     // always 1

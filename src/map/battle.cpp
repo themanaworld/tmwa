@@ -1592,6 +1592,8 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     if (tsd && tsd->critical_def)
         cri = cri * (100 - tsd->critical_def) / 100;
+    else if (tmd && tmd->stats[mob_stat::CRITICAL_DEF])
+        cri = cri * (100 - tmd->stats[mob_stat::CRITICAL_DEF]) / 100;
 
     // ダブルアタックが発動していない | Double Attack is not activated
     // 判定（スキルの場合は無視） | Judgment (ignored for skills)

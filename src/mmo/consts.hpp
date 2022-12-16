@@ -36,7 +36,9 @@ constexpr int MAX_MAP_PER_SERVER = 512;
 constexpr int MAX_INVENTORY = 100;
 constexpr int MAX_AMOUNT = 30000;
 constexpr int MAX_ZENY = 1000000000;     // 1G zeny
-constexpr int TRADE_MAX = 10;
+constexpr int TRADE_MAX = 12;
+// M+ 1.9.3.23 only supports 12 items in trade window it will make the trade with more but brings error messages for every item above 12.
+// So I let it 12 for now until ManaVerse (with cuocos fix) is the only client.
 
 constexpr int GLOBAL_REG_NUM = 96;
 constexpr size_t ACCOUNT_REG_NUM = 16;
@@ -44,7 +46,7 @@ constexpr size_t ACCOUNT_REG2_NUM = 16;
 constexpr interval_t DEFAULT_WALK_SPEED = 150_ms;
 constexpr interval_t MIN_WALK_SPEED = interval_t::zero();
 constexpr interval_t MAX_WALK_SPEED = 1_s;
-constexpr int MAX_STORAGE = 300;
+constexpr int MAX_STORAGE = 500;
 constexpr int MAX_PARTY = 120;
 
 #define MIN_HAIR_STYLE battle_config.min_hair_style
