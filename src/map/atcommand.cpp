@@ -1852,7 +1852,7 @@ ATCE atcommand_mobinfo(Session *s, dumb_ptr<map_session_data> sd,
 
     clif_displaymessage(s, STRPRINTF("Monster ID: %i, English Name: %s, Japanese Name: %s"_fmt, mob_id, get_mob_db(mob_id).name, get_mob_db(mob_id).jname));
     clif_displaymessage(s, STRPRINTF("Level: %i, HP: %i, SP: %i, Base EXP: %i, JEXP: %i"_fmt, get_mob_db(mob_id).lv, get_mob_db(mob_id).max_hp, get_mob_db(mob_id).max_sp, get_mob_db(mob_id).base_exp, get_mob_db(mob_id).job_exp));
-    clif_displaymessage(s, STRPRINTF("Range1: %i, ATK1: %i, ATK2: %i, DEF: %i, MDEF: %i"_fmt, get_mob_db(mob_id).range, get_mob_db(mob_id).atk1, get_mob_db(mob_id).atk2, get_mob_db(mob_id).def, get_mob_db(mob_id).mdef));
+    clif_displaymessage(s, STRPRINTF("Range1: %i, ATK1: %i, ATK2: %i, DEF: %i, MDEF: %i, CRITICAL_DEF: %i"_fmt, get_mob_db(mob_id).range, get_mob_db(mob_id).atk1, get_mob_db(mob_id).atk2, get_mob_db(mob_id).def, get_mob_db(mob_id).mdef, get_mob_db(mob_id).critical_def));
     clif_displaymessage(s, STRPRINTF("Stats: STR: %i, AGI: %i, VIT: %i, INT: %i, DEX:, %i LUK:, %i"_fmt, get_mob_db(mob_id).attrs[ATTR::STR], get_mob_db(mob_id).attrs[ATTR::AGI], get_mob_db(mob_id).attrs[ATTR::VIT], get_mob_db(mob_id).attrs[ATTR::INT], get_mob_db(mob_id).attrs[ATTR::DEX], get_mob_db(mob_id).attrs[ATTR::LUK]));
     clif_displaymessage(s, STRPRINTF("Range2: %i, Range3: %i, Scale: %i, Race: %i, Element: %i, Element Level: %i, Mode: %i"_fmt, get_mob_db(mob_id).range2, get_mob_db(mob_id).range3, get_mob_db(mob_id).size, get_mob_db(mob_id).race, get_mob_db(mob_id).element.element, get_mob_db(mob_id).element.level, get_mob_db(mob_id).mode));
     clif_displaymessage(s, STRPRINTF("Speed: %i, Adelay: %i, Amotion: %i, Dmotion: %i"_fmt, get_mob_db(mob_id).speed.count(), get_mob_db(mob_id).adelay.count(), get_mob_db(mob_id).amotion.count(), get_mob_db(mob_id).dmotion.count()));
@@ -1922,7 +1922,7 @@ ATCE atcommand_mobinfo(Session *s, dumb_ptr<map_session_data> sd,
             str[strpos] = '\0';
 
             int drop_rate2 = 10000/drop_rate;
-            clif_displaymessage(s, STRPRINTF("Drop ID %i: %i, Item Name: %s, Drop Chance: %s%% (1:%i)"_fmt,i+1, get_mob_db(mob_id).dropitem[i].nameid, item_name, str, drop_rate2));
+            clif_displaymessage(s, STRPRINTF("Drop ID %i: %i, Item Name: %s, Drop Chance: %s%% (1:%i)"_fmt,i, get_mob_db(mob_id).dropitem[i].nameid, item_name, str, drop_rate2));
         }
         else
             break;

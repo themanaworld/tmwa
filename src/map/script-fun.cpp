@@ -2700,6 +2700,9 @@ void builtin_mobinfo(ScriptState *st)
         case MobInfo::MDEF:
             info = get_mob_db(mob_id).mdef;
             break;
+        case MobInfo::CRITICAL_DEF:
+            info = get_mob_db(mob_id).critical_def;
+            break;
         case MobInfo::STR:
             info = get_mob_db(mob_id).attrs[ATTR::STR];
             break;
@@ -2756,6 +2759,19 @@ void builtin_mobinfo(ScriptState *st)
             break;
         case MobInfo::MUTATION_POWER:
             info = get_mob_db(mob_id).mutation_power;
+            break;
+        case MobInfo::DROPID0:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[0].nameid);
+            break;
+        case MobInfo::DROPNAME0:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[0].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT0:
+            info = get_mob_db(mob_id).dropitem[0].p.num;
             break;
         case MobInfo::DROPID1:
             info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[0].nameid);
@@ -2859,6 +2875,19 @@ void builtin_mobinfo(ScriptState *st)
             }
             break;
         case MobInfo::DROPPERCENT8:
+            info = get_mob_db(mob_id).dropitem[7].p.num;
+            break;
+        case MobInfo::DROPID9:
+            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[7].nameid);
+            break;
+        case MobInfo::DROPNAME9:
+            {
+                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[7].nameid));
+                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+                mode = 1;
+            }
+            break;
+        case MobInfo::DROPPERCENT9:
             info = get_mob_db(mob_id).dropitem[7].p.num;
             break;
         default:

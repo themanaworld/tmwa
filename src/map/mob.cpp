@@ -173,6 +173,7 @@ earray<int, mob_stat, mob_stat::XP_BONUS> mutation_value //=
     2,                          // mob_stat::DEF
     2,                          // mob_stat::MDEF
     2,                          // mob_stat::SPEED
+    2,                          // mob_stat::CRITICAL_DEF
 }};
 
 // The mutation scale indicates how far `up' we can go, with 256 indicating 100%  Note that this may stack with multiple
@@ -194,6 +195,7 @@ earray<int, mob_stat, mob_stat::XP_BONUS> mutation_scale //=
     48,                         // mob_stat::DEF
     48,                         // mob_stat::MDEF
     80,                         // mob_stat::SPEED
+    128,                        // mob_stat::CRITICAL_DEF
 }};
 
 // The table below indicates the `average' value for each of the statistics, or -1 if there is none.
@@ -220,6 +222,7 @@ earray<int, mob_stat, mob_stat::XP_BONUS> mutation_base //=
     -1,                         // mob_stat::DEF
     20,                         // mob_stat::MDEF
     -1,                         // mob_stat::SPEED
+    -1,                         // mob_stat::CRITICAL_DEF
 }};
 
 /*========================================
@@ -361,6 +364,7 @@ void mob_init(dumb_ptr<mob_data> md)
     md->stats[mob_stat::ADELAY] = get_mob_db(mob_class).adelay.count();
     md->stats[mob_stat::DEF] = get_mob_db(mob_class).def;
     md->stats[mob_stat::MDEF] = get_mob_db(mob_class).mdef;
+    md->stats[mob_stat::CRITICAL_DEF] = get_mob_db(mob_class).critical_def;
     md->stats[mob_stat::SPEED] = get_mob_db(mob_class).speed.count();
     md->stats[mob_stat::XP_BONUS] = MOB_XP_BONUS_BASE;
 
@@ -3495,6 +3499,7 @@ bool mob_readdb(ZString filename)
                         lstripping(&mdbv.atk2),
                         lstripping(&mdbv.def),
                         lstripping(&mdbv.mdef),
+                        lstripping(&mdbv.critical_def),
                         lstripping(&mdbv.attrs[ATTR::STR]),
                         lstripping(&mdbv.attrs[ATTR::AGI]),
                         lstripping(&mdbv.attrs[ATTR::VIT]),
@@ -3527,6 +3532,10 @@ bool mob_readdb(ZString filename)
                         lstripping(&mdbv.dropitem[6].p.num),
                         lstripping(&mdbv.dropitem[7].nameid),
                         lstripping(&mdbv.dropitem[7].p.num),
+                        lstripping(&mdbv.dropitem[8].nameid),
+                        lstripping(&mdbv.dropitem[8].p.num),
+                        lstripping(&mdbv.dropitem[9].nameid),
+                        lstripping(&mdbv.dropitem[9].p.num),
                         &ignore,
                         &ignore,
                         &ignore,
