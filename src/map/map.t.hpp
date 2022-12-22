@@ -71,6 +71,7 @@ enum class mob_stat
     DEF,
     MDEF,
     SPEED,
+    CRITICAL_DEF,
     // These must come last:
     // [Fate] Encoded as base to 1024: 1024 means 100%
     XP_BONUS,
