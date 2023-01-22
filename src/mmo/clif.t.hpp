@@ -472,6 +472,8 @@ enum class SP : uint16_t
     MUTE_PARTY                  = 1084,
     MUTE_GUILD                  = 1085,
     AUTOMOD                     = 1086,
+
+    SPEED_CAP                   = 1087,
 };
 
 constexpr

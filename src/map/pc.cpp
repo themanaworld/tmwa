@@ -1174,6 +1174,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->matk1 = 0;
     sd->matk2 = 0;
     sd->speed = DEFAULT_WALK_SPEED;
+    sd->speed_cap = interval_t::zero();
     sd->hprate = 100;
     sd->sprate = 100;
     sd->dsprate = 100;
@@ -1528,6 +1529,10 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->speed_rate != 100)
         sd->speed = sd->speed * sd->speed_rate / 100;
     sd->speed = std::max(sd->speed, 1_ms);
+    if (sd->speed_cap < interval_t::zero())
+        sd->speed_cap = interval_t::zero();
+    if (sd->speed < sd->speed_cap)
+        sd->speed = sd->speed_cap;
 
     /* Magic speed */
     if (sd->attack_spell_override || first & 8)
@@ -1829,6 +1834,12 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
         case SP::DEAF:
             sd->special_state.deaf = 1;
             break;
+        case SP::SPEED_CAP:
+            if (!sd->state.lr_flag_is_arrow_2)
+                // lowest cap is taken others are ignored
+                if (sd->speed_cap < interval_t(val))
+                    sd->speed_cap = interval_t(val);
+            break;
         default:
             if (battle_config.error_log)
                 PRINTF("pc_bonus: unknown type %d %d !\n"_fmt,
@@ -1840,6 +1851,7 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
 
 /*==========================================
  * ｿｽｿｽ ｿｽｿｽｿｽiｿｽﾉゑｿｽｿｽｿｽｿｽ\ｿｽﾍ難ｿｽｿｽﾌボｿｽ[ｿｽiｿｽXｿｽﾝ抵ｿｽ
+ * sos sos sos sos sos i sos no sos sos sos sos\
  *------------------------------------------
  */
 int pc_bonus2(dumb_ptr<map_session_data> sd, SP type, int type2, int val)
