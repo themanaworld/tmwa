@@ -188,7 +188,7 @@ struct map_session_data : block_list, SessionData
     MapName mapname_;
     Session *sess; // use this, you idiots!
     short to_x, to_y;
-    interval_t speed;
+    interval_t speed, speed_cap;
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;
