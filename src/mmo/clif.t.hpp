@@ -153,6 +153,7 @@ enum class DamageType : uint8_t
     DOUBLED     = 0x08,
     CRITICAL    = 0x0a,
     FLEE2       = 0x0b,
+    DEADLY      = 0x0c,
 };
 
 enum class LOOK : uint8_t
@@ -474,6 +475,13 @@ enum class SP : uint16_t
     AUTOMOD                     = 1086,
 
     SPEED_CAP                   = 1087,
+
+    ALL_STATS                   = 1088,
+    AGI_VIT                     = 1089,
+    AGI_DEX_STR                 = 1090,
+
+    DEADLY_STRIKE_RATE          = 1091,
+    DEADLY_STRIKE_ADD_RATE      = 1092,
 };
 
 constexpr

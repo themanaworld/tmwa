@@ -1469,7 +1469,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     ATK dmg_lv = ATK::ZERO;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data, t_sc_data;
     int watk;
-    bool da = false;
+    bool da = false, ds = false;
     int ac_flag = 0;
     int target_distance;
 
@@ -1482,7 +1482,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     sd->state.attack_type = BF::WEAPON;  // 攻撃タイプは武器攻撃 | Attack type is weapon attack
 
-    // ターゲット
+    // ターゲット | target
     if (target->bl_type == BL::PC)  // 対象がPCなら | If the target is a PC
         tsd = target->is_player();   // tsdに代入(tmdはNULL) | Assign to tsd (tmd is NULL)
     else if (target->bl_type == BL::MOB)    // 対象がMobなら | If the target is a mob
@@ -1575,143 +1575,154 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     if (atkmin > atkmax && !(sd->state.arrow_atk))
         atkmin = atkmax; // 弓は最低が上回る場合あり | Bow may exceed minimum
 
-    if (sd->double_rate > 0 && skill_num == SkillID::ZERO && skill_lv >= 0)
-        da = random_::chance({sd->double_rate, 100});
+    if (tmd && !bool(t_mode & MobMode::BOSS)) // deadly strike works only on mobs but not on mobs with boss flag
+        if (sd->deadly_strike > 0)
+            ds = random_::chance({sd->deadly_strike, 100});
 
-    if (!da)
-    {                           // ダブルアタックが発動していない | Double Attack is not activated
-        // クリティカル計算 | critical calculation
-        cri = battle_get_critical(src);
-
-        if (sd->state.arrow_atk)
-            cri += sd->arrow_cri;
-        cri -= battle_get_luk(target) * 3;
-        if (ac_flag)
-            cri = 1000;
-    }
-
-    if (tsd && tsd->critical_def)
-        cri = cri * (100 - tsd->critical_def) / 100;
-    else if (tmd && tmd->stats[mob_stat::CRITICAL_DEF])
-        cri = cri * (100 - tmd->stats[mob_stat::CRITICAL_DEF]) / 100;
-
-    // ダブルアタックが発動していない | Double Attack is not activated
-    // 判定（スキルの場合は無視） | Judgment (ignored for skills)
-    if (!da && skill_num == SkillID::ZERO && skill_lv >= 0
-        && random_::chance({cri, 1000}))
+    if (!ds) // no double, crit and normal damage calculation needed if it is a deadly strike
     {
-        damage += atkmax;
-        if (sd->atk_rate != 100)
+        if (sd->double_rate > 0 && skill_num == SkillID::ZERO && skill_lv >= 0)
+            da = random_::chance({sd->double_rate, 100});
+
+        if (!da)
         {
-            damage = (damage * sd->atk_rate) / 100;
+            // ダブルアタックが発動していない | Double Attack is not activated
+            // クリティカル計算 | critical calculation
+            cri = battle_get_critical(src);
+    
+            if (sd->state.arrow_atk)
+                cri += sd->arrow_cri;
+            cri -= battle_get_luk(target) * 3;
+            if (ac_flag)
+                cri = 1000;
         }
-        if (sd->state.arrow_atk)
-            damage += sd->arrow_atk;
-        type = DamageType::CRITICAL;
-    }
-    else
-    {
-        int vitbonusmax;
 
-        if (atkmax > atkmin)
-            damage += random_::in(atkmin, atkmax);
+        if (tsd && tsd->critical_def)
+            cri = cri * (100 - tsd->critical_def) / 100;
+        else if (tmd && tmd->stats[mob_stat::CRITICAL_DEF])
+            cri = cri * (100 - tmd->stats[mob_stat::CRITICAL_DEF]) / 100;
+    
+        // ダブルアタックが発動していない | Double Attack is not activated
+        // 判定（スキルの場合は無視） | Judgment (ignored for skills)
+        if (!da && skill_num == SkillID::ZERO && skill_lv >= 0
+            && random_::chance({cri, 1000}))
+        {
+            damage += atkmax;
+            if (sd->atk_rate != 100)
+            {
+                damage = (damage * sd->atk_rate) / 100;
+            }
+            if (sd->state.arrow_atk)
+                damage += sd->arrow_atk;
+            type = DamageType::CRITICAL;
+        }
         else
-            damage += atkmin;
-        if (sd->atk_rate != 100)
         {
-            damage = (damage * sd->atk_rate) / 100;
-        }
+            int vitbonusmax;
 
-        if (sd->state.arrow_atk)
-        {
-            if (sd->arrow_atk > 0)
-                damage += random_::in(0, sd->arrow_atk);
-            hitrate += sd->arrow_hit;
-        }
+            if (atkmax > atkmin)
+                damage += random_::in(atkmin, atkmax);
+            else
+                damage += atkmin;
+            if (sd->atk_rate != 100)
+            {
+                damage = (damage * sd->atk_rate) / 100;
+            }
 
-        if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
-        {
-            flag = (flag & ~BF::SKILLMASK) | BF::SKILL;
-        }
+            if (sd->state.arrow_atk)
+            {
+                if (sd->arrow_atk > 0)
+                    damage += random_::in(0, sd->arrow_atk);
+                hitrate += sd->arrow_hit;
+            }
 
-        {
-            // 対 象の防御力によるダメージの減少 | Decreased damage due to target's defense
-            // ディバインプロテクション（ここでいいのかな？） | Divine Protection (maybe here?)
-            if (def1 < 1000000)
-            {                   // DEF, VIT無視 | DEF, VIT ignore
-                int t_def;
-                target_count =
-                    1 + battle_counttargeted(target, src,
-                            battle_config.vit_penaly_count_lv);
-                if (battle_config.vit_penaly_type > 0)
-                {
-                    if (target_count >= battle_config.vit_penaly_count)
+            if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
+            {
+                flag = (flag & ~BF::SKILLMASK) | BF::SKILL;
+            }
+
+            {
+                // 対 象の防御力によるダメージの減少 | Decreased damage due to target's defense
+                // ディバインプロテクション（ここでいいのかな？） | Divine Protection (maybe here?)
+                if (def1 < 1000000)
+                {                   // DEF, VIT無視 | DEF, VIT ignore
+                    int t_def;
+                    target_count =
+                        1 + battle_counttargeted(target, src,
+                                battle_config.vit_penaly_count_lv);
+                    if (battle_config.vit_penaly_type > 0)
                     {
-                        if (battle_config.vit_penaly_type == 1)
+                        if (target_count >= battle_config.vit_penaly_count)
                         {
-                            def1 =
-                                (def1 *
-                                 (100 -
-                                  (target_count -
-                                   (battle_config.vit_penaly_count -
-                                    1)) * battle_config.vit_penaly_num)) /
-                                100;
-                            def2 =
-                                (def2 *
-                                 (100 -
-                                  (target_count -
-                                   (battle_config.vit_penaly_count -
-                                    1)) * battle_config.vit_penaly_num)) /
-                                100;
-                            t_vit =
-                                (t_vit *
-                                 (100 -
-                                  (target_count -
-                                   (battle_config.vit_penaly_count -
-                                    1)) * battle_config.vit_penaly_num)) /
-                                100;
+                            if (battle_config.vit_penaly_type == 1)
+                            {
+                                def1 =
+                                    (def1 *
+                                     (100 -
+                                      (target_count -
+                                       (battle_config.vit_penaly_count -
+                                        1)) * battle_config.vit_penaly_num)) /
+                                    100;
+                                def2 =
+                                    (def2 *
+                                     (100 -
+                                      (target_count -
+                                       (battle_config.vit_penaly_count -
+                                        1)) * battle_config.vit_penaly_num)) /
+                                    100;
+                                t_vit =
+                                    (t_vit *
+                                     (100 -
+                                      (target_count -
+                                       (battle_config.vit_penaly_count -
+                                        1)) * battle_config.vit_penaly_num)) /
+                                    100;
+                            }
+                            else if (battle_config.vit_penaly_type == 2)
+                            {
+                                def1 -=
+                                    (target_count -
+                                     (battle_config.vit_penaly_count -
+                                      1)) * battle_config.vit_penaly_num;
+                                def2 -=
+                                    (target_count -
+                                     (battle_config.vit_penaly_count -
+                                      1)) * battle_config.vit_penaly_num;
+                                t_vit -=
+                                    (target_count -
+                                     (battle_config.vit_penaly_count -
+                                      1)) * battle_config.vit_penaly_num;
+                            }
+                            if (def1 < 0)
+                                def1 = 0;
+                            if (def2 < 1)
+                                def2 = 1;
+                            if (t_vit < 1)
+                                t_vit = 1;
                         }
-                        else if (battle_config.vit_penaly_type == 2)
-                        {
-                            def1 -=
-                                (target_count -
-                                 (battle_config.vit_penaly_count -
-                                  1)) * battle_config.vit_penaly_num;
-                            def2 -=
-                                (target_count -
-                                 (battle_config.vit_penaly_count -
-                                  1)) * battle_config.vit_penaly_num;
-                            t_vit -=
-                                (target_count -
-                                 (battle_config.vit_penaly_count -
-                                  1)) * battle_config.vit_penaly_num;
-                        }
-                        if (def1 < 0)
-                            def1 = 0;
-                        if (def2 < 1)
-                            def2 = 1;
-                        if (t_vit < 1)
-                            t_vit = 1;
                     }
-                }
-                t_def = def2 * 8 / 10;
-                vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
+                    t_def = def2 * 8 / 10;
+                    vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
 
-                {
                     {
-                        damage = damage * (100 - def1) / 100;
-                        damage -= t_def;
-                        if (vitbonusmax > 0)
-                            damage -= random_::in(0, vitbonusmax);
+                        {
+                            damage = damage * (100 - def1) / 100;
+                            damage -= t_def;
+                            if (vitbonusmax > 0)
+                                damage -= random_::in(0, vitbonusmax);
+                        }
                     }
                 }
             }
         }
+        // 精錬ダメージの追加 | Add refining damage
+        {                           // DEF, VIT無視 | DEF, VIT ignore
+            damage += battle_get_atk2(src);
+        }
     }
-    // 精錬ダメージの追加 | Add refining damage
-    {                           // DEF, VIT無視 | DEF, VIT ignore
-        damage += battle_get_atk2(src);
-    }
+    else
+        if (sd->state.arrow_atk)
+            hitrate += sd->arrow_hit;
 
     // 0未満だった場合1に補正 | Corrected to 1 if less than 0
     if (damage < 1)
@@ -1742,6 +1753,15 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 
     if (damage < 0)
         damage = 0;
+
+    if (ds)
+    {
+        damage = tmd->hp;
+        //type = DamageType::DEADLY;
+        // M+ does not support this value on package 0x008a it lags a bit and displays an error message.
+        // This can be implemented if ManaVerse is the only supported client so long DamageType::CRITICAL will do
+        type = DamageType::CRITICAL;
+    }
 
     // 右手,短剣のみ | right hand, dagger only
     if (da)
