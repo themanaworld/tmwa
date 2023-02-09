@@ -259,10 +259,10 @@ struct map_session_data : block_list, SessionData
     int aspd_rate, speed_rate, hprecov_rate, sprecov_rate, critical_def,
         double_rate;
     int matk_rate;
-    int perfect_hit;
+    int perfect_hit, deadly_strike;
     int critical_rate, hit_rate, flee_rate, flee2_rate, def_rate, def2_rate,
         mdef_rate, mdef2_rate;
-    int double_add_rate, speed_add_rate, aspd_add_rate, perfect_hit_add;
+    int double_add_rate, speed_add_rate, aspd_add_rate, perfect_hit_add_rate, deadly_strike_add_rate;
     short hp_drain_rate, hp_drain_per, sp_drain_rate, sp_drain_per;
 
     int die_counter;

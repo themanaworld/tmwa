@@ -2570,11 +2570,21 @@ ATCE atcommand_character_stats_full(Session *s, dumb_ptr<map_session_data>,
             clif_displaymessage(s, output);
             output = STRPRINTF("PERFECT_HIT_RATE: %d | PERFECT_HIT_ADD_RATE: %d | CRITICAL: %d | CRITICAL_RATE: %d | HIT: %d | HIT_RATE: %d"_fmt,
                     pl_sd->perfect_hit,
-                    pl_sd->perfect_hit_add,
+                    pl_sd->perfect_hit_add_rate,
                     pl_sd->critical,
                     pl_sd->critical_rate,
                     pl_sd->hit,
                     pl_sd->hit_rate);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("DEADLY_STRIKE_RATE: %d | DEADLY_STRIKE_ADD_RATE: %d"_fmt,
+                    pl_sd->deadly_strike,
+                    pl_sd->deadly_strike_add_rate);
+            clif_displaymessage(s, output);
+            output = STRPRINTF("arrow_atk: %d | arrow_cri: %d | arrow_hit: %d | arrow_range: %d"_fmt,
+                    pl_sd->arrow_atk,
+                    pl_sd->arrow_cri,
+                    pl_sd->arrow_hit,
+                    pl_sd->arrow_range);
             clif_displaymessage(s, output);
             output = STRPRINTF("HP_DRAIN_RATE: %d | HP_DRAIN_RATE per: %d | SP_DRAIN_RATE: %d | SP_DRAIN_RATE per: %d"_fmt,
                     pl_sd->hp_drain_rate,

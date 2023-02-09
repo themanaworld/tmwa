@@ -1193,11 +1193,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->double_rate = 0;
     sd->atk_rate = sd->matk_rate = 100;
     sd->arrow_cri = 0;
-    sd->perfect_hit = 0;
+    sd->perfect_hit = sd->deadly_strike = 0;
     sd->critical_rate = sd->hit_rate = sd->flee_rate = sd->flee2_rate = 100;
     sd->def_rate = sd->def2_rate = sd->mdef_rate = sd->mdef2_rate = 100;
     sd->speed_add_rate = sd->aspd_add_rate = 100;
-    sd->double_add_rate = sd->perfect_hit_add = 0;
+    sd->double_add_rate = sd->perfect_hit_add_rate = sd->deadly_strike_add_rate = 0;
     sd->hp_drain_rate = sd->hp_drain_per = sd->sp_drain_rate =
         sd->sp_drain_per = 0;
 
@@ -1328,7 +1328,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->status.weapon == ItemLook::BOW)
         sd->attackrange += sd->arrow_range;
     sd->double_rate += sd->double_add_rate;
-    sd->perfect_hit += sd->perfect_hit_add;
+    sd->perfect_hit += sd->perfect_hit_add_rate;
+    sd->deadly_strike += sd->deadly_strike_add_rate;
     if (sd->speed_add_rate != 100)
         sd->speed_rate += sd->speed_add_rate - 100;
     if (sd->aspd_add_rate != 100)
@@ -1797,7 +1798,7 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             break;
         case SP::PERFECT_HIT_ADD_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
-                sd->perfect_hit_add += val;
+                sd->perfect_hit_add_rate += val;
             break;
         case SP::CRITICAL_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
@@ -1836,9 +1837,34 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             break;
         case SP::SPEED_CAP:
             if (!sd->state.lr_flag_is_arrow_2)
-                // lowest cap is taken others are ignored
+                // highest value (slowest speed) is taken others are ignored
                 if (sd->speed_cap < interval_t(val))
                     sd->speed_cap = interval_t(val);
+            break;
+        case SP::ALL_STATS:
+            sd->parame[ATTR::STR] += val;
+            sd->parame[ATTR::AGI] += val;
+            sd->parame[ATTR::VIT] += val;
+            sd->parame[ATTR::INT] += val;
+            sd->parame[ATTR::DEX] += val;
+            sd->parame[ATTR::LUK] += val;
+            break;
+        case SP::AGI_VIT:
+            sd->parame[ATTR::AGI] += val;
+            sd->parame[ATTR::VIT] += val;
+            break;
+        case SP::AGI_DEX_STR:
+            sd->parame[ATTR::AGI] += val;
+            sd->parame[ATTR::DEX] += val;
+            sd->parame[ATTR::STR] += val;
+            break;
+        case SP::DEADLY_STRIKE_RATE:
+            if (!sd->state.lr_flag_is_arrow_2 && sd->deadly_strike < val)
+                sd->deadly_strike = val;
+            break;
+        case SP::DEADLY_STRIKE_ADD_RATE:
+            if (!sd->state.lr_flag_is_arrow_2)
+                sd->deadly_strike_add_rate += val;
             break;
         default:
             if (battle_config.error_log)
