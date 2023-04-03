@@ -35,6 +35,7 @@ enum class EPOS : uint16_t;
 enum class Opt1 : uint16_t;
 enum class Opt2 : uint16_t;
 enum class Opt0 : uint16_t;
+enum class ItemMode : uint8_t;
 
 inline
 bool impl_extract(XString str, EPOS *iv) { return extract_as_int(str, iv); }
@@ -44,6 +45,8 @@ inline
 bool impl_extract(XString str, Opt2 *iv) { return extract_as_int(str, iv); }
 inline
 bool impl_extract(XString str, Opt0 *iv) { return extract_as_int(str, iv); }
+inline
+bool impl_extract(XString str, ItemMode *iv) { return extract_as_int(str, iv); }
 } // namespace e
 
 enum class ItemLook : uint16_t;

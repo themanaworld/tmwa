@@ -63,6 +63,8 @@ namespace item
         Spanned<int> wlv;
         Spanned<int> elv;
         Spanned<ItemLook> view;
+        Spanned<ItemMode> mode;
+
         ast::script::ScriptBody use_script;
         ast::script::ScriptBody equip_script;
     };

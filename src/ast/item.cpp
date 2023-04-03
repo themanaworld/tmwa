@@ -142,6 +142,7 @@ namespace item
         SPAN_EXTRACT(TRY_UNWRAP(lex_nonscript(lr, false), return EOL_ERROR(lr)), item.wlv);
         SPAN_EXTRACT(TRY_UNWRAP(lex_nonscript(lr, false), return EOL_ERROR(lr)), item.elv);
         SPAN_EXTRACT(TRY_UNWRAP(lex_nonscript(lr, false), return EOL_ERROR(lr)), item.view);
+        SPAN_EXTRACT(TRY_UNWRAP(lex_nonscript(lr, false), return EOL_ERROR(lr)), item.mode);
         item.use_script = TRY(lex_script(lr));
         item.equip_script = TRY(lex_script(lr));
         ItemOrComment rv = std::move(item);
