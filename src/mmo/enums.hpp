@@ -107,6 +107,20 @@ enum class ItemLook : uint16_t
     COUNT = 17,
 };
 
+namespace e
+{
+enum class ItemMode : uint8_t
+{
+    NONE           = 0,
+    NO_DROP        = 1,
+    NO_TRADE       = 2,
+    NO_SELL_TO_NPC = 4,
+    NO_STORAGE     = 8,
+};
+ENUM_BITWISE_OPERATORS(ItemMode)
+}
+using e::ItemMode;
+
 enum class SEX : uint8_t
 {
     FEMALE = 0,
@@ -117,6 +131,7 @@ enum class SEX : uint8_t
     NEUTRAL = 3,
     __OTHER = 4, // used in ManaPlus only
 };
+
 inline
 char sex_to_char(SEX sex)
 {

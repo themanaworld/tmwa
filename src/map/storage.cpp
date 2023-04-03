@@ -186,6 +186,12 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, IOff0 index, int amount)
     if (amount < 1 || amount > sd->status.inventory[index].amount)
         return 0;
 
+    if (bool(itemdb_search(sd->status.inventory[index].nameid)->mode & ItemMode::NO_STORAGE))
+    {
+        clif_displaymessage(sd->sess, "This item can't be stored."_s);
+        return 0;
+    }
+
 //  log_tostorage(sd, index, 0);
     if (storage_additem(sd, stor, &sd->status.inventory[index], amount) == 0)
     {

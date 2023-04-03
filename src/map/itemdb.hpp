@@ -50,6 +50,8 @@ struct item_data
     ItemLook look;
     int elv;
     int wlv;
+    ItemMode mode;
+
     std::unique_ptr<const ScriptBuffer> use_script;
     std::unique_ptr<const ScriptBuffer> equip_script;
 };

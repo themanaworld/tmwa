@@ -4617,6 +4617,11 @@ RecvResult clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
         clif_displaymessage(sd->sess, "Can't drop items here."_s);
         return rv;
     }
+    if (bool(itemdb_search(sd->status.inventory[fixed.ioff2.unshift()].nameid)->mode & ItemMode::NO_DROP))
+    {
+        clif_displaymessage(sd->sess, "This item can't be dropped."_s);
+        return rv;
+    }
     if (sd->npc_id
         || sd->opt1 != Opt1::ZERO)
     {
@@ -4895,6 +4900,12 @@ RecvResult clif_parse_TradeAddItem(Session *s, dumb_ptr<map_session_data> sd)
 
     if (fixed.zeny_or_ioff2.index != 0 && !fixed.zeny_or_ioff2.ok())
         return RecvResult::Error;
+    if (fixed.zeny_or_ioff2.ok())
+        if (bool(itemdb_search(sd->status.inventory[fixed.zeny_or_ioff2.unshift()].nameid)->mode & ItemMode::NO_TRADE))
+        {
+            clif_displaymessage(sd->sess, "This item can't be traded."_s);
+            return rv;
+        }
     trade_tradeadditem(sd, fixed.zeny_or_ioff2, fixed.amount);
 
     return rv;

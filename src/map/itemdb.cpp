@@ -201,6 +201,7 @@ bool itemdb_readdb(ZString filename)
                 idv.wlv = item.wlv.data;
                 idv.elv = item.elv.data;
                 idv.look = item.view.data;
+                idv.mode = item.mode.data;
 
                 idv.use_script = compile_script(STRPRINTF("use script %d"_fmt, idv.nameid), item.use_script, true);
                 idv.equip_script = compile_script(STRPRINTF("equip script %d"_fmt, idv.nameid), item.equip_script, true);
