@@ -3888,6 +3888,7 @@ void builtin_sc_start(ScriptState *st)
             case StatusChange::SC_COOLDOWN_AR:
             case StatusChange::SC_COOLDOWN_ENCH:
             case StatusChange::SC_COOLDOWN_KOY:
+            case StatusChange::SC_COOLDOWN_UPMARMU:
             break;
 
             default:
