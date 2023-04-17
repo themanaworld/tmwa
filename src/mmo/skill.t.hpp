@@ -59,6 +59,7 @@ enum class StatusChange : uint16_t
     SC_COOLDOWN_AR      = 75,   // Frillyar cooldown
     SC_COOLDOWN_ENCH    = 76,   // Enchanter cooldown
     SC_COOLDOWN_KOY     = 77,   // Koyntety cooldown
+    SC_COOLDOWN_UPMARMU = 78,   // Upmarmu cooldown
 
     SC_POISON           = 132,  // bad; actually used
 
