@@ -746,7 +746,7 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     cd.hair_color = hair_color;
     cd.clothes_color = 0;
     // removed initial armor/weapon - unused and problematic
-    cd.weapon = ItemLook::NONE;
+    cd.weapon = ItemLook::W_FIST;
     cd.shield = ItemNameId();
     cd.head_top = ItemNameId();
     cd.head_mid = ItemNameId();

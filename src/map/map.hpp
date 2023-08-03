@@ -248,7 +248,7 @@ struct map_session_data : block_list, SessionData
     ItemLook weapontype1;
     earray<int, ATTR, ATTR::COUNT> paramb, paramc, parame, paramcard;
     int hit, flee, flee2;
-    interval_t aspd, amotion, dmotion;
+    interval_t aspd, amotion, dmotion, base_weapon_delay_adjust;
     int watk, watk2;
     int def, def2, mdef, mdef2, critical, matk1, matk2;
     int hprate, sprate, dsprate;

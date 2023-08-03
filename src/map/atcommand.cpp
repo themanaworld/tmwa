@@ -2576,9 +2576,10 @@ ATCE atcommand_character_stats_full(Session *s, dumb_ptr<map_session_data>,
                     pl_sd->hit,
                     pl_sd->hit_rate);
             clif_displaymessage(s, output);
-            output = STRPRINTF("DEADLY_STRIKE_RATE: %d | DEADLY_STRIKE_ADD_RATE: %d"_fmt,
+            output = STRPRINTF("DEADLY_STRIKE_RATE: %d | DEADLY_STRIKE_ADD_RATE: %d | BASE_WEAPON_DELAY_ADJUST: %d"_fmt,
                     pl_sd->deadly_strike,
-                    pl_sd->deadly_strike_add_rate);
+                    pl_sd->deadly_strike_add_rate,
+                    pl_sd->base_weapon_delay_adjust.count());
             clif_displaymessage(s, output);
             output = STRPRINTF("arrow_atk: %d | arrow_cri: %d | arrow_hit: %d | arrow_range: %d"_fmt,
                     pl_sd->arrow_atk,

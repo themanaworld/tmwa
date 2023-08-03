@@ -1561,7 +1561,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         }
         OMATCH_END ();
     }
-    if (sd->status.weapon == ItemLook::BOW)
+    if (sd->status.weapon == ItemLook::W_BOW)
     {                           // 武器が弓矢の場合 | If the weapon is a bow and arrow
         atkmin = watk * ((atkmin < watk) ? atkmin : watk) / 100; // 弓用最低ATK計算 | Bows are calculated with minimum ATK
         flag = (flag & ~BF::RANGEMASK) | BF::LONG; // 遠距離攻撃フラグを有効 | Enable ranged attack flag
@@ -2058,7 +2058,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         battle_check_range(src, target, 0))
     {
         // 攻撃対象となりうるので攻撃 | Attack because it can be attacked
-        if (sd && sd->status.weapon == ItemLook::BOW)
+        if (sd && sd->status.weapon == ItemLook::W_BOW)
         {
             IOff0 aidx = sd->equip_index_maybe[EQUIP::ARROW];
             if (aidx.ok())

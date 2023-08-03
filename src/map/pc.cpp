@@ -127,23 +127,30 @@ int sp_coefficient_0 = 100;
 static //const
 earray<interval_t, ItemLook, ItemLook::COUNT> aspd_base_0 //=
 {{
-650_ms,  // 0 NONE
-700_ms,  // 1 BLADE or some other common weapons
-750_ms,  // 2
-610_ms,  // 3 SETZER_AND_SCYTHE
-2000_ms, // 4
-2000_ms, // 5
-800_ms,  // 6 Falchion
-2000_ms, // 7
-700_ms,  // 8
-700_ms,  // 9
-650_ms,  //10 STAFF / Sandcutter
-900_ms,  //11 BOW
-2000_ms, //12
-2000_ms, //13
-2000_ms, //14
-2000_ms, //15
-2000_ms, //16
+    550_ms,  //  0 { "Fist", W_FIST },
+    600_ms,  //  1 { "Dagger", W_DAGGER },
+    650_ms,  //  2 { "Sword", W_1HSWORD },
+    700_ms,  //  3 { "TwoHandSword", W_2HSWORD },
+    650_ms,  //  4 { "Spear", W_1HSPEAR },
+    700_ms,  //  5 { "TwoHandSpear", W_2HSPEAR },
+    700_ms,  //  6 { "Axe", W_1HAXE },
+    750_ms,  //  7 { "TwoHandAxe", W_2HAXE },
+    700_ms,  //  8 { "Mace", W_MACE },
+    750_ms,  //  9 { "TwoHandMace", W_2HMACE },
+    700_ms,  // 10 { "Rod", W_STAFF },
+    800_ms,  // 11 { "Bow", W_BOW },
+    575_ms,  // 12 { "Knuckle", W_KNUCKLE },
+    800_ms,  // 13 { "Instrument", W_MUSICAL },
+    675_ms,  // 14 { "Whip", W_WHIP },
+    700_ms,  // 15 { "Book", W_BOOK },
+    600_ms,  // 16 { "Katar", W_KATAR },
+    600_ms,  // 17 { "Revolver", W_REVOLVER },
+    800_ms,  // 18 { "Rifle", W_RIFLE },
+    500_ms,  // 19 { "GatlingGun", W_GATLING },
+    1000_ms, // 20 { "Shotgun", W_SHOTGUN },
+    2000_ms, // 21 { "GrenadeLauncher", W_GRENADE },
+    650_ms,  // 22 { "FuumaShuriken", W_HUUMA },
+    750_ms,  // 23 { "TwoHandRod", W_2HSTAFF },
 }};
 
 static const
@@ -203,6 +210,7 @@ int exp_table_0[MAX_LEVEL] =
     // 130 .. 135
     //993241342,  1120376234, 1263784392, 1425548794, 1608019039,
     //2147483647, 0
+
 
 // is this *actually* used anywhere?
 static const
@@ -705,7 +713,7 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
                     }
                     OMATCH_CASE_NONE ()
                     {
-                        sd->weapontype1 = ItemLook::NONE;
+                        sd->weapontype1 = ItemLook::W_FIST;
                     }
                 }
                 OMATCH_END ();
@@ -842,7 +850,7 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->state.connect_new = 1;
     sd->bl_prev = sd->bl_next = nullptr;
 
-    sd->weapontype1 = ItemLook::NONE;
+    sd->weapontype1 = ItemLook::W_FIST;
     sd->speed = DEFAULT_WALK_SPEED;
     sd->state.dead_sit = 0;
     sd->dir = DIR::S;
@@ -1130,7 +1138,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     earray<SkillValue, SkillID, MAX_SKILL> b_skill = sd->status.skill;
     b_hit = sd->hit;
     b_flee = sd->flee;
-    interval_t b_aspd = sd->aspd;
+    interval_t b_aspd = sd->aspd, b_base_weapon_delay_adjust = interval_t::zero();
     b_watk = sd->watk;
     b_def = sd->def;
     b_watk2 = sd->watk2;
@@ -1172,7 +1180,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->flee = 0;
     sd->flee2 = 0;
     sd->critical = 0;
-    sd->aspd = interval_t::zero();
+    sd->aspd = sd->base_weapon_delay_adjust = interval_t::zero();
     sd->watk = 0;
     sd->def = 0;
     sd->mdef = 0;
@@ -1336,7 +1344,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     if (sd->attackrange < 1)
         sd->attackrange = 1;
-    if (sd->status.weapon == ItemLook::BOW)
+    if (sd->status.weapon == ItemLook::W_BOW)
         sd->attackrange += sd->arrow_range;
     sd->double_rate += sd->double_add_rate;
     sd->perfect_hit += sd->perfect_hit_add_rate;
@@ -1354,7 +1362,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     for (ATTR attr : ATTRs)
         sd->paramc[attr] = std::max(0, sd->status.attrs[attr] + sd->paramb[attr] + sd->parame[attr]);
 
-    if (sd->status.weapon == ItemLook::BOW)
+    if (sd->status.weapon == ItemLook::W_BOW)
     {
         str = sd->paramc[ATTR::DEX];
         dex = sd->paramc[ATTR::STR];
@@ -1448,9 +1456,12 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     //二刀流 ASPD 修正 | Two-cut ASPD correction
     {
-        sd->aspd += aspd_base_0[sd->status.weapon]
+        b_base_weapon_delay_adjust = aspd_base_0[sd->status.weapon] + sd->base_weapon_delay_adjust;
+        if (b_base_weapon_delay_adjust.count() < 0)
+            b_base_weapon_delay_adjust = interval_t::zero();
+        sd->aspd += b_base_weapon_delay_adjust
             - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
-            * aspd_base_0[sd->status.weapon] / 1000;
+            * b_base_weapon_delay_adjust / 1000;
     }
 
     aspd_rate = sd->aspd_rate;
@@ -1876,6 +1887,10 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
         case SP::DEADLY_STRIKE_ADD_RATE:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->deadly_strike_add_rate += val;
+            break;
+        case SP::BASE_WEAPON_DELAY_ADJUST:
+            if (!sd->state.lr_flag_is_arrow_2)
+                sd->base_weapon_delay_adjust += interval_t(val);
             break;
         default:
             if (battle_config.error_log)
@@ -2897,7 +2912,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     {
         dist = distance(sd->bl_x, sd->bl_y, bl->bl_x, bl->bl_y);
         range = sd->attackrange;
-        if (sd->status.weapon != ItemLook::BOW)
+        if (sd->status.weapon != ItemLook::W_BOW)
             range++;
         if (dist > range)
         {                       //届 かないので移動 | Move because it does not arrive
@@ -4829,11 +4844,11 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
     sd->status.inventory[n].equip = pos;
 
     ItemNameId view_i;
-    ItemLook view_l = ItemLook::NONE;
+    ItemLook view_l = ItemLook::W_FIST;
     // TODO: This is ugly.
     OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[n])
     {
-        bool look_not_weapon = sdidn->look == ItemLook::NONE;
+        bool look_not_weapon = sdidn->look == ItemLook::W_FIST;
         bool equip_is_weapon = bool(sd->status.inventory[n].equip & EPOS::WEAPON);
         assert (look_not_weapon != equip_is_weapon);
 
@@ -4922,9 +4937,9 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
         }
         if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
         {
-            sd->weapontype1 = ItemLook::NONE;
+            sd->weapontype1 = ItemLook::W_FIST;
             // when reading the diff, think twice about this
-            sd->status.weapon = ItemLook::NONE;
+            sd->status.weapon = ItemLook::W_FIST;
             pc_calcweapontype(sd);
             pc_set_weapon_look(sd);
         }

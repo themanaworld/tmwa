@@ -135,7 +135,7 @@ namespace item
                 EXPECT_SPAN(p->elv.span, 1,42, 1,43);
                 EXPECT_EQ(p->elv.data, 13);
                 EXPECT_SPAN(p->view.span, 1,45, 1,46);
-                EXPECT_EQ(p->view.data, ItemLook::BOW);
+                EXPECT_EQ(p->view.data, ItemLook::W_BOW);
                 EXPECT_SPAN(p->use_script.span, 1,49, 1,54);
                 EXPECT_EQ(p->use_script.braced_body, "{end;}"_s);
                 EXPECT_SPAN(p->equip_script.span, 1,57, 1,58);
