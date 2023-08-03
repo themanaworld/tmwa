@@ -3762,7 +3762,7 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     clif_equiplist(sd);
     clif_initialstatus(sd);
     clif_changeoption(sd);
-    clif_changelook(sd, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::NONE));
+    clif_changelook(sd, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::W_FIST));
     clif_updatestatus(sd, SP::MAXWEIGHT);
     clif_updatestatus(sd, SP::WEIGHT);
     npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);

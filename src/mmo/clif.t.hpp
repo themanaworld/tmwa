@@ -482,6 +482,8 @@ enum class SP : uint16_t
 
     DEADLY_STRIKE_RATE          = 1091,
     DEADLY_STRIKE_ADD_RATE      = 1092,
+
+    BASE_WEAPON_DELAY_ADJUST    = 1093,
 };
 
 constexpr

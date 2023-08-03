@@ -99,12 +99,31 @@ constexpr ATTR ATTRs[6] =
 
 enum class ItemLook : uint16_t
 {
-    NONE = 0,
-    BLADE = 1, // or some other common weapons
-    SETZER_AND_SCYTHE = 3,
-    STAFF = 10,
-    BOW = 11,
-    COUNT = 17,
+    W_FIST,     //  0 Fist
+    W_DAGGER,   //  1 Dagger
+    W_1HSWORD,  //  2 Sword
+    W_2HSWORD,  //  3 TwoHandSword
+    W_1HSPEAR,  //  4 Spear
+    W_2HSPEAR,  //  5 TwoHandSpear
+    W_1HAXE,    //  6 Axe
+    W_2HAXE,    //  7 TwoHandAxe
+    W_MACE,     //  8 Mace
+    W_2HMACE,   //  9 TwoHandMace
+    W_STAFF,    // 10 Rod
+    W_BOW,      // 11 Bow
+    W_KNUCKLE,  // 12 Knuckle
+    W_MUSICAL,  // 13 Instrument
+    W_WHIP,     // 14 Whip
+    W_BOOK,     // 15 Book
+    W_KATAR,    // 16 Katar
+    W_REVOLVER, // 17 Revolver
+    W_RIFLE,    // 18 Rifle
+    W_GATLING,  // 19 GatlingGun
+    W_SHOTGUN,  // 20 Shotgun
+    W_GRENADE,  // 21 GrenadeLauncher
+    W_HUUMA,    // 22 FuumaShuriken
+    W_2HSTAFF,  // 23 TwoHandRod
+    COUNT,
 };
 
 namespace e
