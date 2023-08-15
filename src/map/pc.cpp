@@ -1556,13 +1556,12 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->speed_cap = interval_t::zero();
     if (sd->speed < sd->speed_cap)
         sd->speed = sd->speed_cap;
+    if (aspd_rate != 100)
+        sd->aspd = sd->aspd * aspd_rate / 100;
 
     /* Magic speed */
     if (sd->attack_spell_override || first & 8)
         sd->aspd = sd->attack_spell_delay;
-
-    if (aspd_rate != 100)
-        sd->aspd = sd->aspd * aspd_rate / 100;
 
     /* Red Threshold Calculation (TODO) */
     if (sd->aspd < 300_ms) {
