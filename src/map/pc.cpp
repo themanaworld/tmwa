@@ -1106,10 +1106,11 @@ void pc_set_weapon_look(dumb_ptr<map_session_data> sd)
  * Actively changed parameters should be send on their own
  *
  * First is a bitmask
- * &1 = ?
- * &2 = ?
- * &4 = ?
- * &8 = magic override
+ * &0 = Status Recalculation | ステータス再計算
+ * &1 = Status initial calculation, etc.| ステータス初期計算など
+ * &2 = Recalculate item bonus (used in pc_checkitem but not handled in this function atm, so if function is called with first = 2 its basically first = 0 only)
+ * &4 = Status Recalculation but don't use any clif_updatestatus to send status to client (used by map_quit)
+ * &8 = magic override (used in pc_set_attack_info)
  *------------------------------------------
  */
 int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
@@ -1580,12 +1581,12 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     if (first & 4)
         return 0;
-    if (first & 3)
+    if (first & 3) // never executed atm
     {
         clif_updatestatus(sd, SP::SPEED);
         clif_updatestatus(sd, SP::MAXHP);
         clif_updatestatus(sd, SP::MAXSP);
-        if (first & 1)
+        if (first & 1) // its always 1 here if first is 3 so this if is not needed normally
         {
             clif_updatestatus(sd, SP::HP);
             clif_updatestatus(sd, SP::SP);
