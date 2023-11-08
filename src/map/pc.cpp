@@ -1378,6 +1378,13 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->base_atk += str + dstr * dstr + dex / 5 + sd->paramc[ATTR::LUK] / 5;
     sd->matk1 += sd->paramc[ATTR::INT] + (sd->paramc[ATTR::INT] / 5) * (sd->paramc[ATTR::INT] / 5);
     sd->matk2 += sd->paramc[ATTR::INT] + (sd->paramc[ATTR::INT] / 7) * (sd->paramc[ATTR::INT] / 7);
+
+    if (sd->sc_data[StatusChange::SC_MATKPOT].timer)
+    {
+        sd->matk1 += sd->sc_data[StatusChange::SC_MATKPOT].val1;
+        sd->matk2 += sd->sc_data[StatusChange::SC_MATKPOT].val1;
+    }
+
     if (sd->matk1 < sd->matk2)
     {
         int temp = sd->matk2;
@@ -1532,11 +1539,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
         if (sd->sc_data[StatusChange::SC_ATKPOT].timer)
             sd->watk += sd->sc_data[StatusChange::SC_ATKPOT].val1;
-        if (sd->sc_data[StatusChange::SC_MATKPOT].timer)
-        {
-            sd->matk1 += sd->sc_data[StatusChange::SC_MATKPOT].val1;
-            sd->matk2 += sd->sc_data[StatusChange::SC_MATKPOT].val1;
-        }
 
         if (sd->sc_data[StatusChange::SC_SPEEDPOTION0].timer)
             aspd_rate -= sd->sc_data[StatusChange::SC_SPEEDPOTION0].val1;
