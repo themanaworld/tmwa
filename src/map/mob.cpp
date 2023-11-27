@@ -227,9 +227,9 @@ earray<int, mob_stat, mob_stat::XP_BONUS> mutation_base //=
 
 /*========================================
  * Mutates a MOB.  For large `direction' values, calling this multiple times will give bigger XP boni.
+ * intensity: positive: strengthen, negative: weaken.  256 = 100%.
  *----------------------------------------
  */
-// intensity: positive: strengthen, negative: weaken.  256 = 100%.
 static
 void mob_mutate(dumb_ptr<mob_data> md, mob_stat stat, int intensity)
 {
@@ -309,7 +309,10 @@ void mob_mutate(dumb_ptr<mob_data> md, mob_stat stat, int intensity)
     }
 }
 
-// This calculates the exp of a given mob
+/*==========================================
+ * This calculates the exp of a given mob
+ *------------------------------------------
+ */
 static
 int mob_gen_exp(mob_db_ *mob)
 {
@@ -343,6 +346,10 @@ int mob_gen_exp(mob_db_ *mob)
     return xp;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void mob_init(dumb_ptr<mob_data> md)
 {
@@ -517,46 +524,82 @@ BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
 }
 
 // TODO: deprecate these
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 short mob_get_hair(Species mob_class)
 {
     return get_mob_db(mob_class).hair;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 short mob_get_hair_color(Species mob_class)
 {
     return get_mob_db(mob_class).hair_color;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 short mob_get_weapon(Species mob_class)
 {
     return get_mob_db(mob_class).weapon;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 ItemNameId mob_get_shield(Species mob_class)
 {
     return get_mob_db(mob_class).shield;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 ItemNameId mob_get_head_top(Species mob_class)
 {
     return get_mob_db(mob_class).head_top;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 ItemNameId mob_get_head_mid(Species mob_class)
 {
     return get_mob_db(mob_class).head_mid;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 ItemNameId mob_get_head_buttom(Species mob_class)
 {
     return get_mob_db(mob_class).head_buttom;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 short mob_get_clothes_color(Species mob_class) // Add for player monster dye - Valaris
 {
     return get_mob_db(mob_class).clothes_color; // End
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int mob_get_equip(Species mob_class)   // mob equip [Valaris]
 {
     return get_mob_db(mob_class).equip;
@@ -789,6 +832,10 @@ int mob_check_attack(dumb_ptr<mob_data> md)
     return 1;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 void mob_ancillary_attack(dumb_ptr<block_list> bl,
         dumb_ptr<block_list> mdbl, dumb_ptr<block_list> tbl, tick_t tick)
@@ -815,7 +862,7 @@ int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
         return 0;
 
     if (battle_config.monster_attack_direction_change)
-        md->dir = map_calc_dir(md, tbl->bl_x, tbl->bl_y);   // 向き設定
+        md->dir = map_calc_dir(md, tbl->bl_x, tbl->bl_y);   // 向き設定 | Orientation setting
 
     //clif_fixmobpos(md);
 
@@ -941,7 +988,7 @@ void mob_timer(TimerData *, tick_t tick, BlockId id, unsigned char data)
     dumb_ptr<block_list> bl;
     bl = map_id2bl(id);
     if (bl == nullptr)
-    {                           //攻撃してきた敵がもういないのは正常のようだ
+    {                           // 攻撃してきた敵がもういないのは正常のようだ | It seems normal that the enemy that attacked us is no longer there.
         return;
     }
 
@@ -1301,13 +1348,13 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
             return 0;
     }
 
-    if (md->bl_m != bl->bl_m)      // 違うャbプ
+    if (md->bl_m != bl->bl_m)      // 違うャbプ | Different type
         return 0;
 
-    if (range > 0 && range < arange) // 遠すぎる
+    if (range > 0 && range < arange) // 遠すぎる | too far
         return 0;
 
-    if (md->bl_x == bl->bl_x && md->bl_y == bl->bl_y) // 同じャX
+    if (md->bl_x == bl->bl_x && md->bl_y == bl->bl_y) // 同じャX | Same guy
         return 1;
 
     // Obstacle judging
@@ -1400,6 +1447,10 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int mob_aggravate(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl)
 {
     if (md->bl_type != BL::MOB)
@@ -1434,7 +1485,7 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
     else
         return;
 
-    //敵味方判定
+    // 敵味方判定 | Enemy/ally determination
     if (battle_check_target(smd, bl, BCT_ENEMY) == 0)
         return;
 
@@ -1443,11 +1494,11 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
     else
         mode = smd->mode;
 
-    // アクティブでターゲット射程内にいるなら、ロックする
+    // アクティブでターゲット射程内にいるなら、ロックする | Lock if active and within target range
     if (bool(mode & MobMode::AGGRESSIVE))
     {
         Race race = get_mob_db(smd->mob_class).race;
-        //対象がPCの場合
+        // 対象がPCの場合 | If the target is a PC
         if (tsd &&
             !pc_isdead(tsd) &&
             tsd->bl_m == smd->bl_m &&
@@ -1461,29 +1512,29 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
                     || race == Race::_insect
                     || race == Race::_demon))
             {
-                // 妨害がないか判定
-                // 到達可能性判定
+                // 妨害がないか判定 | Determine if there is any interference
+                // 到達可能性判定 | Arrival possibility determination
                 if (mob_can_reach(smd, bl, 12)
                     && random_::chance({1, ++*pcc}))
                 {
-                    // 範囲内PCで等確率にする
+                    // 範囲内PCで等確率にする | Make the probability equal for PCs within the range
                     smd->target_id = tsd->bl_id;
                     smd->state.attackable = true;
                     smd->min_chase = 13;
                 }
             }
         }
-        //対象がMobの場合
+        // 対象がMobの場合 | If the target is a mob
         else if (tmd &&
                  tmd->bl_m == smd->bl_m &&
                  (dist =
                   distance(smd->bl_x, smd->bl_y, tmd->bl_x, tmd->bl_y)) < 9)
         {
-            // 到達可能性判定
+            // 到達可能性判定 | Arrival possibility determination
             if (mob_can_reach(smd, bl, 12)
                 && random_::chance({1, ++*pcc}))
             {
-                // 範囲内で等確率にする
+                // 範囲内で等確率にする | Make the probability equal within the range
                 smd->target_id = bl->bl_id;
                 smd->state.attackable = true;
                 smd->min_chase = 13;
@@ -1681,7 +1732,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
                 || (!sd->state.gangsterparadise
                     || race == Race::_insect
                     || race == Race::_demon))
-            {                   // 妨害がないか判定
+            {                   // 妨害がないか判定 | Determine if there is any interference
 
                 md->target_id = sd->bl_id;
                 md->state.attackable = true;
@@ -1875,7 +1926,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     if (md->master_id && md->state.special_mob_ai == 0)
         mob_ai_sub_hard_slavemob(md, tick);
 
-    // アクティヴモンスターの策敵 (?? of a bitter taste TIVU monster)
+    // アクティヴモンスターの策敵 | Active monster's enemy (?? of a bitter taste TIVU monster)
     if ((!md->target_id || !md->state.attackable)
         && bool(mode & MobMode::AGGRESSIVE) && !md->state.master_check
         && battle_config.monster_active_enable == 1)
@@ -1927,40 +1978,40 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     || (dist =
                         distance(md->bl_x, md->bl_y, tbl->bl_x,
                                   tbl->bl_y)) >= md->min_chase)
-                    mob_unlocktarget(md, tick);    // 別マップか、視界外
+                    mob_unlocktarget(md, tick);    // 別マップか、視界外 | Another map or out of sight?
                 else if (tsd && !bool(mode & MobMode::BOSS)
                          && (tsd->state.gangsterparadise
                              && race != Race::_insect
                              && race != Race::_demon))
-                    mob_unlocktarget(md, tick);    // スキルなどによる策敵妨害
+                    mob_unlocktarget(md, tick);    // スキルなどによる策敵妨害 | Interfering with enemy tactics using skills etc.
                 else if (!battle_check_range(md, tbl, get_mob_db(md->mob_class).range))
                 {
-                    // 攻撃範囲外なので移動
+                    // 攻撃範囲外なので移動 | Move because you are out of attack range
                     if (!bool(mode & MobMode::CAN_MOVE))
-                    {           // 移動しないモード
+                    {           // 移動しないモード | No-move mode
                         mob_unlocktarget(md, tick);
                         return;
                     }
-                    if (!mob_can_move(md)) // 動けない状態にある
+                    if (!mob_can_move(md)) // 動けない状態にある | unable to move
                         return;
-                    md->state.skillstate = MobSkillState::MSS_CHASE;   // 突撃時スキル
+                    md->state.skillstate = MobSkillState::MSS_CHASE;   // 突撃時スキル | Assault skills
                     mobskill_use(md, tick, MobSkillCondition::ANY);
                     if (md->timer && md->state.state != MS::ATTACK
                         && (md->next_walktime < tick
                             || distance(md->to_x, md->to_y, tbl->bl_x, tbl->bl_y) < 2))
-                        return;   // 既に移動中
+                        return;   // 既に移動中 | Already on the move
                     if (!mob_can_reach(md, tbl, (md->min_chase > 13) ? md->min_chase : 13))
-                        mob_unlocktarget(md, tick);    // 移動できないのでタゲ解除（IWとか？）
+                        mob_unlocktarget(md, tick);    // 移動できないのでタゲ解除（IWとか？） | I can't move so I can't target it (IW or something?)
                     else
                     {
-                        // 追跡
+                        // 追跡 | tracking
                         md->next_walktime = tick + 500_ms;
                         i = 0;
                         do
                         {
                             if (i == 0)
                             {
-                                // 最初はAEGISと同じ方法で検索
+                                // 最初はAEGISと同じ方法で検索 | First search in the same way as AEGIS
                                 dx = tbl->bl_x - md->bl_x;
                                 dy = tbl->bl_y - md->bl_y;
                                 if (dx < 0)
@@ -1974,7 +2025,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                             }
                             else
                             {
-                                // だめならAthena式(ランダム)
+                                // だめならAthena式(ランダム) | If not, use Athena style (random)
                                 // {0 1 2}
                                 dx = tbl->bl_x - md->bl_x + random_::in(-1, 1);
                                 dy = tbl->bl_y - md->bl_y + random_::in(-1, 1);
@@ -1985,7 +2036,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                         while (ret && i < 5);
 
                         if (ret)
-                        {       // 移動不可能な所からの攻撃なら2歩下る
+                        {       // 移動不可能な所からの攻撃なら2歩下る | If attacking from a place where you can't move, take 2 steps back.
                             if (dx < 0)
                                 dx = 2;
                             else if (dx > 0)
@@ -2000,57 +2051,57 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     }
                 }
                 else
-                {               // 攻撃射程範囲内
+                {               // 攻撃射程範囲内 | Within attack range
                     md->state.skillstate = MobSkillState::MSS_ATTACK;
                     if (md->state.state == MS::WALK)
-                        mob_stop_walking(md, 1);   // 歩行中なら停止
+                        mob_stop_walking(md, 1);   // 歩行中なら停止 | Stop if you are walking
                     if (md->state.state == MS::ATTACK)
-                        return;   // 既に攻撃中
+                        return;   // 既に攻撃中 | already under attack
                     mob_changestate(md, MS::ATTACK, attack_type);
                 }
                 return;
             }
             else
-            {                   // ルートモンスター処理
+            {                   // ルートモンスター処理 | Root monster processing
                 if (tbl == nullptr || tbl->bl_type != BL::ITEM || tbl->bl_m != md->bl_m
                     || (dist =
                         distance(md->bl_x, md->bl_y, tbl->bl_x,
                                   tbl->bl_y)) >= md->min_chase
                     || !bool(get_mob_db(md->mob_class).mode & MobMode::LOOTER))
                 {
-                    // 遠すぎるかアイテムがなくなった
+                    // 遠すぎるかアイテムがなくなった | Too far or missing item
                     mob_unlocktarget(md, tick);
                     if (md->state.state == MS::WALK)
-                        mob_stop_walking(md, 1);   // 歩行中なら停止
+                        mob_stop_walking(md, 1);   // 歩行中なら停止 | Stop if you are walking
                 }
                 else if (dist)
                 {
                     if (!bool(mode & MobMode::CAN_MOVE))
-                    {           // 移動しないモード
+                    {           // 移動しないモード | no-move mode
                         mob_unlocktarget(md, tick);
                         return;
                     }
-                    if (!mob_can_move(md)) // 動けない状態にある
+                    if (!mob_can_move(md)) // 動けない状態にある | unable to move
                         return;
-                    md->state.skillstate = MobSkillState::MSS_LOOT;    // ルート時スキル使用
+                    md->state.skillstate = MobSkillState::MSS_LOOT;    // ルート時スキル使用 | Skill use during root
                     mobskill_use(md, tick, MobSkillCondition::ANY);
                     if (md->timer && md->state.state != MS::ATTACK
                         && (md->next_walktime < tick
                             || distance(md->to_x, md->to_y, tbl->bl_x, tbl->bl_y) <= 0))
-                        return;   // 既に移動中
+                        return;   // 既に移動中 | Already on the move
                     md->next_walktime = tick + 500_ms;
                     dx = tbl->bl_x - md->bl_x;
                     dy = tbl->bl_y - md->bl_y;
                     ret = mob_walktoxy(md, md->bl_x + dx, md->bl_y + dy, 0);
                     if (ret)
-                        mob_unlocktarget(md, tick);    // 移動できないのでタゲ解除（IWとか？）
+                        mob_unlocktarget(md, tick);    // 移動できないのでタゲ解除（IWとか？） | I can't move so I can't target it (IW or something?)
                 }
                 else
-                {               // アイテムまでたどり着いた
+                {               // アイテムまでたどり着いた | I got to the item
                     if (md->state.state == MS::ATTACK)
-                        return;   // 攻撃中
+                        return;   // 攻撃中 | Under attack
                     if (md->state.state == MS::WALK)
-                        mob_stop_walking(md, 1);   // 歩行中なら停止
+                        mob_stop_walking(md, 1);   // 歩行中なら停止 | Stop if you are walking
                     fitem = tbl->is_item();
                     md->lootitemv.push_back(fitem->item_data);
                     map_clearflooritem(tbl->bl_id);
@@ -2063,7 +2114,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         {
             mob_unlocktarget(md, tick);
             if (md->state.state == MS::WALK)
-                mob_stop_walking(md, 4);   // 歩行中なら停止
+                mob_stop_walking(md, 4);   // 歩行中なら停止 | Stop if you are walking
             return;
         }
     }
@@ -2302,6 +2353,10 @@ int mob_delete(dumb_ptr<mob_data> md)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type)
 {
     nullpo_retr(1, md);
@@ -2315,6 +2370,10 @@ int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void mob_timer_delete(TimerData *, tick_t, BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
@@ -2378,7 +2437,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     tick_t tick = gettick();
     dumb_ptr<map_session_data> mvp_sd = nullptr, second_sd = nullptr, third_sd = nullptr;
 
-    nullpo_retz(md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
+    nullpo_retz(md);        // srcはNULLで呼ばれる場合もあるので、他でチェック | src may be called as NULL, so check it elsewhere.
 
     if (src && src->bl_id == md->master_id
         && bool(md->mode & MobMode::TURNS_AGAINST_BAD_MASTER))
@@ -2495,6 +2554,13 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     md->hp -= damage;
 
+    // activity
+    if (sd)
+        if (sd->activity.attacks == 2147483647)
+            sd->activity.attacks = 1;
+        else
+            sd->activity.attacks++;
+
     if (md->hp > 0)
     {
         return 0;
@@ -2502,7 +2568,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     MAP_LOG("MOB%d DEAD"_fmt, md->bl_id);
 
-    // ----- ここから死亡処理 -----
+    // ----- ここから死亡処理 | Death processing begins here -----
 
     MapBlockLock lock;
     // cancels timers
@@ -2514,8 +2580,8 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     if (src && src->bl_type == BL::MOB)
         mob_unlocktarget(src->is_mob(), tick);
 
-    // map外に消えた人は計算から除くので
-    // overkill分は無いけどsumはmax_hpとは違う
+    // map外に消えた人は計算から除くので | People who disappear outside the map will be excluded from the calculation. 
+    // overkill分は無いけどsumはmax_hpとは違う | There is no overkill portion, but sum is different from max_hp
 
     // snip a prelude loop, now merged
 
@@ -2544,6 +2610,12 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 continue;
             if (tmpsdi->bl_m != md->bl_m || pc_isdead(tmpsdi))
                 continue;
+
+            // activity
+            if (tmpsdi->activity.kills == 2147483647)
+                tmpsdi->activity.kills = 1;
+            else
+                tmpsdi->activity.kills++;
 
             // this way is actually fair, unlike the old way
             // that refers to the subsequents ... was buggy though
@@ -2704,7 +2776,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         }
     }                           // [MouseJstr]
 
-    // SCRIPT実行
+    // SCRIPT実行 | SCRIPT execution
     {
         if (sd == nullptr)
         {
@@ -2737,6 +2809,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
 /*==========================================
  * mob回復
+ * mob recovery
  *------------------------------------------
  */
 int mob_heal(dumb_ptr<mob_data> md, int heal)
@@ -2784,6 +2857,7 @@ int mob_warpslave(dumb_ptr<mob_data> md, int x, int y)
 
 /*==========================================
  * mobワープ
+ * mob warp
  *------------------------------------------
  */
 int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m_, int x, int y, BeingRemoveWhy type)
@@ -2806,7 +2880,7 @@ int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m_, int x, int y
     map_delblock(md);
 
     if (bx > 0 && by > 0)
-    {                           // 位置指定の場合周囲９セルを探索
+    {                           // 位置指定の場合周囲９セルを探索 | When specifying a location, search the surrounding 9 cells
         xs = ys = 9;
     }
 
@@ -2817,13 +2891,13 @@ int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m_, int x, int y
     {
         if (xs > 0 && ys > 0 && i < 250)
         {
-            // 指定位置付近の探索
+            // 指定位置付近の探索 | Search near specified location
             x = bx + random_::to(xs) - xs / 2;
             y = by + random_::to(ys) - ys / 2;
         }
         else
         {
-            // 完全ランダム探索
+            // 完全ランダム探索 | Completely random search
             x = random_::in(1, m->xs - 2);
             y = random_::in(1, m->ys - 2);
         }
@@ -2841,7 +2915,7 @@ int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m_, int x, int y
             PRINTF("MOB %d warp failed, mob_class = %d\n"_fmt, md->bl_id, md->mob_class);
     }
 
-    md->target_id = BlockId();          // タゲを解除する
+    md->target_id = BlockId();          // タゲを解除する | remove target
     md->state.attackable = false;
     md->attacked_id = BlockId();
     md->state.skillstate = MobSkillState::MSS_IDLE;
@@ -2867,6 +2941,7 @@ int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m_, int x, int y
 
 /*==========================================
  * 画面内の取り巻きの数計算用(foreachinarea)
+ * For calculating the number of entourage in the screen (foreachinarea)
  *------------------------------------------
  */
 static
@@ -2883,6 +2958,7 @@ void mob_countslave_sub(dumb_ptr<block_list> bl, BlockId id, int *c)
 
 /*==========================================
  * 画面内の取り巻きの数計算
+ * Calculating the number of entourage in the screen
  *------------------------------------------
  */
 static
@@ -2902,6 +2978,7 @@ int mob_countslave(dumb_ptr<mob_data> md)
 
 /*==========================================
  * 手下MOB召喚
+ * MOB summoning
  *------------------------------------------
  */
 int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
@@ -2965,8 +3042,8 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
             md->spawn.xs = 0;
             md->spawn.ys = 0;
             md->stats[mob_stat::SPEED] = md2->stats[mob_stat::SPEED];
-            md->spawn.delay1 = static_cast<interval_t>(-1);   // 一度のみフラグ
-            md->spawn.delay2 = static_cast<interval_t>(-1);   // 一度のみフラグ
+            md->spawn.delay1 = static_cast<interval_t>(-1);   // 一度のみフラグ | once flag
+            md->spawn.delay2 = static_cast<interval_t>(-1);   // 一度のみフラグ | once flag
 
             md->npc_event = NpcEvent();
             md->bl_type = BL::MOB;
@@ -2982,6 +3059,7 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
 
 /*==========================================
  * 自分をロックしているPCの数を数える(foreachclient)
+ * Count the number of PCs that have locked you (foreachclient)
  *------------------------------------------
  */
 static
@@ -3011,6 +3089,7 @@ void mob_counttargeted_sub(dumb_ptr<block_list> bl,
 
 /*==========================================
  * 自分をロックしているPCの数を数える
+ * Count the number of PCs that have locked you
  *------------------------------------------
  */
 int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
@@ -3029,11 +3108,12 @@ int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
 }
 
 //
-// MOBスキル
+// MOBスキル | MOB skills
 //
 
 /*==========================================
  * スキル使用（詠唱完了、ID指定）
+ * Skill use (casting completed, ID designation)
  *------------------------------------------
  */
 void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
@@ -3043,7 +3123,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
     dumb_ptr<block_list> mbl;
     int range;
 
-    if ((mbl = map_id2bl(id)) == nullptr) //詠唱したMobがもういないというのは良くある正常処理
+    if ((mbl = map_id2bl(id)) == nullptr) // 詠唱したMobがもういないというのは良くある正常処理 | It's common and normal that the mob that cast is no longer there.
         return;
     if ((md = mbl->is_mob()) == nullptr)
     {
@@ -3060,13 +3140,13 @@ void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
         md->last_thinktime = tick + battle_get_adelay(md);
 
     if ((bl = map_id2bl(md->skilltarget)) == nullptr || bl->bl_prev == nullptr)
-    {                           //スキルターゲットが存在しない
+    {                           // スキルターゲットが存在しない | Skill target does not exist
         return;
     }
     if (md->bl_m != bl->bl_m)
         return;
 
-    if (((skill_get_inf(md->skillid) & 1) || (skill_get_inf2(md->skillid) & 4)) &&    // 彼我敵対関係チェック
+    if (((skill_get_inf(md->skillid) & 1) || (skill_get_inf2(md->skillid) & 4)) &&    // 彼我敵対関係チェック | Self-enemy relationship check
         battle_check_target(md, bl, BCT_ENEMY) <= 0)
         return;
     range = skill_get_range(md->skillid, md->skilllv);
@@ -3084,14 +3164,14 @@ void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
 
     switch (skill_get_nk(md->skillid))
     {
-            // 攻撃系/吹き飛ばし系
+            // 攻撃系/吹き飛ばし系 | Attack type/Blow type
         case 0:
         case 2:
             skill_castend_damage_id(md, bl,
                     md->skillid, md->skilllv,
                     tick, BCT_ZERO);
             break;
-        case 1:                // 支援系
+        case 1:                // 支援系 | Support system
             skill_castend_nodamage_id(md, bl,
                     md->skillid, md->skilllv);
             break;
@@ -3100,6 +3180,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
 
 /*==========================================
  * スキル使用（詠唱完了、場所指定）
+ * Skill use (casting completed, location specified)
  *------------------------------------------
  */
 void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
@@ -3108,7 +3189,8 @@ void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
     dumb_ptr<block_list> bl;
     int range;
 
-    //mobskill_castend_id同様詠唱したMobが詠唱完了時にもういないというのはありそうなのでnullpoから除外
+    // mobskill_castend_id同様詠唱したMobが詠唱完了時にもういないというのはありそうなのでnullpoから除外
+    // mobskill_castend_id It is likely that the mob that cast the same as the one is no longer there when the cast is completed, so it is excluded from nullpo.
     if ((bl = map_id2bl(id)) == nullptr)
         return;
 
@@ -3164,7 +3246,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
     if (skill_get_inf2(skill_id) & 0x200 && md->bl_id == target->bl_id)
         return 0;
 
-    // 射程と障害物チェック
+    // 射程と障害物チェック | Range and obstacle check
     range = skill_get_range(skill_id, skill_lv);
     if (range < 0)
         range = battle_get_range(md) - (range + 1);
@@ -3183,7 +3265,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
                 target->bl_id, skill_id, skill_lv,
                 static_cast<uint32_t>(casttime.count()), md->mob_class);
 
-    if (casttime <= interval_t::zero())          // 詠唱の無いものはキャンセルされない
+    if (casttime <= interval_t::zero())          // 詠唱の無いものはキャンセルされない | Anything without a chant will not be canceled
         md->state.skillcastcancel = 0;
 
     md->skilltarget = target->bl_id;
@@ -3210,6 +3292,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
 
 /*==========================================
  * スキル使用（場所指定）
+ * Skill usage (Location)
  *------------------------------------------
  */
 static
@@ -3233,7 +3316,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
     if (bool(md->opt1))
         return 0;
 
-    // 射程と障害物チェック
+    // 射程と障害物チェック | Range and obstacle check
     bl.bl_type = BL::NUL;
     bl.bl_m = md->bl_m;
     bl.bl_x = skill_x;
@@ -3304,11 +3387,11 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
         tick_t& sdii = md->skilldelayup[&msii - &ms.front()];
         int flag = 0;
 
-        // ディレイ中
+        // ディレイ中 | During delay
         if (tick < sdii + msii.delay)
             continue;
 
-        // 状態判定
+        // 状態判定 | Status determination
         if (msii.state != MobSkillState::ANY && msii.state != md->state.skillstate)
             continue;
 
@@ -3336,13 +3419,13 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
             }
         }
 
-        // 確率判定
+        // 確率判定 | Probability judgment
         if (flag && random_::chance({msii.permillage, 10000}))
         {
 
             if (skill_get_inf(msii.skill_id) & 2)
             {
-                // 場所指定
+                // 場所指定 | Specify location
                 dumb_ptr<block_list> bl = nullptr;
                 int x = 0, y = 0;
                 {
@@ -3404,7 +3487,7 @@ int mobskill_event(dumb_ptr<mob_data> md, BF flag)
 }
 
 //
-// 初期化
+// 初期化 | Initialization
 //
 /*==========================================
  * Since un-setting [ mob ] up was used, it is an initial provisional value setup.
@@ -3451,6 +3534,10 @@ int mob_makedummymobdb(Species mob_class)
     return 0;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 bool impl_extract(XString str, LevelElement *le)
 {
@@ -3463,6 +3550,10 @@ bool impl_extract(XString str, LevelElement *le)
     return false;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 bool mob_readdb(ZString filename)
 {
     bool rv = true;
@@ -3614,6 +3705,10 @@ bool mob_readdb(ZString filename)
     return rv;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 bool impl_extract(XString str, MobSkillCondition *msc)
 {
@@ -3638,6 +3733,10 @@ bool impl_extract(XString str, MobSkillCondition *msc)
     return false;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 bool impl_extract(XString str, MobSkillState *mss)
 {
@@ -3661,6 +3760,10 @@ bool impl_extract(XString str, MobSkillState *mss)
     return false;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 static
 bool impl_extract(XString str, MobSkillTarget *mst)
 {
@@ -3682,6 +3785,10 @@ bool impl_extract(XString str, MobSkillTarget *mst)
     return false;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 bool mob_readskilldb(ZString filename)
 {
     bool rv = true;
@@ -3764,6 +3871,10 @@ bool mob_readskilldb(ZString filename)
     return rv;
 }
 
+/*==========================================
+ * 
+ *------------------------------------------
+ */
 void do_init_mob2(void)
 {
     Timer(gettick() + MIN_MOBTHINKTIME,

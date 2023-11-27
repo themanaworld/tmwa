@@ -307,6 +307,15 @@ struct map_session_data : block_list, SessionData
         unsigned guild:1;
     } mute;
 
+    struct
+    {
+        int kills;
+        int casts;
+        int items_used;
+        int tiles_walked;
+        int attacks;
+    } activity;
+
     AutoMod automod;
 
     tick_t flood_rates[0x220];

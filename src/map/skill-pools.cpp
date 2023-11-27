@@ -77,7 +77,7 @@ int skill_pool_activate(dumb_ptr<map_session_data> sd, SkillID skill_id)
              && (skill_pool_size(sd) < skill_pool_max(sd)))
     {
         sd->status.skill[skill_id].flags |= SkillFlags::POOL_ACTIVATED;
-        pc_calcstatus(sd, 0);
+        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
         MAP_LOG_PC(sd, "SKILL-ACTIVATE %d %d %d"_fmt,
                 skill_id, sd->status.skill[skill_id].lv,
                 skill_power(sd, skill_id));
@@ -98,7 +98,7 @@ int skill_pool_deactivate(dumb_ptr<map_session_data> sd, SkillID skill_id)
     {
         sd->status.skill[skill_id].flags &= ~SkillFlags::POOL_ACTIVATED;
         MAP_LOG_PC(sd, "SKILL-DEACTIVATE %d"_fmt, skill_id);
-        pc_calcstatus(sd, 0);
+        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
         return 0;
     }
 
