@@ -117,6 +117,10 @@ void builtin_mes(ScriptState *st)
     clif_scriptmes(sd, st->oid, mes);
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_mesq(ScriptState *st)
 {
@@ -131,6 +135,10 @@ void builtin_mesq(ScriptState *st)
     clif_scriptmes(sd, st->oid, RString(mesq));
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_mesn(ScriptState *st)
 {
@@ -148,6 +156,10 @@ void builtin_mesn(ScriptState *st)
     clif_scriptmes(sd, st->oid, RString(mesq));
 }
 
+/*==========================================
+ *
+ *------------------------------------------
+ */
 static
 void builtin_clear(ScriptState *st)
 {
@@ -2440,7 +2452,7 @@ void builtin_overrideattack(ScriptState *st)
         sd->attack_spell_override = BlockId();
         pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
         pc_set_attack_info(sd, interval_t::zero(), 0);
-        pc_calcstatus(sd, 0);
+        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
     }
 }
 
@@ -2508,7 +2520,7 @@ void builtin_setopt2(ScriptState *st)
         return;
     sd->opt2 = new_opt2;
     clif_changeoption(sd);
-    pc_calcstatus(sd, 0);
+    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
 
 }
 
@@ -4827,7 +4839,7 @@ void builtin_nude(ScriptState *st)
         if (idx.ok())
             pc_unequipitem(sd, idx, CalcStatus::LATER);
     }
-    pc_calcstatus(sd, 0);
+    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
 
 }
 
@@ -4850,7 +4862,7 @@ void builtin_unequipbyid(ScriptState *st)
             pc_unequipitem(sd, idx, CalcStatus::LATER);
     }
 
-    pc_calcstatus(sd, 0);
+    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
 
 }
 
@@ -5562,7 +5574,6 @@ void builtin_mapexit(ScriptState *)
 {
     runflag = 0;
 }
-
 
 #define BUILTIN(func, args, ret)    \
 {builtin_##func, #func ## _s, args, ret}

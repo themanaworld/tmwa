@@ -816,7 +816,7 @@ void map_quit(dumb_ptr<map_session_data> sd)
     pc_stopattack(sd);
     pc_delinvincibletimer(sd);
 
-    pc_calcstatus(sd, 4);
+    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC_NO_CLIENT_UPDATE);
 
     clif_clearchar(sd, BeingRemoveWhy::QUIT);
 

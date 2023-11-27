@@ -56,5 +56,15 @@ enum class CalcStatus
     NOW,
     LATER,
 };
+
+enum class CalcStatusKind
+{
+    NORMAL_RECALC                  = 0,
+    INITIAL_CALC                   = 1,
+    ITEM_BONUS_RECALC              = 2,
+    NORMAL_RECALC_NO_CLIENT_UPDATE = 4,
+    MAGIC_OVERRIDE                 = 8,
+};
+
 } // namespace map
 } // namespace tmwa

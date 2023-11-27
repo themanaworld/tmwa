@@ -333,6 +333,12 @@ enum class SP : uint16_t
 
     DEAF                        = 70,
 
+    KILLS                       = 490,
+    CASTS                       = 491,
+    ITEMS_USED                  = 492,
+    TILES_WALKED                = 493,
+    ATTACKS                     = 494,
+
     // sent to client
     GM                          = 500,
 

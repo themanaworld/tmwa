@@ -182,7 +182,7 @@ namespace e
 enum class MapCell : uint8_t
 {
     // the usual thing
-    UNWALKABLE  = 0x01,
+    UNWALKABLE = 0x01,
     // not in tmwa data
     _range      = 0x04,
 };

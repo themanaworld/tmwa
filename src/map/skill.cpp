@@ -805,7 +805,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
         clif_changeoption(bl);
 
     if (bl->bl_type == BL::PC && calc_flag)
-        pc_calcstatus(bl->is_player(), 0);  /* ステータス再計算 | Status Recalculation */
+        pc_calcstatus(bl->is_player(), (int)CalcStatusKind::NORMAL_RECALC);  /* ステータス再計算 | Status Recalculation */
 }
 
 int skill_update_heal_animation(dumb_ptr<map_session_data> sd)
@@ -1085,7 +1085,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
                 bl->bl_id, type));
 
     if (bl->bl_type == BL::PC && calc_flag)
-        pc_calcstatus(sd, 0);  /* ステータス再計算 | Status recalculation */
+        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);  /* ステータス再計算 | Status recalculation */
 
     if (bl->bl_type == BL::PC && updateflag != SP::ZERO)
         clif_updatestatus(sd, updateflag); /* ステータスをクライアントに送る | Send status to client */
