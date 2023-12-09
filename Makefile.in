@@ -492,8 +492,15 @@ lib/%.a:
 
 ${GTEST_BINARIES}: obj/gtest_main.pdc.o obj/gtest-all.pdc.o
 
-# This isn't perfect.
-$(filter %_test.pdc.o,${PDC_OBJECTS}) obj/gtest_main.pdc.o obj/gtest-all.pdc.o: override CPPFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
+# Need gtest include for both compile (*_test.pdc.o) and dependency-generation (*_test.d) steps.
+GTEST_NEED_INCLUDE := $(filter %_test.pdc.o,${PDC_OBJECTS}) $(filter %_test.d,${DEPENDS}) obj/gtest_main.pdc.o obj/gtest-all.pdc.o
+${GTEST_NEED_INCLUDE}: override CXXFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}/include
+
+
+# Special rule for src/gtest-all.cc, it includes "src/gtest.cc"
+# and thus additionally needs toplevel as include
+obj/gtest-all.pdc.o: override CXXFLAGS += -DGTEST_HAS_PTHREAD=0 -I${GTEST_DIR}
+
 obj/gtest-all.pdc.o obj/gtest_main.pdc.o: override WARNINGS :=
 obj/gtest%.pdc.o: ${GTEST_DIR}/src/gtest%.cc
 	$(MKDIR_FIRST)
