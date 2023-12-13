@@ -1,0 +1,52 @@
+# Copied in from Moubootaur Legends's Hercules .gitlab-ci.yml
+stages:
+  - build
+
+variables: &base_vars
+  DEBIAN_COMMON_PACKAGES: make git gcc g++
+  # Depth of clone. If no tag is made after this many commits, then
+  # the git describe call and version header generation will fail.
+  GIT_DEPTH: 100 # Will break again eventually.
+
+.prerequisites: &prerequisites
+  before_script:
+    - echo "Building TMW Athena $CI_BUILD_NAME"
+    - uname -a
+    - apt-get update
+    - apt-get install -y -qq $INSTALL_PACKAGES $DEBIAN_COMMON_PACKAGES
+
+
+# Active server OS?
+re:ubuntu1804:build:
+  <<: *prerequisites
+  stage: build
+  image: ubuntu:18.04
+  variables:
+    <<: *base_vars
+    INSTALL_PACKAGES: python
+  script:
+    - git submodule update --init
+    - git fetch -t
+    - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
+    - ./configure --user
+    - make
+    - whoami
+    - make install
+
+# Next server OS?
+re:ubuntu2204:build:
+  <<: *prerequisites
+  stage: build
+  image: ubuntu:22.04
+  variables:
+    <<: *base_vars
+    INSTALL_PACKAGES: python2
+  script:
+    - ln -s /usr/bin/python2 /usr/bin/python
+    - git submodule update --init
+    - git fetch -t
+    - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
+    - ./configure --user
+    - make
+    - whoami
+    - make install
