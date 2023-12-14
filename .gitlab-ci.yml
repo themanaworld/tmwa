@@ -1,6 +1,7 @@
 # Copied in from Moubootaur Legends's Hercules .gitlab-ci.yml
 stages:
   - build
+  - test
 
 variables: &base_vars
   DEBIAN_COMMON_PACKAGES: make git gcc g++
@@ -10,7 +11,6 @@ variables: &base_vars
 
 .prerequisites: &prerequisites
   before_script:
-    - echo "Building TMW Athena $CI_BUILD_NAME"
     - uname -a
     - apt-get update
     - apt-get install -y -qq $INSTALL_PACKAGES $DEBIAN_COMMON_PACKAGES
@@ -25,6 +25,7 @@ re:ubuntu1804:build:
     <<: *base_vars
     INSTALL_PACKAGES: python
   script:
+    - echo "Building TMW Athena $CI_BUILD_NAME"
     - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
@@ -32,6 +33,12 @@ re:ubuntu1804:build:
     - make
     - whoami
     - make install
+  artifacts: # required for test stage
+    untracked: true
+    expire_in: 30 mins
+
+
+
 
 # Next server OS?
 re:ubuntu2204:build:
@@ -50,3 +57,35 @@ re:ubuntu2204:build:
     - make
     - whoami
     - make install
+  artifacts: # required for test stage
+    untracked: true
+    expire_in: 30 mins
+
+
+
+
+# Disabled. fails with:
+# (1) GDB failing to resolve a type
+# (2) /usr/bin/ld: Dwarf Error: Can't find .debug_ranges section.
+.re:ubuntu1804:test:
+  <<: *prerequisites
+  stage: test
+  image: ubuntu:18.04
+  variables:
+    <<: *base_vars
+    INSTALL_PACKAGES: python gdb
+  script:
+    - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
+    - make test
+
+re:ubuntu2204:test:
+  <<: *prerequisites
+  stage: test
+  image: ubuntu:22.04
+  variables:
+    <<: *base_vars
+    INSTALL_PACKAGES: python2 gdb
+  script:
+    - ln -s /usr/bin/python2 /usr/bin/python
+    - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
+    - make test
