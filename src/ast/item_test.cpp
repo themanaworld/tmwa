@@ -87,11 +87,11 @@ namespace item
         QuietFd q;
         LString inputs[] =
         {
-            //        1         2         3         4         5
-            //2345678901234567890123456789012345678901234567890123456789
-            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}"_s,
-            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}\n"_s,
-            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11, {end;}, {}\nabc"_s,
+            //        1         2         3         4         5         6
+            //23456789012345678901234567890123456789012345678901234567890123456789
+            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {end;}, {}"_s,
+            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {end;}, {}\n"_s,
+            "1,abc ,      3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {end;}, {}\nabc"_s,
         };
         for (auto input : inputs)
         {
@@ -99,7 +99,7 @@ namespace item
             auto res = TRY_UNWRAP(parse_item(lr), FAIL());
             EXPECT_TRUE(res.get_success().is_some());
             auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
-            EXPECT_SPAN(top.span, 1,1, 1,58);
+            EXPECT_SPAN(top.span, 1,1, 1,60);
             auto p = top.get_if<Item>();
             EXPECT_TRUE(p);
             if (p)
@@ -136,9 +136,11 @@ namespace item
                 EXPECT_EQ(p->elv.data, 13);
                 EXPECT_SPAN(p->view.span, 1,45, 1,46);
                 EXPECT_EQ(p->view.data, ItemLook::W_BOW);
-                EXPECT_SPAN(p->use_script.span, 1,49, 1,54);
+                EXPECT_SPAN(p->mode.span, 1,48, 1,48);
+                EXPECT_EQ(p->mode.data, ItemMode::NO_DROP);
+                EXPECT_SPAN(p->use_script.span, 1,51, 1,56);
                 EXPECT_EQ(p->use_script.braced_body, "{end;}"_s);
-                EXPECT_SPAN(p->equip_script.span, 1,57, 1,58);
+                EXPECT_SPAN(p->equip_script.span, 1,59, 1,60);
                 EXPECT_EQ(p->equip_script.braced_body, "{}"_s);
             }
         }
