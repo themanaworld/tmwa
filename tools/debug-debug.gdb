@@ -42,8 +42,21 @@ set print frame-arguments none
 set python print-stack full
 
 set logging on
-rbreak do_breakpoint
+# Workaround "Function... not defined in.." (breakpoints not found) (GDB bug)
+#   https://sourceware.org/bugzilla/show_bug.cgi?id=15962
+# In some gdb versions rbreak works, in some break does.
+# This code should work for any.
+python
+bpoint = gdb.Breakpoint("do_breakpoint")
+
+if bpoint.pending:
+    print("`break ...` found no breakpoints, trying `rbreak ...`")
+    bpoint.delete()
+    gdb.execute("rbreak do_breakpoint")
+
+end
 set logging off
+
 commands
 silent
 python hit_breakpoint()
