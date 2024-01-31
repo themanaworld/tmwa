@@ -1566,9 +1566,9 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->attack_spell_override || first & (int)CalcStatusKind::MAGIC_OVERRIDE)
         sd->aspd = sd->attack_spell_delay;
 
-    /* Red Threshold Calculation (TODO) */
+    /* Red Threshold Calculation */
     if (sd->aspd < 300_ms) {
-        sd->aspd = 300_ms + ((sd->aspd - 300_ms) * 20 / 20);
+        sd->aspd = 300_ms + ((sd->aspd - 300_ms) * 19 / 20);
     }
 
     sd->aspd = std::max(sd->aspd, battle_config.max_aspd);
