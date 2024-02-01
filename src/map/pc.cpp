@@ -1135,7 +1135,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     b_weight = sd->weight;
     b_max_weight = sd->max_weight;
     earray<int, ATTR, ATTR::COUNT> b_paramb = sd->paramb;
-    earray<int, ATTR, ATTR::COUNT> b_parame = sd->paramc;
+    earray<int, ATTR, ATTR::COUNT> b_parame = sd->parame;
     earray<SkillValue, SkillID, MAX_SKILL> b_skill = sd->status.skill;
     b_hit = sd->hit;
     b_flee = sd->flee;
