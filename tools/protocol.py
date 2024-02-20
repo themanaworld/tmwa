@@ -984,6 +984,18 @@ class BasePacket(object):
             d[p].post_set(d, n - 1 + (len(self.post) == 1), accum)
         return accum
 
+    def dump_client_enum(self, f):
+        id = self.id
+        define = self.define
+        name = self.name
+        if define and id:
+            f.write('    %s ' % define)
+            f.write(' ' * (30 - len(define)))
+            f.write('= 0x%04x,' % id)
+            if name:
+                f.write(" // " + name)
+            f.write('\n')
+
 
 class FixedPacket(BasePacket):
     __slots__ = ('fixed_struct')
@@ -1015,6 +1027,15 @@ class FixedPacket(BasePacket):
     def dump_convert(self, f):
         self.fixed_struct.dump_convert(f)
         f.write('\n')
+
+    def dump_client_packet_info(self, f):
+        size = self.fixed_struct.size
+        define = self.define
+        if define and id:
+            f.write('    { %s, ' % define)
+            f.write(' ' * (30 - len(define)))
+            f.write('%d, "%s" },' % (size, define))
+            f.write('\n')
 
 class VarPacket(BasePacket):
     __slots__ = ('head_struct', 'repeat_struct')
@@ -1052,6 +1073,14 @@ class VarPacket(BasePacket):
         self.head_struct.dump_convert(f)
         self.repeat_struct.dump_convert(f)
         f.write('\n')
+
+    def dump_client_packet_info(self, f):
+        define = self.define
+        if define and id:
+            f.write('    { %s, ' % define)
+            f.write(' ' * (30 - len(define)))
+            f.write('VAR, "%s" },' % define)
+            f.write('\n')
 
 def sanitize_line(line, n):
     if not line:
@@ -1181,6 +1210,20 @@ class Channel(object):
                 p.dump_convert(f)
             f.write('} // namespace tmwa\n')
 
+    def dump_client_enum(self, f):
+        if any(p.define and p.id for p in self.packets):
+            f.write('    // %s server messages\n' % self.server)
+            for p in self.packets:
+                p.dump_client_enum(f)
+            f.write('\n')
+
+    def dump_client_packet_info(self, f):
+        if any(p.define and p.id for p in self.packets):
+            f.write('    // %s server messages\n' % self.server)
+            for p in self.packets:
+                p.dump_client_packet_info(f)
+            f.write('\n')
+
 
 ident_translation = ''.join(chr(c) if chr(c).isalnum() else '_' for c in range(256))
 
@@ -1292,6 +1335,20 @@ class Context(object):
                 f.write('namespace tmwa\n{\n')
                 ty.dump(f)
                 f.write('} // namespace tmwa\n')
+
+        # for net/tmwa/protocol.h in Mana client
+        with OpenWrite(os.path.join(outdir, 'client-enum.hpp')) as f:
+            f.write('enum {\n')
+            for ch in self._channels:
+                ch.dump_client_enum(f)
+            f.write('};\n')
+
+        # for net/tmwa/network.cpp in Mana client
+        with OpenWrite(os.path.join(outdir, 'client-packet-info.cpp')) as f:
+            f.write('static const PacketInfo packet_infos[] = {\n')
+            for ch in self._channels:
+                ch.dump_client_packet_info(f)
+            f.write('};\n')
 
         for g in glob.glob(os.path.join(outdir, '*.old')):
             print('Obsolete: %s' % g)
@@ -3651,7 +3708,7 @@ def build_context():
         ''',
     )
     map_user.r(0x00f5, 'storage take',
-        define='CSMG_MOVE_FROM_STORAGE',
+        define='CMSG_MOVE_FROM_STORAGE',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, soff1, 'soff1'),
@@ -6267,6 +6324,7 @@ def build_context():
     # TOC_MISC
     # any client
     any_user.r(0x7530, 'version',
+        define='CMSG_SERVER_VERSION_REQUEST',
         fixed=[
             at(0, u16, 'packet id'),
         ],
@@ -6278,6 +6336,7 @@ def build_context():
         ''',
     )
     any_user.s(0x7531, 'version result',
+        define='SMSG_SERVER_VERSION_RESPONSE',
         fixed=[
             at(0, u16, 'packet id'),
             at(2, version, 'version'),
@@ -6290,6 +6349,7 @@ def build_context():
         ''',
     )
     any_user.r(0x7532, 'disconnect',
+        define='CMSG_CLIENT_DISCONNECT',
         fixed=[
             at(0, u16, 'packet id'),
         ],
@@ -6300,9 +6360,6 @@ def build_context():
             Request from client or ladmin to disconnect.
         ''',
     )
-    # 0x7530 define='CMSG_SERVER_VERSION_REQUEST',
-    # 0x7531 define='SMSG_SERVER_VERSION_RESPONSE',
-    # 0x7532 define='CMSG_CLIENT_DISCONNECT',
 
     # TOC_LOGINADMIN
     # login admin
@@ -6937,7 +6994,7 @@ def build_context():
             delete a login-stored ##register of an account.
         ''',
     )
-    
+
     # TOC_NEW
     ## new-style packets
     # notify packets, standalone, can occur at any time; always 'payload'
