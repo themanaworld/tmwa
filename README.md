@@ -2,18 +2,9 @@
 
 ![The Mana World logo](share/tmwa/TheManaWorldLogo.png)
 
-This is TMWA, an MMORPG server used by The Mana World Legacy that uses a
-protocol based on one of many projects that foolishly chose the name "Athena".
+This is TMWA, an MMORPG server used by The Mana World that uses a protocol
+based on one of many projects that foolishly chose the name "Athena".
 Specifically, it was forked from eAthena, a Ragnarok Online clone, in 2004.
-
-# TMWA IS NO LONGER SUPPORTED! don't use this
-
-<br><br>
-
-<details>
-<summary>click _here_ for the old readme</summary>
-
-<br>
 
 Take a look at the [wiki](http://wiki.themanaworld.org/index.php/How_to_Develop) for user instructions.
 
@@ -154,22 +145,6 @@ current working directory; this was the only thing that makes sense
 since the files are dependent on the server-data. However, a migration
 to installed files has begun.
 
-
-#### tmwa-monitor:
-&lt;DEPRECATED&gt;
-Formerly known as `eathena-monitor`.
-
-An unmaintained tool whose job was to keep restarting the servers
-every time they crashed. It still builds in case anyone was using it,
-but it proved inflexible and has't really been kept up-to-date with our
-(TMW's) server-data, and besides, the server doesn't crash much now.
-There are also a number of other Open Source programs that monitor
-services already.
-
-There is a `run-all` script in the server-data repo that starts the
-appropriate server for that config. On the main server, we instead
-start the servers (and bots) individually in a tmux.
-
 #### tmwa-admin:
 Formerly known as `ladmin` ("local").
 
@@ -275,4 +250,3 @@ The following skills are good to know required for various tasks:
     tasks. Particularly, reread the bit about review.)
   - C++11 (Not a low entry barrier. I'm not really expecting help with this,
     and since this is conflict heavy, please do the other tasks first).
-</details>
