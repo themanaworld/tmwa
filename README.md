@@ -8,7 +8,7 @@ Specifically, it was forked from eAthena, a Ragnarok Online clone, in 2004.
 
 Take a look at the [wiki](http://wiki.themanaworld.org/index.php/How_to_Develop) for user instructions.
 
-**Important note:** building from a github-generated tarball does not work!
+**Important note:** building from a GitHub-generated tarball does not work!
 You must either build from a git checkout or from a 'make dist' tarball.
 
 
@@ -17,24 +17,14 @@ The rest of this file contains information relevant only to:
 1. Distributors.
 2. Contributors.
 
-
-TMWA has been maintained by o11c (Ben Longbons) since early 2011 or so.
-Before that, it never really had a proper maintainer, since everyone
-thought that ManaServ was going to be the thing. But it won't ever be,
-at least not for TMW.
-
-TMWA has a [bugtracker](https://github.com/themanaworld/tmwa/issues).
+TMWA has a [bugtracker](https://git.themanaworld.org/legacy/tmwa/-/issues).
 
 But it's probably worth getting on IRC first:
-* Use an IRC client: irc://chat.freenode.net/tmwa
-* Or just use the [webchat](https://webchat.freenode.net/?channels=#tmwa).
+* Use an IRC client: irc://irc.libera.chat/themanaworld-dev
+* Or just use the [webchat](https://web.libera.chat/?channel=#themanaworld-dev).
 
-Note that this channel is *only* for technical discussion of TMWA (and
-attoconf), not general chat or TMW content development.
-
-I'm active in the Pacific timezone, but I might not have internet access
-all the time. I'm usually never AFK longer than 48 hours; when there is an
-exception, I always tell the content devs who also idle there.
+Note that this channel is not specific to technical discussion of TMWA (and
+attoconf), but for any discussions related to TMW development.
 
 ## 1. Distributors.
 ### Important notes:
@@ -196,7 +186,7 @@ developers get annoyed when wushin makes us work straight from his
 client-data repo.
 
 Currently, there is only *one* set of server data that is known to be
-compatible with TMWA: https://github.com/themanaworld/tmwa-server-data
+compatible with TMWA: https://git.themanaworld.org/legacy/serverdata
 
 The only recommended way of using this is by following the instructions
 in the [How to Develop](https://wiki.themanaworld.org/index.php/Dev:How_to_Develop) article. These instructions are only designed
@@ -217,36 +207,14 @@ Note also that The Mana World has not investigated the copyright status
 of other sets of server data.
 
 ## 2. Contributors.
-The most important thing if you want to help improve TMWA is *talk* to me.
-No, wait, that's the second most important thing.
 
-The real most important thing if you want to help improve TMWA is that it's
-*work*. You can't just stop by and chat for a few hours and help at all.
-If you're going to work on TMWA, you have to be work months in the future.
+You're welcome to help maintain this server, but please make sure to
+get in touch with the currently active maintainers first.
 
-TMWA was terrible when I got it, and I've only fixed enough to make it
-sane, not pretty. Even a minimal change is likely to touch the whole tree,
-so merge conflicts are a constant problem.
+Remember that this server is what currently keeps The Mana World alive,
+so any changes should be made with extreme care. It is important that
+each change be tested and reviewed before it goes live.
 
-That said, there *are* several tasks that I could use help with. Several
-essential tasks have been left undone just because they don't conflict with
-the main body of my work.
-
-But I do not want someone who will just work for a few hours, go to bed,
-then never return. I have wasted far too many hours answering their
-questions. If you're going to help, you have to actually *help*.
-
-The following skills are good to know required for various tasks:
-
-  - ability to read
-  - ability to write
-  - ability to notice error messages
-  - ability to solve your own problems
-  - willingness to accept review of your changes. It's not personal if I
-    say your work is wrong, I'm just seeing more than you do, and tiny
-    details are often incredibly important.
-  - familiarity with gdb
-  - Python (A low entry barrier, but Python alone is not enough for the
-    tasks. Particularly, reread the bit about review.)
-  - C++11 (Not a low entry barrier. I'm not really expecting help with this,
-    and since this is conflict heavy, please do the other tasks first).
+Finally, if you got yourself somewhat familiar with this code, please
+consider sticking around either to fix further issues as they come up
+or to help reviewing changes by others. Thanks!
