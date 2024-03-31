@@ -288,7 +288,9 @@ else
 override CXX += -std=c++0x
 endif
 
-CXXFLAGS += -fstack-protector
+CXXFLAGS += -fstack-protector-strong -fstack-clash-protection -fPIE -fsanitize=bounds -fsanitize-undefined-trap-on-error
+LDFLAGS += -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -Wl,-z,separate-code
+
 override CXXFLAGS += -fno-strict-aliasing
 override CXXFLAGS += -fvisibility=hidden
 
