@@ -601,6 +601,7 @@ def build_config():
     battle_conf.opt('item_third_get_time', milliseconds, '1_s')
     battle_conf.opt('base_exp_rate', percent, '100')
     battle_conf.opt('job_exp_rate', percent, '100')
+    battle_conf.opt('drop_rate', percent, '100')
     battle_conf.opt('death_penalty_type', i32, '0', min='0', max='2')
     battle_conf.opt('death_penalty_base', per10kd, '0')
     battle_conf.opt('death_penalty_job', per10kd, '0')

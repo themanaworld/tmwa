@@ -2736,6 +2736,9 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 if (sd && md && battle_config.pk_mode == 1
                     && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
                     drop_rate.num *= 1.25;  // pk_mode increase drops if 20 level difference [Valaris]
+
+                // server-wide drop rate scaling
+                drop_rate.num = (drop_rate.num * battle_config.drop_rate) / 100;
                 if (!random_::chance(drop_rate))
                     continue;
 

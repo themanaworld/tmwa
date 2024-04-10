@@ -1725,12 +1725,31 @@ ATCE atcommand_jexprate(Session *s, dumb_ptr<map_session_data>,
 }
 
 static
+ATCE atcommand_droprate(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    int rate;
+
+    if (!extract(message, &rate) || !rate)
+    {
+        clif_displaymessage(s,
+                "Please, enter a rate adjustement (usage: @droprate <percent>)."_s);
+        return ATCE::USAGE;
+    }
+    battle_config.drop_rate = rate;
+    AString output = STRPRINTF("Drops rate now at %d percent"_fmt, rate);
+    clif_displaymessage(s, output);
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_rates(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     AString output = STRPRINTF(
-            "Experience rates: Base %d%% / Job %d%%. Drop rate: 100%%"_fmt,
-            battle_config.base_exp_rate, battle_config.job_exp_rate);
+            "Experience rates: Base %d%% / Job %d%%. Drop rate: %d%%"_fmt,
+            battle_config.base_exp_rate, battle_config.job_exp_rate,
+            battle_config.drop_rate);
     clif_displaymessage(s, output);
     return ATCE::OKAY;
 }
@@ -5644,9 +5663,12 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"jexprate"_s, {"<percent>"_s,
         60, atcommand_jexprate,
         "Set job exp rate"_s}},
+    {"droprate"_s, {"<percent>"_s,
+        60, atcommand_droprate,
+        "Set drop rate"_s}},
     {"rates"_s, {""_s,
         0, atcommand_rates,
-        "Show base and job exp rates"_s}},
+        "Show base and job exp and drop rates"_s}},
     {"pvpon"_s, {""_s,
         60, atcommand_pvpon,
         "Disable PvP on your map"_s}},
