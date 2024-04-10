@@ -1681,7 +1681,7 @@ ATCE atcommand_exprate(Session *s, dumb_ptr<map_session_data>,
     }
     battle_config.base_exp_rate = rate;
     battle_config.job_exp_rate = rate;
-    AString output = STRPRINTF("All Xp at %d percent"_fmt, rate);
+    AString output = STRPRINTF("Base & job XP rates now at %d percent"_fmt, rate);
     clif_displaymessage(s, output);
     return ATCE::OKAY;
 }
@@ -1690,9 +1690,9 @@ static
 ATCE atcommand_rates(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
-    AString output = STRPRINTF("Experience rates: Base %d%% / Job %d%%"_fmt, battle_config.base_exp_rate, battle_config.job_exp_rate);
-    clif_displaymessage(s, output);
-    output = STRPRINTF("Drop rate: 100%%"_fmt);
+    AString output = STRPRINTF(
+            "Experience rates: Base %d%% / Job %d%%. Drop rate: 100%%"_fmt,
+            battle_config.base_exp_rate, battle_config.job_exp_rate);
     clif_displaymessage(s, output);
     return ATCE::OKAY;
 }
@@ -5599,10 +5599,10 @@ Map<XString, AtCommandInfo> atcommand_info =
         "Enable PvP on your map"_s}},
     {"exprate"_s, {"<percent>"_s,
         60, atcommand_exprate,
-        "Set base job/exp rate"_s}},
+        "Set base and job exp rate"_s}},
     {"rates"_s, {""_s,
         0, atcommand_rates,
-        "Show base job/exp rate"_s}},
+        "Show base and job exp rates"_s}},
     {"pvpon"_s, {""_s,
         60, atcommand_pvpon,
         "Disable PvP on your map"_s}},
