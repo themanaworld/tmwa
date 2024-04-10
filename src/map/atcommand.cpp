@@ -1667,6 +1667,8 @@ ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
     return ATCE::OKAY;
 }
 
+// Command not removed during bexprate/jexprate split
+// because serverdata calls it.
 static
 ATCE atcommand_exprate(Session *s, dumb_ptr<map_session_data>,
         ZString message)
@@ -1682,6 +1684,42 @@ ATCE atcommand_exprate(Session *s, dumb_ptr<map_session_data>,
     battle_config.base_exp_rate = rate;
     battle_config.job_exp_rate = rate;
     AString output = STRPRINTF("Base & job XP rates now at %d percent"_fmt, rate);
+    clif_displaymessage(s, output);
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_bexprate(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    int rate;
+
+    if (!extract(message, &rate) || !rate)
+    {
+        clif_displaymessage(s,
+                "Please, enter a rate adjustement (usage: @bexprate <percent>)."_s);
+        return ATCE::USAGE;
+    }
+    battle_config.base_exp_rate = rate;
+    AString output = STRPRINTF("Base XP rate now at %d percent"_fmt, rate);
+    clif_displaymessage(s, output);
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_jexprate(Session *s, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    int rate;
+
+    if (!extract(message, &rate) || !rate)
+    {
+        clif_displaymessage(s,
+                "Please, enter a rate adjustement (usage: @jexprate <percent>)."_s);
+        return ATCE::USAGE;
+    }
+    battle_config.job_exp_rate = rate;
+    AString output = STRPRINTF("Job XP rate now at %d percent"_fmt, rate);
     clif_displaymessage(s, output);
     return ATCE::OKAY;
 }
@@ -5600,6 +5638,12 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"exprate"_s, {"<percent>"_s,
         60, atcommand_exprate,
         "Set base and job exp rate"_s}},
+    {"bexprate"_s, {"<percent>"_s,
+        60, atcommand_bexprate,
+        "Set base exp rate"_s}},
+    {"jexprate"_s, {"<percent>"_s,
+        60, atcommand_jexprate,
+        "Set job exp rate"_s}},
     {"rates"_s, {""_s,
         0, atcommand_rates,
         "Show base and job exp rates"_s}},
