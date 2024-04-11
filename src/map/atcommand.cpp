@@ -1667,20 +1667,38 @@ ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
     return ATCE::OKAY;
 }
 
+
+
+static int extract_rate(Session *s, ZString message)
+{
+    int rate;
+    AString output;
+
+    if (!extract(message, &rate))
+    {
+        clif_displaymessage(s, "Please enter the new rate"_s);
+        return -1;
+    }
+    if (rate <= 0 || rate > battle_config.max_rate)
+    {
+        output = STRPRINTF("Rate adjustment must be between 1 and %d%%"_fmt,
+                           battle_config.max_rate);
+        clif_displaymessage(s, output);
+        return -1;
+    }
+    return rate;
+}
+
 // Command not removed during bexprate/jexprate split
 // because serverdata calls it.
 static
 ATCE atcommand_exprate(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
-    int rate;
-
-    if (!extract(message, &rate) || !rate)
-    {
-        clif_displaymessage(s,
-                "Please, enter a rate adjustement (usage: @exprate <percent>)."_s);
+    int rate = extract_rate(s, message);
+    if (rate < 0)
         return ATCE::USAGE;
-    }
+
     battle_config.base_exp_rate = rate;
     battle_config.job_exp_rate = rate;
     AString output = STRPRINTF("Base & job XP rates now at %d percent"_fmt, rate);
@@ -1692,14 +1710,10 @@ static
 ATCE atcommand_bexprate(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
-    int rate;
-
-    if (!extract(message, &rate) || !rate)
-    {
-        clif_displaymessage(s,
-                "Please, enter a rate adjustement (usage: @bexprate <percent>)."_s);
+    int rate = extract_rate(s, message);
+    if (rate < 0)
         return ATCE::USAGE;
-    }
+
     battle_config.base_exp_rate = rate;
     AString output = STRPRINTF("Base XP rate now at %d percent"_fmt, rate);
     clif_displaymessage(s, output);
@@ -1710,14 +1724,10 @@ static
 ATCE atcommand_jexprate(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
-    int rate;
-
-    if (!extract(message, &rate) || !rate)
-    {
-        clif_displaymessage(s,
-                "Please, enter a rate adjustement (usage: @jexprate <percent>)."_s);
+    int rate = extract_rate(s, message);
+    if (rate < 0)
         return ATCE::USAGE;
-    }
+
     battle_config.job_exp_rate = rate;
     AString output = STRPRINTF("Job XP rate now at %d percent"_fmt, rate);
     clif_displaymessage(s, output);
@@ -1728,14 +1738,10 @@ static
 ATCE atcommand_droprate(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
-    int rate;
-
-    if (!extract(message, &rate) || !rate)
-    {
-        clif_displaymessage(s,
-                "Please, enter a rate adjustement (usage: @droprate <percent>)."_s);
+    int rate = extract_rate(s, message);
+    if (rate < 0)
         return ATCE::USAGE;
-    }
+
     battle_config.drop_rate = rate;
     AString output = STRPRINTF("Drops rate now at %d percent"_fmt, rate);
     clif_displaymessage(s, output);
@@ -1753,6 +1759,7 @@ ATCE atcommand_rates(Session *s, dumb_ptr<map_session_data>,
     clif_displaymessage(s, output);
     return ATCE::OKAY;
 }
+
 
 static
 ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
