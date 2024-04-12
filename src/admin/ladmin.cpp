@@ -2789,7 +2789,6 @@ int do_init(Slice<ZString> argv)
 
     admin::eathena_interactive_session = isatty(0);
 
-    LADMIN_LOG(""_fmt);
     LADMIN_LOG("Configuration file readed.\n"_fmt);
 
     Iprintf("EAthena login-server administration tool.\n"_fmt);

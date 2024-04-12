@@ -2900,8 +2900,6 @@ int do_init(Slice<ZString> argv)
     if (!loaded_config_yet)
         runflag &= load_config_file("conf/tmwa-char.conf"_s, char_::char_confs);
 
-    // a newline in the log...
-    CHAR_LOG(""_fmt);
     CHAR_LOG("do_init: char-server starting...\n"_fmt);
 
     runflag &= lan_check();

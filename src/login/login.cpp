@@ -3104,8 +3104,6 @@ bool display_conf_warnings(void)
 static
 void save_config_in_log(void)
 {
-    // a newline in the log...
-    LOGIN_LOG(""_fmt);
     LOGIN_LOG("The login-server starting...\n"_fmt);
 
     // save configuration in log file
