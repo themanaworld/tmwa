@@ -1914,22 +1914,47 @@ ATCE atcommand_mobinfo(Session *s, dumb_ptr<map_session_data> sd,
     if (mob_id == Species())
         return ATCE::EXIST;
 
-    clif_displaymessage(s, STRPRINTF("Monster ID: %i, English Name: %s, Japanese Name: %s"_fmt, mob_id, get_mob_db(mob_id).name, get_mob_db(mob_id).jname));
-    clif_displaymessage(s, STRPRINTF("Level: %i, HP: %i, SP: %i, Base EXP: %i, JEXP: %i"_fmt, get_mob_db(mob_id).lv, get_mob_db(mob_id).max_hp, get_mob_db(mob_id).max_sp, get_mob_db(mob_id).base_exp, get_mob_db(mob_id).job_exp));
-    clif_displaymessage(s, STRPRINTF("Range1: %i, ATK1: %i, ATK2: %i, DEF: %i, MDEF: %i, CRITICAL_DEF: %i"_fmt, get_mob_db(mob_id).range, get_mob_db(mob_id).atk1, get_mob_db(mob_id).atk2, get_mob_db(mob_id).def, get_mob_db(mob_id).mdef, get_mob_db(mob_id).critical_def));
-    clif_displaymessage(s, STRPRINTF("Stats: STR: %i, AGI: %i, VIT: %i, INT: %i, DEX: %i, LUK: %i"_fmt, get_mob_db(mob_id).attrs[ATTR::STR], get_mob_db(mob_id).attrs[ATTR::AGI], get_mob_db(mob_id).attrs[ATTR::VIT], get_mob_db(mob_id).attrs[ATTR::INT], get_mob_db(mob_id).attrs[ATTR::DEX], get_mob_db(mob_id).attrs[ATTR::LUK]));
-    clif_displaymessage(s, STRPRINTF("Range2: %i, Range3: %i, Scale: %i, Race: %i, Element: %i, Element Level: %i, Mode: %i"_fmt, get_mob_db(mob_id).range2, get_mob_db(mob_id).range3, get_mob_db(mob_id).size, static_cast<int>(get_mob_db(mob_id).race), static_cast<int>(get_mob_db(mob_id).element.element), get_mob_db(mob_id).element.level, static_cast<int>(get_mob_db(mob_id).mode)));
-    clif_displaymessage(s, STRPRINTF("Speed: %li, Adelay: %li, Amotion: %li, Dmotion: %li"_fmt, get_mob_db(mob_id).speed.count(), get_mob_db(mob_id).adelay.count(), get_mob_db(mob_id).amotion.count(), get_mob_db(mob_id).dmotion.count()));
-    if (get_mob_db(mob_id).mutations_nr)
-        clif_displaymessage(s, STRPRINTF("May mutate %i attribute up to %i%%"_fmt, get_mob_db(mob_id).mutations_nr, get_mob_db(mob_id).mutation_power));
+    const struct mob_db_& mob = get_mob_db(mob_id);
+
+    clif_displaymessage(s, STRPRINTF(
+            "Monster ID: %i, English Name: %s, Japanese Name: %s"_fmt,
+            mob_id, mob.name, mob.jname));
+    clif_displaymessage(s, STRPRINTF(
+            "Level: %i, HP: %i, SP: %i, Base EXP: %i, JEXP: %i"_fmt,
+            mob.lv, mob.max_hp, mob.max_sp, mob.base_exp, mob.job_exp));
+    clif_displaymessage(s, STRPRINTF(
+            "Range1: %i, ATK1: %i, ATK2: %i, DEF: %i, MDEF: %i, CRITICAL_DEF: %i"_fmt,
+            mob.range, mob.atk1, mob.atk2,
+            mob.def, mob.mdef, mob.critical_def));
+    clif_displaymessage(s, STRPRINTF(
+            "Stats: STR: %i, AGI: %i, VIT: %i, INT: %i, DEX: %i, LUK: %i"_fmt,
+            mob.attrs[ATTR::STR], mob.attrs[ATTR::AGI],
+            mob.attrs[ATTR::VIT], mob.attrs[ATTR::INT],
+            mob.attrs[ATTR::DEX], mob.attrs[ATTR::LUK]));
+    clif_displaymessage(s, STRPRINTF(
+            "Range2: %i, Range3: %i, Scale: %i, Race: %i, Element: %i, Element Level: %i, Mode: %i"_fmt,
+            mob.range2, mob.range3, mob.size, static_cast<int>(mob.race),
+            static_cast<int>(mob.element.element), mob.element.level,
+            static_cast<int>(mob.mode)));
+    clif_displaymessage(s, STRPRINTF(
+            "Speed: %li, Adelay: %li, Amotion: %li, Dmotion: %li"_fmt,
+            mob.speed.count(), mob.adelay.count(),
+            mob.amotion.count(), mob.dmotion.count()));
+
+    if (mob.mutations_nr)
+    {
+        clif_displaymessage(s, STRPRINTF(
+                "May mutate %i attribute up to %i%%"_fmt,
+                mob.mutations_nr, mob.mutation_power));
+    }
 
     for (int i = 0; i < MaxDrops; ++i)
-        if (get_mob_db(mob_id).dropitem[i].nameid)
+        if (mob.dropitem[i].nameid)
         {
-            Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[i].nameid));
+            Option<P<struct item_data>> i_data = Some(itemdb_search(mob.dropitem[i].nameid));
             RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
 
-            int drop_rate = get_mob_db(mob_id).dropitem[i].p.num;
+            int drop_rate = mob.dropitem[i].p.num;
 
             char str[6];
             char strpos = 0;
@@ -1986,33 +2011,35 @@ ATCE atcommand_mobinfo(Session *s, dumb_ptr<map_session_data> sd,
             str[strpos] = '\0';
 
             int drop_rate2 = 10000/drop_rate;
-            clif_displaymessage(s, STRPRINTF("Drop ID %i: %i, Item Name: %s, Drop Chance: %s%% (1:%i)"_fmt,i, get_mob_db(mob_id).dropitem[i].nameid, item_name, str, drop_rate2));
+            clif_displaymessage(s, STRPRINTF(
+                    "Drop ID %i: %i, Item Name: %s, Drop Chance: %s%% (1:%i)"_fmt,
+                    i, mob.dropitem[i].nameid, item_name, str, drop_rate2));
         }
         else
             break;
 
     clif_displaymessage(s, STRPRINTF("Mob Mode Info:"_fmt));
-    if (!bool(get_mob_db(mob_id).mode & MobMode::ZERO))
+    if (!bool(mob.mode & MobMode::ZERO))
     {
-        if (bool(get_mob_db(mob_id).mode & MobMode::CAN_MOVE))
+        if (bool(mob.mode & MobMode::CAN_MOVE))
             clif_displaymessage(s, STRPRINTF("Mobile"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::LOOTER))
+        if (bool(mob.mode & MobMode::LOOTER))
             clif_displaymessage(s, STRPRINTF("Picks up loot"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::AGGRESSIVE))
+        if (bool(mob.mode & MobMode::AGGRESSIVE))
             clif_displaymessage(s, STRPRINTF("Aggro"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::ASSIST))
+        if (bool(mob.mode & MobMode::ASSIST))
             clif_displaymessage(s, STRPRINTF("Assists"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::CAST_SENSOR))
+        if (bool(mob.mode & MobMode::CAST_SENSOR))
             clif_displaymessage(s, STRPRINTF("Cast Sensor"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::BOSS))
+        if (bool(mob.mode & MobMode::BOSS))
             clif_displaymessage(s, STRPRINTF("Boss"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::PLANT))
+        if (bool(mob.mode & MobMode::PLANT))
             clif_displaymessage(s, STRPRINTF("Plant"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::CAN_ATTACK))
+        if (bool(mob.mode & MobMode::CAN_ATTACK))
             clif_displaymessage(s, STRPRINTF("Can attack"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::DETECTOR))
+        if (bool(mob.mode & MobMode::DETECTOR))
             clif_displaymessage(s, STRPRINTF("Detector"_fmt));
-        if (bool(get_mob_db(mob_id).mode & MobMode::CHANGE_TARGET))
+        if (bool(mob.mode & MobMode::CHANGE_TARGET))
             clif_displaymessage(s, STRPRINTF("Change Target"_fmt));
             /*
             Not needed here i guess
