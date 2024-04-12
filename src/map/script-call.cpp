@@ -1004,12 +1004,12 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     st.freeloop = 0;
     st.is_true = 0;
 
-    for (i = 0; i < args.size(); i++)
+    for (const argrec_t& arg : args)
     {
-        if (args[i].name.back() == '$')
-            pc_setregstr(sd, SIR::from(variable_names.intern(args[i].name)), args[i].v.s);
+        if (arg.name.back() == '$')
+            pc_setregstr(sd, SIR::from(variable_names.intern(arg.name)), arg.v.s);
         else
-            pc_setreg(sd, SIR::from(variable_names.intern(args[i].name)), args[i].v.i);
+            pc_setreg(sd, SIR::from(variable_names.intern(arg.name)), arg.v.i);
     }
     run_script_main(&st, rootscript);
 

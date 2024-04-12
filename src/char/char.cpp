@@ -1040,11 +1040,15 @@ int set_account_reg2(AccountId acc, Slice<GlobalReg> reg)
     {
         if (cd.key.account_id == acc)
         {
-            for (int i = 0; i < num; ++i)
-                cd.data->account_reg2[i] = reg[i];
-            cd.data->account_reg2_num = num;
-            for (int i = num; i < ACCOUNT_REG2_NUM; ++i)
-                cd.data->account_reg2[i] = GlobalReg{};
+            int i = 0;
+            for (const GlobalReg& r : reg)
+                cd.data->account_reg2[i++] = r;
+
+            cd.data->account_reg2_num = i;
+
+            while (i < ACCOUNT_REG2_NUM)
+                cd.data->account_reg2[i++] = GlobalReg{};
+
             c++;
         }
     }
