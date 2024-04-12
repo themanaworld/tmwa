@@ -1918,8 +1918,8 @@ ATCE atcommand_mobinfo(Session *s, dumb_ptr<map_session_data> sd,
     clif_displaymessage(s, STRPRINTF("Level: %i, HP: %i, SP: %i, Base EXP: %i, JEXP: %i"_fmt, get_mob_db(mob_id).lv, get_mob_db(mob_id).max_hp, get_mob_db(mob_id).max_sp, get_mob_db(mob_id).base_exp, get_mob_db(mob_id).job_exp));
     clif_displaymessage(s, STRPRINTF("Range1: %i, ATK1: %i, ATK2: %i, DEF: %i, MDEF: %i, CRITICAL_DEF: %i"_fmt, get_mob_db(mob_id).range, get_mob_db(mob_id).atk1, get_mob_db(mob_id).atk2, get_mob_db(mob_id).def, get_mob_db(mob_id).mdef, get_mob_db(mob_id).critical_def));
     clif_displaymessage(s, STRPRINTF("Stats: STR: %i, AGI: %i, VIT: %i, INT: %i, DEX: %i, LUK: %i"_fmt, get_mob_db(mob_id).attrs[ATTR::STR], get_mob_db(mob_id).attrs[ATTR::AGI], get_mob_db(mob_id).attrs[ATTR::VIT], get_mob_db(mob_id).attrs[ATTR::INT], get_mob_db(mob_id).attrs[ATTR::DEX], get_mob_db(mob_id).attrs[ATTR::LUK]));
-    clif_displaymessage(s, STRPRINTF("Range2: %i, Range3: %i, Scale: %i, Race: %i, Element: %i, Element Level: %i, Mode: %i"_fmt, get_mob_db(mob_id).range2, get_mob_db(mob_id).range3, get_mob_db(mob_id).size, get_mob_db(mob_id).race, get_mob_db(mob_id).element.element, get_mob_db(mob_id).element.level, get_mob_db(mob_id).mode));
-    clif_displaymessage(s, STRPRINTF("Speed: %i, Adelay: %i, Amotion: %i, Dmotion: %i"_fmt, get_mob_db(mob_id).speed.count(), get_mob_db(mob_id).adelay.count(), get_mob_db(mob_id).amotion.count(), get_mob_db(mob_id).dmotion.count()));
+    clif_displaymessage(s, STRPRINTF("Range2: %i, Range3: %i, Scale: %i, Race: %i, Element: %i, Element Level: %i, Mode: %i"_fmt, get_mob_db(mob_id).range2, get_mob_db(mob_id).range3, get_mob_db(mob_id).size, static_cast<int>(get_mob_db(mob_id).race), static_cast<int>(get_mob_db(mob_id).element.element), get_mob_db(mob_id).element.level, static_cast<int>(get_mob_db(mob_id).mode)));
+    clif_displaymessage(s, STRPRINTF("Speed: %li, Adelay: %li, Amotion: %li, Dmotion: %li"_fmt, get_mob_db(mob_id).speed.count(), get_mob_db(mob_id).adelay.count(), get_mob_db(mob_id).amotion.count(), get_mob_db(mob_id).dmotion.count()));
     if (get_mob_db(mob_id).mutations_nr)
         clif_displaymessage(s, STRPRINTF("May mutate %i attribute up to %i%%"_fmt, get_mob_db(mob_id).mutations_nr, get_mob_db(mob_id).mutation_power));
 
@@ -2616,7 +2616,7 @@ ATCE atcommand_character_stats_full(Session *s, dumb_ptr<map_session_data>,
                     pl_sd->def2,
                     pl_sd->def2_rate);
             clif_displaymessage(s, output);
-            output = STRPRINTF("ADD_SPEED: %d | SPEED_RATE: %d | SPEED_ADDRATE: %d | ASPD: %d | ASPD_RATE: %d | ASPD_ADDRATE: %d"_fmt,
+            output = STRPRINTF("ADD_SPEED: %ld | SPEED_RATE: %d | SPEED_ADDRATE: %d | ASPD: %ld | ASPD_RATE: %d | ASPD_ADDRATE: %d"_fmt,
                     pl_sd->speed.count(),
                     pl_sd->speed_rate,
                     pl_sd->speed_add_rate,
@@ -2640,7 +2640,7 @@ ATCE atcommand_character_stats_full(Session *s, dumb_ptr<map_session_data>,
                     pl_sd->hit,
                     pl_sd->hit_rate);
             clif_displaymessage(s, output);
-            output = STRPRINTF("DEADLY_STRIKE_RATE: %d | DEADLY_STRIKE_ADD_RATE: %d | BASE_WEAPON_DELAY_ADJUST: %d"_fmt,
+            output = STRPRINTF("DEADLY_STRIKE_RATE: %d | DEADLY_STRIKE_ADD_RATE: %d | BASE_WEAPON_DELAY_ADJUST: %ld"_fmt,
                     pl_sd->deadly_strike,
                     pl_sd->deadly_strike_add_rate,
                     pl_sd->base_weapon_delay_adjust.count());

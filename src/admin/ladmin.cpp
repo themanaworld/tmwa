@@ -2571,7 +2571,7 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    PRINTF("Variables %i of %i used.\n"_fmt, repeat.size(), ACCOUNT_REG2_NUM);
+                    PRINTF("Variables %zi of %zi used.\n"_fmt, repeat.size(), ACCOUNT_REG2_NUM);
                     auto jlim = std::min(repeat.size(), ACCOUNT_REG2_NUM);
                     for (size_t j = 0; j < jlim; ++j)
                         PRINTF("Variable %s == `%i`\n"_fmt, repeat[j].name, repeat[j].value);
