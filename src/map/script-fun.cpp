@@ -80,14 +80,14 @@ namespace map
         if (st->oid) {                                                                          \
             dumb_ptr<npc_data> nullpo_nd = map_id_is_npc(st->oid);                              \
             if (nullpo_nd && nullpo_nd->name) {                                                 \
-                PRINTF("script:%s: " #error " @ %s\n"_fmt, BUILTIN_NAME(), nullpo_nd->name);    \
+                PRINTF("script:%s: %s @ %s\n"_fmt, BUILTIN_NAME(), error, nullpo_nd->name);     \
             } else if (nullpo_nd) {                                                             \
-                PRINTF("script:%s: " #error " (unnamed npc)\n"_fmt, BUILTIN_NAME());            \
+                PRINTF("script:%s: %s (unnamed npc)\n"_fmt, BUILTIN_NAME(), error);             \
             } else {                                                                            \
-                PRINTF("script:%s: " #error " (no npc)\n"_fmt, BUILTIN_NAME());                 \
+                PRINTF("script:%s: %s (no npc)\n"_fmt, BUILTIN_NAME(), error);                  \
             }                                                                                   \
         } else {                                                                                \
-            PRINTF("script:%s: " #error " (no npc)\n"_fmt, BUILTIN_NAME());                     \
+            PRINTF("script:%s: %s (no npc)\n"_fmt, BUILTIN_NAME(), error);                      \
         }                                                                                       \
         st->state = ScriptEndState::END;                                                        \
         return;                                                                                 \
