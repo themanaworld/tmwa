@@ -5472,6 +5472,30 @@ void builtin_getmap(ScriptState *st)
 }
 
 /*==========================================
+ * Get the maximum x coordinate of a map
+ *------------------------------------------
+ */
+static
+void builtin_getmapmaxx(ScriptState *st)
+{
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+    push_int<ScriptDataInt>(st->stack, m->xs-1);
+}
+
+/*==========================================
+ * Get the maximum y coordinate of a map
+ *------------------------------------------
+ */
+static
+void builtin_getmapmaxy(ScriptState *st)
+{
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+    push_int<ScriptDataInt>(st->stack, m->ys-1);
+}
+
+/*==========================================
  * Get the NPC's info
  *------------------------------------------
  */
@@ -5732,6 +5756,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getnpcy, "?"_s, 'i'),
     BUILTIN(strnpcinfo, "i?"_s, 's'),
     BUILTIN(getmap, "?"_s, 's'),
+    BUILTIN(getmapmaxx, "M"_s, 'i'),
+    BUILTIN(getmapmaxy, "M"_s, 'i'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(if_then_else, "iii"_s, 'v'),
