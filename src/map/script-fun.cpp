@@ -111,7 +111,7 @@ static
 void builtin_mes(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     sd->state.npc_dialog_mes = 1;
     RString mes = HARG(0) ? conv_str(st, &AARG(0)) : ""_s;
     clif_scriptmes(sd, st->oid, mes);
@@ -125,7 +125,7 @@ static
 void builtin_mesq(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     sd->state.npc_dialog_mes = 1;
     RString mes = HARG(0) ? conv_str(st, &AARG(0)) : ""_s;
     MString mesq;
@@ -145,8 +145,8 @@ void builtin_mesn(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     dumb_ptr<npc_data> nd;
     nd = map_id_is_npc(st->oid);
-    script_nullpo_end(nd, "npc not found");
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(nd, "npc not found"_s);
+    script_nullpo_end(sd, "player not found"_s);
     sd->state.npc_dialog_mes = 1;
     RString mes = HARG(0) ? conv_str(st, &AARG(0)) : RString(nd->name.xislice_h(std::find(nd->name.begin(), nd->name.end(), '#'))); // strnpcinf
     MString mesq;
@@ -164,7 +164,7 @@ static
 void builtin_clear(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     clif_npc_action(sd, st->oid, 9, 0, 0, 0);
 }
 
@@ -389,7 +389,7 @@ static
 void builtin_next(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     st->state = ScriptEndState::STOP;
     clif_scriptnext(sd, st->oid);
 }
@@ -411,7 +411,7 @@ void builtin_close(ScriptState *st)
     }
     st->state = ScriptEndState::END;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if (sd->state.npc_dialog_mes)
         clif_scriptclose(sd, st->oid);
@@ -428,7 +428,7 @@ void builtin_close2(ScriptState *st)
 {
     st->state = ScriptEndState::STOP;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     if (sd->state.npc_dialog_mes)
         clif_scriptclose(sd, st->oid);
     else
@@ -443,7 +443,7 @@ static
 void builtin_menu(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if (sd->state.menu_or_input == 0)
     {
@@ -676,7 +676,7 @@ void builtin_isat(ScriptState *st)
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     push_int<ScriptDataInt>(st->stack,
             (x == sd->bl_x) && (y == sd->bl_y)
@@ -695,7 +695,7 @@ void builtin_warp(ScriptState *st)
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     pc_setpos(sd, str, x, y, BeingRemoveWhy::GONE);
 }
@@ -748,7 +748,7 @@ void builtin_heal(ScriptState *st)
 
     hp = conv_num(st, &AARG(0));
     sp = conv_num(st, &AARG(1));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if(sd != nullptr && (sd->status.hp < 1 && hp > 0)){
         pc_setstand(sd);
@@ -901,7 +901,7 @@ void builtin_input(ScriptState *st)
     char postfix = name.back();
 
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     if (sd->state.menu_or_input)
     {
         // Second time (rerun)
@@ -962,7 +962,7 @@ void builtin_requestitem(ScriptState *st)
     }
 
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     if (sd->state.menu_or_input)
     {
         // Second time (rerunline)
@@ -1055,7 +1055,7 @@ void builtin_requestlang(ScriptState *st)
     ZString name = variable_names.outtern(reg.base());
     char postfix = name.back();
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if (postfix != '$')
     {
@@ -1247,7 +1247,7 @@ void builtin_foreach(ScriptState *st)
     else if (st->rid)
         sd = script_rid2sd(st);
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     map_foreachinarea(std::bind(builtin_foreach_sub, ph::_1, event, sd->bl_id),
             m,
@@ -1279,7 +1279,7 @@ void builtin_destroy(ScriptState *st)
     /* Not safe to call destroy if others may also be paused on this NPC! */
     if (st->rid) {
         sd = script_rid2sd(st);
-        script_nullpo_end(sd, "player not found");
+        script_nullpo_end(sd, "player not found"_s);
         npc_event_dequeue(sd);
     }
 
@@ -1453,7 +1453,7 @@ void builtin_set(ScriptState *st)
         else
         {
             bl = script_rid2sd(st);
-            script_nullpo_end(bl, "player not found");
+            script_nullpo_end(bl, "player not found"_s);
         }
 
         int val = conv_num(st, &AARG(1));
@@ -1628,14 +1628,14 @@ void builtin_setarray(ScriptState *st)
             else
                bl = map_id_is_npc(wrap<BlockId>(tid));
         }
-        script_nullpo_end(bl, "npc not found");
+        script_nullpo_end(bl, "npc not found"_s);
         if (st->oid && bl->bl_id != st->oid)
             j = getarraysize2(reg, bl);
     }
     else if (prefix != '$' && !name.startswith(".@"_s))
     {
         bl = map_id_is_player(st->rid);
-        script_nullpo_end(bl, "player not found");
+        script_nullpo_end(bl, "player not found"_s);
     }
 
     for (; i < st->end - st->start - 2 && j < 256; i++, j++)
@@ -1674,7 +1674,7 @@ void builtin_cleararray(ScriptState *st)
     else if (prefix != '$' && !name.startswith(".@"_s))
     {
         bl = map_id_is_player(st->rid);
-        script_nullpo_end(bl, "player not found");
+        script_nullpo_end(bl, "player not found"_s);
     }
 
     for (int i = 0; i < sz; i++)
@@ -1847,7 +1847,7 @@ void builtin_gmlog(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     ZString message = ZString(conv_str(st, &AARG(0)));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     log_atcommand(sd, STRPRINTF("{SCRIPT} %s"_fmt, message));
 }
 
@@ -1861,7 +1861,7 @@ void builtin_setlook(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     LOOK type = LOOK(conv_num(st, &AARG(0)));
     int val = conv_num(st, &AARG(1));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     pc_changelook(sd, type, val);
 
@@ -1881,7 +1881,7 @@ void builtin_countitem(ScriptState *st)
     struct script_data *data;
 
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     data = &AARG(0);
     get_val(st, data);
@@ -1929,7 +1929,7 @@ void builtin_checkweight(ScriptState *st)
     struct script_data *data;
 
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     data = &AARG(0);
     get_val(st, data);
@@ -1978,7 +1978,7 @@ void builtin_getitem(ScriptState *st)
     struct script_data *data;
 
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     data = &AARG(0);
     get_val(st, data);
@@ -2082,7 +2082,7 @@ void builtin_delitem(ScriptState *st)
     struct script_data *data;
 
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     data = &AARG(0);
     get_val(st, data);
@@ -2133,7 +2133,7 @@ static
 void builtin_getversion(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     push_int<ScriptDataInt>(st->stack, unwrap<ClientVersion>(sd->client_version));
 }
 
@@ -2220,7 +2220,7 @@ void builtin_strcharinfo(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     num = conv_num(st, &AARG(0));
     if (num == 0)
@@ -2277,7 +2277,7 @@ void builtin_getequipid(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     num = conv_num(st, &AARG(0));
     IOff0 i = pc_checkequip(sd, equip[num - 1]);
     if (i.ok())
@@ -2336,7 +2336,7 @@ void builtin_bonus(ScriptState *st)
         type = SP(conv_num(st, &AARG(0)));
     int val = conv_num(st, &AARG(1));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     pc_bonus(sd, type, val);
 
 }
@@ -2357,7 +2357,7 @@ void builtin_bonus2(ScriptState *st)
     int type2 = conv_num(st, &AARG(1));
     int val = conv_num(st, &AARG(2));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     pc_bonus2(sd, type, type2, val);
 
 }
@@ -2378,7 +2378,7 @@ void builtin_skill(ScriptState *st)
     if (HARG(2))
         flag = conv_num(st, &AARG(2));
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     pc_skill(sd, id, level, flag);
     clif_skillinfoblock(sd);
 
@@ -2397,7 +2397,7 @@ void builtin_setskill(ScriptState *st)
     SkillID id = static_cast<SkillID>(conv_num(st, &AARG(0)));
     level = conv_num(st, &AARG(1));
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     level = std::min(level, MAX_SKILL_LEVEL);
     level = std::max(level, 0);
@@ -2415,7 +2415,7 @@ void builtin_getskilllv(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     SkillID id = SkillID(conv_num(st, &AARG(0)));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     push_int<ScriptDataInt>(st->stack, pc_checkskill(sd, id));
 }
 
@@ -2427,7 +2427,7 @@ static
 void builtin_overrideattack(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if (HARG(0))
     {
@@ -2464,7 +2464,7 @@ static
 void builtin_getgmlevel(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     push_int<ScriptDataInt>(st->stack, pc_isGM(sd).get_all_bits());
 }
@@ -2497,7 +2497,7 @@ void builtin_getopt2(ScriptState *st)
     dumb_ptr<map_session_data> sd;
 
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     push_int<ScriptDataInt>(st->stack, static_cast<uint16_t>(sd->opt2));
 
@@ -2514,7 +2514,7 @@ void builtin_setopt2(ScriptState *st)
 
     Opt2 new_opt2 = Opt2(conv_num(st, &AARG(0)));
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if (new_opt2 == sd->opt2)
         return;
@@ -2535,7 +2535,7 @@ void builtin_savepoint(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int x, y;
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
@@ -2635,7 +2635,7 @@ void builtin_openstorage(ScriptState *st)
 //  int sync = 0;
 //  if (st->end >= 3) sync = conv_num(st,& (st->stack->stack_data[st->start+2]));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
 //  if (sync) {
     st->state = ScriptEndState::STOP;
@@ -2655,7 +2655,7 @@ void builtin_getexp(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int base = 0, job = 0;
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     base = conv_num(st, &AARG(0));
     job = conv_num(st, &AARG(1));
@@ -2968,7 +2968,7 @@ void builtin_mobinfo_droparrays(ScriptState *st)
     else if (prefix != '$' && !name.startswith(".@"_s))
     {
         bl = map_id_is_player(st->rid);
-        script_nullpo_end(bl, "player not found");
+        script_nullpo_end(bl, "player not found"_s);
     }
 
     switch (request)
@@ -3321,7 +3321,7 @@ void builtin_addtimer(ScriptState *st)
     else if (st->rid)
         sd = script_rid2sd(st);
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     pc_addeventtimer(sd, tick, event);
 }
@@ -3354,7 +3354,7 @@ void builtin_initnpctimer(ScriptState *st)
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
     else
         nd_ = map_id_is_npc(st->oid);
-    script_nullpo_end(nd_, "no npc");
+    script_nullpo_end(nd_, "no npc"_s);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
     dumb_ptr<npc_data_script> nd = nd_->is_script();
 
@@ -3375,7 +3375,7 @@ void builtin_startnpctimer(ScriptState *st)
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
     else
         nd_ = map_id_is_npc(st->oid);
-    script_nullpo_end(nd_, "no npc");
+    script_nullpo_end(nd_, "no npc"_s);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
     dumb_ptr<npc_data_script> nd = nd_->is_script();
 
@@ -3395,7 +3395,7 @@ void builtin_stopnpctimer(ScriptState *st)
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(0)))));
     else
         nd_ = map_id_is_npc(st->oid);
-    script_nullpo_end(nd_, "no npc");
+    script_nullpo_end(nd_, "no npc"_s);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
     dumb_ptr<npc_data_script> nd = nd_->is_script();
 
@@ -3417,7 +3417,7 @@ void builtin_getnpctimer(ScriptState *st)
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(1)))));
     else
         nd_ = map_id_is_npc(st->oid);
-    script_nullpo_end(nd_, "no npc");
+    script_nullpo_end(nd_, "no npc"_s);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
     dumb_ptr<npc_data_script> nd = nd_->is_script();
 
@@ -3450,7 +3450,7 @@ void builtin_setnpctimer(ScriptState *st)
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARG(1)))));
     else
         nd_ = map_id_is_npc(st->oid);
-    script_nullpo_end(nd_, "no npc");
+    script_nullpo_end(nd_, "no npc"_s);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
     dumb_ptr<npc_data_script> nd = nd_->is_script();
 
@@ -3469,7 +3469,7 @@ void builtin_npcaction(ScriptState *st)
     int id = 0;
     short x = HARG(2) ? conv_num(st, &AARG(2)) : 0;
     short y = HARG(3) ? conv_num(st, &AARG(3)) : 0;
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if(HARG(1))
     {
@@ -3494,7 +3494,7 @@ static
 void builtin_camera(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if (HARG(0))
     {
@@ -3551,7 +3551,7 @@ void builtin_setnpcdirection(ScriptState *st)
     else
         nd_ = map_id_is_npc(st->oid);
 
-    script_nullpo_end(nd_, "no npc");
+    script_nullpo_end(nd_, "no npc"_s);
 
     if (bool(conv_num(st, &AARG(1))))
         action = DamageType::SIT;
@@ -3567,7 +3567,7 @@ void builtin_setnpcdirection(ScriptState *st)
     if (st->rid)
     {
         dumb_ptr<map_session_data> sd = script_rid2sd(st);
-        script_nullpo_end(sd, "player not found");
+        script_nullpo_end(sd, "player not found"_s);
         clif_sitnpc_towards(sd, nd_, action);
         clif_setnpcdirection_towards(sd, nd_, dir);
     }
@@ -3597,7 +3597,7 @@ void builtin_announce(ScriptState *st)
             bl = map_id2bl(st->oid);
         else
             bl = script_rid2sd(st);
-        script_nullpo_end(bl, "player not found");
+        script_nullpo_end(bl, "player not found"_s);
         clif_GMmessage(bl, str, flag);
     }
     else
@@ -3979,7 +3979,7 @@ void builtin_resetstatus(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd;
     sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     pc_resetstate(sd);
 }
 
@@ -4161,7 +4161,7 @@ void builtin_setpvpchannel(ScriptState *st)
     if (flag < 1)
         flag = 0;
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     sd->state.pvpchannel = flag;
 }
 
@@ -4178,7 +4178,7 @@ void builtin_getpvpflag(ScriptState *st)
     else
         sd = script_rid2sd(st);
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     int num = conv_num(st, &AARG(0));
     int flag = 0;
@@ -4360,7 +4360,7 @@ static
 void builtin_getpartnerid2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status.partner_id));
 }
 
@@ -4425,7 +4425,7 @@ void builtin_explode(ScriptState *st)
     else if (prefix != '$' && prefix != '.')
     {
         bl = map_id2bl(st->rid)->is_player();
-        script_nullpo_end(bl, "target player not found");
+        script_nullpo_end(bl, "target player not found"_s);
     }
 
 
@@ -4476,7 +4476,7 @@ void builtin_getinventorylist(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int j = 0;
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     for (IOff0 i : IOff0::iter())
     {
@@ -4507,7 +4507,7 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
     int skill_pool_size = skill_pool(sd, pool_skills);
     int i, count = 0;
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     for (i = 0; i < skill_pool_size; i++)
     {
@@ -4540,7 +4540,7 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     int i, count = 0;
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     for (i = 0; i < skill_pool_skills.size(); i++)
     {
@@ -4572,7 +4572,7 @@ void builtin_poolskill(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     SkillID skill_id = SkillID(conv_num(st, &AARG(0)));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     skill_pool_activate(sd, skill_id);
     clif_skillinfoblock(sd);
 
@@ -4587,7 +4587,7 @@ void builtin_unpoolskill(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     SkillID skill_id = SkillID(conv_num(st, &AARG(0)));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     skill_pool_deactivate(sd, skill_id);
     clif_skillinfoblock(sd);
 
@@ -4831,7 +4831,7 @@ void builtin_nude(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     for (EQUIP i : EQUIPs)
     {
@@ -4851,7 +4851,7 @@ static
 void builtin_unequipbyid(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     EQUIP slot_id = EQUIP(conv_num(st, &AARG(0)));
 
@@ -4992,7 +4992,7 @@ void builtin_title(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     ZString msg = ZString(conv_str(st, &AARG(0)));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     clif_npc_send_title(sd->sess, st->oid, msg);
 }
 
@@ -5013,7 +5013,7 @@ void builtin_smsg(ScriptState *st)
 
     int type = HARG(1) ? conv_num(st, &AARG(0)) : 0;
     ZString msg = ZString(conv_str(st, (HARG(1) ? &AARG(1) : &AARG(0))));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     if (type < 0 || type > 0xFF)
         type = 0;
 
@@ -5028,7 +5028,7 @@ static
 void builtin_remotecmd(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if (HARG(1))
     {
@@ -5055,7 +5055,7 @@ void builtin_sendcollision(ScriptState *st)
     short x1, y1, x2, y2;
     x1 = x2 = conv_num(st, &AARG(2));
     y1 = y2 = conv_num(st, &AARG(3));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     if (HARG(5))
     {
@@ -5088,7 +5088,7 @@ void builtin_music(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     ZString msg = ZString(conv_str(st, &AARG(0)));
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     clif_change_music(sd, msg);
 }
 
@@ -5113,7 +5113,7 @@ void builtin_mapmask(ScriptState *st)
     else if(HARG(1) && nd)
         nd->bl_m->mask = map_mask;
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     clif_send_mask(sd, map_mask);
 }
 
@@ -5195,7 +5195,7 @@ void builtin_getlook(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     LOOK type = LOOK(conv_num(st, &AARG(0)));
     int val = -1;
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     switch (type)
     {
@@ -5239,7 +5239,7 @@ void builtin_getsavepoint(ScriptState *st)
 {
     int x, y, type;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     type = conv_num(st, &AARG(0));
 
@@ -5333,7 +5333,7 @@ void builtin_isin(ScriptState *st)
     x2 = conv_num(st, &AARG(3));
     y2 = conv_num(st, &AARG(4));
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     push_int<ScriptDataInt>(st->stack,
               (sd->bl_x >= x1 && sd->bl_x <= x2)
@@ -5369,7 +5369,7 @@ void builtin_shop(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     dumb_ptr<npc_data> nd;
 
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARG(0))));
     nd = npc_name2id(name);
@@ -5387,7 +5387,7 @@ static
 void builtin_isdead(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
 
     push_int<ScriptDataInt>(st->stack, pc_isdead(sd));
 }
@@ -5421,7 +5421,7 @@ static
 void builtin_getx(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     push_int<ScriptDataInt>(st->stack, sd->bl_x);
 }
 
@@ -5433,7 +5433,7 @@ static
 void builtin_gety(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     push_int<ScriptDataInt>(st->stack, sd->bl_y);
 }
 
@@ -5445,7 +5445,7 @@ static
 void builtin_getdir(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found");
+    script_nullpo_end(sd, "player not found"_s);
     push_int<ScriptDataInt>(st->stack, static_cast<uint8_t>(sd->dir));
 }
 
@@ -5524,7 +5524,7 @@ void builtin_strnpcinfo(ScriptState *st)
         nd = map_id_is_npc(st->oid);
     }
 
-    script_nullpo_end(nd, "npc not found");
+    script_nullpo_end(nd, "npc not found"_s);
 
     switch(num)
     {
@@ -5562,7 +5562,7 @@ void builtin_getnpcx(ScriptState *st)
         nd = map_id_is_npc(st->oid);
     }
 
-    script_nullpo_end(nd, "no npc");
+    script_nullpo_end(nd, "no npc"_s);
 
     push_int<ScriptDataInt>(st->stack, nd->bl_x);
 }
@@ -5584,7 +5584,7 @@ void builtin_getnpcy(ScriptState *st)
         nd = map_id_is_npc(st->oid);
     }
 
-    script_nullpo_end(nd, "no npc");
+    script_nullpo_end(nd, "no npc"_s);
 
     push_int<ScriptDataInt>(st->stack, nd->bl_y);
 }
