@@ -78,6 +78,10 @@ public:
     {
         return borrow(impl[k]);
     }
+    void erase_if(std::function<bool(const std::pair<K, V>&)> predicate)
+    {
+        std::erase_if(impl, predicate);
+    }
     void erase(const K& k)
     {
         impl.erase(k);

@@ -1053,13 +1053,9 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     // Also clean up any events we registered to the global ev_db
     if (auto nd = nd_->is_script())
     {
-        for (auto& pair : ev_db)
-        {
-            if (pair.second.nd == nd)
-            {
-                ev_db.erase(pair.first);
-            }
-        }
+        ev_db.erase_if([&](auto& pair) {
+            return pair.second.nd == nd;
+        });
     }
 
     nd_.delete_();
