@@ -1053,9 +1053,18 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     // Also clean up any events we registered to the global ev_db
     if (auto nd = nd_->is_script())
     {
-        ev_db.erase_if([&](auto& pair) {
-            return pair.second.nd == nd;
-        });
+        std::vector<NpcEvent> to_erase;
+        for (auto& pair : ev_db)
+        {
+            if (pair.second.nd == nd)
+            {
+                to_erase.push_back(pair.first);
+            }
+        }
+        for (auto& key : to_erase)
+        {
+            ev_db.erase(key);
+        }
     }
 
     nd_.delete_();
