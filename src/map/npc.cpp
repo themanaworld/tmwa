@@ -767,7 +767,8 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
         }
     }
 
-    if (npc_checknear(sd, id)) {
+    if (npc_checknear(sd, id))
+    {
         clif_scriptclose(sd, id);
         return 1;
     }
