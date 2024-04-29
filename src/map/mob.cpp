@@ -2556,10 +2556,12 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     // activity
     if (sd)
+    {
         if (sd->activity.attacks == 2147483647)
             sd->activity.attacks = 1;
         else
             sd->activity.attacks++;
+    }
 
     if (md->hp > 0)
     {
