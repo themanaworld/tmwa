@@ -357,7 +357,7 @@ void npc_eventtimer(TimerData *, tick_t, BlockId, NpcEvent data)
                     data);
         return;
     });
-    if ((nd = ev->nd) == nullptr || nd->deletion_pending == true)
+    if ((nd = ev->nd) == nullptr || nd->deletion_pending != npc_data::NOT_DELETING)
     {
         if (battle_config.error_log)
             PRINTF("npc_event: event not found [%s]\n"_fmt,
@@ -591,7 +591,7 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
         ev.pos = ev2->pos;
     }
 
-    if ((nd = ev.nd) == nullptr || nd->deletion_pending == true)
+    if ((nd = ev.nd) == nullptr || nd->deletion_pending != npc_data::NOT_DELETING)
     {
         if (!mob_kill && battle_config.error_log)
             PRINTF("npc_event: event not found [%s]\n"_fmt,
@@ -774,6 +774,14 @@ int npc_click(dumb_ptr<map_session_data> sd, BlockId id)
 
     nd = map_id_is_npc(id);
 
+    // If someone clicked on an NPC that is about to no longer exist, then
+    // release them
+    if (nd->deletion_pending != npc_data::NOT_DELETING)
+    {
+        clif_scriptclose(sd, id);
+        return 1;
+    }
+
     if (nd->flag & 1)           // 無効化されている
         return 1;
 
@@ -818,7 +826,8 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
 
     nd = map_id_is_npc(id);
 
-    if (!nd /* NPC was disposed? */)
+    // If the NPC is about to be deleted, release the PC
+    if (nd->deletion_pending != npc_data::NOT_DELETING)
     {
         clif_scriptclose(sd, id);
         npc_event_dequeue(sd);
@@ -1091,10 +1100,10 @@ void npc_propagate_update(dumb_ptr<npc_data> nd)
 
 void npc_free(dumb_ptr<npc_data> nd)
 {
-    if (nd == nullptr || nd->deletion_pending == true)
+    if (nd == nullptr || nd->deletion_pending == npc_data::DELETION_ACTIVE)
         return;
 
-    nd->deletion_pending = true;
+    nd->deletion_pending = npc_data::DELETION_ACTIVE;
     nd->flag |= 1;
     clif_clearchar(nd, BeingRemoveWhy::GONE);
     npc_propagate_update(nd);

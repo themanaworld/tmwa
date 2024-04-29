@@ -360,7 +360,11 @@ struct npc_data : block_list
     Opt0 option;
     short flag;
 
-    bool deletion_pending;
+    enum {
+        NOT_DELETING = 0,
+        DELETION_QUEUED = 1,
+        DELETION_ACTIVE = 2
+    } deletion_pending;
 
     Array<Timer, MAX_EVENTTIMER> eventtimer;
 

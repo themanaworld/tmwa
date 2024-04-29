@@ -1283,8 +1283,19 @@ void builtin_destroy(ScriptState *st)
         npc_event_dequeue(sd);
     }
 
+    // Cancel all existing timers on the NPC.
+    // They "would" never fire, and we don't want race conditions here.
+    for (int i = 0; i < MAX_EVENTTIMER; i++)
+    {
+        nd->eventtimer[i].cancel();
+    }
+    // Schedule the NPC to be freed on the next available tick.
+    // Scripts can be invoked under iteration of the ev_db global event
+    // database, and we don't want to invalidate active iterators.
+    nd->deletion_pending = npc_data::DELETION_QUEUED;
+    nd->eventtimer[0] = Timer(gettick(), std::bind(npc_free, nd));
+
     nd = nd->is_script();
-    npc_free(nd);
     st->oid = BlockId();
 
     if (!HARG(0))
@@ -1350,7 +1361,7 @@ void builtin_puppet(ScriptState *st)
     nd->npc_subtype = NpcSubtype::SCRIPT;
     npc_script++;
 
-    nd->deletion_pending = false;
+    nd->deletion_pending = npc_data::NOT_DELETING;
 
     nd->n = map_addnpc(nd->bl_m, nd);
 
