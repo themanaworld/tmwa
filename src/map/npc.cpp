@@ -831,14 +831,14 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
     {
         clif_scriptclose(sd, id);
         npc_event_dequeue(sd);
-        return 0;
+        return 1;
     }
 
     if (nd->is_script()->scr.parent &&
         map_id2bl(nd->is_script()->scr.parent) == nullptr)
     {
         npc_free(nd);
-        return 0;
+        return 1;
     }
 
     sd->npc_pos = run_script(ScriptPointer(script_or_parent(nd->is_script()), sd->npc_pos), sd->bl_id, id);
