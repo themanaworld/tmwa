@@ -3727,6 +3727,23 @@ void builtin_aggravate(ScriptState *st)
 }
 
 /*==========================================
+ *  Check for summoned creature
+ *------------------------------------------
+ */
+static
+void builtin_issummon(ScriptState *st)
+{
+    dumb_ptr<mob_data> md = map_id_is_mob(wrap<BlockId>(conv_num(st, &AARG(0))));
+    int val = 0;
+    if (md && md->name.contains_seq("Summon"_s))
+    {
+        val = 1;
+    }
+    
+    push_int<ScriptDataInt>(st->stack, val);
+}
+
+/*==========================================
  * エリア指定ユーザー数所得
  * Area Designated User Income
  *------------------------------------------
@@ -5757,6 +5774,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(shop, "s"_s, '\0'),
     BUILTIN(isdead, ""_s, 'i'),
     BUILTIN(aggravate, "i?"_s, '\0'),
+    BUILTIN(issummon, "i?"_s, 'i'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
     BUILTIN(puppet, "mxysi??"_s, 'i'),
     BUILTIN(destroy, "?"_s, '\0'),
