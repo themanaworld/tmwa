@@ -5774,7 +5774,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(shop, "s"_s, '\0'),
     BUILTIN(isdead, ""_s, 'i'),
     BUILTIN(aggravate, "i?"_s, '\0'),
-    BUILTIN(issummon, "i?"_s, 'i'),
+    BUILTIN(issummon, "i"_s, 'i'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
     BUILTIN(puppet, "mxysi??"_s, 'i'),
     BUILTIN(destroy, "?"_s, '\0'),
