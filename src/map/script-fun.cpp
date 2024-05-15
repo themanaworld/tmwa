@@ -3735,9 +3735,9 @@ void builtin_issummon(ScriptState *st)
 {
     dumb_ptr<mob_data> md = map_id_is_mob(wrap<BlockId>(conv_num(st, &AARG(0))));
     int val = 0;
-    if (md && md->name.contains_seq("Summon"_s))
+    if (md)
     {
-        val = 1;
+        val |= (md->mode & MobMode::SUMMONED); 
     }
     
     push_int<ScriptDataInt>(st->stack, val);
