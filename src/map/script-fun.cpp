@@ -3737,7 +3737,7 @@ void builtin_issummon(ScriptState *st)
     int val = 0;
     if (md)
     {
-        val |= (md->mode & MobMode::SUMMONED); 
+        val = bool(md->mode & MobMode::SUMMONED); 
     }
     
     push_int<ScriptDataInt>(st->stack, val);
