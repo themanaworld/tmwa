@@ -3188,8 +3188,8 @@ void builtin_summon(ScriptState *st)
         }
 
         mob->mode |=
-            MobMode::SUMMONED | MobMode::TURNS_AGAINST_BAD_MASTER;
-
+            MobMode::SUMMONED;  // | MobMode::TURNS_AGAINST_BAD_MASTER; <- its fun but bugged.
+                                //   This flag identified to be source of AFK PK city exploits, etc.
         mob->deletetimer = Timer(gettick() + lifespan,
                 std::bind(mob_timer_delete, ph::_1, ph::_2,
                     mob_id));
