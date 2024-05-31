@@ -544,7 +544,7 @@ def build_config():
     char_conf.opt('char_ip', IP4Address, '{}')
     char_conf.opt('char_port', u16, '6121', min='1024')
     char_conf.opt('char_txt', RString, '{}')
-    char_conf.opt('max_connect_user', u32, '0')
+    char_conf.opt('max_connect_user', i32, '0')
     char_conf.opt('autosave_time', seconds, 'DEFAULT_AUTOSAVE_INTERVAL', {char_h}, min='1_s')
     char_conf.opt('start_point', Point, '{ {"001-1.gat"_s}, 273, 354 }')
     char_conf.opt('unknown_char_name', CharName, 'stringish<CharName>("Unknown"_s)')
