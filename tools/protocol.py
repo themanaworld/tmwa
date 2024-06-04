@@ -7124,7 +7124,7 @@ def make_dots(ctx):
     #p = partition({k: ids_only(v.post) for (k, v) in d.items()})
 
     if not os.path.exists('doc-gen'):
-        # generate.make will succeed if missing the wiki repo
+        # generate.mk will succeed if missing the wiki repo
         # but 'make doc' will fail
         return
     for g in glob.glob('doc-gen/*.gv'):

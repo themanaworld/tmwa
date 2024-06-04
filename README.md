@@ -29,7 +29,7 @@ attoconf), but for any discussions related to TMW development.
 ## 1. Distributors.
 ### Important notes:
 
-- Go read [version.make](version.make)
+- Go read [version.mk](version.mk)
 - TMWA requires git to build by default, use 'make dist' to get a tarball.
 
 ### Platform dependencies:

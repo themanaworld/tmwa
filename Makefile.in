@@ -152,7 +152,7 @@ $(info The Road goes ever on and on ...)
 endif
 endif
 
-include ${SRC_DIR}/version.make
+include ${SRC_DIR}/version.mk
 
 ifeq (${ENABLE_SHARED},yes)
 LIB_SUFFIX_FAKE := so
@@ -184,7 +184,7 @@ export PATH:=$(realpath ${SRC_DIR}/tools):${PATH}
 SHELL=bash
 
 # need to generate source files before path lists
-$(shell make -f ${SRC_DIR}/generate.make >&2)
+$(shell make -f ${SRC_DIR}/generate.mk >&2)
 stamp/generated.stamp:
 	# if you get here, the shell above failed
 	false
@@ -688,15 +688,15 @@ override CPPFLAGS += -I . -I ${SRC_DIR}/include
 
 # distribution tarballs
 # this only works from within a git checkout
-dist/%/version.make:
+dist/%/version.mk:
 	$(MKDIR_FIRST)
-	git --git-dir=${SRC_DIR}/.git show HEAD:version.make > $@
+	git --git-dir=${SRC_DIR}/.git show HEAD:version.mk > $@
 	sed 's/^VERSION_FULL := .*/#&\nVERSION_FULL := ${VERSION_FULL}/' -i $@
 	sed 's/^VERSION_HASH := .*/#&\nVERSION_HASH := ${VERSION_HASH}/' -i $@
-dist/%-src.tar: dist/%/version.make
+dist/%-src.tar: dist/%/version.mk
 	git --git-dir=${SRC_DIR}/.git archive --prefix=$*/ -o $@ HEAD
-	( mtime="$$(git --git-dir=${SRC_DIR}/.git log -n1 --pretty=%ci)" && cd dist && tar uf $*-src.tar --mtime="$${mtime}" --mode=664 --owner=root --group=root $*/version.make )
-	rm dist/$*/version.make
+	( mtime="$$(git --git-dir=${SRC_DIR}/.git log -n1 --pretty=%ci)" && cd dist && tar uf $*-src.tar --mtime="$${mtime}" --mode=664 --owner=root --group=root $*/version.mk )
+	rm dist/$*/version.mk
 	rmdir dist/$*/
 dist/%-attoconf-only.tar:
 	$(MKDIR_FIRST)
