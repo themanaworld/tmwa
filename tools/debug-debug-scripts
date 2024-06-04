@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 from __future__ import print_function
 
@@ -34,6 +34,12 @@ error = False
 
 def eprint(s):
     print('Error:', s, file=sys.stderr)
+
+# Implement an equivalent to Python 2's execfile for Python 3
+def execfile(filename, globals=None, locals=None):
+    with open(filename, 'r') as f:
+        code = compile(f.read(), filename, 'exec')
+        exec(code, globals, locals)
 
 def get_classes_from_file(a):
     global error
