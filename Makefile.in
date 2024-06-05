@@ -372,13 +372,17 @@ $(foreach root,${PATTERN_ROOTS},$(eval \
 
 # Secondly, make sure that the files actually exist, or are files we expect to
 # generate ourselves. Sort the result for readability.
-# Note that we re-add and remove the ${SRC_DIR} prefix when testing for
+# Note that we re-add and remove the ${SRC_DIR} prefix when first testing for
 # existence, as we need to test for existence relative to our build directory.
+# The second wildcard test doesn't add a ${SRC_DIR} prefix, but does strip it,
+# handling the case where the file is specified relative to the source
+# directory (mostly the case in test sources).
 $(foreach root,${PATTERN_ROOTS},$(eval \
 	${root} := $(sort \
 		$(patsubst ${SRC_DIR}/%,%,$(wildcard $(addprefix ${SRC_DIR}/, \
 			$(value ${root}) \
 		))) \
+		$(patsubst ${SRC_DIR}/%,%,$(wildcard ${SRC_DIR})) \
 		$(filter conf-raw/%.h,$(value ${root})) \
 		$(filter ${GENERATED_FILES},$(value ${root})) \
 	) \
@@ -738,7 +742,7 @@ conf-raw/str-%.h: FORCE
 
 FORCE:: ;
 .PHONY: FORCE
-override CPPFLAGS += -I. -I${SRC_DIR}/include
+override CPPFLAGS += -I. -I${SRC_DIR} -I${SRC_DIR}/include
 
 # distribution tarballs
 # this only works from within a git checkout
