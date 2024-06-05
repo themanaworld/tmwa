@@ -1,6 +1,31 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(tmwAthena)
+# Function for conveniently capturing git output, used to set version related variables
+find_package(Git REQUIRED)
+function(git_capture_output var)
+    execute_process(COMMAND ${GIT_EXECUTABLE} ${ARGN}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE ${var}
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+    message(STATUS "${var} = ${${var}}")
+    set(${var} ${${var}} PARENT_SCOPE)
+endfunction()
+
+git_capture_output(VERSION_FULL describe --tags)
+git_capture_output(VERSION_HASH rev-parse HEAD)
+
+# Capture the major.minor.patch part of the version based on the last tag
+string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VERSION ${VERSION_FULL})
+
+# Capture the tweak part of the version
+if(${VERSION_FULL} MATCHES "^v[0-9]+\\.[0-9]+\\.[0-9]+-([0-9]+)-g[0-9a-f]+$")
+    set(VERSION "${VERSION}.${CMAKE_MATCH_1}")
+else()
+    set(VERSION "${VERSION}.0")
+endif()
+
+project(tmwAthena VERSION ${VERSION} LANGUAGES CXX)
 
 # Prefer to use G++ as the compiler
 set(CMAKE_CXX_COMPILER g++)
@@ -39,8 +64,32 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fstack-protector -fno-strict-aliasi
 # Add debug information
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
 
-set_source_files_properties($(ALL_SOURCES) PROPERTIES IMPLICIT_DEPENDS CXX)
+# Vendor Name: String (no newlines, no parentheses)
+# This is usually one word, and does not (usually) change over time.
+# (Examples: Gentoo, Debian, Fedora, Ubuntu)
+set(VENDOR_NAME Vanilla)
+# Vendor Point: Integer (max value 65535)
+# This is intended to be the "packaging revision number", assuming that's
+# an integer. At a minimum, please try to make it nonzero if you have
+# any non-upstream patches (unconditionally nonzero is also okay).
+# (If your revision 0 package has patches ... please be nicer to upstream)
+set(VENDOR_POINT 0)
+# URL where the source may be found (after searching for version number).
+# See AGPLv3 section 13
+set(VENDOR_SOURCE https://github.com/themanaworld/tmwa)
 
+# Convenience
+set(VERSION_STRING "TMWA ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH} dev${PROJECT_VERSION_TWEAK} +${VENDOR_POINT} (${VENDOR_NAME})")
+set(VERSION_DOTS "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.${PROJECT_VERSION_TWEAK}.${VENDOR_POINT}")
+
+include(GNUInstallDirs)
+set(PACKAGEDATADIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/tmwa")
+set(PACKAGELOCALSTATEDIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/tmwa")
+set(PACKAGESYSCONFDIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/tmwa")
+
+configure_file(src/conf/install.hpp.in src/conf/install.hpp @ONLY)
+configure_file(src/conf/version.hpp.in src/conf/version.hpp @ONLY)
+set(conf_SOURCES ${conf_SOURCES} src/conf/install.hpp src/conf/version.hpp)
 
 # Add a shared library: libtmwa-shared.so.0
 # When we add_executable later, we need to link against this library.
@@ -52,7 +101,7 @@ add_library(tmwa-shared SHARED ${shared_SOURCES}
   ${strings_SOURCES}
 )
 # SO versioning
-set_target_properties(tmwa-shared PROPERTIES VERSION 23.10.22.24.0 SOVERSION 0)
+set_target_properties(tmwa-shared PROPERTIES VERSION ${PROJECT_VERSION}.0 SOVERSION 0)
 
 # We have four binaries we want to build: tmwa-{login,char,map,admin}
 add_executable(tmwa-login ${login_SOURCES}

@@ -1,0 +1,39 @@
+#pragma once
+//    conf/version.hpp - Import configuration variables related to version.
+//
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
+//
+//    This file is part of The Mana World (Athena server)
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+// just mention "fwd.hpp" to make formatter happy
+
+#define VERSION_FULL "@VERSION_FULL@"_s
+#define VERSION_HASH "@VERSION_HASH@"_s
+
+#define VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define VERSION_PATCH @PROJECT_VERSION_PATCH@
+#define VERSION_DEVEL @PROJECT_VERSION_TWEAK@
+
+#define VENDOR_NAME "@VENDOR_NAME@"_s
+#define VENDOR_POINT @VENDOR_POINT@
+#define VENDOR_SOURCE "@VENDOR_SOURCE@"_s
+
+#define VERSION_STRING "@VERSION_STRING@"_s
+
+namespace tmwa
+{
+} // namespace tmwa
