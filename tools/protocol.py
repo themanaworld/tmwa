@@ -84,7 +84,7 @@ class OpenWrite(object):
         self.filename = filename
 
     def __enter__(self):
-        self.handle = open(self.filename + '.tmp', 'w')
+        self.handle = open(self.filename + '.tmp', 'w', encoding='utf-8')
         return self.handle
 
     def __exit__(self, ty, v, tb):
