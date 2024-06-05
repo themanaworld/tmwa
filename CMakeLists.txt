@@ -98,8 +98,8 @@ set(VERSION_DOTS "${PROJECT_VERSION}.${VENDOR_POINT}")
 
 include(GNUInstallDirs)
 set(PACKAGEDATADIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/tmwa")
-set(PACKAGELOCALSTATEDIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/tmwa")
-set(PACKAGESYSCONFDIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/tmwa")
+set(LOCALSTATEDIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
+set(SYSCONFDIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}")
 
 # Generate the install.hpp and version.hpp files in the source directory.
 # TODO: Is there a nicer way to handle this so we're still able to make fully

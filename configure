@@ -112,7 +112,9 @@ def main():
     srcdir = os.path.dirname(sys.argv[0])
     proj = Configuration(
             srcdir=srcdir,
-            template_files=['Makefile'],
+            # Note that src/conf/version.hpp is made later, by Makefile.
+            # See version.mk (included by Makefile).
+            template_files=['Makefile', 'src/conf/install.hpp'],
     )
     proj.set_package('tmwa', 'The Mana World (Athena server)');
     proj.jiggle()

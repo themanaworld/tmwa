@@ -386,6 +386,7 @@ vpath include/%.hpp ${SRC_DIR}
 vpath src/%.tcc ${SRC_DIR}
 vpath tools/% ${SRC_DIR}
 vpath src/%.py ${SRC_DIR}
+vpath src/%.in ${SRC_DIR}
 
 .DELETE_ON_ERROR:
 .DEFAULT_GOAL := all

@@ -20,8 +20,8 @@
 
 // just mention "fwd.hpp" to make formatter happy
 
-#define PACKAGESYSCONFDIR "@PACKAGESYSCONFDIR@"_s
-#define PACKAGELOCALSTATEDIR "@PACKAGELOCALSTATEDIR@"_s
+#define PACKAGESYSCONFDIR "@SYSCONFDIR@/tmwa"_s
+#define PACKAGELOCALSTATEDIR "@LOCALSTATEDIR@/tmwa"_s
 #define PACKAGEDATADIR "@PACKAGEDATADIR@"_s
 
 namespace tmwa

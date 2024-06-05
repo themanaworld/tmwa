@@ -50,6 +50,29 @@ SO_SHORT := so.${ABI_VERSION}
 SO_LONG := ${SO_SHORT}.${VERSION_DOTS}
 # and thanks for all the fish
 
+# Fully generate version.hpp here, where we have all the relevant information.
+# version.mk is included by the top level Makefile, so simply explaning how to
+# make it here will let it be built later, when needed.
+# Note that some variable substitutions are slightly different here to use the
+# name used by standard CMake macros, such as PROJECT_VERSION_TWEAK instead of
+# VERSION_DEVEL.
+src/conf/version.hpp: src/conf/version.hpp.in
+	sed -e 's/@VERSION_FULL@/${VERSION_FULL}/g' \
+	    -e 's/@VERSION_HASH@/${VERSION_HASH}/g' \
+	    -e 's/@VERSION_STRING@/${VERSION_STRING}/g' \
+	    -e 's/@PROJECT_VERSION_MAJOR@/${VERSION_MAJOR}/g' \
+	    -e 's/@PROJECT_VERSION_MINOR@/${VERSION_MINOR}/g' \
+	    -e 's/@PROJECT_VERSION_PATCH@/${VERSION_PATCH}/g' \
+	    -e 's/@PROJECT_VERSION_TWEAK@/${VERSION_DEVEL}/g' \
+	    -e 's/@VENDOR_NAME@/${VENDOR_NAME}/g' \
+	    -e 's/@VENDOR_POINT@/${VENDOR_POINT}/g' \
+	    -e 's|@VENDOR_SOURCE@|${VENDOR_SOURCE}|g' \
+	    -e 's/@ABI_VERSION@/${ABI_VERSION}/g' \
+	    -e 's/@SO_SHORT@/${SO_SHORT}/g' \
+	    -e 's/@SO_LONG@/${SO_LONG}/g' \
+	    $< > $@
+
+
 version:
 	@echo version '${VERSION_STRING}'
 	@echo based on commit ${VERSION_FULL} aka ${VERSION_HASH}
