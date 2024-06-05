@@ -101,8 +101,12 @@ set(PACKAGEDATADIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/tmwa")
 set(PACKAGELOCALSTATEDIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/tmwa")
 set(PACKAGESYSCONFDIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/tmwa")
 
-configure_file(src/conf/install.hpp.in src/conf/install.hpp @ONLY)
-configure_file(src/conf/version.hpp.in src/conf/version.hpp @ONLY)
+# Generate the install.hpp and version.hpp files in the source directory.
+# TODO: Is there a nicer way to handle this so we're still able to make fully
+# out-of-tree builds, generating the files in the build directory, but still
+# having them found by includes?
+configure_file(src/conf/install.hpp.in ${CMAKE_SOURCE_DIR}/src/conf/install.hpp @ONLY)
+configure_file(src/conf/version.hpp.in ${CMAKE_SOURCE_DIR}/src/conf/version.hpp @ONLY)
 set(conf_SOURCES ${conf_SOURCES} src/conf/install.hpp src/conf/version.hpp)
 
 # Add a shared library: libtmwa-shared.so.0
