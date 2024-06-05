@@ -15,9 +15,8 @@ variables: &base_vars
     - apt-get update
     - apt-get install -y -qq $INSTALL_PACKAGES $DEBIAN_COMMON_PACKAGES
 
-
 # Active server OS?
-re:ubuntu1804:build:
+re:ubuntu1804-attoconf:build:
   <<: *prerequisites
   stage: build
   image: ubuntu:18.04
@@ -39,11 +38,8 @@ re:ubuntu1804:build:
     untracked: true
     expire_in: 30 mins
 
-
-
-
 # Next server OS?
-re:ubuntu2204:build:
+re:ubuntu2204-attoconf:build:
   <<: *prerequisites
   stage: build
   image: ubuntu:22.04
@@ -64,16 +60,48 @@ re:ubuntu2204:build:
     untracked: true
     expire_in: 30 mins
 
-
+# Next server OS, with cmake
+re:ubuntu2204:build:
+  <<: *prerequisites
+  stage: build
+  image: ubuntu:22.04
+  variables:
+    <<: *base_vars
+    INSTALL_PACKAGES: python3 cmake
+  script:
+    - git submodule update --init
+    - git fetch -t
+    - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local ..
+    - make
+    - whoami
+    - make install
+  artifacts: # required for test stage
+    untracked: true
+    expire_in: 30 mins
 
 
 # Disabled. fails with:
 # (1) GDB failing to resolve a type
 # (2) /usr/bin/ld: Dwarf Error: Can't find .debug_ranges section.
-.re:ubuntu1804:test:
+.re:ubuntu1804-attoconf:test:
   <<: *prerequisites
   stage: test
   image: ubuntu:18.04
+  variables:
+    <<: *base_vars
+    INSTALL_PACKAGES: python3 gdb
+  script:
+    - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
+    - cd build
+    - make test
+
+re:ubuntu2204-attoconf:test:
+  <<: *prerequisites
+  stage: test
+  image: ubuntu:22.04
   variables:
     <<: *base_vars
     INSTALL_PACKAGES: python3 gdb
