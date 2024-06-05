@@ -55,11 +55,29 @@ add_library(tmwa-shared SHARED ${shared_SOURCES}
 set_target_properties(tmwa-shared PROPERTIES VERSION 23.10.22.24.0 SOVERSION 0)
 
 # We have four binaries we want to build: tmwa-{login,char,map,admin}
-#add_executable(tmwa-login src/login/main.cpp)
-#target_link_libraries(tmwa-login tmwa-shared)
-#add_executable(tmwa-char src/char/main.cpp)
-#target_link_libraries(tmwa-char tmwa-shared)
+add_executable(tmwa-login ${login_SOURCES}
+  ${generic_SOURCES}
+  ${high_SOURCES}
+  ${io_SOURCES}
+  ${mmo_SOURCES}
+  ${net_SOURCES}
+  ${wire_SOURCES}
+)
+target_link_libraries(tmwa-login tmwa-shared)
+
+add_executable(tmwa-char ${char_SOURCES}
+  ${generic_SOURCES}
+  ${high_SOURCES}
+  ${io_SOURCES}
+  ${mmo_SOURCES}
+  ${net_SOURCES}
+  ${wire_SOURCES}
+)
+target_link_libraries(tmwa-char tmwa-shared)
+
 add_executable(tmwa-map ${map_SOURCES}
+  ${ast_SOURCES}
+  ${compat_SOURCES}
   ${generic_SOURCES}
   ${high_SOURCES}
   ${io_SOURCES}
@@ -68,6 +86,7 @@ add_executable(tmwa-map ${map_SOURCES}
   ${wire_SOURCES}
   )
 target_link_libraries(tmwa-map tmwa-shared)
+
 add_executable(tmwa-admin ${admin_SOURCES}
   ${generic_SOURCES}
   ${high_SOURCES}
@@ -78,8 +97,8 @@ add_executable(tmwa-admin ${admin_SOURCES}
 )
 target_link_libraries(tmwa-admin tmwa-shared)
 
-add_executable(tmwa-test ${strtest_SOURCES})
-target_link_libraries(tmwa-test tmwa-shared)
+#add_executable(tmwa-test ${strtest_SOURCES})
+#target_link_libraries(tmwa-test tmwa-shared)
 
 # Some sources and includes are generated, such as the protocol headers.
 # We defer to generate.make for these rules.
