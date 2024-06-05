@@ -347,8 +347,10 @@ thisdir := $(abspath .)
 #   - sorted
 #   - relative and simplified: it's stripped of any absolute path relative to
 #     the current directory after being converted to an absolute path.
+#     This also converts paths from being relative to the build directory to
+#	  being relative to the source directory, if they differ.
 #     This simplifies any construct such as:
-#       src/mmo/../strings/zstring.tcc
+#       ../src/mmo/../strings/zstring.tcc
 #     to:
 #       src/strings/zstring.tcc
 #   - only files which either exist (the purpose of the wildcard function),
@@ -370,9 +372,13 @@ $(foreach root,${PATTERN_ROOTS},$(eval \
 
 # Secondly, make sure that the files actually exist, or are files we expect to
 # generate ourselves. Sort the result for readability.
+# Note that we re-add and remove the ${SRC_DIR} prefix when testing for
+# existence, as we need to test for existence relative to our build directory.
 $(foreach root,${PATTERN_ROOTS},$(eval \
 	${root} := $(sort \
-		$(wildcard $(value ${root})) \
+		$(patsubst ${SRC_DIR}/%,%,$(wildcard $(addprefix ${SRC_DIR}/, \
+			$(value ${root}) \
+		))) \
 		$(filter conf-raw/%.h,$(value ${root})) \
 		$(filter ${GENERATED_FILES},$(value ${root})) \
 	) \
