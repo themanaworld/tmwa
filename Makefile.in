@@ -596,7 +596,7 @@ test: test-rank-fwd
 test-rank-fwd: ${CHECK_RANK_FWDS}
 stamp/%.rank: src/%
 	$(MKDIR_FIRST)
-	includes=$$(grep '#include.*".*/.*"' $< | sed 's/^[^"]*"//;s/"[^"]*$$//;s:/[^/]*$$::' | sort -u | fgrep -vx -e '..' -e 'conf-raw' -e '../conf'); \
+	includes=$$(grep '#include.*".*/.*"' $< | sed 's/^[^"]*"//;s/"[^"]*$$//;s:/[^/]*$$::' | sort -u | fgrep -vx -e '..' -e 'conf-raw' -e '../conf' -e 'src/conf'); \
 	    for inc in $$includes; do if ! test -f ${<D}/fwd.hpp; then continue; fi; echo fgrep -q $${inc}/fwd.hpp ${<D}/fwd.hpp; fgrep -q $${inc}/fwd.hpp ${<D}/fwd.hpp || { echo ${<D}/fwd.hpp:''23: error: No $${inc}/fwd.hpp; exit 1; }; done
 	touch $@
 
