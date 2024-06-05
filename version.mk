@@ -79,3 +79,4 @@ version:
 	@echo source ${VENDOR_SOURCE}
 	@echo abi version ${ABI_VERSION}
 	@echo 'lib so -> ${SO_SHORT} -> ${SO_LONG}'
+.PHONY: version
