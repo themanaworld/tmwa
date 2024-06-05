@@ -438,6 +438,14 @@ obj/%.d: src/%.cpp | stamp/generated.stamp
 	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM \
 	    -MT '$(patsubst obj/%.d,%,$@) := ' \
 	    -MF $@ $<
+# -MG takes the include parameter as-is without prepending the path whenever
+# it's not found, and presumed to be a not-yet generated file.
+# This is troublesome, since real.make tends not to be in the same directory.
+# We work around this by checking to see if a file doesn't exist, and if it
+# doesn't, we prepend the path.
+	for f in $$(sed -e '1s@$(patsubst obj/%.d,%,$@) := \(.*\)@\1@' $@ | tr ' ' \\n | grep -vFx -e : -e \\); do \
+	    test -f "$${f}" || sed -i "s|\($${f}\)|src/$(dir $*)\1|" $@; \
+	done
 endif
 # the above SRC_DIR replacement is not really safe, but it works okayish.
 obj/%.ii: src/%.cpp
