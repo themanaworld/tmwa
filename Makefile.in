@@ -333,9 +333,40 @@ include ${DEPENDS}
 endif
 
 thisdir := $(abspath .)
+
 #$(foreach root,${PATTERN_ROOTS},$(info pre-root: ${root} := $(value ${root}))$(info ))
 # can't do $(filter %.hpp yet)
-$(foreach root,${PATTERN_ROOTS},$(eval ${root} := $(sort $(patsubst ${thisdir}/%,%,$(abspath $(patsubst ${SRC_DIR}/%,%,$(wildcard $(value ${root})) $(filter conf-raw/%.h,$(value ${root}))))))))
+
+# Sanitize the dependencies.
+#
+# ${root} has a value like "mmo/version", and ${mmo/version} in turn has the
+# value of all of its dependencies (from the %.d files).
+#
+# This reassigns the *value of the value* of ${root} to be:
+#   - sorted
+#   - relative and simplified: it's stripped of any absolute path relative to
+#     the current directory after being converted to an absolute path.
+#     This simplifies any construct such as:
+#       src/mmo/../strings/zstring.tcc
+#     to:
+#       src/strings/zstring.tcc
+#   - only files which either exist (the purpose of the wildcard function),
+#     or are in the conf-raw directory (the purpose of the filter function).
+#     This means that if there are any build-time generated files added, this
+#     needs to be modified to not filter them out.
+#
+# The end result for each root will look something like:
+# mmo/version := conf-raw/int-VENDOR_POINT.h conf-raw/int-VERSION_DEVEL.h [...]
+#                src/strings/zstring.tcc src/wire/fwd.hpp
+$(foreach root,${PATTERN_ROOTS},$(eval \
+	${root} := $(sort $(patsubst ${thisdir}/%,%, \
+		$(abspath $(patsubst ${SRC_DIR}/%,%, \
+			$(wildcard $(value ${root})) \
+			$(filter conf-raw/%.h,$(value ${root}) \
+		))) \
+	)) \
+))
+
 # have to redo what we undid to get it as a variable
 $(foreach root,${PATTERN_ROOTS},$(eval obj/${root}.ii obj/${root}.ll obj/${root}.bc obj/${root}.s obj/${root}.pdc.o obj/${root}.pic.o obj/${root}.d : $(value ${root})) )
 #$(foreach root,${PATTERN_ROOTS},$(info post-root: ${root} := $(value ${root}))$(info ))
