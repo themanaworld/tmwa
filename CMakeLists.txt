@@ -115,7 +115,7 @@ add_custom_target(generate
 
 
 # The generate target must be run before building the binaries
-#add_dependencies(tmwa-login generate)
-#add_dependencies(tmwa-char generate)
+add_dependencies(tmwa-login generate)
+add_dependencies(tmwa-char generate)
 add_dependencies(tmwa-map generate)
 add_dependencies(tmwa-admin generate)
