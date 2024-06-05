@@ -170,3 +170,8 @@ target_link_libraries(tmwa-admin tmwa-shared)
 # TODO: Call make -f ${CMAKE_SOURCE_DIR}/generate.mk clean to clean up the
 # generated files. We want this to be run every time we call make clean.
 
+# Install targets
+install(TARGETS tmwa-login tmwa-char tmwa-map tmwa-admin tmwa-shared
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
