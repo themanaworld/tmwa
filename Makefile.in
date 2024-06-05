@@ -358,13 +358,21 @@ thisdir := $(abspath .)
 # The end result for each root will look something like:
 # mmo/version := conf-raw/int-VENDOR_POINT.h conf-raw/int-VERSION_DEVEL.h [...]
 #                src/strings/zstring.tcc src/wire/fwd.hpp
+
+# Firstly, make the paths relative and simplified.
 $(foreach root,${PATTERN_ROOTS},$(eval \
 	${root} := $(sort $(patsubst ${thisdir}/%,%, \
-		$(abspath $(patsubst ${SRC_DIR}/%,%, \
-			$(wildcard $(value ${root})) \
-			$(filter conf-raw/%.h,$(value ${root}) \
-		))) \
+		$(abspath $(patsubst ${SRC_DIR}/%,%, $(value ${root}))) \
 	)) \
+))
+
+# Secondly, make sure that the files actually exist, or are files we expect to
+# generate ourselves. Sort the result for readability.
+$(foreach root,${PATTERN_ROOTS},$(eval \
+	${root} := $(sort \
+		$(wildcard $(value ${root})) \
+		$(filter conf-raw/%.h,$(value ${root})) \
+	) \
 ))
 
 # have to redo what we undid to get it as a variable
