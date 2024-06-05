@@ -29,7 +29,9 @@ re:ubuntu1804:build:
     - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - ./configure --user
+    - mkdir build
+    - cd build
+    - ../configure --user
     - make
     - whoami
     - make install
@@ -52,7 +54,9 @@ re:ubuntu2204:build:
     - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - ./configure --user
+    - mkdir build
+    - cd build
+    - ../configure --user
     - make
     - whoami
     - make install
@@ -75,6 +79,7 @@ re:ubuntu2204:build:
     INSTALL_PACKAGES: python3 gdb
   script:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
+    - cd build
     - make test
 
 re:ubuntu2204:test:
@@ -86,4 +91,5 @@ re:ubuntu2204:test:
     INSTALL_PACKAGES: python3 gdb
   script:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
+    - cd build
     - make test
