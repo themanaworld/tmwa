@@ -683,7 +683,8 @@ conf-raw/bool-%.h: FORCE
 conf-raw/str-%.h: FORCE
 	$(MKDIR_FIRST)
 	@echo '#define $* "$(value $*)"_s' | maybe-replace $@
-FORCE: ;
+
+FORCE:: ;
 .PHONY: FORCE
 override CPPFLAGS += -I . -I ${SRC_DIR}/include
 

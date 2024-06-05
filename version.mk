@@ -50,13 +50,18 @@ SO_SHORT := so.${ABI_VERSION}
 SO_LONG := ${SO_SHORT}.${VERSION_DOTS}
 # and thanks for all the fish
 
+# This is a phony target, so that it always runs.
+# Targets which depend on this will always have their recipes run.
+FORCE:: ;
+.PHONY: FORCE
+
 # Fully generate version.hpp here, where we have all the relevant information.
 # version.mk is included by the top level Makefile, so simply explaning how to
 # make it here will let it be built later, when needed.
 # Note that some variable substitutions are slightly different here to use the
 # name used by standard CMake macros, such as PROJECT_VERSION_TWEAK instead of
 # VERSION_DEVEL.
-src/conf/version.hpp: src/conf/version.hpp.in
+src/conf/version.hpp: src/conf/version.hpp.in FORCE
 	sed -e 's/@VERSION_FULL@/${VERSION_FULL}/g' \
 	    -e 's/@VERSION_HASH@/${VERSION_HASH}/g' \
 	    -e 's/@VERSION_STRING@/${VERSION_STRING}/g' \
