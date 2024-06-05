@@ -88,7 +88,7 @@ class Configuration(Cxx, Install, ConfigHash, Templates):
         # 2) Modern distros ship gtest-1.13+. It requires C++14+, while
         #    TMWA is currently a C++0x codebase.
         self.add_option('GTEST_DIR',
-                init=os.path.join(os.getcwd(), 'deps/googletest/googletest'),
+                init=os.path.join(os.path.abspath(self.srcdir), 'deps/googletest/googletest'),
                 # http://code.google.com/p/googletest/wiki/FAQ#Why_is_it_not_recommended_to_install_a_pre-compiled_copy_of_Goog
                 type=filepath, check=lambda build, GTEST_DIR: None,
                 help='Location of Google Test sources, must contain src/gtest-all.cc (linking to a precompiled library is NOT supported)', hidden=False)
