@@ -23,7 +23,7 @@ re:ubuntu1804:build:
   image: ubuntu:18.04
   variables:
     <<: *base_vars
-    INSTALL_PACKAGES: python
+    INSTALL_PACKAGES: python3
   script:
     - echo "Building TMW Athena $CI_BUILD_NAME"
     - git submodule update --init
@@ -47,9 +47,8 @@ re:ubuntu2204:build:
   image: ubuntu:22.04
   variables:
     <<: *base_vars
-    INSTALL_PACKAGES: python2
+    INSTALL_PACKAGES: python3
   script:
-    - ln -s /usr/bin/python2 /usr/bin/python
     - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
@@ -73,7 +72,7 @@ re:ubuntu2204:build:
   image: ubuntu:18.04
   variables:
     <<: *base_vars
-    INSTALL_PACKAGES: python gdb
+    INSTALL_PACKAGES: python3 gdb
   script:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - make test
@@ -84,8 +83,7 @@ re:ubuntu2204:test:
   image: ubuntu:22.04
   variables:
     <<: *base_vars
-    INSTALL_PACKAGES: python2 gdb
+    INSTALL_PACKAGES: python3 gdb
   script:
-    - ln -s /usr/bin/python2 /usr/bin/python
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - make test
