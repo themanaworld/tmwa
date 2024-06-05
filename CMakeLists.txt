@@ -80,7 +80,7 @@ set(VENDOR_SOURCE https://github.com/themanaworld/tmwa)
 
 # Convenience
 set(VERSION_STRING "TMWA ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH} dev${PROJECT_VERSION_TWEAK} +${VENDOR_POINT} (${VENDOR_NAME})")
-set(VERSION_DOTS "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.${PROJECT_VERSION_TWEAK}.${VENDOR_POINT}")
+set(VERSION_DOTS "${PROJECT_VERSION}.${VENDOR_POINT}")
 
 include(GNUInstallDirs)
 set(PACKAGEDATADIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/tmwa")
@@ -101,7 +101,10 @@ add_library(tmwa-shared SHARED ${shared_SOURCES}
   ${strings_SOURCES}
 )
 # SO versioning
-set_target_properties(tmwa-shared PROPERTIES VERSION ${PROJECT_VERSION}.0 SOVERSION 0)
+set(ABI_VERSION 0)
+set_target_properties(tmwa-shared PROPERTIES
+  VERSION ${ABI_VERSION}.${VERSION_DOTS}
+  SOVERSION ${ABI_VERSION})
 
 # We have four binaries we want to build: tmwa-{login,char,map,admin}
 add_executable(tmwa-login ${login_SOURCES}
