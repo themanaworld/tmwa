@@ -35,6 +35,20 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Some sources and includes are generated, such as the protocol headers.
+# We defer to generate.make for these rules.
+# Note that these are raw Makefile rules, not CMake rules, so a simple
+# add_custom_command() won't work.
+execute_process(COMMAND make -f ${CMAKE_SOURCE_DIR}/generate.mk
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+# The generate target must be re-run when the scripts change
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+  "${PROJECT_SOURCE_DIR}/generate.mk"
+  "${PROJECT_SOURCE_DIR}/tools/config.py"
+  "${PROJECT_SOURCE_DIR}/tools/protocol.py"
+)
+
 # Search through the tree for sources
 # For each subfolder in src, add all .cpp files to a subfolder's SOURCES
 # variable.
@@ -152,22 +166,5 @@ target_link_libraries(tmwa-admin tmwa-shared)
 #add_executable(tmwa-test ${strtest_SOURCES})
 #target_link_libraries(tmwa-test tmwa-shared)
 
-# Some sources and includes are generated, such as the protocol headers.
-# We defer to generate.make for these rules.
-# Note that these are raw Makefile rules, not CMake rules, so a simple
-# add_custom_command() won't work.
-add_custom_target(generate
-    COMMAND make -f ${CMAKE_SOURCE_DIR}/generate.mk
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Generating sources and includes"
-)
-
 # Call make -f ${CMAKE_SOURCE_DIR}/generate.mk clean to clean up the generated
 # files. We want this to be run every time we call make clean.
-
-
-# The generate target must be run before building the binaries
-add_dependencies(tmwa-login generate)
-add_dependencies(tmwa-char generate)
-add_dependencies(tmwa-map generate)
-add_dependencies(tmwa-admin generate)
