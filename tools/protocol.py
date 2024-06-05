@@ -7084,7 +7084,7 @@ def partition(d):
     changed = True
     while changed:
         changed = False
-        for k, vlist in d.items():
+        for k, vlist in list(d.items()):
             if vlist:
                 m = min(leaders[v] for v in vlist)
                 if m < leaders[k]:
@@ -7100,9 +7100,9 @@ def partition(d):
                     leaders[v] = m
 
     followers = {}
-    for k, v in leaders.items():
+    for k, v in list(leaders.items()):
         followers.setdefault(v, []).append(k)
-    return [set(v) for v in followers.values()]
+    return [set(v) for v in list(followers.values())]
 
 def ids_only(vpost):
     rv = [e for e in vpost if not isinstance(e, SpecialEventOrigin)]
@@ -7125,7 +7125,7 @@ def make_dots(ctx):
     for g in glob.glob('doc-gen/Packet-*.md'):
         os.rename(g, g + '.old')
 
-    for (id, p) in d.items():
+    for (id, p) in list(d.items()):
         md = 'doc-gen/Packet-0x%04x.md' % id
         dot = 'doc-gen/packets-around-0x%04x.gv' % id
         with OpenWrite(md) as f:

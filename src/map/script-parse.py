@@ -106,7 +106,7 @@ class ScriptBuffer(object):
         code_begin = code['_M_impl']['_M_start']
         code_end = code['_M_impl']['_M_finish']
         code_size = int(code_end - code_begin)
-        r = iter(range(code_size))
+        r = iter(list(range(code_size)))
         for i in r:
             buf = []
             for label in labels_dict.get(i, []):

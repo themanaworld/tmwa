@@ -257,7 +257,7 @@ class Group(object):
         short_cpp_name = '%s.cpp' % var_name
         cpp_name = os.path.join(path, short_cpp_name)
 
-        values = sorted(self.options.values(), key=lambda o: o.name)
+        values = sorted(list(self.options.values()), key=lambda o: o.name)
 
         desc = 'Config for %s::%s' % (namespace_name, self.name)
         with OpenWrite(hpp_name) as hpp, \
@@ -382,7 +382,7 @@ class Realm(object):
         return rv
 
     def dump(self):
-        for g in self.groups.values():
+        for g in list(self.groups.values()):
             g.dump_in(self.path, self.path.split('/')[-1])
 
 class Everything(object):
@@ -399,7 +399,7 @@ class Everything(object):
     def dump(self):
         for g in glob.glob('src/*/*_conf.[ch]pp'):
             os.rename(g, g + '.old')
-        for v in self.realms.values():
+        for v in list(self.realms.values()):
             v.dump()
         for g in glob.glob('src/*/*_conf.[ch]pp.old'):
             print('Obsolete: %s' % g)
