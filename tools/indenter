@@ -22,7 +22,7 @@
 
 
 from collections import namedtuple
-import cStringIO
+import io
 import string
 import subprocess
 import sys
@@ -113,7 +113,7 @@ class Reader(object):
             self._column += 1
 
 def string_reader(s, name='<string>', line=1, column=1):
-    return Reader(name, cStringIO.StringIO(s), line, column)
+    return Reader(name, io.StringIO(s), line, column)
 
 def take_while(b, r, s):
     assert isinstance(b, bytearray)
