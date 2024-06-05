@@ -167,8 +167,6 @@ add_executable(tmwa-admin ${admin_SOURCES}
 )
 target_link_libraries(tmwa-admin tmwa-shared)
 
-#add_executable(tmwa-test ${strtest_SOURCES})
-#target_link_libraries(tmwa-test tmwa-shared)
+# TODO: Call make -f ${CMAKE_SOURCE_DIR}/generate.mk clean to clean up the
+# generated files. We want this to be run every time we call make clean.
 
-# Call make -f ${CMAKE_SOURCE_DIR}/generate.mk clean to clean up the generated
-# files. We want this to be run every time we call make clean.
