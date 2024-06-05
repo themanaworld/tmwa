@@ -39,7 +39,7 @@ VENDOR_NAME := Vanilla
 VENDOR_POINT := 0
 # URL where the source may be found (after searching for version number).
 # See AGPLv3 section 13
-VENDOR_SOURCE := https://github.com/themanaworld/tmwa
+VENDOR_SOURCE := https://git.themanaworld.org/legacy/tmwa
 
 # Convenience
 VERSION_STRING := TMWA ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH} dev${VERSION_DEVEL} +${VENDOR_POINT} (${VENDOR_NAME})
