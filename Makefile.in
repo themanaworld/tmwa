@@ -488,12 +488,8 @@ obj/%.d: src/%.cpp | stamp/generated.stamp
 	    -MF $@ $<
 # -MG takes the include parameter as-is without prepending the path whenever
 # it's not found, and presumed to be a not-yet generated file.
-# This is troublesome, since real.make tends not to be in the same directory.
-# We work around this by checking to see if a file doesn't exist, and if it
-# doesn't, we prepend the path.
-	for f in $$(sed -e '1s@$(patsubst obj/%.d,%,$@) := \(.*\)@\1@' $@ | tr ' ' \\n | grep -vFx -e : -e \\); do \
-	    test -f "$${f}" || sed -i "s|\($${f}\)|src/$(dir $*)\1|" $@; \
-	done
+# #include statements for generated files should always be relative to the
+# source (or build) directory.
 endif
 # the above SRC_DIR replacement is not really safe, but it works okayish.
 obj/%.ii: src/%.cpp
@@ -742,7 +738,7 @@ conf-raw/str-%.h: FORCE
 
 FORCE:: ;
 .PHONY: FORCE
-override CPPFLAGS += -I . -I ${SRC_DIR}/include
+override CPPFLAGS += -I. -I${SRC_DIR}/include
 
 # distribution tarballs
 # this only works from within a git checkout
