@@ -28,8 +28,8 @@ re:ubuntu1804-attoconf:build:
     - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - mkdir build
-    - cd build
+    - mkdir build-atto
+    - cd build-atto
     - ../configure --user
     - make
     - whoami
@@ -50,8 +50,8 @@ re:ubuntu2204-attoconf:build:
     - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - mkdir build
-    - cd build
+    - mkdir build-atto
+    - cd build-atto
     - ../configure --user
     - make
     - whoami
@@ -72,8 +72,8 @@ re:ubuntu2204:build:
     - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - mkdir build
-    - cd build
+    - mkdir build-cmake
+    - cd build-cmake
     - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local ..
     - make
     - whoami
@@ -90,34 +90,39 @@ re:ubuntu2204:build:
   <<: *prerequisites
   stage: test
   image: ubuntu:18.04
+  needs: ["ubuntu1804-attoconf:build"]
   variables:
     <<: *base_vars
     INSTALL_PACKAGES: python3 gdb
   script:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - cd build
+    - cd build-atto
     - make test
 
+
+# Enabled tests
 re:ubuntu2204-attoconf:test:
   <<: *prerequisites
   stage: test
   image: ubuntu:22.04
+  needs: ["re:ubuntu2204-attoconf:build"]
   variables:
     <<: *base_vars
     INSTALL_PACKAGES: python3 gdb
   script:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - cd build
+    - cd build-atto
     - make test
 
 re:ubuntu2204:test:
   <<: *prerequisites
   stage: test
   image: ubuntu:22.04
+  needs: ["re:ubuntu2204:build"]
   variables:
     <<: *base_vars
     INSTALL_PACKAGES: python3 gdb
   script:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - cd build
+    - cd build-cmake
     - make test
