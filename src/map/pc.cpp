@@ -2389,9 +2389,8 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
     P<struct item_data> item = TRY_UNWRAP(sd->inventory_data[n], return 0);
     nameid = sd->status.inventory[n].nameid;
 
-    if (itemdb_type(nameid) != ItemType::USE)
+    if (item->type != ItemType::USE)
         return 0;
-
     if (item->sex != SEX::UNSPECIFIED && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)

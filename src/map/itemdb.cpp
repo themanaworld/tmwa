@@ -116,14 +116,9 @@ Borrowed<struct item_data> itemdb_search(ItemNameId nameid)
  *
  *------------------------------------------
  */
-int itemdb_isequip(ItemNameId nameid)
+bool itemdb_isequip(ItemNameId nameid)
 {
-    ItemType type = itemdb_type(nameid);
-    return !(type == ItemType::USE
-        || type == ItemType::_2
-        || type == ItemType::JUNK
-        || type == ItemType::_6
-        || type == ItemType::ARROW);
+    return itemdb_isequip2(itemdb_search(nameid));
 }
 
 /*==========================================
@@ -138,18 +133,6 @@ bool itemdb_isequip2(Borrowed<struct item_data> data)
         || type == ItemType::JUNK
         || type == ItemType::_6
         || type == ItemType::ARROW);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int itemdb_isequip3(ItemNameId nameid)
-{
-    ItemType type = itemdb_type(nameid);
-    return (type == ItemType::WEAPON
-        || type == ItemType::ARMOR
-        || type == ItemType::_8);
 }
 
 bool itemdb_readdb(ZString filename)
