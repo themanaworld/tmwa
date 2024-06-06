@@ -1003,12 +1003,18 @@ int npc_selllist(dumb_ptr<map_session_data> sd,
         if (!nameid ||
             sd->status.inventory[item_list[i].ioff2.unshift()].amount < item_list[i].count)
             return 1;
-        if (bool(itemdb_search(nameid)->mode & ItemMode::NO_SELL_TO_NPC))
+
+        OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[item_list[i].ioff2.unshift()])
         {
-            //clif_displaymessage(sd->sess, "This item can't be sold to an NPC."_s);
-            // M+ already outputs "Unable to sell unsellable item." on return value 3.
-            return 3;
+            if (bool(sdidn->mode & ItemMode::NO_SELL_TO_NPC))
+            {
+                //clif_displaymessage(sd->sess, "This item can't be sold to an NPC."_s);
+                // M+ already outputs "Unable to sell unsellable item." on return value 3.
+                return 3;
+            }
         }
+        OMATCH_END ();
+
         if (sd->trade_partner)
             return 2;           // cant sell while trading
         z += static_cast<double>(itemdb_value_sell(nameid)) * item_list[i].count;

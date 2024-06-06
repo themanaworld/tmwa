@@ -135,6 +135,8 @@ enum class ItemMode : uint8_t
     NO_TRADE       = 2,
     NO_SELL_TO_NPC = 4,
     NO_STORAGE     = 8,
+    KEEP_AFTER_USE = 16,
+    DONT_USE_AMMO  = 32,
 };
 ENUM_BITWISE_OPERATORS(ItemMode)
 }

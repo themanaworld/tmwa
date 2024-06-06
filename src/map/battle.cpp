@@ -2060,18 +2060,28 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         // 攻撃対象となりうるので攻撃 | Attack because it can be attacked
         if (sd && sd->status.weapon == ItemLook::W_BOW)
         {
-            IOff0 aidx = sd->equip_index_maybe[EQUIP::ARROW];
-            if (aidx.ok())
+            IOff0 widx = sd->equip_index_maybe[EQUIP::WEAPON];
+
+            OMATCH_BEGIN_SOME (sdidw, sd->inventory_data[widx])
             {
-                if (battle_config.arrow_decrement)
-                    pc_delitem(sd, aidx, 1, 0);
+                if (!bool(sdidw->mode & ItemMode::DONT_USE_AMMO))
+                {
+                    IOff0 aidx = sd->equip_index_maybe[EQUIP::ARROW];
+                    if (aidx.ok())
+                    {
+                        if (battle_config.arrow_decrement)
+                            pc_delitem(sd, aidx, 1, 0);
+                    }
+                    else
+                    {
+                        clif_arrow_fail(sd, 0);
+                        return ATK::ZERO;
+                    }
+                }
             }
-            else
-            {
-                clif_arrow_fail(sd, 0);
-                return ATK::ZERO;
-            }
+            OMATCH_END ();
         }
+
         wd = battle_calc_weapon_attack(src, target, SkillID::ZERO, 0, 0);
 
         // significantly increase injuries for hasted characters

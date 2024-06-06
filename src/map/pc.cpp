@@ -2404,8 +2404,12 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
         }
 
         P<const ScriptBuffer> script = borrow(*sdidn->use_script);
-        clif_useitemack(sd, n, amount - 1, 1);
-        pc_delitem(sd, n, 1, 1);
+
+        if (!bool(sdidn->mode & ItemMode::KEEP_AFTER_USE))
+        {
+            clif_useitemack(sd, n, amount - 1, 1);
+            pc_delitem(sd, n, 1, 1);
+        }
 
         // activity
         if (sd)
