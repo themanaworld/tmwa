@@ -22,12 +22,12 @@
 
 #include "../io/write.hpp"
 
-#include "../proto2/net-Storage.hpp"
+#include "proto2/net-Storage.hpp"
 
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "itemdb.hpp"
 #include "quest.hpp"
-#include "map_conf.hpp"
+#include "map/map_conf.hpp"
 #include "mob.hpp"
 #include "npc-internal.hpp"
 #include "script-parse-internal.hpp"

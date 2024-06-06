@@ -25,10 +25,10 @@
 #include "../compat/borrow.hpp"
 #include "../compat/memory.hpp"
 
-#include "../proto2/net-CharData.hpp"
-#include "../proto2/net-CharKey.hpp"
-#include "../proto2/net-PartyMost.hpp"
-#include "../proto2/net-SkillValue.hpp"
+#include "proto2/net-CharData.hpp"
+#include "proto2/net-CharKey.hpp"
+#include "proto2/net-PartyMost.hpp"
+#include "proto2/net-SkillValue.hpp"
 
 
 namespace tmwa

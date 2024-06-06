@@ -40,7 +40,7 @@
 
 #include "../high/utils.hpp"
 
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
 #include "itemdb.hpp"
@@ -814,7 +814,7 @@ interval_t battle_get_adelay(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 interval_t battle_get_amotion(dumb_ptr<block_list> bl)
@@ -845,7 +845,7 @@ interval_t battle_get_amotion(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 interval_t battle_get_dmotion(dumb_ptr<block_list> bl)
@@ -864,7 +864,7 @@ interval_t battle_get_dmotion(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 LevelElement battle_get_element(dumb_ptr<block_list> bl)
@@ -879,7 +879,7 @@ LevelElement battle_get_element(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 PartyId battle_get_party_id(dumb_ptr<block_list> bl)
@@ -898,7 +898,7 @@ PartyId battle_get_party_id(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 Race battle_get_race(dumb_ptr<block_list> bl)
@@ -913,7 +913,7 @@ Race battle_get_race(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 MobMode battle_get_mode(dumb_ptr<block_list> bl)
@@ -926,7 +926,7 @@ MobMode battle_get_mode(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int battle_get_stat(SP stat_id, dumb_ptr<block_list> bl)
@@ -951,7 +951,7 @@ int battle_get_stat(SP stat_id, dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 // StatusChange系の所得 | StatusChange Income
@@ -970,7 +970,7 @@ eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 Opt1 *battle_get_opt1(dumb_ptr<block_list> bl)
@@ -986,7 +986,7 @@ Opt1 *battle_get_opt1(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 Opt2 *battle_get_opt2(dumb_ptr<block_list> bl)
@@ -1002,7 +1002,7 @@ Opt2 *battle_get_opt2(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 Opt3 *battle_get_opt3(dumb_ptr<block_list> bl)
@@ -1018,7 +1018,7 @@ Opt3 *battle_get_opt3(dumb_ptr<block_list> bl)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 Opt0 *battle_get_option(dumb_ptr<block_list> bl)
@@ -1036,7 +1036,7 @@ Opt0 *battle_get_option(dumb_ptr<block_list> bl)
 //-------------------------------------------------------------------
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 // ダメージの遅延 | damage delay
@@ -1048,7 +1048,7 @@ struct battle_delay_damage_
 };
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 // 実際にHPを操作 | Actually operate HP
@@ -1091,7 +1091,7 @@ int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
@@ -1116,7 +1116,7 @@ int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 // 攻撃停止 | stop attack
@@ -1166,7 +1166,7 @@ int battle_calc_damage(dumb_ptr<block_list>, dumb_ptr<block_list> bl,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -1423,7 +1423,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int battle_is_unarmed(dumb_ptr<block_list> bl)
@@ -1589,7 +1589,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
             // ダブルアタックが発動していない | Double Attack is not activated
             // クリティカル計算 | critical calculation
             cri = battle_get_critical(src);
-    
+
             if (sd->state.arrow_atk)
                 cri += sd->arrow_cri;
             cri -= battle_get_luk(target) * 3;
@@ -1601,7 +1601,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
             cri = cri * (100 - tsd->critical_def) / 100;
         else if (tmd && tmd->stats[mob_stat::CRITICAL_DEF])
             cri = cri * (100 - tmd->stats[mob_stat::CRITICAL_DEF]) / 100;
-    
+
         // ダブルアタックが発動していない | Double Attack is not activated
         // 判定（スキルの場合は無視） | Judgment (ignored for skills)
         if (!da && skill_num == SkillID::ZERO && skill_lv >= 0
@@ -2176,7 +2176,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 bool battle_check_undead(Race race, Element element)

@@ -18,14 +18,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+#include "sanity.hpp"
 
 #include "../ints/fwd.hpp" // rank 1
 #include "../strings/fwd.hpp" // rank 1
 #include "../compat/fwd.hpp" // rank 2
 #include "../generic/fwd.hpp" // rank 3
 #include "../io/fwd.hpp" // rank 4
-#include "../proto2/fwd.hpp" // rank 8
+#include "proto2/fwd.hpp" // rank 8
 #include "../wire/fwd.hpp" // rank 9
 // net/fwd.hpp is rank 5
 

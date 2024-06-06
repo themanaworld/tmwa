@@ -44,8 +44,8 @@
 #include "../net/ip.hpp"
 #include "../net/timestamp-utils.hpp"
 
-#include "../proto2/any-user.hpp"
-#include "../proto2/login-admin.hpp"
+#include "proto2/any-user.hpp"
+#include "proto2/login-admin.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/human_time_diff.hpp"
@@ -57,7 +57,7 @@
 
 #include "../wire/packets.hpp"
 
-#include "admin_conf.hpp"
+#include "admin/admin_conf.hpp"
 #include "globals.hpp"
 
 #include "../poison.hpp"
@@ -555,7 +555,7 @@ void display_help(ZString param)
     {
         PRINTF("getaccreg2/get/g <account id> <variable>\n"_fmt);
         PRINTF("  Display a login-stored ##register\n"_fmt);
-    }    
+    }
     else if (command == "setaccreg2"_s
         || command == "set"_s
         || command == "s"_s)
@@ -565,7 +565,7 @@ void display_help(ZString param)
     }
     else if (command == "delaccreg2"_s
         || command == "del"_s
-        || command == "d"_s)    
+        || command == "d"_s)
     {
         PRINTF("delaccreg2/del/d <account id> <variable>\n"_fmt);
         PRINTF("  Delete a login-stored ##register\n"_fmt);

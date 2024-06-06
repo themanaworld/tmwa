@@ -60,10 +60,10 @@
 #include "../mmo/ids.hpp"
 #include "../mmo/version.hpp"
 
-#include "../proto2/any-user.hpp"
-#include "../proto2/login-admin.hpp"
-#include "../proto2/login-char.hpp"
-#include "../proto2/login-user.hpp"
+#include "proto2/any-user.hpp"
+#include "proto2/login-admin.hpp"
+#include "proto2/login-char.hpp"
+#include "proto2/login-user.hpp"
 
 #include "../high/core.hpp"
 #include "../high/extract_mmo.hpp"
@@ -74,8 +74,8 @@
 #include "../wire/packets.hpp"
 
 #include "globals.hpp"
-#include "login_conf.hpp"
-#include "login_lan_conf.hpp"
+#include "login/login_conf.hpp"
+#include "login/login_lan_conf.hpp"
 
 #include "../poison.hpp"
 
@@ -863,7 +863,7 @@ static
 void parse_fromchar(Session *s)
 {
     IP4Address ip = s->client_ip;
-    
+
     int id;
     for (id = 0; id < MAX_SERVERS; id++)
         if (server_session[id] == s)
@@ -2430,7 +2430,7 @@ void parse_admin(Session *s)
                         {
                             //add var
                             ad.account_reg2[ad.account_reg2_num].str = fixed.name;
-                            ad.account_reg2[ad.account_reg2_num].value = fixed.value;                            
+                            ad.account_reg2[ad.account_reg2_num].value = fixed.value;
                             ++ad.account_reg2_num;
                             fixed_5b.result = 1;
                             goto x795a_update;

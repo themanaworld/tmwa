@@ -35,14 +35,14 @@
 
 #include "../net/timer.hpp"
 
-#include "../proto2/net-HumanTimeDiff.hpp"
+#include "proto2/net-HumanTimeDiff.hpp"
 
 #include "../high/core.hpp"
 #include "../high/extract_mmo.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
@@ -2964,7 +2964,7 @@ void builtin_mobinfo_droparrays(ScriptState *st)
 
     char prefix = name.front();
     char postfix = name.back();
-    
+
     int status = 0; // 0 = mob not found or error, 1 = mob found and has drops, 2 = mob found and has no drops
 
     if (prefix != '$' && prefix != '@' && prefix != '.')
@@ -3020,7 +3020,7 @@ void builtin_mobinfo_droparrays(ScriptState *st)
         push_int<ScriptDataInt>(st->stack, status);
         return;
     }
-    
+
     for (int i = 0; i < MaxDrops; ++i)
         if (get_mob_db(mob_id).dropitem[i].nameid)
         {
@@ -3737,9 +3737,9 @@ void builtin_issummon(ScriptState *st)
     int val = 0;
     if (md)
     {
-        val = bool(md->mode & MobMode::SUMMONED); 
+        val = bool(md->mode & MobMode::SUMMONED);
     }
-    
+
     push_int<ScriptDataInt>(st->stack, val);
 }
 
@@ -4047,7 +4047,7 @@ void builtin_isloggedin(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4065,7 +4065,7 @@ void builtin_setmapflag(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4083,7 +4083,7 @@ void builtin_removemapflag(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4105,7 +4105,7 @@ void builtin_getmapflag(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4143,7 +4143,7 @@ void builtin_pvpon(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4177,7 +4177,7 @@ void builtin_pvpoff(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4194,7 +4194,7 @@ void builtin_setpvpchannel(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4250,7 +4250,7 @@ void builtin_emotion(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4277,7 +4277,7 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4288,7 +4288,7 @@ void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4316,7 +4316,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4335,7 +4335,7 @@ void builtin_marriage(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4353,7 +4353,7 @@ void builtin_divorce(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4381,7 +4381,7 @@ void builtin_getitemlink(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4406,7 +4406,7 @@ void builtin_l(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4417,7 +4417,7 @@ void builtin_chr(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4428,7 +4428,7 @@ void builtin_ord(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4524,7 +4524,7 @@ void builtin_getinventorylist(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4559,7 +4559,7 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4592,7 +4592,7 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4607,7 +4607,7 @@ void builtin_poolskill(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4697,7 +4697,7 @@ void builtin_specialeffect(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4715,7 +4715,7 @@ void builtin_specialeffect2(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5012,7 +5012,7 @@ void builtin_message(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5025,7 +5025,7 @@ void builtin_title(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5049,7 +5049,7 @@ void builtin_smsg(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5071,7 +5071,7 @@ void builtin_remotecmd(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5108,7 +5108,7 @@ void builtin_sendcollision(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5121,7 +5121,7 @@ void builtin_music(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5146,7 +5146,7 @@ void builtin_mapmask(ScriptState *st)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5307,7 +5307,7 @@ void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent ev
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static

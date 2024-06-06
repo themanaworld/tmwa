@@ -22,7 +22,7 @@
 
 #include "fwd.hpp"
 
-#include "../proto2/net-Storage.hpp"
+#include "proto2/net-Storage.hpp"
 
 #include "../mmo/clif.t.hpp"
 

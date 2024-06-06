@@ -40,3 +40,9 @@ stamp/generate-config.stamp: tools/config.py
 	rm -f stamp/generated.stamp
 	cd ${SRC_DIR} && config.py
 	touch $@
+
+clean:
+	$l rm -f stamp/generate*.stamp
+	$l rm -rf ${SRC_DIR}/src/proto2/
+	$l rm -rf ${SRC_DIR}/src/debug-debug/
+	$l rm -rf ${SRC_DIR}/src/*/*_conf.[ch]pp

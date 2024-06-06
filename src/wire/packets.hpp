@@ -26,7 +26,7 @@
 
 #include "../compat/cast.hpp"
 
-#include "../proto2/fwd.hpp"
+#include "proto2/fwd.hpp"
 
 #include "../net/socket.hpp"
 

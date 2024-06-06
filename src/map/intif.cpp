@@ -33,12 +33,12 @@
 
 #include "../high/mmo.hpp"
 
-#include "../proto2/char-map.hpp"
+#include "proto2/char-map.hpp"
 
 #include "../wire/packets.hpp"
 
 #include "battle.hpp"
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "globals.hpp"

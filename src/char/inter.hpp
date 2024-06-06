@@ -27,7 +27,7 @@
 #include "../mmo/consts.hpp"
 #include "../mmo/ids.hpp"
 
-#include "../proto2/net-GlobalReg.hpp"
+#include "proto2/net-GlobalReg.hpp"
 
 
 namespace tmwa

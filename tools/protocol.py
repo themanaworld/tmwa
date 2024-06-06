@@ -347,7 +347,7 @@ class NeutralType(Type):
 
     def __init__(self, name, include):
         self.name = name
-        identity = '#include "../proto-base/net-neutral.hpp"\n'
+        identity = '#include "proto-base/net-neutral.hpp"\n'
         self.includes = frozenset({include, identity}) if include else frozenset({identity})
 
     def __repr__(self):
@@ -403,7 +403,7 @@ class StringType(Type):
 
     def __init__(self, native):
         self.native = native
-        self.includes = native.includes | {'#include "../proto-base/net-string.hpp"\n'}
+        self.includes = native.includes | {'#include "proto-base/net-string.hpp"\n'}
 
     def __repr__(self):
         return 'StringType(%r)' % (self.native)
@@ -556,7 +556,7 @@ class SkewLengthType(Type):
     def __init__(self, ty, skew):
         self.type = ty
         self.skew = skew
-        self.includes = ty.includes | {'#include "../proto-base/net-skewed-length.hpp"\n'}
+        self.includes = ty.includes | {'#include "proto-base/net-skewed-length.hpp"\n'}
 
     def __repr__(self):
         return 'SkewLengthType(%r, %r)' % (self.ty, self.skew)
@@ -752,7 +752,7 @@ class ArrayType(Type):
     def __init__(self, element, count):
         self.element = element
         self.count = count
-        self.includes = element.includes | {'#include "../proto-base/net-array.hpp"\n'}
+        self.includes = element.includes | {'#include "proto-base/net-array.hpp"\n'}
 
     def __repr__(self):
         return 'ArrayType(%r, %r)' % (self.element, self.count)
@@ -771,7 +771,7 @@ class EArrayType(Type):
         self.element = element
         self.index = index
         self.count = count
-        self.includes = element.includes | {'#include "../proto-base/net-array.hpp"\n'}
+        self.includes = element.includes | {'#include "proto-base/net-array.hpp"\n'}
 
     def __repr__(self):
         return 'EArrayType(%r, %r)' % (self.element, self.index, self.count)
@@ -791,9 +791,9 @@ class InvArrayType(Type):
         self.index = index
         self.count = count
         self.includes = element.includes | {
-                '#include "../proto-base/net-array.hpp"\n',
-                '#include "../mmo/clif.t.hpp"\n',
-                '#include "../mmo/consts.hpp"\n',
+                '#include "proto-base/net-array.hpp"\n',
+                '#include "mmo/clif.t.hpp"\n',
+                '#include "mmo/consts.hpp"\n',
         }
 
     def __repr__(self):
@@ -1256,7 +1256,7 @@ class Context(object):
         return rv
 
     def include(self, name):
-        rv = Include('"%s"' % relpath(name, self.outdir))
+        rv = Include('"%s"' % relpath(name, 'src'))
         self._includes.append(rv)
         return rv
 
@@ -1273,21 +1273,20 @@ class Context(object):
         with OpenWrite(os.path.join(outdir, 'fwd.hpp')) as f:
             header = '%s/fwd.hpp' % proto2
             desc = 'Forward declarations of network packet body structs'
-            sanity = relpath('src/sanity.hpp', outdir)
 
             f.write('#pragma once\n')
             f.write(copyright.format(filename=header, description=desc))
             f.write('\n')
 
-            f.write('#include "%s"\n\n' % sanity)
+            f.write('#include "sanity.hpp"\n\n')
             f.write('#include <cstdint>\n\n')
 
-            f.write('#include "../ints/fwd.hpp" // rank 1\n')
-            f.write('#include "../strings/fwd.hpp" // rank 1\n')
-            f.write('#include "../compat/fwd.hpp" // rank 2\n')
-            f.write('#include "../net/fwd.hpp" // rank 5\n')
-            f.write('#include "../mmo/fwd.hpp" // rank 6\n')
-            f.write('#include "../proto-base/fwd.hpp" // rank 7\n')
+            f.write('#include "ints/fwd.hpp" // rank 1\n')
+            f.write('#include "strings/fwd.hpp" // rank 1\n')
+            f.write('#include "compat/fwd.hpp" // rank 2\n')
+            f.write('#include "net/fwd.hpp" // rank 5\n')
+            f.write('#include "mmo/fwd.hpp" // rank 6\n')
+            f.write('#include "proto-base/fwd.hpp" // rank 7\n')
             f.write('// proto2/fwd.hpp is rank 8\n')
             f.write('\n\n')
 

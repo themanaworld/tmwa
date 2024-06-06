@@ -34,7 +34,7 @@
 #include "../mmo/ids.hpp"
 #include "../mmo/strs.hpp"
 
-#include "../proto2/net-GlobalReg.hpp"
+#include "proto2/net-GlobalReg.hpp"
 
 #include "../high/mmo.hpp"
 

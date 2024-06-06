@@ -34,7 +34,7 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
-#include "../proto2/char-map.hpp"
+#include "proto2/char-map.hpp"
 
 #include "../mmo/ids.hpp"
 
@@ -46,7 +46,7 @@
 #include "char.hpp"
 #include "globals.hpp"
 #include "inter.hpp"
-#include "inter_conf.hpp"
+#include "char/inter_conf.hpp"
 
 #include "../poison.hpp"
 

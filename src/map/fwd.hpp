@@ -18,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+#include "sanity.hpp"
 
 #include <cstdint>
 
@@ -31,7 +31,7 @@
 #include "../net/fwd.hpp" // rank 5
 #include "../sexpr/fwd.hpp" // rank 5
 #include "../mmo/fwd.hpp" // rank 6
-#include "../proto2/fwd.hpp" // rank 8
+#include "proto2/fwd.hpp" // rank 8
 #include "../high/fwd.hpp" // rank 9
 #include "../wire/fwd.hpp" // rank 9
 #include "../ast/fwd.hpp" // rank 10

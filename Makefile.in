@@ -478,10 +478,7 @@ clean: mostlyclean
 	$l rm -rf bin lib
 distclean: clean gen-clean
 gen-clean:
-	$l rm -f stamp/generate*.stamp
-	$l rm -rf ${SRC_DIR}/src/proto2/
-	$l rm -rf ${SRC_DIR}/src/debug-debug/
-	$l rm -rf ${SRC_DIR}/src/*/*_conf.[ch]pp
+	make -f ${SRC_DIR}/generate.mk clean
 
 ifndef MAKE_RESTARTS
 obj/%.d: src/%.cpp | stamp/generated.stamp
@@ -801,8 +798,8 @@ stamp/%.hpp.formatted: src/%.hpp tools/indenter
 	apply-filter 'indenter -cpp' $<
 	fgrep -q Copyright $<
 	fgrep -q $(notdir $<) $<
-	if [[ $< == *fwd* ]]; then fgrep -q ../sanity.hpp $<; else fgrep -q '"fwd.hpp"' $<; fi
-	if [[ $< == *fwd* ]]; then ! fgrep -q '"fwd.hpp"' $<; else ! fgrep -q ../sanity.hpp $<; fi
+	if [[ $< == *fwd* ]]; then fgrep -q sanity.hpp $<; else fgrep -q '"fwd.hpp"' $<; fi
+	if [[ $< == *fwd* ]]; then ! fgrep -q '"fwd.hpp"' $<; else ! fgrep -q sanity.hpp $<; fi
 	grep -q '^namespace tmwa$$' $<
 	grep -q '^} // namespace tmwa$$' $<
 	grep -q '^#pragma once$$' $<

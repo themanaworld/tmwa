@@ -278,9 +278,9 @@ class Group(object):
                 headers |= o.headers
 
             hpp.write('\n')
-            hpp.write('#include "fwd.hpp"\n')
+            hpp.write('#include "%s/fwd.hpp"\n' % os.path.relpath(path, 'src'))
             for h in sorted(headers, key=lambda h: (h.meta, h.name)):
-                hpp.write('#include %s\n' % h.relative_to(path))
+                hpp.write('#include %s\n' % h.relative_to("src"))
             hpp.write('\n')
             cpp.write('\n')
             for h in [
@@ -290,9 +290,9 @@ class Group(object):
                     Header('src/mmo/extract_enums.hpp'),
                     Header('src/high/extract_mmo.hpp'),
             ] + self.extra_headers:
-                cpp.write('#include %s\n' % h.relative_to(path))
+                cpp.write('#include %s\n' % h.relative_to('src'))
             cpp.write('\n')
-            cpp.write('#include "../poison.hpp"\n')
+            cpp.write('#include "poison.hpp"\n')
             cpp.write('\n')
 
             hpp.write('namespace tmwa\n{\n')

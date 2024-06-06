@@ -42,7 +42,7 @@
 
 #include "../mmo/config_parse.hpp"
 
-#include "../proto2/char-map.hpp"
+#include "proto2/char-map.hpp"
 
 #include "../high/extract_mmo.hpp"
 #include "../high/mmo.hpp"
@@ -51,7 +51,7 @@
 
 #include "char.hpp"
 #include "globals.hpp"
-#include "inter_conf.hpp"
+#include "char/inter_conf.hpp"
 #include "int_party.hpp"
 #include "int_storage.hpp"
 

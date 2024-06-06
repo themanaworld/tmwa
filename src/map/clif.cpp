@@ -46,9 +46,9 @@
 #include "../net/timer.hpp"
 #include "../net/timestamp-utils.hpp"
 
-#include "../proto2/any-user.hpp"
-#include "../proto2/char-map.hpp"
-#include "../proto2/map-user.hpp"
+#include "proto2/any-user.hpp"
+#include "proto2/char-map.hpp"
+#include "proto2/map-user.hpp"
 
 #include "../mmo/cxxstdio_enums.hpp"
 #include "../mmo/version.hpp"
@@ -59,13 +59,13 @@
 
 #include "atcommand.hpp"
 #include "battle.hpp"
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "chrif.hpp"
 #include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
-#include "map_conf.hpp"
+#include "map/map_conf.hpp"
 #include "npc.hpp"
 #include "party.hpp"
 #include "pc.hpp"

@@ -47,7 +47,7 @@
 #include "../mmo/extract_enums.hpp"
 
 #include "battle.hpp"
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
 #include "itemdb.hpp"
@@ -347,7 +347,7 @@ int mob_gen_exp(mob_db_ *mob)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -525,7 +525,7 @@ BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
 
 // TODO: deprecate these
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 short mob_get_hair(Species mob_class)
@@ -534,7 +534,7 @@ short mob_get_hair(Species mob_class)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 short mob_get_hair_color(Species mob_class)
@@ -543,7 +543,7 @@ short mob_get_hair_color(Species mob_class)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 short mob_get_weapon(Species mob_class)
@@ -552,7 +552,7 @@ short mob_get_weapon(Species mob_class)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 ItemNameId mob_get_shield(Species mob_class)
@@ -561,7 +561,7 @@ ItemNameId mob_get_shield(Species mob_class)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 ItemNameId mob_get_head_top(Species mob_class)
@@ -570,7 +570,7 @@ ItemNameId mob_get_head_top(Species mob_class)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 ItemNameId mob_get_head_mid(Species mob_class)
@@ -579,7 +579,7 @@ ItemNameId mob_get_head_mid(Species mob_class)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 ItemNameId mob_get_head_buttom(Species mob_class)
@@ -588,7 +588,7 @@ ItemNameId mob_get_head_buttom(Species mob_class)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 short mob_get_clothes_color(Species mob_class) // Add for player monster dye - Valaris
@@ -597,7 +597,7 @@ short mob_get_clothes_color(Species mob_class) // Add for player monster dye - V
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int mob_get_equip(Species mob_class)   // mob equip [Valaris]
@@ -833,7 +833,7 @@ int mob_check_attack(dumb_ptr<mob_data> md)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -1448,7 +1448,7 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int mob_aggravate(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl)
@@ -2354,7 +2354,7 @@ int mob_delete(dumb_ptr<mob_data> md)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type)
@@ -2371,7 +2371,7 @@ int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void mob_timer_delete(TimerData *, tick_t, BlockId id)
@@ -2582,7 +2582,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     if (src && src->bl_type == BL::MOB)
         mob_unlocktarget(src->is_mob(), tick);
 
-    // map外に消えた人は計算から除くので | People who disappear outside the map will be excluded from the calculation. 
+    // map外に消えた人は計算から除くので | People who disappear outside the map will be excluded from the calculation.
     // overkill分は無いけどsumはmax_hpとは違う | There is no overkill portion, but sum is different from max_hp
 
     // snip a prelude loop, now merged
@@ -3540,7 +3540,7 @@ int mob_makedummymobdb(Species mob_class)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -3556,7 +3556,7 @@ bool impl_extract(XString str, LevelElement *le)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 bool mob_readdb(ZString filename)
@@ -3711,7 +3711,7 @@ bool mob_readdb(ZString filename)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -3739,7 +3739,7 @@ bool impl_extract(XString str, MobSkillCondition *msc)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -3766,7 +3766,7 @@ bool impl_extract(XString str, MobSkillState *mss)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -3791,7 +3791,7 @@ bool impl_extract(XString str, MobSkillTarget *mst)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 bool mob_readskilldb(ZString filename)
@@ -3877,7 +3877,7 @@ bool mob_readskilldb(ZString filename)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void do_init_mob2(void)

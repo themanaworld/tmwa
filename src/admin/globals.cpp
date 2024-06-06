@@ -22,7 +22,7 @@
 
 #include "../mmo/ids.hpp"
 
-#include "admin_conf.hpp"
+#include "admin/admin_conf.hpp"
 
 #include "../poison.hpp"
 

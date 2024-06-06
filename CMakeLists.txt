@@ -35,41 +35,25 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Some sources and includes are generated, such as the protocol headers.
-# We defer to generate.make for these rules.
-# Note that these are raw Makefile rules, not CMake rules, so a simple
-# add_custom_command() won't work.
-execute_process(COMMAND make -f ${CMAKE_SOURCE_DIR}/generate.mk
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
-# The generate target must be re-run when the scripts change
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  "${PROJECT_SOURCE_DIR}/generate.mk"
-  "${PROJECT_SOURCE_DIR}/tools/config.py"
-  "${PROJECT_SOURCE_DIR}/tools/protocol.py"
-)
-
 # Search through the tree for sources
 # For each subfolder in src, add all .cpp files to a subfolder's SOURCES
 # variable.
-set(ALL_SOURCES "")
 foreach(dir admin ast char compat conf generic high ints io login map mmo net proto-base range sexpr shared strings tests wire strtest)
     file(GLOB_RECURSE ${dir}_SOURCES CONFIGURE_DEPENDS src/${dir}/*.cpp)
     # Exclude any _test.cpp files from the build
-    set(ALL_SOURCES ${ALL_SOURCES} ${${dir}_SOURCES})
     list(FILTER ${dir}_SOURCES EXCLUDE REGEX ".*_test.cpp")
     message("Adding sources in ${dir}: ${${dir}_SOURCES}")
 endforeach()
 
-# All targets include the include/ directory
-include_directories(include)
+# All targets include the src/ and include/ directories
+include_directories(src include)
 
 # We want -fvisibility=hidden for regular objects, but not shared libraries.
 # CMake provides a helpful preset for this.
 # FIXME this is currently broken
 #set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 # General purpose build flags.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fstack-protector -fno-strict-aliasing -flto")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fstack-protector -fno-strict-aliasing -flto=auto")
 # Enable link time optimization, and track function and data sections. We let
 # the linker remove unused code.
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto -ffunction-sections -fdata-sections -Wl,--gc-sections")
@@ -108,7 +92,91 @@ set(conf_SOURCES ${conf_SOURCES} src/conf/install.hpp src/conf/version.hpp)
 # And have the build search for files in the build directory.
 # Note that #includes with generated files should use a path relative to the
 # top level source or build directory.
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/src)
+
+set(generated_conf_SOURCES
+  ${CMAKE_CURRENT_BINARY_DIR}/src/admin/admin_conf.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/admin/admin_conf.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/char/char_conf.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/char/char_conf.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/char/char_lan_conf.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/char/char_lan_conf.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/char/inter_conf.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/char/inter_conf.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/login/login_conf.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/login/login_conf.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/login/login_lan_conf.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/login/login_lan_conf.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/map/battle_conf.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/map/battle_conf.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/map/map_conf.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/map/map_conf.hpp)
+
+set(generated_proto_SOURCES
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/any-user.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/char-map.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/char-user.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/client-enum.hpp
+  # ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/client-packet-info.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/fwd.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/login-admin.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/login-char.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/login-user.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/map-user.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-AccountId.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-BeingRemoveWhy.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-BlockId.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-CharData.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-CharId.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-CharKey.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-CharSelect.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-ClientVersion.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-DamageType.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-DIR.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-EPOS.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-GlobalReg.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-HumanTimeDiff.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Item.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-ItemLook.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-ItemNameId.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-ItemType.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-LOOK.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Opt0.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Opt1.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Opt2.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Opt3.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-PartyId.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-PartyMember.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-PartyMost.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-PickupFail.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Point.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-SEX.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-SkillFlags.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-SkillID.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-SkillInfo.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-SkillValue.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Species.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-SP.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Stats6.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-StatusChange.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Storage.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/src/proto2/net-Version.hpp)
+
+add_custom_target(generate_code
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/src/admin
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/src/char
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/src/login
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/src/map
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/src/proto2
+    COMMAND ${CMAKE_SOURCE_DIR}/tools/config.py
+    COMMAND ${CMAKE_SOURCE_DIR}/tools/protocol.py
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    BYPRODUCTS ${generated_conf_SOURCES} ${generated_proto_SOURCES}
+    COMMENT "Generating code..."
+    DEPENDS
+      ${CMAKE_SOURCE_DIR}/tools/config.py
+      ${CMAKE_SOURCE_DIR}/tools/protocol.py
+)
 
 # Add a shared library: libtmwa-shared.so.0
 # When we add_executable later, we need to link against this library.
@@ -133,8 +201,11 @@ add_executable(tmwa-login ${login_SOURCES}
   ${mmo_SOURCES}
   ${net_SOURCES}
   ${wire_SOURCES}
+  ${generated_conf_SOURCES}
+  ${generated_proto_SOURCES}
 )
 target_link_libraries(tmwa-login tmwa-shared)
+add_dependencies(tmwa-login generate_code)
 
 add_executable(tmwa-char ${char_SOURCES}
   ${generic_SOURCES}
@@ -143,8 +214,11 @@ add_executable(tmwa-char ${char_SOURCES}
   ${mmo_SOURCES}
   ${net_SOURCES}
   ${wire_SOURCES}
+  ${generated_conf_SOURCES}
+  ${generated_proto_SOURCES}
 )
 target_link_libraries(tmwa-char tmwa-shared)
+add_dependencies(tmwa-login generate_code)
 
 add_executable(tmwa-map ${map_SOURCES}
   ${ast_SOURCES}
@@ -155,8 +229,11 @@ add_executable(tmwa-map ${map_SOURCES}
   ${mmo_SOURCES}
   ${net_SOURCES}
   ${wire_SOURCES}
+  ${generated_conf_SOURCES}
+  ${generated_proto_SOURCES}
   )
 target_link_libraries(tmwa-map tmwa-shared)
+add_dependencies(tmwa-login generate_code)
 
 add_executable(tmwa-admin ${admin_SOURCES}
   ${generic_SOURCES}
@@ -165,11 +242,18 @@ add_executable(tmwa-admin ${admin_SOURCES}
   ${mmo_SOURCES}
   ${net_SOURCES}
   ${wire_SOURCES}
+  ${generated_conf_SOURCES}
+  ${generated_proto_SOURCES}
 )
 target_link_libraries(tmwa-admin tmwa-shared)
+add_dependencies(tmwa-login generate_code)
 
-# TODO: Call make -f ${CMAKE_SOURCE_DIR}/generate.mk clean to clean up the
+# Call 'make -f generate.mk clean' to clean up the
 # generated files. We want this to be run every time we call make clean.
+add_custom_target(distclean
+  DEPENDS clean
+  COMMAND make -f generate.mk clean
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # Install targets
 install(TARGETS tmwa-login tmwa-char tmwa-map tmwa-admin tmwa-shared

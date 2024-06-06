@@ -48,7 +48,7 @@
 #include "../mmo/extract_enums.hpp"
 
 #include "battle.hpp"
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
 #include "mob.hpp"

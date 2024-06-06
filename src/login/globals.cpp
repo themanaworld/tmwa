@@ -22,8 +22,8 @@
 #include "../generic/db.hpp"
 
 #include "login.hpp"
-#include "login_conf.hpp"
-#include "login_lan_conf.hpp"
+#include "login/login_conf.hpp"
+#include "login/login_lan_conf.hpp"
 
 #include "../poison.hpp"
 

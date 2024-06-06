@@ -22,13 +22,13 @@
 
 #include "../generic/db.hpp"
 
-#include "../proto2/net-Storage.hpp"
+#include "proto2/net-Storage.hpp"
 
 #include "char.hpp"
-#include "char_conf.hpp"
-#include "char_lan_conf.hpp"
+#include "char/char_conf.hpp"
+#include "char/char_lan_conf.hpp"
 #include "inter.hpp"
-#include "inter_conf.hpp"
+#include "char/inter_conf.hpp"
 
 #include "../poison.hpp"
 

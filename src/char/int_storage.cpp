@@ -33,7 +33,7 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
-#include "../proto2/char-map.hpp"
+#include "proto2/char-map.hpp"
 
 #include "../mmo/cxxstdio_enums.hpp"
 
@@ -43,7 +43,7 @@
 #include "../wire/packets.hpp"
 
 #include "globals.hpp"
-#include "inter_conf.hpp"
+#include "char/inter_conf.hpp"
 
 #include "../poison.hpp"
 

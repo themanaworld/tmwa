@@ -44,18 +44,18 @@
 #include "../net/timer.hpp"
 #include "../net/timestamp-utils.hpp"
 
-#include "../proto2/char-map.hpp"
+#include "proto2/char-map.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
-#include "map_conf.hpp"
+#include "map/map_conf.hpp"
 #include "npc.hpp"
 #include "party.hpp"
 #include "path.hpp"
@@ -294,35 +294,35 @@ earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
 }};
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
 int pc_checkoverhp(dumb_ptr<map_session_data> sd);
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
 int pc_checkoversp(dumb_ptr<map_session_data> sd);
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
 int pc_nextbaseafter(dumb_ptr<map_session_data> sd);
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
 int pc_nextjobafter(dumb_ptr<map_session_data> sd);
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -332,7 +332,7 @@ void pc_setdead(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 GmLevel pc_isGM(dumb_ptr<map_session_data> sd)
@@ -346,7 +346,7 @@ GmLevel pc_isGM(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_iskiller(dumb_ptr<map_session_data> src,
@@ -364,7 +364,7 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void pc_set_gm_level(AccountId account_id, GmLevel level)
@@ -376,7 +376,7 @@ void pc_set_gm_level(AccountId account_id, GmLevel level)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -390,7 +390,7 @@ int distance(int x0, int y0, int x1, int y1)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -403,7 +403,7 @@ void pc_pvp_timer(TimerData *, tick_t, BlockId id)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_setpvptimer(dumb_ptr<map_session_data> sd, interval_t val)
@@ -417,7 +417,7 @@ int pc_setpvptimer(dumb_ptr<map_session_data> sd, interval_t val)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_delpvptimer(dumb_ptr<map_session_data> sd)
@@ -429,7 +429,7 @@ int pc_delpvptimer(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -442,7 +442,7 @@ void pc_invincible_timer(TimerData *, tick_t, BlockId id)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t val)
@@ -456,7 +456,7 @@ int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t val)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_delinvincibletimer(dumb_ptr<map_session_data> sd)
@@ -468,7 +468,7 @@ int pc_delinvincibletimer(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type)
@@ -537,7 +537,7 @@ void pc_counttargeted_sub(dumb_ptr<block_list> bl,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
@@ -636,7 +636,7 @@ int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n)
@@ -647,7 +647,7 @@ EPOS pc_equippoint(dumb_ptr<map_session_data> sd, IOff0 n)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -668,7 +668,7 @@ int pc_setinventorydata(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -683,7 +683,7 @@ int pc_calcweapontype(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -738,7 +738,7 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -765,7 +765,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void pc_set_weapon_icon(dumb_ptr<map_session_data> sd, int count,
@@ -795,7 +795,7 @@ void pc_set_weapon_icon(dumb_ptr<map_session_data> sd, int count,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int range)
@@ -1021,7 +1021,7 @@ int pc_authfail(AccountId id)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -1081,7 +1081,7 @@ int pc_checkweighticon(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -2075,7 +2075,7 @@ IOff0 pc_search_inventory(dumb_ptr<map_session_data> sd, ItemNameId item_id)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
@@ -2094,7 +2094,7 @@ int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_remove_items(dumb_ptr<map_session_data> player, ItemNameId item_id, int count)
@@ -2295,7 +2295,7 @@ int can_pick_item_up_from(dumb_ptr<map_session_data> self, BlockId other_id)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
@@ -2355,7 +2355,7 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -2805,7 +2805,7 @@ int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd)
@@ -3037,7 +3037,7 @@ int pc_stopattack(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -3072,7 +3072,7 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 inline
@@ -3100,7 +3100,7 @@ int pc_skillpt_potential(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -3141,7 +3141,7 @@ int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
@@ -3238,7 +3238,7 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_extract_healer_exp(dumb_ptr<map_session_data> sd, int max)
@@ -4228,7 +4228,7 @@ static
 int pc_itemheal_effect(dumb_ptr<map_session_data> sd, int hp, int sp);
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4254,7 +4254,7 @@ pc_heal_quick_speed(int amount)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -4274,7 +4274,7 @@ void pc_heal_quick_accumulate(int new_amount,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp)
@@ -4814,7 +4814,7 @@ int pc_signal_advanced_equipment_change(dumb_ptr<map_session_data> sd, IOff0 n)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
@@ -5029,7 +5029,7 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
@@ -5101,7 +5101,7 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_checkoverhp(dumb_ptr<map_session_data> sd)
@@ -5121,7 +5121,7 @@ int pc_checkoverhp(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_checkoversp(dumb_ptr<map_session_data> sd)
@@ -5327,7 +5327,7 @@ interval_t pc_hpheal(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5385,7 +5385,7 @@ int pc_natural_heal_hp(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5460,7 +5460,7 @@ int pc_quickregenerate_effect(struct quick_regeneration *quick_regen,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5595,7 +5595,7 @@ void pc_autosave(TimerData *, tick_t)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_read_gm_account(Session *, const std::vector<Packet_Repeat<0x2b15>>& repeat)
@@ -5612,7 +5612,7 @@ int pc_read_gm_account(Session *, const std::vector<Packet_Repeat<0x2b15>>& repe
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void pc_setstand(dumb_ptr<map_session_data> sd)
@@ -5626,7 +5626,7 @@ void pc_setstand(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 static
@@ -5647,7 +5647,7 @@ void pc_calc_sigma(void)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void do_init_pc(void)
@@ -5664,7 +5664,7 @@ void do_init_pc(void)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)
@@ -5684,7 +5684,7 @@ void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int pc_logout(dumb_ptr<map_session_data> sd) // [fate] Player logs out

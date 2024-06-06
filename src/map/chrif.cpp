@@ -33,7 +33,7 @@
 #include "../net/timer.hpp"
 #include "../net/timestamp-utils.hpp"
 
-#include "../proto2/char-map.hpp"
+#include "proto2/char-map.hpp"
 
 #include "../mmo/human_time_diff.hpp"
 #include "../high/mmo.hpp"
@@ -41,13 +41,13 @@
 #include "../wire/packets.hpp"
 
 #include "battle.hpp"
-#include "battle_conf.hpp"
+#include "map/battle_conf.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
-#include "map_conf.hpp"
+#include "map/map_conf.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
 #include "storage.hpp"

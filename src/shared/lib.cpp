@@ -18,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "src/conf/install.hpp"
+#include "conf/install.hpp"
 
 #include "../strings/literal.hpp"
 #include "../strings/astring.hpp"

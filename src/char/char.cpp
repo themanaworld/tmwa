@@ -60,12 +60,12 @@
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
 
-#include "../proto2/any-user.hpp"
-#include "../proto2/login-admin.hpp"
-#include "../proto2/login-char.hpp"
-#include "../proto2/login-user.hpp"
-#include "../proto2/char-map.hpp"
-#include "../proto2/char-user.hpp"
+#include "proto2/any-user.hpp"
+#include "proto2/login-admin.hpp"
+#include "proto2/login-char.hpp"
+#include "proto2/login-user.hpp"
+#include "proto2/char-map.hpp"
+#include "proto2/char-user.hpp"
 
 #include "../mmo/config_parse.hpp"
 #include "../mmo/cxxstdio_enums.hpp"
@@ -80,11 +80,11 @@
 
 #include "../wire/packets.hpp"
 
-#include "char_conf.hpp"
-#include "char_lan_conf.hpp"
+#include "char/char_conf.hpp"
+#include "char/char_lan_conf.hpp"
 #include "globals.hpp"
-#include "inter.hpp"
-#include "inter_conf.hpp"
+#include "char/inter.hpp"
+#include "char/inter_conf.hpp"
 #include "int_party.hpp"
 #include "int_storage.hpp"
 
@@ -816,7 +816,7 @@ void create_online_files(void)
 
                     if (!server_for(&cd))
                         continue;
-                    
+
                     p = cd.data.get();
 
                     // failsafe

@@ -36,7 +36,7 @@
 
 #include "globals.hpp"
 #include "map.hpp"
-#include "map_conf.hpp"
+#include "map/map_conf.hpp"
 #include "script-parse-internal.hpp"
 #include "script-persist.hpp"
 

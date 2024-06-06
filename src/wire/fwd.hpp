@@ -18,13 +18,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+#include "sanity.hpp"
 
 #include "../ints/fwd.hpp" // rank 1
 #include "../compat/fwd.hpp" // rank 2
 #include "../io/fwd.hpp" // rank 4
 #include "../net/fwd.hpp" // rank 5
-#include "../proto2/fwd.hpp" // rank 8
+#include "proto2/fwd.hpp" // rank 8
 // wire/fwd.hpp is rank 9
 
 namespace tmwa

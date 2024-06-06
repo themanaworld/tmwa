@@ -26,7 +26,7 @@
 #include "../mmo/consts.hpp"
 #include "../mmo/enums.hpp"
 
-#include "../proto2/net-GlobalReg.hpp"
+#include "proto2/net-GlobalReg.hpp"
 
 namespace tmwa
 {

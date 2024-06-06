@@ -34,7 +34,7 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "../proto2/map-user.hpp"
+#include "proto2/map-user.hpp"
 
 #include "../wire/packets.hpp"
 
