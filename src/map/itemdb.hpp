@@ -70,29 +70,9 @@ Borrowed<struct item_data> itemdb_search(ItemNameId nameid);
 Option<Borrowed<struct item_data>> itemdb_exists(ItemNameId nameid);
 
 inline
-ItemType itemdb_type(ItemNameId n)
-{
-    return itemdb_search(n)->type;
-}
-inline
-ItemLook itemdb_look(ItemNameId n)
-{
-    return itemdb_search(n)->look;
-}
-inline
 int itemdb_weight(ItemNameId n)
 {
     return itemdb_search(n)->weight;
-}
-inline
-const ScriptBuffer *itemdb_equipscript(ItemNameId n)
-{
-    return itemdb_search(n)->equip_script.get();
-}
-inline
-int itemdb_wlv(ItemNameId n)
-{
-    return itemdb_search(n)->wlv;
 }
 inline
 int itemdb_value_sell(ItemNameId n)
@@ -100,9 +80,8 @@ int itemdb_value_sell(ItemNameId n)
     return itemdb_search(n)->value_sell;
 }
 
-int itemdb_isequip(ItemNameId);
+bool itemdb_isequip(ItemNameId);
 bool itemdb_isequip2(Borrowed<struct item_data>);
-int itemdb_isequip3(ItemNameId);
 
 void itemdb_reload(void);
 
