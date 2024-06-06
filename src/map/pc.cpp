@@ -3870,19 +3870,19 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             val = sd ? sd->mute.guild : 0;
             break;
         case SP::KILLS:
-            val = sd->activity.kills;
+            val = sd ? sd->activity.kills : 0;
             break;
         case SP::CASTS:
-            val = sd->activity.casts;
+            val = sd ? sd->activity.casts : 0;
             break;
         case SP::ITEMS_USED:
-            val = sd->activity.items_used;
+            val = sd ? sd->activity.items_used : 0;
             break;
         case SP::TILES_WALKED:
-            val = sd->activity.tiles_walked;
+            val = sd ? sd->activity.tiles_walked : 0;
             break;
         case SP::ATTACKS:
-            val = sd->activity.attacks;
+            val = sd ? sd->activity.attacks : 0;
             break;
         case SP::AUTOMOD:
             val = sd ? static_cast<int>(sd->automod) : 0;
@@ -4135,18 +4135,23 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             break;
         // atm only setting of casts is needed since magic is handled in serverdata but I let the others here as well for whatever reason
         case SP::KILLS:
+            nullpo_retz(sd);
             sd->activity.kills = val;
             break;
         case SP::CASTS:
+            nullpo_retz(sd);
             sd->activity.casts = val;
             break;
         case SP::ITEMS_USED:
+            nullpo_retz(sd);
             sd->activity.items_used = val;
             break;
         case SP::TILES_WALKED:
+            nullpo_retz(sd);
             sd->activity.tiles_walked = val;
             break;
         case SP::ATTACKS:
+            nullpo_retz(sd);
             sd->activity.attacks = val;
             break;
         case SP::AUTOMOD:
