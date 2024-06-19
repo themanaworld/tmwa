@@ -660,8 +660,8 @@ void addaccount(ZString param, int emailflag)
 
     if (!"MFN"_s.contains(sex))
     {
-        PRINTF("Illegal gender [%c]. Please input M or F.\n"_fmt, sex);
-        LADMIN_LOG("Illegal gender [%c]. Please input M or F.\n"_fmt, sex);
+        PRINTF("Illegal gender [%c]. Please input M, F, or N.\n"_fmt, sex);
+        LADMIN_LOG("Illegal gender [%c]. Please input M, F, or N.\n"_fmt, sex);
         return;
     }
 
