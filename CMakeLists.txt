@@ -176,3 +176,10 @@ install(TARGETS tmwa-login tmwa-char tmwa-map tmwa-admin tmwa-shared
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
+
+# Install shared configuration and data
+install(FILES etc/tmwa/shared.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/tmwa)
+install(FILES share/tmwa/shared.data DESTINATION ${CMAKE_INSTALL_DATADIR}/tmwa)
+
+# Make sure there is a var directory
+install(DIRECTORY DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/tmwa)
