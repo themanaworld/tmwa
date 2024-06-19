@@ -628,7 +628,7 @@ void addaccount(ZString param, int emailflag)
 {
     AccountName name;
     VString<1> sex_;
-    XString email_;
+    XString email_ = DEFAULT_EMAIL;
     AccountPass password;
 
     if (emailflag == 0)
@@ -641,7 +641,6 @@ void addaccount(ZString param, int emailflag)
             LADMIN_LOG("Incomplete parameters to create an account ('add' command).\n"_fmt);
             return;
         }
-        email_ = DEFAULT_EMAIL;
     }
     else
     {
