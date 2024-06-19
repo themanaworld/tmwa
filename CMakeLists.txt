@@ -53,7 +53,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 # For each subfolder in src, add all .cpp files to a subfolder's SOURCES
 # variable.
 set(ALL_SOURCES "")
-foreach(dir admin ast char compat conf generic high ints io login map mmo net proto-base range sexpr shared strings tests wire strtest)
+foreach(dir admin ast char compat conf generic high ints io login map mmo net proto-base range sexpr shared strings tests wire strtest teststorageclass)
     file(GLOB_RECURSE ${dir}_SOURCES CONFIGURE_DEPENDS src/${dir}/*.cpp)
     # Exclude any _test.cpp files from the build
     set(ALL_SOURCES ${ALL_SOURCES} ${${dir}_SOURCES})
@@ -167,6 +167,16 @@ add_executable(tmwa-admin ${admin_SOURCES}
   ${wire_SOURCES}
 )
 target_link_libraries(tmwa-admin tmwa-shared)
+
+add_executable(tmwa-teststorageclass ${teststorageclass_SOURCES}
+  ${generic_SOURCES}
+  ${high_SOURCES}
+  ${io_SOURCES}
+  ${mmo_SOURCES}
+  ${net_SOURCES}
+  ${wire_SOURCES}
+)
+target_link_libraries(tmwa-teststorageclass tmwa-shared)
 
 # TODO: Call make -f ${CMAKE_SOURCE_DIR}/generate.mk clean to clean up the
 # generated files. We want this to be run every time we call make clean.
