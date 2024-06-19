@@ -46,14 +46,14 @@ class BlockId;
 class GmLevel;
 class ClientVersion;
 
-class AccountName;
-class AccountPass;
-class AccountCrypt;
-class AccountEmail;
-class ServerName;
-class PartyName;
+struct AccountName;
+struct AccountPass;
+struct AccountCrypt;
+struct AccountEmail;
+struct ServerName;
+struct PartyName;
+struct VarName;
 class QuestId;
-class VarName;
 class MapName;
 class CharName;
 
