@@ -20,11 +20,16 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "fwd.hpp"
+
 #include "../poison.hpp"
 
 
 namespace tmwa
 {
+
+const AccountEmail DEFAULT_EMAIL = stringish<AccountEmail>("a@a.com"_s);
+
 VString<49> convert_for_printf(NpcEvent ev)
 {
     return STRNPRINTF(50, "%s::%s"_fmt, ev.npc, ev.label);

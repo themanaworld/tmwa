@@ -38,7 +38,7 @@ struct ServerName : VString<19> {};
 struct PartyName : VString<23> {};
 struct VarName : VString<31> {};
 
-#define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com"_s)
+extern const AccountEmail DEFAULT_EMAIL;
 
 // It is decreed: a mapname shall not contain an extension
 class MapName : public strings::_crtp_string<MapName, MapName, strings::ZPair>
