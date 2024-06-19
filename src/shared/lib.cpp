@@ -39,10 +39,16 @@ namespace tmwa
     {
         io::ReadFile rf(dirfd, filename);
         if (!rf.is_open())
+        {
+            FPRINTF(stderr, "Could not open %s\n"_fmt, filename);
             abort();
+        }
         AString line;
         if (!rf.getline(line))
+        {
+            FPRINTF(stderr, "Could not read from %s\n"_fmt, filename);
             abort();
+        }
     }
 
     static
@@ -50,10 +56,16 @@ namespace tmwa
     {
         io::WriteFile wf(dirfd, filename);
         if (!wf.is_open())
+        {
+            FPRINTF(stderr, "Could not open %s\n"_fmt, filename);
             abort();
+        }
         wf.put_line("Hello, World!"_s);
         if (!wf.close())
+        {
+            FPRINTF(stderr, "Could not write to %s\n"_fmt, filename);
             abort();
+        }
     }
 
     void check_paths()
