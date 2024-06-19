@@ -35,35 +35,35 @@
 namespace tmwa
 {
     static
-    void try_read(const io::DirFd& dirfd, ZString filename)
+    void try_read(const io::DirFd& dirfd, LString dir_path, ZString filename)
     {
         io::ReadFile rf(dirfd, filename);
         if (!rf.is_open())
         {
-            FPRINTF(stderr, "Could not open %s\n"_fmt, filename);
+            FPRINTF(stderr, "Could not open %s/%s\n"_fmt, dir_path, filename);
             abort();
         }
         AString line;
         if (!rf.getline(line))
         {
-            FPRINTF(stderr, "Could not read from %s\n"_fmt, filename);
+            FPRINTF(stderr, "Could not read from %s/%s\n"_fmt, dir_path, filename);
             abort();
         }
     }
 
     static
-    void try_write(const io::DirFd& dirfd, ZString filename)
+    void try_write(const io::DirFd& dirfd, LString dir_path, ZString filename)
     {
         io::WriteFile wf(dirfd, filename);
         if (!wf.is_open())
         {
-            FPRINTF(stderr, "Could not open %s\n"_fmt, filename);
+            FPRINTF(stderr, "Could not open %s/%s\n"_fmt, dir_path, filename);
             abort();
         }
         wf.put_line("Hello, World!"_s);
         if (!wf.close())
         {
-            FPRINTF(stderr, "Could not write to %s\n"_fmt, filename);
+            FPRINTF(stderr, "Could not write to %s/%s\n"_fmt, dir_path, filename);
             abort();
         }
     }
@@ -77,13 +77,17 @@ namespace tmwa
 
         io::DirFd root(portable_root);
 
-        io::DirFd etc(root, PACKAGESYSCONFDIR.xslice_t(portable));
-        io::DirFd var(root, PACKAGELOCALSTATEDIR.xslice_t(portable));
-        io::DirFd share(root, PACKAGEDATADIR.xslice_t(portable));
+        LString etc_path = PACKAGESYSCONFDIR.xslice_t(portable);
+        LString var_path = PACKAGELOCALSTATEDIR.xslice_t(portable);
+        LString share_path = PACKAGEDATADIR.xslice_t(portable);
 
-        try_read(etc, "shared.conf"_s);
-        try_read(share, "shared.data"_s);
-        try_write(var, "shared.test"_s);
+        io::DirFd etc(root, etc_path);
+        io::DirFd var(root, var_path);
+        io::DirFd share(root, share_path);
+
+        try_read(etc, etc_path, "shared.conf"_s);
+        try_read(share, share_path, "shared.data"_s);
+        try_write(var, var_path, "shared.test"_s);
 
         // io::FD::open();
     }
