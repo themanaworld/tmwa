@@ -1245,10 +1245,10 @@ int map_setipport(MapName name, IP4Address ip, int port)
  *------------------------------------------
  */
 int map_create_hash(char* str, int len) {
-    const int PRIME_CONST = 37;
+    const int PRIME_CONST = 67;
     int hash = 0;
     for (int i = 0; i < len; i++) {
-        hash += (str[i] * (int)pow(PRIME_CONST, i)) % maps_db.size();
+        hash += (str[i] * (int)pow(PRIME_CONST, i)) % 3067;
     }
     return hash;
 }
