@@ -5524,6 +5524,39 @@ void builtin_getmapmaxy(ScriptState *st)
 }
 
 /*==========================================
+ * Get the hash of a map
+ *------------------------------------------
+ */
+static
+void builtin_getmaphash(ScriptState *st)
+{
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+    push_int<ScriptDataInt>(st->stack, m->hash);
+}
+
+/*==========================================
+ * Get the map name from a hash
+ *------------------------------------------
+ */
+static
+void builtin_getmapnamefromhash(ScriptState *st)
+{
+    int hash = conv_num(st, &AARG(0));
+    MapName mapname;
+    for (auto& mit : maps_db)
+    {
+        map_local *ml = static_cast<map_local *>(mit.second.get());
+        if (ml->hash == hash)
+        {
+            mapname = ml->name_;
+            break;
+        }
+    }
+    push_str<ScriptDataStr>(st->stack, mapname);
+}
+
+/*==========================================
  * Get the NPC's info
  *------------------------------------------
  */
@@ -5787,6 +5820,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmap, "?"_s, 's'),
     BUILTIN(getmapmaxx, "M"_s, 'i'),
     BUILTIN(getmapmaxy, "M"_s, 'i'),
+    BUILTIN(getmaphash, "M"_s, 'i'),
+    BUILTIN(getmapnamefromhash, "i"_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(if_then_else, "iii"_s, 'v'),

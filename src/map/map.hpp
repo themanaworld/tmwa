@@ -531,6 +531,7 @@ struct map_local : map_abstract
     Point save;
     Point resave;
     int mask;
+    int hash;
     Array<dumb_ptr<npc_data>, MAX_NPC_PER_MAP> npc;
 };
 
