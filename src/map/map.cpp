@@ -1241,6 +1241,19 @@ int map_setipport(MapName name, IP4Address ip, int port)
 }
 
 /*==========================================
+ * creates a hash of a map name
+ *------------------------------------------
+ */
+int map_create_hash(char* str, int len) {
+    const int PRIME_CONST = 37;
+    int hash = 0;
+    for (int i = 0; i < len; i++) {
+        hash += (str[i] * (int)pow(PRIME_CONST, i)) % maps_db.size();
+    }
+    return hash;
+}
+
+/*==========================================
  * マップ1枚読み込み
  *------------------------------------------
  */
@@ -1265,6 +1278,14 @@ bool map_readmap(map_local *m, size_t num, MapName fn)
 
     m->npc_num = 0;
     m->users = 0;
+
+    char str[15+1] = { "\0" };
+    std::copy(fn.begin(), fn.end(), str);
+    str[fn.size()] = '\0';
+    int len = strlen(str);
+
+    m->hash = map_create_hash(str, len);
+
     really_memzero_this(&m->flag);
     if (battle_config.pk_mode)
         m->flag.set(MapFlag::PVP, 1);
