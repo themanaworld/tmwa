@@ -1245,10 +1245,11 @@ int map_setipport(MapName name, IP4Address ip, int port)
  *------------------------------------------
  */
 int map_create_hash(char* str, int len) {
-    const int PRIME_CONST = 67;
+    const int k = 67;
+    const int m = 3067;
     int hash = 0;
     for (int i = 0; i < len; i++) {
-        hash += (str[i] * (int)pow(PRIME_CONST, i)) % 3067;
+        hash += (str[i] * (int)pow(k, i)) % m;
     }
     return hash;
 }
@@ -1279,7 +1280,7 @@ bool map_readmap(map_local *m, size_t num, MapName fn)
     m->npc_num = 0;
     m->users = 0;
 
-    char str[15+1] = { "\0" };
+    char str[15+1] = { "\0" }; // VString<15> is used for map names
     std::copy(fn.begin(), fn.end(), str);
     str[fn.size()] = '\0';
     int len = strlen(str);
