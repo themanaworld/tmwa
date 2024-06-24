@@ -5543,7 +5543,7 @@ static
 void builtin_getmapnamefromhash(ScriptState *st)
 {
     int hash = conv_num(st, &AARG(0));
-    MapName mapname = stringish<MapName>(ZString(""_s));
+    MapName mapname;
     for (auto& mit : maps_db)
     {
         map_local *ml = static_cast<map_local *>(mit.second.get());
