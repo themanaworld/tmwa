@@ -72,19 +72,7 @@ public:
     }
 };
 
-// std::underlying_type isn't supported until gcc 4.7
-// this is a poor man's emulation
-// TODO I'm depending on GCC 4.7 now, this can go away
-template<class E>
-struct underlying_type
-{
-    static_assert(std::is_enum<E>::value, "Only enums have underlying type!");
-    typedef typename std::conditional<
-        std::is_signed<E>::value,
-        typename std::make_signed<E>::type,
-        typename std::make_unsigned<E>::type
-    >::type type;
-};
+using std::underlying_type;
 
 template<class E, bool=std::is_enum<E>::value>
 struct remove_enum
