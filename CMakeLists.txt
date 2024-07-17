@@ -50,11 +50,14 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 )
 
 # Search through the tree for sources
-# For each subfolder in src, add all .cpp files to a subfolder's SOURCES
+# For each subfolder in src, add all .cpp, .hpp and .tcc files to a subfolder's SOURCES
 # variable.
 set(ALL_SOURCES "")
-foreach(dir admin ast char compat conf generic high ints io login map mmo net proto-base range sexpr shared strings tests wire strtest)
-    file(GLOB_RECURSE ${dir}_SOURCES CONFIGURE_DEPENDS src/${dir}/*.cpp)
+foreach(dir admin ast char compat conf generic high ints io login map mmo net proto-base range sexpr shared strings tests wire)
+    file(GLOB_RECURSE ${dir}_SOURCES CONFIGURE_DEPENDS
+        src/${dir}/*.cpp
+        src/${dir}/*.hpp
+        src/${dir}/*.tcc)
     # Exclude any _test.cpp files from the build
     set(ALL_SOURCES ${ALL_SOURCES} ${${dir}_SOURCES})
     list(FILTER ${dir}_SOURCES EXCLUDE REGEX ".*_test.cpp")
