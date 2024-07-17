@@ -33,8 +33,6 @@
 
 #include "../compat/time_t.hpp"
 
-#include "../generic/enum.hpp"
-
 
 namespace tmwa
 {
@@ -83,7 +81,7 @@ bool impl_extract(XString str, TimeT *tv)
 template<class T, typename=typename std::enable_if<std::is_enum<T>::value>::type>
 bool extract_as_int(XString str, T *iv)
 {
-    typedef typename underlying_type<T>::type U;
+    typedef typename std::underlying_type<T>::type U;
     U v;
     // defer to integer version
     if (!extract(str, &v))
