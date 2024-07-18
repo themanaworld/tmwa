@@ -870,6 +870,7 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->quick_regeneration_hp.amount = 0;
     sd->quick_regeneration_sp.amount = 0;
     sd->heal_xp = 0;
+    sd->max_weight_override = 0;
     sd->canact_tick = tick;
     sd->canmove_tick = tick;
     sd->attackabletime = tick;
