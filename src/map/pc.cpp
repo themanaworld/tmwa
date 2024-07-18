@@ -870,6 +870,7 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->quick_regeneration_hp.amount = 0;
     sd->quick_regeneration_sp.amount = 0;
     sd->heal_xp = 0;
+    sd->max_weight_override = 0;
     sd->canact_tick = tick;
     sd->canmove_tick = tick;
     sd->attackabletime = tick;
@@ -1482,6 +1483,9 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->attackrange += std::min(skill_power(sd, SkillID::AC_OWL) / 60, 3);
         sd->hit += skill_power(sd, SkillID::AC_OWL) / 10;   // 20 for 200
     }
+
+    if (sd->max_weight_override)
+        sd->max_weight = sd->max_weight_override;
 
     sd->max_weight += 1000;
 
@@ -3729,6 +3733,9 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::MAXWEIGHT:
             val = sd ? sd->max_weight : 0;
             break;
+        case SP::MAXWEIGHT_OVERRIDE:
+            val = sd ? sd->max_weight_override : 0;
+            break;
         case SP::BASEEXP:
             val = sd ? sd->status.base_exp : 0;
             break;
@@ -4055,6 +4062,11 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             nullpo_retz(sd);
             sd->max_weight = val;
             clif_updatestatus(sd, type);
+            break;
+        case SP::MAXWEIGHT_OVERRIDE:
+            nullpo_retz(sd);
+            sd->max_weight_override = val;
+            pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
             break;
         case SP::HP:
             nullpo_retz(sd);

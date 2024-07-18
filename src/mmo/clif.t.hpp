@@ -266,6 +266,7 @@ enum class SP : uint16_t
     // sent to client
     MAXWEIGHT                   = 25,
     MAXWEIGHT_ADD               = 26,
+    MAXWEIGHT_OVERRIDE          = 27,
 
     // sent to client
     USTR                        = 32,

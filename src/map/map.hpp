@@ -184,7 +184,7 @@ struct map_session_data : block_list, SessionData
         None, None, None, None, None, None, None, None, None, None,
      }}; // explicit is better than implicit
     earray<IOff0, EQUIP, EQUIP::COUNT> equip_index_maybe;
-    int weight, max_weight;
+    int weight, max_weight, max_weight_override;
     MapName mapname_;
     Session *sess; // use this, you idiots!
     short to_x, to_y;
