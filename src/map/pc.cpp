@@ -1483,6 +1483,9 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->hit += skill_power(sd, SkillID::AC_OWL) / 10;   // 20 for 200
     }
 
+    if (sd->max_weight_override)
+        sd->max_weight = sd->max_weight_override;
+
     sd->max_weight += 1000;
 
     bl = sd->status.base_level;
@@ -3729,6 +3732,9 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::MAXWEIGHT:
             val = sd ? sd->max_weight : 0;
             break;
+        case SP::MAXWEIGHT_OVERRIDE:
+            val = sd ? sd->max_weight_override : 0;
+            break;
         case SP::BASEEXP:
             val = sd ? sd->status.base_exp : 0;
             break;
@@ -4055,6 +4061,10 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             nullpo_retz(sd);
             sd->max_weight = val;
             clif_updatestatus(sd, type);
+            break;
+        case SP::MAXWEIGHT_OVERRIDE:
+            nullpo_retz(sd);
+            sd->max_weight_override = val;
             break;
         case SP::HP:
             nullpo_retz(sd);
