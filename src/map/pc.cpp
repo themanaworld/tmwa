@@ -4065,6 +4065,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
         case SP::MAXWEIGHT_OVERRIDE:
             nullpo_retz(sd);
             sd->max_weight_override = val;
+            pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
             break;
         case SP::HP:
             nullpo_retz(sd);
