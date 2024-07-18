@@ -1894,6 +1894,10 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->base_weapon_delay_adjust += interval_t(val);
             break;
+        case SP::MAXWEIGHT:
+            if (!sd->state.lr_flag_is_arrow_2)
+                sd->max_weight = val;
+            break;
         default:
             if (battle_config.error_log)
                 PRINTF("pc_bonus: unknown type %d %d !\n"_fmt,
