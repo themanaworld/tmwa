@@ -1006,7 +1006,8 @@ int npc_selllist(dumb_ptr<map_session_data> sd,
 
         OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[item_list[i].ioff2.unshift()])
         {
-            if (bool(sdidn->mode & ItemMode::NO_SELL_TO_NPC))
+            GmLevel gmlvl = pc_isGM(sd);
+            if (bool(sdidn->mode & ItemMode::NO_SELL_TO_NPC) && gmlvl.get_all_bits() < 60)
             {
                 //clif_displaymessage(sd->sess, "This item can't be sold to an NPC."_s);
                 // M+ already outputs "Unable to sell unsellable item." on return value 3.
