@@ -4620,7 +4620,8 @@ RecvResult clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
 
     OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[fixed.ioff2.unshift()])
     {
-        if (bool(sdidn->mode & ItemMode::NO_DROP))
+        GmLevel gmlvl = pc_isGM(sd);
+        if (bool(sdidn->mode & ItemMode::NO_DROP) && gmlvl.get_all_bits() < 60)
         {
             clif_displaymessage(sd->sess, "This item can't be dropped."_s);
             return rv;
@@ -4909,7 +4910,8 @@ RecvResult clif_parse_TradeAddItem(Session *s, dumb_ptr<map_session_data> sd)
     if (fixed.zeny_or_ioff2.ok())
         OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[fixed.zeny_or_ioff2.unshift()])
         {
-            if (bool(sdidn->mode & ItemMode::NO_TRADE))
+            GmLevel gmlvl = pc_isGM(sd);
+            if (bool(sdidn->mode & ItemMode::NO_TRADE) && gmlvl.get_all_bits() < 60)
             {
                 clif_displaymessage(sd->sess, "This item can't be traded."_s);
                 return rv;

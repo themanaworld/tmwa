@@ -188,7 +188,8 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, IOff0 index, int amount)
 
     OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[index])
     {
-        if (bool(sdidn->mode & ItemMode::NO_STORAGE))
+        GmLevel gmlvl = pc_isGM(sd);
+        if (bool(sdidn->mode & ItemMode::NO_STORAGE) && gmlvl.get_all_bits() < 60)
         {
             clif_displaymessage(sd->sess, "This item can't be stored."_s);
             return 0;
