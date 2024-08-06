@@ -1122,7 +1122,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         b_attackrange, b_matk1, b_matk2, b_mdef, b_mdef2;
     int b_base_atk;
     int bl;
-    int aspd_rate, refinedef = 0;
+    int aspd_rate, speed_rate, refinedef = 0;
     int str, dstr, dex;
     int b_pvpchannel = 0;
 
@@ -1474,6 +1474,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     }
 
     aspd_rate = sd->aspd_rate;
+    speed_rate = sd->speed_rate;
 
     //攻撃速度増加 | Increased attack speed
 
@@ -1554,10 +1555,13 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
         if (sd->sc_data[StatusChange::SC_PHYS_SHIELD].timer)
             aspd_rate += sd->sc_data[StatusChange::SC_PHYS_SHIELD].val1;
+
+        if (sd->sc_data[StatusChange::SC_SLOWMOVE].timer)
+            speed_rate += sd->sc_data[StatusChange::SC_SLOWMOVE].val1;
     }
 
-    if (sd->speed_rate != 100)
-        sd->speed = sd->speed * sd->speed_rate / 100;
+    if (speed_rate != 100)
+        sd->speed = sd->speed * speed_rate / 100;
     sd->speed = std::max(sd->speed, 1_ms);
     if (sd->speed_cap < interval_t::zero())
         sd->speed_cap = interval_t::zero();

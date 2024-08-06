@@ -754,6 +754,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
         case StatusChange::SC_MATKPOT:   /* magic attack potion [Valaris] */
         case StatusChange::SC_PHYS_SHIELD:
         case StatusChange::SC_HASTE:
+        case StatusChange::SC_SLOWMOVE:
             calc_flag = 1;
             break;
 
@@ -765,6 +766,8 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
         case StatusChange::SC_COOLDOWN_ENCH:
         case StatusChange::SC_COOLDOWN_KOY:
         case StatusChange::SC_COOLDOWN_UPMARMU:
+        case StatusChange::SC_COOLDOWN_SG:
+        case StatusChange::SC_CANTMOVE:
             break;
 
             /* option2 */
@@ -1031,6 +1034,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         case StatusChange::SC_HASTE:
         case StatusChange::SC_PHYS_SHIELD:
         case StatusChange::SC_MBARRIER:
+        case StatusChange::SC_SLOWMOVE:
             calc_flag = 1;
             break;
         case StatusChange::SC_HALT_REGENERATE:
@@ -1043,6 +1047,8 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         case StatusChange::SC_COOLDOWN_ENCH:
         case StatusChange::SC_COOLDOWN_KOY:
         case StatusChange::SC_COOLDOWN_UPMARMU:
+        case StatusChange::SC_COOLDOWN_SG:
+        case StatusChange::SC_CANTMOVE:
             break;
         case StatusChange::SC_FLYING_BACKPACK:
             updateflag = SP::WEIGHT;

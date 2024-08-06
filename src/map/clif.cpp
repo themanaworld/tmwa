@@ -3865,6 +3865,12 @@ RecvResult clif_parse_WalkToXY(Session *s, dumb_ptr<map_session_data> sd)
     if (bool(sd->opt1) && sd->opt1 != (Opt1::_stone6))
         return rv;
 
+    if (sd->sc_data[StatusChange::SC_CANTMOVE].timer)
+    {
+        pc_stop_walking(sd, 1); // this is a little hack since client is a bit bugged and still moves several tiles and then gets reset to the position where status was triggered with this it only moves 1 pixel or so and gets set back
+        return rv;
+    }
+
     if (sd->invincible_timer)
         pc_delinvincibletimer(sd);
 

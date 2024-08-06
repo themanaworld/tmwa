@@ -3929,7 +3929,10 @@ void builtin_sc_start(ScriptState *st)
             case StatusChange::SC_COOLDOWN_ENCH:
             case StatusChange::SC_COOLDOWN_KOY:
             case StatusChange::SC_COOLDOWN_UPMARMU:
-            break;
+            case StatusChange::SC_COOLDOWN_SG:
+            case StatusChange::SC_SLOWMOVE:
+            case StatusChange::SC_CANTMOVE:
+           break;
 
             default:
             // work around old behaviour of:

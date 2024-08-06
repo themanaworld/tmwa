@@ -60,8 +60,11 @@ enum class StatusChange : uint16_t
     SC_COOLDOWN_ENCH    = 76,   // Enchanter cooldown
     SC_COOLDOWN_KOY     = 77,   // Koyntety cooldown
     SC_COOLDOWN_UPMARMU = 78,   // Upmarmu cooldown
+    SC_COOLDOWN_SG      = 79,   // Stone Golem cooldown
 
     SC_POISON           = 132,  // bad; actually used
+    SC_SLOWMOVE         = 133,  // slows down movement
+    SC_CANTMOVE         = 134,  // stops all movement
 
     SC_ATKPOT           = 185,  // item script
     SC_MATKPOT          = 186,  // unused, but kept for parallel
