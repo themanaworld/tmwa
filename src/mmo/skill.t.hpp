@@ -67,7 +67,9 @@ enum class StatusChange : uint16_t
     SC_CANTMOVE         = 134,  // stops all movement
 
     SC_ATKPOT           = 185,  // item script
-    SC_MATKPOT          = 186,  // unused, but kept for parallel
+    SC_MATKPOT          = 186,  // `Matk' spell from items (val1 : power)
+
+    SC_PHYS_SHIELD_ITEM = 193,  // `Protect' spell from items, reduce damage (val1: power) can't be chancelled with detsanc
 
 // Added for Fate's spells
     SC_HIDE             = 194,  // Hide from `detect' magic (PCs only)

@@ -2091,10 +2091,10 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         }
 
         if (wd.damage > 0
-            && t_sc_data[StatusChange::SC_PHYS_SHIELD].timer
+            && (t_sc_data[StatusChange::SC_PHYS_SHIELD].timer || t_sc_data[StatusChange::SC_PHYS_SHIELD_ITEM].timer)
             && target->bl_type == BL::PC)
         {
-            int reduction = t_sc_data[StatusChange::SC_PHYS_SHIELD].val1;
+            int reduction = std::max(t_sc_data[StatusChange::SC_PHYS_SHIELD].val1, t_sc_data[StatusChange::SC_PHYS_SHIELD_ITEM].val1); // highest value is taken here but serverdata should make sure only one of those is active
             if (reduction > wd.damage)
                 reduction = wd.damage;
 

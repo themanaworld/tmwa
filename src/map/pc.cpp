@@ -1553,8 +1553,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
         /* Slow down if protected */
 
-        if (sd->sc_data[StatusChange::SC_PHYS_SHIELD].timer)
-            aspd_rate += sd->sc_data[StatusChange::SC_PHYS_SHIELD].val1;
+        if (sd->sc_data[StatusChange::SC_PHYS_SHIELD].timer || sd->sc_data[StatusChange::SC_PHYS_SHIELD_ITEM].timer)
+            aspd_rate += std::max(sd->sc_data[StatusChange::SC_PHYS_SHIELD].val1, sd->sc_data[StatusChange::SC_PHYS_SHIELD_ITEM].val1); // highest value is taken here but serverdata should make sure only one of those is active
 
         if (sd->sc_data[StatusChange::SC_SLOWMOVE].timer)
             speed_rate += sd->sc_data[StatusChange::SC_SLOWMOVE].val1;

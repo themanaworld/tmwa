@@ -201,9 +201,9 @@ int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     }
 
     sc_def_phys_shield_spell = 0;
-    if (battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD].timer)
+    if (battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD].timer || battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD_ITEM].timer)
         sc_def_phys_shield_spell =
-            battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD].val1;
+            std::max(battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD].val1, battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD_ITEM].val1); // highest value is taken here but serverdata should make sure only one of those is active
 
     // 対象の耐性 | Target resistance
     luk = battle_get_luk(bl);
@@ -753,6 +753,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
         case StatusChange::SC_ATKPOT:    /* attack potion [Valaris] */
         case StatusChange::SC_MATKPOT:   /* magic attack potion [Valaris] */
         case StatusChange::SC_PHYS_SHIELD:
+        case StatusChange::SC_PHYS_SHIELD_ITEM:
         case StatusChange::SC_HASTE:
         case StatusChange::SC_SLOWMOVE:
             calc_flag = 1;
@@ -1033,6 +1034,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
 
         case StatusChange::SC_HASTE:
         case StatusChange::SC_PHYS_SHIELD:
+        case StatusChange::SC_PHYS_SHIELD_ITEM:
         case StatusChange::SC_MBARRIER:
         case StatusChange::SC_SLOWMOVE:
             calc_flag = 1;

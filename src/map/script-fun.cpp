@@ -3920,6 +3920,7 @@ void builtin_sc_start(ScriptState *st)
             // all those use ms so this checks for < 1s are not needed on those
             // and it would break the cooldown symbol since many spells have cooldowns less than 1s
             case StatusChange::SC_PHYS_SHIELD:
+            case StatusChange::SC_PHYS_SHIELD_ITEM:
             case StatusChange::SC_MBARRIER:
             case StatusChange::SC_COOLDOWN:
             case StatusChange::SC_COOLDOWN_MG:
