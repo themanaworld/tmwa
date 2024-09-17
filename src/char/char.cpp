@@ -777,8 +777,8 @@ void create_online_files(void)
             stamp_time(timetemp);
             // write heading
             FPRINTF(fp2, "<HTML>\n"_fmt);
-            FPRINTF(fp2, "  <META http-equiv=\"Refresh\" content=\"%d\">\n"_fmt, char_conf.online_refresh_html); // update on client explorer every x seconds
             FPRINTF(fp2, "  <HEAD>\n"_fmt);
+            FPRINTF(fp2, "    <META http-equiv=\"refresh\" content=\"%d\">\n"_fmt, char_conf.online_refresh_html); // update on client explorer every x seconds
             FPRINTF(fp2, "    <TITLE>Online Players on %s</TITLE>\n"_fmt,
                     char_conf.server_name);
             FPRINTF(fp2, "  </HEAD>\n"_fmt);
