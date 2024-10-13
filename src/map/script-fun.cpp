@@ -4366,9 +4366,14 @@ void builtin_getitemlink(ScriptState *st)
     struct script_data *data;
     AString buf;
     data = &AARG(0);
-    ZString name = conv_str(st, data);
+    Option<P<struct item_data>> item_data_ = None;
 
-    Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
+    get_val(st, data);
+    if (data->is<ScriptDataStr>())
+        item_data_ = itemdb_searchname(conv_str(st, data));
+    else
+        item_data_ = itemdb_exists(wrap<ItemNameId>(conv_num(st, data)));
+
     OMATCH_BEGIN (item_data_)
     {
         OMATCH_CASE_SOME (item_data)
