@@ -8,6 +8,7 @@ variables: &base_vars
   # Depth of clone. If no tag is made after this many commits, then
   # the git describe call and version header generation will fail.
   GIT_DEPTH: 100 # Will break again eventually.
+  GIT_SUBMODULE_STRATEGY: normal
 
 .prerequisites: &prerequisites
   before_script:
@@ -25,7 +26,6 @@ re:ubuntu1804-attoconf:build:
     INSTALL_PACKAGES: python3
   script:
     - echo "Building TMW Athena $CI_BUILD_NAME"
-    - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - mkdir build-atto
@@ -47,7 +47,6 @@ re:ubuntu2204-attoconf:build:
     <<: *base_vars
     INSTALL_PACKAGES: python3
   script:
-    - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - mkdir build-atto
@@ -69,7 +68,6 @@ re:ubuntu2204:build:
     <<: *base_vars
     INSTALL_PACKAGES: python3 cmake
   script:
-    - git submodule update --init
     - git fetch -t
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - mkdir build-cmake
