@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding: utf-8
 ##    bs-align.py - Filter to align trailing line continuations
 ##

@@ -5,7 +5,7 @@
 
 # gdb sticks everything in one scope.
 # This lets us enumerate what *we* added.
-initial_globals = {id(v):v for v in globals().values()}
+initial_globals = {id(v):v for v in list(globals().values())}
 
 import re
 

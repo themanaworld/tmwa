@@ -5,7 +5,7 @@ This combination is explicitly allowed by section 13 of the licenses.
 See gpl-3.0.txt or agpl-3.0.txt for specific terms.
 
 In order to make life easy for users who run this software publicly,
-please set VENDOR_SOURCE in version.make if you make any modifications.
+please set VENDOR_SOURCE in version.mk if you make any modifications.
 
 History:
 

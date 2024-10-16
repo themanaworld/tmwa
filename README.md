@@ -11,7 +11,7 @@ The rest of this file contains information relevant to distributors and contribu
 
 ## 1. Distributors
 ### Important notes
-- Please read [version.make](version.make) for important version information.
+- Please read [version.mk](version.mk) for important version information.
 - TMWA requires git to build by default. Use 'make dist' to get a tarball.
 
 ### Platform dependencies

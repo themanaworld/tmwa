@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 #   protocol.py - generator for entire TMWA network protocol
@@ -20,19 +20,12 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-
 import glob
 import itertools
 import os
 from pipes import quote
 from posixpath import relpath
 from weakref import ref as wr
-
-try:
-    unicode
-except NameError:
-    unicode = str
 
 ## For various reasons this is all one file, so let's navigate with a
 ##
@@ -91,7 +84,7 @@ class OpenWrite(object):
         self.filename = filename
 
     def __enter__(self):
-        self.handle = open(self.filename + '.tmp', 'w')
+        self.handle = open(self.filename + '.tmp', 'w', encoding='utf-8')
         return self.handle
 
     def __exit__(self, ty, v, tb):
@@ -116,30 +109,30 @@ class OpenWrite(object):
 # TOC_
 
 def gvq(s):
-    return u'"%s"' % s.replace(u'"', u'\\"')
+    return '"%s"' % s.replace('"', '\\"')
 
 def gva(d):
     if d:
-        return u' [%s]' % u', '.join(u'%s=%s' % (ak, gvq(av)) for (ak, av) in sorted(d.items()))
-    return u''
+        return ' [%s]' % ', '.join('%s=%s' % (ak, gvq(av)) for (ak, av) in sorted(d.items()))
+    return ''
 
 class Attributes(object):
-    __slots__ = (u'_attributes')
+    __slots__ = ('_attributes')
 
     def __init__(self):
         self._attributes = {}
 
     def __getitem__(self, k):
-        assert isinstance(k, unicode)
+        assert isinstance(k, str)
         return self._attributes[k]
 
     def __setitem__(self, k, v):
-        assert isinstance(k, unicode)
-        assert isinstance(v, unicode)
+        assert isinstance(k, str)
+        assert isinstance(v, str)
         self._attributes[k] = v
 
     def __delitem__(self, k):
-        assert isinstance(k, unicode)
+        assert isinstance(k, str)
         del self._attributes[k]
 
     def merge(self, *others):
@@ -150,7 +143,7 @@ class Attributes(object):
             self._attributes.update(other._attributes)
 
 class Graph(Attributes):
-    __slots__ = (u'default_vertex', u'default_edge', u'_vertices', u'_edges', u'_vertex_lookup')
+    __slots__ = ('default_vertex', 'default_edge', '_vertices', '_edges', '_vertex_lookup')
 
     def __init__(self):
         Attributes.__init__(self)
@@ -161,7 +154,7 @@ class Graph(Attributes):
         self._vertex_lookup = {}
 
     def vertex(self, name, insert=True):
-        assert isinstance(name, unicode)
+        assert isinstance(name, str)
         vert = self._vertex_lookup.get(name)
         if insert and vert is None:
             vert = Vertex(name)
@@ -238,21 +231,21 @@ class Graph(Attributes):
 
         def p(*args):
             for x in args:
-                out.write(unicode(x))
-            out.write(u'\n')
-        p(u'digraph')
-        p(u'{')
+                out.write(str(x))
+            out.write('\n')
+        p('digraph')
+        p('{')
         for ak, av in sorted(self._attributes.items()):
-            p(u'  ', ak, u'=', gvq(av), u';')
+            p('  ', ak, '=', gvq(av), ';')
         for ak, av in sorted(self.default_vertex._attributes.items()):
-            p(u'  node [', ak, u'=', gvq(av), u'];')
+            p('  node [', ak, '=', gvq(av), '];')
         for ak, av in sorted(self.default_edge._attributes.items()):
-            p(u'  edge [', ak, u'=', gvq(av), u'];')
+            p('  edge [', ak, '=', gvq(av), '];')
         for n in sorted(self._vertices):
-            p(u'  ', n)
+            p('  ', n)
         for _, e in sorted(self._edges.items()):
-            p(u'  ', e)
-        p(u'}')
+            p('  ', e)
+        p('}')
 
     def dot_str(self):
         from io import StringIO
@@ -261,18 +254,18 @@ class Graph(Attributes):
         return out.getvalue()
 
     def dot_file(self, name):
-        with open(name, u'w') as f:
+        with open(name, 'w') as f:
             self.dot(f, False)
 
     def preview(self, block):
         from subprocess import Popen, PIPE
-        proc = Popen([u'dot', u'-Txlib', u'/dev/stdin'], stdin=PIPE, universal_newlines=True)
+        proc = Popen(['dot', '-Txlib', '/dev/stdin'], stdin=PIPE, universal_newlines=True)
         self.dot(proc.stdin, True)
         if block:
             proc.wait()
 
 class Vertex(Attributes):
-    __slots__ = (u'_key', u'_post', u'_pre', u'__weakref__')
+    __slots__ = ('_key', '_post', '_pre', '__weakref__')
 
     def __init__(self, key):
         Attributes.__init__(self)
@@ -281,13 +274,13 @@ class Vertex(Attributes):
         self._pre = set()
 
     def __str__(self):
-        return u'%s%s;' % (gvq(self._key), gva(self._attributes))
+        return '%s%s;' % (gvq(self._key), gva(self._attributes))
 
     def __lt__(self, other):
         return self._key < other._key
 
 class Edge(Attributes):
-    __slots__ = (u'_from', u'_to')
+    __slots__ = ('_from', '_to')
 
     def __init__(self, f, t):
         Attributes.__init__(self)
@@ -295,7 +288,7 @@ class Edge(Attributes):
         self._to = t
 
     def __str__(self):
-        return u'%s -> %s%s;' % (gvq(self._from._key), gvq(self._to._key), gva(self._attributes))
+        return '%s -> %s%s;' % (gvq(self._from._key), gvq(self._to._key), gva(self._attributes))
 
 
 # TOC_TYPES
@@ -7091,7 +7084,7 @@ def partition(d):
     changed = True
     while changed:
         changed = False
-        for k, vlist in d.items():
+        for k, vlist in list(d.items()):
             if vlist:
                 m = min(leaders[v] for v in vlist)
                 if m < leaders[k]:
@@ -7107,9 +7100,9 @@ def partition(d):
                     leaders[v] = m
 
     followers = {}
-    for k, v in leaders.items():
+    for k, v in list(leaders.items()):
         followers.setdefault(v, []).append(k)
-    return [set(v) for v in followers.values()]
+    return [set(v) for v in list(followers.values())]
 
 def ids_only(vpost):
     rv = [e for e in vpost if not isinstance(e, SpecialEventOrigin)]
@@ -7124,7 +7117,7 @@ def make_dots(ctx):
     #p = partition({k: ids_only(v.post) for (k, v) in d.items()})
 
     if not os.path.exists('doc-gen'):
-        # generate.make will succeed if missing the wiki repo
+        # generate.mk will succeed if missing the wiki repo
         # but 'make doc' will fail
         return
     for g in glob.glob('doc-gen/*.gv'):
@@ -7132,7 +7125,7 @@ def make_dots(ctx):
     for g in glob.glob('doc-gen/Packet-*.md'):
         os.rename(g, g + '.old')
 
-    for (id, p) in d.items():
+    for (id, p) in list(d.items()):
         md = 'doc-gen/Packet-0x%04x.md' % id
         dot = 'doc-gen/packets-around-0x%04x.gv' % id
         with OpenWrite(md) as f:
@@ -7179,16 +7172,16 @@ def make_dots(ctx):
             covered_nodes = sorted(p.pre_set(d, 2) | p.post_set(d, 2))
             covered_edges = [(a, b) for a in covered_nodes for b in covered_nodes if b in d[a].post]
             g = Graph()
-            g.default_vertex[u'shape'] = u'box'
-            # g[u'layout'] = u'twopi'
-            # g[u'root'] = u'0x%04x' % id
+            g.default_vertex['shape'] = 'box'
+            # g['layout'] = 'twopi'
+            # g['root'] = '0x%04x' % id
             for n in covered_nodes:
-                v = g.vertex(u'0x%04x' % n)
-                v[u'label'] = u'Packet \\N: %s' % d[n].name
+                v = g.vertex('0x%04x' % n)
+                v['label'] = 'Packet \\N: %s' % d[n].name
                 if n == id:
-                    v[u'style'] = u'filled'
+                    v['style'] = 'filled'
             for (a, b) in covered_edges:
-                g.edge(u'0x%04x' % a, u'0x%04x' % b)
+                g.edge('0x%04x' % a, '0x%04x' % b)
             for n in covered_nodes:
                 # the center node will be covered specially below
                 if n == id:
@@ -7206,10 +7199,10 @@ def make_dots(ctx):
                         # don't show mere siblings unless also ancestor/descendent
                         count += 1
                 if count:
-                    v = g.vertex(u'0x%04x...pre' % n)
-                    v[u'label'] = u'%d more' % count
-                    v[u'style'] = u'dashed'
-                    g.edge(v, u'0x%04x' % n)
+                    v = g.vertex('0x%04x...pre' % n)
+                    v['label'] = '%d more' % count
+                    v['style'] = 'dashed'
+                    g.edge(v, '0x%04x' % n)
                 # strong forward links
                 count = 0
                 for p in d[n].post:
@@ -7218,36 +7211,36 @@ def make_dots(ctx):
                     elif p not in covered_nodes:
                         count += 1
                 if count:
-                    v = g.vertex(u'0x%04x...post' % n)
-                    v[u'label'] = u'%d more' % count
-                    v[u'style'] = u'dashed'
-                    g.edge(u'0x%04x' % n, v)
+                    v = g.vertex('0x%04x...post' % n)
+                    v['label'] = '%d more' % count
+                    v['style'] = 'dashed'
+                    g.edge('0x%04x' % n, v)
             # for the immediate node, also cover specials and weaks
             for p in d[id].pre:
                 # (there are no weak backward specials)
                 # strong backward specials
                 if isinstance(p, SpecialEventOrigin):
-                    g.edge(unicode(p.name), u'0x%04x' % id)
+                    g.edge(str(p.name), '0x%04x' % id)
                 # weak backward nodes
                 elif id in d[p].xpost:
-                    e = g.edge(u'0x%04x' % p, u'0x%04x' % id)
-                    e[u'style']=u'dashed'
-                    e[u'weight'] = u'0'
+                    e = g.edge('0x%04x' % p, '0x%04x' % id)
+                    e['style']='dashed'
+                    e['weight'] = '0'
             for p in d[id].post:
                 # strong forward specials
                 if isinstance(p, SpecialEventOrigin):
-                    g.edge(u'0x%04x' % id, unicode(p.name))
+                    g.edge('0x%04x' % id, str(p.name))
             for p in d[id].xpost:
                 # weak forward specials
                 if isinstance(p, SpecialEventOrigin):
-                    e = g.edge(u'0x%04x' % id, unicode(p.name))
-                    e[u'style'] = u'dashed'
-                    e[u'weight'] = u'0'
+                    e = g.edge('0x%04x' % id, str(p.name))
+                    e['style'] = 'dashed'
+                    e['weight'] = '0'
                 # weak forward nodes
                 elif p not in covered_nodes:
-                    e = g.edge(u'0x%04x' % id, u'0x%04x' % p)
-                    e[u'style'] = u'dashed'
-                    e[u'weight'] = u'0'
+                    e = g.edge('0x%04x' % id, '0x%04x' % p)
+                    e['style'] = 'dashed'
+                    e['weight'] = '0'
             g.dot(f, False)
 
 

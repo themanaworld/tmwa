@@ -152,7 +152,7 @@ $(info The Road goes ever on and on ...)
 endif
 endif
 
-include ${SRC_DIR}/version.make
+include ${SRC_DIR}/version.mk
 
 ifeq (${ENABLE_SHARED},yes)
 LIB_SUFFIX_FAKE := so
@@ -184,12 +184,13 @@ export PATH:=$(realpath ${SRC_DIR}/tools):${PATH}
 SHELL=bash
 
 # need to generate source files before path lists
-$(shell make -f ${SRC_DIR}/generate.make >&2)
+$(shell make -f ${SRC_DIR}/generate.mk >&2)
 stamp/generated.stamp:
 	# if you get here, the shell above failed
 	false
 
 # path lists
+GENERATED_FILES := src/conf/version.hpp
 REAL_SOURCES := $(shell cd ${SRC_DIR}; find src/ -name '*.cpp')
 REAL_HEADERS := $(shell cd ${SRC_DIR}; find include/ src/ -name '*.hpp' -o -name '*.tcc')
 PIES := $(shell cd ${SRC_DIR}; find src/ -name '*.py')
@@ -283,9 +284,9 @@ endif
 # This needs to edit CXX instead of CXXFLAGS in order to make
 # the %.ii rule work.
 ifeq (${ENABLE_CYGWIN_HACKS},yes)
-override CXX += -std=gnu++0x
+override CXX += -std=gnu++11
 else
-override CXX += -std=c++0x
+override CXX += -std=c++11
 endif
 
 CXXFLAGS += -fstack-protector
@@ -333,9 +334,60 @@ include ${DEPENDS}
 endif
 
 thisdir := $(abspath .)
+
 #$(foreach root,${PATTERN_ROOTS},$(info pre-root: ${root} := $(value ${root}))$(info ))
 # can't do $(filter %.hpp yet)
-$(foreach root,${PATTERN_ROOTS},$(eval ${root} := $(sort $(patsubst ${thisdir}/%,%,$(abspath $(patsubst ${SRC_DIR}/%,%,$(wildcard $(value ${root})) $(filter conf-raw/%.h,$(value ${root}))))))))
+
+# Sanitize the dependencies.
+#
+# ${root} has a value like "mmo/version", and ${mmo/version} in turn has the
+# value of all of its dependencies (from the %.d files).
+#
+# This reassigns the *value of the value* of ${root} to be:
+#   - sorted
+#   - relative and simplified: it's stripped of any absolute path relative to
+#     the current directory after being converted to an absolute path.
+#     This also converts paths from being relative to the build directory to
+#	  being relative to the source directory, if they differ.
+#     This simplifies any construct such as:
+#       ../src/mmo/../strings/zstring.tcc
+#     to:
+#       src/strings/zstring.tcc
+#   - only files which either exist (the purpose of the wildcard function),
+#     are in the conf-raw directory (the first filter function), or
+#     are listed in the GENERATED_FILES variable (the second filter function).
+#     This means that if there are any build-time generated files added, this
+#     needs to be modified to not filter them out.
+#
+# The end result for each root will look something like:
+# mmo/version := conf-raw/int-VENDOR_POINT.h conf-raw/int-VERSION_DEVEL.h [...]
+#                src/strings/zstring.tcc src/wire/fwd.hpp
+
+# Firstly, make the paths relative and simplified.
+$(foreach root,${PATTERN_ROOTS},$(eval \
+	${root} := $(sort $(patsubst ${thisdir}/%,%, \
+		$(abspath $(patsubst ${SRC_DIR}/%,%, $(value ${root}))) \
+	)) \
+))
+
+# Secondly, make sure that the files actually exist, or are files we expect to
+# generate ourselves. Sort the result for readability.
+# Note that we re-add and remove the ${SRC_DIR} prefix when first testing for
+# existence, as we need to test for existence relative to our build directory.
+# The second wildcard test doesn't add a ${SRC_DIR} prefix, but does strip it,
+# handling the case where the file is specified relative to the source
+# directory (mostly the case in test sources).
+$(foreach root,${PATTERN_ROOTS},$(eval \
+	${root} := $(sort \
+		$(patsubst ${SRC_DIR}/%,%,$(wildcard $(addprefix ${SRC_DIR}/, \
+			$(value ${root}) \
+		))) \
+		$(patsubst ${SRC_DIR}/%,%,$(wildcard ${SRC_DIR})) \
+		$(filter conf-raw/%.h,$(value ${root})) \
+		$(filter ${GENERATED_FILES},$(value ${root})) \
+	) \
+))
+
 # have to redo what we undid to get it as a variable
 $(foreach root,${PATTERN_ROOTS},$(eval obj/${root}.ii obj/${root}.ll obj/${root}.bc obj/${root}.s obj/${root}.pdc.o obj/${root}.pic.o obj/${root}.d : $(value ${root})) )
 #$(foreach root,${PATTERN_ROOTS},$(info post-root: ${root} := $(value ${root}))$(info ))
@@ -386,6 +438,7 @@ vpath include/%.hpp ${SRC_DIR}
 vpath src/%.tcc ${SRC_DIR}
 vpath tools/% ${SRC_DIR}
 vpath src/%.py ${SRC_DIR}
+vpath src/%.in ${SRC_DIR}
 
 .DELETE_ON_ERROR:
 .DEFAULT_GOAL := all
@@ -437,6 +490,10 @@ obj/%.d: src/%.cpp | stamp/generated.stamp
 	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MM \
 	    -MT '$(patsubst obj/%.d,%,$@) := ' \
 	    -MF $@ $<
+# -MG takes the include parameter as-is without prepending the path whenever
+# it's not found, and presumed to be a not-yet generated file.
+# #include statements for generated files should always be relative to the
+# source (or build) directory.
 endif
 # the above SRC_DIR replacement is not really safe, but it works okayish.
 obj/%.ii: src/%.cpp
@@ -508,8 +565,8 @@ obj/gtest%.pdc.o: ${GTEST_DIR}/src/gtest%.cc
 
 DTEST_OBJS := $(filter obj/debug-debug/%.pdc.o,${PDC_OBJECTS})
 DTEST_STAMPS := $(patsubst bin/tests/%.elf,stamp/run-%.stamp,${DTEST_BINARIES})
-${DTEST_OBJS}: override CXXFLAGS += -g -O0 -gdwarf-3
-${DTEST_STAMPS}: override TESTER=${GDB} -return-child-result -nx -batch -ex 'python file_to_load = "$<"' -x ${SRC_DIR}/tools/debug-debug.gdb --args false
+${DTEST_OBJS}: override CXXFLAGS += -ggdb -O0
+${DTEST_STAMPS}: override TESTER=LD_LIBRARY_PATH="./lib" ${GDB} -return-child-result -nx -batch -ex 'python file_to_load = "$<"' -x ${SRC_DIR}/tools/debug-debug.gdb --args false
 ${DTEST_STAMPS}: tools/debug-debug.gdb
 
 test: test-direct
@@ -539,7 +596,7 @@ test: test-rank-fwd
 test-rank-fwd: ${CHECK_RANK_FWDS}
 stamp/%.rank: src/%
 	$(MKDIR_FIRST)
-	includes=$$(grep '#include.*".*/.*"' $< | sed 's/^[^"]*"//;s/"[^"]*$$//;s:/[^/]*$$::' | sort -u | fgrep -vx -e '..' -e 'conf-raw' -e '../conf'); \
+	includes=$$(grep '#include.*".*/.*"' $< | sed 's/^[^"]*"//;s/"[^"]*$$//;s:/[^/]*$$::' | sort -u | fgrep -vx -e '..' -e 'conf-raw' -e '../conf' -e 'src/conf'); \
 	    for inc in $$includes; do if ! test -f ${<D}/fwd.hpp; then continue; fi; echo fgrep -q $${inc}/fwd.hpp ${<D}/fwd.hpp; fgrep -q $${inc}/fwd.hpp ${<D}/fwd.hpp || { echo ${<D}/fwd.hpp:''23: error: No $${inc}/fwd.hpp; exit 1; }; done
 	touch $@
 
@@ -682,21 +739,22 @@ conf-raw/bool-%.h: FORCE
 conf-raw/str-%.h: FORCE
 	$(MKDIR_FIRST)
 	@echo '#define $* "$(value $*)"_s' | maybe-replace $@
-FORCE: ;
+
+FORCE:: ;
 .PHONY: FORCE
-override CPPFLAGS += -I . -I ${SRC_DIR}/include
+override CPPFLAGS += -I. -I${SRC_DIR} -I${SRC_DIR}/include
 
 # distribution tarballs
 # this only works from within a git checkout
-dist/%/version.make:
+dist/%/version.mk:
 	$(MKDIR_FIRST)
-	git --git-dir=${SRC_DIR}/.git show HEAD:version.make > $@
+	git --git-dir=${SRC_DIR}/.git show HEAD:version.mk > $@
 	sed 's/^VERSION_FULL := .*/#&\nVERSION_FULL := ${VERSION_FULL}/' -i $@
 	sed 's/^VERSION_HASH := .*/#&\nVERSION_HASH := ${VERSION_HASH}/' -i $@
-dist/%-src.tar: dist/%/version.make
+dist/%-src.tar: dist/%/version.mk
 	git --git-dir=${SRC_DIR}/.git archive --prefix=$*/ -o $@ HEAD
-	( mtime="$$(git --git-dir=${SRC_DIR}/.git log -n1 --pretty=%ci)" && cd dist && tar uf $*-src.tar --mtime="$${mtime}" --mode=664 --owner=root --group=root $*/version.make )
-	rm dist/$*/version.make
+	( mtime="$$(git --git-dir=${SRC_DIR}/.git log -n1 --pretty=%ci)" && cd dist && tar uf $*-src.tar --mtime="$${mtime}" --mode=664 --owner=root --group=root $*/version.mk )
+	rm dist/$*/version.mk
 	rmdir dist/$*/
 dist/%-attoconf-only.tar:
 	$(MKDIR_FIRST)

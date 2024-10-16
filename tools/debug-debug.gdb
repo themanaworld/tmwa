@@ -9,7 +9,7 @@ gdb.execute('file %s' % file_to_load)
 end
 set logging file /dev/null
 set logging redirect on
-set logging off
+set logging enabled off
 
 python
 import re
@@ -41,7 +41,7 @@ set print elements 9999
 set print frame-arguments none
 set python print-stack full
 
-set logging on
+set logging enabled on
 # Workaround "Function... not defined in.." (breakpoints not found) (GDB bug)
 #   https://sourceware.org/bugzilla/show_bug.cgi?id=15962
 # In some gdb versions rbreak works, in some break does.
@@ -55,7 +55,7 @@ if bpoint.pending:
     gdb.execute("rbreak do_breakpoint")
 
 end
-set logging off
+set logging enabled off
 
 commands
 silent
