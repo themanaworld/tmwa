@@ -112,7 +112,8 @@ re:ubuntu2204-attoconf:test:
     - cd build-atto
     - make test
 
-re:ubuntu2204:test:
+# Disabled. Tests are not supported yet by the CMake project.
+.re:ubuntu2204:test:
   <<: *prerequisites
   stage: test
   image: ubuntu:22.04
