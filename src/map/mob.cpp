@@ -2796,9 +2796,11 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 npc_event(sd, md->npc_event, 0);
 
             // TODO: in the future, OnPCKillEvent, OnMobKillEvent and OnPCDieEvent should be combined
-            argrec_t arg[1] =
+            argrec_t arg[3] =
             {
                 {"@mobID"_s, static_cast<int32_t>(unwrap<Species>(md->mob_class))},
+                {"@mob_X"_s, static_cast<int32_t>(md->bl_x)},
+                {"@mob_Y"_s, static_cast<int32_t>(md->bl_y)},
             };
             npc_event_doall_l(stringish<ScriptLabel>("OnMobKillEvent"_s), sd->bl_id, arg);
         }
