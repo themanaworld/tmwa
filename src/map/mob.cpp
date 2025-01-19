@@ -2664,7 +2664,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                   md->stats[mob_stat::XP_BONUS]) >> MOB_XP_BONUS_SHIFT) * per / 256;
             if (base_exp < 1)
                 base_exp = 1;
-            if (sd && md && battle_config.pk_mode == 1
+            if (sd && battle_config.pk_mode == 1
                 && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
             {
                 base_exp *= 1.15;   // pk_mode additional exp if monster >20 levels [Valaris]
@@ -2675,7 +2675,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             job_exp = get_mob_db(md->mob_class).job_exp * per / 256;
             if (job_exp < 1)
                 job_exp = 1;
-            if (sd && md && battle_config.pk_mode == 1
+            if (sd && battle_config.pk_mode == 1
                 && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
             {
                 job_exp *= 1.15;    // pk_mode additional exp if monster >20 levels [Valaris]
@@ -2733,9 +2733,9 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 if (!get_mob_db(md->mob_class).dropitem[i].nameid)
                     continue;
                 random_::Fixed<int, 10000> drop_rate = get_mob_db(md->mob_class).dropitem[i].p;
-                if (battle_config.drops_by_luk > 0 && sd && md)
+                if (sd && battle_config.drops_by_luk > 0)
                     drop_rate.num += (sd->status.attrs[ATTR::LUK] * battle_config.drops_by_luk) / 100;   // drops affected by luk [Valaris]
-                if (sd && md && battle_config.pk_mode == 1
+                if (sd && battle_config.pk_mode == 1
                     && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
                     drop_rate.num *= 1.25;  // pk_mode increase drops if 20 level difference [Valaris]
 
