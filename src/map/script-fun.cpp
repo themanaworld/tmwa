@@ -2683,6 +2683,22 @@ void builtin_getexp(ScriptState *st)
  *------------------------------------------
  */
 static
+int get_mob_drop_nameid(Species mob_id, int index)
+{
+    return unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[index].nameid);
+}
+static
+int get_mob_drop_percent(Species mob_id, int index)
+{
+    return get_mob_db(mob_id).dropitem[index].p.num;
+}
+static
+AString get_mob_drop_name(Species mob_id, int index)
+{
+    Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[index].nameid));
+    return i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
+}
+static
 void builtin_mobinfo(ScriptState *st)
 {
     Species mob_id = wrap<Species>(conv_num(st, &AARG(0)));
@@ -2696,6 +2712,19 @@ void builtin_mobinfo(ScriptState *st)
         push_int<ScriptDataInt>(st->stack, -1);
         return;
     }
+
+#define CASE_MobInfo_DROPID(index) \
+        MobInfo::DROPID##index: info = get_mob_drop_nameid(mob_id, index)
+
+#define CASE_MobInfo_DROPPERCENT(index) \
+        MobInfo::DROPPERCENT##index: info = get_mob_drop_percent(mob_id, index)
+
+#define CASE_MobInfo_DROPNAME(index) \
+        MobInfo::DROPNAME##index: \
+            { \
+                info_str = get_mob_drop_name(mob_id, index); \
+                mode = 1; \
+            }
 
     switch (request)
     {
@@ -2800,142 +2829,57 @@ void builtin_mobinfo(ScriptState *st)
         case MobInfo::MUTATION_POWER:
             info = get_mob_db(mob_id).mutation_power;
             break;
-        case MobInfo::DROPID0:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[0].nameid);
-            break;
-        case MobInfo::DROPNAME0:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[0].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT0:
-            info = get_mob_db(mob_id).dropitem[0].p.num;
-            break;
-        case MobInfo::DROPID1:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[0].nameid);
-            break;
-        case MobInfo::DROPNAME1:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[0].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT1:
-            info = get_mob_db(mob_id).dropitem[0].p.num;
-            break;
-        case MobInfo::DROPID2:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[1].nameid);
-            break;
-        case MobInfo::DROPNAME2:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[1].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT2:
-            info = get_mob_db(mob_id).dropitem[1].p.num;
-            break;
-        case MobInfo::DROPID3:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[2].nameid);
-            break;
-        case MobInfo::DROPNAME3:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[2].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT3:
-            info = get_mob_db(mob_id).dropitem[2].p.num;
-            break;
-        case MobInfo::DROPID4:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[3].nameid);
-            break;
-        case MobInfo::DROPNAME4:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[3].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT4:
-            info = get_mob_db(mob_id).dropitem[3].p.num;
-            break;
-        case MobInfo::DROPID5:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[4].nameid);
-            break;
-        case MobInfo::DROPNAME5:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[4].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT5:
-            info = get_mob_db(mob_id).dropitem[4].p.num;
-            break;
-        case MobInfo::DROPID6:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[5].nameid);
-            break;
-        case MobInfo::DROPNAME6:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[5].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT6:
-            info = get_mob_db(mob_id).dropitem[5].p.num;
-            break;
-        case MobInfo::DROPID7:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[6].nameid);
-            break;
-        case MobInfo::DROPNAME7:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[6].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT7:
-            info = get_mob_db(mob_id).dropitem[6].p.num;
-            break;
-        case MobInfo::DROPID8:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[7].nameid);
-            break;
-        case MobInfo::DROPNAME8:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[7].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT8:
-            info = get_mob_db(mob_id).dropitem[7].p.num;
-            break;
-        case MobInfo::DROPID9:
-            info = unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[7].nameid);
-            break;
-        case MobInfo::DROPNAME9:
-            {
-                Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[7].nameid));
-                info_str = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
-                mode = 1;
-            }
-            break;
-        case MobInfo::DROPPERCENT9:
-            info = get_mob_db(mob_id).dropitem[7].p.num;
-            break;
+
+        case CASE_MobInfo_DROPID(0); break;
+        case CASE_MobInfo_DROPNAME(0); break;
+        case CASE_MobInfo_DROPPERCENT(0); break;
+
+        case CASE_MobInfo_DROPID(1); break;
+        case CASE_MobInfo_DROPNAME(1); break;
+        case CASE_MobInfo_DROPPERCENT(1); break;
+
+        case CASE_MobInfo_DROPID(2); break;
+        case CASE_MobInfo_DROPNAME(2); break;
+        case CASE_MobInfo_DROPPERCENT(2); break;
+
+        case CASE_MobInfo_DROPID(3); break;
+        case CASE_MobInfo_DROPNAME(3); break;
+        case CASE_MobInfo_DROPPERCENT(3); break;
+
+        case CASE_MobInfo_DROPID(4); break;
+        case CASE_MobInfo_DROPNAME(4); break;
+        case CASE_MobInfo_DROPPERCENT(4); break;
+
+        case CASE_MobInfo_DROPID(5); break;
+        case CASE_MobInfo_DROPNAME(5); break;
+        case CASE_MobInfo_DROPPERCENT(5); break;
+
+        case CASE_MobInfo_DROPID(6); break;
+        case CASE_MobInfo_DROPNAME(6); break;
+        case CASE_MobInfo_DROPPERCENT(6); break;
+
+        case CASE_MobInfo_DROPID(7); break;
+        case CASE_MobInfo_DROPNAME(7); break;
+        case CASE_MobInfo_DROPPERCENT(7); break;
+
+        case CASE_MobInfo_DROPID(8); break;
+        case CASE_MobInfo_DROPNAME(8); break;
+        case CASE_MobInfo_DROPPERCENT(8); break;
+
+        case CASE_MobInfo_DROPID(9); break;
+        case CASE_MobInfo_DROPNAME(9); break;
+        case CASE_MobInfo_DROPPERCENT(9); break;
+
         default:
             PRINTF("builtin_mobinfo: unknown request\n"_fmt);
             push_int<ScriptDataInt>(st->stack, -1);
             return;
             break;
     }
+#undef CASE_MobInfo_DROPID
+#undef CASE_MobInfo_DROPPERCENT
+#undef CASE_MobInfo_DROPNAME
+
     if (!mode)
         push_int<ScriptDataInt>(st->stack, info);
     else
