@@ -273,15 +273,16 @@ bool npc_load_monster(ast::npc::Monster& monster)
         md->bl_m = m;
         md->bl_x = x;
         md->bl_y = y;
-        MobName expected = get_mob_db(mob_class).jname;
+        const mob_db_& mob_info = get_mob_db(md->mob_class);
+        MobName expected = mob_info.jname;
         if (monster.name.data != expected)
         {
             monster.name.span.warning(STRPRINTF("Visible label/jname should match: %s"_fmt, expected));
         }
         if (monster.name.data == ENGLISH_NAME)
-            md->name = get_mob_db(mob_class).name;
+            md->name = mob_info.name;
         else if (monster.name.data == JAPANESE_NAME)
-            md->name = get_mob_db(mob_class).jname;
+            md->name = mob_info.jname;
         else
             md->name = monster.name.data;
 

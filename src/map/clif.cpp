@@ -4020,7 +4020,7 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
             dumb_ptr<mob_data> md = bl->is_mob();
             nullpo_retr(rv, md);
 
-            if (md->name != MobName() && md->name != get_mob_db(md->mob_class).name && md->name.size() >= 4)
+            if (md->name.size() >= 4)
                 fixed_95.char_name = stringish<CharName>(md->name);
             else
                 fixed_95.char_name = stringish<CharName>(get_mob_db(md->mob_class).name);

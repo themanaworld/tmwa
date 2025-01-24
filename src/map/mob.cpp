@@ -355,24 +355,25 @@ void mob_init(dumb_ptr<mob_data> md)
 {
     int i;
     const Species mob_class = md->mob_class;
-    const int mutations_nr = get_mob_db(mob_class).mutations_nr;
-    const int mutation_power = get_mob_db(mob_class).mutation_power;
+    const mob_db_& mob_info = get_mob_db(mob_class);
+    const int mutations_nr = mob_info.mutations_nr;
+    const int mutation_power = mob_info.mutation_power;
 
-    md->stats[mob_stat::LV] = get_mob_db(mob_class).lv;
-    md->stats[mob_stat::MAX_HP] = get_mob_db(mob_class).max_hp;
-    md->stats[mob_stat::STR] = get_mob_db(mob_class).attrs[ATTR::STR];
-    md->stats[mob_stat::AGI] = get_mob_db(mob_class).attrs[ATTR::AGI];
-    md->stats[mob_stat::VIT] = get_mob_db(mob_class).attrs[ATTR::VIT];
-    md->stats[mob_stat::INT] = get_mob_db(mob_class).attrs[ATTR::INT];
-    md->stats[mob_stat::DEX] = get_mob_db(mob_class).attrs[ATTR::DEX];
-    md->stats[mob_stat::LUK] = get_mob_db(mob_class).attrs[ATTR::LUK];
-    md->stats[mob_stat::ATK1] = get_mob_db(mob_class).atk1;
-    md->stats[mob_stat::ATK2] = get_mob_db(mob_class).atk2;
-    md->stats[mob_stat::ADELAY] = get_mob_db(mob_class).adelay.count();
-    md->stats[mob_stat::DEF] = get_mob_db(mob_class).def;
-    md->stats[mob_stat::MDEF] = get_mob_db(mob_class).mdef;
-    md->stats[mob_stat::CRITICAL_DEF] = get_mob_db(mob_class).critical_def;
-    md->stats[mob_stat::SPEED] = get_mob_db(mob_class).speed.count();
+    md->stats[mob_stat::LV] = mob_info.lv;
+    md->stats[mob_stat::MAX_HP] = mob_info.max_hp;
+    md->stats[mob_stat::STR] = mob_info.attrs[ATTR::STR];
+    md->stats[mob_stat::AGI] = mob_info.attrs[ATTR::AGI];
+    md->stats[mob_stat::VIT] = mob_info.attrs[ATTR::VIT];
+    md->stats[mob_stat::INT] = mob_info.attrs[ATTR::INT];
+    md->stats[mob_stat::DEX] = mob_info.attrs[ATTR::DEX];
+    md->stats[mob_stat::LUK] = mob_info.attrs[ATTR::LUK];
+    md->stats[mob_stat::ATK1] = mob_info.atk1;
+    md->stats[mob_stat::ATK2] = mob_info.atk2;
+    md->stats[mob_stat::ADELAY] = mob_info.adelay.count();
+    md->stats[mob_stat::DEF] = mob_info.def;
+    md->stats[mob_stat::MDEF] = mob_info.mdef;
+    md->stats[mob_stat::CRITICAL_DEF] = mob_info.critical_def;
+    md->stats[mob_stat::SPEED] = mob_info.speed.count();
     md->stats[mob_stat::XP_BONUS] = MOB_XP_BONUS_BASE;
 
     for (i = 0; i < mutations_nr; i++)
@@ -2596,6 +2597,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     );
 
     {
+        const mob_db_& mob_info = get_mob_db(md->mob_class);
         struct DmgLogParty
         {
             PartyPair p;
@@ -2660,23 +2662,23 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 per = 1;
 
             base_exp =
-                ((get_mob_db(md->mob_class).base_exp *
+                ((mob_info.base_exp *
                   md->stats[mob_stat::XP_BONUS]) >> MOB_XP_BONUS_SHIFT) * per / 256;
             if (base_exp < 1)
                 base_exp = 1;
             if (sd && battle_config.pk_mode == 1
-                && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
+                && (mob_info.lv - sd->status.base_level >= 20))
             {
                 base_exp *= 1.15;   // pk_mode additional exp if monster >20 levels [Valaris]
             }
             if (md->state.special_mob_ai >= 1
                 && battle_config.alchemist_summon_reward != 1)
                 base_exp = 0;   // Added [Valaris]
-            job_exp = get_mob_db(md->mob_class).job_exp * per / 256;
+            job_exp = mob_info.job_exp * per / 256;
             if (job_exp < 1)
                 job_exp = 1;
             if (sd && battle_config.pk_mode == 1
-                && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
+                && (mob_info.lv - sd->status.base_level >= 20))
             {
                 job_exp *= 1.15;    // pk_mode additional exp if monster >20 levels [Valaris]
             }
@@ -2730,13 +2732,14 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 if (md->state.special_mob_ai >= 1 && battle_config.alchemist_summon_reward != 1)    // Added [Valaris]
                     break;      // End
 
-                if (!get_mob_db(md->mob_class).dropitem[i].nameid)
+                const auto& drop_info = mob_info.dropitem[i];
+                if (!drop_info.nameid)
                     continue;
-                random_::Fixed<int, 10000> drop_rate = get_mob_db(md->mob_class).dropitem[i].p;
+                random_::Fixed<int, 10000> drop_rate = drop_info.p;
                 if (sd && battle_config.drops_by_luk > 0)
                     drop_rate.num += (sd->status.attrs[ATTR::LUK] * battle_config.drops_by_luk) / 100;   // drops affected by luk [Valaris]
                 if (sd && battle_config.pk_mode == 1
-                    && (get_mob_db(md->mob_class).lv - sd->status.base_level >= 20))
+                    && (mob_info.lv - sd->status.base_level >= 20))
                     drop_rate.num *= 1.25;  // pk_mode increase drops if 20 level difference [Valaris]
 
                 // server-wide drop rate scaling
@@ -2745,7 +2748,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                     continue;
 
                 struct delay_item_drop ditem {};
-                ditem.nameid = get_mob_db(md->mob_class).dropitem[i].nameid;
+                ditem.nameid = drop_info.nameid;
                 ditem.amount = 1;
                 ditem.m = md->bl_m;
                 ditem.x = md->bl_x;
@@ -3503,40 +3506,39 @@ int mobskill_event(dumb_ptr<mob_data> md, BF flag)
 static
 int mob_makedummymobdb(Species mob_class)
 {
-    int i;
-
-    SNPRINTF(get_mob_db(mob_class).name, 24, "mob%d"_fmt, mob_class);
-    SNPRINTF(get_mob_db(mob_class).jname, 24, "mob%d"_fmt, mob_class);
-    get_mob_db(mob_class).lv = 1;
-    get_mob_db(mob_class).max_hp = 1000;
-    get_mob_db(mob_class).max_sp = 1;
-    get_mob_db(mob_class).base_exp = 2;
-    get_mob_db(mob_class).job_exp = 1;
-    get_mob_db(mob_class).range = 1;
-    get_mob_db(mob_class).atk1 = 7;
-    get_mob_db(mob_class).atk2 = 10;
-    get_mob_db(mob_class).def = 0;
-    get_mob_db(mob_class).mdef = 0;
-    get_mob_db(mob_class).attrs[ATTR::STR] = 1;
-    get_mob_db(mob_class).attrs[ATTR::AGI] = 1;
-    get_mob_db(mob_class).attrs[ATTR::VIT] = 1;
-    get_mob_db(mob_class).attrs[ATTR::INT] = 1;
-    get_mob_db(mob_class).attrs[ATTR::DEX] = 6;
-    get_mob_db(mob_class).attrs[ATTR::LUK] = 2;
-    get_mob_db(mob_class).range2 = 10;
-    get_mob_db(mob_class).range3 = 10;
-    get_mob_db(mob_class).size = 0; // 1
-    get_mob_db(mob_class).race = Race::formless;
-    get_mob_db(mob_class).element = LevelElement{0, Element::neutral};
-    get_mob_db(mob_class).mode = MobMode::ZERO;
-    get_mob_db(mob_class).speed = 300_ms;
-    get_mob_db(mob_class).adelay = 1000_ms;
-    get_mob_db(mob_class).amotion = 500_ms;
-    get_mob_db(mob_class).dmotion = 500_ms;
-    for (i = 0; i < MaxDrops; i++)
+    mob_db_& mob_info = get_mob_db(mob_class);
+    SNPRINTF(mob_info.name, 24, "mob%d"_fmt, mob_class);
+    SNPRINTF(mob_info.jname, 24, "mob%d"_fmt, mob_class);
+    mob_info.lv = 1;
+    mob_info.max_hp = 1000;
+    mob_info.max_sp = 1;
+    mob_info.base_exp = 2;
+    mob_info.job_exp = 1;
+    mob_info.range = 1;
+    mob_info.atk1 = 7;
+    mob_info.atk2 = 10;
+    mob_info.def = 0;
+    mob_info.mdef = 0;
+    mob_info.attrs[ATTR::STR] = 1;
+    mob_info.attrs[ATTR::AGI] = 1;
+    mob_info.attrs[ATTR::VIT] = 1;
+    mob_info.attrs[ATTR::INT] = 1;
+    mob_info.attrs[ATTR::DEX] = 6;
+    mob_info.attrs[ATTR::LUK] = 2;
+    mob_info.range2 = 10;
+    mob_info.range3 = 10;
+    mob_info.size = 0; // 1
+    mob_info.race = Race::formless;
+    mob_info.element = LevelElement{0, Element::neutral};
+    mob_info.mode = MobMode::ZERO;
+    mob_info.speed = 300_ms;
+    mob_info.adelay = 1000_ms;
+    mob_info.amotion = 500_ms;
+    mob_info.dmotion = 500_ms;
+    for (int i = 0; i < MaxDrops; i++)
     {
-        get_mob_db(mob_class).dropitem[i].nameid = ItemNameId();
-        get_mob_db(mob_class).dropitem[i].p.num = 0;
+        mob_info.dropitem[i].nameid = ItemNameId();
+        mob_info.dropitem[i].p.num = 0;
     }
     return 0;
 }
@@ -3656,56 +3658,55 @@ bool mob_readdb(ZString filename)
                 continue;
             }
 
-            if (get_mob_db(mob_class).base_exp < 0)
+            if (mdbv.base_exp < 0)
             {
                 PRINTF("bad mob line: Xp needs to be greater than 0.  %s\n"_fmt, line);
                 rv = false;
                 continue;
             }
-            if (get_mob_db(mob_class).base_exp > 1000000000)
+            if (mdbv.base_exp > 1000000000)
             {
                 PRINTF("bad mob line: Xp needs to be less than 1000000000.  %s\n"_fmt, line);
                 rv = false;
                 continue;
             }
-            if (get_mob_db(mob_class).job_exp < 0)
+            if (mdbv.job_exp < 0)
             {
                 PRINTF("bad mob line: Job Xp needs to be greater than 0.  %s\n"_fmt, line);
                 rv = false;
                 continue;
             }
-            if (get_mob_db(mob_class).job_exp > 1000000000)
+            if (mdbv.job_exp > 1000000000)
             {
                 PRINTF("bad mob line: Job Xp needs to be less than 1000000000.  %s\n"_fmt, line);
                 rv = false;
                 continue;
             }
 
-            // TODO move this lower
-            get_mob_db(mob_class) = std::move(mdbv);
-
             for (int i = 0; i < MaxDrops; i++)
             {
-                int rate = get_mob_db(mob_class).dropitem[i].p.num;
+                int rate = mdbv.dropitem[i].p.num;
                 if (rate < 1) rate = 1;
                 if (rate > 10000) rate = 10000;
-                get_mob_db(mob_class).dropitem[i].p.num = rate;
+                mdbv.dropitem[i].p.num = rate;
             }
 
 
-            get_mob_db(mob_class).skills.clear();
+            mdbv.skills.clear();
 
-            get_mob_db(mob_class).hair = 0;
-            get_mob_db(mob_class).hair_color = 0;
-            get_mob_db(mob_class).weapon = 0;
-            get_mob_db(mob_class).shield = ItemNameId();
-            get_mob_db(mob_class).head_top = ItemNameId();
-            get_mob_db(mob_class).head_mid = ItemNameId();
-            get_mob_db(mob_class).head_buttom = ItemNameId();
-            get_mob_db(mob_class).clothes_color = 0;    //Add for player monster dye - Valaris
+            mdbv.hair = 0;
+            mdbv.hair_color = 0;
+            mdbv.weapon = 0;
+            mdbv.shield = ItemNameId();
+            mdbv.head_top = ItemNameId();
+            mdbv.head_mid = ItemNameId();
+            mdbv.head_buttom = ItemNameId();
+            mdbv.clothes_color = 0;    //Add for player monster dye - Valaris
 
-            if (get_mob_db(mob_class).base_exp == 0)
-                get_mob_db(mob_class).base_exp = mob_gen_exp(&get_mob_db(mob_class));
+            if (mdbv.base_exp == 0)
+                mdbv.base_exp = mob_gen_exp(&mdbv);
+
+            get_mob_db(mob_class) = std::move(mdbv);
         }
         PRINTF("read %s done\n"_fmt, filename);
     }

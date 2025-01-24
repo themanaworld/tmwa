@@ -3022,7 +3022,9 @@ void builtin_mobinfo_droparrays(ScriptState *st)
     }
     
     for (int i = 0; i < MaxDrops; ++i)
-        if (get_mob_db(mob_id).dropitem[i].nameid)
+    {
+        auto& dropitem = get_mob_db(mob_id).dropitem[i];
+        if (dropitem.nameid)
         {
             status = 1;
             switch (request)
@@ -3030,15 +3032,15 @@ void builtin_mobinfo_droparrays(ScriptState *st)
                 case MobInfo_DropArrays::IDS:
                     if (name.startswith(".@"_s))
                         {
-                            struct script_data vd = script_data(ScriptDataInt{unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[i].nameid)});
+                            struct script_data vd = script_data(ScriptDataInt{unwrap<ItemNameId>(dropitem.nameid)});
                             set_scope_reg(st, reg.iplus(i), &vd);
                         }
                     else
-                        set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[i].nameid));
+                        set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), unwrap<ItemNameId>(dropitem.nameid));
                     break;
                 case MobInfo_DropArrays::NAMES:
                     {
-                        Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[i].nameid));
+                        Option<P<struct item_data>> i_data = Some(itemdb_search(dropitem.nameid));
                         RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
 
                         if (name.startswith(".@"_s))
@@ -3053,11 +3055,11 @@ void builtin_mobinfo_droparrays(ScriptState *st)
                 case MobInfo_DropArrays::PERCENTS:
                     if (name.startswith(".@"_s))
                         {
-                            struct script_data vd = script_data(ScriptDataInt{get_mob_db(mob_id).dropitem[i].p.num});
+                            struct script_data vd = script_data(ScriptDataInt{dropitem.p.num});
                             set_scope_reg(st, reg.iplus(i), &vd);
                         }
                     else
-                        set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), get_mob_db(mob_id).dropitem[i].p.num);
+                        set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), dropitem.p.num);
                     break;
             }
         }
@@ -3067,7 +3069,7 @@ void builtin_mobinfo_droparrays(ScriptState *st)
                 status = 2;
             break;
         }
-
+    }
     push_int<ScriptDataInt>(st->stack, status);
 }
 
@@ -3097,16 +3099,19 @@ void builtin_getmobdrops(ScriptState *st)
 
     status = 1;
 
+    const mob_db_& mob_info = get_mob_db(mob_id);
     for (; i < MaxDrops; ++i)
-        if (get_mob_db(mob_id).dropitem[i].nameid)
+    {
+        auto& dropitem = mob_info.dropitem[i];
+        if (dropitem.nameid)
         {
-            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_item"_s), i), get_mob_db(mob_id).dropitem[i].p.num);
+            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_item"_s), i), dropitem.p.num);
 
-            Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[i].nameid));
+            Option<P<struct item_data>> i_data = Some(itemdb_search(dropitem.nameid));
             RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
             set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_name$"_s), i), item_name);
 
-            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_rate"_s), i), get_mob_db(mob_id).dropitem[i].p.num);
+            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_rate"_s), i), dropitem.p.num);
         }
         else
         {
@@ -3114,6 +3119,7 @@ void builtin_getmobdrops(ScriptState *st)
                 status = 2;
             break;
         }
+    }
 
     if (status == 1)
         set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_count"_s), 0), i);
