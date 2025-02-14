@@ -89,6 +89,7 @@ struct login_session_data : SessionData
     AccountId account_id;
     int login_id1, login_id2;
     IP4Address client_ip;
+    timestamp_milliseconds_buffer lastlogin;
     bool verified;
     short consumed_by;
 };
@@ -134,7 +135,6 @@ struct mmo_account
     AccountId account_id;
     int login_id1;
     int login_id2;
-    AccountId char_id;
     timestamp_milliseconds_buffer lastlogin;
     SEX sex;
 };
@@ -1307,7 +1307,7 @@ void parse_fromchar(Session *s)
                             head_69.account_id = fixed.account_id;
                             head_69.login_id2 = fixed.login_id2;
                             head_69.unused = 0;
-                            //head_69.last_login_string = account.lastlogin;
+                            head_69.last_login_string = sd->lastlogin;
                             head_69.unused2 = 0;
                             head_69.sex = SEX::UNSPECIFIED;
                             send_vpacket<0x0069, 47, 32>(s2, head_69, repeat_69);
@@ -2747,6 +2747,7 @@ void parse_login(Session *s)
                                 sd->login_id1 = account.login_id1;
                                 sd->login_id2 = account.login_id2;
                                 sd->client_ip = s->client_ip;
+                                sd->lastlogin = account.lastlogin;
                                 sd->verified = true;
                                 sd->consumed_by = 0;
                             }

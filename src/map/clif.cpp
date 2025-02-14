@@ -1184,7 +1184,7 @@ int clif_movechar(dumb_ptr<map_session_data> sd)
 
     clif_send(buf, sd, SendWho::AREA_WOS, wrap<ClientVersion>(8), elseBuf);
 
-    if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
+    if (battle_config.save_clothcolor && sd->status.clothes_color > 0)
         clif_changelook(sd, LOOK::CLOTHES_COLOR,
                          sd->status.clothes_color);
 
@@ -2494,7 +2494,7 @@ void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
     clif_pvpstatus_towards(buff, dstsd);
     clif_send(buff, sd, SendWho::SELF, wrap<ClientVersion>(2));
 
-    if (battle_config.save_clothcolor == 1 && dstsd->status.clothes_color > 0)
+    if (battle_config.save_clothcolor && dstsd->status.clothes_color > 0)
         clif_changelook(dstsd, LOOK::CLOTHES_COLOR,
                          dstsd->status.clothes_color);
 
