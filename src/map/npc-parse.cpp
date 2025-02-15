@@ -273,7 +273,7 @@ bool npc_load_monster(ast::npc::Monster& monster)
         md->bl_m = m;
         md->bl_x = x;
         md->bl_y = y;
-        const mob_db_& mob_info = get_mob_db(md->mob_class);
+        const mob_db_& mob_info = get_mob_db(mob_class);
         MobName expected = mob_info.jname;
         if (monster.name.data != expected)
         {
