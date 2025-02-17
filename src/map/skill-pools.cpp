@@ -116,23 +116,19 @@ SP skill_stat(SkillID skill_id)
 int skill_power(dumb_ptr<map_session_data> sd, SkillID skill_id)
 {
     SP stat = skill_stat(skill_id);
-    int stat_value, skill_value;
-    int result;
 
     if (stat == SP::ZERO || !skill_pool_is_activated(sd, skill_id))
         return 0;
 
-    stat_value = battle_get_stat(stat, sd);
-    skill_value = sd->status.skill[skill_id].lv;
+    int stat_value  = battle_get_stat(stat, sd);
+    int skill_level = sd->status.skill[skill_id].lv;
 
-    if ((skill_value * 10) - 1 > stat_value)
-        skill_value += (stat_value / 10);
+    if ((skill_level * 10) - 1 > stat_value)
+        skill_level += (stat_value / 10);
     else
-        skill_value *= 2;
+        skill_level *= 2;
 
-    result = (skill_value * stat_value) / 10;
-
-    return result;
+    return (skill_level * stat_value) / 10;
 }
 
 int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill)
