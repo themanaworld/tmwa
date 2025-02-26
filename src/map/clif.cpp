@@ -849,7 +849,7 @@ static
 void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
 {
     nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
+    int max_hp = battle_get_max_hp(md);
     int hp = md->hp;
 
     Packet_Fixed<0x0078> fixed_78;
@@ -897,7 +897,7 @@ static
 void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
 {
     nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
+    int max_hp = battle_get_max_hp(md);
     int hp = md->hp;
 
     Packet_Fixed<0x007b> fixed_7b;
@@ -1039,26 +1039,25 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
 
     if (nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
-    /* manaplus is skipping this packet
+
     Packet_Fixed<0x007c> fixed_7c;
     fixed_7c.block_id = nd->bl_id;
     fixed_7c.speed = nd->speed;
     fixed_7c.species = nd->npc_class;
+    fixed_7c.sex = nd->sex;
     fixed_7c.pos.x = nd->bl_x;
     fixed_7c.pos.y = nd->bl_y;
-
+    fixed_7c.pos.dir = nd->dir;
     Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
-    clif_send(buf, nd, SendWho::AREA);
-    */
-    Buffer buf;
-    clif_npc0078(nd, buf);
-    clif_send(buf, nd, SendWho::AREA);
 
-    if(nd->sit == DamageType::SIT)
+    Buffer elseBuf;
+    clif_npc0078(nd, elseBuf);
+    clif_send(buf, nd, SendWho::AREA, wrap<ClientVersion>(9), elseBuf);
+
+    if (nd->sit == DamageType::SIT)
     {
-        Buffer buff;
-        clif_sitnpc_sub(buff, nd, nd->sit);
-        clif_send(buff, nd, SendWho::AREA);
+        clif_sitnpc_sub(buf, nd, nd->sit);
+        clif_send(buf, nd, SendWho::AREA);
     }
 
     return 0;
@@ -1073,28 +1072,32 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
     if (!s)
         return 0;
 
-    /* manaplus skips this packet
-    Packet_Fixed<0x007c> fixed_7c;
-    fixed_7c.block_id = fake_npc_id;
-    fixed_7c.speed = interval_t();
-    fixed_7c.opt1 = Opt1::ZERO;
-    fixed_7c.opt2 = Opt2::ZERO;
-    fixed_7c.option = Opt0::ZERO;
-    fixed_7c.species = FAKE_NPC_CLASS;
-    fixed_7c.pos.x = sd->bl_x;
-    fixed_7c.pos.y = sd->bl_y;
-    send_fpacket<0x007c, 41>(s, fixed_7c);*/
-
-    Packet_Fixed<0x0078> fixed_78;
-    fixed_78.block_id = fake_npc_id;
-    fixed_78.speed = interval_t();
-    fixed_78.opt1 = Opt1::ZERO;
-    fixed_78.opt2 = Opt2::ZERO;
-    fixed_78.option = Opt0::ZERO;
-    fixed_78.species = FAKE_NPC_CLASS;
-    fixed_78.pos.x = sd->bl_x;
-    fixed_78.pos.y = sd->bl_y;
-    send_fpacket<0x0078, 54>(s, fixed_78);
+    if (sd->client_version >= wrap<ClientVersion>(9))
+    {
+        Packet_Fixed<0x007c> fixed_7c;
+        fixed_7c.block_id = fake_npc_id;
+        fixed_7c.speed = interval_t();
+        fixed_7c.opt1 = Opt1::ZERO;
+        fixed_7c.opt2 = Opt2::ZERO;
+        fixed_7c.option = Opt0::ZERO;
+        fixed_7c.species = FAKE_NPC_CLASS;
+        fixed_7c.pos.x = sd->bl_x;
+        fixed_7c.pos.y = sd->bl_y;
+        send_fpacket<0x007c, 41>(s, fixed_7c);
+    }
+    else
+    {
+        Packet_Fixed<0x0078> fixed_78;
+        fixed_78.block_id = fake_npc_id;
+        fixed_78.speed = interval_t();
+        fixed_78.opt1 = Opt1::ZERO;
+        fixed_78.opt2 = Opt2::ZERO;
+        fixed_78.option = Opt0::ZERO;
+        fixed_78.species = FAKE_NPC_CLASS;
+        fixed_78.pos.x = sd->bl_x;
+        fixed_78.pos.y = sd->bl_y;
+        send_fpacket<0x0078, 54>(s, fixed_78);
+    }
 
     return 0;
 }
@@ -1107,24 +1110,24 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
 {
     nullpo_retz(md);
 
-    /*{ manaplus skips this packet
-        Packet_Fixed<0x007c> fixed_7c;
-        fixed_7c.block_id = md->bl_id;
-        fixed_7c.speed = interval_t(md->stats[mob_stat::SPEED]);
-        fixed_7c.opt1 = md->opt1;
-        fixed_7c.opt2 = md->opt2;
-        fixed_7c.option = md->option;
-        fixed_7c.species = md->mob_class;
-        fixed_7c.pos.x = md->bl_x;
-        fixed_7c.pos.y = md->bl_y;
-        Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
-        clif_send(buf, md, SendWho::AREA);
-    }*/
-    {
-        Buffer buf;
-        clif_mob0078(md, buf);
-        clif_send(buf, md, SendWho::AREA);
-    }
+    Packet_Fixed<0x007c> fixed_7c;
+    fixed_7c.block_id = md->bl_id;
+    fixed_7c.speed = battle_get_speed(md);
+    fixed_7c.opt1 = md->opt1;
+    fixed_7c.opt2 = md->opt2;
+    fixed_7c.option = md->option;
+    fixed_7c.species = md->mob_class;
+    fixed_7c.hp = md->hp;
+    fixed_7c.max_hp = battle_get_max_hp(md);
+    fixed_7c.attack_range = battle_get_range(md);
+    fixed_7c.pos.x = md->bl_x;
+    fixed_7c.pos.y = md->bl_y;
+    fixed_7c.pos.dir = md->dir;
+    Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
+
+    Buffer elseBuf;
+    clif_mob0078(md, elseBuf);
+    clif_send(buf, md, SendWho::AREA, wrap<ClientVersion>(9), elseBuf);
 
     // custom mob names
     if (md->name != MobName() && md->name != get_mob_db(md->mob_class).name && md->name.size() >= 4)
