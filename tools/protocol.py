@@ -21,9 +21,8 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import glob
-import itertools
 import os
-from pipes import quote
+from shlex import quote
 from posixpath import relpath
 from weakref import ref as wr
 
