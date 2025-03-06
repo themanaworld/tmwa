@@ -22,7 +22,7 @@
 
 import glob
 import os
-from shlex import quote
+import filecmp
 from posixpath import relpath
 from weakref import ref as wr
 
@@ -90,20 +90,19 @@ class OpenWrite(object):
         self.handle.close()
         if ty is not None:
             return
-        frag = '''
-        if cmp -s {0}.tmp {0}.old
-        then
-            : echo Unchanged: {0}
-            rm {0}.tmp
-            mv {0}.old {0}
-        else
-            echo Changed: {0}
-            rm {0}.old
-            mv {0}.tmp {0}
-        fi
-        '''.format(quote(self.filename))
-        os.system(frag)
 
+        tmp_file = self.filename + '.tmp'
+        old_file = self.filename + '.old'
+
+        if os.path.exists(old_file) and filecmp.cmp(tmp_file, old_file, shallow=False):
+            # Unchanged
+            os.remove(tmp_file)
+            os.rename(old_file, self.filename)
+        else:
+            print(f"Changed: {self.filename}")
+            if os.path.exists(old_file):
+                os.remove(old_file)
+            os.rename(tmp_file, self.filename)
 
 # TOC_
 
