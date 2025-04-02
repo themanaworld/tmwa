@@ -61,6 +61,7 @@ enum class StatusChange : uint16_t
     SC_COOLDOWN_KOY     = 77,   // Koyntety cooldown
     SC_COOLDOWN_UPMARMU = 78,   // Upmarmu cooldown
     SC_COOLDOWN_SG      = 79,   // Stone Golem cooldown
+    SC_COOLDOWN_CG      = 80,   // Coal Golem cooldown
 
     SC_POISON           = 132,  // bad; actually used
     SC_SLOWMOVE         = 133,  // slows down movement

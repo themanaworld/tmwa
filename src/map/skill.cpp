@@ -768,6 +768,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
         case StatusChange::SC_COOLDOWN_KOY:
         case StatusChange::SC_COOLDOWN_UPMARMU:
         case StatusChange::SC_COOLDOWN_SG:
+        case StatusChange::SC_COOLDOWN_CG:
         case StatusChange::SC_CANTMOVE:
             break;
 
@@ -1050,6 +1051,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         case StatusChange::SC_COOLDOWN_KOY:
         case StatusChange::SC_COOLDOWN_UPMARMU:
         case StatusChange::SC_COOLDOWN_SG:
+        case StatusChange::SC_COOLDOWN_CG:
         case StatusChange::SC_CANTMOVE:
             break;
         case StatusChange::SC_FLYING_BACKPACK:
