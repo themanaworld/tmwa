@@ -5,9 +5,7 @@ stages:
 
 variables: &base_vars
   DEBIAN_COMMON_PACKAGES: make git gcc g++
-  # Depth of clone. If no tag is made after this many commits, then
-  # the git describe call and version header generation will fail.
-  GIT_DEPTH: 100 # Will break again eventually.
+  GIT_DEPTH: 0 # avoid shallow clone since version is based on latest tag
   GIT_SUBMODULE_STRATEGY: normal
 
 .prerequisites: &prerequisites
