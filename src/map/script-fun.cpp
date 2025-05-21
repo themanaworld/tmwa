@@ -5517,6 +5517,53 @@ void builtin_getmapnamefromhash(ScriptState *st)
 }
 
 /*==========================================
+ * Look if a map exists
+ * return value:
+ *  0 = map does not exist
+ *  1 = map exists
+ *------------------------------------------
+ */
+static
+void builtin_mapexists(ScriptState *st)
+{
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    push_int<ScriptDataInt>(st->stack, map_mapname2mapid(mapname).is_some());
+}
+
+/*==========================================
+ * Returns number of available maps
+ *------------------------------------------
+ */
+static
+void builtin_numberofmaps(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, maps_db.size());
+}
+
+/*==========================================
+ * Get the map name of a specific maps_db index
+ *------------------------------------------
+ */
+static
+void builtin_getmapnamebyindex(ScriptState *st)
+{
+    int index = conv_num(st, &AARG(0));
+    int count = 0;
+
+    for (auto& mit : maps_db)
+    {
+        if (count == index)
+        {
+            push_str<ScriptDataStr>(st->stack, mit.second->name_);
+            return;
+        }
+        ++count;
+    }
+
+    push_str<ScriptDataStr>(st->stack, ""_s);
+}
+
+/*==========================================
  * Get the NPC's info
  *------------------------------------------
  */
@@ -5782,6 +5829,9 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmapmaxy, "M"_s, 'i'),
     BUILTIN(getmaphash, "M"_s, 'i'),
     BUILTIN(getmapnamefromhash, "i"_s, 's'),
+    BUILTIN(mapexists, "M"_s, 'i'),
+    BUILTIN(numberofmaps, ""_s, 'i'),
+    BUILTIN(getmapnamebyindex, "i"_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(if_then_else, "iii"_s, 'v'),
