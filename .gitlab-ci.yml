@@ -123,3 +123,13 @@ re:ubuntu2204-attoconf:test:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - cd build-cmake
     - make test
+
+# Build Docker image for testing
+docker:build:
+  stage: build
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update
+    - apt-get install -y -qq docker.io
+  script:
+    - docker build -t tmwa-server .
