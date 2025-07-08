@@ -1920,7 +1920,7 @@ void builtin_countitem(ScriptState *st)
     else
     {
         if (battle_config.error_log)
-            PRINTF("wrong item ID: countitem (%i)\n"_fmt, nameid);
+            PRINTF("builtin_countitem: no item ID\n"_fmt);
     }
     push_int<ScriptDataInt>(st->stack, count);
 
@@ -2491,9 +2491,9 @@ void builtin_end(ScriptState *st)
     {
         dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
         if(nd)
-            PRINTF("Deprecated: close in a callfunc or callsub! @ %s\n"_fmt, nd->name);
+            PRINTF("Deprecated: end in a callfunc or callsub! @ %s\n"_fmt, nd->name);
         else
-            PRINTF("Deprecated: close in a callfunc or callsub! (no npc)\n"_fmt);
+            PRINTF("Deprecated: end in a callfunc or callsub! (no npc)\n"_fmt);
     }
     st->state = ScriptEndState::END;
 }
