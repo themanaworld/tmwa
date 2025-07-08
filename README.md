@@ -91,7 +91,7 @@ The 4 main programs listed below are typically running on the same machine, but 
 - `tmwa-map`: Formerly known as `map-server`. This server connects to `tmwa-char`. Multiple instances of `tmwa-map` can connect to the same `tmwa-char`, with clients able to switch servers if they move to a map handled by a different map server. This has not been used by The Mana World, and may not work properly.
 
 #### About server data
-To run the server, you will need a complete set of content including config files, game scripts, savefiles, and client updates. We strongly recommend setting up a web server to serve the updates. You can find a compatible set of server data at https://git.themanaworld.org/legacy/serverdata. Please follow the instructions in the [How to Develop](https://wiki.themanaworld.org/index.php/Development:How_to_Develop) article for more information.
+To run the server, you will need a complete set of content including config files, game scripts, savefiles, and client updates. We strongly recommend setting up a web server to serve the updates. You can find a compatible set of server data at https://git.themanaworld.org/tmw/serverdata. Please follow the instructions in the [How to Develop](https://wiki.themanaworld.org/index.php/Development:How_to_Develop) article for more information.
 
 ## 2. Contributors
 We welcome contributions from developers like you! If you are interested in maintaining this server, please get in touch with the currently active maintainers first. It's important to make changes with extreme care and ensure that each change is thoroughly tested and reviewed before it goes live.

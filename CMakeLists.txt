@@ -93,7 +93,7 @@ set(VENDOR_NAME Vanilla)
 set(VENDOR_POINT 0)
 # URL where the source may be found (after searching for version number).
 # See AGPLv3 section 13
-set(VENDOR_SOURCE https://git.themanaworld.org/legacy/tmwa)
+set(VENDOR_SOURCE https://git.themanaworld.org/tmw/tmwa)
 
 # Convenience
 set(VERSION_STRING "TMWA ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH} dev${PROJECT_VERSION_TWEAK} +${VENDOR_POINT} (${VENDOR_NAME})")
