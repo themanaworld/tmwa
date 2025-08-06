@@ -250,10 +250,10 @@ int party_recv_info(const PartyPair sp)
     {                           // 設定情報の送信
 //      dumb_ptr<map_session_data> sd = map_id2sd(p->member[i].account_id);
         dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(p->member[i].sd);
-        if (sd != nullptr && sd->party_sended == 0)
+        if (sd != nullptr && sd->party_sent == 0)
         {
             clif_party_option(p, sd, 0x100);
-            sd->party_sended = 1;
+            sd->party_sent = 1;
         }
     }
 
@@ -393,7 +393,7 @@ int party_member_added(PartyId party_id, AccountId account_id, int flag)
     }
 
     // 成功
-    sd->party_sended = 0;
+    sd->party_sent = 0;
     sd->status.party_id = party_id;
 
     if (sd2 != nullptr)
@@ -476,7 +476,7 @@ int party_member_leaved(PartyId party_id, AccountId account_id, CharName name)
     if (sd != nullptr && sd->status.party_id == party_id)
     {
         sd->status.party_id = PartyId();
-        sd->party_sended = 0;
+        sd->party_sent = 0;
     }
     return 0;
 }
@@ -495,7 +495,7 @@ int party_broken(PartyId party_id)
                                p->member[i].account_id, p->member[i].name,
                                0x10);
             p->member[i].sd->status.party_id = PartyId();
-            p->member[i].sd->party_sended = 0;
+            p->member[i].sd->party_sent = 0;
         }
     }
     party_db.erase(party_id);
@@ -582,7 +582,7 @@ int party_send_movemap(dumb_ptr<map_session_data> sd)
         return 0;
     intif_party_changemap(sd, 1);
 
-    if (sd->party_sended != 0)  // もうパーティデータは送信済み
+    if (sd->party_sent != 0)  // もうパーティデータは送信済み
         return 0;
 
     // 競合確認
@@ -596,7 +596,7 @@ int party_send_movemap(dumb_ptr<map_session_data> sd)
         {
             clif_party_info(p, sd->sess);
             clif_party_option(p, sd, 0x100);
-            sd->party_sended = 1;
+            sd->party_sent = 1;
         }
     }
 

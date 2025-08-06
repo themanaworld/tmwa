@@ -167,7 +167,7 @@ void inter_init2()
 }
 
 //--------------------------------------------------------
-// sended packets to map-server
+// sent packets to map-server
 
 // GMメッセージ送信
 static

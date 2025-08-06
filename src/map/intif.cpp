@@ -364,7 +364,7 @@ void mapif_parse_WisToGM(Session *, const Packet_Head<0x3803>& head, AString& me
     // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
     GmLevel min_gm_level = head.min_gm_level;
     CharName Wisp_name = head.char_name;
-    // information is sended to all online GM
+    // information is sent to all online GM
     for (io::FD i : iter_fds())
     {
         Session *s2 = get_session(i);

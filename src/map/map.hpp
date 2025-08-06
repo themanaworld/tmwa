@@ -275,7 +275,7 @@ struct map_session_data : block_list, SessionData
     int deal_zeny;
     short deal_locked;
 
-    int party_sended;
+    int party_sent;
     PartyId party_invite;
     AccountId party_invite_account;
     int party_hp, party_x, party_y;

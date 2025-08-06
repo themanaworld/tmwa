@@ -1304,8 +1304,8 @@ void reloadGM(ZString params)
     send_fpacket<0x7955, 2>(login_session, fixed_55);
     bytes_to_read = 0;
 
-    LADMIN_LOG("Request to reload the GM configuration file sended.\n"_fmt);
-    PRINTF("Request to reload the GM configuration file sended.\n"_fmt);
+    LADMIN_LOG("Request to reload the GM configuration file sent.\n"_fmt);
+    PRINTF("Request to reload the GM configuration file sent.\n"_fmt);
     PRINTF("Check the actual GM accounts (after reloading):\n"_fmt);
     listaccount(params, 1);    // 1: to list only GM
 }
@@ -2422,8 +2422,8 @@ void parse_fromlogin(Session *s)
                 }
                 else
                 {
-                    PRINTF("Message successfully sended to login-server.\n"_fmt);
-                    LADMIN_LOG("Message successfully sended to login-server.\n"_fmt);
+                    PRINTF("Message successfully sent to login-server.\n"_fmt);
+                    LADMIN_LOG("Message successfully sent to login-server.\n"_fmt);
                 }
                 bytes_to_read = 0;
                 break;

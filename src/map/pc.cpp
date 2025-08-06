@@ -904,7 +904,7 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     }
 
     // パーティー関係の初期化 | Initializing Party Relationships
-    sd->party_sended = 0;
+    sd->party_sent = 0;
     sd->party_invite = PartyId();
     sd->party_x = -1;
     sd->party_y = -1;

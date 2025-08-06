@@ -4415,7 +4415,7 @@ ATCE atcommand_email(Session *s, dumb_ptr<map_session_data> sd,
     else
     {
         chrif_changeemail(sd->status_key.account_id, actual_email, new_email);
-        clif_displaymessage(s, "Information sended to login-server via char-server."_s);
+        clif_displaymessage(s, "Information sent to login-server via char-server."_s);
     }
 
     return ATCE::OKAY;
