@@ -3457,42 +3457,54 @@ void builtin_camera(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     script_nullpo_end(sd, "player not found"_s);
 
-    if (HARG(0))
+    if (!HARG(0))
     {
-        if (HARG(1) && !HARG(2))
-            clif_npc_action(sd, st->oid, 2, 0, conv_num(st, &AARG(0)), conv_num(st, &AARG(1))); // camera to x, y
-        else
-        {
-            dumb_ptr<block_list> bl;
-            short x = 0, y = 0;
-            bool rel = false;
-            if (auto *u = AARG(0).get_if<ScriptDataInt>())
-                bl = map_id2bl(wrap<BlockId>(u->numi));
-            if (auto *g = AARG(0).get_if<ScriptDataStr>())
-            {
-                if (g->str == "rid"_s || g->str == "player"_s)
-                    bl = sd;
-                if (g->str == "relative"_s)
-                    rel = true;
-                else if (g->str == "oid"_s || g->str == "npc"_s)
-                    bl = map_id2bl(st->oid);
-                else
-                    bl = npc_name2id(stringish<NpcName>(g->str));
-            }
-            if (HARG(1) && HARG(2))
-            {
-                x = conv_num(st, &AARG(1));
-                y = conv_num(st, &AARG(2));
-            }
-            if (rel)
-                clif_npc_action(sd, st->oid, 4, 0, x, y); // camera relative from current camera
-            else
-                clif_npc_action(sd, st->oid, 2, unwrap<BlockId>(bl->bl_id), x, y); // camera to actor
-        }
+        // no arguments: return camera
+        clif_npc_action(sd, st->oid, 3, 0, 0, 0);
+        return;
     }
 
-    else
-        clif_npc_action(sd, st->oid, 3, 0, 0, 0); // return camera
+    if (HARG(1) && !HARG(2))
+    {
+        // two arguments: camera to x, y
+        clif_npc_action(sd, st->oid, 2, 0, conv_num(st, &AARG(0)), conv_num(st, &AARG(1)));
+        return;
+    }
+
+    // one or three arguments: camera relative to actor by x, y
+    dumb_ptr<block_list> bl;
+    short x = 0, y = 0;
+
+    if (HARG(1) && HARG(2))
+    {
+        x = conv_num(st, &AARG(1));
+        y = conv_num(st, &AARG(2));
+    }
+
+    if (auto *u = AARG(0).get_if<ScriptDataInt>())
+    {
+        // interpret as block id (generally player or npc)
+        bl = map_id2bl(wrap<BlockId>(u->numi));
+    }
+    else if (auto *g = AARG(0).get_if<ScriptDataStr>())
+    {
+        if (g->str == "relative"_s)
+        {
+            // camera relative from current camera
+            clif_npc_action(sd, st->oid, 4, 0, x, y);
+            return;
+        }
+
+        if (g->str == "rid"_s || g->str == "player"_s)
+            bl = sd;  // player
+        else if (g->str == "oid"_s || g->str == "npc"_s)
+            bl = map_id2bl(st->oid);  // script NPC
+        else
+            bl = npc_name2id(stringish<NpcName>(g->str));  // NPC name
+    }
+
+    // camera relative to actor
+    clif_npc_action(sd, st->oid, 2, unwrap<BlockId>(bl->bl_id), x, y);
 }
 
 /*==========================================
