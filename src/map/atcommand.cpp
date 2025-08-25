@@ -5590,6 +5590,31 @@ ATCE atcommand_source(Session *s, dumb_ptr<map_session_data>,
     return ATCE::OKAY;
 }
 
+static
+ATCE atcommand_setcharaccount(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    CharName character;
+    AccountName dest_account;
+
+    if (!extract(message, record<' '>(&character, &dest_account)))
+        return ATCE::USAGE;
+
+    // Check if the character is currently online
+    dumb_ptr<map_session_data> target_sd = map_nick2sd(character);
+    if (target_sd)
+    {
+        clif_displaymessage(s, "Character must be offline to change account."_s);
+        return ATCE::EXIST;
+    }
+
+    // Send request to character server to move character to new account
+    chrif_setcharaccount(sd->status_key.account_id, character, dest_account);
+
+    clif_displaymessage(s, "Character account change request sent to char-server."_s);
+    return ATCE::OKAY;
+}
+
 
 
 // declared extern above
@@ -6042,6 +6067,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"source"_s, {""_s,
         0, atcommand_source,
         "Legal information about source code (must be a level 0 command!)"_s}},
+    {"setcharaccount"_s, {"<charname> <account_name>"_s,
+        80, atcommand_setcharaccount,
+        "Move a character to another account"_s}},
 };
 } // namespace map
 } // namespace tmwa

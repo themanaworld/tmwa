@@ -1319,6 +1319,45 @@ void parse_fromchar(Session *s)
                 break;
             }
 
+            case 0x2745:       // Account name lookup request from char server
+            {
+                Packet_Fixed<0x2745> fixed;
+                rv = recv_fpacket<0x2745, 26>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountName account_name = fixed.account_name;
+
+                // Prepare response packet
+                Packet_Fixed<0x2746> fixed_46;
+                fixed_46.account_name = account_name;
+                fixed_46.found = 0;
+                fixed_46.account_id = AccountId();
+
+                for (const AuthData& ad : auth_data)
+                {
+                    if (ad.userid == account_name)
+                    {
+                        fixed_46.account_id = ad.account_id;
+                        fixed_46.found = 1;
+                        break;
+                    }
+                }
+
+                // Send response back to char server
+                send_fpacket<0x2746, 31>(s, fixed_46);
+
+                if (fixed_46.found)
+                {
+                    LOGIN_LOG("Account lookup: '%s' found with ID %d\n"_fmt, account_name, fixed_46.account_id);
+                }
+                else
+                {
+                    LOGIN_LOG("Account lookup: '%s' not found\n"_fmt, account_name);
+                }
+                break;
+            }
+
             default:
             {
                 {
