@@ -705,6 +705,77 @@ int chrif_send_divorce(CharId char_id)
 }
 
 /*==========================================
+ * Sends a request to the char-server to move a character to a different account.
+ *-------------------------------------
+ */
+void chrif_setcharaccount(AccountId source_account_id, CharName character_name, AccountName dest_account_name)
+{
+    if (!char_session)
+        return;
+
+    Packet_Fixed<0x2b17> fixed_17;
+    fixed_17.source_account_id = source_account_id;
+    fixed_17.char_name = character_name;
+    fixed_17.dest_account_name = dest_account_name;
+    send_fpacket<0x2b17, 54>(char_session, fixed_17);
+}
+
+/*==========================================
+ * Answer after a setcharaccount request
+ *------------------------------------------
+ */
+static
+int chrif_setcharaccount_answer(Session *, const Packet_Fixed<0x2b18>& fixed)
+{
+    AccountId acc = fixed.source_account_id;
+    CharName char_name = fixed.char_name;
+    AccountName dest_account = fixed.dest_account_name;
+    uint8_t error = fixed.error;
+
+    dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(acc));
+    if (acc && sd != nullptr)
+    {
+        AString output;
+        if (error == 0)
+        {
+            output = STRPRINTF("Character '%s' successfully moved to account '%s'."_fmt,
+                             char_name, dest_account);
+        }
+        else
+        {
+            switch (error)
+            {
+                case 1:
+                    output = STRPRINTF("Character '%s' not found."_fmt, char_name);
+                    break;
+                case 2:
+                    output = "Insufficient GM level to move characters."_s;
+                    break;
+                case 3:
+                    output = STRPRINTF("Destination account '%s' not found."_fmt, dest_account);
+                    break;
+                case 4:
+                    output = STRPRINTF("No available character slots in account '%s'."_fmt, dest_account);
+                    break;
+                case 5:
+                    output = "Character server error occurred."_s;
+                    break;
+                default:
+                    output = STRPRINTF("Unknown error (code: %d)."_fmt, error);
+                    break;
+            }
+        }
+        clif_displaymessage(sd->sess, output);
+    }
+    else
+    {
+        PRINTF("chrif_setcharaccount_answer failed because the requesting player is not online.\n"_fmt);
+    }
+
+    return 0;
+}
+
+/*==========================================
  * Disconnection of a player (account has been deleted in login-server) by [Yor]
  *------------------------------------------
  */
@@ -1019,6 +1090,16 @@ void chrif_parse(Session *s)
                     break;
 
                 chrif_recvgmaccounts(s, repeat);
+                break;
+            }
+            case 0x2b18:
+            {
+                Packet_Fixed<0x2b18> fixed;
+                rv = recv_fpacket<0x2b18, 55>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                chrif_setcharaccount_answer(s, fixed);
                 break;
             }
             default:

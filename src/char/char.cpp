@@ -36,6 +36,7 @@
 #include <array>
 #include <bitset>
 #include <chrono>
+#include <map>
 #include <set>
 
 #include "../ints/cmp.hpp"
@@ -105,6 +106,19 @@ struct char_session_data : SessionData
     AccountEmail email;
     int consumed_by; // amount of map servers for which we are authed
 };
+
+// Structure to track pending account lookup requests
+struct PendingAccountLookup
+{
+    Session *requesting_map_session;
+    AccountId source_account_id;
+    CharName char_name;
+    AccountName dest_account_name;
+};
+
+// Map to track pending lookups by account name
+std::map<AccountName, PendingAccountLookup> pending_account_lookups;
+
 } // namespace char_
 
 void SessionDeleter::operator()(SessionData *sd)
@@ -1593,6 +1607,111 @@ void parse_tologin(Session *ls)
                 break;
             }
 
+            case 0x2746:       // Account name lookup response from login server
+            {
+                Packet_Fixed<0x2746> fixed;
+                rv = recv_fpacket<0x2746, 31>(ls, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountName account_name = fixed.account_name;
+                AccountId dest_account_id = fixed.account_id;
+                uint8_t found = fixed.found;
+
+                // Find the pending lookup request
+                auto it = pending_account_lookups.find(account_name);
+                if (it == pending_account_lookups.end())
+                {
+                    CHAR_LOG("Received account lookup response for '%s' but no pending request found\n"_fmt, account_name);
+                    break;
+                }
+
+                PendingAccountLookup& lookup = it->second;
+                Session *ms = lookup.requesting_map_session;
+                AccountId source_account_id = lookup.source_account_id;
+                CharName char_name = lookup.char_name;
+
+                // Prepare response packet
+                Packet_Fixed<0x2b18> fixed_18;
+                fixed_18.source_account_id = source_account_id;
+                fixed_18.char_name = char_name;
+                fixed_18.dest_account_name = account_name;
+
+                if (!found)
+                {
+                    fixed_18.error = 3; // destination account not found
+                    CHAR_LOG("setcharaccount: Destination account '%s' not found\n"_fmt, account_name);
+                }
+                else
+                {
+                    // Find the character by name
+                    CharPair* char_found = nullptr;
+                    for (auto& cd : char_keys)
+                    {
+                        if (cd.key.name == char_name)
+                        {
+                            char_found = &cd;
+                            break;
+                        }
+                    }
+
+                    if (!char_found)
+                    {
+                        // Character not found
+                        fixed_18.error = 1;
+                        CHAR_LOG("setcharaccount: Character '%s' not found\n"_fmt, char_name);
+                    }
+                    else
+                    {
+                        // Find first available slot in destination account
+                        std::vector<bool> slots(char_conf.char_slots, false);
+
+                        // Mark used slots in destination account
+                        for (const auto& cd : char_keys)
+                        {
+                            if (cd.key.account_id == dest_account_id && cd.key.char_num < char_conf.char_slots)
+                            {
+                                slots[cd.key.char_num] = true;
+                            }
+                        }
+
+                        // Find first available slot
+                        auto it = std::find(slots.begin(), slots.end(), false);
+                        if (it == slots.end())
+                        {
+                            fixed_18.error = 4; // no available slots
+                            CHAR_LOG("setcharaccount: No available slots in destination account\n"_fmt);
+                        }
+                        else
+                        {
+                            int dest_char_num = std::distance(slots.begin(), it);
+
+                            // Update character data
+                            AccountId old_account_id = char_found->key.account_id;
+                            int old_char_num = char_found->key.char_num;
+
+                            char_found->key.account_id = dest_account_id;
+                            char_found->key.char_num = dest_char_num;
+
+                            // Success
+                            fixed_18.error = 0;
+                            CHAR_LOG("Character '%s' moved from account %d (slot %d) to account %d (slot %d)\n"_fmt,
+                                    char_name, old_account_id, old_char_num, dest_account_id, dest_char_num);
+                        }
+                    }
+                }
+
+                // Send response back to map server if session is still valid
+                if (ms)
+                {
+                    send_fpacket<0x2b18, 55>(ms, fixed_18);
+                }
+
+                // Remove the pending lookup
+                pending_account_lookups.erase(it);
+                break;
+            }
+
             default:
             {
                 ls->set_eof();
@@ -1620,6 +1739,21 @@ void map_anti_freeze_system(TimerData *, tick_t)
             {                   // Map-server anti-freeze system. Counter. 5 ok, 4...0 freezed
                 CHAR_LOG_AND_ECHO("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n"_fmt,
                         i);
+
+                // Clean up any pending account lookups for this map server
+                for (auto it = pending_account_lookups.begin(); it != pending_account_lookups.end();)
+                {
+                    if (it->second.requesting_map_session == server_session[i])
+                    {
+                        CHAR_LOG("Cleaning up pending account lookup for '%s' due to map server disconnect\n"_fmt, it->first);
+                        it = pending_account_lookups.erase(it);
+                    }
+                    else
+                    {
+                        ++it;
+                    }
+                }
+
                 server_session[i]->set_eof();
             }
         }
@@ -2161,6 +2295,85 @@ void parse_frommap(Session *ms)
                     break;
 
                 }
+            }
+
+            case 0x2b17:       // setcharaccount request from map server
+            {
+                Packet_Fixed<0x2b17> fixed;
+                rv = recv_fpacket<0x2b17, 54>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                AccountId source_account_id = fixed.source_account_id;
+                CharName char_name = fixed.char_name;
+                AccountName dest_account_name = fixed.dest_account_name;
+
+                // Basic validation first
+                Packet_Fixed<0x2b18> fixed_18;
+                fixed_18.source_account_id = source_account_id;
+                fixed_18.char_name = char_name;
+                fixed_18.dest_account_name = dest_account_name;
+
+                // Find the character by name
+                CharPair* char_found = nullptr;
+                for (auto& cd : char_keys)
+                {
+                    if (cd.key.name == char_name)
+                    {
+                        char_found = &cd;
+                        break;
+                    }
+                }
+
+                if (!char_found)
+                {
+                    // Character not found
+                    fixed_18.error = 1;
+                    CHAR_LOG("setcharaccount: Character '%s' not found\n"_fmt, char_name);
+                    send_fpacket<0x2b18, 55>(ms, fixed_18);
+                }
+                else if (!isGM(source_account_id).satisfies(GmLevel::from(80_u32)))
+                {
+                    // Check GM level - require level 99
+                    fixed_18.error = 2; // insufficient GM level
+                    CHAR_LOG("setcharaccount: Insufficient GM level for account %d\n"_fmt, source_account_id);
+                    send_fpacket<0x2b18, 55>(ms, fixed_18);
+                }
+                else if (!login_session)
+                {
+                    // No login server connection
+                    fixed_18.error = 5; // server error
+                    CHAR_LOG("setcharaccount: No login server connection\n"_fmt);
+                    send_fpacket<0x2b18, 55>(ms, fixed_18);
+                }
+                else
+                {
+                    // Check if there's already a pending lookup for this account name
+                    if (pending_account_lookups.find(dest_account_name) != pending_account_lookups.end())
+                    {
+                        fixed_18.error = 5; // server error (lookup already in progress)
+                        CHAR_LOG("setcharaccount: Account lookup already in progress for '%s'\n"_fmt, dest_account_name);
+                        send_fpacket<0x2b18, 55>(ms, fixed_18);
+                    }
+                    else
+                    {
+                        // Store the pending request
+                        PendingAccountLookup &lookup = pending_account_lookups[dest_account_name];
+                        lookup.requesting_map_session = ms;
+                        lookup.source_account_id = source_account_id;
+                        lookup.char_name = char_name;
+                        lookup.dest_account_name = dest_account_name;
+
+                        // Send account lookup request to login server
+                        Packet_Fixed<0x2745> fixed_45;
+                        fixed_45.account_name = dest_account_name;
+                        send_fpacket<0x2745, 26>(login_session, fixed_45);
+
+                        CHAR_LOG("setcharaccount: Sent account lookup request for '%s'\n"_fmt, dest_account_name);
+                        // Response will be sent when login server replies via parse_tologin 0x2746
+                    }
+                }
+                break;
             }
 
             case 0x3830:
