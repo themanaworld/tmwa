@@ -728,42 +728,35 @@ static
 int chrif_setcharaccount_answer(Session *, const Packet_Fixed<0x2b18>& fixed)
 {
     AccountId acc = fixed.source_account_id;
-    CharName char_name = fixed.char_name;
-    AccountName dest_account = fixed.dest_account_name;
-    uint8_t error = fixed.error;
 
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(acc));
     if (acc && sd != nullptr)
     {
+        CharName char_name = fixed.char_name;
+        AccountName dest_account = fixed.dest_account_name;
+
         AString output;
-        if (error == 0)
+        switch (fixed.error)
         {
-            output = STRPRINTF("Character '%s' successfully moved to account '%s'."_fmt,
-                             char_name, dest_account);
-        }
-        else
-        {
-            switch (error)
-            {
-                case 1:
-                    output = STRPRINTF("Character '%s' not found."_fmt, char_name);
-                    break;
-                case 2:
-                    output = "Insufficient GM level to move characters."_s;
-                    break;
-                case 3:
-                    output = STRPRINTF("Destination account '%s' not found."_fmt, dest_account);
-                    break;
-                case 4:
-                    output = STRPRINTF("No available character slots in account '%s'."_fmt, dest_account);
-                    break;
-                case 5:
-                    output = "Character server error occurred."_s;
-                    break;
-                default:
-                    output = STRPRINTF("Unknown error (code: %d)."_fmt, error);
-                    break;
-            }
+            case 0:
+                output = STRPRINTF("Character '%s' successfully moved to account '%s'."_fmt,
+                                    char_name, dest_account);
+                break;
+            case 1:
+                output = STRPRINTF("Character '%s' not found."_fmt, char_name);
+                break;
+            case 2:
+                output = STRPRINTF("Destination account '%s' not found."_fmt, dest_account);
+                break;
+            case 3:
+                output = STRPRINTF("No available character slots in account '%s'."_fmt, dest_account);
+                break;
+            case 4:
+                output = "Character server error occurred."_s;
+                break;
+            default:
+                output = STRPRINTF("Unknown error (code: %d)."_fmt, fixed.error);
+                break;
         }
         clif_displaymessage(sd->sess, output);
     }
