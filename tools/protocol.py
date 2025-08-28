@@ -5315,33 +5315,6 @@ def build_context():
             Notify login server that we accepted the auth data
         ''',
     )
-    login_char.r(0x2745, 'account name lookup',
-        fixed=[
-            at(0, u16, 'packet id'),
-            at(2, account_name, 'account name'),
-        ],
-        fixed_size=26,
-        pre=[IDLE],
-        post=[0x2746],
-        desc='''
-            Request from char server to lookup account ID by account name.
-        ''',
-    )
-    login_char.s(0x2746, 'account name lookup result',
-        fixed=[
-            at(0, u16, 'packet id'),
-            at(2, account_name, 'account name'),
-            at(26, account_id, 'account id'),
-            at(30, u8, 'found'),
-        ],
-        fixed_size=31,
-        pre=[0x2745],
-        post=[IDLE],
-        desc='''
-            Response from login server with account ID lookup result.
-            found: 0=not found, 1=found
-        ''',
-    )
 
     # TOC_CHARMAP
     # char map
@@ -5789,9 +5762,9 @@ def build_context():
             at(0, u16, 'packet id'),
             at(2, account_id, 'source account id'),
             at(6, char_name, 'char name'),
-            at(30, account_name, 'dest account name'),
+            at(30, account_id, 'dest account id'),
         ],
-        fixed_size=54,
+        fixed_size=34,
         pre=[HUMAN],
         post=[0x2b18],
         desc='''
@@ -5803,15 +5776,15 @@ def build_context():
             at(0, u16, 'packet id'),
             at(2, account_id, 'source account id'),
             at(6, char_name, 'char name'),
-            at(30, account_name, 'dest account name'),
-            at(54, u8, 'error'),
+            at(30, account_id, 'dest account id'),
+            at(34, u8, 'error'),
         ],
-        fixed_size=55,
+        fixed_size=35,
         pre=[0x2b17],
         post=[HUMAN],
         desc='''
             Result of moving a character to another account.
-            error: 0=success 1=char not found 2=insufficient GM level 3=dest account not found 4=no slots 5=server error
+            error: 0=success 1=char not found 2=account not found 3=no slots 4=server error
         ''',
     )
     # 2bfa/2bfb are injected above

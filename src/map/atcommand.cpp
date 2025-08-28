@@ -5595,21 +5595,28 @@ ATCE atcommand_setcharaccount(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
-    AccountName dest_account;
+    AccountId dest_account_id;
 
-    if (!extract(message, record<' '>(&character, &dest_account)))
+    if (!extract(message, record<' '>(&character, &dest_account_id)))
         return ATCE::USAGE;
 
-    // Check if the character is currently online
+    // Require the character to be online
     dumb_ptr<map_session_data> target_sd = map_nick2sd(character);
-    if (target_sd)
+    if (!target_sd)
     {
-        clif_displaymessage(s, "Character must be offline to change account."_s);
+        clif_displaymessage(s, "Character must be online to change account."_s);
         return ATCE::EXIST;
     }
 
+    // Check if trying to move character to the same account
+    if (target_sd->status_key.account_id == dest_account_id)
+    {
+        clif_displaymessage(s, "Character is already on that account."_s);
+        return ATCE::RANGE;
+    }
+
     // Send request to character server to move character to new account
-    chrif_setcharaccount(sd->status_key.account_id, character, dest_account);
+    chrif_setcharaccount(sd->status_key.account_id, character, dest_account_id);
 
     clif_displaymessage(s, "Character account change request sent to char-server."_s);
     return ATCE::OKAY;
@@ -6067,7 +6074,7 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"source"_s, {""_s,
         0, atcommand_source,
         "Legal information about source code (must be a level 0 command!)"_s}},
-    {"setcharaccount"_s, {"<charname> <account_name>"_s,
+    {"setcharaccount"_s, {"<charname> <account_id>"_s,
         80, atcommand_setcharaccount,
         "Move a character to another account"_s}},
 };

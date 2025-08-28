@@ -36,7 +36,6 @@
 #include <array>
 #include <bitset>
 #include <chrono>
-#include <map>
 #include <set>
 
 #include "../ints/cmp.hpp"
@@ -106,19 +105,6 @@ struct char_session_data : SessionData
     AccountEmail email;
     int consumed_by; // amount of map servers for which we are authed
 };
-
-// Structure to track pending set character account requests
-struct PendingSetCharAccount
-{
-    Session *requesting_map_session;
-    AccountId source_account_id;
-    CharName char_name;
-    AccountName dest_account_name;
-};
-
-// Map to track pending set character account requests by name
-std::map<AccountName, PendingSetCharAccount> pending_setcharaccount_requests;
-
 } // namespace char_
 
 void SessionDeleter::operator()(SessionData *sd)
@@ -1607,111 +1593,6 @@ void parse_tologin(Session *ls)
                 break;
             }
 
-            case 0x2746:       // Account name lookup response from login server
-            {
-                Packet_Fixed<0x2746> fixed;
-                rv = recv_fpacket<0x2746, 31>(ls, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
-
-                AccountName account_name = fixed.account_name;
-                AccountId dest_account_id = fixed.account_id;
-                uint8_t found = fixed.found;
-
-                // Find the pending lookup request
-                auto it = pending_setcharaccount_requests.find(account_name);
-                if (it == pending_setcharaccount_requests.end())
-                {
-                    CHAR_LOG("Received account lookup response for '%s' but no pending request found\n"_fmt, account_name);
-                    break;
-                }
-
-                PendingSetCharAccount& lookup = it->second;
-                Session *ms = lookup.requesting_map_session;
-                AccountId source_account_id = lookup.source_account_id;
-                CharName char_name = lookup.char_name;
-
-                // Prepare response packet
-                Packet_Fixed<0x2b18> fixed_18;
-                fixed_18.source_account_id = source_account_id;
-                fixed_18.char_name = char_name;
-                fixed_18.dest_account_name = account_name;
-
-                if (!found)
-                {
-                    fixed_18.error = 2; // destination account not found
-                    CHAR_LOG("setcharaccount: Destination account '%s' not found\n"_fmt, account_name);
-                }
-                else
-                {
-                    // Find the character by name
-                    CharPair* char_found = nullptr;
-                    for (auto& cd : char_keys)
-                    {
-                        if (cd.key.name == char_name)
-                        {
-                            char_found = &cd;
-                            break;
-                        }
-                    }
-
-                    if (!char_found)
-                    {
-                        // Character not found
-                        fixed_18.error = 1;
-                        CHAR_LOG("setcharaccount: Character '%s' not found\n"_fmt, char_name);
-                    }
-                    else
-                    {
-                        // Find first available slot in destination account
-                        std::vector<bool> slots(char_conf.char_slots, false);
-
-                        // Mark used slots in destination account
-                        for (const auto& cd : char_keys)
-                        {
-                            if (cd.key.account_id == dest_account_id && cd.key.char_num < char_conf.char_slots)
-                            {
-                                slots[cd.key.char_num] = true;
-                            }
-                        }
-
-                        // Find first available slot
-                        auto it = std::find(slots.begin(), slots.end(), false);
-                        if (it == slots.end())
-                        {
-                            fixed_18.error = 3; // no available slots
-                            CHAR_LOG("setcharaccount: No available slots in destination account\n"_fmt);
-                        }
-                        else
-                        {
-                            int dest_char_num = std::distance(slots.begin(), it);
-
-                            // Update character data
-                            AccountId old_account_id = char_found->key.account_id;
-                            int old_char_num = char_found->key.char_num;
-
-                            char_found->key.account_id = dest_account_id;
-                            char_found->key.char_num = dest_char_num;
-
-                            // Success
-                            fixed_18.error = 0;
-                            CHAR_LOG("Character '%s' moved from account %d (slot %d) to account %d (slot %d)\n"_fmt,
-                                    char_name, old_account_id, old_char_num, dest_account_id, dest_char_num);
-                        }
-                    }
-                }
-
-                // Send response back to map server if session is still valid
-                if (ms)
-                {
-                    send_fpacket<0x2b18, 55>(ms, fixed_18);
-                }
-
-                // Remove the pending lookup
-                pending_setcharaccount_requests.erase(it);
-                break;
-            }
-
             default:
             {
                 ls->set_eof();
@@ -1739,21 +1620,6 @@ void map_anti_freeze_system(TimerData *, tick_t)
             {                   // Map-server anti-freeze system. Counter. 5 ok, 4...0 freezed
                 CHAR_LOG_AND_ECHO("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n"_fmt,
                         i);
-
-                // Clean up any pending setcharaccount requests for this map server
-                for (auto it = pending_setcharaccount_requests.begin(); it != pending_setcharaccount_requests.end();)
-                {
-                    if (it->second.requesting_map_session == server_session[i])
-                    {
-                        CHAR_LOG("Cleaning up pending account lookup for '%s' due to map server disconnect\n"_fmt, it->first);
-                        it = pending_setcharaccount_requests.erase(it);
-                    }
-                    else
-                    {
-                        ++it;
-                    }
-                }
-
                 server_session[i]->set_eof();
             }
         }
@@ -2300,54 +2166,72 @@ void parse_frommap(Session *ms)
             case 0x2b17:       // setcharaccount request from map server
             {
                 Packet_Fixed<0x2b17> fixed;
-                rv = recv_fpacket<0x2b17, 54>(ms, fixed);
+                rv = recv_fpacket<0x2b17, 34>(ms, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
-                AccountId source_account_id = fixed.source_account_id;
                 CharName char_name = fixed.char_name;
-                AccountName dest_account_name = fixed.dest_account_name;
+                AccountId dest_account_id = fixed.dest_account_id;
 
-                // Basic validation first
                 Packet_Fixed<0x2b18> fixed_18;
-                fixed_18.source_account_id = source_account_id;
+                fixed_18.source_account_id = fixed.source_account_id;
                 fixed_18.char_name = char_name;
-                fixed_18.dest_account_name = dest_account_name;
+                fixed_18.dest_account_id = dest_account_id;
 
-                if (!login_session)
+                CharPair* char_found = nullptr;
+                std::vector<bool> slots(char_conf.char_slots, false);
+                bool account_exists = false;
+
+                for (auto& cd : char_keys)
                 {
-                    // No login server connection
-                    fixed_18.error = 4; // server error
-                    CHAR_LOG("setcharaccount: No login server connection\n"_fmt);
-                    send_fpacket<0x2b18, 55>(ms, fixed_18);
+                    // Find the character by name
+                    if (!char_found && cd.key.name == char_name)
+                        char_found = &cd;
+
+                    // Check if destination account exists and mark used slots
+                    if (cd.key.account_id == dest_account_id)
+                    {
+                        account_exists = true;
+                        if (cd.key.char_num < char_conf.char_slots)
+                            slots[cd.key.char_num] = true;
+                    }
+                }
+
+                // Find first available slot in destination account
+                auto free_slot_it = std::find(slots.begin(), slots.end(), false);
+
+                if (!char_found)
+                {
+                    fixed_18.error = 1; // character not found
+                    CHAR_LOG("setcharaccount: Character '%s' not found\n"_fmt, char_name);
+                }
+                else if (!account_exists)
+                {
+                    fixed_18.error = 2; // destination account not found
+                    CHAR_LOG("setcharaccount: Destination account %d not found\n"_fmt, dest_account_id);
+                }
+                else if (free_slot_it == slots.end())
+                {
+                    fixed_18.error = 3; // no available slots
+                    CHAR_LOG("setcharaccount: No available slots in destination account\n"_fmt);
                 }
                 else
                 {
-                    // Check if there's already a pending lookup for this account name
-                    if (pending_setcharaccount_requests.find(dest_account_name) != pending_setcharaccount_requests.end())
-                    {
-                        fixed_18.error = 4; // server error (lookup already in progress)
-                        CHAR_LOG("setcharaccount: Account lookup already in progress for '%s'\n"_fmt, dest_account_name);
-                        send_fpacket<0x2b18, 55>(ms, fixed_18);
-                    }
-                    else
-                    {
-                        // Store the pending request
-                        PendingSetCharAccount &lookup = pending_setcharaccount_requests[dest_account_name];
-                        lookup.requesting_map_session = ms;
-                        lookup.source_account_id = source_account_id;
-                        lookup.char_name = char_name;
-                        lookup.dest_account_name = dest_account_name;
+                    int dest_char_num = std::distance(slots.begin(), free_slot_it);
 
-                        // Send account lookup request to login server
-                        Packet_Fixed<0x2745> fixed_45;
-                        fixed_45.account_name = dest_account_name;
-                        send_fpacket<0x2745, 26>(login_session, fixed_45);
+                    // Update character data
+                    AccountId old_account_id = char_found->key.account_id;
+                    int old_char_num = char_found->key.char_num;
 
-                        CHAR_LOG("setcharaccount: Sent account lookup request for '%s'\n"_fmt, dest_account_name);
-                        // Response will be sent when login server replies via parse_tologin 0x2746
-                    }
+                    char_found->key.account_id = dest_account_id;
+                    char_found->key.char_num = dest_char_num;
+
+                    fixed_18.error = 0; // success
+                    CHAR_LOG("Character '%s' moved from account %d (slot %d) to account %d (slot %d)\n"_fmt,
+                            char_name, old_account_id, old_char_num, dest_account_id, dest_char_num);
                 }
+
+                send_fpacket<0x2b18, 35>(ms, fixed_18);
                 break;
             }
 
