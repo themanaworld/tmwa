@@ -708,7 +708,7 @@ int chrif_send_divorce(CharId char_id)
  * Sends a request to the char-server to move a character to a different account.
  *-------------------------------------
  */
-void chrif_setcharaccount(AccountId source_account_id, CharName character_name, AccountName dest_account_name)
+void chrif_setcharaccount(AccountId source_account_id, CharName character_name, AccountId dest_account_id)
 {
     if (!char_session)
         return;
@@ -716,8 +716,8 @@ void chrif_setcharaccount(AccountId source_account_id, CharName character_name, 
     Packet_Fixed<0x2b17> fixed_17;
     fixed_17.source_account_id = source_account_id;
     fixed_17.char_name = character_name;
-    fixed_17.dest_account_name = dest_account_name;
-    send_fpacket<0x2b17, 54>(char_session, fixed_17);
+    fixed_17.dest_account_id = dest_account_id;
+    send_fpacket<0x2b17, 34>(char_session, fixed_17);
 }
 
 /*==========================================
@@ -733,23 +733,23 @@ int chrif_setcharaccount_answer(Session *, const Packet_Fixed<0x2b18>& fixed)
     if (acc && sd != nullptr)
     {
         CharName char_name = fixed.char_name;
-        AccountName dest_account = fixed.dest_account_name;
+        AccountId dest_account_id = fixed.dest_account_id;
 
         AString output;
         switch (fixed.error)
         {
             case 0:
-                output = STRPRINTF("Character '%s' successfully moved to account '%s'."_fmt,
-                                    char_name, dest_account);
+                output = STRPRINTF("Character '%s' moved to account id %d."_fmt,
+                                   char_name, dest_account_id);
                 break;
             case 1:
                 output = STRPRINTF("Character '%s' not found."_fmt, char_name);
                 break;
             case 2:
-                output = STRPRINTF("Destination account '%s' not found."_fmt, dest_account);
+                output = STRPRINTF("Destination account id %d not found (it needs to have at least one character)."_fmt, dest_account_id);
                 break;
             case 3:
-                output = STRPRINTF("No available character slots in account '%s'."_fmt, dest_account);
+                output = STRPRINTF("No available character slots in account id %d."_fmt, dest_account_id);
                 break;
             case 4:
                 output = "Character server error occurred."_s;
@@ -759,6 +759,17 @@ int chrif_setcharaccount_answer(Session *, const Packet_Fixed<0x2b18>& fixed)
                 break;
         }
         clif_displaymessage(sd->sess, output);
+        if (fixed.error == 0)
+        {
+            // Disconnect the affected character now that their account has changed
+            dumb_ptr<map_session_data> target_sd = map_nick2sd(char_name);
+            if (target_sd)
+            {
+                target_sd->login_id1++;
+                clif_displaymessage(target_sd->sess, output);
+                clif_setwaitclose(target_sd->sess);
+            }
+        }
     }
     else
     {
@@ -1088,7 +1099,7 @@ void chrif_parse(Session *s)
             case 0x2b18:
             {
                 Packet_Fixed<0x2b18> fixed;
-                rv = recv_fpacket<0x2b18, 55>(s, fixed);
+                rv = recv_fpacket<0x2b18, 35>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
