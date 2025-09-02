@@ -79,14 +79,14 @@ namespace tmwa
 
         LString etc_path = PACKAGESYSCONFDIR.xslice_t(portable);
         LString var_path = PACKAGELOCALSTATEDIR.xslice_t(portable);
-        LString share_path = PACKAGEDATADIR.xslice_t(portable);
+        LString data_path = PACKAGEDATADIR.xslice_t(portable);
 
         io::DirFd etc(root, etc_path);
         io::DirFd var(root, var_path);
-        io::DirFd share(root, share_path);
+        io::DirFd share(root, data_path);
 
         try_read(etc, etc_path, "shared.conf"_s);
-        try_read(share, share_path, "shared.data"_s);
+        try_read(share, data_path, "shared.data"_s);
         try_write(var, var_path, "shared.test"_s);
 
         // io::FD::open();
