@@ -50,6 +50,7 @@ jobs:
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
+      PLATFORMS: linux/amd64,linux/arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -65,6 +66,26 @@ jobs:
           else
             echo "push=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Compute platforms
+        id: platforms
+        run: |
+          if [ "${{ steps.should_push.outputs.push }}" = "true" ]; then
+            echo "value=${{ env.PLATFORMS }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=linux/amd64" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ steps.platforms.outputs.value }}
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: ${{ steps.platforms.outputs.value }}
 
       - name: Log in to the Container registry
         if: ${{ steps.should_push.outputs.push == 'true' }}
@@ -91,10 +112,13 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: ${{ steps.buildx.outputs.platforms }}
           push: ${{ steps.should_push.outputs.push == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           load: ${{ steps.should_push.outputs.push != 'true' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation
         if: ${{ steps.should_push.outputs.push == 'true' }}
