@@ -27,6 +27,13 @@ endif()
 
 project(tmwAthena VERSION ${VERSION} LANGUAGES CXX)
 
+option(TMWA_BUILD_TESTS "Build unit tests with GoogleTest and CTest" OFF)
+if(TMWA_BUILD_TESTS)
+  include(CTest)
+  add_subdirectory(deps/googletest)
+  include(GoogleTest)
+endif()
+
 # Prefer to use G++ as the compiler
 set(CMAKE_CXX_COMPILER g++)
 # Set C++ standard to C++11
@@ -58,7 +65,7 @@ foreach(dir admin ast char compat conf generic high ints io login map mmo net pr
         src/${dir}/*.cpp
         src/${dir}/*.hpp
         src/${dir}/*.tcc)
-    # Exclude any _test.cpp files from the build
+    # Exclude any _test.cpp files from the build (they'll be built separately)
     set(ALL_SOURCES ${ALL_SOURCES} ${${dir}_SOURCES})
     list(FILTER ${dir}_SOURCES EXCLUDE REGEX ".*_test.cpp")
     message("Adding sources in ${dir}: ${${dir}_SOURCES}")
@@ -179,6 +186,43 @@ target_link_libraries(tmwa-admin tmwa-shared)
 
 # TODO: Call make -f ${CMAKE_SOURCE_DIR}/generate.mk clean to clean up the
 # generated files. We want this to be run every time we call make clean.
+
+# Tests
+if(TMWA_BUILD_TESTS AND BUILD_TESTING)
+  file(GLOB_RECURSE TMWA_TEST_SOURCES CONFIGURE_DEPENDS
+      src/*/*_test.cpp)
+
+  # Core static library containing non-daemon sources (only when building tests)
+  add_library(tmwa-core STATIC
+    ${ast_SOURCES}
+    ${compat_SOURCES}
+    ${generic_SOURCES}
+    ${high_SOURCES}
+    ${ints_SOURCES}
+    ${io_SOURCES}
+    ${mmo_SOURCES}
+    ${net_SOURCES}
+    ${proto-base_SOURCES}
+    ${range_SOURCES}
+    ${sexpr_SOURCES}
+    ${shared_SOURCES}
+    ${wire_SOURCES}
+    ${conf_SOURCES}
+  )
+  target_link_libraries(tmwa-core PUBLIC tmwa-shared)
+
+  foreach(test_src IN LISTS TMWA_TEST_SOURCES)
+    file(RELATIVE_PATH rel "${CMAKE_SOURCE_DIR}/src" "${test_src}")
+    string(REPLACE ".cpp" "" rel_no_ext "${rel}")
+    string(REPLACE "/" "_" test_target "${rel_no_ext}")
+    set(test_target "tmwa_${test_target}")
+
+    add_executable(${test_target} ${test_src})
+    target_link_libraries(${test_target} tmwa-core GTest::gtest_main)
+
+    gtest_discover_tests(${test_target})
+  endforeach()
+endif()
 
 # Install targets
 install(TARGETS tmwa-login tmwa-char tmwa-map tmwa-admin tmwa-shared
