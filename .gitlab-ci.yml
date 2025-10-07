@@ -70,7 +70,7 @@ re:ubuntu2204:build:
     - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - mkdir build-cmake
     - cd build-cmake
-    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local ..
+    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON ..
     - make
     - whoami
     - make install
@@ -110,16 +110,15 @@ re:ubuntu2204-attoconf:test:
     - cd build-atto
     - make test
 
-# Disabled. Tests are not supported yet by the CMake project.
-.re:ubuntu2204:test:
+re:ubuntu2204:test:
   <<: *prerequisites
   stage: test
   image: ubuntu:22.04
   needs: ["re:ubuntu2204:build"]
   variables:
     <<: *base_vars
-    INSTALL_PACKAGES: python3 gdb
+    INSTALL_PACKAGES: python3 gdb cmake
   script:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - cd build-cmake
-    - make test
+    - ctest --output-on-failure
