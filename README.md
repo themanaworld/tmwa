@@ -30,7 +30,7 @@ The rest of this file contains information relevant to distributors and contribu
 
 ### Build dependencies
 #### Python
-- Required: 2.7.x only, installed in $PATH as 'python'
+- Required: 3.6+
 
 #### C library
 - Recommended: glibc 2.17 or higher
@@ -48,7 +48,7 @@ The rest of this file contains information relevant to distributors and contribu
 - May work: libc++
 
 #### attoconf
-- Special: see below
+- Special: If you need to run tests via the legacy build system, see below
 
 ### Runtime dependencies
 #### glibc
@@ -57,8 +57,24 @@ The rest of this file contains information relevant to distributors and contribu
 #### libstdc++
 - Depends on what it was built against
 
-### Instructions
+### Instructions: CMake
 #### Configuration
+- `mkdir build`
+- `cd build`
+- `cmake ..`
+
+#### Build
+- Run `make -j$(nproc)` to build the project.
+
+#### Install
+- Run `make install DESTDIR=/whatever` to install the project. See [what is installed](#what-is-installed) below.
+
+### Instructions: Attoconf (Legacy build system)
+
+Attoconf is a deprecated bespoke build system. It is not recommended for typical use. It is currently the only way of running some tests. See [this PR](https://git.themanaworld.org/tmw/tmwa/-/merge_requests/280) and follow-ups for progress.
+
+#### Configuration
+
 - Run `./configure` to configure the build. Most of the options are similar to GNU Autoconf's configure. For example, you can create a `build` directory and run `../configure` from there to keep the source directory clean.
 
 #### Build
@@ -76,9 +92,6 @@ The rest of this file contains information relevant to distributors and contribu
 
 #### Distribution tarballs
 - Run `make dist` or `make bindist` to create distribution tarballs.
-
-### Note about attoconf
-TMWA's `./configure` script is implemented using a python package called 'attoconf'. It provides a simpler alternative to GNU autoconf. Attoconf is available at [Github](https://github.com/o11c/attoconf/) and is a well-behaving python package. Please note that attoconf requires Python 2.7, however efforts to bring it to Python 3 are in progress.
 
 ### What is installed
 #### Overview
