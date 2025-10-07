@@ -10,54 +10,12 @@ If you are interested in contributing, please take a look at our [wiki](http://w
 
 The rest of this file contains information relevant to distributors and contributors.
 
-## 1. Distributors
-### Important notes
-- Please read [version.mk](version.mk) for important version information.
-- TMWA requires git to build by default. Use 'make dist' to get a tarball.
+## 1. Building
 
-### Platform dependencies
-#### Architecture
-- Tested: x86, amd64, x32
-- Likely to work: all architectures (patches welcome if they don't)
+### CMake
 
-#### Operating system
-- Known bad: Linux 2.6.26 and earlier
-- Maintained: Linux 3.2 and later
-- Likely to break: Cygwin, BSD
+Cmake is a standard build system. It is recommended for most users.
 
-#### Filesystem
-- Must support symlinks
-
-### Build dependencies
-#### Python
-- Required: 3.6+
-
-#### C library
-- Recommended: glibc 2.17 or higher
-- Supported: glibc 2.13
-- Known bad: glibc 2.8 or below
-- Unsupported: anything that's not glibc
-
-#### C++ compiler
-- Required: g++ 4.7.2 or higher
-- Recommended: g++ 4.8.1 or higher
-- Not recommended: clang++ 3.3 or higher (all versions have unfixed bugs)
-
-#### C++ library
-- Recommended: libstdc++ to match g++; may need patch for clang++
-- May work: libc++
-
-#### attoconf
-- Special: If you need to run tests via the legacy build system, see below
-
-### Runtime dependencies
-#### glibc
-- Depends on what it was built against
-
-#### libstdc++
-- Depends on what it was built against
-
-### Instructions: CMake
 #### Configuration
 - `mkdir build`
 - `cd build`
@@ -69,7 +27,7 @@ The rest of this file contains information relevant to distributors and contribu
 #### Install
 - Run `make install DESTDIR=/whatever` to install the project. See [what is installed](#what-is-installed) below.
 
-### Instructions: Attoconf (Legacy build system)
+### Attoconf (Legacy build system)
 
 Attoconf is a deprecated bespoke build system. It is not recommended for typical use. It is currently the only way of running some tests. See [this PR](https://git.themanaworld.org/tmw/tmwa/-/merge_requests/280) and follow-ups for progress.
 
@@ -111,3 +69,45 @@ To run the server, you will need a complete set of content including config file
 We welcome contributions from developers like you! If you are interested in maintaining this server, please get in touch with the currently active maintainers first. It's important to make changes with extreme care and ensure that each change is thoroughly tested and reviewed before it goes live.
 
 If you have become familiar with the codebase, we encourage you to stick around and help fix issues or review changes made by others. Your contributions are greatly appreciated!
+
+## 3. Distributors
+### Important notes
+- Please read [version.mk](version.mk) for important version information.
+- TMWA requires git to build by default. Use 'make dist' to get a tarball.
+
+### Platform dependencies
+#### Architecture
+- Tested: x86, amd64, x32
+
+Patches welcome for any architecture!
+
+#### Operating system
+- Supported: Linux 5.4.0 and later
+- Has worked, but may break sometimes: Cygwin, BSD
+
+#### Filesystem
+- Must support symlinks
+
+### Build dependencies
+#### Python
+- Required: 3.6+
+
+#### C library
+- Recommended: glibc 2.41 or higher
+- Supported: glibc 2.27 or higher
+- Unsupported: anything that's not glibc
+
+#### C++ compiler
+- Required: g++ 7.5.0 or higher
+- Recommended: g++ 14.2.0 or higher
+- Not recommended: clang++ (support in progress)
+
+#### C++ library
+- Recommended: libstdc++ to match g++; may need patch for clang++
+- May work: libc++
+
+#### attoconf
+If you need to run tests via the legacy build system, see above.
+
+### Runtime dependencies
+`glibc` and `libstdc++` depend on what they were built against.
