@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.10...3.31)
 
 # Function for conveniently capturing git output, used to set version related variables
 find_package(Git REQUIRED)
@@ -19,7 +19,7 @@ git_capture_output(VERSION_HASH rev-parse HEAD)
 string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VERSION ${VERSION_FULL})
 
 # Capture the tweak part of the version
-if(${VERSION_FULL} MATCHES "^v[0-9]+\\.[0-9]+\\.[0-9]+-([0-9]+)-g[0-9a-f]+$")
+if("${VERSION_FULL}" MATCHES "^v[0-9]+\\.[0-9]+\\.[0-9]+-([0-9]+)-g[0-9a-f]+$")
     set(VERSION "${VERSION}.${CMAKE_MATCH_1}")
 else()
     set(VERSION "${VERSION}.0")
@@ -30,7 +30,7 @@ project(tmwAthena VERSION ${VERSION} LANGUAGES CXX)
 option(TMWA_BUILD_TESTS "Build unit tests with GoogleTest and CTest" OFF)
 if(TMWA_BUILD_TESTS)
   include(CTest)
-  add_subdirectory(deps/googletest)
+  add_subdirectory(deps/googletest EXCLUDE_FROM_ALL)
   include(GoogleTest)
 endif()
 
@@ -59,17 +59,23 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 # Search through the tree for sources
 # For each subfolder in src, add all .cpp, .hpp and .tcc files to a subfolder's SOURCES
 # variable.
-set(ALL_SOURCES "")
-foreach(dir admin ast char compat conf generic high ints io login map mmo net proto-base range sexpr shared strings tests wire)
+foreach(dir admin ast char compat generic high ints io login map mmo net proto-base range sexpr shared strings tests wire)
     file(GLOB_RECURSE ${dir}_SOURCES CONFIGURE_DEPENDS
         src/${dir}/*.cpp
         src/${dir}/*.hpp
         src/${dir}/*.tcc)
     # Exclude any _test.cpp files from the build (they'll be built separately)
-    set(ALL_SOURCES ${ALL_SOURCES} ${${dir}_SOURCES})
     list(FILTER ${dir}_SOURCES EXCLUDE REGEX ".*_test.cpp")
     message("Adding sources in ${dir}: ${${dir}_SOURCES}")
+
+    # Build OBJECT libraries to allow object reuse across targets
+    add_library(tmwa-obj-${dir} OBJECT EXCLUDE_FROM_ALL ${${dir}_SOURCES})
+    set_target_properties(tmwa-obj-${dir} PROPERTIES LINKER_LANGUAGE CXX)
 endforeach()
+
+set_target_properties(tmwa-obj-io
+                      tmwa-obj-strings
+                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # All targets include the include/ directory
 include_directories(include)
@@ -120,7 +126,7 @@ list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 # Generate the install.hpp and version.hpp files.
 configure_file(src/conf/install.hpp.in src/conf/install.hpp @ONLY)
 configure_file(src/conf/version.hpp.in src/conf/version.hpp @ONLY)
-set(conf_SOURCES ${conf_SOURCES} src/conf/install.hpp src/conf/version.hpp)
+set(conf_SOURCES src/conf/install.hpp src/conf/version.hpp)
 # And have the build search for files in the build directory.
 # Note that #includes with generated files should use a path relative to the
 # top level source or build directory.
@@ -129,11 +135,9 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 # Add a shared library: libtmwa-shared.so.0
 # When we add_executable later, we need to link against this library.
 add_library(tmwa-shared SHARED ${shared_SOURCES}
-  src/io/dir.cpp
-  src/io/fd.cpp
-  src/io/read.cpp
-  src/io/write.cpp
-  ${strings_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-io>
+  $<TARGET_OBJECTS:tmwa-obj-strings>
+  ${conf_SOURCES}
 )
 # SO versioning
 set(ABI_VERSION 0)
@@ -143,44 +147,40 @@ set_target_properties(tmwa-shared PROPERTIES
 
 # We have four binaries we want to build: tmwa-{login,char,map,admin}
 add_executable(tmwa-login ${login_SOURCES}
-  ${generic_SOURCES}
-  ${high_SOURCES}
-  ${io_SOURCES}
-  ${mmo_SOURCES}
-  ${net_SOURCES}
-  ${wire_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
 )
 target_link_libraries(tmwa-login tmwa-shared)
 
 add_executable(tmwa-char ${char_SOURCES}
-  ${generic_SOURCES}
-  ${high_SOURCES}
-  ${io_SOURCES}
-  ${mmo_SOURCES}
-  ${net_SOURCES}
-  ${wire_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
 )
 target_link_libraries(tmwa-char tmwa-shared)
 
 add_executable(tmwa-map ${map_SOURCES}
-  ${ast_SOURCES}
-  ${compat_SOURCES}
-  ${generic_SOURCES}
-  ${high_SOURCES}
-  ${io_SOURCES}
-  ${mmo_SOURCES}
-  ${net_SOURCES}
-  ${wire_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-ast>
+  $<TARGET_OBJECTS:tmwa-obj-compat>
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
   )
 target_link_libraries(tmwa-map tmwa-shared)
 
 add_executable(tmwa-admin ${admin_SOURCES}
-  ${generic_SOURCES}
-  ${high_SOURCES}
-  ${io_SOURCES}
-  ${mmo_SOURCES}
-  ${net_SOURCES}
-  ${wire_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
 )
 target_link_libraries(tmwa-admin tmwa-shared)
 
@@ -194,20 +194,18 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
 
   # Core static library containing non-daemon sources (only when building tests)
   add_library(tmwa-core STATIC
-    ${ast_SOURCES}
-    ${compat_SOURCES}
-    ${generic_SOURCES}
-    ${high_SOURCES}
-    ${ints_SOURCES}
-    ${io_SOURCES}
-    ${mmo_SOURCES}
-    ${net_SOURCES}
-    ${proto-base_SOURCES}
-    ${range_SOURCES}
-    ${sexpr_SOURCES}
-    ${shared_SOURCES}
-    ${wire_SOURCES}
-    ${conf_SOURCES}
+    $<TARGET_OBJECTS:tmwa-obj-ast>
+    $<TARGET_OBJECTS:tmwa-obj-compat>
+    $<TARGET_OBJECTS:tmwa-obj-generic>
+    $<TARGET_OBJECTS:tmwa-obj-high>
+    $<TARGET_OBJECTS:tmwa-obj-ints>
+    $<TARGET_OBJECTS:tmwa-obj-mmo>
+    $<TARGET_OBJECTS:tmwa-obj-net>
+    $<TARGET_OBJECTS:tmwa-obj-proto-base>
+    $<TARGET_OBJECTS:tmwa-obj-range>
+    $<TARGET_OBJECTS:tmwa-obj-sexpr>
+    $<TARGET_OBJECTS:tmwa-obj-shared>
+    $<TARGET_OBJECTS:tmwa-obj-wire>
   )
   target_link_libraries(tmwa-core PUBLIC tmwa-shared)
 
