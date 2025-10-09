@@ -2,6 +2,7 @@
 stages:
   - build
   - test
+  - publish
 
 variables: &base_vars
   DEBIAN_COMMON_PACKAGES: make git gcc g++
@@ -122,3 +123,36 @@ re:ubuntu2204:test:
     - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
     - cd build-cmake
     - ctest --output-on-failure
+
+# Build Docker image for testing
+docker:build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor --no-push --context "$CI_PROJECT_DIR" --dockerfile "$CI_PROJECT_DIR/Dockerfile" --tarPath tmwa-server.tar
+  artifacts:
+    name: "tmwa-server-$CI_COMMIT_SHORT_SHA"
+    expire_in: 1 week
+    paths:
+      - tmwa-server.tar
+
+# Push Docker image to registry
+docker:push:
+  stage: publish
+  needs: ["docker:build"]
+  image:
+    name: quay.io/skopeo/stable
+    entrypoint: [""]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$DOCKER_HUB_TOKEN && $DOCKER_HUB_USERNAME && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: on_success
+    - when: never
+  script:
+    - export DOCKER_HUB_IMAGE="${DOCKER_HUB_IMAGE:-docker.io/${DOCKER_HUB_USERNAME}/${CI_PROJECT_NAME}}"
+    - export IMAGE_TAG="${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}"
+    - skopeo copy --insecure-policy --dest-creds "${DOCKER_HUB_USERNAME}:${DOCKER_HUB_TOKEN}" docker-archive:tmwa-server.tar "docker://${DOCKER_HUB_IMAGE}:${IMAGE_TAG}"
+    - if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ] && [ -z "$CI_COMMIT_TAG" ]; then skopeo copy --insecure-policy --dest-creds "${DOCKER_HUB_USERNAME}:${DOCKER_HUB_TOKEN}" docker-archive:tmwa-server.tar "docker://${DOCKER_HUB_IMAGE}:latest"; fi
