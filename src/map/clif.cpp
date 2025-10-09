@@ -4624,7 +4624,12 @@ RecvResult clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
         return rv;
     }
 
-    OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[fixed.ioff2.unshift()])
+    if (!fixed.ioff2.ok())
+        return RecvResult::Error;
+    IOff0 item_index = fixed.ioff2.unshift();
+    int item_amount = fixed.amount;
+
+    OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[item_index])
     {
         GmLevel gmlvl = pc_isGM(sd);
         if (bool(sdidn->mode & ItemMode::NO_DROP) && gmlvl.get_all_bits() < 60)
@@ -4646,11 +4651,6 @@ RecvResult clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
             return rv;
         }
     }
-
-    if (!fixed.ioff2.ok())
-        return RecvResult::Error;
-    IOff0 item_index = fixed.ioff2.unshift();
-    int item_amount = fixed.amount;
 
     pc_dropitem(sd, item_index, item_amount);
 
