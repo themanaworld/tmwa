@@ -84,10 +84,6 @@ struct mob_db_
         ItemNameId nameid;
         random_::Fixed<int, 10000> p;
     } dropitem[MaxDrops];
-    short hair, hair_color, weapon;
-    ItemNameId shield, head_top, head_mid, head_buttom;
-    short option, clothes_color; // [Valaris]
-    int equip;                 // [Valaris]
     std::vector<struct mob_skill> skills;
 };
 struct mob_db_& get_mob_db(Species);
@@ -110,15 +106,6 @@ int mob_stopattack(dumb_ptr<mob_data>);
 int mob_spawn(BlockId);
 int mob_damage(dumb_ptr<block_list>, dumb_ptr<mob_data>, int, int);
 int mob_heal(dumb_ptr<mob_data>, int);
-short mob_get_hair(Species);
-short mob_get_hair_color(Species);
-short mob_get_weapon(Species);
-ItemNameId mob_get_shield(Species);
-ItemNameId mob_get_head_top(Species);
-ItemNameId mob_get_head_mid(Species);
-ItemNameId mob_get_head_buttom(Species);
-short mob_get_clothes_color(Species);  //player mob dye [Valaris]
-int mob_get_equip(Species);       // mob equip [Valaris]
 
 bool mob_readdb(ZString filename);
 bool mob_readskilldb(ZString filename);
