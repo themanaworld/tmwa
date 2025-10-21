@@ -8,24 +8,19 @@ variables: &base_vars
   GIT_DEPTH: 0 # avoid shallow clone since version is based on latest tag
   GIT_SUBMODULE_STRATEGY: normal
 
-.prerequisites: &prerequisites
+.ubuntu_base:
+  image: "ubuntu:${UBUNTU_TAG}"
+  variables:
+    <<: *base_vars
   before_script:
     - uname -a
     - apt-get update
     - apt-get install -y -qq $INSTALL_PACKAGES $DEBIAN_COMMON_PACKAGES
-  parallel:
-    matrix:
-      - UBUNTU_TAG: "18.04"
-      - UBUNTU_TAG: "22.04"
-      - UBUNTU_TAG: "24.04"
 
-# Build matrix across supported Ubuntu versions
-ubuntu:build:
-  <<: *prerequisites
+.ubuntu_build_template:
+  extends: .ubuntu_base
   stage: build
-  image: "ubuntu:${UBUNTU_TAG}"
   variables:
-    <<: *base_vars
     INSTALL_PACKAGES: python3 cmake
   script:
     - git fetch -t
@@ -41,21 +36,41 @@ ubuntu:build:
     paths:
       - build/${UBUNTU_TAG}/
 
-# Test matrix across supported Ubuntu versions
-ubuntu:test:
-  <<: *prerequisites
+.ubuntu_test_template:
+  extends: .ubuntu_base
   stage: test
-  image: "ubuntu:${UBUNTU_TAG}"
-  needs:
-    - job: ubuntu:build
-      artifacts: true
   variables:
-    <<: *base_vars
     INSTALL_PACKAGES: python3 gdb cmake
   script:
     - printf "Testing TMW Athena version %s on ubuntu:%s\n" "$(git describe --tags HEAD)" "${UBUNTU_TAG}"
     - cd build/${UBUNTU_TAG}
     - ctest --output-on-failure
+
+ubuntu1804:build:
+  extends: .ubuntu_build_template
+  variables:
+    UBUNTU_TAG: "18.04"
+
+ubuntu1804:test:
+  extends: .ubuntu_test_template
+  variables:
+    UBUNTU_TAG: "18.04"
+  needs:
+    - job: ubuntu1804:build
+      artifacts: true
+
+ubuntu2404:build:
+  extends: .ubuntu_build_template
+  variables:
+    UBUNTU_TAG: "24.04"
+
+ubuntu2404:test:
+  extends: .ubuntu_test_template
+  variables:
+    UBUNTU_TAG: "24.04"
+  needs:
+    - job: ubuntu2404:build
+      artifacts: true
 
 # Build Docker image for testing
 docker:build:
