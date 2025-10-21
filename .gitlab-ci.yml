@@ -1,4 +1,3 @@
-# Copied in from Moubootaur Legends's Hercules .gitlab-ci.yml
 stages:
   - build
   - test
@@ -14,60 +13,48 @@ variables: &base_vars
     - uname -a
     - apt-get update
     - apt-get install -y -qq $INSTALL_PACKAGES $DEBIAN_COMMON_PACKAGES
+  parallel:
+    matrix:
+      - UBUNTU_TAG: "18.04"
+      - UBUNTU_TAG: "22.04"
+      - UBUNTU_TAG: "24.04"
 
-# Active server OS?
-re:ubuntu1804:build:
+# Build matrix across supported Ubuntu versions
+ubuntu:build:
   <<: *prerequisites
   stage: build
-  image: ubuntu:18.04
+  image: "ubuntu:${UBUNTU_TAG}"
   variables:
     <<: *base_vars
     INSTALL_PACKAGES: python3 cmake
   script:
     - git fetch -t
-    - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - mkdir build
-    - cd build
-    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON ..
-    - make
+    - printf "Building TMW Athena version %s on ubuntu:%s\n" "$(git describe --tags HEAD)" "${UBUNTU_TAG}"
+    - mkdir -p build/${UBUNTU_TAG}
+    - cd build/${UBUNTU_TAG}
+    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON ../..
+    - make -j"$(nproc)"
     - whoami
     - make install
-  artifacts: # required for test stage
-    untracked: true
+  artifacts:
     expire_in: 30 mins
+    paths:
+      - build/${UBUNTU_TAG}/
 
-# Next server OS?
-re:ubuntu2204:build:
-  <<: *prerequisites
-  stage: build
-  image: ubuntu:22.04
-  variables:
-    <<: *base_vars
-    INSTALL_PACKAGES: python3 cmake
-  script:
-    - git fetch -t
-    - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - mkdir build
-    - cd build
-    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON ..
-    - make
-    - whoami
-    - make install
-  artifacts: # required for test stage
-    untracked: true
-    expire_in: 30 mins
-
-re:ubuntu2204:test:
+# Test matrix across supported Ubuntu versions
+ubuntu:test:
   <<: *prerequisites
   stage: test
-  image: ubuntu:22.04
-  needs: ["re:ubuntu2204:build"]
+  image: "ubuntu:${UBUNTU_TAG}"
+  needs:
+    - job: ubuntu:build
+      artifacts: true
   variables:
     <<: *base_vars
     INSTALL_PACKAGES: python3 gdb cmake
   script:
-    - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - cd build
+    - printf "Testing TMW Athena version %s on ubuntu:%s\n" "$(git describe --tags HEAD)" "${UBUNTU_TAG}"
+    - cd build/${UBUNTU_TAG}
     - ctest --output-on-failure
 
 # Build Docker image for testing
