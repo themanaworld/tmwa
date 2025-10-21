@@ -25,6 +25,7 @@
 #include <cassert>
 
 #include <algorithm>
+#include <limits>
 
 #include "../compat/fun.hpp"
 #include "../compat/nullpo.hpp"
@@ -2403,20 +2404,18 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, IOff0 n)
  */
 int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 {
-    int amount;
-
     nullpo_retr(1, sd);
 
     if (!n.ok())
         return 0;
     OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[n])
     {
-        amount = sd->status.inventory[n].amount;
+        int amount = sd->status.inventory[n].amount;
         if (!sd->status.inventory[n].nameid
-            || sd->status.inventory[n].amount <= 0
+            || amount <= 0
             || !pc_isUseitem(sd, n))
         {
-            clif_useitemack(sd, n, 0, 0);
+            clif_useitemack(sd, n, amount, 0);
             return 1;
         }
 
@@ -2430,10 +2429,12 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 
         // activity
         if (sd)
-            if (sd->activity.items_used == 2147483647)
+        {
+            if (sd->activity.items_used == std::numeric_limits<int>::max())
                 sd->activity.items_used = 1;
             else
                 sd->activity.items_used++;
+        }
 
         run_script(ScriptPointer(script, 0), sd->bl_id, BlockId());
     }
@@ -2760,10 +2761,12 @@ int pc_walktoxy_sub(dumb_ptr<map_session_data> sd)
 
     // activity
     if (sd)
-        if (sd->activity.tiles_walked == 2147483647)
+    {
+        if (sd->activity.tiles_walked == std::numeric_limits<int>::max())
             sd->activity.tiles_walked = 1;
         else
             sd->activity.tiles_walked++;
+    }
 
     return 0;
 }

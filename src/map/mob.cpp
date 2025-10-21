@@ -25,6 +25,7 @@
 #include <cmath>
 
 #include <algorithm>
+#include <limits>
 
 #include "../compat/fun.hpp"
 #include "../compat/nullpo.hpp"
@@ -522,88 +523,6 @@ BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
         ly = y;
     }
     return id;
-}
-
-// TODO: deprecate these
-/*==========================================
- * 
- *------------------------------------------
- */
-short mob_get_hair(Species mob_class)
-{
-    return get_mob_db(mob_class).hair;
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-short mob_get_hair_color(Species mob_class)
-{
-    return get_mob_db(mob_class).hair_color;
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-short mob_get_weapon(Species mob_class)
-{
-    return get_mob_db(mob_class).weapon;
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-ItemNameId mob_get_shield(Species mob_class)
-{
-    return get_mob_db(mob_class).shield;
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-ItemNameId mob_get_head_top(Species mob_class)
-{
-    return get_mob_db(mob_class).head_top;
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-ItemNameId mob_get_head_mid(Species mob_class)
-{
-    return get_mob_db(mob_class).head_mid;
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-ItemNameId mob_get_head_buttom(Species mob_class)
-{
-    return get_mob_db(mob_class).head_buttom;
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-short mob_get_clothes_color(Species mob_class) // Add for player monster dye - Valaris
-{
-    return get_mob_db(mob_class).clothes_color; // End
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-int mob_get_equip(Species mob_class)   // mob equip [Valaris]
-{
-    return get_mob_db(mob_class).equip;
 }
 
 /*==========================================
@@ -2557,7 +2476,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     // activity
     if (sd)
     {
-        if (sd->activity.attacks == 2147483647)
+        if (sd->activity.attacks == std::numeric_limits<int>::max())
             sd->activity.attacks = 1;
         else
             sd->activity.attacks++;
@@ -2615,7 +2534,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 continue;
 
             // activity
-            if (tmpsdi->activity.kills == 2147483647)
+            if (tmpsdi->activity.kills == std::numeric_limits<int>::max())
                 tmpsdi->activity.kills = 1;
             else
                 tmpsdi->activity.kills++;
@@ -3692,15 +3611,6 @@ bool mob_readdb(ZString filename)
 
 
             mdbv.skills.clear();
-
-            mdbv.hair = 0;
-            mdbv.hair_color = 0;
-            mdbv.weapon = 0;
-            mdbv.shield = ItemNameId();
-            mdbv.head_top = ItemNameId();
-            mdbv.head_mid = ItemNameId();
-            mdbv.head_buttom = ItemNameId();
-            mdbv.clothes_color = 0;    //Add for player monster dye - Valaris
 
             if (mdbv.base_exp == 0)
                 mdbv.base_exp = mob_gen_exp(&mdbv);
