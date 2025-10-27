@@ -241,10 +241,8 @@ VString<23> battle_get_name(dumb_ptr<block_list> bl)
 int battle_get_str(dumb_ptr<block_list> bl)
 {
     int str = 0;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retz(bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         str = bl->is_mob()->stats[mob_stat::STR];
     else if (bl->bl_type == BL::PC)
@@ -266,10 +264,8 @@ int battle_get_str(dumb_ptr<block_list> bl)
 int battle_get_agi(dumb_ptr<block_list> bl)
 {
     int agi = 0;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retz(bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         agi = bl->is_mob()->stats[mob_stat::AGI];
     else if (bl->bl_type == BL::PC)
@@ -290,10 +286,8 @@ int battle_get_agi(dumb_ptr<block_list> bl)
 int battle_get_vit(dumb_ptr<block_list> bl)
 {
     int vit = 0;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retz(bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         vit = bl->is_mob()->stats[mob_stat::VIT];
     else if (bl->bl_type == BL::PC)
@@ -314,10 +308,8 @@ int battle_get_vit(dumb_ptr<block_list> bl)
 int battle_get_int(dumb_ptr<block_list> bl)
 {
     int int_ = 0;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retz(bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         int_ = bl->is_mob()->stats[mob_stat::INT];
     else if (bl->bl_type == BL::PC)
@@ -338,10 +330,8 @@ int battle_get_int(dumb_ptr<block_list> bl)
 int battle_get_dex(dumb_ptr<block_list> bl)
 {
     int dex = 0;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retz(bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         dex = bl->is_mob()->stats[mob_stat::DEX];
     else if (bl->bl_type == BL::PC)
@@ -362,10 +352,8 @@ int battle_get_dex(dumb_ptr<block_list> bl)
 int battle_get_luk(dumb_ptr<block_list> bl)
 {
     int luk = 0;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retz(bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
         luk = bl->is_mob()->stats[mob_stat::LUK];
     else if (bl->bl_type == BL::PC)
@@ -445,10 +433,8 @@ int battle_get_hit(dumb_ptr<block_list> bl)
 int battle_get_flee2(dumb_ptr<block_list> bl)
 {
     int flee2 = 1;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retr(1, bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
@@ -478,10 +464,8 @@ int battle_get_flee2(dumb_ptr<block_list> bl)
 int battle_get_critical(dumb_ptr<block_list> bl)
 {
     int critical = 1;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retr(1, bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
@@ -505,11 +489,9 @@ int battle_get_critical(dumb_ptr<block_list> bl)
  */
 int battle_get_baseatk(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int batk = 1;
 
     nullpo_retr(1, bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
         batk = bl->is_player()->base_atk;  // 設定されているbase_atk | set base_atk
     else
@@ -533,11 +515,9 @@ int battle_get_baseatk(dumb_ptr<block_list> bl)
  */
 int battle_get_atk(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int atk = 0;
 
     nullpo_retz(bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
         atk = bl->is_player()->watk;
     else if (bl->bl_type == BL::MOB)
@@ -581,9 +561,7 @@ int battle_get_atk2(dumb_ptr<block_list> bl)
  */
 int battle_get_matk1(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     nullpo_retz(bl);
-    sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
     {
         int matk, int_ = battle_get_int(bl);
@@ -1189,13 +1167,10 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     BF flag;
     int ac_flag = 0;
     ATK dmg_lv = ATK::ZERO;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data, t_sc_data;
 
     nullpo_retr(wd, src);
     nullpo_retr(wd, target);
     nullpo_retr(wd, md);
-
-    sc_data = battle_get_sc_data(src);
 
     // ターゲット
     if (target->bl_type == BL::PC)
@@ -1203,7 +1178,6 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     else if (target->bl_type == BL::MOB)
         tmd = target->is_mob();
     MobMode t_mode = battle_get_mode(target);
-    t_sc_data = battle_get_sc_data(target);
 
     flag = BF::SHORT | BF::WEAPON | BF::NORMAL;    // 攻撃の種類の設定 | attack type settings
 

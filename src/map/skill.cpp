@@ -268,14 +268,11 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
         SkillID skillid, int skilllv, tick_t tick, BCT flag)
 {
     struct Damage dmg;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int type, lv, damage;
 
     nullpo_retz(src);
     nullpo_retz(dsrc);
     nullpo_retz(bl);
-
-    sc_data = battle_get_sc_data(bl);
 
 // 何もしない判定ここから | Judgment to do nothing from here
     if (dsrc->bl_m != bl->bl_m)       // 対象が同じマップにいなければ何もしない | If the target is not on the same map, do nothing
@@ -570,7 +567,6 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
 {
     dumb_ptr<mob_data> md;        // [Valaris]
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int dex;
     int castrate = 100;
     SkillID skill;
@@ -590,7 +586,6 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
         lv = 0;
     }
 
-    sc_data = battle_get_sc_data(bl);
     dex = battle_get_dex(bl);
 
     if (skill >= SkillID::MAX_SKILL_DB /*|| skill < SkillID()*/)
@@ -622,11 +617,8 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
  */
 interval_t skill_delayfix(dumb_ptr<block_list> bl, interval_t interval)
 {
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-
     nullpo_retr(interval_t::zero(), bl);
 
-    sc_data = battle_get_sc_data(bl);
     if (interval <= interval_t::zero())
         return interval_t::zero();
 

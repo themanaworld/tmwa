@@ -2196,12 +2196,9 @@ void clif_pvpstatus(dumb_ptr<map_session_data> sd)
  */
 int clif_changeoption(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-
     nullpo_retz(bl);
 
     Opt0 option = *battle_get_option(bl);
-    sc_data = battle_get_sc_data(bl);
 
     Packet_Fixed<0x0119> fixed_119;
     fixed_119.block_id = bl->bl_id;
@@ -2641,8 +2638,6 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
         int div, DamageType type)
 {
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-
     nullpo_retz(src);
     nullpo_retz(dst);
 
@@ -2969,12 +2964,8 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
         int div, SkillID skill_id, int skill_lv, int type)
 {
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-
     nullpo_retz(src);
     nullpo_retz(dst);
-
-    sc_data = battle_get_sc_data(dst);
 
     Packet_Fixed<0x01de> fixed_1de;
     fixed_1de.skill_id = skill_id;
@@ -4354,9 +4345,6 @@ RecvResult clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    DamageType action_type;
-    BlockId target_id;
-
     if (pc_isdead(sd))
     {
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
@@ -4377,8 +4365,8 @@ RecvResult clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
     pc_stop_walking(sd, 0);
     pc_stopattack(sd);
 
-    target_id = fixed.target_id;
-    action_type = fixed.action;
+    BlockId target_id = fixed.target_id;
+    DamageType action_type = fixed.action;
 
     switch (action_type)
     {

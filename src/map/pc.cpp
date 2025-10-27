@@ -744,12 +744,9 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
 static
 int pc_isequip(dumb_ptr<map_session_data> sd, IOff0 n)
 {
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     //転生や養子の場合の元の職業を算出する | Calculate the original occupation in case of reincarnation or adoption
 
     nullpo_retz(sd);
-
-    sc_data = battle_get_sc_data(sd);
 
     GmLevel gm_all_equipment = battle_config.gm_all_equipment;
     if (gm_all_equipment && pc_isGM(sd).satisfies(gm_all_equipment))
@@ -2882,7 +2879,6 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
 {
     dumb_ptr<map_session_data> sd;
     dumb_ptr<block_list> bl;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int dist, range;
 
     sd = map_id2sd(id);

@@ -1390,13 +1390,11 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
 int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
 {
     dumb_ptr<map_session_data> sd;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     MobMode mode;
 
     nullpo_retz(md);
     nullpo_retz(bl);
 
-    sc_data = battle_get_sc_data(bl);
     Opt0 *option = battle_get_option(bl);
     Race race = get_mob_db(md->mob_class).race;
 
