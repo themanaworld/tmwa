@@ -849,8 +849,6 @@ static
 void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
 {
     nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
-    int hp = md->hp;
 
     Packet_Fixed<0x0078> fixed_78;
     fixed_78.block_id = md->bl_id;
@@ -864,11 +862,9 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_78.pos.y = md->bl_y;
     fixed_78.pos.dir = md->dir;
 
-    fixed_78.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
-    fixed_78.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
-    fixed_78.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
-    fixed_78.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
-    fixed_78.karma_or_attack_range = battle_get_range(md);
+    fixed_78.hp = md->hp;
+    fixed_78.max_hp = md->stats[mob_stat::MAX_HP];
+    fixed_78.attack_range = battle_get_range(md);
 
     buf = create_fpacket<0x0078, 54>(fixed_78);
 }
@@ -897,8 +893,6 @@ static
 void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
 {
     nullpo_retv(md);
-    int max_hp = md->stats[mob_stat::MAX_HP];
-    int hp = md->hp;
 
     Packet_Fixed<0x007b> fixed_7b;
     fixed_7b.block_id = md->bl_id;
@@ -915,11 +909,9 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_7b.pos2.x1 = md->to_x;
     fixed_7b.pos2.y1 = md->to_y;
 
-    fixed_7b.gloves_or_part_of_hp = static_cast<short>(hp & 0xffff);
-    fixed_7b.part_of_guild_id_or_part_of_hp = static_cast<short>(hp >> 16);
-    fixed_7b.part_of_guild_id_or_part_of_max_hp = static_cast<short>(max_hp & 0xffff);
-    fixed_7b.guild_emblem_or_part_of_max_hp = static_cast<short>(max_hp >> 16);
-    fixed_7b.karma_or_attack_range = battle_get_range(md);
+    fixed_7b.hp = md->hp;
+    fixed_7b.max_hp = md->stats[mob_stat::MAX_HP];
+    fixed_7b.attack_range = battle_get_range(md);
 
     buf = create_fpacket<0x007b, 60>(fixed_7b);
 }
