@@ -2481,7 +2481,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         return 0;
     }
 
-    mob_stop_walking(md, 3);
     if (damage > max_hp >> 2)
         skill_stop_dancing(md, 0);
 
@@ -2491,6 +2490,10 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     // The amount of overkill rounds to hp.
     if (damage > md->hp)
         damage = md->hp;
+
+    md->hp -= damage;
+
+    mob_stop_walking(md, 3);
 
     if (!(type & 2))
     {
@@ -2552,8 +2555,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             ;
         }
     }
-
-    md->hp -= damage;
 
     // activity
     if (sd)
