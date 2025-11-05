@@ -209,7 +209,12 @@ int map_delblock(dumb_ptr<block_list> bl)
     }
 
     if (bl->bl_type == BL::PC)
+    {
         bl->bl_m->users--;
+        // Start grace period when the last player leaves
+        if (bl->bl_m->users == 0)
+            bl->bl_m->mob_walk_timeout = gettick() + 5_min;
+    }
 
     if (bl->bl_next)
         bl->bl_next->bl_prev = bl->bl_prev;
@@ -1279,6 +1284,7 @@ bool map_readmap(map_local *m, size_t num, MapName fn)
 
     m->npc_num = 0;
     m->users = 0;
+    m->mob_walk_timeout = tick_t();
 
     m->hash = map_create_hash(fn);
 

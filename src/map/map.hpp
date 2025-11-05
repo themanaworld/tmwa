@@ -527,6 +527,7 @@ struct map_local : map_abstract
     short xs, ys;
     int npc_num;
     int users;
+    tick_t mob_walk_timeout;
     MapFlags flag;
     Point save;
     Point resave;

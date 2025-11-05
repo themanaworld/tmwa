@@ -2206,10 +2206,9 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
         && bool(get_mob_db(md->mob_class).mode & MobMode::CAN_MOVE)
         && mob_can_move(md))
     {
-
-        if (md->bl_m->users > 0)
+        if (md->bl_m->users > 0 || tick < md->bl_m->mob_walk_timeout)
         {
-            // Since PC is in the same map, somewhat better negligent processing is carried out.
+            // Since PC is in the same map or within grace window, somewhat better negligent processing is carried out.
 
             // It sometimes moves.
             if (random_::chance(MOB_LAZYMOVEPERC))
@@ -2221,7 +2220,6 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
                     && md->master_id
                     && !bool(get_mob_db(md->mob_class).mode & MobMode::BOSS))
                 mob_spawn(md->bl_id);
-
         }
         else
         {
