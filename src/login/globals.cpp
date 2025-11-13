@@ -43,8 +43,7 @@ namespace tmwa
         Session *login_session;
         // minimum level of player/GM (0: player, 1-99: gm) to connect on the server
         std::vector<AuthData> auth_data;
-        // TODO make this just be Map<AccountId, GmLevel>
-        Map<AccountId, GM_Account> gm_account_db;
+        DMap<AccountId, GmLevel> gm_account_db;
         // For forked DB writes
         pid_t pid = 0;
     } // namespace login

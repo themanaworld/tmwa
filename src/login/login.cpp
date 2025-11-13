@@ -201,8 +201,7 @@ void delete_admin(Session *s)
 static
 GmLevel isGM(AccountId account_id)
 {
-    Option<P<GM_Account>> p = gm_account_db.search(account_id);
-    return TRY_UNWRAP(p, return GmLevel())->level;
+    return gm_account_db.get(account_id);
 }
 
 //-------------------------------------------------------
@@ -250,7 +249,7 @@ int read_gm_account(void)
             }
             if (GM_level != p.level)
             {                   // if new account or new level
-                gm_account_db.insert(p.account_id, p);
+                gm_account_db.put(p.account_id, p.level);
                 if (!GM_level)
                 {               // if new account
                     c++;
@@ -863,7 +862,7 @@ static
 void parse_fromchar(Session *s)
 {
     IP4Address ip = s->client_ip;
-    
+
     int id;
     for (id = 0; id < MAX_SERVERS; id++)
         if (server_session[id] == s)
@@ -2430,7 +2429,7 @@ void parse_admin(Session *s)
                         {
                             //add var
                             ad.account_reg2[ad.account_reg2_num].str = fixed.name;
-                            ad.account_reg2[ad.account_reg2_num].value = fixed.value;                            
+                            ad.account_reg2[ad.account_reg2_num].value = fixed.value;
                             ++ad.account_reg2_num;
                             fixed_5b.result = 1;
                             goto x795a_update;

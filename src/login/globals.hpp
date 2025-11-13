@@ -41,7 +41,7 @@ namespace tmwa
         extern Session *login_session;
         extern int auth_fifo_pos;
         extern std::vector<AuthData> auth_data;
-        extern Map<AccountId, GM_Account> gm_account_db;
+        extern DMap<AccountId, GmLevel> gm_account_db;
         extern pid_t pid;
     } // namespace login
 } // namespace tmwa
