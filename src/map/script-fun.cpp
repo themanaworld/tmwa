@@ -1879,22 +1879,13 @@ void builtin_setlook(ScriptState *st)
 }
 
 /*==========================================
- *
+ * Get item parameter, supports both item ID and item name
  *------------------------------------------
  */
-static
-void builtin_countitem(ScriptState *st)
+static ItemNameId get_item_id(ScriptState *st, struct script_data *data)
 {
     ItemNameId nameid;
-    int count = 0;
-    dumb_ptr<map_session_data> sd;
 
-    struct script_data *data;
-
-    sd = script_rid2sd(st);
-    script_nullpo_end(sd, "player not found"_s);
-
-    data = &AARG(0);
     get_val(st, data);
     if (data->is<ScriptDataStr>())
     {
@@ -1909,6 +1900,23 @@ void builtin_countitem(ScriptState *st)
     else
         nameid = wrap<ItemNameId>(conv_num(st, data));
 
+    return nameid;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void builtin_countitem(ScriptState *st)
+{
+    int count = 0;
+    dumb_ptr<map_session_data> sd;
+
+    sd = script_rid2sd(st);
+    script_nullpo_end(sd, "player not found"_s);
+
+    ItemNameId nameid = get_item_id(st, &AARG(0));
     if (nameid)
     {
         for (IOff0 i : IOff0::iter())
@@ -1934,28 +1942,13 @@ void builtin_countitem(ScriptState *st)
 static
 void builtin_checkweight(ScriptState *st)
 {
-    ItemNameId nameid;
     int amount;
     dumb_ptr<map_session_data> sd;
-    struct script_data *data;
 
     sd = script_rid2sd(st);
     script_nullpo_end(sd, "player not found"_s);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
-    {
-        ZString name = ZString(conv_str(st, data));
-        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        OMATCH_BEGIN_SOME (item_data, item_data_)
-        {
-            nameid = item_data->nameid;
-        }
-        OMATCH_END ();
-    }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
+    ItemNameId nameid = get_item_id(st, &AARG(0));
 
     amount = conv_num(st, &AARG(1));
     if (amount <= 0 || !nameid)
@@ -1973,7 +1966,6 @@ void builtin_checkweight(ScriptState *st)
     {
         push_int<ScriptDataInt>(st->stack, 1);
     }
-
 }
 
 /*==========================================
@@ -1983,53 +1975,33 @@ void builtin_checkweight(ScriptState *st)
 static
 void builtin_getitem(ScriptState *st)
 {
-    ItemNameId nameid;
-    int amount;
     dumb_ptr<map_session_data> sd;
-    struct script_data *data;
 
     sd = script_rid2sd(st);
     script_nullpo_end(sd, "player not found"_s);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
-    {
-        ZString name = ZString(conv_str(st, data));
-        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        OMATCH_BEGIN_SOME (item_data, item_data_)
-        {
-            nameid = item_data->nameid;
-        }
-        OMATCH_END ();
-    }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
+    ItemNameId nameid = get_item_id(st, &AARG(0));
+    int amount = conv_num(st, &AARG(1));
 
-    if ((amount =
-         conv_num(st, &AARG(1))) <= 0)
+    if (!nameid || amount <= 0)
     {
         return;               //return if amount <=0, skip the useles iteration
     }
 
-    if (nameid)
+    Item item_tmp {};
+    item_tmp.nameid = nameid;
+    if (HARG(3))    //アイテムを指定したIDに渡す | Pass an item to the specified ID
+        sd = map_id2sd(wrap<BlockId>(conv_num(st, &AARG(3))));
+    if (sd == nullptr)         //アイテムを渡す相手がいなかったらお帰り | If you don't have anyone to give the item to, go home
+        return;
+    PickupFail flag;
+    if ((flag = pc_additem(sd, &item_tmp, amount)) != PickupFail::OKAY)
     {
-        Item item_tmp {};
-        item_tmp.nameid = nameid;
-        if (HARG(3))    //アイテムを指定したIDに渡す | Pass an item to the specified ID
-            sd = map_id2sd(wrap<BlockId>(conv_num(st, &AARG(3))));
-        if (sd == nullptr)         //アイテムを渡す相手がいなかったらお帰り | If you don't have anyone to give the item to, go home
-            return;
-        PickupFail flag;
-        if ((flag = pc_additem(sd, &item_tmp, amount)) != PickupFail::OKAY)
-        {
-            clif_additem(sd, IOff0::from(0), 0, flag);
-            map_addflooritem(&item_tmp, amount,
-                    sd->bl_m, sd->bl_x, sd->bl_y,
-                    nullptr, nullptr, nullptr);
-        }
+        clif_additem(sd, IOff0::from(0), 0, flag);
+        map_addflooritem(&item_tmp, amount,
+                sd->bl_m, sd->bl_x, sd->bl_y,
+                nullptr, nullptr, nullptr);
     }
-
 }
 
 /*==========================================
@@ -2039,30 +2011,13 @@ void builtin_getitem(ScriptState *st)
 static
 void builtin_makeitem(ScriptState *st)
 {
-    ItemNameId nameid;
-    int amount;
     int x, y;
     dumb_ptr<map_session_data> sd;
-    struct script_data *data;
 
     sd = script_rid2sd(st);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
-    {
-        ZString name = ZString(conv_str(st, data));
-        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        OMATCH_BEGIN_SOME (item_data, item_data_)
-        {
-            nameid = item_data->nameid;
-        }
-        OMATCH_END ();
-    }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
-
-    amount = conv_num(st, &AARG(1));
+    ItemNameId nameid = get_item_id(st, &AARG(0));
+    int amount = conv_num(st, &AARG(1));
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(2))));
     x = conv_num(st, &AARG(3));
     y = conv_num(st, &AARG(4));
@@ -2087,30 +2042,13 @@ void builtin_makeitem(ScriptState *st)
 static
 void builtin_delitem(ScriptState *st)
 {
-    ItemNameId nameid;
-    int amount;
     dumb_ptr<map_session_data> sd;
-    struct script_data *data;
 
     sd = script_rid2sd(st);
     script_nullpo_end(sd, "player not found"_s);
 
-    data = &AARG(0);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
-    {
-        ZString name = ZString(conv_str(st, data));
-        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        OMATCH_BEGIN_SOME (item_data, item_data_)
-        {
-            nameid = item_data->nameid;
-        }
-        OMATCH_END ();
-    }
-    else
-        nameid = wrap<ItemNameId>(conv_num(st, data));
-
-    amount = conv_num(st, &AARG(1));
+    ItemNameId nameid = get_item_id(st, &AARG(0));
+    int amount = conv_num(st, &AARG(1));
 
     if (!nameid || amount <= 0)
     {
@@ -3791,30 +3729,16 @@ void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, ItemNameId i
 static
 void builtin_getareadropitem(ScriptState *st)
 {
-    ItemNameId item;
-    int x0, y0, x1, y1, amount = 0, delitems = 0;
+    int amount = 0, delitems = 0;
     struct script_data *data;
 
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-    x0 = conv_num(st, &AARG(1));
-    y0 = conv_num(st, &AARG(2));
-    x1 = conv_num(st, &AARG(3));
-    y1 = conv_num(st, &AARG(4));
+    int x0 = conv_num(st, &AARG(1));
+    int y0 = conv_num(st, &AARG(2));
+    int x1 = conv_num(st, &AARG(3));
+    int y1 = conv_num(st, &AARG(4));
 
-    data = &AARG(5);
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
-    {
-        ZString name = ZString(conv_str(st, data));
-        Option<P<struct item_data>> item_data_ = itemdb_searchname(name);
-        OMATCH_BEGIN_SOME (item_data, item_data_)
-        {
-            item = item_data->nameid;
-        }
-        OMATCH_END ();
-    }
-    else
-        item = wrap<ItemNameId>(conv_num(st, data));
+    ItemNameId nameid = get_item_id(st, &AARG(5));
 
     if (HARG(6))
         delitems = conv_num(st, &AARG(6));
@@ -3825,13 +3749,13 @@ void builtin_getareadropitem(ScriptState *st)
         return;
     });
     if (delitems)
-        map_foreachinarea(std::bind(builtin_getareadropitem_sub_anddelete, ph::_1, item, &amount),
+        map_foreachinarea(std::bind(builtin_getareadropitem_sub_anddelete, ph::_1, nameid, &amount),
                 m,
                 x0, y0,
                 x1, y1,
                 BL::ITEM);
     else
-        map_foreachinarea(std::bind(builtin_getareadropitem_sub, ph::_1, item, &amount),
+        map_foreachinarea(std::bind(builtin_getareadropitem_sub, ph::_1, nameid, &amount),
                 m,
                 x0, y0,
                 x1, y1,
@@ -4326,29 +4250,14 @@ void builtin_divorce(ScriptState *st)
 static
 void builtin_getitemlink(ScriptState *st)
 {
-    struct script_data *data;
     AString buf;
-    data = &AARG(0);
-    Option<P<struct item_data>> item_data_ = None;
+    ItemNameId nameid = get_item_id(st, &AARG(0));
 
-    get_val(st, data);
-    if (data->is<ScriptDataStr>())
-        item_data_ = itemdb_searchname(conv_str(st, data));
+    if (nameid)
+        buf = STRPRINTF("@@%d|@@"_fmt, nameid);
     else
-        item_data_ = itemdb_exists(wrap<ItemNameId>(conv_num(st, data)));
+        buf = "Unknown Item"_s;
 
-    OMATCH_BEGIN (item_data_)
-    {
-        OMATCH_CASE_SOME (item_data)
-        {
-            buf = STRPRINTF("@@%d|@@"_fmt, item_data->nameid);
-        }
-        OMATCH_CASE_NONE ()
-        {
-            buf = "Unknown Item"_s;
-        }
-    }
-    OMATCH_END ();
     push_str<ScriptDataStr>(st->stack, buf);
 }
 
