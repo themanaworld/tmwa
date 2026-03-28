@@ -4961,6 +4961,65 @@ ATCE atcommand_leaves(Session *, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_set_mapflag(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message, MapFlag flag, bool enable)
+{
+    MapName map_name;
+
+    if (!message)
+    {
+        if (sd->bl_m->flag.get(flag) == enable)
+            return ATCE::EXIST;
+
+        sd->bl_m->flag.set(flag, enable);
+    }
+    else
+    {
+        extract(message, &map_name);
+
+        P<map_local> m = TRY_UNWRAP(map_mapname2mapid(map_name),
+        {
+            clif_displaymessage(s, "Map not found."_s);
+            return ATCE::EXIST;
+        });
+
+        if (m->flag.get(flag) == enable)
+            return ATCE::EXIST;
+
+        m->flag.set(flag, enable);
+    }
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_warpoff(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    return atcommand_set_mapflag(s, sd, message, MapFlag::NOWARP, true);
+}
+
+static
+ATCE atcommand_warpon(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    return atcommand_set_mapflag(s, sd, message, MapFlag::NOWARP, false);
+}
+
+static
+ATCE atcommand_warptooff(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    return atcommand_set_mapflag(s, sd, message, MapFlag::NOWARPTO, true);
+}
+
+static
+ATCE atcommand_warptoon(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    return atcommand_set_mapflag(s, sd, message, MapFlag::NOWARPTO, false);
+}
+
+static
 ATCE atcommand_adjcmdlvl(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
@@ -5970,6 +6029,18 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"leaves"_s, {""_s,
         98, atcommand_leaves,
         "Enable the leaves mapflag"_s}},
+    {"warpoff"_s, {"[mapname]"_s,
+        60, atcommand_warpoff,
+        "Enable the nowarp mapflag"_s}},
+    {"warpon"_s, {"[mapname]"_s,
+        60, atcommand_warpon,
+        "Disable the nowarp mapflag"_s}},
+    {"warptooff"_s, {"[mapname]"_s,
+        60, atcommand_warptooff,
+        "Enable the nowarpto mapflag"_s}},
+    {"warptoon"_s, {"[mapname]"_s,
+        60, atcommand_warptoon,
+        "Disable the nowarpto mapflag"_s}},
     {"adjgmlvl"_s, {"<level> <charname>"_s,
         98, atcommand_adjgmlvl,
         "Temporarily adjust the GM level of a player"_s}},

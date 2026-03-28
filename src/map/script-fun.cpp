@@ -692,12 +692,20 @@ void builtin_warp(ScriptState *st)
 {
     int x, y;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    MapName map_name = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
     script_nullpo_end(sd, "player not found"_s);
 
-    pc_setpos(sd, str, x, y, BeingRemoveWhy::GONE);
+    Option<P<map_local>> m = map_mapname2mapid(map_name);
+    if (m.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
+        return;
+    if (sd->bl_m->flag.get(MapFlag::NOWARP)
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
+        return;
+
+    pc_setpos(sd, map_name, x, y, BeingRemoveWhy::GONE);
 }
 
 /*==========================================
@@ -709,6 +717,15 @@ static
 void builtin_areawarp_sub(dumb_ptr<block_list> bl, MapName mapname, int x, int y)
 {
     dumb_ptr<map_session_data> sd = bl->is_player();
+
+    Option<P<map_local>> m = map_mapname2mapid(mapname);
+    if (m.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
+        return;
+    if (sd->bl_m->flag.get(MapFlag::NOWARP)
+        && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
+        return;
+
     pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE);
 }
 
