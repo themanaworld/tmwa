@@ -99,5 +99,64 @@ enum class MobInfo_DropArrays : uint8_t
     NAMES    =  1,
     PERCENTS =  2,
 };
+
+// Identifies one piece of data on a unit, for use with the
+// getunitdata and setunitdata script builtins.
+//
+// Not every key applies to every unit type. Reading an inapplicable
+// key returns 0 (or an empty string for UDT_NAME / UDT_MAP); writing
+// one is silently ignored.
+enum class UnitData : uint8_t
+{
+    TYPE            =  0, // BL type, read-only (1=PC, 2=NPC, 3=MOB)
+    LEVEL           =  1, // mob, pc
+    HP              =  2, // mob, pc
+    MAX_HP          =  3, // mob, pc
+    SP              =  4, // pc
+    MAX_SP          =  5, // pc
+    STR             =  6, // mob, pc
+    AGI             =  7, // mob, pc
+    VIT             =  8, // mob, pc
+    INT             =  9, // mob, pc
+    DEX             = 10, // mob, pc
+    LUK             = 11, // mob, pc
+    ATK_MIN         = 12, // mob ATK1; pc watk
+    ATK_MAX         = 13, // mob ATK2; pc watk2
+    ADELAY          = 14, // mob attack delay (ms)
+    DEF             = 15, // mob, pc
+    MDEF            = 16, // mob, pc
+    SPEED           = 17, // mob/pc/npc movement (ms per cell)
+    CRITICAL_DEF    = 18, // mob, pc
+    XP_BONUS        = 19, // mob (1024 = 100%)
+    MODE            = 20, // mob mode flags
+    SIZE            = 21, // mob
+    SEX             = 22, // pc, npc
+    CLASS           = 23, // sprite class (mob_class / npc_class / pc species)
+    HAIR_STYLE      = 24, // pc
+    HAIR_COLOR      = 25, // pc
+    CLOTHES_COLOR   = 26, // pc
+    WEAPON          = 27, // pc weapon look
+    SHIELD          = 28, // pc
+    HEAD_TOP        = 29, // pc
+    HEAD_MID        = 30, // pc
+    HEAD_BOTTOM     = 31, // pc
+    LOOK_DIR        = 32, // mob/pc/npc facing direction
+    X               = 33, // current x; setting teleports on the same map
+    Y               = 34, // current y; setting teleports on the same map
+    MAP             = 35, // map name (string); setting teleports to current x,y
+    TARGET_ID       = 36, // mob target (read-only)
+    MASTER_ID       = 37, // mob master (e.g. for summons)
+    BASE_EXP        = 38, // pc
+    JOB_EXP         = 39, // pc
+    JOB_LEVEL       = 40, // pc
+    SKILL_POINT     = 41, // pc
+    STATUS_POINT    = 42, // pc
+    ZENY            = 43, // pc
+    KARMA           = 44, // pc
+    MANNER          = 45, // pc
+    PARTY_ID        = 46, // pc (read-only)
+    OPTION          = 47, // pc/mob/npc Opt0 status flags
+    NAME            = 48, // string: pc char name, npc name, or mob name
+};
 } // namespace map
 } // namespace tmwa
