@@ -3,9 +3,20 @@ stages:
   - test
   - publish
 
+# Avoid duplicate pipelines: when a branch has an open MR, only the MR
+# pipeline runs; pushes to branches without an MR still get a pipeline.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
 variables: &base_vars
-  DEBIAN_COMMON_PACKAGES: make git gcc g++
+  DEBIAN_COMMON_PACKAGES: git gcc g++ ninja-build
   GIT_DEPTH: 0 # avoid shallow clone since version is based on latest tag
+  GIT_FETCH_EXTRA_FLAGS: --tags
   GIT_SUBMODULE_STRATEGY: normal
 
 .ubuntu_base:
@@ -23,14 +34,10 @@ variables: &base_vars
   variables:
     INSTALL_PACKAGES: python3 cmake
   script:
-    - git fetch -t
     - printf "Building TMW Athena version %s on ubuntu:%s\n" "$(git describe --tags HEAD)" "${UBUNTU_TAG}"
-    - mkdir -p build/${UBUNTU_TAG}
-    - cd build/${UBUNTU_TAG}
-    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON ../..
-    - make -j"$(nproc)"
-    - whoami
-    - make install
+    - cmake -S . -B build/${UBUNTU_TAG} -G Ninja -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON
+    - cmake --build build/${UBUNTU_TAG}
+    - cmake --install build/${UBUNTU_TAG}
   artifacts:
     expire_in: 30 mins
     paths:
@@ -43,21 +50,7 @@ variables: &base_vars
     INSTALL_PACKAGES: python3 gdb cmake
   script:
     - printf "Testing TMW Athena version %s on ubuntu:%s\n" "$(git describe --tags HEAD)" "${UBUNTU_TAG}"
-    - cd build/${UBUNTU_TAG}
-    - ctest --output-on-failure
-
-ubuntu1804:build:
-  extends: .ubuntu_build_template
-  variables:
-    UBUNTU_TAG: "18.04"
-
-ubuntu1804:test:
-  extends: .ubuntu_test_template
-  variables:
-    UBUNTU_TAG: "18.04"
-  needs:
-    - job: ubuntu1804:build
-      artifacts: true
+    - ctest --test-dir build/${UBUNTU_TAG} --output-on-failure
 
 ubuntu2404:build:
   extends: .ubuntu_build_template
@@ -70,6 +63,19 @@ ubuntu2404:test:
     UBUNTU_TAG: "24.04"
   needs:
     - job: ubuntu2404:build
+      artifacts: true
+
+ubuntu2604:build:
+  extends: .ubuntu_build_template
+  variables:
+    UBUNTU_TAG: "26.04"
+
+ubuntu2604:test:
+  extends: .ubuntu_test_template
+  variables:
+    UBUNTU_TAG: "26.04"
+  needs:
+    - job: ubuntu2604:build
       artifacts: true
 
 # Build Docker image for testing
