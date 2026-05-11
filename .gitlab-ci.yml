@@ -46,19 +46,6 @@ variables: &base_vars
     - cd build/${UBUNTU_TAG}
     - ctest --output-on-failure
 
-ubuntu1804:build:
-  extends: .ubuntu_build_template
-  variables:
-    UBUNTU_TAG: "18.04"
-
-ubuntu1804:test:
-  extends: .ubuntu_test_template
-  variables:
-    UBUNTU_TAG: "18.04"
-  needs:
-    - job: ubuntu1804:build
-      artifacts: true
-
 ubuntu2404:build:
   extends: .ubuntu_build_template
   variables:
@@ -70,6 +57,19 @@ ubuntu2404:test:
     UBUNTU_TAG: "24.04"
   needs:
     - job: ubuntu2404:build
+      artifacts: true
+
+ubuntu2604:build:
+  extends: .ubuntu_build_template
+  variables:
+    UBUNTU_TAG: "26.04"
+
+ubuntu2604:test:
+  extends: .ubuntu_test_template
+  variables:
+    UBUNTU_TAG: "26.04"
+  needs:
+    - job: ubuntu2604:build
       artifacts: true
 
 # Build Docker image for testing
