@@ -1,4 +1,3 @@
-# Copied in from Moubootaur Legends's Hercules .gitlab-ci.yml
 stages:
   - build
   - test
@@ -9,120 +8,69 @@ variables: &base_vars
   GIT_DEPTH: 0 # avoid shallow clone since version is based on latest tag
   GIT_SUBMODULE_STRATEGY: normal
 
-.prerequisites: &prerequisites
+.ubuntu_base:
+  image: "ubuntu:${UBUNTU_TAG}"
+  variables:
+    <<: *base_vars
   before_script:
     - uname -a
     - apt-get update
     - apt-get install -y -qq $INSTALL_PACKAGES $DEBIAN_COMMON_PACKAGES
 
-# Active server OS?
-re:ubuntu1804-attoconf:build:
-  <<: *prerequisites
+.ubuntu_build_template:
+  extends: .ubuntu_base
   stage: build
-  image: ubuntu:18.04
   variables:
-    <<: *base_vars
-    INSTALL_PACKAGES: python3
-  script:
-    - echo "Building TMW Athena $CI_BUILD_NAME"
-    - git fetch -t
-    - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - mkdir build-atto
-    - cd build-atto
-    - ../configure --user
-    - make
-    - whoami
-    - make install
-  artifacts: # required for test stage
-    untracked: true
-    expire_in: 30 mins
-
-# Next server OS?
-re:ubuntu2204-attoconf:build:
-  <<: *prerequisites
-  stage: build
-  image: ubuntu:22.04
-  variables:
-    <<: *base_vars
-    INSTALL_PACKAGES: python3
-  script:
-    - git fetch -t
-    - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - mkdir build-atto
-    - cd build-atto
-    - ../configure --user
-    - make
-    - whoami
-    - make install
-  artifacts: # required for test stage
-    untracked: true
-    expire_in: 30 mins
-
-# Next server OS, with cmake
-re:ubuntu2204:build:
-  <<: *prerequisites
-  stage: build
-  image: ubuntu:22.04
-  variables:
-    <<: *base_vars
     INSTALL_PACKAGES: python3 cmake
   script:
     - git fetch -t
-    - printf "Building TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - mkdir build-cmake
-    - cd build-cmake
-    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON ..
-    - make
+    - printf "Building TMW Athena version %s on ubuntu:%s\n" "$(git describe --tags HEAD)" "${UBUNTU_TAG}"
+    - mkdir -p build/${UBUNTU_TAG}
+    - cd build/${UBUNTU_TAG}
+    - cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON ../..
+    - make -j"$(nproc)"
     - whoami
     - make install
-  artifacts: # required for test stage
-    untracked: true
+  artifacts:
     expire_in: 30 mins
+    paths:
+      - build/${UBUNTU_TAG}/
 
-
-# Disabled. fails with:
-# (1) GDB failing to resolve a type
-# (2) /usr/bin/ld: Dwarf Error: Can't find .debug_ranges section.
-.re:ubuntu1804-attoconf:test:
-  <<: *prerequisites
+.ubuntu_test_template:
+  extends: .ubuntu_base
   stage: test
-  image: ubuntu:18.04
-  needs: ["ubuntu1804-attoconf:build"]
   variables:
-    <<: *base_vars
-    INSTALL_PACKAGES: python3 gdb
-  script:
-    - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - cd build-atto
-    - make test
-
-
-# Enabled tests
-re:ubuntu2204-attoconf:test:
-  <<: *prerequisites
-  stage: test
-  image: ubuntu:22.04
-  needs: ["re:ubuntu2204-attoconf:build"]
-  variables:
-    <<: *base_vars
-    INSTALL_PACKAGES: python3 gdb
-  script:
-    - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - cd build-atto
-    - make test
-
-re:ubuntu2204:test:
-  <<: *prerequisites
-  stage: test
-  image: ubuntu:22.04
-  needs: ["re:ubuntu2204:build"]
-  variables:
-    <<: *base_vars
     INSTALL_PACKAGES: python3 gdb cmake
   script:
-    - printf "Testing TMW Athena version %s\n" "$(git  describe --tags HEAD)"
-    - cd build-cmake
+    - printf "Testing TMW Athena version %s on ubuntu:%s\n" "$(git describe --tags HEAD)" "${UBUNTU_TAG}"
+    - cd build/${UBUNTU_TAG}
     - ctest --output-on-failure
+
+ubuntu1804:build:
+  extends: .ubuntu_build_template
+  variables:
+    UBUNTU_TAG: "18.04"
+
+ubuntu1804:test:
+  extends: .ubuntu_test_template
+  variables:
+    UBUNTU_TAG: "18.04"
+  needs:
+    - job: ubuntu1804:build
+      artifacts: true
+
+ubuntu2404:build:
+  extends: .ubuntu_build_template
+  variables:
+    UBUNTU_TAG: "24.04"
+
+ubuntu2404:test:
+  extends: .ubuntu_test_template
+  variables:
+    UBUNTU_TAG: "24.04"
+  needs:
+    - job: ubuntu2404:build
+      artifacts: true
 
 # Build Docker image for testing
 docker:build:
