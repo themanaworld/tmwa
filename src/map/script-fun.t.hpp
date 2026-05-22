@@ -110,8 +110,8 @@ enum class MobInfo_DropArrays : uint8_t
 // get() and set(<param>, <value>, <gid>) builtins. Player and NPC
 // looks, names, sex, exp, zeny, ids each have their own builtins
 // (getlook / setlook, strcharinfo, strnpcinfo, fakenpcname, getcharid).
-// Positions are read with get(POS_X / POS_Y, <gid>) and changed with
-// the unitwarp builtin.
+// Positions are read with get(POS_X / POS_Y, <gid>); a mob is moved
+// with the mobwarp builtin.
 //
 // What is left here is mob internals that have no PARAM mapping, the
 // mob sprite no builtin reaches on a live mob, and a few fields no

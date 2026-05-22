@@ -5596,33 +5596,31 @@ void builtin_getnpcy(ScriptState *st)
 }
 
 /*==========================================
- * Warps a unit (player, mob or npc) to a position.
+ * Warps a mob to a position.
  *
- * unitwarp(<unit_id>, "<mapname>", <x>, <y>)
+ * mobwarp(<mob_id>, "<mapname>", <x>, <y>)
  *
- * A unit_id of 0 means the script's attached player. A mapname of
- * "this" keeps the unit on its current map. NPCs are bound to their
- * map and can only be moved within it. Returns 1 on success, 0 on
- * failure.
+ * A mapname of "this" keeps the mob on its current map. Returns 1 on
+ * success, 0 if the gid is not a mob or the map is unknown.
  *------------------------------------------
  */
 static
-void builtin_unitwarp(ScriptState *st)
+void builtin_mobwarp(ScriptState *st)
 {
     BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
     ZString mapname = ZString(conv_str(st, &AARG(1)));
     int x = conv_num(st, &AARG(2));
     int y = conv_num(st, &AARG(3));
 
-    dumb_ptr<block_list> bl = map_id2bl(id ? id : st->rid);
-    if (bl == nullptr)
+    dumb_ptr<mob_data> md = map_id_is_mob(id);
+    if (md == nullptr)
     {
         push_int<ScriptDataInt>(st->stack, 0);
         return;
     }
 
-    // "this" keeps the unit on its current map.
-    P<map_local> m = bl->bl_m;
+    // "this" keeps the mob on its current map.
+    P<map_local> m = md->bl_m;
     if (mapname != "this"_s)
         m = TRY_UNWRAP(map_mapname2mapid(stringish<MapName>(mapname)),
                 {
@@ -5630,39 +5628,7 @@ void builtin_unitwarp(ScriptState *st)
                     return;
                 });
 
-    if (dumb_ptr<map_session_data> sd = bl->is_player())
-    {
-        pc_setpos(sd, m->name_, x, y, BeingRemoveWhy::GONE);
-    }
-    else if (dumb_ptr<mob_data> md = bl->is_mob())
-    {
-        mob_warp(md, Some(m), x, y, BeingRemoveWhy::GONE);
-    }
-    else if (dumb_ptr<npc_data> nd = bl->is_npc())
-    {
-        // NPCs are registered with their map; only same-map moves are
-        // safe. Mirrors the bounds check in builtin_npcwarp.
-        if (m != bl->bl_m
-            || !nd->bl_prev
-            || x < 0 || x > m->xs - 1
-            || y < 0 || y > m->ys - 1)
-        {
-            push_int<ScriptDataInt>(st->stack, 0);
-            return;
-        }
-        npc_enable(nd->name, 0);
-        map_delblock(nd);
-        nd->bl_x = x;
-        nd->bl_y = y;
-        map_addblock(nd);
-        npc_enable(nd->name, 1);
-    }
-    else
-    {
-        push_int<ScriptDataInt>(st->stack, 0);
-        return;
-    }
-
+    mob_warp(md, Some(m), x, y, BeingRemoveWhy::GONE);
     push_int<ScriptDataInt>(st->stack, 1);
 }
 
@@ -5759,7 +5725,7 @@ void builtin_getunitdata(ScriptState *st)
  *
  * This covers only data with no other script accessor; see the UnitData
  * enum. Plain stats are written with set(<param>, <value>, <gid>) and
- * positions are changed with the unitwarp builtin.
+ * mob positions are changed with the mobwarp builtin.
  *------------------------------------------
  */
 static
@@ -6061,7 +6027,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(numberofmaps, ""_s, 'i'),
     BUILTIN(getmapnamebyindex, "i"_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
-    BUILTIN(unitwarp, "iMxy"_s, 'i'),
+    BUILTIN(mobwarp, "iMxy"_s, 'i'),
     BUILTIN(getunitdata, "ii"_s, 'i'),
     BUILTIN(setunitdata, "iii"_s, 'i'),
     BUILTIN(freeloop, "i"_s, '\0'),
