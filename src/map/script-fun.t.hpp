@@ -99,29 +99,5 @@ enum class MobInfo_DropArrays : uint8_t
     NAMES    =  1,
     PERCENTS =  2,
 };
-
-// Identifies one piece of data on a mob, for use with the getmobdata
-// and setmobdata script builtins.
-//
-// These cover only mob internals that no other script facility reaches.
-// Ordinary mob stats (level, hp, the attributes, atk, def, speed, ...)
-// go through the PARAM system instead: get() / set(<param>, <value>,
-// <mob_id>). A mob's position is read with get(POS_X / POS_Y, <gid>)
-// and changed with the mobwarp builtin.
-//
-// Every key here is mob-only: getmobdata returns -1 and setmobdata
-// returns 0 for a gid that is not a mob.
-enum class MobData : uint8_t
-{
-    // mob AI / combat internals (no PARAM mapping)
-    MODE            =  0, // mob behaviour flags; 0 = use the database default
-    ADELAY          =  1, // mob attack delay (ms)
-    XP_BONUS        =  2, // mob xp bonus (1024 = 100%)
-    CRITICAL_DEF    =  3, // mob critical-hit defense
-    TARGET_ID       =  4, // mob current attack target gid (read-only)
-    MASTER_ID       =  5, // mob master gid; following needs a mob master
-    // mob sprite (no builtin reaches a live mob)
-    CLASS           =  6, // mob sprite; also shifts db identity (drops/exp/skills)
-};
 } // namespace map
 } // namespace tmwa

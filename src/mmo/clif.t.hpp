@@ -492,6 +492,14 @@ enum class SP : uint16_t
     DEADLY_STRIKE_ADD_RATE      = 1092,
 
     BASE_WEAPON_DELAY_ADJUST    = 1093,
+
+    // live-mob fields, for get / set / setparam on a mob gid
+    MOB_MODE                    = 1094,
+    MOB_ADELAY                  = 1095,
+    MOB_XP_BONUS                = 1096,
+    MOB_CRITICAL_DEF            = 1097,
+    MOB_TARGET_ID               = 1098,
+    MOB_MASTER_ID               = 1099,
 };
 
 constexpr

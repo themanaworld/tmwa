@@ -3909,6 +3909,24 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::AUTOMOD:
             val = sd ? static_cast<int>(sd->automod) : 0;
             break;
+        case SP::MOB_MODE:
+            val = md ? static_cast<uint16_t>(md->mode) : 0;
+            break;
+        case SP::MOB_ADELAY:
+            val = md ? md->stats[mob_stat::ADELAY] : 0;
+            break;
+        case SP::MOB_XP_BONUS:
+            val = md ? md->stats[mob_stat::XP_BONUS] : 0;
+            break;
+        case SP::MOB_CRITICAL_DEF:
+            val = md ? md->stats[mob_stat::CRITICAL_DEF] : 0;
+            break;
+        case SP::MOB_TARGET_ID:
+            val = md ? unwrap<BlockId>(md->target_id) : 0;
+            break;
+        case SP::MOB_MASTER_ID:
+            val = md ? unwrap<BlockId>(md->master_id) : 0;
+            break;
     }
 
     return val;
@@ -3987,7 +4005,6 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
             break;
         case SP::CLASS:
-            // TODO: mob class change
             if (sd)
             {
                 sd->status.species = wrap<Species>(val);
@@ -4001,6 +4018,14 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                     npc_enable(nd->name, 0);
                     npc_enable(nd->name, 1);
                 }
+            }
+            else if (md)
+            {
+                // No mob class-change helper exists; redraw the sprite by
+                // clearing and respawning the mob.
+                clif_clearchar(md, BeingRemoveWhy::WARPED);
+                md->mob_class = wrap<Species>(static_cast<uint16_t>(val));
+                clif_spawnmob(md);
             }
             else
                 ok = false;
@@ -4260,9 +4285,40 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             nullpo_retz(sd);
             sd->automod = static_cast<AutoMod>(val);
             break;
+        case SP::MOB_MODE:
+            if (md)
+                md->mode = static_cast<MobMode>(val);
+            else
+                ok = false;
+            break;
+        case SP::MOB_ADELAY:
+            if (md)
+                md->stats[mob_stat::ADELAY] = val;
+            else
+                ok = false;
+            break;
+        case SP::MOB_XP_BONUS:
+            if (md)
+                md->stats[mob_stat::XP_BONUS] = val;
+            else
+                ok = false;
+            break;
+        case SP::MOB_CRITICAL_DEF:
+            if (md)
+                md->stats[mob_stat::CRITICAL_DEF] = val;
+            else
+                ok = false;
+            break;
+        case SP::MOB_MASTER_ID:
+            if (md)
+                md->master_id = wrap<BlockId>(val);
+            else
+                ok = false;
+            break;
 
         default:
             // a parameter pc_setparam does not handle
+            // (including the read-only SP::MOB_TARGET_ID)
             ok = false;
             break;
     }
