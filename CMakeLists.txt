@@ -306,7 +306,8 @@ if(ASCIIDOCTOR)
     list(APPEND TMWA_HTMLDOC_OUTPUTS "${html_out}")
 
     install(FILES "${man_out}"
-      DESTINATION "${CMAKE_INSTALL_MANDIR}/man${man_section}")
+      DESTINATION "${CMAKE_INSTALL_MANDIR}/man${man_section}"
+      COMPONENT docs)
   endforeach()
 
   # Built by default so the man pages stay current with the sources.
