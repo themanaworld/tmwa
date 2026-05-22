@@ -534,13 +534,29 @@ def render_adoc_entry(doc):
         blocks.append([doc.summary])
 
     if doc.params:
-        plist = []
+        items = []
         for p in doc.params:
             opt = ', optional' if (p.optional and not p.rest) else ''
             rep = ', repeatable' if p.rest else ''
-            plist.append('* _%s_ (_%s_%s%s) %s'
+            items.append('_%s_ (_%s_%s%s) %s'
                          % (p.name, p.type, opt, rep, p.desc))
-        blocks.append(plist)
+        # The two backends render lists differently, so emit a form for
+        # each. HTML5 gets a real bulleted list, kept tight by the doc
+        # stylesheet (see doc/docinfo.html). The manpage backend spaces
+        # list items apart, so there the parameters are bullet-prefixed
+        # lines joined with hard line breaks (' +'), which stay tight.
+        # The manpage bullet is written as '{empty}•': a leading '•' is
+        # itself a list marker, and the empty attribute keeps the line
+        # from being parsed as a list item while expanding to nothing.
+        param_block = ['ifdef::backend-html5[]']
+        param_block += ['* ' + it for it in items]
+        param_block.append('endif::[]')
+        param_block.append('ifdef::backend-manpage[]')
+        for i, it in enumerate(items):
+            param_block.append('{empty}• ' + it
+                               + (' +' if i + 1 < len(items) else ''))
+        param_block.append('endif::[]')
+        blocks.append(param_block)
 
     for para in doc.desc_paras:
         blocks.append([para])

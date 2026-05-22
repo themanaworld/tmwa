@@ -179,17 +179,32 @@ comment and re-run the generator.
 *mes*([_text_])::
 Print a line of dialogue in the NPC message box of the attached player; with no argument an empty line is printed. The text stays on screen until next, menu, close or clear is reached.
 +
+ifdef::backend-html5[]
 * _text_ (_str_, optional) the line of text to show.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _text_ (_str_, optional) the line of text to show.
+endif::[]
 
 *mesq*([_text_])::
 Like mes, but the line is wrapped in double quotes before being sent; a convenience for quoting spoken text.
 +
+ifdef::backend-html5[]
 * _text_ (_str_, optional) the text to quote and show.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _text_ (_str_, optional) the text to quote and show.
+endif::[]
 
 *mesn*([_text_])::
 Like mes, but the line is wrapped in square brackets; with no argument the NPC's own visible name (the part before any '#') is used, so it prints a [Name] speaker header.
 +
+ifdef::backend-html5[]
 * _text_ (_str_, optional) the name to bracket; defaults to the NPC name.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _text_ (_str_, optional) the name to bracket; defaults to the NPC name.
+endif::[]
 
 *clear*()::
 Clear the NPC dialogue window of the attached player without ending the script, so following mes lines start from a blank box.
@@ -197,43 +212,80 @@ Clear the NPC dialogue window of the attached player without ending the script, 
 *goto*(_label_)::
 Jump unconditionally to a label in the current script; execution continues there.
 +
+ifdef::backend-html5[]
 * _label_ (_label_) the label to jump to.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _label_ (_label_) the label to jump to.
+endif::[]
 
 *callfunc*(_func_)::
 Call the named user-defined function object; control transfers to the function and return comes back here. This form passes no arguments; use call to pass arguments.
 +
+ifdef::backend-html5[]
 * _func_ (_func_) name of the user-defined function to call.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _func_ (_func_) name of the user-defined function to call.
+endif::[]
 
 *call*(_func_[, _args_...]) -> variant::
 Call a user-defined function (when func is a string naming one) or a script position, passing the remaining arguments. The arguments are readable inside the callee with getarg. The value passed to return becomes this expression's result.
 +
+ifdef::backend-html5[]
 * _func_ (_func_) the function to call, or a script position.
 * _args_ (_expr_, repeatable) arguments to pass to the callee.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _func_ (_func_) the function to call, or a script position. +
+{empty}• _args_ (_expr_, repeatable) arguments to pass to the callee.
+endif::[]
 +
 Returns _variant_: the value the callee returned, if any.
 
 *callsub*(_label_)::
 Call a subroutine: transfer control to a label in the current script, pushing a return frame so a later return resumes after this call.
 +
+ifdef::backend-html5[]
 * _label_ (_label_) the subroutine label to call.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _label_ (_label_) the subroutine label to call.
+endif::[]
 
 *getarg*(_index_[, _default_]) -> variant::
 Return an argument passed to the current function or subroutine by call or callsub. If the index is out of range, the default is returned instead, or an ETX (0x03) marker string when no default is given.
 +
+ifdef::backend-html5[]
 * _index_ (_int_) zero-based index of the argument to fetch.
 * _default_ (_expr_, optional) value to return when index is out of range.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _index_ (_int_) zero-based index of the argument to fetch. +
+{empty}• _default_ (_expr_, optional) value to return when index is out of range.
+endif::[]
 +
 Returns _variant_: the requested argument, or the default.
 
 *return*([_value_])::
 Return from the current callfunc, call or callsub. If a value is given it becomes the call's result. Using return outside a call frame is deprecated and logs a warning.
 +
+ifdef::backend-html5[]
 * _value_ (_expr_, optional) the value to return to the caller.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _value_ (_expr_, optional) the value to return to the caller.
+endif::[]
 
 *void*([_args_...])::
 Evaluate and discard the arguments; used to call an expression-valued builtin purely for its side effects.
 +
+ifdef::backend-html5[]
 * _args_ (_expr_, repeatable) expressions to evaluate and throw away.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _args_ (_expr_, repeatable) expressions to evaluate and throw away.
+endif::[]
 
 *next*()::
 Suspend the script and show a "next" button in the player's dialogue window; the script resumes when the player clicks it.
@@ -247,36 +299,63 @@ Close the player's dialogue window but keep the script suspended rather than end
 *menu*(_choice_[, _label_...])::
 Show a selection menu to the player. Arguments come in choice/label pairs: a choice string and the label to jump to if it is chosen. An empty choice string ends the displayed list. The script suspends; when the player picks an entry it jumps to the matching label and the 1-based choice index is stored in @menu. Cancelling ends the script.
 +
+ifdef::backend-html5[]
 * _choice_ (_str_) text of the first menu choice.
 * _label_ (_label_, repeatable) the label paired with the preceding choice.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _choice_ (_str_) text of the first menu choice. +
+{empty}• _label_ (_label_, repeatable) the label paired with the preceding choice.
+endif::[]
 
 *rand*(_max_[, _upper_]) -> int::
 Return a random integer. With one argument, a value in 0..max-1 (0 if max is not positive). With two arguments, a value between the bounds inclusive (the bounds are swapped if given out of order).
 +
+ifdef::backend-html5[]
 * _max_ (_int_) exclusive upper bound, or the first bound.
 * _upper_ (_int_, optional) inclusive upper bound when given.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _max_ (_int_) exclusive upper bound, or the first bound. +
+{empty}• _upper_ (_int_, optional) inclusive upper bound when given.
+endif::[]
 +
 Returns _int_: the random number.
 
 *isat*(_map_, _x_, _y_) -> int::
 Test whether the attached player is standing on a given map cell.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map name to test.
 * _x_ (_coordinate_) the x coordinate to test.
 * _y_ (_coordinate_) the y coordinate to test.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map name to test. +
+{empty}• _x_ (_coordinate_) the x coordinate to test. +
+{empty}• _y_ (_coordinate_) the y coordinate to test.
+endif::[]
 +
 Returns _int_: 1 if the player is at that cell, 0 otherwise.
 
 *warp*(_map_, _x_, _y_)::
 Teleport the attached player to a map cell. The warp is refused if the source map has the nowarp flag or the destination has nowarpto, unless the player is a GM of sufficient level.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the destination map name.
 * _x_ (_coordinate_) the destination x coordinate.
 * _y_ (_coordinate_) the destination y coordinate.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the destination map name. +
+{empty}• _x_ (_coordinate_) the destination x coordinate. +
+{empty}• _y_ (_coordinate_) the destination y coordinate.
+endif::[]
 
 *areawarp*(_from_map_, _x0_, _y0_, _x1_, _y1_, _to_map_, _x_, _y_)::
 Warp every player inside a rectangle on one map to a cell on another. The same nowarp/nowarpto GM-level restrictions as warp apply per player.
 +
+ifdef::backend-html5[]
 * _from_map_ (_map_) the map holding the source rectangle.
 * _x0_ (_coordinate_) x of one corner of the source rectangle.
 * _y0_ (_coordinate_) y of one corner of the source rectangle.
@@ -285,161 +364,313 @@ Warp every player inside a rectangle on one map to a cell on another. The same n
 * _to_map_ (_map_) the destination map name.
 * _x_ (_coordinate_) the destination x coordinate.
 * _y_ (_coordinate_) the destination y coordinate.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _from_map_ (_map_) the map holding the source rectangle. +
+{empty}• _x0_ (_coordinate_) x of one corner of the source rectangle. +
+{empty}• _y0_ (_coordinate_) y of one corner of the source rectangle. +
+{empty}• _x1_ (_coordinate_) x of the opposite corner. +
+{empty}• _y1_ (_coordinate_) y of the opposite corner. +
+{empty}• _to_map_ (_map_) the destination map name. +
+{empty}• _x_ (_coordinate_) the destination x coordinate. +
+{empty}• _y_ (_coordinate_) the destination y coordinate.
+endif::[]
 
 *heal*(_hp_, _sp_[, _item_heal_])::
 Restore hit points and spell points to the attached player (negative values subtract). A dead player healed for positive HP is resurrected.
 +
+ifdef::backend-html5[]
 * _hp_ (_amount_) hit points to restore.
 * _sp_ (_amount_) spell points to restore.
 * _item_heal_ (_bool_, optional) nonzero to treat it as item healing, subject to healing modifiers.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _hp_ (_amount_) hit points to restore. +
+{empty}• _sp_ (_amount_) spell points to restore. +
+{empty}• _item_heal_ (_bool_, optional) nonzero to treat it as item healing, subject to healing modifiers.
+endif::[]
 
 *injure*(_source_, _target_, _damage_)::
 Deal damage to a being, attributed to another being. The damage is shown to clients and may kill (and free) the target.
 +
+ifdef::backend-html5[]
 * _source_ (_GID_) being id credited with the damage.
 * _target_ (_GID_) being id of the victim.
 * _damage_ (_amount_) amount of damage to deal.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _source_ (_GID_) being id credited with the damage. +
+{empty}• _target_ (_GID_) being id of the victim. +
+{empty}• _damage_ (_amount_) amount of damage to deal.
+endif::[]
 
 *input*(_dest_)::
 Prompt the attached player for input and store the result in a variable. A string variable opens a text prompt; a numeric variable opens a number prompt. The script suspends until the player answers; a negative numeric answer cancels the dialogue.
 +
+ifdef::backend-html5[]
 * _dest_ (_var_) the variable to store the answer in.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _dest_ (_var_) the variable to store the answer in.
+endif::[]
 
 *requestitem*(_dest_[, _count_])::
 Fix by fritz :X keeps people from abusing old input bugs // wtf? if (sd->npc_amount < 0) //** If input amount is less then 0 { clif_tradecancelled(sd);   // added "Deal has been cancelled" message by Valaris builtin_close(st); //** close } set_reg(sd, VariableCode::VARIABLE, reg, sd->npc_amount); } } else { // First time - send prompt to client, then wait st->state = ScriptEndState::RERUNLINE; if (postfix == '$') clif_scriptinputstr(sd, st->oid); else clif_scriptinput(sd, st->oid); sd->state.menu_or_input = 1; } } /*======================================== Prompt the attached player to choose items from their inventory and store the chosen item ids (or names, if dest is a string array) into the array. The script suspends until the player answers.
 +
+ifdef::backend-html5[]
 * _dest_ (_var_) array variable to receive the chosen items.
 * _count_ (_amount_, optional) how many items to request, 1 to 16; defaults to 1.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _dest_ (_var_) array variable to receive the chosen items. +
+{empty}• _count_ (_amount_, optional) how many items to request, 1 to 16; defaults to 1.
+endif::[]
 
 *requestlang*(_dest_)::
 Prompt the attached player for their client language and store the answer in a string variable. The script suspends until the client replies.
 +
+ifdef::backend-html5[]
 * _dest_ (_var_) string variable to receive the language.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _dest_ (_var_) string variable to receive the language.
+endif::[]
 
 *if*(_condition_[, _func_...])::
 If the condition is nonzero, call the given function with the remaining arguments. Records the test result so a following elif or else can react to it.
 +
+ifdef::backend-html5[]
 * _condition_ (_int_) the condition to test.
 * _func_ (_func_, repeatable) function to call and its arguments.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _condition_ (_int_) the condition to test. +
+{empty}• _func_ (_func_, repeatable) function to call and its arguments.
+endif::[]
 
 *elif*(_condition_[, _func_...])::
 Continuation of an if chain: if no earlier branch was taken and the condition is nonzero, call the function with the remaining arguments.
 +
+ifdef::backend-html5[]
 * _condition_ (_int_) the condition to test.
 * _func_ (_func_, repeatable) function to call and its arguments.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _condition_ (_int_) the condition to test. +
+{empty}• _func_ (_func_, repeatable) function to call and its arguments.
+endif::[]
 
 *else*([_func_...])::
 Continuation of an if chain: if no earlier if or elif branch was taken, call the function with the remaining arguments.
 +
+ifdef::backend-html5[]
 * _func_ (_func_, repeatable) function to call and its arguments.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _func_ (_func_, repeatable) function to call and its arguments.
+endif::[]
 
 *set*(_dest_, _value_[, _owner_])::
 Assign a value to a variable or player parameter. The optional third argument selects whose copy to write: a character name or id for player- scope variables, an NPC name or id for NPC-scope variables.
 +
+ifdef::backend-html5[]
 * _dest_ (_var_) the variable or parameter to write.
 * _value_ (_expr_) the value to assign.
 * _owner_ (_expr_, optional) the character or NPC that owns the variable.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _dest_ (_var_) the variable or parameter to write. +
+{empty}• _value_ (_expr_) the value to assign. +
+{empty}• _owner_ (_expr_, optional) the character or NPC that owns the variable.
+endif::[]
 
 *get*(_name_, _owner_) -> variant::
 Read a variable or player parameter belonging to another being and return its value. Returns 0 or an empty string when the target cannot be found.
 +
+ifdef::backend-html5[]
 * _name_ (_var_) the variable or parameter to read.
 * _owner_ (_expr_) the character or NPC that owns the variable.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _name_ (_var_) the variable or parameter to read. +
+{empty}• _owner_ (_expr_) the character or NPC that owns the variable.
+endif::[]
 +
 Returns _variant_: the value of the variable.
 
 *setarray*(_dest_[, _value_...])::
 Fill an array starting at its given index with the listed values. For an NPC-scope array the second argument is instead the NPC to target and the values follow.
 +
+ifdef::backend-html5[]
 * _dest_ (_var_) the array variable to fill.
 * _value_ (_expr_, repeatable) the values to store, or an NPC then values.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _dest_ (_var_) the array variable to fill. +
+{empty}• _value_ (_expr_, repeatable) the values to store, or an NPC then values.
+endif::[]
 
 *cleararray*(_dest_, _value_, _count_)::
 Set the first count elements of an array to a single value.
 +
+ifdef::backend-html5[]
 * _dest_ (_var_) the array variable to clear.
 * _value_ (_expr_) the value to store in every element.
 * _count_ (_amount_) how many elements to set.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _dest_ (_var_) the array variable to clear. +
+{empty}• _value_ (_expr_) the value to store in every element. +
+{empty}• _count_ (_amount_) how many elements to set.
+endif::[]
 
 *getarraysize*(_name_) -> int::
 Return the logical size of an array: one past the index of its last nonzero or non-empty element.
 +
+ifdef::backend-html5[]
 * _name_ (_var_) the array variable to measure.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _name_ (_var_) the array variable to measure.
+endif::[]
 +
 Returns _int_: the array size.
 
 *getelementofarray*(_name_, _index_) -> variant::
 Return one element of an array as a variable reference, the runtime form of the var[index] subscript syntax. Indices outside 0..255 yield 0.
 +
+ifdef::backend-html5[]
 * _name_ (_var_) the array variable.
 * _index_ (_int_) the element index.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _name_ (_var_) the array variable. +
+{empty}• _index_ (_int_) the element index.
+endif::[]
 +
 Returns _variant_: a reference to the requested element.
 
 *array_search*(_value_, _haystack_) -> int::
 Search an array for a value and return the index of the first match, or -1 if the value is not present.
 +
+ifdef::backend-html5[]
 * _value_ (_expr_) the value to look for.
 * _haystack_ (_var_) the array variable to search.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _value_ (_expr_) the value to look for. +
+{empty}• _haystack_ (_var_) the array variable to search.
+endif::[]
 +
 Returns _int_: the index of the first match, or -1.
 
 *setlook*(_type_, _value_)::
 Change a cosmetic look value of the attached player.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) a LOOK type: hair, weapon sprite, hair colour, and so on.
 * _value_ (_int_) the new value for that look.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) a LOOK type: hair, weapon sprite, hair colour, and so on. +
+{empty}• _value_ (_int_) the new value for that look.
+endif::[]
 
 *countitem*(_item_) -> int::
 Return how many of an item the attached player carries in their inventory.
 +
+ifdef::backend-html5[]
 * _item_ (_item_) the item, by numeric id or name.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _item_ (_item_) the item, by numeric id or name.
+endif::[]
 +
 Returns _int_: the quantity carried.
 
 *checkweight*(_item_, _amount_) -> int::
 Test whether the attached player could carry more of an item without exceeding their weight limit. Also 0 for an invalid item or a non- positive amount.
 +
+ifdef::backend-html5[]
 * _item_ (_item_) the item, by numeric id or name.
 * _amount_ (_amount_) how many more units to test for.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _item_ (_item_) the item, by numeric id or name. +
+{empty}• _amount_ (_amount_) how many more units to test for.
+endif::[]
 +
 Returns _int_: 1 if the items would fit, 0 otherwise.
 
 *getitem*(_item_, _amount_[, _unused_, _gid_])::
 Give units of an item to a player. By default the recipient is the attached player; an optional being id gives the item to someone else. Items that do not fit in the inventory are dropped at the recipient's feet.
 +
+ifdef::backend-html5[]
 * _item_ (_item_) the item, by numeric id or name.
 * _amount_ (_amount_) how many units to give.
 * _unused_ (_expr_, optional) unused; kept for argument-order compatibility.
 * _gid_ (_GID_, optional) being id of the recipient.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _item_ (_item_) the item, by numeric id or name. +
+{empty}• _amount_ (_amount_) how many units to give. +
+{empty}• _unused_ (_expr_, optional) unused; kept for argument-order compatibility. +
+{empty}• _gid_ (_GID_, optional) being id of the recipient.
+endif::[]
 
 *makeitem*(_item_, _amount_, _map_, _x_, _y_)::
 Create units of an item on the ground as a floor item. The map name "this" places it on the attached player's current map.
 +
+ifdef::backend-html5[]
 * _item_ (_item_) the item, by numeric id or name.
 * _amount_ (_amount_) how many units to create.
 * _map_ (_map_) the map to drop the item on.
 * _x_ (_coordinate_) the x coordinate of the drop.
 * _y_ (_coordinate_) the y coordinate of the drop.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _item_ (_item_) the item, by numeric id or name. +
+{empty}• _amount_ (_amount_) how many units to create. +
+{empty}• _map_ (_map_) the map to drop the item on. +
+{empty}• _x_ (_coordinate_) the x coordinate of the drop. +
+{empty}• _y_ (_coordinate_) the y coordinate of the drop.
+endif::[]
 
 *delitem*(_item_, _amount_)::
 Remove units of an item from the attached player's inventory.
 +
+ifdef::backend-html5[]
 * _item_ (_item_) the item, by numeric id or name.
 * _amount_ (_amount_) how many units to remove.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _item_ (_item_) the item, by numeric id or name. +
+{empty}• _amount_ (_amount_) how many units to remove.
+endif::[]
 
 *getcharid*(_type_[, _name_]) -> int::
 Return an id of a character. The optional name picks the character; without it the attached player is used.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) which id: 0 character id, 1 party id, 2 always 0 (guilds are unimplemented), 3 account id.
 * _name_ (_str_, optional) name of the character to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) which id: 0 character id, 1 party id, 2 always 0 (guilds are unimplemented), 3 account id. +
+{empty}• _name_ (_str_, optional) name of the character to query.
+endif::[]
 +
 Returns _int_: the requested id, or -1 if no such player.
 
 *getnpcid*([_name_]) -> int::
 Return the block-list id of an NPC. With a name argument that NPC is looked up; otherwise the NPC running the script is used.
 +
+ifdef::backend-html5[]
 * _name_ (_str_, optional) name of the NPC to look up.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _name_ (_str_, optional) name of the NPC to look up.
+endif::[]
 +
 Returns _int_: the NPC's block-list id, or -1 if not found.
 
@@ -451,61 +682,114 @@ Returns _int_: the client protocol version number.
 *strcharinfo*(_type_[, _gid_]) -> str::
 Return a string about a character. The optional being id picks the character; without it the attached player is used.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) which string: 0 character name, 1 party name, 2 empty (guilds are unimplemented).
 * _gid_ (_GID_, optional) being id of the character to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) which string: 0 character name, 1 party name, 2 empty (guilds are unimplemented). +
+{empty}• _gid_ (_GID_, optional) being id of the character to query.
+endif::[]
 +
 Returns _str_: the requested string.
 
 *getequipid*(_slot_[, _name_]) -> int::
 Return the item id worn in an equipment slot of a player. The optional name picks the character; otherwise the attached player is used.
 +
+ifdef::backend-html5[]
 * _slot_ (_int_) equipment slot 1 to 11, indexing the equip_* constants.
 * _name_ (_str_, optional) name of the character to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _slot_ (_int_) equipment slot 1 to 11, indexing the equip_* constants. +
+{empty}• _name_ (_str_, optional) name of the character to query.
+endif::[]
 +
 Returns _int_: the worn item id, or -1 if the slot is empty.
 
 *bonus*(_type_, _value_)::
 Add an equipment-style stat bonus to the attached player. Intended for item equip_script fragments; the effect lasts only until stats are recalculated.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) an SP bonus type.
 * _value_ (_int_) the bonus value.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) an SP bonus type. +
+{empty}• _value_ (_int_) the bonus value.
+endif::[]
 
 *bonus2*(_type_, _extra_, _value_)::
 Like bonus, but for bonus types that take an extra parameter.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) an SP bonus type.
 * _extra_ (_int_) the extra parameter for the bonus type.
 * _value_ (_int_) the bonus value.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) an SP bonus type. +
+{empty}• _extra_ (_int_) the extra parameter for the bonus type. +
+{empty}• _value_ (_int_) the bonus value.
+endif::[]
 
 *skill*(_skill_, _level_[, _flag_])::
 Grant a skill at a given level to the attached player.
 +
+ifdef::backend-html5[]
 * _skill_ (_int_) the skill id to grant.
 * _level_ (_int_) the level to grant the skill at.
 * _flag_ (_int_, optional) flag passed to the skill-granting code; defaults to 1.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _skill_ (_int_) the skill id to grant. +
+{empty}• _level_ (_int_) the level to grant the skill at. +
+{empty}• _flag_ (_int_, optional) flag passed to the skill-granting code; defaults to 1.
+endif::[]
 
 *setskill*(_skill_, _level_)::
 Set the attached player's level in a skill permanently, clamped to 0..MAX_SKILL_LEVEL.
 +
+ifdef::backend-html5[]
 * _skill_ (_int_) the skill id to set.
 * _level_ (_int_) the new skill level.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _skill_ (_int_) the skill id to set. +
+{empty}• _level_ (_int_) the new skill level.
+endif::[]
 
 *getskilllv*(_skill_) -> int::
 Return the attached player's current level in a skill (0 if the player does not have it).
 +
+ifdef::backend-html5[]
 * _skill_ (_int_) the skill id to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _skill_ (_int_) the skill id to query.
+endif::[]
 +
 Returns _int_: the player's level in that skill.
 
 *overrideattack*([_delay_, _range_, _icon_, _weapon_, _event_, _charges_])::
 Override the attached player's normal attack with a spell. Called with no arguments it removes the override and restores the normal attack.
 +
+ifdef::backend-html5[]
 * _delay_ (_timer_, optional) attack delay in milliseconds.
 * _range_ (_int_, optional) attack range.
 * _icon_ (_status_, optional) a status-change icon id.
 * _weapon_ (_item_, optional) a weapon-look item id.
 * _event_ (_event_, optional) NPC event to run on attack.
 * _charges_ (_amount_, optional) number of charges; defaults to 1.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _delay_ (_timer_, optional) attack delay in milliseconds. +
+{empty}• _range_ (_int_, optional) attack range. +
+{empty}• _icon_ (_status_, optional) a status-change icon id. +
+{empty}• _weapon_ (_item_, optional) a weapon-look item id. +
+{empty}• _event_ (_event_, optional) NPC event to run on attack. +
+{empty}• _charges_ (_amount_, optional) number of charges; defaults to 1.
+endif::[]
 
 *getgmlevel*() -> int::
 Return the GM privilege bitmask of the attached player (0 for an ordinary player).
@@ -523,26 +807,48 @@ Returns _int_: the opt2 bitmask.
 *setopt2*(_opt2_)::
 Set the attached player's opt2 status-option bitmask and refresh the look and stats.
 +
+ifdef::backend-html5[]
 * _opt2_ (_int_) the new opt2 bitmask.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _opt2_ (_int_) the new opt2 bitmask.
+endif::[]
 
 *savepoint*(_map_, _x_, _y_)::
 Set the attached player's respawn point.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the respawn map name.
 * _x_ (_coordinate_) the respawn x coordinate.
 * _y_ (_coordinate_) the respawn y coordinate.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the respawn map name. +
+{empty}• _x_ (_coordinate_) the respawn x coordinate. +
+{empty}• _y_ (_coordinate_) the respawn y coordinate.
+endif::[]
 
 *gettimetick*(_type_) -> int::
 Return a time value. Type 0 is the server tick (an unsigned counter that wraps), type 1 is seconds elapsed since midnight, type 2 is the Unix timestamp. Any other value behaves as type 0.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) which time value to return.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) which time value to return.
+endif::[]
 +
 Returns _int_: the requested time value.
 
 *gettime*(_type_) -> int::
 Return a component of the current local time.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) which component: 1 second, 2 minute, 3 hour, 4 weekday (0..6), 5 day of month, 6 month (1..12), 7 full year.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) which component: 1 second, 2 minute, 3 hour, 4 weekday (0..6), 5 day of month, 6 month (1..12), 7 full year.
+endif::[]
 +
 Returns _int_: the requested time component, or -1 for an unknown type.
 
@@ -552,36 +858,61 @@ Open the attached player's Kafra storage window and suspend the script.
 *getexp*(_base_, _job_)::
 Grant base and job experience to the attached player. Negative amounts are ignored.
 +
+ifdef::backend-html5[]
 * _base_ (_amount_) base experience to grant.
 * _job_ (_amount_) job experience to grant.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _base_ (_amount_) base experience to grant. +
+{empty}• _job_ (_amount_) job experience to grant.
+endif::[]
 
 *mobinfo*(_species_, _field_) -> variant::
 Return a field of the monster-database entry for a species.
 +
+ifdef::backend-html5[]
 * _species_ (_mob_) the monster species id.
 * _field_ (_int_) a MobInfo selector: id, names, level, HP/SP, experience, attack and defence stats, attributes, element, mode, speeds, and drop id/name/percent for drop slots 0..9.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _species_ (_mob_) the monster species id. +
+{empty}• _field_ (_int_) a MobInfo selector: id, names, level, HP/SP, experience, attack and defence stats, attributes, element, mode, speeds, and drop id/name/percent for drop slots 0..9.
+endif::[]
 +
 Returns _variant_: the requested field, or -1 for an unknown species or selector.
 
 *mobinfo_droparrays*(_species_, _field_, _dest_) -> int::
 Fill an array with the drops of a monster species.
 +
+ifdef::backend-html5[]
 * _species_ (_mob_) the monster species id.
 * _field_ (_int_) what to store: 0 item ids, 1 item names (string array), 2 drop percents.
 * _dest_ (_var_) the array variable to fill.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _species_ (_mob_) the monster species id. +
+{empty}• _field_ (_int_) what to store: 0 item ids, 1 item names (string array), 2 drop percents. +
+{empty}• _dest_ (_var_) the array variable to fill.
+endif::[]
 +
 Returns _int_: 0 on error, 1 if the monster has drops, 2 if it has none.
 
 *getmobdrops*(_species_) -> int::
 Store the drops of a monster species into the global arrays $@MobDrop_item, $@MobDrop_name$ and $@MobDrop_rate, with the count in $@MobDrop_count.
 +
+ifdef::backend-html5[]
 * _species_ (_mob_) the monster species id.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _species_ (_mob_) the monster species id.
+endif::[]
 +
 Returns _int_: 0 if the species is unknown, 1 if it has drops, 2 if it has none.
 
 *summon*(_map_, _x_, _y_, _owner_, _name_, _species_, _attitude_, _lifespan_[, _event_])::
 Spawn a single monster owned by another being.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to spawn on.
 * _x_ (_coordinate_) the spawn x coordinate.
 * _y_ (_coordinate_) the spawn y coordinate.
@@ -591,10 +922,23 @@ Spawn a single monster owned by another being.
 * _attitude_ (_int_) an attitude code: servant, friendly, hostile or frozen.
 * _lifespan_ (_int_) how long the monster lives, in milliseconds.
 * _event_ (_event_, optional) NPC event to run on the monster's death.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to spawn on. +
+{empty}• _x_ (_coordinate_) the spawn x coordinate. +
+{empty}• _y_ (_coordinate_) the spawn y coordinate. +
+{empty}• _owner_ (_str_) the owner's being id, passed as a string. +
+{empty}• _name_ (_str_) the monster's display name. +
+{empty}• _species_ (_mob_) the monster species id. +
+{empty}• _attitude_ (_int_) an attitude code: servant, friendly, hostile or frozen. +
+{empty}• _lifespan_ (_int_) how long the monster lives, in milliseconds. +
+{empty}• _event_ (_event_, optional) NPC event to run on the monster's death.
+endif::[]
 
 *monster*(_map_, _x_, _y_, _name_, _species_, _amount_[, _event_])::
 Spawn one or more monsters of a species at a fixed cell.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to spawn on.
 * _x_ (_coordinate_) the spawn x coordinate.
 * _y_ (_coordinate_) the spawn y coordinate.
@@ -602,10 +946,21 @@ Spawn one or more monsters of a species at a fixed cell.
 * _species_ (_mob_) the monster species id.
 * _amount_ (_amount_) how many monsters to spawn.
 * _event_ (_event_, optional) NPC event run when each monster dies.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to spawn on. +
+{empty}• _x_ (_coordinate_) the spawn x coordinate. +
+{empty}• _y_ (_coordinate_) the spawn y coordinate. +
+{empty}• _name_ (_str_) the monster's display name. +
+{empty}• _species_ (_mob_) the monster species id. +
+{empty}• _amount_ (_amount_) how many monsters to spawn. +
+{empty}• _event_ (_event_, optional) NPC event run when each monster dies.
+endif::[]
 
 *areamonster*(_map_, _x0_, _y0_, _x1_, _y1_, _name_, _species_, _amount_[, _event_])::
 Spawn one or more monsters of a species scattered within a rectangle.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to spawn on.
 * _x0_ (_coordinate_) x of one corner of the rectangle.
 * _y0_ (_coordinate_) y of one corner of the rectangle.
@@ -615,125 +970,245 @@ Spawn one or more monsters of a species scattered within a rectangle.
 * _species_ (_mob_) the monster species id.
 * _amount_ (_amount_) how many monsters to spawn.
 * _event_ (_event_, optional) NPC event run when each monster dies.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to spawn on. +
+{empty}• _x0_ (_coordinate_) x of one corner of the rectangle. +
+{empty}• _y0_ (_coordinate_) y of one corner of the rectangle. +
+{empty}• _x1_ (_coordinate_) x of the opposite corner. +
+{empty}• _y1_ (_coordinate_) y of the opposite corner. +
+{empty}• _name_ (_str_) the monster's display name. +
+{empty}• _species_ (_mob_) the monster species id. +
+{empty}• _amount_ (_amount_) how many monsters to spawn. +
+{empty}• _event_ (_event_, optional) NPC event run when each monster dies.
+endif::[]
 
 *killmonster*(_map_, _event_)::
 Remove monsters on a map. With the special event string "All", all non- permanently-spawned monsters are removed; otherwise only monsters whose death event matches.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to clear.
 * _event_ (_event_) the death event to match, or "All".
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to clear. +
+{empty}• _event_ (_event_) the death event to match, or "All".
+endif::[]
 
 *donpcevent*(_event_)::
 Trigger an NPC event immediately, running it as an event-label script.
 +
+ifdef::backend-html5[]
 * _event_ (_event_) the NPC event to run.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _event_ (_event_) the NPC event to run.
+endif::[]
 
 *addtimer*(_delay_, _event_[, _gid_])::
 Schedule an NPC event to run for a player after a delay. The optional being id selects the player; otherwise the attached player is used.
 +
+ifdef::backend-html5[]
 * _delay_ (_timer_) delay in milliseconds before the event runs.
 * _event_ (_event_) the NPC event to schedule.
 * _gid_ (_GID_, optional) being id of the player to run it for.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _delay_ (_timer_) delay in milliseconds before the event runs. +
+{empty}• _event_ (_event_) the NPC event to schedule. +
+{empty}• _gid_ (_GID_, optional) being id of the player to run it for.
+endif::[]
 
 *addnpctimer*(_delay_, _event_)::
 Schedule an NPC event to run after a delay, attached to the NPC named in the event.
 +
+ifdef::backend-html5[]
 * _delay_ (_timer_) delay in milliseconds before the event runs.
 * _event_ (_event_) the NPC event to schedule.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _delay_ (_timer_) delay in milliseconds before the event runs. +
+{empty}• _event_ (_event_) the NPC event to schedule.
+endif::[]
 
 *initnpctimer*([_npc_])::
 Reset the NPC's timer to zero and start it running, which drives that NPC's OnTimer<ms> labels. The optional argument names another NPC.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_, optional) name of the NPC to act on; defaults to the script's own NPC.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_, optional) name of the NPC to act on; defaults to the script's own NPC.
+endif::[]
 
 *startnpctimer*([_npc_])::
 Start or resume the NPC timer without resetting it. The optional argument names another NPC.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_, optional) name of the NPC to act on; defaults to the script's own NPC.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_, optional) name of the NPC to act on; defaults to the script's own NPC.
+endif::[]
 
 *stopnpctimer*([_npc_])::
 Stop the NPC timer. The optional argument names another NPC.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_, optional) name of the NPC to act on; defaults to the script's own NPC.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_, optional) name of the NPC to act on; defaults to the script's own NPC.
+endif::[]
 
 *getnpctimer*(_type_[, _npc_]) -> int::
 Return information about an NPC timer. The optional name picks another NPC; otherwise the script's own NPC is used.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) which value: 0 current tick in milliseconds, 1 whether the timer is active, 2 number of OnTimer events defined.
 * _npc_ (_str_, optional) name of the NPC to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) which value: 0 current tick in milliseconds, 1 whether the timer is active, 2 number of OnTimer events defined. +
+{empty}• _npc_ (_str_, optional) name of the NPC to query.
+endif::[]
 +
 Returns _int_: the requested timer value.
 
 *setnpctimer*(_tick_[, _npc_])::
 Set the NPC timer to a number of milliseconds. The optional name picks another NPC; otherwise the script's own NPC is used.
 +
+ifdef::backend-html5[]
 * _tick_ (_timer_) the new timer value, in milliseconds.
 * _npc_ (_str_, optional) name of the NPC to act on.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _tick_ (_timer_) the new timer value, in milliseconds. +
+{empty}• _npc_ (_str_, optional) name of the NPC to act on.
+endif::[]
 
 *setnpcdirection*(_direction_, _sit_, _persistent_[, _npc_])::
 Set the facing direction and sitting state shown for an NPC. The optional name picks another NPC; otherwise the script's own NPC is used.
 +
+ifdef::backend-html5[]
 * _direction_ (_int_) the facing direction.
 * _sit_ (_bool_) nonzero to make the NPC sit.
 * _persistent_ (_bool_) nonzero to make the change persistent rather than per-viewer.
 * _npc_ (_str_, optional) name of the NPC to act on.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _direction_ (_int_) the facing direction. +
+{empty}• _sit_ (_bool_) nonzero to make the NPC sit. +
+{empty}• _persistent_ (_bool_) nonzero to make the change persistent rather than per-viewer. +
+{empty}• _npc_ (_str_, optional) name of the NPC to act on.
+endif::[]
 
 *npcaction*(_command_[, _target_, _x_, _y_])::
 Send a raw NPC client-action command to the attached player.
 +
+ifdef::backend-html5[]
 * _command_ (_int_) the client-action command code.
 * _target_ (_expr_, optional) a target being id, or an NPC name when the command is 2.
 * _x_ (_coordinate_, optional) an x coordinate for the command.
 * _y_ (_coordinate_, optional) a y coordinate for the command.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _command_ (_int_) the client-action command code. +
+{empty}• _target_ (_expr_, optional) a target being id, or an NPC name when the command is 2. +
+{empty}• _x_ (_coordinate_, optional) an x coordinate for the command. +
+{empty}• _y_ (_coordinate_, optional) a y coordinate for the command.
+endif::[]
 
 *camera*([_actor_, _x_, _y_])::
 Control the attached player's camera. With no arguments it returns the camera to the player. Two arguments move it to absolute coordinates. One or three arguments centre it on an actor.
 +
+ifdef::backend-html5[]
 * _actor_ (_expr_, optional) a being id, or one of rid/player, oid/npc, relative, or an NPC name; or an x coordinate when moving to absolute coordinates.
 * _x_ (_coordinate_, optional) x offset from the actor, or a y coordinate.
 * _y_ (_coordinate_, optional) y offset from the actor.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _actor_ (_expr_, optional) a being id, or one of rid/player, oid/npc, relative, or an NPC name; or an x coordinate when moving to absolute coordinates. +
+{empty}• _x_ (_coordinate_, optional) x offset from the actor, or a y coordinate. +
+{empty}• _y_ (_coordinate_, optional) y offset from the actor.
+endif::[]
 
 *announce*(_message_, _flag_)::
 Broadcast a message. The flag controls scope and styling: with the low bits clear it is a server-wide announcement; with bit 0x08 set it is limited to the running NPC's surroundings, otherwise to the player's.
 +
+ifdef::backend-html5[]
 * _message_ (_str_) the message text.
 * _flag_ (_int_) scope and styling flags.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _message_ (_str_) the message text. +
+{empty}• _flag_ (_int_) scope and styling flags.
+endif::[]
 
 *mapannounce*(_map_, _message_, _flag_)::
 Broadcast a message to every player on a map.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to broadcast on.
 * _message_ (_str_) the message text.
 * _flag_ (_int_) styling flags.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to broadcast on. +
+{empty}• _message_ (_str_) the message text. +
+{empty}• _flag_ (_int_) styling flags.
+endif::[]
 
 *getusers*(_flag_) -> int::
 Return a user count. Flag 1 returns the total players on the server; flag 0 is disabled (use getmapusers). Bit 0x08 selects the NPC rather than the player as the reference being.
 +
+ifdef::backend-html5[]
 * _flag_ (_int_) which count and reference being.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _flag_ (_int_) which count and reference being.
+endif::[]
 +
 Returns _int_: the requested user count.
 
 *getmapusers*(_map_) -> int::
 Return the number of players currently on a map.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to count players on.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to count players on.
+endif::[]
 +
 Returns _int_: the player count, or -1 if the map does not exist.
 
 *getareausers*(_map_, _x0_, _y0_, _x1_, _y1_[, _living_only_]) -> int::
 Return the number of players inside a rectangle on a map. Hidden players are never counted.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map holding the rectangle.
 * _x0_ (_coordinate_) x of one corner of the rectangle.
 * _y0_ (_coordinate_) y of one corner of the rectangle.
 * _x1_ (_coordinate_) x of the opposite corner.
 * _y1_ (_coordinate_) y of the opposite corner.
 * _living_only_ (_bool_, optional) nonzero to also exclude dead players.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map holding the rectangle. +
+{empty}• _x0_ (_coordinate_) x of one corner of the rectangle. +
+{empty}• _y0_ (_coordinate_) y of one corner of the rectangle. +
+{empty}• _x1_ (_coordinate_) x of the opposite corner. +
+{empty}• _y1_ (_coordinate_) y of the opposite corner. +
+{empty}• _living_only_ (_bool_, optional) nonzero to also exclude dead players.
+endif::[]
 +
 Returns _int_: the player count, or -1 if the map does not exist.
 
 *getareadropitem*(_map_, _x0_, _y0_, _x1_, _y1_, _item_[, _remove_]) -> int::
 Return the total quantity of floor items of a type lying inside a rectangle on a map.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map holding the rectangle.
 * _x0_ (_coordinate_) x of one corner of the rectangle.
 * _y0_ (_coordinate_) y of one corner of the rectangle.
@@ -741,55 +1216,110 @@ Return the total quantity of floor items of a type lying inside a rectangle on a
 * _y1_ (_coordinate_) y of the opposite corner.
 * _item_ (_item_) the item to count, by id or name.
 * _remove_ (_bool_, optional) nonzero to also remove the matched floor items.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map holding the rectangle. +
+{empty}• _x0_ (_coordinate_) x of one corner of the rectangle. +
+{empty}• _y0_ (_coordinate_) y of one corner of the rectangle. +
+{empty}• _x1_ (_coordinate_) x of the opposite corner. +
+{empty}• _y1_ (_coordinate_) y of the opposite corner. +
+{empty}• _item_ (_item_) the item to count, by id or name. +
+{empty}• _remove_ (_bool_, optional) nonzero to also remove the matched floor items.
+endif::[]
 +
 Returns _int_: the total quantity, or -1 if the map does not exist.
 
 *enablenpc*(_npc_)::
 Make a named NPC visible and interactive.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_) name of the NPC to enable.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_) name of the NPC to enable.
+endif::[]
 
 *disablenpc*(_npc_)::
 Make a named NPC invisible and non-interactive.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_) name of the NPC to disable.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_) name of the NPC to disable.
+endif::[]
 
 *sc_start*(_duration_, _status_, _value_[, _gid_])::
 Apply a status condition to a being for a duration. By default the attached player is affected. For a few legacy potion-style conditions a duration under one second is reinterpreted as seconds.
 +
+ifdef::backend-html5[]
 * _duration_ (_int_) duration in milliseconds.
 * _status_ (_status_) the status-condition id to apply.
 * _value_ (_int_) the value parameter for the condition.
 * _gid_ (_GID_, optional) being id to affect instead of the player.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _duration_ (_int_) duration in milliseconds. +
+{empty}• _status_ (_status_) the status-condition id to apply. +
+{empty}• _value_ (_int_) the value parameter for the condition. +
+{empty}• _gid_ (_GID_, optional) being id to affect instead of the player.
+endif::[]
 
 *sc_end*(_status_[, _gid_])::
 Remove a status condition from a being. By default the attached player is affected.
 +
+ifdef::backend-html5[]
 * _status_ (_int_) the status-condition id to remove.
 * _gid_ (_GID_, optional) being id to affect instead of the player.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _status_ (_int_) the status-condition id to remove. +
+{empty}• _gid_ (_GID_, optional) being id to affect instead of the player.
+endif::[]
 
 *sc_check*(_status_[, _gid_]) -> int::
 Test whether a status condition is currently active on a being. By default the attached player is checked.
 +
+ifdef::backend-html5[]
 * _status_ (_int_) the status-condition id to test.
 * _gid_ (_GID_, optional) being id to check instead of the player.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _status_ (_int_) the status-condition id to test. +
+{empty}• _gid_ (_GID_, optional) being id to check instead of the player.
+endif::[]
 +
 Returns _int_: nonzero if the condition is active.
 
 *debugmes*(_text_)::
 Print a message, with the current RID and OID, to the server log. For script debugging; nothing is shown to players.
 +
+ifdef::backend-html5[]
 * _text_ (_str_) the text to log.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _text_ (_str_) the text to log.
+endif::[]
 
 *wgm*(_message_)::
 Send a message, prefixed with [GM], as a whisper to all online GMs of at least the configured hack-info GM level.
 +
+ifdef::backend-html5[]
 * _message_ (_str_) the message to send.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _message_ (_str_) the message to send.
+endif::[]
 
 *gmlog*(_message_)::
 Write a message, prefixed with {SCRIPT}, to the GM/atcommand audit log, attributed to the attached player.
 +
+ifdef::backend-html5[]
 * _message_ (_str_) the message to log.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _message_ (_str_) the message to log.
+endif::[]
 
 *resetstatus*()::
 Reset the attached player's stat-point allocation, refunding spent points.
@@ -797,7 +1327,12 @@ Reset the attached player's stat-point allocation, refunding spent points.
 *attachrid*(_gid_) -> int::
 Attach a player to the script as the RID.
 +
+ifdef::backend-html5[]
 * _gid_ (_GID_) being id of the player to attach.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _gid_ (_GID_) being id of the player to attach.
+endif::[]
 +
 Returns _int_: 1 if such a player exists and is now attached, 0 otherwise.
 
@@ -807,79 +1342,148 @@ Detach the current player (RID) from the script, so following player- specific b
 *isloggedin*(_gid_) -> int::
 Test whether a player is currently online.
 +
+ifdef::backend-html5[]
 * _gid_ (_GID_) being id of the player to check.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _gid_ (_GID_) being id of the player to check.
+endif::[]
 +
 Returns _int_: 1 if the player is online, 0 otherwise.
 
 *setmapflag*(_map_, _flag_)::
 Set a map flag on a map.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to change.
 * _flag_ (_int_) the map-flag number to set.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to change. +
+{empty}• _flag_ (_int_) the map-flag number to set.
+endif::[]
 
 *removemapflag*(_map_, _flag_)::
 Clear a map flag on a map.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to change.
 * _flag_ (_int_) the map-flag number to clear.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to change. +
+{empty}• _flag_ (_int_) the map-flag number to clear.
+endif::[]
 
 *getmapflag*(_map_, _flag_) -> int::
 Return the state of a map flag on a map.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to query.
 * _flag_ (_int_) the map-flag number to read.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to query. +
+{empty}• _flag_ (_int_) the map-flag number to read.
+endif::[]
 +
 Returns _int_: the flag state (0 or 1), or -1 if the map does not exist.
 
 *pvpon*(_map_)::
 Enable PvP on a map (unless it has the nopvp flag). Players already on the map gain a PvP rank, unless server-wide pk-mode is on.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to enable PvP on.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to enable PvP on.
+endif::[]
 
 *pvpoff*(_map_)::
 Disable PvP on a map, cancelling the PvP ranking of players on it.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to disable PvP on.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to disable PvP on.
+endif::[]
 
 *setpvpchannel*(_channel_)::
 Set the attached player's PvP channel (values below 1 mean channel 0).
 +
+ifdef::backend-html5[]
 * _channel_ (_int_) the new PvP channel.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _channel_ (_int_) the new PvP channel.
+endif::[]
 
 *getpvpflag*(_type_[, _gid_]) -> int::
 Return a PvP-related flag for a player. The optional being id picks the player; otherwise the attached player is used.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) which flag: 0 the PvP channel, 1 whether the player is hidden.
 * _gid_ (_GID_, optional) being id of the player to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) which flag: 0 the PvP channel, 1 whether the player is hidden. +
+{empty}• _gid_ (_GID_, optional) being id of the player to query.
+endif::[]
 +
 Returns _int_: the requested PvP flag.
 
 *emotion*(_emote_[, _target_])::
 Show an emote. With a second argument naming a player, the emote is shown by the script's NPC towards that player; with the literal "self" it is shown by the attached player; otherwise by the NPC.
 +
+ifdef::backend-html5[]
 * _emote_ (_int_) the emote id, 0 to 200.
 * _target_ (_str_, optional) a player name, or "self".
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _emote_ (_int_) the emote id, 0 to 200. +
+{empty}• _target_ (_str_, optional) a player name, or "self".
+endif::[]
 
 *mapwarp*(_from_map_, _to_map_, _x_, _y_)::
 Warp every player on one map to a cell on another map.
 +
+ifdef::backend-html5[]
 * _from_map_ (_map_) the map to warp players from.
 * _to_map_ (_map_) the destination map name.
 * _x_ (_coordinate_) the destination x coordinate.
 * _y_ (_coordinate_) the destination y coordinate.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _from_map_ (_map_) the map to warp players from. +
+{empty}• _to_map_ (_map_) the destination map name. +
+{empty}• _x_ (_coordinate_) the destination x coordinate. +
+{empty}• _y_ (_coordinate_) the destination y coordinate.
+endif::[]
 
 *mobcount*(_map_, _event_) -> int::
 Return the number of monsters on a map whose death event matches. The count is reported one lower than the raw total.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to count monsters on.
 * _event_ (_event_) the death event to match.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to count monsters on. +
+{empty}• _event_ (_event_) the death event to match.
+endif::[]
 +
 Returns _int_: the monster count, or -1 if the map does not exist.
 
 *marriage*(_partner_) -> int::
 Marry the attached player to another player.
 +
+ifdef::backend-html5[]
 * _partner_ (_player_) name of the player to marry.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _partner_ (_player_) name of the player to marry.
+endif::[]
 +
 Returns _int_: 1 on success, 0 if a player is missing or the marriage fails.
 
@@ -891,7 +1495,12 @@ Returns _int_: 1 on success, 0 on failure.
 *getitemlink*(_item_) -> str::
 Return a clickable item-link string (the @@id|@@ form) for an item.
 +
+ifdef::backend-html5[]
 * _item_ (_item_) the item, by numeric id or name.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _item_ (_item_) the item, by numeric id or name.
+endif::[]
 +
 Returns _str_: the item-link string, or "Unknown Item" if it does not exist.
 
@@ -903,9 +1512,16 @@ Returns _int_: the partner's character id.
 *explode*(_dest_, _text_, _separator_)::
 Split a string on a single-character separator and store the pieces into an array. Pieces are stored as numbers unless dest is a string array.
 +
+ifdef::backend-html5[]
 * _dest_ (_var_) the array variable to fill.
 * _text_ (_str_) the string to split.
 * _separator_ (_str_) the single-character separator.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _dest_ (_var_) the array variable to fill. +
+{empty}• _text_ (_str_) the string to split. +
+{empty}• _separator_ (_str_) the single-character separator.
+endif::[]
 
 *getinventorylist*()::
 Copy the attached player's inventory into the temporary arrays @inventorylist_id, @inventorylist_amount and @inventorylist_equip, with the entry count in @inventorylist_count.
@@ -919,28 +1535,54 @@ Copy the attached player's known-but-not-activated pool skills into the temporar
 *poolskill*(_skill_)::
 Activate a pool skill for the attached player.
 +
+ifdef::backend-html5[]
 * _skill_ (_int_) the pool-skill id to activate.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _skill_ (_int_) the pool-skill id to activate.
+endif::[]
 
 *unpoolskill*(_skill_)::
 Deactivate a pool skill for the attached player.
 +
+ifdef::backend-html5[]
 * _skill_ (_int_) the pool-skill id to deactivate.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _skill_ (_int_) the pool-skill id to deactivate.
+endif::[]
 
 *misceffect*(_effect_[, _target_])::
 Display a miscellaneous visual effect. The optional target chooses where; with no target it falls back to the script's NPC, then the attached player.
 +
+ifdef::backend-html5[]
 * _effect_ (_int_) the effect type id.
 * _target_ (_expr_, optional) a player name or a being id to show it on.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _effect_ (_int_) the effect type id. +
+{empty}• _target_ (_expr_, optional) a player name or a being id to show it on.
+endif::[]
 
 *specialeffect*(_effect_)::
 Display a special effect on the script's NPC.
 +
+ifdef::backend-html5[]
 * _effect_ (_int_) the special-effect id.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _effect_ (_int_) the special-effect id.
+endif::[]
 
 *specialeffect2*(_effect_)::
 Display a special effect on the attached player.
 +
+ifdef::backend-html5[]
 * _effect_ (_int_) the special-effect id.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _effect_ (_int_) the special-effect id.
+endif::[]
 
 *nude*()::
 Unequip every item the attached player is wearing.
@@ -948,65 +1590,125 @@ Unequip every item the attached player is wearing.
 *unequipbyid*(_slot_)::
 Unequip whatever the attached player has in an equipment slot.
 +
+ifdef::backend-html5[]
 * _slot_ (_int_) an EQUIP slot id.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _slot_ (_int_) an EQUIP slot id.
+endif::[]
 
 *npcwarp*(_x_, _y_, _npc_)::
 Move a named NPC to a new cell on its current map. Out-of-bounds coordinates are ignored.
 +
+ifdef::backend-html5[]
 * _x_ (_coordinate_) the destination x coordinate.
 * _y_ (_coordinate_) the destination y coordinate.
 * _npc_ (_str_) name of the NPC to move.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _x_ (_coordinate_) the destination x coordinate. +
+{empty}• _y_ (_coordinate_) the destination y coordinate. +
+{empty}• _npc_ (_str_) name of the NPC to move.
+endif::[]
 
 *npcareawarp*(_x0_, _y0_, _x1_, _y1_, _walkable_, _npc_)::
 Move a named NPC to a random cell inside a rectangle on its current map.
 +
+ifdef::backend-html5[]
 * _x0_ (_coordinate_) x of one corner of the rectangle.
 * _y0_ (_coordinate_) y of one corner of the rectangle.
 * _x1_ (_coordinate_) x of the opposite corner.
 * _y1_ (_coordinate_) y of the opposite corner.
 * _walkable_ (_bool_) nonzero to require the chosen cell to be walkable.
 * _npc_ (_str_) name of the NPC to move.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _x0_ (_coordinate_) x of one corner of the rectangle. +
+{empty}• _y0_ (_coordinate_) y of one corner of the rectangle. +
+{empty}• _x1_ (_coordinate_) x of the opposite corner. +
+{empty}• _y1_ (_coordinate_) y of the opposite corner. +
+{empty}• _walkable_ (_bool_) nonzero to require the chosen cell to be walkable. +
+{empty}• _npc_ (_str_) name of the NPC to move.
+endif::[]
 
 *message*(_player_, _text_)::
 Send a plain chat message to a named player.
 +
+ifdef::backend-html5[]
 * _player_ (_player_) name of the recipient.
 * _text_ (_str_) the message text.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _player_ (_player_) name of the recipient. +
+{empty}• _text_ (_str_) the message text.
+endif::[]
 
 *npctalk*(_npc_, _text_[, _player_])::
 Make a named NPC say a line in local chat, shown to players around it. With a third argument naming a player, the line is shown only to that player.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_) name of the NPC that speaks.
 * _text_ (_str_) the line to say.
 * _player_ (_str_, optional) name of the only player to show it to.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_) name of the NPC that speaks. +
+{empty}• _text_ (_str_) the line to say. +
+{empty}• _player_ (_str_, optional) name of the only player to show it to.
+endif::[]
 
 *registercmd*(_invocation_, _event_)::
 Register a spell invocation so that when a player types it as a chat message the named NPC event runs. This is how the magic system binds chat phrases to scripts.
 +
+ifdef::backend-html5[]
 * _invocation_ (_str_) the chat phrase to register.
 * _event_ (_str_) the NPC event to run when it is typed.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _invocation_ (_str_) the chat phrase to register. +
+{empty}• _event_ (_str_) the NPC event to run when it is typed.
+endif::[]
 
 *title*(_text_)::
 Set the title-bar text of the script's NPC dialogue window for the attached player.
 +
+ifdef::backend-html5[]
 * _text_ (_str_) the title-bar text.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _text_ (_str_) the title-bar text.
+endif::[]
 
 *smsg*(_type_or_text_[, _text_, _player_])::
 Send a localized server message to a player. With one argument it is the message text; with two, the first is a numeric message type and the second the text.
 +
+ifdef::backend-html5[]
 * _type_or_text_ (_expr_) the message type, or the text when called with one argument.
 * _text_ (_expr_, optional) the message text.
 * _player_ (_expr_, optional) name of the recipient player.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_or_text_ (_expr_) the message type, or the text when called with one argument. +
+{empty}• _text_ (_expr_, optional) the message text. +
+{empty}• _player_ (_expr_, optional) name of the recipient player.
+endif::[]
 
 *remotecmd*(_command_[, _player_])::
 Send a remote command string to a player's client. The optional name picks the recipient; otherwise the attached player is used.
 +
+ifdef::backend-html5[]
 * _command_ (_str_) the remote command string.
 * _player_ (_expr_, optional) name of the recipient player.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _command_ (_str_) the remote command string. +
+{empty}• _player_ (_expr_, optional) name of the recipient player.
+endif::[]
 
 *sendcollision*(_map_, _mask_, _x_, _y_[, _x2_, _y2_, _player_])::
 Send a client-side collision update for a map. The required x, y give one corner; an optional second x, y pair gives the opposite corner of a rectangle.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to update.
 * _mask_ (_int_) the collision bitmask.
 * _x_ (_coordinate_) x of one corner.
@@ -1014,17 +1716,38 @@ Send a client-side collision update for a map. The required x, y give one corner
 * _x2_ (_coordinate_, optional) x of the opposite corner.
 * _y2_ (_coordinate_, optional) y of the opposite corner.
 * _player_ (_expr_, optional) name of the player to send to.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to update. +
+{empty}• _mask_ (_int_) the collision bitmask. +
+{empty}• _x_ (_coordinate_) x of one corner. +
+{empty}• _y_ (_coordinate_) y of one corner. +
+{empty}• _x2_ (_coordinate_, optional) x of the opposite corner. +
+{empty}• _y2_ (_coordinate_, optional) y of the opposite corner. +
+{empty}• _player_ (_expr_, optional) name of the player to send to.
+endif::[]
 
 *music*(_track_)::
 Change the background music for the attached player.
 +
+ifdef::backend-html5[]
 * _track_ (_str_) the music track to play.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _track_ (_str_) the music track to play.
+endif::[]
 
 *mapmask*(_mask_[, _store_])::
 Set the rendering mask for the attached player and send it to the client. With a second argument the mask is also stored on the current map.
 +
+ifdef::backend-html5[]
 * _mask_ (_int_) the rendering mask.
 * _store_ (_expr_, optional) present to also store the mask on the player's or NPC's map.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _mask_ (_int_) the rendering mask. +
+{empty}• _store_ (_expr_, optional) present to also store the mask on the player's or NPC's map.
+endif::[]
 
 *getmask*() -> int::
 Return the rendering mask of the current map, taken from the attached player's map, or the NPC's.
@@ -1034,20 +1757,31 @@ Returns _int_: the rendering mask, or -1 if neither is available.
 *getlook*(_type_) -> int::
 Return a cosmetic look value of the attached player.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) a LOOK type: hair, weapon, headgear, hair colour, clothes colour, shield.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) a LOOK type: hair, weapon, headgear, hair colour, clothes colour, shield.
+endif::[]
 +
 Returns _int_: the look value, or -1 for an unsupported type.
 
 *getsavepoint*(_type_) -> variant::
 Return part of the attached player's save (respawn) point.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) which part: 0 map name, 1 x coordinate, 2 y coordinate.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) which part: 0 map name, 1 x coordinate, 2 y coordinate.
+endif::[]
 +
 Returns _variant_: the requested part of the save point.
 
 *areatimer*(_type_, _map_, _x0_, _y0_, _x1_, _y1_, _delay_, _event_)::
 Schedule an NPC event to run after a delay for every player inside a rectangle on a map.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) being-type selector; must be 0 (players).
 * _map_ (_map_) the map holding the rectangle.
 * _x0_ (_coordinate_) x of one corner of the rectangle.
@@ -1056,10 +1790,22 @@ Schedule an NPC event to run after a delay for every player inside a rectangle o
 * _y1_ (_coordinate_) y of the opposite corner.
 * _delay_ (_timer_) delay in milliseconds before the event runs.
 * _event_ (_event_) the NPC event to schedule.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) being-type selector; must be 0 (players). +
+{empty}• _map_ (_map_) the map holding the rectangle. +
+{empty}• _x0_ (_coordinate_) x of one corner of the rectangle. +
+{empty}• _y0_ (_coordinate_) y of one corner of the rectangle. +
+{empty}• _x1_ (_coordinate_) x of the opposite corner. +
+{empty}• _y1_ (_coordinate_) y of the opposite corner. +
+{empty}• _delay_ (_timer_) delay in milliseconds before the event runs. +
+{empty}• _event_ (_event_) the NPC event to schedule.
+endif::[]
 
 *foreach*(_type_, _map_, _x0_, _y0_, _x1_, _y1_, _event_[, _caster_])::
 Run an NPC event once for every being inside a rectangle on a map. Each invocation gets the matched being's id in @target_id.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) being type: 0 players, 1 NPCs, 2 monsters, 3 everything.
 * _map_ (_map_) the map holding the rectangle.
 * _x0_ (_coordinate_) x of one corner of the rectangle.
@@ -1068,31 +1814,63 @@ Run an NPC event once for every being inside a rectangle on a map. Each invocati
 * _y1_ (_coordinate_) y of the opposite corner.
 * _event_ (_event_) the NPC event to run.
 * _caster_ (_GID_, optional) being id of the caster; defaults to the attached player.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) being type: 0 players, 1 NPCs, 2 monsters, 3 everything. +
+{empty}• _map_ (_map_) the map holding the rectangle. +
+{empty}• _x0_ (_coordinate_) x of one corner of the rectangle. +
+{empty}• _y0_ (_coordinate_) y of one corner of the rectangle. +
+{empty}• _x1_ (_coordinate_) x of the opposite corner. +
+{empty}• _y1_ (_coordinate_) y of the opposite corner. +
+{empty}• _event_ (_event_) the NPC event to run. +
+{empty}• _caster_ (_GID_, optional) being id of the caster; defaults to the attached player.
+endif::[]
 
 *isin*(_map_, _x0_, _y0_, _x1_, _y1_) -> int::
 Test whether the attached player is inside a rectangle on a map.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map holding the rectangle.
 * _x0_ (_coordinate_) x of one corner of the rectangle.
 * _y0_ (_coordinate_) y of one corner of the rectangle.
 * _x1_ (_coordinate_) x of the opposite corner.
 * _y1_ (_coordinate_) y of the opposite corner.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map holding the rectangle. +
+{empty}• _x0_ (_coordinate_) x of one corner of the rectangle. +
+{empty}• _y0_ (_coordinate_) y of one corner of the rectangle. +
+{empty}• _x1_ (_coordinate_) x of the opposite corner. +
+{empty}• _y1_ (_coordinate_) y of the opposite corner.
+endif::[]
 +
 Returns _int_: 1 if the player is inside the rectangle, 0 otherwise.
 
 *iscollision*(_map_, _x_, _y_) -> int::
 Test whether a map cell is unwalkable (a collision cell).
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to test.
 * _x_ (_coordinate_) the x coordinate to test.
 * _y_ (_coordinate_) the y coordinate to test.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to test. +
+{empty}• _x_ (_coordinate_) the x coordinate to test. +
+{empty}• _y_ (_coordinate_) the y coordinate to test.
+endif::[]
 +
 Returns _int_: 1 if the cell is unwalkable, 0 otherwise.
 
 *shop*(_npc_)::
 Close the current dialogue and open the buy/sell window of a shop NPC for the attached player.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_) name of the shop NPC.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_) name of the shop NPC.
+endif::[]
 
 *isdead*() -> int::
 Test whether the attached player is dead.
@@ -1102,26 +1880,45 @@ Returns _int_: 1 if the player is dead, 0 otherwise.
 *aggravate*(_gid_[, _target_])::
 Make a monster become aggressive towards a target. By default the target is the attached player.
 +
+ifdef::backend-html5[]
 * _gid_ (_GID_) being id of the monster.
 * _target_ (_GID_, optional) being id of the target to aggravate against.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _gid_ (_GID_) being id of the monster. +
+{empty}• _target_ (_GID_, optional) being id of the target to aggravate against.
+endif::[]
 
 *issummon*(_gid_) -> int::
 Test whether a monster is a summoned creature.
 +
+ifdef::backend-html5[]
 * _gid_ (_GID_) being id of the monster.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _gid_ (_GID_) being id of the monster.
+endif::[]
 +
 Returns _int_: 1 if the monster is summoned, 0 otherwise.
 
 *fakenpcname*(_npc_, _newname_, _sprite_)::
 Rename a named NPC and change its sprite, then refresh it.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_) name of the NPC to change.
 * _newname_ (_str_) the new NPC name.
 * _sprite_ (_int_) the new sprite species id.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_) name of the NPC to change. +
+{empty}• _newname_ (_str_) the new NPC name. +
+{empty}• _sprite_ (_int_) the new sprite species id.
+endif::[]
 
 *puppet*(_sprite_, _x_, _y_, _name_, _map_[, _half_width_, _half_height_]) -> int::
 Create a temporary NPC (a "puppet") with a sprite. It inherits the labels of the calling NPC.
 +
+ifdef::backend-html5[]
 * _sprite_ (_mob_) the puppet's sprite species id.
 * _x_ (_coordinate_) the puppet's x coordinate.
 * _y_ (_coordinate_) the puppet's y coordinate.
@@ -1129,13 +1926,28 @@ Create a temporary NPC (a "puppet") with a sprite. It inherits the labels of the
 * _map_ (_int_) the map name for the puppet.
 * _half_width_ (_int_, optional) touch-area half-width.
 * _half_height_ (_int_, optional) touch-area half-height.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _sprite_ (_mob_) the puppet's sprite species id. +
+{empty}• _x_ (_coordinate_) the puppet's x coordinate. +
+{empty}• _y_ (_coordinate_) the puppet's y coordinate. +
+{empty}• _name_ (_str_) the puppet's NPC name. +
+{empty}• _map_ (_int_) the map name for the puppet. +
+{empty}• _half_width_ (_int_, optional) touch-area half-width. +
+{empty}• _half_height_ (_int_, optional) touch-area half-height.
+endif::[]
 +
 Returns _int_: the new NPC's being id, or 0 if the name is already in use.
 
 *destroy*([_gid_])::
 Destroy a temporary NPC. With no argument the script's own NPC is destroyed and the script ends; with a being id that NPC is destroyed instead. Only script-subtype NPCs can be destroyed.
 +
+ifdef::backend-html5[]
 * _gid_ (_GID_, optional) being id of the NPC to destroy.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _gid_ (_GID_, optional) being id of the NPC to destroy.
+endif::[]
 
 *getx*() -> int::
 Return the x coordinate of the attached player.
@@ -1155,64 +1967,110 @@ Returns _int_: the player's facing direction.
 *getnpcx*([_npc_]) -> int::
 Return the x coordinate of an NPC.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_, optional) name of the NPC; defaults to the script's own NPC.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_, optional) name of the NPC; defaults to the script's own NPC.
+endif::[]
 +
 Returns _int_: the NPC's x coordinate.
 
 *getnpcy*([_npc_]) -> int::
 Return the y coordinate of an NPC.
 +
+ifdef::backend-html5[]
 * _npc_ (_str_, optional) name of the NPC; defaults to the script's own NPC.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _npc_ (_str_, optional) name of the NPC; defaults to the script's own NPC.
+endif::[]
 +
 Returns _int_: the NPC's y coordinate.
 
 *strnpcinfo*(_type_[, _npc_]) -> str::
 Return a string about an NPC. The optional argument picks another NPC; otherwise the script's own NPC is used.
 +
+ifdef::backend-html5[]
 * _type_ (_int_) which string: 0 full name, 1 visible name (before any '#'), 2 hidden part (from the '#' on), 3 map name.
 * _npc_ (_expr_, optional) an NPC name or being id to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _type_ (_int_) which string: 0 full name, 1 visible name (before any '#'), 2 hidden part (from the '#' on), 3 map name. +
+{empty}• _npc_ (_expr_, optional) an NPC name or being id to query.
+endif::[]
 +
 Returns _str_: the requested string.
 
 *getmap*([_gid_]) -> str::
 Return the name of the map a player is on. The optional being id picks the player; otherwise the attached player is used.
 +
+ifdef::backend-html5[]
 * _gid_ (_GID_, optional) being id of the player to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _gid_ (_GID_, optional) being id of the player to query.
+endif::[]
 +
 Returns _str_: the map name, or an empty string if unavailable.
 
 *getmapmaxx*(_map_) -> int::
 Return the highest valid x coordinate of a map (its width minus one).
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to query.
+endif::[]
 +
 Returns _int_: the maximum x coordinate.
 
 *getmapmaxy*(_map_) -> int::
 Return the highest valid y coordinate of a map (its height minus one).
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to query.
+endif::[]
 +
 Returns _int_: the maximum y coordinate.
 
 *getmaphash*(_map_) -> int::
 Return the numeric hash identifying a map.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map to query.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map to query.
+endif::[]
 +
 Returns _int_: the map's hash.
 
 *getmapnamefromhash*(_hash_) -> str::
 Return the name of the map with a given hash.
 +
+ifdef::backend-html5[]
 * _hash_ (_int_) the map hash to look up.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _hash_ (_int_) the map hash to look up.
+endif::[]
 +
 Returns _str_: the map name, or an empty string if none matches.
 
 *mapexists*(_map_) -> int::
 Test whether a map is loaded.
 +
+ifdef::backend-html5[]
 * _map_ (_map_) the map name to test.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _map_ (_map_) the map name to test.
+endif::[]
 +
 Returns _int_: 1 if the map is loaded, 0 otherwise.
 
@@ -1224,7 +2082,12 @@ Returns _int_: the number of loaded maps.
 *getmapnamebyindex*(_index_) -> str::
 Return the name of the map at a position in the server's map list.
 +
+ifdef::backend-html5[]
 * _index_ (_int_) the index into the map list.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _index_ (_int_) the index into the map list.
+endif::[]
 +
 Returns _str_: the map name, or an empty string if the index is out of range.
 
@@ -1234,99 +2097,174 @@ Shut the map server down, clearing the run flag and ending the main loop.
 *freeloop*(_enable_)::
 Enable or disable free-looping for the current script, lifting the normal instruction-count limit that guards against runaway loops.
 +
+ifdef::backend-html5[]
 * _enable_ (_bool_) 1 to enable free-looping, any other value to disable it.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _enable_ (_bool_) 1 to enable free-looping, any other value to disable it.
+endif::[]
 
 *if_then_else*(_condition_, _if_true_, _if_false_) -> variant::
 Return one of two values depending on a condition. Both branches are evaluated.
 +
+ifdef::backend-html5[]
 * _condition_ (_int_) the condition to test.
 * _if_true_ (_int_) the value to return when the condition is nonzero.
 * _if_false_ (_int_) the value to return otherwise.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _condition_ (_int_) the condition to test. +
+{empty}• _if_true_ (_int_) the value to return when the condition is nonzero. +
+{empty}• _if_false_ (_int_) the value to return otherwise.
+endif::[]
 +
 Returns _variant_: the chosen value.
 
 *max*(_value_[, _more_...]) -> int::
 Return the largest of the integer arguments. Called with a single array variable, it returns the largest element of that array.
 +
+ifdef::backend-html5[]
 * _value_ (_expr_) an integer, or a single array variable.
 * _more_ (_expr_, repeatable) further integers to compare.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _value_ (_expr_) an integer, or a single array variable. +
+{empty}• _more_ (_expr_, repeatable) further integers to compare.
+endif::[]
 +
 Returns _int_: the largest value.
 
 *min*(_value_[, _more_...]) -> int::
 Return the smallest of the integer arguments. Called with a single array variable, it returns the smallest element of that array.
 +
+ifdef::backend-html5[]
 * _value_ (_expr_) an integer, or a single array variable.
 * _more_ (_expr_, repeatable) further integers to compare.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _value_ (_expr_) an integer, or a single array variable. +
+{empty}• _more_ (_expr_, repeatable) further integers to compare.
+endif::[]
 +
 Returns _int_: the smallest value.
 
 *average*(_value_[, _more_...]) -> int::
 Return the integer (truncated) average of the integer arguments.
 +
+ifdef::backend-html5[]
 * _value_ (_int_) the first integer.
 * _more_ (_int_, repeatable) further integers to average.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _value_ (_int_) the first integer. +
+{empty}• _more_ (_int_, repeatable) further integers to average.
+endif::[]
 +
 Returns _int_: the truncated average.
 
 *sqrt*(_value_) -> int::
 Return the integer square root of a number.
 +
+ifdef::backend-html5[]
 * _value_ (_int_) the number to take the root of.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _value_ (_int_) the number to take the root of.
+endif::[]
 +
 Returns _int_: the integer square root.
 
 *cbrt*(_value_) -> int::
 Return the integer cube root of a number.
 +
+ifdef::backend-html5[]
 * _value_ (_int_) the number to take the root of.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _value_ (_int_) the number to take the root of.
+endif::[]
 +
 Returns _int_: the integer cube root.
 
 *pow*(_base_, _exponent_) -> int::
 Return one integer raised to the power of another, truncated to an integer.
 +
+ifdef::backend-html5[]
 * _base_ (_int_) the base.
 * _exponent_ (_int_) the exponent.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _base_ (_int_) the base. +
+{empty}• _exponent_ (_int_) the exponent.
+endif::[]
 +
 Returns _int_: base raised to the exponent.
 
 *target*(_source_, _target_, _tests_) -> int::
 Test the relationship between two beings and return a bitmask of the requested tests that passed.
 +
+ifdef::backend-html5[]
 * _source_ (_GID_) being id of the source.
 * _target_ (_GID_) being id of the target.
 * _tests_ (_int_) which tests to run: 0x01 within view range, 0x02 within attack range, 0x04 a clear walk path exists, 0x10 attackable by the source, 0x20 in line of sight.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _source_ (_GID_) being id of the source. +
+{empty}• _target_ (_GID_) being id of the target. +
+{empty}• _tests_ (_int_) which tests to run: 0x01 within view range, 0x02 within attack range, 0x04 a clear walk path exists, 0x10 attackable by the source, 0x20 in line of sight.
+endif::[]
 +
 Returns _int_: a bitmask of the tests that passed.
 
 *distance*(_a_, _b_[, _mode_]) -> int::
 Return the straight-line (Pythagorean) distance between two beings. Beings on different maps are reported as a very large distance.
 +
+ifdef::backend-html5[]
 * _a_ (_GID_) being id of the first being.
 * _b_ (_GID_) being id of the second being.
 * _mode_ (_int_, optional) distance mode; only mode 0 is implemented.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _a_ (_GID_) being id of the first being. +
+{empty}• _b_ (_GID_) being id of the second being. +
+{empty}• _mode_ (_int_, optional) distance mode; only mode 0 is implemented.
+endif::[]
 +
 Returns _int_: the distance between the beings.
 
 *chr*(_code_) -> str::
 Return a one-character string whose single byte has a given ASCII code.
 +
+ifdef::backend-html5[]
 * _code_ (_int_) the ASCII code.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _code_ (_int_) the ASCII code.
+endif::[]
 +
 Returns _str_: the one-character string.
 
 *ord*(_text_) -> int::
 Return the ASCII code of the first character of a string.
 +
+ifdef::backend-html5[]
 * _text_ (_str_) the string to inspect.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _text_ (_str_) the string to inspect.
+endif::[]
 +
 Returns _int_: the ASCII code of the first character.
 
 *l*([_text_...]) -> str::
 Return a translatable string. Currently a pass-through: the translation lookup and argument substitution are not implemented in this server, so it returns its argument unchanged.
 +
+ifdef::backend-html5[]
 * _text_ (_str_, repeatable) the translatable string and substitution arguments.
+endif::[]
+ifdef::backend-manpage[]
+{empty}• _text_ (_str_, repeatable) the translatable string and substitution arguments.
+endif::[]
 +
 Returns _str_: the (untranslated) string.
 //<<< GENERATED-BUILTIN-LIST

@@ -293,10 +293,13 @@ if(ASCIIDOCTOR)
     list(APPEND TMWA_MANPAGE_OUTPUTS "${man_out}")
 
     # HTML version, same source (built only via the optional doc-html target).
+    # docinfo=shared pulls in doc/docinfo.html, which carries the stylesheet
+    # overrides that keep lists tight.
     add_custom_command(
       OUTPUT "${html_out}"
-      COMMAND ${ASCIIDOCTOR} -b html5 -o "${html_out}" "${adoc_src}"
-      DEPENDS "${adoc_src}"
+      COMMAND ${ASCIIDOCTOR} -b html5 -a docinfo=shared
+              -o "${html_out}" "${adoc_src}"
+      DEPENDS "${adoc_src}" "${CMAKE_CURRENT_SOURCE_DIR}/doc/docinfo.html"
       COMMENT "Generating HTML doc ${man_name}.html"
       VERBATIM
     )
