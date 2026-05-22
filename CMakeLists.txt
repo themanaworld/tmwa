@@ -234,3 +234,93 @@ install(FILES share/tmwa/shared.data DESTINATION ${CMAKE_INSTALL_DATADIR}/tmwa)
 
 # Make sure there is a var directory
 install(DIRECTORY DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/tmwa)
+
+# ----------------------------------------------------------------------------
+# Documentation: AsciiDoc man pages
+#
+# asciidoctor is a SOFT dependency.  When it is not installed the man pages
+# are simply skipped, so a plain server build never breaks.
+#
+# Note: the comment near the top of this file (about add_custom_command()
+# "won't work") is scoped specifically to the generated protocol/config
+# headers, which are produced by raw Makefile rules in generate.mk during the
+# CMake *configure* step.  An ordinary build-time add_custom_command(), as
+# used below, works fine.
+# ----------------------------------------------------------------------------
+
+find_program(ASCIIDOCTOR asciidoctor)
+
+# Each entry: <source>.adoc  ->  <name>.<section>
+# The man section is the number just before ".adoc" in the file name.
+set(TMWA_MANPAGE_SOURCES
+  doc/tmwa-script.7.adoc
+  doc/tmwa-map.1.adoc
+)
+
+if(ASCIIDOCTOR)
+  message(STATUS "asciidoctor found: ${ASCIIDOCTOR}; man pages will be built")
+
+  set(TMWA_MANPAGE_OUTPUTS)
+  set(TMWA_HTMLDOC_OUTPUTS)
+
+  foreach(adoc IN LISTS TMWA_MANPAGE_SOURCES)
+    get_filename_component(adoc_name "${adoc}" NAME)        # tmwa-script.7.adoc
+    string(REGEX REPLACE "\\.adoc$" "" man_name "${adoc_name}")  # tmwa-script.7
+    string(REGEX REPLACE ".*\\.([0-9])$" "\\1" man_section "${man_name}")
+
+    set(man_out "${CMAKE_CURRENT_BINARY_DIR}/${man_name}")
+    set(html_out "${CMAKE_CURRENT_BINARY_DIR}/${man_name}.html")
+    set(adoc_src "${CMAKE_CURRENT_SOURCE_DIR}/${adoc}")
+
+    # Man page (built as part of ALL via the doc target below).
+    add_custom_command(
+      OUTPUT "${man_out}"
+      COMMAND ${ASCIIDOCTOR} -b manpage -o "${man_out}" "${adoc_src}"
+      DEPENDS "${adoc_src}"
+      COMMENT "Generating man page ${man_name}"
+      VERBATIM
+    )
+    list(APPEND TMWA_MANPAGE_OUTPUTS "${man_out}")
+
+    # HTML version, same source (built only via the optional doc-html target).
+    add_custom_command(
+      OUTPUT "${html_out}"
+      COMMAND ${ASCIIDOCTOR} -b html5 -o "${html_out}" "${adoc_src}"
+      DEPENDS "${adoc_src}"
+      COMMENT "Generating HTML doc ${man_name}.html"
+      VERBATIM
+    )
+    list(APPEND TMWA_HTMLDOC_OUTPUTS "${html_out}")
+
+    install(FILES "${man_out}"
+      DESTINATION "${CMAKE_INSTALL_MANDIR}/man${man_section}")
+  endforeach()
+
+  # Built by default so the man pages stay current with the sources.
+  add_custom_target(doc ALL DEPENDS ${TMWA_MANPAGE_OUTPUTS})
+
+  # Opt-in: `cmake --build . --target doc-html` for the online version.
+  add_custom_target(doc-html DEPENDS ${TMWA_HTMLDOC_OUTPUTS})
+else()
+  message(STATUS
+    "asciidoctor not found; skipping man pages "
+    "(install asciidoctor to build and install documentation)")
+endif()
+
+# Drift check: fail if builtin_functions[] in src/map/script-fun.cpp and the
+# documented builtins in doc/tmwa-script.7.adoc disagree.  This runs under
+# ctest and needs no build artifacts, so it is registered whenever testing is
+# enabled, independent of asciidoctor.
+if(TMWA_BUILD_TESTS)
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_Interpreter_FOUND)
+    add_test(
+      NAME script-docs-drift
+      COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_script_docs.py"
+    )
+  else()
+    message(STATUS
+      "python3 not found; skipping the script-docs-drift test")
+  endif()
+endif()
