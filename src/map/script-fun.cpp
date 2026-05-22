@@ -5956,15 +5956,11 @@ void builtin_setunitdata(ScriptState *st)
             else ok = false;
             break;
         case UnitData::SPEED:
-            if (sd)
-            {
-                sd->speed = static_cast<interval_t>(val);
-                pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
-            }
-            else if (md)
-                md->stats[mob_stat::SPEED] = val;
-            else if (nd)
-                nd->speed = static_cast<interval_t>(val);
+            // pc_setparam handles the PC quirk: speed is normally derived
+            // by pc_calcstatus, so it is set directly (clamped) like @speed
+            // rather than recalculated, which would discard the value.
+            if (sd || md || nd)
+                pc_setparam(bl, SP::SPEED, val);
             else
                 ok = false;
             break;

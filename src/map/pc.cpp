@@ -3940,8 +3940,12 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
     switch (type)
     {
         case SP::BASELEVEL:
+            if (md)
+            {
+                md->stats[mob_stat::LV] = val;
+                break;
+            }
             nullpo_retz(sd);
-            // TODO: mob mutation
             if (val > sd->status.base_level)
             {
                 if (val > MAX_LEVEL)
@@ -4076,13 +4080,21 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
             break;
         case SP::HP:
+            if (md)
+            {
+                md->hp = val;
+                break;
+            }
             nullpo_retz(sd);
-            // TODO: mob mutation
             pc_heal(sd, (val - sd->status.hp), 0);
             break;
         case SP::MAXHP:
+            if (md)
+            {
+                md->stats[mob_stat::MAX_HP] = val;
+                break;
+            }
             nullpo_retz(sd);
-            // TODO: mob mutation
             sd->status.max_hp = val;
             clif_updatestatus(sd, type);
             break;
@@ -4102,9 +4114,50 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
         case SP::INT:
         case SP::DEX:
         case SP::LUK:
+            if (md)
+            {
+                // mob_stat STR..LUK are contiguous in the same order as ATTR
+                md->stats[mob_stat(static_cast<int>(mob_stat::STR)
+                        + static_cast<int>(sp_to_attr(type)))] = val;
+                break;
+            }
             nullpo_retz(sd);
-            // TODO: mob mutation
             pc_statusup2(sd, type, (val - sd->status.attrs[sp_to_attr(type)]));
+            break;
+        case SP::SPEED:
+            if (md)
+            {
+                md->stats[mob_stat::SPEED] = val;
+                break;
+            }
+            if (nd)
+            {
+                nd->speed = static_cast<interval_t>(val);
+                break;
+            }
+            nullpo_retz(sd);
+            // PC speed is normally derived by pc_calcstatus; like the @speed
+            // command, set it directly (clamped) and notify the client. The
+            // value holds until the next pc_calcstatus (equip change, etc.).
+            sd->speed = std::min(std::max(static_cast<interval_t>(val),
+                        MIN_WALK_SPEED), MAX_WALK_SPEED);
+            clif_updatestatus(sd, SP::SPEED);
+            break;
+        case SP::ATK1:
+            if (md)
+                md->stats[mob_stat::ATK1] = val;
+            break;
+        case SP::ATK2:
+            if (md)
+                md->stats[mob_stat::ATK2] = val;
+            break;
+        case SP::DEF1:
+            if (md)
+                md->stats[mob_stat::DEF] = val;
+            break;
+        case SP::MDEF1:
+            if (md)
+                md->stats[mob_stat::MDEF] = val;
             break;
         case SP::PARTNER:
             if (sd)
