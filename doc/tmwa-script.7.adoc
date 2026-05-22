@@ -164,526 +164,780 @@ variadic markers), not argument *type*.
 
 //>>> GENERATED-BUILTIN-LIST
 *mes*([_expr_])::
-  TODO: describe this builtin.
+  Print a line of dialogue in the NPC message box of the attached player. With
+  no argument an empty line is printed. The text stays on screen until *next*,
+  *menu*, *close* or *clear* is reached.
 
 *mesq*([_expr_])::
-  TODO: describe this builtin.
+  Like *mes*, but the line is wrapped in double quotes before being sent. A
+  convenience for quoting spoken text.
 
 *mesn*([_expr_])::
-  TODO: describe this builtin.
+  Like *mes*, but the line is wrapped in square brackets. With no argument the
+  NPC's own visible name (the part before any `#`) is used, so `mesn;` prints
+  a `[Name]` speaker header.
 
 *clear*()::
-  TODO: describe this builtin.
+  Clear the NPC dialogue window of the attached player without ending the
+  script, so following *mes* lines start from a blank box.
 
 *goto*(_label_)::
-  TODO: describe this builtin.
+  Jump unconditionally to _label_, a label in the current script. Execution
+  continues there.
 
 *callfunc*(_func_)::
-  TODO: describe this builtin.
+  Call the user-defined `function` object named by _func_ (a string). Control
+  transfers to the function; *return* comes back here. This form passes no
+  arguments; use *call* to pass arguments.
 
 *call*(_func_[, _expr_...]) -> variant (may be absent)::
-  TODO: describe this builtin.
+  Call a user-defined `function` (when _func_ is a string naming one) or a
+  script position, passing the remaining arguments. The arguments are readable
+  inside the callee with *getarg*. The value passed to *return* becomes this
+  expression's result.
 
 *callsub*(_label_)::
-  TODO: describe this builtin.
+  Call a subroutine: transfer control to _label_ in the current script,
+  pushing a return frame so a later *return* resumes after this call.
 
 *getarg*(_int_[, _expr_]) -> variant (int or str)::
-  TODO: describe this builtin.
+  Return argument number _int_ (0-based) passed to the current function or
+  subroutine by *call* or *callsub*. If the index is out of range, the
+  optional second argument is returned instead, or an ETX (0x03) marker string
+  when no default is given.
 
 *return*([_expr_])::
-  TODO: describe this builtin.
+  Return from the current *callfunc*, *call* or *callsub*. If an argument is
+  given it becomes the call's result value. Using *return* outside a call
+  frame is deprecated and logs a warning.
 
 *void*([_expr_...])::
-  TODO: describe this builtin.
+  Evaluate and discard its arguments. Used to call an expression-valued
+  builtin purely for its side effects.
 
 *next*()::
-  TODO: describe this builtin.
+  Suspend the script and show a "next" button in the player's dialogue window.
+  The script resumes when the player clicks it.
 
 *close*()::
-  TODO: describe this builtin.
+  End the script and close the player's dialogue window. Using *close* inside
+  a *callfunc*/*callsub* frame is deprecated.
 
 *close2*()::
-  TODO: describe this builtin.
+  Close the player's dialogue window but keep the script suspended rather than
+  ending it, so execution can continue after the player dismisses the window.
 
 *menu*(_str_, _label_...)::
-  TODO: describe this builtin.
+  Show a selection menu to the player. Arguments come in pairs: a choice
+  string and the _label_ to jump to if it is chosen. An empty choice string
+  ends the displayed list. The script suspends; when the player picks an entry
+  it jumps to the matching label, and the 1-based choice index is stored in
+  `@menu`. Cancelling ends the script.
 
 *rand*(_int_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return a random integer. With one argument, a value in the range 0..._int_-1
+  (0 if _int_ is not positive). With two arguments, a value between the two
+  bounds inclusive (the bounds are swapped if given out of order).
 
 *isat*(_map_, _x_, _y_) -> int::
-  TODO: describe this builtin.
+  Return 1 if the attached player is standing on map _map_ at exactly (_x_,
+  _y_), 0 otherwise.
 
 *warp*(_map_, _x_, _y_)::
-  TODO: describe this builtin.
+  Teleport the attached player to map _map_ at (_x_, _y_). The warp is refused
+  if the source map has the `nowarp` flag or the destination has `nowarpto`,
+  unless the player is a GM of sufficient level.
 
 *areawarp*(_map_, _x_, _y_, _x_, _y_, _map_, _x_, _y_)::
-  TODO: describe this builtin.
+  Warp every player inside the rectangle (_x_,_y_) to (_x_,_y_) on the first
+  map to the destination map at the final (_x_, _y_). The same
+  `nowarp`/`nowarpto` GM-level restrictions as *warp* apply per player.
 
 *heal*(_int_, _int_[, _expr_])::
-  TODO: describe this builtin.
+  Restore _hp_ hit points and _sp_ spell points to the attached player
+  (negative values subtract). A dead player healed for positive HP is
+  resurrected. If the optional third argument is nonzero the healing is
+  treated as item healing (subject to healing modifiers).
 
 *injure*(_int_, _int_, _int_)::
-  TODO: describe this builtin.
+  Deal _damage_ points of damage to the being whose id is the second argument,
+  attributed to the being whose id is the first. The damage is shown to
+  clients and may kill (and free) the target.
 
 *input*(_var_)::
-  TODO: describe this builtin.
+  Prompt the attached player for input and store the result in _var_. A string
+  variable (name ending in `$`) opens a text prompt; a numeric variable opens
+  a number prompt. The script suspends until the player answers. A negative
+  numeric answer cancels the dialogue.
 
 *requestitem*(_var_[, _expr_])::
-  TODO: describe this builtin.
+  Prompt the attached player to choose items from their inventory and store
+  the chosen item ids (or names, if _var_ is a string array) into the array
+  _var_. The optional second argument is how many items to request (1 to 16,
+  default 1). The script suspends until the player answers.
 
 *requestlang*(_var_)::
-  TODO: describe this builtin.
+  Prompt the attached player for their client language and store the answer in
+  the string variable _var_. The script suspends until the client replies.
 
 *if*(_int_, _func_...)::
-  TODO: describe this builtin.
+  If _int_ is nonzero, call _func_ with the remaining arguments. Records the
+  test result so a following *elif* or *else* can react to it.
 
 *elif*(_int_, _func_...)::
-  TODO: describe this builtin.
+  Continuation of an *if* chain: if no earlier branch was taken and _int_ is
+  nonzero, call _func_ with the remaining arguments.
 
 *else*(_func_...)::
-  TODO: describe this builtin.
+  Continuation of an *if* chain: if no earlier *if*/*elif* branch was taken,
+  call _func_ with the remaining arguments.
 
 *set*(_var_, _expr_[, _expr_])::
-  TODO: describe this builtin.
+  Assign _expr_ to the variable or player parameter _var_. The optional third
+  argument selects whose copy of the variable to write: a character name or id
+  for player-scope variables, an NPC name or id for NPC-scope (`.`) variables.
 
 *get*(_var_, _expr_) -> variant (int or str)::
-  TODO: describe this builtin.
+  Read the variable or player parameter _var_ belonging to the being named by
+  _expr_ (a character name or id, or an NPC name or id for NPC-scope
+  variables) and return its value. Returns 0 or an empty string when the
+  target cannot be found.
 
 *setarray*(_var_, _expr_...)::
-  TODO: describe this builtin.
+  Fill the array _var_ starting at its given index with the listed values. For
+  an NPC-scope (`.`) array the second argument is instead the NPC to target
+  and the values follow.
 
 *cleararray*(_var_, _expr_, _int_)::
-  TODO: describe this builtin.
+  Set the first _int_ elements of array _var_ to the value _expr_.
 
 *getarraysize*(_var_) -> int::
-  TODO: describe this builtin.
+  Return the size of array _var_: one past the index of its last nonzero or
+  non-empty element.
 
 *getelementofarray*(_var_, _int_) -> variant (int or str)::
-  TODO: describe this builtin.
+  Return element _int_ of the array _var_ as a variable reference, the runtime
+  form of the `var[index]` subscript syntax. Indices outside 0...255 yield 0.
 
 *array_search*(_expr_, _var_) -> int::
-  TODO: describe this builtin.
+  Search array _var_ for the value _expr_ and return the index of the first
+  match, or -1 if the value is not present.
 
 *setlook*(_int_, _int_)::
-  TODO: describe this builtin.
+  Change a cosmetic look value of the attached player. The first argument is a
+  `LOOK` type (hair, weapon sprite, hair colour, and so on) and the second is
+  the new value.
 
 *countitem*(_item_) -> int::
-  TODO: describe this builtin.
+  Return how many of item _item_ (by id or name) the attached player carries
+  in their inventory.
 
 *checkweight*(_item_, _int_) -> int::
-  TODO: describe this builtin.
+  Return 1 if the attached player could carry _int_ more of item _item_
+  without exceeding their weight limit, 0 otherwise (also 0 for an invalid
+  item or non-positive amount).
 
 *getitem*(_item_, _int_[, _expr_, _expr_])::
-  TODO: describe this builtin.
+  Give _int_ units of item _item_ to a player. By default the recipient is the
+  attached player; an optional fourth argument is a being id to give the item
+  to instead (the third argument is unused). Items that do not fit in the
+  inventory are dropped at the recipient's feet.
 
 *makeitem*(_item_, _int_, _map_, _x_, _y_)::
-  TODO: describe this builtin.
+  Create _int_ units of item _item_ on the ground of map _map_ at (_x_, _y_)
+  as a floor item. The map name `this` places it on the attached player's
+  current map.
 
 *delitem*(_item_, _int_)::
-  TODO: describe this builtin.
+  Remove _int_ units of item _item_ from the attached player's inventory.
 
 *getcharid*(_int_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return an id of a character. The first argument selects which: 0 the
+  character id, 1 the party id, 2 always 0 (guilds are unimplemented), 3 the
+  account id. The optional second argument is a character name; without it the
+  attached player is used. Returns -1 if no such player.
 
 *getnpcid*([_expr_]) -> int::
-  TODO: describe this builtin.
+  Return the block-list id of an NPC. With a name argument that NPC is looked
+  up; otherwise the NPC running the script is used. Returns -1 if the NPC is
+  not found.
 
 *getversion*() -> int::
-  TODO: describe this builtin.
+  Return the client-protocol version number reported by the attached player's
+  client.
 
 *strcharinfo*(_int_[, _expr_]) -> str::
-  TODO: describe this builtin.
+  Return a string about a character: 0 the character name, 1 the party name, 2
+  an empty string (guilds are unimplemented). The optional second argument is
+  a being id; without it the attached player is used.
 
 *getequipid*(_int_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return the item id worn in equipment slot _int_ (1 to 11, indexing the
+  `equip_*` constants) of a player. The optional second argument is a
+  character name; otherwise the attached player is used. Returns -1 if the
+  slot is empty.
 
 *bonus*(_int_, _int_)::
-  TODO: describe this builtin.
+  Add an equipment-style stat bonus of value _int_ to the attached player. The
+  first argument is an `SP` bonus type. Intended for use from item
+  `equip_script` fragments; the effect lasts only until stats are
+  recalculated.
 
 *bonus2*(_int_, _int_, _int_)::
-  TODO: describe this builtin.
+  Like *bonus*, but for bonus types that take an extra parameter (the second
+  argument), with the value as the third argument.
 
 *skill*(_int_, _int_[, _expr_])::
-  TODO: describe this builtin.
+  Grant the skill whose id is the first argument at the level given by the
+  second to the attached player. The optional third argument is a flag passed
+  to the skill-granting code (default 1).
 
 *setskill*(_int_, _int_)::
-  TODO: describe this builtin.
+  Set the attached player's level in skill _int_ permanently to the second
+  argument, clamped to 0...`MAX_SKILL_LEVEL`.
 
 *getskilllv*(_int_) -> int::
-  TODO: describe this builtin.
+  Return the attached player's current level in skill _int_ (0 if the player
+  does not have it).
 
 *overrideattack*([_expr_, _expr_, _expr_, _expr_, _expr_, _expr_])::
-  TODO: describe this builtin.
+  Override the attached player's normal attack with a spell. The arguments are
+  attack delay (ms), attack range, a status-change icon id, a weapon look item
+  id, an NPC event to run on attack, and optionally a charge count (default
+  1). Called with no arguments it removes the override and restores the normal
+  attack.
 
 *getgmlevel*() -> int::
-  TODO: describe this builtin.
+  Return the GM privilege bitmask of the attached player (0 for an ordinary
+  player).
 
 *end*()::
-  TODO: describe this builtin.
+  End the current script run. Using *end* inside a *callfunc*/*callsub* frame
+  is deprecated.
 
 *getopt2*() -> int::
-  TODO: describe this builtin.
+  Return the attached player's `opt2` status-option bitmask.
 
 *setopt2*(_int_)::
-  TODO: describe this builtin.
+  Set the attached player's `opt2` status-option bitmask to _int_ and refresh
+  the look and stats.
 
 *savepoint*(_map_, _x_, _y_)::
-  TODO: describe this builtin.
+  Set the attached player's respawn point to map _map_ at (_x_, _y_).
 
 *gettimetick*(_int_) -> int::
-  TODO: describe this builtin.
+  Return a time value. Type 0 is the server tick (an unsigned counter that
+  wraps), type 1 is the number of seconds elapsed since midnight, type 2 is
+  the Unix timestamp. Any other value behaves as type 0.
 
 *gettime*(_int_) -> int::
-  TODO: describe this builtin.
+  Return a component of the current local time. Type 1 second, 2 minute, 3
+  hour, 4 weekday (0...6), 5 day of month, 6 month (1...12), 7 full year.
+  Returns -1 for an unknown type.
 
 *openstorage*()::
-  TODO: describe this builtin.
+  Open the attached player's Kafra storage window and suspend the script.
 
 *getexp*(_int_, _int_)::
-  TODO: describe this builtin.
+  Grant _int_ base experience and _int_ job experience to the attached player.
+  Negative amounts are ignored.
 
 *mobinfo*(_int_, _int_) -> variant (int or str)::
-  TODO: describe this builtin.
+  Return a field of the monster-database entry for species _int_. The second
+  argument is a `MobInfo` selector (id, names, level, HP/SP, experience,
+  attack and defence stats, attributes, element, mode, speeds, and drop
+  id/name/percent for drop slots 0...9). Returns an int or a string depending
+  on the field, or -1 for an unknown species or selector.
 
 *mobinfo_droparrays*(_int_, _int_, _var_) -> int::
-  TODO: describe this builtin.
+  Fill the array _var_ with the drops of monster species _int_. The second
+  argument selects what to store: 0 item ids, 1 item names (string array), 2
+  drop percents. Returns 0 on error, 1 if the monster has drops, 2 if it has
+  none.
 
 *getmobdrops*(_int_) -> int::
-  TODO: describe this builtin.
+  Store the drops of monster species _int_ into the global arrays
+  `$@MobDrop_item`, `$@MobDrop_name$` and `$@MobDrop_rate`, with the count in
+  `$@MobDrop_count`. Returns 0 if the species is unknown, 1 if it has drops, 2
+  if it has none.
 
 *summon*(_map_, _x_, _y_, _str_, _str_, _mob_, _int_, _int_[, _expr_])::
-  TODO: describe this builtin.
+  Spawn a single monster of species _mob_ owned by another being. The
+  arguments are the map, x, y, the owner being id (passed as a string), a
+  monster name, the species, an attitude code (servant, friendly, hostile,
+  frozen), a lifespan in milliseconds, and optionally an NPC event to run on
+  the monster's death.
 
 *monster*(_map_, _x_, _y_, _str_, _mob_, _int_[, _expr_])::
-  TODO: describe this builtin.
+  Spawn _int_ monsters of species _mob_ on map _map_ at (_x_, _y_) with the
+  given monster name. The optional final argument is an NPC event run when
+  each monster dies.
 
 *areamonster*(_map_, _x_, _y_, _x_, _y_, _str_, _mob_, _int_[, _expr_])::
-  TODO: describe this builtin.
+  Spawn _int_ monsters of species _mob_ scattered within the rectangle
+  (_x_,_y_) to (_x_,_y_) on map _map_, with the given monster name. The
+  optional final argument is an NPC event run when each monster dies.
 
 *killmonster*(_map_, _event_)::
-  TODO: describe this builtin.
+  Remove monsters on map _map_. With the special event string `All`, all
+  non-permanently-spawned monsters are removed; otherwise only monsters whose
+  death event matches _event_ are removed.
 
 *donpcevent*(_event_)::
-  TODO: describe this builtin.
+  Trigger the NPC _event_ (written `NpcName::OnLabel`) immediately, running it
+  as an event-label script.
 
 *addtimer*(_timer_, _event_[, _expr_])::
-  TODO: describe this builtin.
+  Schedule the NPC _event_ to run for a player after _timer_ milliseconds. The
+  optional third argument is a being id selecting the player; otherwise the
+  attached player is used.
 
 *addnpctimer*(_timer_, _event_)::
-  TODO: describe this builtin.
+  Schedule the NPC _event_ to run after _timer_ milliseconds, attached to the
+  NPC named in the event.
 
 *initnpctimer*([_expr_])::
-  TODO: describe this builtin.
+  Reset the NPC's timer to zero and start it running, which drives that NPC's
+  `OnTimer<ms>` labels. The optional argument names another NPC to act on;
+  otherwise the script's own NPC is used.
 
 *startnpctimer*([_expr_])::
-  TODO: describe this builtin.
+  Start (resume) the NPC timer without resetting it. The optional argument
+  names another NPC to act on; otherwise the script's own NPC is used.
 
 *stopnpctimer*([_expr_])::
-  TODO: describe this builtin.
+  Stop the NPC timer. The optional argument names another NPC to act on;
+  otherwise the script's own NPC is used.
 
 *getnpctimer*(_int_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return information about an NPC timer: type 0 the current tick in
+  milliseconds, 1 whether the timer is active, 2 the number of `OnTimer`
+  events defined. The optional second argument names another NPC; otherwise
+  the script's own NPC is used.
 
 *setnpctimer*(_int_[, _expr_])::
-  TODO: describe this builtin.
+  Set the NPC timer to _int_ milliseconds. The optional second argument names
+  another NPC; otherwise the script's own NPC is used.
 
 *setnpcdirection*(_int_, _int_, _int_[, _expr_])::
-  TODO: describe this builtin.
+  Set the facing direction and sitting state shown for an NPC. The first
+  argument is a direction, the second nonzero makes the NPC sit, and the third
+  nonzero makes the change persistent rather than per-viewer. The optional
+  fourth argument names another NPC; otherwise the script's own NPC is used.
 
 *npcaction*(_int_[, _expr_, _expr_, _expr_])::
-  TODO: describe this builtin.
+  Send a raw NPC client-action command to the attached player. The first
+  argument is the command code; the remaining optional arguments are a target
+  (a being id, or an NPC name when the command is 2) and x, y coordinates.
 
 *camera*([_expr_, _expr_, _expr_])::
-  TODO: describe this builtin.
+  Control the attached player's camera. With no arguments it returns the
+  camera to the player. Two arguments move it to absolute coordinates (_x_,
+  _y_). One or three arguments centre it on an actor (a being id, or the
+  strings `rid`/`player`, `oid`/`npc`, `relative`, or an NPC name), optionally
+  offset by (_x_, _y_).
 
 *announce*(_str_, _int_)::
-  TODO: describe this builtin.
+  Broadcast the message _str_. The flag _int_ controls scope and styling: with
+  the low bits clear it is a server-wide announcement; with bit 0x08 set it is
+  limited to the running NPC's surroundings, otherwise to the attached
+  player's.
 
 *mapannounce*(_map_, _str_, _int_)::
-  TODO: describe this builtin.
+  Broadcast the message _str_ to every player on map _map_. The flag _int_
+  controls styling.
 
 *getusers*(_int_) -> int::
-  TODO: describe this builtin.
+  Return a user count. Flag 1 returns the total number of players on the
+  server; flag 0 is disabled (use *getmapusers*). Bit 0x08 selects the NPC
+  rather than the player as the reference being.
 
 *getmapusers*(_map_) -> int::
-  TODO: describe this builtin.
+  Return the number of players currently on map _map_, or -1 if the map does
+  not exist.
 
 *getareausers*(_map_, _x_, _y_, _x_, _y_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return the number of players inside the rectangle (_x_,_y_) to (_x_,_y_) on
+  map _map_. Hidden players are never counted; if the optional final argument
+  is nonzero, dead players are also excluded. Returns -1 if the map does not
+  exist.
 
 *getareadropitem*(_map_, _x_, _y_, _x_, _y_, _int_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return the total quantity of floor items of type _item_ lying inside the
+  rectangle (_x_,_y_) to (_x_,_y_) on map _map_. If the optional final
+  argument is nonzero the matched floor items are also removed. Returns -1 if
+  the map does not exist.
 
 *enablenpc*(_str_)::
-  TODO: describe this builtin.
+  Make the NPC named _str_ visible and interactive.
 
 *disablenpc*(_str_)::
-  TODO: describe this builtin.
+  Make the NPC named _str_ invisible and non-interactive.
 
 *sc_start*(_int_, _status_, _int_[, _expr_])::
-  TODO: describe this builtin.
+  Apply status condition _status_ to a being for _int_ milliseconds with value
+  parameter _int_. By default the attached player is affected; the optional
+  final argument is a being id to affect instead. For a few legacy
+  potion-style conditions a duration under one second is reinterpreted as
+  seconds.
 
 *sc_end*(_int_[, _expr_])::
-  TODO: describe this builtin.
+  Remove status condition _int_ from a being. By default the attached player
+  is affected; the optional second argument is a being id instead.
 
 *sc_check*(_int_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return nonzero if the status condition _int_ is currently active on a being.
+  By default the attached player is checked; the optional second argument is a
+  being id instead.
 
 *debugmes*(_str_)::
-  TODO: describe this builtin.
+  Print _str_, together with the current RID and OID, to the server log. For
+  script debugging; nothing is shown to players.
 
 *wgm*(_str_)::
-  TODO: describe this builtin.
+  Send the message _str_, prefixed with `[GM]`, as a whisper to all online GMs
+  of at least the configured hack-info GM level.
 
 *gmlog*(_str_)::
-  TODO: describe this builtin.
+  Write _str_, prefixed with `{SCRIPT}`, to the GM/atcommand audit log,
+  attributed to the attached player.
 
 *resetstatus*()::
-  TODO: describe this builtin.
+  Reset the attached player's stat-point allocation, refunding spent points.
 
 *attachrid*(_int_) -> int::
-  TODO: describe this builtin.
+  Attach the player with being id _int_ to the script as the RID. Returns 1 if
+  such a player exists (and is now attached), 0 otherwise.
 
 *detachrid*()::
-  TODO: describe this builtin.
+  Detach the current player (RID) from the script, so following
+  player-specific builtins have no player to act on.
 
 *isloggedin*(_int_) -> int::
-  TODO: describe this builtin.
+  Return 1 if a player with being id _int_ is currently online, 0 otherwise.
 
 *setmapflag*(_map_, _int_)::
-  TODO: describe this builtin.
+  Set map flag number _int_ on map _map_.
 
 *removemapflag*(_map_, _int_)::
-  TODO: describe this builtin.
+  Clear map flag number _int_ on map _map_.
 
 *getmapflag*(_map_, _int_) -> int::
-  TODO: describe this builtin.
+  Return the state (0 or 1) of map flag number _int_ on map _map_, or -1 if
+  the map does not exist.
 
 *pvpon*(_map_)::
-  TODO: describe this builtin.
+  Enable PvP on map _map_ (unless it has the `nopvp` flag). Players already on
+  the map gain a PvP rank, unless server-wide pk-mode is on.
 
 *pvpoff*(_map_)::
-  TODO: describe this builtin.
+  Disable PvP on map _map_, cancelling the PvP ranking of players on it.
 
 *setpvpchannel*(_int_)::
-  TODO: describe this builtin.
+  Set the attached player's PvP channel to _int_ (values below 1 mean channel
+  0).
 
 *getpvpflag*(_int_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return a PvP-related flag for a player: 0 the PvP channel, 1 whether the
+  player is hidden. The optional second argument is a being id; otherwise the
+  attached player is used.
 
 *emotion*(_int_[, _expr_])::
-  TODO: describe this builtin.
+  Show emote _int_ (0...200). With a second argument naming a player, the
+  emote is shown by the script's NPC towards that player; with the literal
+  `self` it is shown by the attached player; otherwise it is shown by the
+  script's NPC.
 
 *mapwarp*(_map_, _map_, _x_, _y_)::
-  TODO: describe this builtin.
+  Warp every player on map _map_ to the destination map _map_ at (_x_, _y_).
 
 *mobcount*(_map_, _event_) -> int::
-  TODO: describe this builtin.
+  Return the number of monsters on map _map_ whose death event is _event_.
+  Returns -1 if the map does not exist. (The count is reported one lower than
+  the raw total.)
 
 *marriage*(_player_) -> int::
-  TODO: describe this builtin.
+  Marry the attached player to the player named by _player_. Returns 1 on
+  success, 0 if either player is missing or the marriage fails.
 
 *divorce*() -> int::
-  TODO: describe this builtin.
+  Divorce the attached player from their partner. Returns 1 on success, 0 on
+  failure.
 
 *getitemlink*(_item_) -> str::
-  TODO: describe this builtin.
+  Return a clickable item-link string (the `@@id|@@` form) for item _item_, or
+  `Unknown Item` if the item does not exist.
 
 *getpartnerid2*() -> int::
-  TODO: describe this builtin.
+  Return the character id of the attached player's marriage partner (0 if
+  unmarried).
 
 *explode*(_var_, _str_, _str_)::
-  TODO: describe this builtin.
+  Split the string _str_ on the single-character separator given by the third
+  argument and store the resulting pieces into the array _var_. Pieces are
+  stored as numbers unless _var_ is a string array.
 
 *getinventorylist*()::
-  TODO: describe this builtin.
+  Copy the attached player's inventory into the temporary arrays
+  `@inventorylist_id`, `@inventorylist_amount` and `@inventorylist_equip`,
+  with the entry count in `@inventorylist_count`.
 
 *getactivatedpoolskilllist*()::
-  TODO: describe this builtin.
+  Copy the attached player's activated pool skills into the temporary arrays
+  `@skilllist_id`, `@skilllist_lv`, `@skilllist_flag` and `@skilllist_name$`,
+  with the count in `@skilllist_count`.
 
 *getunactivatedpoolskilllist*()::
-  TODO: describe this builtin.
+  Copy the attached player's known-but-not-activated pool skills into the
+  temporary arrays `@skilllist_id`, `@skilllist_lv`, `@skilllist_flag` and
+  `@skilllist_name$`, with the count in `@skilllist_count`.
 
 *poolskill*(_int_)::
-  TODO: describe this builtin.
+  Activate pool skill _int_ for the attached player.
 
 *unpoolskill*(_int_)::
-  TODO: describe this builtin.
+  Deactivate pool skill _int_ for the attached player.
 
 *misceffect*(_int_[, _expr_])::
-  TODO: describe this builtin.
+  Display miscellaneous visual effect _int_. The optional second argument
+  chooses where: a player name or a being id. With no target it falls back to
+  the script's NPC, then the attached player.
 
 *specialeffect*(_int_)::
-  TODO: describe this builtin.
+  Display special effect _int_ on the script's NPC.
 
 *specialeffect2*(_int_)::
-  TODO: describe this builtin.
+  Display special effect _int_ on the attached player.
 
 *nude*()::
-  TODO: describe this builtin.
+  Unequip every item the attached player is wearing.
 
 *unequipbyid*(_int_)::
-  TODO: describe this builtin.
+  Unequip whatever the attached player has in equipment slot _int_ (an `EQUIP`
+  slot id).
 
 *npcwarp*(_x_, _y_, _str_)::
-  TODO: describe this builtin.
+  Move the NPC named _str_ to (_x_, _y_) on its current map. Out-of-bounds
+  coordinates are ignored.
 
 *npcareawarp*(_x_, _y_, _x_, _y_, _int_, _str_)::
-  TODO: describe this builtin.
+  Move the NPC named _str_ to a random walkable cell inside the rectangle
+  (_x_,_y_) to (_x_,_y_) on its current map. The fifth argument, when nonzero,
+  requires the chosen cell to be walkable.
 
 *message*(_player_, _str_)::
-  TODO: describe this builtin.
+  Send the plain chat message _str_ to the player named _player_.
 
 *npctalk*(_str_, _str_[, _expr_])::
-  TODO: describe this builtin.
+  Make the NPC named by the first string say _str_ in local chat (shown to
+  players around the NPC). With an optional third argument naming a player,
+  the line is shown only to that player.
 
 *registercmd*(_str_, _str_)::
-  TODO: describe this builtin.
+  Register the spell invocation _str_ so that when a player types it as a chat
+  message the NPC event named by the second string is run. This is how the
+  magic system binds chat phrases to scripts.
 
 *title*(_str_)::
-  TODO: describe this builtin.
+  Set the title bar text _str_ of the script's NPC dialogue window for the
+  attached player.
 
 *smsg*(_expr_[, _expr_, _expr_])::
-  TODO: describe this builtin.
+  Send a localized server message to a player. With one argument, _expr_ is
+  the message text. With two, the first is a numeric message type and the
+  second the text. An optional third argument names the recipient player;
+  otherwise the attached player is used.
 
 *remotecmd*(_str_[, _expr_])::
-  TODO: describe this builtin.
+  Send the remote command string _str_ to a player's client. The optional
+  second argument names the recipient; otherwise the attached player is used.
 
 *sendcollision*(_map_, _int_, _x_, _y_[, _expr_, _expr_, _expr_])::
-  TODO: describe this builtin.
+  Send a client-side collision update for map _map_ with bitmask _int_. The
+  required _x_, _y_ give one corner; an optional second _x_, _y_ pair gives
+  the opposite corner of a rectangle. A trailing string argument names the
+  player to send to; otherwise the attached player is used.
 
 *music*(_str_)::
-  TODO: describe this builtin.
+  Change the background music for the attached player to track _str_.
 
 *mapmask*(_int_[, _expr_])::
-  TODO: describe this builtin.
+  Set the rendering mask for the attached player and send it to the client. If
+  the optional second argument is given the mask is also stored on the
+  player's (or NPC's) current map.
 
 *getmask*() -> int::
-  TODO: describe this builtin.
+  Return the rendering mask of the current map (taken from the attached
+  player's map, or the NPC's). Returns -1 if neither is available.
 
 *getlook*(_int_) -> int::
-  TODO: describe this builtin.
+  Return a cosmetic look value of the attached player selected by the `LOOK`
+  type _int_ (hair, weapon, headgear, hair colour, clothes colour, shield).
+  Returns -1 for an unsupported type.
 
 *getsavepoint*(_int_) -> variant (int or str)::
-  TODO: describe this builtin.
+  Return part of the attached player's save (respawn) point: type 0 the map
+  name, type 1 the x coordinate, type 2 the y coordinate.
 
 *areatimer*(_map_, _x_, _y_, _x_, _y_, _timer_, _event_, _int_)::
-  TODO: describe this builtin.
+  Schedule the NPC _event_ to run after _timer_ milliseconds for every player
+  inside the rectangle (_x_,_y_) to (_x_,_y_) on map _map_. The first argument
+  is a being-type selector and must be 0 (players).
 
 *foreach*(_int_, _map_, _x_, _y_, _x_, _y_, _event_[, _expr_])::
-  TODO: describe this builtin.
+  Run the NPC _event_ once for every being inside the rectangle (_x_,_y_) to
+  (_x_,_y_) on map _map_. The first argument selects the being type: 0
+  players, 1 NPCs, 2 monsters, 3 everything. Each invocation gets the matched
+  being's id in `@target_id`. The optional final argument is the being id of
+  the caster; otherwise the attached player is used.
 
 *isin*(_map_, _x_, _y_, _x_, _y_) -> int::
-  TODO: describe this builtin.
+  Return 1 if the attached player is inside the rectangle (_x_,_y_) to
+  (_x_,_y_) on map _map_, 0 otherwise.
 
 *iscollision*(_map_, _x_, _y_) -> int::
-  TODO: describe this builtin.
+  Return 1 if cell (_x_, _y_) on map _map_ is unwalkable (a collision cell), 0
+  otherwise.
 
 *shop*(_str_)::
-  TODO: describe this builtin.
+  Close the current dialogue and open the buy/sell window of the shop NPC
+  named _str_ for the attached player.
 
 *isdead*() -> int::
-  TODO: describe this builtin.
+  Return 1 if the attached player is dead, 0 otherwise.
 
 *aggravate*(_int_[, _expr_])::
-  TODO: describe this builtin.
+  Make the monster with being id _int_ become aggressive towards a target. By
+  default the target is the attached player; the optional second argument is a
+  being id to target instead.
 
 *issummon*(_int_) -> int::
-  TODO: describe this builtin.
+  Return 1 if the monster with being id _int_ is a summoned creature, 0
+  otherwise.
 
 *fakenpcname*(_str_, _str_, _int_)::
-  TODO: describe this builtin.
+  Rename the NPC named by the first string to the second string and change its
+  sprite to species _int_, then refresh it.
 
 *puppet*(_mob_, _x_, _y_, _str_, _int_[, _expr_, _expr_]) -> int::
-  TODO: describe this builtin.
+  Create a temporary NPC (a "puppet") of sprite species _mob_ at (_x_, _y_) on
+  map (passed as the first string), named by the fourth argument. It inherits
+  the labels of the calling NPC. The optional fifth and sixth arguments give a
+  touch-area half-width and half-height. Returns the new NPC's being id, or 0
+  if the name is already in use.
 
 *destroy*([_expr_])::
-  TODO: describe this builtin.
+  Destroy a temporary NPC. With no argument the script's own NPC is destroyed
+  and the script ends; with a being id that NPC is destroyed instead. Only
+  script-subtype NPCs can be destroyed.
 
 *getx*() -> int::
-  TODO: describe this builtin.
+  Return the x coordinate of the attached player.
 
 *gety*() -> int::
-  TODO: describe this builtin.
+  Return the y coordinate of the attached player.
 
 *getdir*() -> int::
-  TODO: describe this builtin.
+  Return the facing direction of the attached player as a numeric `DIR`.
 
 *getnpcx*([_expr_]) -> int::
-  TODO: describe this builtin.
+  Return the x coordinate of an NPC: the one named by the optional argument,
+  or the script's own NPC.
 
 *getnpcy*([_expr_]) -> int::
-  TODO: describe this builtin.
+  Return the y coordinate of an NPC: the one named by the optional argument,
+  or the script's own NPC.
 
 *strnpcinfo*(_int_[, _expr_]) -> str::
-  TODO: describe this builtin.
+  Return a string about an NPC: 0 the full name, 1 the visible name (before
+  any `#`), 2 the hidden part (from the `#` on), 3 the map name. The optional
+  second argument is an NPC name or being id; otherwise the script's own NPC
+  is used.
 
 *getmap*([_expr_]) -> str::
-  TODO: describe this builtin.
+  Return the name of the map a player is on. The optional argument is a being
+  id; otherwise the attached player is used. Returns an empty string if the
+  player or map is unavailable.
 
 *getmapmaxx*(_map_) -> int::
-  TODO: describe this builtin.
+  Return the highest valid x coordinate of map _map_ (its width minus one).
 
 *getmapmaxy*(_map_) -> int::
-  TODO: describe this builtin.
+  Return the highest valid y coordinate of map _map_ (its height minus one).
 
 *getmaphash*(_map_) -> int::
-  TODO: describe this builtin.
+  Return the numeric hash identifying map _map_.
 
 *getmapnamefromhash*(_int_) -> str::
-  TODO: describe this builtin.
+  Return the name of the map whose hash is _int_, or an empty string if none
+  matches.
 
 *mapexists*(_map_) -> int::
-  TODO: describe this builtin.
+  Return 1 if a map named _map_ is loaded, 0 otherwise.
 
 *numberofmaps*() -> int::
-  TODO: describe this builtin.
+  Return the number of maps currently loaded on the server.
 
 *getmapnamebyindex*(_int_) -> str::
-  TODO: describe this builtin.
+  Return the name of the map at position _int_ in the server's map list, or an
+  empty string if the index is out of range.
 
 *mapexit*()::
-  TODO: describe this builtin.
+  Shut the map server down (clears the run flag, ending the main loop).
 
 *freeloop*(_int_)::
-  TODO: describe this builtin.
+  Enable (_int_ = 1) or disable (any other value) free-looping for the current
+  script, lifting the normal instruction-count limit that guards against
+  runaway loops.
 
 *if_then_else*(_int_, _int_, _int_) -> variant (int or str)::
-  TODO: describe this builtin.
+  Return the second argument if _int_ is nonzero, otherwise the third. A
+  conditional-expression builtin; both branches are evaluated.
 
 *max*(_expr_[, _expr_...]) -> int::
-  TODO: describe this builtin.
+  Return the largest of its integer arguments. Called with a single array
+  variable, it returns the largest element of that array.
 
 *min*(_expr_[, _expr_...]) -> int::
-  TODO: describe this builtin.
+  Return the smallest of its integer arguments. Called with a single array
+  variable, it returns the smallest element of that array.
 
 *average*(_int_, _int_...) -> int::
-  TODO: describe this builtin.
+  Return the integer (truncated) average of its integer arguments.
 
 *sqrt*(_int_) -> int::
-  TODO: describe this builtin.
+  Return the integer square root of _int_.
 
 *cbrt*(_int_) -> int::
-  TODO: describe this builtin.
+  Return the integer cube root of _int_.
 
 *pow*(_int_, _int_) -> int::
-  TODO: describe this builtin.
+  Return the first integer raised to the power of the second, truncated to an
+  integer.
 
 *target*(_int_, _int_, _int_) -> int::
-  TODO: describe this builtin.
+  Test the relationship between two beings (given by being id) and return a
+  bitmask. The third argument selects which tests to run: 0x01 target within
+  view range, 0x02 within attack range, 0x04 a clear walk path exists, 0x10
+  target is attackable by the source, 0x20 target is in line of sight. Each
+  requested test that passes sets its bit in the result.
 
 *distance*(_int_, _int_[, _expr_]) -> int::
-  TODO: describe this builtin.
+  Return the straight-line (Pythagorean) distance between two beings given by
+  being id. Beings on different maps are reported as a very large distance.
+  The optional third argument selects the distance mode (only mode 0 is
+  implemented).
 
 *chr*(_int_) -> str::
-  TODO: describe this builtin.
+  Return a one-character string whose single byte has ASCII code _int_.
 
 *ord*(_str_) -> int::
-  TODO: describe this builtin.
+  Return the ASCII code of the first character of string _str_.
 
 *l*(_str_...) -> str::
-  TODO: describe this builtin.
+  Return the translatable string _str_. Currently a pass-through: the
+  translation lookup and argument substitution are not implemented in this
+  server, so it returns its argument unchanged.
 //<<< GENERATED-BUILTIN-LIST
 
 == See also
