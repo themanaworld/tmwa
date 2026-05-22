@@ -1,0 +1,27 @@
+= TMWA Documentation
+:nofooter:
+
+Reference documentation for The Mana World Athena, the server that runs
+The Mana World. The same pages are installed as man pages by the build.
+
+== Scripting
+
+link:tmwa-script.7.html[tmwa-script(7)]:: The NPC and server scripting
+language, with a reference for every builtin function.
+
+== Daemons
+
+link:tmwa-login.1.html[tmwa-login(1)]:: The login server.
+link:tmwa-char.1.html[tmwa-char(1)]:: The character server.
+link:tmwa-map.1.html[tmwa-map(1)]:: The map server.
+link:tmwa-admin.1.html[tmwa-admin(1)]:: The admin client.
+
+== Configuration
+
+link:tmwa-config.5.html[tmwa-config(5)]:: The configuration file format.
+link:tmwa-login.conf.5.html[tmwa-login.conf(5)]:: Login server settings.
+link:tmwa-char.conf.5.html[tmwa-char.conf(5)]:: Character server settings.
+link:tmwa-inter.conf.5.html[tmwa-inter.conf(5)]:: Inter-server settings.
+link:tmwa-map.conf.5.html[tmwa-map.conf(5)]:: Map server settings.
+link:tmwa-battle.conf.5.html[tmwa-battle.conf(5)]:: Battle and gameplay settings.
+link:tmwa-admin.conf.5.html[tmwa-admin.conf(5)]:: Admin client settings.
