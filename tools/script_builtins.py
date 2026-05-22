@@ -513,6 +513,19 @@ def render_adoc_term(doc):
     return term
 
 
+def adoc_literal(text):
+    """Wrap free-form prose so AsciiDoc renders it verbatim.
+
+    Builtin descriptions are plain prose but may contain characters
+    AsciiDoc treats as markup: '#' is highlight, '*' bold, '_' italic,
+    '`' monospace, '{' an attribute reference, and so on. pass:c[...]
+    applies only the specialchars substitution, so the text renders
+    literally while '<', '>' and '&' are still escaped for HTML. A ']'
+    would close the macro early, so it is escaped.
+    """
+    return 'pass:c[' + text.replace(']', r'\]') + ']'
+
+
 def render_adoc_entry(doc):
     """Render a DocComment as a full AsciiDoc definition-list entry.
 
@@ -531,7 +544,7 @@ def render_adoc_entry(doc):
     # Each "block" is a list of text lines.
     blocks = []
     if doc.summary:
-        blocks.append([doc.summary])
+        blocks.append([adoc_literal(doc.summary)])
 
     if doc.params:
         items = []
@@ -539,7 +552,7 @@ def render_adoc_entry(doc):
             opt = ', optional' if (p.optional and not p.rest) else ''
             rep = ', repeatable' if p.rest else ''
             items.append('_%s_ (_%s_%s%s) %s'
-                         % (p.name, p.type, opt, rep, p.desc))
+                         % (p.name, p.type, opt, rep, adoc_literal(p.desc)))
         # The two backends render lists differently, so emit a form for
         # each. HTML5 gets a real bulleted list, kept tight by the doc
         # stylesheet (see doc/docinfo.html). The manpage backend spaces
@@ -559,11 +572,12 @@ def render_adoc_entry(doc):
         blocks.append(param_block)
 
     for para in doc.desc_paras:
-        blocks.append([para])
+        blocks.append([adoc_literal(para)])
 
     if doc.ret_type is not None:
         if doc.ret_desc:
-            blocks.append(['Returns _%s_: %s' % (doc.ret_type, doc.ret_desc)])
+            blocks.append(['Returns _%s_: %s'
+                           % (doc.ret_type, adoc_literal(doc.ret_desc))])
         else:
             blocks.append(['Returns _%s_.' % doc.ret_type])
 
