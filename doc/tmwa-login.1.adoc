@@ -1,0 +1,76 @@
+= tmwa-login(1)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-login - The Mana World Athena login server
+
+== Synopsis
+
+*tmwa-login* [*--help*] [*--version*] [_config-file_...]
+
+== Description
+
+*tmwa-login* is the login (authentication) server of TMWA (The Mana World
+Athena), an eAthena-derived MMORPG server.  A complete TMWA installation
+runs three cooperating daemons: the login server authenticates accounts,
+the char server (*tmwa-char*(1)) holds characters, and the map server
+(*tmwa-map*(1)) hosts the game world.
+
+The login server owns the account database.  It verifies account
+credentials, optionally creates new accounts on first use, holds the GM
+account list, and tells connecting char servers which accounts are valid.
+It listens on a single port for game clients (during the login phase) and
+for char servers, and may also accept connections from the administration
+tool *tmwa-admin*(1) when that is enabled in the configuration.
+
+The login server is normally the first daemon started, since the char and
+map servers connect to it.  It keeps running until it receives *SIGTERM*
+or *SIGINT*.
+
+The daemon refuses to run as root.
+
+== Options
+
+Options are processed left to right, interleaved with configuration file
+arguments.
+
+*--help*::
+Print a usage summary and exit.
+
+*--version*::
+Print the server version and exit.
+
+_config-file_::
+Path to a login-server configuration file (see *tmwa-login.conf*(5)).
+Several may be given and are loaded in order.  When no configuration file
+is given, the server loads `conf/tmwa-login.conf` relative to the working
+directory.
+
+== Files
+
+`conf/tmwa-login.conf`::
+Default login-server configuration file, used when no _config-file_
+argument is given.  See *tmwa-login.conf*(5).
+
+The account database, the GM account file and the log file referenced by
+the configuration default to paths under `save/` and `log/`; their exact
+locations are set by configuration options.
+
+== Exit status
+
+The login server exits with status 1 if a fatal error occurs during
+startup (for example a configuration file that cannot be read), and 0 on
+a clean shutdown.
+
+== See also
+
+*tmwa-char*(1), *tmwa-map*(1), *tmwa-admin*(1), *tmwa-login.conf*(5)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

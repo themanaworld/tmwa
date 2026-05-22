@@ -1,0 +1,71 @@
+= tmwa-admin(1)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-admin - The Mana World Athena login-server administration tool
+
+== Synopsis
+
+*tmwa-admin* [*--help*] [*--version*] [_config-file_...]
+
+== Description
+
+*tmwa-admin* (historically "ladmin") is the remote administration tool for
+the TMWA login server (*tmwa-login*(1)).  It is a client, not a daemon: it
+connects to the login server over the network and lets an operator manage
+the account database without stopping the server or editing account files
+by hand.
+
+Remote administration must be enabled on the login server first: set
+`admin_state` and an `admin_pass` in the login configuration, and list the
+administering host in `ladminallowip` (see *tmwa-login.conf*(5)).  The tool
+authenticates with the matching `admin_pass` from its own configuration.
+
+When standard input is a terminal, *tmwa-admin* runs interactively and
+shows a prompt; otherwise it reads commands from standard input as a
+script.  At the prompt it accepts commands to create, delete and inspect
+accounts, set or clear GM levels, change passwords and e-mail addresses,
+ban and unban accounts, block and unblock them, and query the number of
+online players.  Commands may be abbreviated to an unambiguous prefix.
+Type `help` (or `?`) at the prompt for the full command list, or
+`help <command>` for one command.
+
+The tool refuses to run as root.
+
+== Options
+
+Options are processed left to right, interleaved with configuration file
+arguments.
+
+*--help*::
+Print a usage summary and exit.
+
+*--version*::
+Print the tool version and exit.
+
+_config-file_::
+Path to an admin configuration file (see *tmwa-admin.conf*(5)).  Several
+may be given and are loaded in order.  When no configuration file is
+given, the tool loads `conf/tmwa-admin.conf` relative to the working
+directory.
+
+== Files
+
+`conf/tmwa-admin.conf`::
+Default admin configuration file, used when no _config-file_ argument is
+given.  It holds the login-server address and port and the administration
+password.  See *tmwa-admin.conf*(5).
+
+== See also
+
+*tmwa-login*(1), *tmwa-char*(1), *tmwa-map*(1), *tmwa-admin.conf*(5),
+*tmwa-login.conf*(5)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

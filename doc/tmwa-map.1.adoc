@@ -10,63 +10,72 @@ tmwa-map - The Mana World Athena map server
 
 == Synopsis
 
-*tmwa-map* [_--help_] [_--version_] [_--write-atcommand-config_ _outfile_] [_config-file_...]
+*tmwa-map* [*--help*] [*--version*] [*--write-atcommand-config* _outfile_] [_config-file_...]
 
 == Description
 
 *tmwa-map* is the map server of TMWA (The Mana World Athena), an
-eAthena-derived MMORPG server.  It hosts the game maps, NPCs, monsters and
-the scripting engine, and connects to the char server (and through it the
-login server) to form a complete server.
+eAthena-derived MMORPG server.  A complete TMWA installation runs three
+cooperating daemons: the login server (*tmwa-login*(1)) authenticates
+accounts, the char server (*tmwa-char*(1)) holds characters and routes
+players, and the map server hosts the actual game world.  Several map
+servers may connect to one char server.
 
-The map server compiles and runs the TMWA scripting language; see
-*tmwa-script*(7) for the language and its builtin functions.
+The map server loads the world maps, spawns monsters, runs NPCs, and
+hosts the scripting engine.  It compiles every script to bytecode at
+startup and executes it with a single interpreter; see *tmwa-script*(7)
+for the language and its builtin functions.
 
-This page is a brief stub.  Operational documentation (deployment, the
-char/login/map split, world data layout) is not yet covered here.
+On startup the map server connects outward to the char server (whose
+address and credentials come from the configuration) and listens for game
+clients on its own port.  It keeps running until it receives *SIGTERM* or
+*SIGINT*, or until a script calls the *mapexit* builtin.
+
+The daemon refuses to run as root.
 
 == Options
 
-_--help_::
+Options are processed left to right, interleaved with configuration file
+arguments.
+
+*--help*::
 Print a usage summary and exit.
 
-_--version_::
+*--version*::
 Print the server version and exit.
 
-_--write-atcommand-config_ _outfile_::
+*--write-atcommand-config* _outfile_::
 Write the default atcommand (GM command) configuration to _outfile_ and
-exit.
+exit without starting the server.  Use this to obtain a template you can
+then edit.
 
 _config-file_::
-Path to a map-server configuration file.  Multiple files may be given and
-are loaded in order.  When no configuration file is given, the server
-loads `conf/tmwa-map.conf` from the working directory.
+Path to a map-server configuration file (see *tmwa-map.conf*(5)).  Several
+may be given and are loaded in order.  When no configuration file is
+given, the server loads `conf/tmwa-map.conf` relative to the working
+directory.
 
 == Files
 
 `conf/tmwa-map.conf`::
-Default map-server configuration file, relative to the working directory.
+Default map-server configuration file, used when no _config-file_ argument
+is given.  It selects the maps and NPC scripts to load and the link to the
+char server.  See *tmwa-map.conf*(5).
+
+The configuration also references the map data, the NPC script tree, and a
+log file; their locations are set by configuration options rather than
+fixed paths.
+
+== Exit status
+
+The map server exits with status 1 if a fatal error occurs during
+startup (for example a configuration file that cannot be read or a bad
+option), and 0 on a clean shutdown.
 
 == See also
 
-*tmwa-script*(7)
-
-Configuration-file formats are not yet documented as man pages; see
-*CONFIGURATION FILES* below.
-
-== Configuration files
-
-[NOTE]
-====
-Placeholder for future work.
-
-The TMWA configuration files (the map/char/login `.conf` files and the
-shared configuration) are not yet documented as man pages.  Section 5
-pages such as *tmwa.conf*(5) are a planned follow-up: when written they
-should live next to this file as `doc/tmwa.conf.5.adoc` (and similar) and
-be wired into the build the same way as this page.  Do not document the
-individual options here; that belongs in the dedicated section 5 pages.
-====
+*tmwa-login*(1), *tmwa-char*(1), *tmwa-admin*(1), *tmwa-map.conf*(5),
+*tmwa-battle.conf*(5), *tmwa-script*(7)
 
 == Reporting bugs
 

@@ -1,0 +1,80 @@
+= tmwa-char(1)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-char - The Mana World Athena character server
+
+== Synopsis
+
+*tmwa-char* [*--help*] [*--version*] [_config-file_...]
+
+== Description
+
+*tmwa-char* is the character server of TMWA (The Mana World Athena), an
+eAthena-derived MMORPG server.  A complete TMWA installation runs three
+cooperating daemons: the login server (*tmwa-login*(1)) authenticates
+accounts, the char server holds characters, and the map server
+(*tmwa-map*(1)) hosts the game world.
+
+The char server owns the character database.  It presents the
+character-selection screen, creates and deletes characters, and stores
+per-account data such as storage, parties and account-scope script
+variables (the "inter" data).  It connects to the login server to validate
+accounts and accepts connections from one or more map servers, routing
+players between them.  It also writes the list of online players to text
+and HTML files for status pages.
+
+The char server is normally started after the login server and before the
+map servers.  It keeps running until it receives *SIGTERM* or *SIGINT*.
+
+The daemon refuses to run as root.
+
+== Options
+
+Options are processed left to right, interleaved with configuration file
+arguments.
+
+*--help*::
+Print a usage summary and exit.
+
+*--version*::
+Print the server version and exit.
+
+_config-file_::
+Path to a char-server configuration file (see *tmwa-char.conf*(5)).
+Several may be given and are loaded in order.  When no configuration file
+is given, the server loads `conf/tmwa-char.conf` relative to the working
+directory.
+
+== Files
+
+`conf/tmwa-char.conf`::
+Default char-server configuration file, used when no _config-file_
+argument is given.  See *tmwa-char.conf*(5).  The char server also reads
+inter-server settings, documented in *tmwa-inter.conf*(5), and a LAN
+configuration, documented in *tmwa-char.conf*(5).
+
+The character database, storage, party and account-register files, the
+log file and the online-player files referenced by the configuration
+default to paths under `save/` and `log/`; their exact locations are set
+by configuration options.
+
+== Exit status
+
+The char server exits with status 1 if a fatal error occurs during
+startup (for example a configuration file that cannot be read), and 0 on
+a clean shutdown.
+
+== See also
+
+*tmwa-login*(1), *tmwa-map*(1), *tmwa-admin*(1), *tmwa-char.conf*(5),
+*tmwa-inter.conf*(5)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

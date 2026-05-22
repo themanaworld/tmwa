@@ -253,8 +253,18 @@ find_program(ASCIIDOCTOR asciidoctor)
 # Each entry: <source>.adoc  ->  <name>.<section>
 # The man section is the number just before ".adoc" in the file name.
 set(TMWA_MANPAGE_SOURCES
-  doc/tmwa-script.7.adoc
   doc/tmwa-map.1.adoc
+  doc/tmwa-char.1.adoc
+  doc/tmwa-login.1.adoc
+  doc/tmwa-admin.1.adoc
+  doc/tmwa-config.5.adoc
+  doc/tmwa-login.conf.5.adoc
+  doc/tmwa-char.conf.5.adoc
+  doc/tmwa-inter.conf.5.adoc
+  doc/tmwa-admin.conf.5.adoc
+  doc/tmwa-map.conf.5.adoc
+  doc/tmwa-battle.conf.5.adoc
+  doc/tmwa-script.7.adoc
 )
 
 if(ASCIIDOCTOR)
