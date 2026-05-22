@@ -100,127 +100,45 @@ enum class MobInfo_DropArrays : uint8_t
     PERCENTS =  2,
 };
 
-// Identifies one piece of data on a unit, for use with the
-// getunitdata and setunitdata script builtins.
+// Identifies one piece of data on a unit, for use with the getunitdata
+// and setunitdata script builtins.
+//
+// These builtins deliberately cover only what no other script facility
+// reaches. Plain stats (level, hp, the six attributes, atk, def, speed,
+// ...) are available for both players and mobs through the PARAM system
+// (pc_readparam / pc_setparam), used as PARAM variables or through the
+// get() and set(<param>, <value>, <gid>) builtins. Player and NPC
+// looks, names, sex, exp, zeny, positions and ids each have their own
+// builtins (getlook / setlook, strcharinfo, strnpcinfo, fakenpcname,
+// getx / gety / getdir, getmap, warp, npcwarp, getcharid).
+//
+// What is left here is mob internals that have no PARAM mapping, mob
+// sprite/placement that no builtin reaches on a live mob, and a few
+// fields no builtin exposes at all.
 //
 // Not every key applies to every unit type. Reading an inapplicable
-// key returns 0 (or an empty string for UDT_NAME / UDT_MAP); writing
-// one is silently ignored.
-//
-// Each entry notes how the same attribute can also be reached through
-// other script facilities, or is marked NEW / "NEW for mob" when
-// getunitdata / setunitdata is the only access.
-//
-// "PARAM" means the SP-based parameter system: pc_readparam /
-// pc_setparam, reachable from scripts as PARAM variables and through
-// the get() and set(<param>, <value>, <gid>) builtins. get() / set()
-// were extended so PARAM reaches mobs too, for the stats that map to
-// a real mob_data field. Derived values (e.g. a pc's computed atk)
-// can still be read through PARAM but not written.
+// key returns 0 (an empty string for UDT_MAP); writing one fails (0).
 enum class UnitData : uint8_t
 {
-    // read-only; also PARAM SP::BL_TYPE
-    TYPE            =  0, // BL type (1=PC, 2=NPC, 3=MOB)
-    // pc and mob: PARAM SP::BASELEVEL
-    LEVEL           =  1, // mob, pc
-    // pc and mob: PARAM SP::HP; pc also builtin heal
-    HP              =  2, // mob, pc
-    // pc and mob: PARAM SP::MAXHP
-    MAX_HP          =  3, // mob, pc
-    // pc: PARAM SP::SP, builtin heal
-    SP              =  4, // pc
-    // pc: PARAM SP::MAXSP
-    MAX_SP          =  5, // pc
-    // pc and mob: PARAM SP::STR
-    STR             =  6, // mob, pc
-    // pc and mob: PARAM SP::AGI
-    AGI             =  7, // mob, pc
-    // pc and mob: PARAM SP::VIT
-    VIT             =  8, // mob, pc
-    // pc and mob: PARAM SP::INT
-    INT             =  9, // mob, pc
-    // pc and mob: PARAM SP::DEX
-    DEX             = 10, // mob, pc
-    // pc and mob: PARAM SP::LUK
-    LUK             = 11, // mob, pc
-    // PARAM SP::ATK1: read for pc and mob, write for mob (pc atk is derived)
-    ATK_MIN         = 12, // mob ATK1; pc watk
-    // PARAM SP::ATK2: read for pc and mob, write for mob (pc atk is derived)
-    ATK_MAX         = 13, // mob ATK2; pc watk2
-    // NEW for mob (no live-unit script access; MobInfo only reads the db)
-    ADELAY          = 14, // mob attack delay (ms)
-    // PARAM SP::DEF1: read for pc and mob, write for mob (pc def is derived)
-    DEF             = 15, // mob, pc
-    // PARAM SP::MDEF1: read for pc and mob, write for mob (pc mdef is derived)
-    MDEF            = 16, // mob, pc
-    // pc, mob and npc: PARAM SP::SPEED (read and write)
-    SPEED           = 17, // mob/pc/npc movement (ms per cell)
-    // NEW (SP::CRITICAL is the crit rate, not critical_def)
-    CRITICAL_DEF    = 18, // mob, pc
-    // NEW for mob (MobInfo only reads the db, not a live mob)
-    XP_BONUS        = 19, // mob (1024 = 100%)
-    // NEW for mob (MobInfo only reads the db, not a live mob)
-    MODE            = 20, // mob mode flags
-    // NEW for mob (MobInfo SCALE only reads the db, not a live mob)
-    SIZE            = 21, // mob
-    // pc and npc: PARAM SP::SEX
-    SEX             = 22, // pc, npc
-    // pc and npc: PARAM SP::CLASS; npc sprite also builtin fakenpcname. mob: NEW for mob
-    CLASS           = 23, // sprite class (mob_class / npc_class / pc species)
-    // pc: builtins getlook / setlook (LOOK::HAIR)
-    HAIR_STYLE      = 24, // pc
-    // pc: builtins getlook / setlook (LOOK::HAIR_COLOR)
-    HAIR_COLOR      = 25, // pc
-    // pc: builtins getlook / setlook (LOOK::CLOTHES_COLOR)
-    CLOTHES_COLOR   = 26, // pc
-    // pc: builtins getlook / setlook (LOOK::WEAPON)
-    WEAPON          = 27, // pc weapon look
-    // pc: builtins getlook / setlook (LOOK::SHIELD)
-    SHIELD          = 28, // pc
-    // pc: builtins getlook / setlook (LOOK::HEAD_TOP)
-    HEAD_TOP        = 29, // pc
-    // pc: builtins getlook / setlook (LOOK::HEAD_MID)
-    HEAD_MID        = 30, // pc
-    // pc: builtins getlook / setlook (LOOK::HEAD_BOTTOM)
-    HEAD_BOTTOM     = 31, // pc
-    // pc: read via builtin getdir (attached player only). npc: write via builtin
-    // setnpcdirection. read-by-gid, pc write, and mob: NEW
-    LOOK_DIR        = 32, // mob/pc/npc facing direction
-    // read via builtins getx (pc, self), getnpcx (npc), or PARAM SP::POS_X
-    // (any unit). write NEW
-    X               = 33, // current x; setting teleports on the same map
-    // read via builtins gety (pc, self), getnpcy (npc), or PARAM SP::POS_Y
-    // (any unit). write NEW
-    Y               = 34, // current y; setting teleports on the same map
-    // pc: read via builtin getmap, warp via builtin warp. mob: NEW for mob
-    MAP             = 35, // map name (string); setting teleports to current x,y
-    // NEW for mob (read-only)
-    TARGET_ID       = 36, // mob target (read-only)
-    // NEW for mob
-    MASTER_ID       = 37, // mob master (e.g. for summons)
-    // pc: PARAM SP::BASEEXP
-    BASE_EXP        = 38, // pc
-    // pc: PARAM SP::JOBEXP
-    JOB_EXP         = 39, // pc
-    // pc: PARAM SP::JOBLEVEL
-    JOB_LEVEL       = 40, // pc
-    // pc: PARAM SP::SKILLPOINT
-    SKILL_POINT     = 41, // pc
-    // pc: PARAM SP::STATUSPOINT
-    STATUS_POINT    = 42, // pc
-    // pc: PARAM SP::ZENY
-    ZENY            = 43, // pc
-    // NEW (SP::KARMA is disabled in the enum)
-    KARMA           = 44, // pc
-    // NEW
-    MANNER          = 45, // pc
-    // read-only; read via builtin getcharid(1)
-    PARTY_ID        = 46, // pc (read-only)
-    // NEW (builtins getopt2 / setopt2 cover Opt2, a different field)
-    OPTION          = 47, // pc/mob/npc Opt0 status flags
-    // pc: read via builtin strcharinfo(0). npc: read via builtin strnpcinfo,
-    // write via builtin fakenpcname. mob: NEW for mob
-    NAME            = 48, // string: pc char name, npc name, or mob name
+    // mob AI / combat internals (no PARAM mapping)
+    MODE            =  0, // mob behaviour flags (MobMode)
+    SIZE            =  1, // mob size class
+    ADELAY          =  2, // mob attack delay (ms)
+    XP_BONUS        =  3, // mob xp bonus (1024 = 100%)
+    CRITICAL_DEF    =  4, // mob critical-hit defense
+    TARGET_ID       =  5, // mob current target gid (read-only)
+    MASTER_ID       =  6, // mob master gid (e.g. for summons)
+    // mob sprite / placement (no builtin reaches a live mob)
+    CLASS           =  7, // mob sprite class; respawns the mob
+    X               =  8, // mob x; setting teleports it on the same map
+    Y               =  9, // mob y; setting teleports it on the same map
+    MAP             = 10, // mob map name (string); setting teleports it
+    // any unit type
+    LOOK_DIR        = 11, // facing direction (mob / pc / npc)
+    OPTION          = 12, // Opt0 status flags (mob / pc / npc); getopt2 is Opt2
+    // pc fields with no other accessor
+    KARMA           = 13, // pc karma
+    MANNER          = 14, // pc manner
 };
 } // namespace map
 } // namespace tmwa
