@@ -176,3 +176,64 @@ def render_signature(b):
     if b.ret != '\0':
         sig += ' -> ' + RET_LEGEND.get(b.ret, repr(b.ret))
     return sig
+
+
+def render_adoc_term(b):
+    """Render a Builtin as an AsciiDoc definition-list term.
+
+    The result is a single line of the form
+
+        *name*(_arg_, _arg_[, _arg_]) -> type
+
+    with the function name in *bold*, each argument in _emphasis_, optional
+    arguments inside [square brackets], and a trailing return type when the
+    builtin yields a value.  This is the term half of a definition-list
+    entry; the description follows on the indented continuation line.
+
+    The argument list is built the same way as render_signature(), but each
+    token is wrapped in AsciiDoc emphasis markup.
+    """
+    chars = list(b.argsig)
+    parts = []          # rendered argument tokens (already marked up)
+    optional_from = None
+    i = 0
+    while i < len(chars):
+        ch = chars[i]
+        if ch == '?':
+            if optional_from is None:
+                optional_from = len(parts)
+            nxt = chars[i + 1] if i + 1 < len(chars) else ''
+            if nxt == '*':
+                parts.append('_expr_...')
+                i += 2
+                continue
+            if nxt != '?' and nxt in ARG_LEGEND:
+                i += 1
+                continue
+            parts.append('_expr_')
+            i += 1
+            continue
+        if ch == '*':
+            if parts and not parts[-1].endswith('...'):
+                parts[-1] = parts[-1] + '...'
+            elif not parts:
+                parts.append('...')
+            i += 1
+            continue
+        parts.append('_%s_' % ARG_LEGEND.get(ch, ch))
+        i += 1
+
+    if optional_from is None or optional_from >= len(parts):
+        arglist = ', '.join(parts)
+    else:
+        required = ', '.join(parts[:optional_from])
+        optional = ', '.join(parts[optional_from:])
+        if required:
+            arglist = required + '[, ' + optional + ']'
+        else:
+            arglist = '[' + optional + ']'
+
+    term = '*%s*(%s)' % (b.name, arglist)
+    if b.ret != '\0':
+        term += ' -> ' + RET_LEGEND.get(b.ret, repr(b.ret))
+    return term

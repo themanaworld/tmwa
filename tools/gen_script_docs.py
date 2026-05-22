@@ -23,7 +23,7 @@ import os
 import re
 import sys
 
-from script_builtins import parse_builtins, render_signature, repo_root
+from script_builtins import parse_builtins, render_adoc_term, repo_root
 
 # Marker comments that bracket the generated definition list inside
 # doc/tmwa-script.7.adoc.  They must be unique: BEGIN must not be a substring
@@ -37,48 +37,45 @@ def adoc_path():
     return os.path.join(repo_root(), 'doc', 'tmwa-script.7.adoc')
 
 
+# A definition-list term line, e.g.
+#   *setparam*(_param_, _value_[, _gid_]) -> int::
+# We only need the builtin name (group 1); everything up to the trailing
+# "::" is the mechanically rendered signature.
+_TERM_RE = re.compile(r'^\*([A-Za-z_][\w]*)\*\([^\n]*::\s*$', re.MULTILINE)
+
+
 def parse_existing_descriptions(text):
     """Return {builtin_name: description} for entries already in the file.
 
-    A definition-list entry looks like:
+    A definition-list entry is a single term line followed by an indented
+    description:
 
-        *name*::
-        +
-        `signature`
-        +
-        Some description text.
+        *name*(_args_) -> type::
+          Some description text, possibly spanning
+          several indented lines.
 
-    We capture the description (everything after the signature line up to the
-    next entry) so hand-written prose survives regeneration.
+    We capture the description (the indented continuation lines up to the
+    next term) so hand-written prose survives regeneration.
     """
     descriptions = {}
     block = extract_block(text)
     if block is None:
         return descriptions
 
-    # Split into entries: each entry starts with a "*name*::" line.
-    entry_re = re.compile(r'^\*([A-Za-z_][\w]*)\*::\s*$', re.MULTILINE)
-    matches = list(entry_re.finditer(block))
+    matches = list(_TERM_RE.finditer(block))
     for i, m in enumerate(matches):
         name = m.group(1)
         start = m.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(block)
         body = block[start:end]
-        # Body is:  \n+\n`signature`\n+\n<description>\n
-        # Drop the leading "+", signature line and following "+".
-        lines = body.splitlines()
-        # Trim leading blank lines.
-        while lines and not lines[0].strip():
-            lines.pop(0)
-        # Expect "+"
-        if lines and lines[0].strip() == '+':
-            lines.pop(0)
-        # Expect "`signature`"
-        if lines and lines[0].strip().startswith('`'):
-            lines.pop(0)
-        # Expect "+"
-        if lines and lines[0].strip() == '+':
-            lines.pop(0)
+        # The body is the indented description.  Strip the common two-space
+        # indentation and surrounding blank lines.
+        lines = []
+        for line in body.splitlines():
+            if line.startswith('  '):
+                lines.append(line[2:])
+            else:
+                lines.append(line)
         desc = '\n'.join(lines).strip()
         if desc:
             descriptions[name] = desc
@@ -95,15 +92,19 @@ def extract_block(text):
 
 
 def render_block(builtins, descriptions):
-    """Render the generated definition-list block (between the markers)."""
+    """Render the generated definition-list block (between the markers).
+
+    Each builtin becomes exactly one definition-list entry: a term line
+    holding the marked-up signature, followed by the indented description.
+    """
     out = ['']
     for b in builtins:
         desc = descriptions.get(b.name, TODO)
-        out.append('*%s*::' % b.name)
-        out.append('+')
-        out.append('`%s`' % render_signature(b))
-        out.append('+')
-        out.append(desc)
+        out.append('%s::' % render_adoc_term(b))
+        # Indent every description line by two spaces so it is part of the
+        # definition-list item.
+        for line in desc.splitlines():
+            out.append(('  ' + line).rstrip())
         out.append('')
     return '\n'.join(out)
 

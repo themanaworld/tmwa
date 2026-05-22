@@ -129,1085 +129,561 @@ Names without a sigil that match a known player parameter (for example
 
 == Builtin functions
 
-Each entry below lists the builtin's name and a signature derived from the
-argument-signature string in the `builtin_functions[]` table of
-_src/map/script-fun.cpp_.
+Each entry below is a single definition-list item: the term is the
+builtin's signature, derived from the argument-signature string in the
+`builtin_functions[]` table of _src/map/script-fun.cpp_, and the indented
+text is its description.
 
-In a signature, an argument shown as a type name is a placeholder for a
-value of that kind; arguments inside `[ ]` are optional; `...` marks a
-repeatable trailing argument.  The argument-type vocabulary is:
+In a signature the function name is shown in bold and each argument in
+italics; an argument is named after the kind of value it expects.
+Arguments inside `[ ]` are optional, and `...` marks a repeatable trailing
+argument.  The argument-type vocabulary is:
 
 [cols="1,4"]
 |===
-| `int`    | integer expression
-| `str`    | string expression
-| `expr`   | expression of any type
-| `map`    | map name
-| `x`, `y` | map coordinates
-| `label`  | a label in the current script
-| `func`   | a function or label reference
-| `var`    | the name of a variable or player parameter
-| `item`   | an item (by numeric id or name)
-| `player` | a player (by name or account id)
-| `event`  | an NPC event, written `NpcName::OnLabel`
-| `timer`  | a timer interval, in milliseconds
-| `mob`    | a monster species
-| `status` | a status-condition (status-change) id
+| _int_    | integer expression
+| _str_    | string expression
+| _expr_   | expression of any type
+| _map_    | map name
+| _x_, _y_ | map coordinates
+| _label_  | a label in the current script
+| _func_   | a function or label reference
+| _var_    | the name of a variable or player parameter
+| _item_   | an item (by numeric id or name)
+| _player_ | a player (by name or account id)
+| _event_  | an NPC event, written `NpcName::OnLabel`
+| _timer_  | a timer interval, in milliseconds
+| _mob_    | a monster species
+| _status_ | a status-condition (status-change) id
 |===
 
 A `-> type` suffix shows the value the builtin pushes back as an
-expression result; builtins with no suffix are statements.
-
-WARNING: Descriptions marked *TODO* have not been written yet.  The list
-of builtins itself is kept exact by the *script-docs-drift* test; only the
-prose is incomplete.  Contributions filling in TODO entries are welcome;
-edit the description text in place and it will survive regeneration by
-_tools/gen_script_docs.py_.
+expression result; builtins with no suffix are statements.  These types
+are intent only: the parser enforces argument *count* (and the optional /
+variadic markers), not argument *type*.
 
 //>>> GENERATED-BUILTIN-LIST
-*mes*::
-+
-`mes([expr])`
-+
-TODO: describe this builtin.
-
-*mesq*::
-+
-`mesq([expr])`
-+
-TODO: describe this builtin.
-
-*mesn*::
-+
-`mesn([expr])`
-+
-TODO: describe this builtin.
-
-*clear*::
-+
-`clear()`
-+
-TODO: describe this builtin.
-
-*goto*::
-+
-`goto(label)`
-+
-TODO: describe this builtin.
-
-*callfunc*::
-+
-`callfunc(func)`
-+
-TODO: describe this builtin.
-
-*call*::
-+
-`call(func[, expr, ...]) -> variant (may be absent)`
-+
-TODO: describe this builtin.
-
-*callsub*::
-+
-`callsub(label)`
-+
-TODO: describe this builtin.
-
-*getarg*::
-+
-`getarg(int[, expr]) -> variant (int or str)`
-+
-TODO: describe this builtin.
-
-*return*::
-+
-`return([expr])`
-+
-TODO: describe this builtin.
-
-*void*::
-+
-`void([expr, ...])`
-+
-TODO: describe this builtin.
-
-*next*::
-+
-`next()`
-+
-TODO: describe this builtin.
-
-*close*::
-+
-`close()`
-+
-TODO: describe this builtin.
-
-*close2*::
-+
-`close2()`
-+
-TODO: describe this builtin.
-
-*menu*::
-+
-`menu(str, label, ...)`
-+
-TODO: describe this builtin.
-
-*rand*::
-+
-`rand(int[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*isat*::
-+
-`isat(map, x, y) -> int`
-+
-TODO: describe this builtin.
-
-*warp*::
-+
-`warp(map, x, y)`
-+
-TODO: describe this builtin.
-
-*areawarp*::
-+
-`areawarp(map, x, y, x, y, map, x, y)`
-+
-TODO: describe this builtin.
-
-*heal*::
-+
-`heal(int, int[, expr])`
-+
-TODO: describe this builtin.
-
-*injure*::
-+
-`injure(int, int, int)`
-+
-TODO: describe this builtin.
-
-*input*::
-+
-`input(var)`
-+
-TODO: describe this builtin.
-
-*requestitem*::
-+
-`requestitem(var[, expr])`
-+
-TODO: describe this builtin.
-
-*requestlang*::
-+
-`requestlang(var)`
-+
-TODO: describe this builtin.
-
-*if*::
-+
-`if(int, func, ...)`
-+
-TODO: describe this builtin.
-
-*elif*::
-+
-`elif(int, func, ...)`
-+
-TODO: describe this builtin.
-
-*else*::
-+
-`else(func, ...)`
-+
-TODO: describe this builtin.
-
-*set*::
-+
-`set(var, expr[, expr])`
-+
-TODO: describe this builtin.
-
-*get*::
-+
-`get(var, expr) -> variant (int or str)`
-+
-TODO: describe this builtin.
-
-*setarray*::
-+
-`setarray(var, expr, ...)`
-+
-TODO: describe this builtin.
-
-*cleararray*::
-+
-`cleararray(var, expr, int)`
-+
-TODO: describe this builtin.
-
-*getarraysize*::
-+
-`getarraysize(var) -> int`
-+
-TODO: describe this builtin.
-
-*getelementofarray*::
-+
-`getelementofarray(var, int) -> variant (int or str)`
-+
-TODO: describe this builtin.
-
-*array_search*::
-+
-`array_search(expr, var) -> int`
-+
-TODO: describe this builtin.
-
-*setlook*::
-+
-`setlook(int, int)`
-+
-TODO: describe this builtin.
-
-*countitem*::
-+
-`countitem(item) -> int`
-+
-TODO: describe this builtin.
-
-*checkweight*::
-+
-`checkweight(item, int) -> int`
-+
-TODO: describe this builtin.
-
-*getitem*::
-+
-`getitem(item, int[, expr, expr])`
-+
-TODO: describe this builtin.
-
-*makeitem*::
-+
-`makeitem(item, int, map, x, y)`
-+
-TODO: describe this builtin.
-
-*delitem*::
-+
-`delitem(item, int)`
-+
-TODO: describe this builtin.
-
-*getcharid*::
-+
-`getcharid(int[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*getnpcid*::
-+
-`getnpcid([expr]) -> int`
-+
-TODO: describe this builtin.
-
-*getversion*::
-+
-`getversion() -> int`
-+
-TODO: describe this builtin.
-
-*strcharinfo*::
-+
-`strcharinfo(int[, expr]) -> str`
-+
-TODO: describe this builtin.
-
-*getequipid*::
-+
-`getequipid(int[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*bonus*::
-+
-`bonus(int, int)`
-+
-TODO: describe this builtin.
-
-*bonus2*::
-+
-`bonus2(int, int, int)`
-+
-TODO: describe this builtin.
-
-*skill*::
-+
-`skill(int, int[, expr])`
-+
-TODO: describe this builtin.
-
-*setskill*::
-+
-`setskill(int, int)`
-+
-TODO: describe this builtin.
-
-*getskilllv*::
-+
-`getskilllv(int) -> int`
-+
-TODO: describe this builtin.
-
-*overrideattack*::
-+
-`overrideattack([expr, expr, expr, expr, expr, expr])`
-+
-TODO: describe this builtin.
-
-*getgmlevel*::
-+
-`getgmlevel() -> int`
-+
-TODO: describe this builtin.
-
-*end*::
-+
-`end()`
-+
-TODO: describe this builtin.
-
-*getopt2*::
-+
-`getopt2() -> int`
-+
-TODO: describe this builtin.
-
-*setopt2*::
-+
-`setopt2(int)`
-+
-TODO: describe this builtin.
-
-*savepoint*::
-+
-`savepoint(map, x, y)`
-+
-TODO: describe this builtin.
-
-*gettimetick*::
-+
-`gettimetick(int) -> int`
-+
-TODO: describe this builtin.
-
-*gettime*::
-+
-`gettime(int) -> int`
-+
-TODO: describe this builtin.
-
-*openstorage*::
-+
-`openstorage()`
-+
-TODO: describe this builtin.
-
-*getexp*::
-+
-`getexp(int, int)`
-+
-TODO: describe this builtin.
-
-*mobinfo*::
-+
-`mobinfo(int, int) -> variant (int or str)`
-+
-TODO: describe this builtin.
-
-*mobinfo_droparrays*::
-+
-`mobinfo_droparrays(int, int, var) -> int`
-+
-TODO: describe this builtin.
-
-*getmobdrops*::
-+
-`getmobdrops(int) -> int`
-+
-TODO: describe this builtin.
-
-*summon*::
-+
-`summon(map, x, y, str, str, mob, int, int[, expr])`
-+
-TODO: describe this builtin.
-
-*monster*::
-+
-`monster(map, x, y, str, mob, int[, expr])`
-+
-TODO: describe this builtin.
-
-*areamonster*::
-+
-`areamonster(map, x, y, x, y, str, mob, int[, expr])`
-+
-TODO: describe this builtin.
-
-*killmonster*::
-+
-`killmonster(map, event)`
-+
-TODO: describe this builtin.
-
-*donpcevent*::
-+
-`donpcevent(event)`
-+
-TODO: describe this builtin.
-
-*addtimer*::
-+
-`addtimer(timer, event[, expr])`
-+
-TODO: describe this builtin.
-
-*addnpctimer*::
-+
-`addnpctimer(timer, event)`
-+
-TODO: describe this builtin.
-
-*initnpctimer*::
-+
-`initnpctimer([expr])`
-+
-TODO: describe this builtin.
-
-*startnpctimer*::
-+
-`startnpctimer([expr])`
-+
-TODO: describe this builtin.
-
-*stopnpctimer*::
-+
-`stopnpctimer([expr])`
-+
-TODO: describe this builtin.
-
-*getnpctimer*::
-+
-`getnpctimer(int[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*setnpctimer*::
-+
-`setnpctimer(int[, expr])`
-+
-TODO: describe this builtin.
-
-*setnpcdirection*::
-+
-`setnpcdirection(int, int, int[, expr])`
-+
-TODO: describe this builtin.
-
-*npcaction*::
-+
-`npcaction(int[, expr, expr, expr])`
-+
-TODO: describe this builtin.
-
-*camera*::
-+
-`camera([expr, expr, expr])`
-+
-TODO: describe this builtin.
-
-*announce*::
-+
-`announce(str, int)`
-+
-TODO: describe this builtin.
-
-*mapannounce*::
-+
-`mapannounce(map, str, int)`
-+
-TODO: describe this builtin.
-
-*getusers*::
-+
-`getusers(int) -> int`
-+
-TODO: describe this builtin.
-
-*getmapusers*::
-+
-`getmapusers(map) -> int`
-+
-TODO: describe this builtin.
-
-*getareausers*::
-+
-`getareausers(map, x, y, x, y[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*getareadropitem*::
-+
-`getareadropitem(map, x, y, x, y, int[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*enablenpc*::
-+
-`enablenpc(str)`
-+
-TODO: describe this builtin.
-
-*disablenpc*::
-+
-`disablenpc(str)`
-+
-TODO: describe this builtin.
-
-*sc_start*::
-+
-`sc_start(int, status, int[, expr])`
-+
-TODO: describe this builtin.
-
-*sc_end*::
-+
-`sc_end(int[, expr])`
-+
-TODO: describe this builtin.
-
-*sc_check*::
-+
-`sc_check(int[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*debugmes*::
-+
-`debugmes(str)`
-+
-TODO: describe this builtin.
-
-*wgm*::
-+
-`wgm(str)`
-+
-TODO: describe this builtin.
-
-*gmlog*::
-+
-`gmlog(str)`
-+
-TODO: describe this builtin.
-
-*resetstatus*::
-+
-`resetstatus()`
-+
-TODO: describe this builtin.
-
-*attachrid*::
-+
-`attachrid(int) -> int`
-+
-TODO: describe this builtin.
-
-*detachrid*::
-+
-`detachrid()`
-+
-TODO: describe this builtin.
-
-*isloggedin*::
-+
-`isloggedin(int) -> int`
-+
-TODO: describe this builtin.
-
-*setmapflag*::
-+
-`setmapflag(map, int)`
-+
-TODO: describe this builtin.
-
-*removemapflag*::
-+
-`removemapflag(map, int)`
-+
-TODO: describe this builtin.
-
-*getmapflag*::
-+
-`getmapflag(map, int) -> int`
-+
-TODO: describe this builtin.
-
-*pvpon*::
-+
-`pvpon(map)`
-+
-TODO: describe this builtin.
-
-*pvpoff*::
-+
-`pvpoff(map)`
-+
-TODO: describe this builtin.
-
-*setpvpchannel*::
-+
-`setpvpchannel(int)`
-+
-TODO: describe this builtin.
-
-*getpvpflag*::
-+
-`getpvpflag(int[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*emotion*::
-+
-`emotion(int[, expr])`
-+
-TODO: describe this builtin.
-
-*mapwarp*::
-+
-`mapwarp(map, map, x, y)`
-+
-TODO: describe this builtin.
-
-*mobcount*::
-+
-`mobcount(map, event) -> int`
-+
-TODO: describe this builtin.
-
-*marriage*::
-+
-`marriage(player) -> int`
-+
-TODO: describe this builtin.
-
-*divorce*::
-+
-`divorce() -> int`
-+
-TODO: describe this builtin.
-
-*getitemlink*::
-+
-`getitemlink(item) -> str`
-+
-TODO: describe this builtin.
-
-*getpartnerid2*::
-+
-`getpartnerid2() -> int`
-+
-TODO: describe this builtin.
-
-*explode*::
-+
-`explode(var, str, str)`
-+
-TODO: describe this builtin.
-
-*getinventorylist*::
-+
-`getinventorylist()`
-+
-TODO: describe this builtin.
-
-*getactivatedpoolskilllist*::
-+
-`getactivatedpoolskilllist()`
-+
-TODO: describe this builtin.
-
-*getunactivatedpoolskilllist*::
-+
-`getunactivatedpoolskilllist()`
-+
-TODO: describe this builtin.
-
-*poolskill*::
-+
-`poolskill(int)`
-+
-TODO: describe this builtin.
-
-*unpoolskill*::
-+
-`unpoolskill(int)`
-+
-TODO: describe this builtin.
-
-*misceffect*::
-+
-`misceffect(int[, expr])`
-+
-TODO: describe this builtin.
-
-*specialeffect*::
-+
-`specialeffect(int)`
-+
-TODO: describe this builtin.
-
-*specialeffect2*::
-+
-`specialeffect2(int)`
-+
-TODO: describe this builtin.
-
-*nude*::
-+
-`nude()`
-+
-TODO: describe this builtin.
-
-*unequipbyid*::
-+
-`unequipbyid(int)`
-+
-TODO: describe this builtin.
-
-*npcwarp*::
-+
-`npcwarp(x, y, str)`
-+
-TODO: describe this builtin.
-
-*npcareawarp*::
-+
-`npcareawarp(x, y, x, y, int, str)`
-+
-TODO: describe this builtin.
-
-*message*::
-+
-`message(player, str)`
-+
-TODO: describe this builtin.
-
-*npctalk*::
-+
-`npctalk(str, str[, expr])`
-+
-TODO: describe this builtin.
-
-*registercmd*::
-+
-`registercmd(str, str)`
-+
-TODO: describe this builtin.
-
-*title*::
-+
-`title(str)`
-+
-TODO: describe this builtin.
-
-*smsg*::
-+
-`smsg(expr[, expr, expr])`
-+
-TODO: describe this builtin.
-
-*remotecmd*::
-+
-`remotecmd(str[, expr])`
-+
-TODO: describe this builtin.
-
-*sendcollision*::
-+
-`sendcollision(map, int, x, y[, expr, expr, expr])`
-+
-TODO: describe this builtin.
-
-*music*::
-+
-`music(str)`
-+
-TODO: describe this builtin.
-
-*mapmask*::
-+
-`mapmask(int[, expr])`
-+
-TODO: describe this builtin.
-
-*getmask*::
-+
-`getmask() -> int`
-+
-TODO: describe this builtin.
-
-*getlook*::
-+
-`getlook(int) -> int`
-+
-TODO: describe this builtin.
-
-*getsavepoint*::
-+
-`getsavepoint(int) -> variant (int or str)`
-+
-TODO: describe this builtin.
-
-*areatimer*::
-+
-`areatimer(map, x, y, x, y, timer, event, int)`
-+
-TODO: describe this builtin.
-
-*foreach*::
-+
-`foreach(int, map, x, y, x, y, event[, expr])`
-+
-TODO: describe this builtin.
-
-*isin*::
-+
-`isin(map, x, y, x, y) -> int`
-+
-TODO: describe this builtin.
-
-*iscollision*::
-+
-`iscollision(map, x, y) -> int`
-+
-TODO: describe this builtin.
-
-*shop*::
-+
-`shop(str)`
-+
-TODO: describe this builtin.
-
-*isdead*::
-+
-`isdead() -> int`
-+
-TODO: describe this builtin.
-
-*aggravate*::
-+
-`aggravate(int[, expr])`
-+
-TODO: describe this builtin.
-
-*issummon*::
-+
-`issummon(int) -> int`
-+
-TODO: describe this builtin.
-
-*fakenpcname*::
-+
-`fakenpcname(str, str, int)`
-+
-TODO: describe this builtin.
-
-*puppet*::
-+
-`puppet(mob, x, y, str, int[, expr, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*destroy*::
-+
-`destroy([expr])`
-+
-TODO: describe this builtin.
-
-*getx*::
-+
-`getx() -> int`
-+
-TODO: describe this builtin.
-
-*gety*::
-+
-`gety() -> int`
-+
-TODO: describe this builtin.
-
-*getdir*::
-+
-`getdir() -> int`
-+
-TODO: describe this builtin.
-
-*getnpcx*::
-+
-`getnpcx([expr]) -> int`
-+
-TODO: describe this builtin.
-
-*getnpcy*::
-+
-`getnpcy([expr]) -> int`
-+
-TODO: describe this builtin.
-
-*strnpcinfo*::
-+
-`strnpcinfo(int[, expr]) -> str`
-+
-TODO: describe this builtin.
-
-*getmap*::
-+
-`getmap([expr]) -> str`
-+
-TODO: describe this builtin.
-
-*getmapmaxx*::
-+
-`getmapmaxx(map) -> int`
-+
-TODO: describe this builtin.
-
-*getmapmaxy*::
-+
-`getmapmaxy(map) -> int`
-+
-TODO: describe this builtin.
-
-*getmaphash*::
-+
-`getmaphash(map) -> int`
-+
-TODO: describe this builtin.
-
-*getmapnamefromhash*::
-+
-`getmapnamefromhash(int) -> str`
-+
-TODO: describe this builtin.
-
-*mapexists*::
-+
-`mapexists(map) -> int`
-+
-TODO: describe this builtin.
-
-*numberofmaps*::
-+
-`numberofmaps() -> int`
-+
-TODO: describe this builtin.
-
-*getmapnamebyindex*::
-+
-`getmapnamebyindex(int) -> str`
-+
-TODO: describe this builtin.
-
-*mapexit*::
-+
-`mapexit()`
-+
-TODO: describe this builtin.
-
-*freeloop*::
-+
-`freeloop(int)`
-+
-TODO: describe this builtin.
-
-*if_then_else*::
-+
-`if_then_else(int, int, int) -> variant (int or str)`
-+
-TODO: describe this builtin.
-
-*max*::
-+
-`max(expr[, expr, ...]) -> int`
-+
-TODO: describe this builtin.
-
-*min*::
-+
-`min(expr[, expr, ...]) -> int`
-+
-TODO: describe this builtin.
-
-*average*::
-+
-`average(int, int, ...) -> int`
-+
-TODO: describe this builtin.
-
-*sqrt*::
-+
-`sqrt(int) -> int`
-+
-TODO: describe this builtin.
-
-*cbrt*::
-+
-`cbrt(int) -> int`
-+
-TODO: describe this builtin.
-
-*pow*::
-+
-`pow(int, int) -> int`
-+
-TODO: describe this builtin.
-
-*target*::
-+
-`target(int, int, int) -> int`
-+
-TODO: describe this builtin.
-
-*distance*::
-+
-`distance(int, int[, expr]) -> int`
-+
-TODO: describe this builtin.
-
-*chr*::
-+
-`chr(int) -> str`
-+
-TODO: describe this builtin.
-
-*ord*::
-+
-`ord(str) -> int`
-+
-TODO: describe this builtin.
-
-*l*::
-+
-`l(str, ...) -> str`
-+
-TODO: describe this builtin.
+*mes*([_expr_])::
+  TODO: describe this builtin.
+
+*mesq*([_expr_])::
+  TODO: describe this builtin.
+
+*mesn*([_expr_])::
+  TODO: describe this builtin.
+
+*clear*()::
+  TODO: describe this builtin.
+
+*goto*(_label_)::
+  TODO: describe this builtin.
+
+*callfunc*(_func_)::
+  TODO: describe this builtin.
+
+*call*(_func_[, _expr_...]) -> variant (may be absent)::
+  TODO: describe this builtin.
+
+*callsub*(_label_)::
+  TODO: describe this builtin.
+
+*getarg*(_int_[, _expr_]) -> variant (int or str)::
+  TODO: describe this builtin.
+
+*return*([_expr_])::
+  TODO: describe this builtin.
+
+*void*([_expr_...])::
+  TODO: describe this builtin.
+
+*next*()::
+  TODO: describe this builtin.
+
+*close*()::
+  TODO: describe this builtin.
+
+*close2*()::
+  TODO: describe this builtin.
+
+*menu*(_str_, _label_...)::
+  TODO: describe this builtin.
+
+*rand*(_int_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*isat*(_map_, _x_, _y_) -> int::
+  TODO: describe this builtin.
+
+*warp*(_map_, _x_, _y_)::
+  TODO: describe this builtin.
+
+*areawarp*(_map_, _x_, _y_, _x_, _y_, _map_, _x_, _y_)::
+  TODO: describe this builtin.
+
+*heal*(_int_, _int_[, _expr_])::
+  TODO: describe this builtin.
+
+*injure*(_int_, _int_, _int_)::
+  TODO: describe this builtin.
+
+*input*(_var_)::
+  TODO: describe this builtin.
+
+*requestitem*(_var_[, _expr_])::
+  TODO: describe this builtin.
+
+*requestlang*(_var_)::
+  TODO: describe this builtin.
+
+*if*(_int_, _func_...)::
+  TODO: describe this builtin.
+
+*elif*(_int_, _func_...)::
+  TODO: describe this builtin.
+
+*else*(_func_...)::
+  TODO: describe this builtin.
+
+*set*(_var_, _expr_[, _expr_])::
+  TODO: describe this builtin.
+
+*get*(_var_, _expr_) -> variant (int or str)::
+  TODO: describe this builtin.
+
+*setarray*(_var_, _expr_...)::
+  TODO: describe this builtin.
+
+*cleararray*(_var_, _expr_, _int_)::
+  TODO: describe this builtin.
+
+*getarraysize*(_var_) -> int::
+  TODO: describe this builtin.
+
+*getelementofarray*(_var_, _int_) -> variant (int or str)::
+  TODO: describe this builtin.
+
+*array_search*(_expr_, _var_) -> int::
+  TODO: describe this builtin.
+
+*setlook*(_int_, _int_)::
+  TODO: describe this builtin.
+
+*countitem*(_item_) -> int::
+  TODO: describe this builtin.
+
+*checkweight*(_item_, _int_) -> int::
+  TODO: describe this builtin.
+
+*getitem*(_item_, _int_[, _expr_, _expr_])::
+  TODO: describe this builtin.
+
+*makeitem*(_item_, _int_, _map_, _x_, _y_)::
+  TODO: describe this builtin.
+
+*delitem*(_item_, _int_)::
+  TODO: describe this builtin.
+
+*getcharid*(_int_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*getnpcid*([_expr_]) -> int::
+  TODO: describe this builtin.
+
+*getversion*() -> int::
+  TODO: describe this builtin.
+
+*strcharinfo*(_int_[, _expr_]) -> str::
+  TODO: describe this builtin.
+
+*getequipid*(_int_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*bonus*(_int_, _int_)::
+  TODO: describe this builtin.
+
+*bonus2*(_int_, _int_, _int_)::
+  TODO: describe this builtin.
+
+*skill*(_int_, _int_[, _expr_])::
+  TODO: describe this builtin.
+
+*setskill*(_int_, _int_)::
+  TODO: describe this builtin.
+
+*getskilllv*(_int_) -> int::
+  TODO: describe this builtin.
+
+*overrideattack*([_expr_, _expr_, _expr_, _expr_, _expr_, _expr_])::
+  TODO: describe this builtin.
+
+*getgmlevel*() -> int::
+  TODO: describe this builtin.
+
+*end*()::
+  TODO: describe this builtin.
+
+*getopt2*() -> int::
+  TODO: describe this builtin.
+
+*setopt2*(_int_)::
+  TODO: describe this builtin.
+
+*savepoint*(_map_, _x_, _y_)::
+  TODO: describe this builtin.
+
+*gettimetick*(_int_) -> int::
+  TODO: describe this builtin.
+
+*gettime*(_int_) -> int::
+  TODO: describe this builtin.
+
+*openstorage*()::
+  TODO: describe this builtin.
+
+*getexp*(_int_, _int_)::
+  TODO: describe this builtin.
+
+*mobinfo*(_int_, _int_) -> variant (int or str)::
+  TODO: describe this builtin.
+
+*mobinfo_droparrays*(_int_, _int_, _var_) -> int::
+  TODO: describe this builtin.
+
+*getmobdrops*(_int_) -> int::
+  TODO: describe this builtin.
+
+*summon*(_map_, _x_, _y_, _str_, _str_, _mob_, _int_, _int_[, _expr_])::
+  TODO: describe this builtin.
+
+*monster*(_map_, _x_, _y_, _str_, _mob_, _int_[, _expr_])::
+  TODO: describe this builtin.
+
+*areamonster*(_map_, _x_, _y_, _x_, _y_, _str_, _mob_, _int_[, _expr_])::
+  TODO: describe this builtin.
+
+*killmonster*(_map_, _event_)::
+  TODO: describe this builtin.
+
+*donpcevent*(_event_)::
+  TODO: describe this builtin.
+
+*addtimer*(_timer_, _event_[, _expr_])::
+  TODO: describe this builtin.
+
+*addnpctimer*(_timer_, _event_)::
+  TODO: describe this builtin.
+
+*initnpctimer*([_expr_])::
+  TODO: describe this builtin.
+
+*startnpctimer*([_expr_])::
+  TODO: describe this builtin.
+
+*stopnpctimer*([_expr_])::
+  TODO: describe this builtin.
+
+*getnpctimer*(_int_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*setnpctimer*(_int_[, _expr_])::
+  TODO: describe this builtin.
+
+*setnpcdirection*(_int_, _int_, _int_[, _expr_])::
+  TODO: describe this builtin.
+
+*npcaction*(_int_[, _expr_, _expr_, _expr_])::
+  TODO: describe this builtin.
+
+*camera*([_expr_, _expr_, _expr_])::
+  TODO: describe this builtin.
+
+*announce*(_str_, _int_)::
+  TODO: describe this builtin.
+
+*mapannounce*(_map_, _str_, _int_)::
+  TODO: describe this builtin.
+
+*getusers*(_int_) -> int::
+  TODO: describe this builtin.
+
+*getmapusers*(_map_) -> int::
+  TODO: describe this builtin.
+
+*getareausers*(_map_, _x_, _y_, _x_, _y_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*getareadropitem*(_map_, _x_, _y_, _x_, _y_, _int_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*enablenpc*(_str_)::
+  TODO: describe this builtin.
+
+*disablenpc*(_str_)::
+  TODO: describe this builtin.
+
+*sc_start*(_int_, _status_, _int_[, _expr_])::
+  TODO: describe this builtin.
+
+*sc_end*(_int_[, _expr_])::
+  TODO: describe this builtin.
+
+*sc_check*(_int_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*debugmes*(_str_)::
+  TODO: describe this builtin.
+
+*wgm*(_str_)::
+  TODO: describe this builtin.
+
+*gmlog*(_str_)::
+  TODO: describe this builtin.
+
+*resetstatus*()::
+  TODO: describe this builtin.
+
+*attachrid*(_int_) -> int::
+  TODO: describe this builtin.
+
+*detachrid*()::
+  TODO: describe this builtin.
+
+*isloggedin*(_int_) -> int::
+  TODO: describe this builtin.
+
+*setmapflag*(_map_, _int_)::
+  TODO: describe this builtin.
+
+*removemapflag*(_map_, _int_)::
+  TODO: describe this builtin.
+
+*getmapflag*(_map_, _int_) -> int::
+  TODO: describe this builtin.
+
+*pvpon*(_map_)::
+  TODO: describe this builtin.
+
+*pvpoff*(_map_)::
+  TODO: describe this builtin.
+
+*setpvpchannel*(_int_)::
+  TODO: describe this builtin.
+
+*getpvpflag*(_int_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*emotion*(_int_[, _expr_])::
+  TODO: describe this builtin.
+
+*mapwarp*(_map_, _map_, _x_, _y_)::
+  TODO: describe this builtin.
+
+*mobcount*(_map_, _event_) -> int::
+  TODO: describe this builtin.
+
+*marriage*(_player_) -> int::
+  TODO: describe this builtin.
+
+*divorce*() -> int::
+  TODO: describe this builtin.
+
+*getitemlink*(_item_) -> str::
+  TODO: describe this builtin.
+
+*getpartnerid2*() -> int::
+  TODO: describe this builtin.
+
+*explode*(_var_, _str_, _str_)::
+  TODO: describe this builtin.
+
+*getinventorylist*()::
+  TODO: describe this builtin.
+
+*getactivatedpoolskilllist*()::
+  TODO: describe this builtin.
+
+*getunactivatedpoolskilllist*()::
+  TODO: describe this builtin.
+
+*poolskill*(_int_)::
+  TODO: describe this builtin.
+
+*unpoolskill*(_int_)::
+  TODO: describe this builtin.
+
+*misceffect*(_int_[, _expr_])::
+  TODO: describe this builtin.
+
+*specialeffect*(_int_)::
+  TODO: describe this builtin.
+
+*specialeffect2*(_int_)::
+  TODO: describe this builtin.
+
+*nude*()::
+  TODO: describe this builtin.
+
+*unequipbyid*(_int_)::
+  TODO: describe this builtin.
+
+*npcwarp*(_x_, _y_, _str_)::
+  TODO: describe this builtin.
+
+*npcareawarp*(_x_, _y_, _x_, _y_, _int_, _str_)::
+  TODO: describe this builtin.
+
+*message*(_player_, _str_)::
+  TODO: describe this builtin.
+
+*npctalk*(_str_, _str_[, _expr_])::
+  TODO: describe this builtin.
+
+*registercmd*(_str_, _str_)::
+  TODO: describe this builtin.
+
+*title*(_str_)::
+  TODO: describe this builtin.
+
+*smsg*(_expr_[, _expr_, _expr_])::
+  TODO: describe this builtin.
+
+*remotecmd*(_str_[, _expr_])::
+  TODO: describe this builtin.
+
+*sendcollision*(_map_, _int_, _x_, _y_[, _expr_, _expr_, _expr_])::
+  TODO: describe this builtin.
+
+*music*(_str_)::
+  TODO: describe this builtin.
+
+*mapmask*(_int_[, _expr_])::
+  TODO: describe this builtin.
+
+*getmask*() -> int::
+  TODO: describe this builtin.
+
+*getlook*(_int_) -> int::
+  TODO: describe this builtin.
+
+*getsavepoint*(_int_) -> variant (int or str)::
+  TODO: describe this builtin.
+
+*areatimer*(_map_, _x_, _y_, _x_, _y_, _timer_, _event_, _int_)::
+  TODO: describe this builtin.
+
+*foreach*(_int_, _map_, _x_, _y_, _x_, _y_, _event_[, _expr_])::
+  TODO: describe this builtin.
+
+*isin*(_map_, _x_, _y_, _x_, _y_) -> int::
+  TODO: describe this builtin.
+
+*iscollision*(_map_, _x_, _y_) -> int::
+  TODO: describe this builtin.
+
+*shop*(_str_)::
+  TODO: describe this builtin.
+
+*isdead*() -> int::
+  TODO: describe this builtin.
+
+*aggravate*(_int_[, _expr_])::
+  TODO: describe this builtin.
+
+*issummon*(_int_) -> int::
+  TODO: describe this builtin.
+
+*fakenpcname*(_str_, _str_, _int_)::
+  TODO: describe this builtin.
+
+*puppet*(_mob_, _x_, _y_, _str_, _int_[, _expr_, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*destroy*([_expr_])::
+  TODO: describe this builtin.
+
+*getx*() -> int::
+  TODO: describe this builtin.
+
+*gety*() -> int::
+  TODO: describe this builtin.
+
+*getdir*() -> int::
+  TODO: describe this builtin.
+
+*getnpcx*([_expr_]) -> int::
+  TODO: describe this builtin.
+
+*getnpcy*([_expr_]) -> int::
+  TODO: describe this builtin.
+
+*strnpcinfo*(_int_[, _expr_]) -> str::
+  TODO: describe this builtin.
+
+*getmap*([_expr_]) -> str::
+  TODO: describe this builtin.
+
+*getmapmaxx*(_map_) -> int::
+  TODO: describe this builtin.
+
+*getmapmaxy*(_map_) -> int::
+  TODO: describe this builtin.
+
+*getmaphash*(_map_) -> int::
+  TODO: describe this builtin.
+
+*getmapnamefromhash*(_int_) -> str::
+  TODO: describe this builtin.
+
+*mapexists*(_map_) -> int::
+  TODO: describe this builtin.
+
+*numberofmaps*() -> int::
+  TODO: describe this builtin.
+
+*getmapnamebyindex*(_int_) -> str::
+  TODO: describe this builtin.
+
+*mapexit*()::
+  TODO: describe this builtin.
+
+*freeloop*(_int_)::
+  TODO: describe this builtin.
+
+*if_then_else*(_int_, _int_, _int_) -> variant (int or str)::
+  TODO: describe this builtin.
+
+*max*(_expr_[, _expr_...]) -> int::
+  TODO: describe this builtin.
+
+*min*(_expr_[, _expr_...]) -> int::
+  TODO: describe this builtin.
+
+*average*(_int_, _int_...) -> int::
+  TODO: describe this builtin.
+
+*sqrt*(_int_) -> int::
+  TODO: describe this builtin.
+
+*cbrt*(_int_) -> int::
+  TODO: describe this builtin.
+
+*pow*(_int_, _int_) -> int::
+  TODO: describe this builtin.
+
+*target*(_int_, _int_, _int_) -> int::
+  TODO: describe this builtin.
+
+*distance*(_int_, _int_[, _expr_]) -> int::
+  TODO: describe this builtin.
+
+*chr*(_int_) -> str::
+  TODO: describe this builtin.
+
+*ord*(_str_) -> int::
+  TODO: describe this builtin.
+
+*l*(_str_...) -> str::
+  TODO: describe this builtin.
 //<<< GENERATED-BUILTIN-LIST
 
 == See also

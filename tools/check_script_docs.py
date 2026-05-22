@@ -19,12 +19,21 @@
 import re
 import sys
 
-from script_builtins import parse_builtins, render_signature
+from script_builtins import parse_builtins, render_adoc_term
 from gen_script_docs import adoc_path, extract_block
 
 
 def documented_builtins():
-    """Return {name: signature} parsed from the generated block."""
+    """Return {name: term} parsed from the generated block.
+
+    Each builtin is one definition-list entry whose term line is the
+    marked-up signature, e.g.
+
+        *setparam*(_param_, _value_[, _gid_]) -> int::
+
+    We capture the full term (without the trailing "::") so it can be
+    compared against the mechanically rendered term.
+    """
     with open(adoc_path(), 'r', encoding='utf-8') as f:
         text = f.read()
     block = extract_block(text)
@@ -34,16 +43,16 @@ def documented_builtins():
 
     result = {}
     entry_re = re.compile(
-        r'^\*([A-Za-z_][\w]*)\*::\s*\n\+\n`([^`]*)`',
+        r'^(\*([A-Za-z_][\w]*)\*\([^\n]*?)::\s*$',
         re.MULTILINE)
     for m in entry_re.finditer(block):
-        result[m.group(1)] = m.group(2)
+        result[m.group(2)] = m.group(1)
     return result
 
 
 def main():
     builtins = parse_builtins()
-    table = {b.name: render_signature(b) for b in builtins}
+    table = {b.name: render_adoc_term(b) for b in builtins}
     documented = documented_builtins()
 
     table_names = set(table)
