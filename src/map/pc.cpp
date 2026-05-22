@@ -3909,24 +3909,6 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::AUTOMOD:
             val = sd ? static_cast<int>(sd->automod) : 0;
             break;
-        case SP::MOB_MODE:
-            val = md ? static_cast<uint16_t>(md->mode) : 0;
-            break;
-        case SP::MOB_ADELAY:
-            val = md ? md->stats[mob_stat::ADELAY] : 0;
-            break;
-        case SP::MOB_XP_BONUS:
-            val = md ? md->stats[mob_stat::XP_BONUS] : 0;
-            break;
-        case SP::MOB_CRITICAL_DEF:
-            val = md ? md->stats[mob_stat::CRITICAL_DEF] : 0;
-            break;
-        case SP::MOB_TARGET_ID:
-            val = md ? unwrap<BlockId>(md->target_id) : 0;
-            break;
-        case SP::MOB_MASTER_ID:
-            val = md ? unwrap<BlockId>(md->master_id) : 0;
-            break;
     }
 
     return val;
@@ -3964,11 +3946,6 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
     switch (type)
     {
         case SP::BASELEVEL:
-            if (md)
-            {
-                md->stats[mob_stat::LV] = val;
-                break;
-            }
             nullpo_retz(sd);
             if (val > sd->status.base_level)
             {
@@ -4018,14 +3995,6 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                     npc_enable(nd->name, 0);
                     npc_enable(nd->name, 1);
                 }
-            }
-            else if (md)
-            {
-                // No mob class-change helper exists; redraw the sprite by
-                // clearing and respawning the mob.
-                clif_clearchar(md, BeingRemoveWhy::WARPED);
-                md->mob_class = wrap<Species>(static_cast<uint16_t>(val));
-                clif_spawnmob(md);
             }
             else
                 ok = false;
@@ -4115,20 +4084,10 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
             break;
         case SP::HP:
-            if (md)
-            {
-                md->hp = val;
-                break;
-            }
             nullpo_retz(sd);
             pc_heal(sd, (val - sd->status.hp), 0);
             break;
         case SP::MAXHP:
-            if (md)
-            {
-                md->stats[mob_stat::MAX_HP] = val;
-                break;
-            }
             nullpo_retz(sd);
             sd->status.max_hp = val;
             clif_updatestatus(sd, type);
@@ -4149,58 +4108,8 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
         case SP::INT:
         case SP::DEX:
         case SP::LUK:
-            if (md)
-            {
-                // mob_stat STR..LUK are contiguous in the same order as ATTR
-                md->stats[mob_stat(static_cast<int>(mob_stat::STR)
-                        + static_cast<int>(sp_to_attr(type)))] = val;
-                break;
-            }
             nullpo_retz(sd);
             pc_statusup2(sd, type, (val - sd->status.attrs[sp_to_attr(type)]));
-            break;
-        case SP::SPEED:
-            if (md)
-            {
-                md->stats[mob_stat::SPEED] = val;
-                break;
-            }
-            if (nd)
-            {
-                nd->speed = static_cast<interval_t>(val);
-                break;
-            }
-            nullpo_retz(sd);
-            // PC speed is normally derived by pc_calcstatus; like the @speed
-            // command, set it directly (clamped) and notify the client. The
-            // value holds until the next pc_calcstatus (equip change, etc.).
-            sd->speed = std::min(std::max(static_cast<interval_t>(val),
-                        MIN_WALK_SPEED), MAX_WALK_SPEED);
-            clif_updatestatus(sd, SP::SPEED);
-            break;
-        case SP::ATK1:
-            if (md)
-                md->stats[mob_stat::ATK1] = val;
-            else
-                ok = false;
-            break;
-        case SP::ATK2:
-            if (md)
-                md->stats[mob_stat::ATK2] = val;
-            else
-                ok = false;
-            break;
-        case SP::DEF1:
-            if (md)
-                md->stats[mob_stat::DEF] = val;
-            else
-                ok = false;
-            break;
-        case SP::MDEF1:
-            if (md)
-                md->stats[mob_stat::MDEF] = val;
-            else
-                ok = false;
             break;
         case SP::PARTNER:
             if (sd)
@@ -4285,40 +4194,9 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             nullpo_retz(sd);
             sd->automod = static_cast<AutoMod>(val);
             break;
-        case SP::MOB_MODE:
-            if (md)
-                md->mode = static_cast<MobMode>(val);
-            else
-                ok = false;
-            break;
-        case SP::MOB_ADELAY:
-            if (md)
-                md->stats[mob_stat::ADELAY] = val;
-            else
-                ok = false;
-            break;
-        case SP::MOB_XP_BONUS:
-            if (md)
-                md->stats[mob_stat::XP_BONUS] = val;
-            else
-                ok = false;
-            break;
-        case SP::MOB_CRITICAL_DEF:
-            if (md)
-                md->stats[mob_stat::CRITICAL_DEF] = val;
-            else
-                ok = false;
-            break;
-        case SP::MOB_MASTER_ID:
-            if (md)
-                md->master_id = wrap<BlockId>(val);
-            else
-                ok = false;
-            break;
 
         default:
             // a parameter pc_setparam does not handle
-            // (including the read-only SP::MOB_TARGET_ID)
             ok = false;
             break;
     }
