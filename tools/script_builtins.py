@@ -274,10 +274,12 @@ def parse_doc_comments(text):
     docs = []
     errors = []
 
-    # Find each /* ... */ block and the line it starts on.  The body
-    # pattern forbids an inner "*/" so a comment never spans into the next
-    # one.
-    comment_re = re.compile(r'/\*(?:[^*]|\*(?!/))*\*/', re.DOTALL)
+    # Match the structured /*===...===*/ doc-comment delimiter
+    # specifically.  A bare /\* would also match '/*' substrings hidden
+    # inside C++ '//' line comments (e.g. '//**'), which would then
+    # consume everything up to the next '*/' and pull the adjacent code
+    # into the parsed comment.
+    comment_re = re.compile(r'/\*=+[\s\S]*?=+\*/')
     for m in comment_re.finditer(text):
         block = m.group(0)
         if '@doc' not in block:
