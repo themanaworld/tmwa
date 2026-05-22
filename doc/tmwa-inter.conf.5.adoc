@@ -1,0 +1,44 @@
+= tmwa-inter.conf(5)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-inter.conf - inter-server configuration for the TMWA char server
+
+== Description
+
+This page documents the "inter" configuration of the TMWA char server,
+*tmwa-char*(1).  For the line-oriented file syntax see *tmwa-config*(5).
+
+The char server's meta configuration file (see *tmwa-char.conf*(5)) names
+this file with the *inter_conf* key.  It holds the locations of the
+account-shared data the char server manages, plus party settings.  The
+default shown is the value used when the option is omitted.
+
+== Options
+
+*storage_txt* (default `save/storage.txt`)::
+Path of the file storing each account's Kafra storage.
+
+*party_txt* (default `save/party.txt`)::
+Path of the party database file.
+
+*accreg_txt* (default `save/accreg.txt`)::
+Path of the file storing account-scope script registers (the `#`-prefixed
+variables).
+
+*party_share_level* (default `10`)::
+Maximum difference in level between party members for experience to be
+shared.
+
+== See also
+
+*tmwa-char*(1), *tmwa-char.conf*(5), *tmwa-config*(5)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

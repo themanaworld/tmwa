@@ -1,0 +1,132 @@
+= tmwa-login.conf(5)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-login.conf - configuration for the TMWA login server
+
+== Description
+
+This page documents the configuration of the TMWA login server,
+*tmwa-login*(1).  For the line-oriented file syntax (comments,
+_key_*:*_value_ lines, *import* and *version* directives) see
+*tmwa-config*(5).
+
+The file named on the *tmwa-login* command line (or `conf/tmwa-login.conf`
+by default) is a *meta* configuration file.  It does not hold the options
+below directly; instead it points at the files that do, with these keys:
+
+*login_conf*::
+Path of the file holding the login-server options listed under
+*LOGIN OPTIONS*.
+
+*login_lan_conf*::
+Path of the file holding the LAN options listed under *LAN OPTIONS*.
+
+== Login options
+
+These options appear in the file named by *login_conf*.  The default shown
+is the value used when the option is omitted.
+
+*login_port* (default `6901`)::
+TCP port the login server listens on, for game clients, char servers and
+the administration tool.  Must be at least 1024.
+
+*account_filename* (default `save/account.txt`)::
+Path of the account database file.
+
+*gm_account_filename* (default `save/gm_account.txt`)::
+Path of the file listing GM accounts and their GM levels.
+
+*gm_account_filename_check_timer* (default `15s`)::
+How often the GM account file is checked for modification and reloaded.
+A value of zero disables periodic reloading.
+
+*login_log_filename* (default `log/login.log`)::
+Path of the login-server log file.
+
+*new_account* (default `false`)::
+When true, an account that does not exist is created automatically the
+first time it is used to log in.
+
+*update_host* (default empty)::
+URL announced to clients as the update (download) host.  Empty means none.
+
+*main_server* (default empty)::
+Server name advertised to clients.
+
+*min_level_to_connect* (default `0`)::
+Minimum GM level required to connect.  `0` lets ordinary players in; a
+higher value restricts the server to GMs, useful during maintenance.
+
+*order* (default `deny,allow`)::
+IP access-control policy: how the *allow* and *deny* lists are combined.
+
+*allow* (default empty)::
+List of IP addresses or subnets explicitly allowed to connect.
+
+*deny* (default empty)::
+List of IP addresses or subnets explicitly denied.
+
+*admin_state* (default `false`)::
+Enables remote administration via *tmwa-admin*(1).  Must be true for the
+administration tool to connect.
+
+*admin_pass* (default empty)::
+Password the administration tool must present.  Set a strong value when
+*admin_state* is enabled.
+
+*ladminallowip* (default empty)::
+List of IP addresses or subnets allowed to use remote administration.
+
+*userid* (default empty)::
+Account name used by the login server's own inter-server connections.
+
+*passwd* (default empty)::
+Password matching *userid*.
+
+*display_parse_login* (default `false`)::
+When true, log details of packets parsed from game clients.
+
+*display_parse_admin* (default `false`)::
+When true, log details of packets parsed from the administration tool.
+
+*display_parse_fromchar* (default `0`)::
+Verbosity (0 to 2) of logging for packets received from char servers.
+
+*anti_freeze_enable* (default `false`)::
+Enables the watchdog that detects and recovers from a frozen server.
+
+*anti_freeze_interval* (default `15s`)::
+Watchdog check interval; only meaningful when *anti_freeze_enable* is
+true.
+
+*conn_limit_enable* (default `true`)::
+When true, limits the rate of new connections from a single address.
+
+*conn_limit_interval* (default `5s`)::
+Window over which the connection-rate limit is measured.
+
+== Lan options
+
+These options appear in the file named by *login_lan_conf*.  They tell the
+login server which addresses belong to the local network, so it can hand
+char servers a LAN-side address instead of a public one.
+
+*lan_char_ip* (default `127.0.0.1`)::
+LAN address of the char server.
+
+*lan_subnet* (default `127.0.0.1/255.255.255.255`)::
+Subnet (address and mask) considered "local".
+
+== See also
+
+*tmwa-login*(1), *tmwa-admin*(1), *tmwa-config*(5), *tmwa-char.conf*(5)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

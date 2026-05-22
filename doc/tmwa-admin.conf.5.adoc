@@ -1,0 +1,50 @@
+= tmwa-admin.conf(5)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-admin.conf - configuration for the TMWA administration tool
+
+== Description
+
+This page documents the configuration of the TMWA login-server
+administration tool, *tmwa-admin*(1).  For the line-oriented file syntax
+see *tmwa-config*(5).
+
+The file named on the *tmwa-admin* command line (or `conf/tmwa-admin.conf`
+by default) is a *meta* configuration file.  It points at the file holding
+the options below with this key:
+
+*admin_conf*::
+Path of the file holding the options listed under *OPTIONS*.
+
+== Options
+
+These options appear in the file named by *admin_conf*.  The default shown
+is the value used when the option is omitted.
+
+*login_ip* (default `127.0.0.1`)::
+Address of the login server to administer.
+
+*login_port* (default `6901`)::
+Port of the login server.  Must be at least 1024.
+
+*admin_pass* (default `admin`)::
+Administration password.  It must match the *admin_pass* set in the login
+server's configuration (see *tmwa-login.conf*(5)).  Change it from the
+default.
+
+*ladmin_log_filename* (default `log/ladmin.log`)::
+Path of the administration-tool log file.
+
+== See also
+
+*tmwa-admin*(1), *tmwa-login*(1), *tmwa-login.conf*(5), *tmwa-config*(5)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

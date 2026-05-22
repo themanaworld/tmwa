@@ -1,0 +1,115 @@
+= tmwa-map.conf(5)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-map.conf - configuration for the TMWA map server
+
+== Description
+
+This page documents the configuration of the TMWA map server,
+*tmwa-map*(1).  For the line-oriented file syntax (comments,
+_key_*:*_value_ lines, *import* and *version* directives) see
+*tmwa-config*(5).
+
+The file named on the *tmwa-map* command line (or `conf/tmwa-map.conf` by
+default) is a *meta* configuration file.  It does not hold the map options
+below directly; instead each key points at another file to load:
+
+*map_conf*::
+Path of the file holding the map-server options listed under
+*MAP OPTIONS*.
+
+*battle_conf*::
+Path of the file holding the gameplay-tuning options; see
+*tmwa-battle.conf*(5).
+
+*atcommand_conf*::
+Path of the atcommand (GM command) configuration file.  A template can be
+produced with `tmwa-map --write-atcommand-config`.
+
+*item_db*::
+Path of the item database.
+
+*mob_db*::
+Path of the monster database.
+
+*mob_skill_db*::
+Path of the monster-skill database.
+
+*skill_db*::
+Path of the skill database.
+
+*quest_db*::
+Path of the quest database.
+
+*const_db*::
+Path of the script-constant database, mapping names to numbers for use in
+scripts.
+
+*resnametable*::
+Path of the resource-name translation table.
+
+== Map options
+
+These options appear in the file named by *map_conf*.  The default shown
+is the value used when the option is omitted.
+
+*map_ip* (default empty)::
+Public address this map server advertises.
+
+*map_port* (default `5121`)::
+TCP port the map server listens on.  Must be at least 1024.
+
+*char_ip* (default empty)::
+Address of the char server to connect to.
+
+*char_port* (default `6121`)::
+Port of the char server.  Must be at least 1024.
+
+*userid* (default empty)::
+Account name this map server uses to authenticate to the char server.
+
+*passwd* (default empty)::
+Password matching *userid*.
+
+*autosave_time* (default the built-in autosave interval)::
+How often map-server state is written to disk.
+
+*mapreg_txt* (default `save/mapreg.txt`)::
+Path of the file storing persistent global script variables (the
+`$`-prefixed registers).
+
+*log_file* (default empty)::
+Path of the map-server log file.  Empty disables file logging.
+
+*gm_log* (default empty)::
+Path of the GM-action log file.  Empty disables GM logging.
+
+The following keys may appear *more than once*; each occurrence adds or
+removes one entry, and they are processed in order:
+
+*map*::
+Add a `.gat` map to the set of maps the server loads.
+
+*delmap*::
+Remove a previously added map.  Useful after an *import* to drop a map the
+imported file added.
+
+*npc*::
+Add an NPC script file (or a script-tree root) to load.
+
+*delnpc*::
+Remove a previously added NPC script source.
+
+== See also
+
+*tmwa-map*(1), *tmwa-battle.conf*(5), *tmwa-config*(5), *tmwa-script*(7)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

@@ -1,0 +1,142 @@
+= tmwa-char.conf(5)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-char.conf - configuration for the TMWA char server
+
+== Description
+
+This page documents the configuration of the TMWA char server,
+*tmwa-char*(1).  For the line-oriented file syntax (comments,
+_key_*:*_value_ lines, *import* and *version* directives) see
+*tmwa-config*(5).
+
+The file named on the *tmwa-char* command line (or `conf/tmwa-char.conf`
+by default) is a *meta* configuration file.  It does not hold the options
+below directly; instead it points at the files that do, with these keys:
+
+*char_conf*::
+Path of the file holding the char-server options listed under
+*CHAR OPTIONS*.
+
+*char_lan_conf*::
+Path of the file holding the LAN options listed under *LAN OPTIONS*.
+
+*inter_conf*::
+Path of the file holding the inter-server options; see
+*tmwa-inter.conf*(5).
+
+== Char options
+
+These options appear in the file named by *char_conf*.  The default shown
+is the value used when the option is omitted.
+
+*server_name* (default empty)::
+Name of this char server, as shown to clients in the server list.
+
+*login_ip* (default empty)::
+Address of the login server to connect to.
+
+*login_port* (default `6901`)::
+Port of the login server.  Must be at least 1024.
+
+*char_ip* (default empty)::
+Public address this char server advertises to clients.
+
+*char_port* (default `6121`)::
+TCP port the char server listens on.  Must be at least 1024.
+
+*userid* (default empty)::
+Account name this char server uses to authenticate to the login server.
+
+*passwd* (default empty)::
+Password matching *userid*.
+
+*char_txt* (default empty)::
+Path of the character database file.
+
+*char_log_filename* (default `log/char.log`)::
+Path of the char-server log file.
+
+*max_connect_user* (default `0`)::
+Maximum number of simultaneously connected users; `0` means unlimited.
+
+*autosave_time* (default the built-in autosave interval)::
+How often character data is written to disk.  Must be at least 1 second.
+
+*start_point* (default map `001-1.gat` at 273,354)::
+Map and coordinates where a freshly created character starts.
+
+*unknown_char_name* (default `Unknown`)::
+Name shown in place of a character whose name cannot be resolved.
+
+*char_name_letters* (default empty)::
+Set of characters permitted in character names.  Empty allows any
+character.
+
+*min_name_length* (default `4`)::
+Minimum length of a character name.  Must be at least 4.
+
+*char_slots* (default `9`)::
+Number of character slots per account.  Must be at least 1.
+
+*online_txt_filename* (default `online.txt`)::
+Path of the plain-text list of online players, rewritten periodically.
+
+*online_html_filename* (default `online.html`)::
+Path of the HTML list of online players.
+
+*online_refresh_html* (default `20`)::
+Refresh interval, in seconds, written into the online HTML page.  Must be
+at least 1.
+
+*online_gm_display_min_level* (default `20`)::
+Minimum GM level a GM must have before being listed on the online pages.
+
+*max_hair_style* (default `20`)::
+Highest selectable hair style id.  Must be at least 1.
+
+*max_hair_color* (default `11`)::
+Highest selectable hair color id.  Must be at least 1.
+
+*min_stat_value* (default `1`)::
+Lowest value a single starting stat may have.
+
+*max_stat_value* (default `9`)::
+Highest value a single starting stat may have.  Must be at least 1.
+
+*total_stat_sum* (default `30`)::
+Total of all starting stats for a new character.  Must be at least 6.
+
+*anti_freeze_enable* (default `false`)::
+Enables the watchdog that detects and recovers from a frozen map server.
+
+*anti_freeze_interval* (default `6s`)::
+Watchdog check interval; only meaningful when *anti_freeze_enable* is
+true.  Must be at least 5 seconds.
+
+== Lan options
+
+These options appear in the file named by *char_lan_conf*.  They tell the
+char server which addresses belong to the local network, so it can hand
+map servers a LAN-side address instead of a public one.
+
+*lan_map_ip* (default `127.0.0.1`)::
+LAN address of the map server.
+
+*lan_subnet* (default `127.0.0.1/255.255.255.255`)::
+Subnet (address and mask) considered "local".
+
+== See also
+
+*tmwa-char*(1), *tmwa-config*(5), *tmwa-inter.conf*(5),
+*tmwa-login.conf*(5)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

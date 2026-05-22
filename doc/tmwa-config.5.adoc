@@ -1,0 +1,82 @@
+= tmwa-config(5)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-config - common configuration-file syntax for the TMWA servers
+
+== Description
+
+Every TMWA daemon (*tmwa-login*(1), *tmwa-char*(1), *tmwa-map*(1)) and the
+administration tool *tmwa-admin*(1) reads plain-text configuration files in
+the same line-oriented format.  This page documents that shared format and
+the directives understood by every config file; the available *options*
+differ per file and are documented in the per-file pages listed under
+*SEE ALSO*.
+
+A server is given its configuration files as command-line arguments and
+loads them in order; when none is given it falls back to a default file in
+`conf/` (see each daemon's manual page).
+
+== Syntax
+
+A configuration file is read line by line.
+
+* A blank line, or a line whose first non-blank characters are `//`, is a
+  comment and is ignored.  There are no end-of-line comments and no `#`
+  comments.
+* Any other line must have the form _key_*:*_value_.  The key is
+  everything before the first colon, with surrounding whitespace stripped;
+  the value is everything after it, with leading whitespace stripped but
+  trailing whitespace kept.
+* A line that contains a control character, or that has no colon, is a
+  fatal error.
+* An unknown key is a fatal error: the daemon reports the offending line
+  and refuses to start.
+
+Boolean values accept `true`, `on`, `yes`, `oui`, `ja`, `si` or `1` for
+true and `false`, `off`, `no`, `non`, `nein` or `0` for false.  Durations
+are written with a unit-suffixed integer such as `30s`, `5min` or `1h`.
+
+== Directives
+
+The following keys are handled by the shared parser itself rather than by
+a particular config file, and are available in every file:
+
+*import*::
+The value is the path of another configuration file, which is read
+immediately at this point (recursively, with the same rules).  Use it to
+split configuration across files or to keep secrets out of a shared file.
+
+*version*::
+A whitespace-separated list of version constraints, each written as `>=`,
+`>`, `<=` or `<` followed by a version number; or the literal `all`.  The
+lines *after* this directive are applied only while the running server
+satisfies every listed constraint, up to the next *version* directive.
+This is the recommended form.
+
+*version-ge*, *version-gt*, *version-le*, *version-lt*::
+Older one-shot version guards.  Each takes a single version number; if the
+running server fails the comparison, the *rest of the file* is skipped.
+Prefer the *version* directive in new configuration.
+
+== Files
+
+`conf/tmwa-login.conf`, `conf/tmwa-char.conf`, `conf/tmwa-map.conf`,
+`conf/tmwa-admin.conf`::
+The default configuration files for each daemon, relative to the working
+directory, used when no file is named on the command line.
+
+== See also
+
+*tmwa-login.conf*(5), *tmwa-char.conf*(5), *tmwa-inter.conf*(5),
+*tmwa-map.conf*(5), *tmwa-battle.conf*(5), *tmwa-admin.conf*(5),
+*tmwa-login*(1), *tmwa-char*(1), *tmwa-map*(1), *tmwa-admin*(1)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

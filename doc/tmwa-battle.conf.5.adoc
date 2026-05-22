@@ -1,0 +1,351 @@
+= tmwa-battle.conf(5)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-battle.conf - gameplay-tuning configuration for the TMWA map server
+
+== Description
+
+This page documents the "battle" configuration of the TMWA map server,
+*tmwa-map*(1).  For the line-oriented file syntax see *tmwa-config*(5).
+
+The map server's meta configuration file (see *tmwa-map.conf*(5)) names
+this file with the *battle_conf* key.  Despite the name it tunes gameplay
+in general, not only combat: experience and drop rates, regeneration,
+limits, anti-spam, logging and more.
+
+Every option has a built-in default and may be omitted.  The default shown
+in parentheses is that built-in value.  `percent` values are integer
+percentages where `100` means "unchanged".  Durations are unit-suffixed
+integers; some options have minimum or maximum bounds, noted where they
+apply.
+
+== Rates and experience
+
+*base_exp_rate* (`100`)::
+Percentage multiplier on base experience gained.
+
+*job_exp_rate* (`100`)::
+Percentage multiplier on job experience gained.
+
+*drop_rate* (`100`)::
+Percentage multiplier on item drop rates.
+
+*drops_by_luk* (`0`)::
+Extra drop-rate percentage granted per point of the killer's LUK.
+
+*max_rate* (`500`)::
+Upper limit, in percent, that the combined rate multipliers may reach.
+
+*mob_count_rate* (`100`)::
+Percentage multiplier on the number of monsters spawned.
+
+*monster_hp_rate* (`0`)::
+Percentage adjustment to monster HP.
+
+*disp_experience* (`false`)::
+When true, show experience gained to the player.
+
+*multi_level_up* (`false`)::
+When true, a single experience gain may raise the character by more than
+one level.
+
+== Levels and limits
+
+*max_lv* (`99`)::
+Maximum normal character level.
+
+*maximum_level* (`255`)::
+Absolute level cap enforced by the server.
+
+*max_hp* (`32500`)::
+Maximum HP a character may have (100 to 1000000).
+
+*max_sp* (`32500`)::
+Maximum SP a character may have (100 to 1000000).
+
+*max_parameter* (`99`)::
+Maximum value of a single character stat (10 to 10000).
+
+*max_aspd* (`199ms`)::
+Fastest attack speed allowed for players (10ms to 1000ms).
+
+*monster_max_aspd* (`199ms`)::
+Fastest attack speed allowed for monsters (10ms to 1000ms).
+
+== Combat
+
+*enemy_critical* (`false`)::
+When true, monsters can land critical hits.
+
+*enemy_critical_rate* (`100`)::
+Percentage multiplier on monster critical-hit rate.
+
+*enemy_str* (`true`)::
+When true, monster STR contributes to monster damage.
+
+*enemy_perfect_flee* (`false`)::
+When true, monsters can have perfect flee (lucky dodge).
+
+*casting_rate* (`100`)::
+Percentage multiplier on spell casting time.
+
+*delay_rate* (`100`)::
+Percentage multiplier on after-cast skill delay.
+
+*delay_dependon_dex* (`false`)::
+When true, DEX reduces after-cast delay.
+
+*skill_delay_attack_enable* (`false`)::
+When true, attacking is allowed during skill delay.
+
+*skill_min_damage* (`false`)::
+When true, skills always deal at least 1 point of damage.
+
+*player_damage_delay* (`true`)::
+When true, players are briefly stunned (move/act delay) when hit.
+
+*player_invincible_time* (`5s`)::
+How long a player is invincible after respawning.
+
+*player_pvp_time* (`5s`)::
+Delay before a player can be attacked again in PvP.
+
+*monster_skill_add_range* (`0`)::
+Extra range, in cells, added when checking whether a monster may use a
+skill.
+
+*castrate_dex_scale* (`150`)::
+DEX value at which casting time is halved.
+
+*itemheal_regeneration_factor* (`1`)::
+Multiplier applied to healing from items.
+
+*mob_splash_radius* (`-1`)::
+Splash radius, in cells, for monster area attacks; `-1` disables splash.
+
+== Targeting and AI
+
+*monster_active_enable* (`true`)::
+When true, aggressive monsters actively seek targets.
+
+*mob_skill_use* (`true`)::
+When true, monsters may use skills.
+
+*mob_changetarget_byskill* (`false`)::
+When true, a monster may switch target when hit by a skill.
+
+*player_attack_direction_change* (`true`)::
+When true, attacking turns the player to face the target.
+
+*monster_attack_direction_change* (`true`)::
+When true, attacking turns the monster to face the target.
+
+*monsters_ignore_gm* (default off)::
+When true, monsters do not target GM characters.
+
+== Penalties and death
+
+*death_penalty_type* (`0`)::
+Selects the experience-loss model on death (0 to 2).
+
+*death_penalty_base* (`0`)::
+Base experience lost on death, in ten-thousandths.
+
+*death_penalty_job* (`0`)::
+Job experience lost on death, in ten-thousandths.
+
+*restart_hp_rate* (`0`)::
+Percentage of maximum HP restored on respawn (0 to 100).
+
+*restart_sp_rate* (`0`)::
+Percentage of maximum SP restored on respawn (0 to 100).
+
+*undead_detect_type* (`0`)::
+Selects how undead-detecting effects behave (0 to 2).
+
+*agi_penaly_type* (`0`)::
+Selects the AGI (flee) penalty model when outnumbered (0 to 2).
+
+*agi_penaly_count* (`3`)::
+Number of attackers after which the AGI penalty begins (at least 2).
+
+*agi_penaly_count_lv* (default `ATK::FLEE`)::
+Attack statistic the AGI penalty is applied to.
+
+*agi_penaly_num* (`0`)::
+Size of each AGI penalty step.
+
+*vit_penaly_type* (`0`)::
+Selects the VIT (defense) penalty model when outnumbered (0 to 2).
+
+*vit_penaly_count* (`3`)::
+Number of attackers after which the VIT penalty begins (at least 2).
+
+*vit_penaly_count_lv* (default `ATK::DEF`)::
+Attack statistic the VIT penalty is applied to.
+
+*vit_penaly_num* (`0`)::
+Size of each VIT penalty step.
+
+== Regeneration
+
+*natural_healhp_interval* (`6s`)::
+Interval between natural HP regeneration ticks.
+
+*natural_healsp_interval* (`8s`)::
+Interval between natural SP regeneration ticks.
+
+*natural_heal_weight_rate* (`50`)::
+Inventory-weight percentage (50 to 101) above which natural regeneration
+stops.
+
+== Items and floor drops
+
+*item_auto_get* (`false`)::
+When true, dropped items are picked up automatically.
+
+*flooritem_lifetime* (default the built-in lifetime)::
+How long a dropped item stays on the ground before vanishing (at least
+1 second).
+
+*item_first_get_time* (`3s`)::
+Time the killer has exclusive right to pick up a drop.
+
+*item_second_get_time* (`1s`)::
+Additional exclusive-pickup window after the first.
+
+*item_third_get_time* (`1s`)::
+Additional exclusive-pickup window after the second.
+
+*drop_pickup_safety_zone* (`20`)::
+Radius, in cells, around a drop within which pickup priority is enforced.
+
+*arrow_decrement* (`true`)::
+When true, ranged attacks consume arrows.
+
+== PvP
+
+*pk_mode* (`false`)::
+When true, the whole server runs in player-killing mode.
+
+*hide_GM_session* (`false`)::
+When true, GM sessions are hidden from the player list.
+
+== GM and access
+
+*atcommand_gm_only* (`false`)::
+When true, only GMs may use atcommands.
+
+*atcommand_spawn_quantity_limit* (default unset)::
+Cap on how many monsters a single spawn atcommand may create.
+
+*gm_all_equipment* (`0`)::
+Minimum GM level allowed to equip any item regardless of restrictions.
+
+*hack_info_GM_level* (`60`)::
+Minimum GM level that receives hack/cheat notification messages.
+
+*any_warp_GM_min_level* (`20`)::
+Minimum GM level allowed to warp past `nowarp`/`nowarpto` map flags.
+
+*mask_ip_gms* (`true`)::
+When true, GM IP addresses are masked in logs and displays.
+
+*gm_log_delay* (`60min`)::
+Interval for flushing the GM action log.
+
+== Character appearance
+
+*save_clothcolor* (`false`)::
+When true, the character's clothes colour is saved.
+
+*min_hair_style* (`0`), *max_hair_style* (`20`)::
+Allowed range of hair-style ids.
+
+*min_hair_color* (`0`), *max_hair_color* (`9`)::
+Allowed range of hair-colour ids.
+
+*min_cloth_color* (`0`), *max_cloth_color* (`4`)::
+Allowed range of clothes-colour ids.
+
+== Anti-spam
+
+*chat_lame_penalty* (`2`)::
+Penalty points added for a "lame" chat message.
+
+*chat_spam_threshold* (`10s`)::
+Time window over which chat-spam scoring is measured (0 to 32767 seconds).
+
+*chat_spam_flood* (`10`)::
+Chat-spam score that counts as flooding (0 to 32767).
+
+*chat_spam_warn* (`8`)::
+Chat-spam score at which the player is warned (0 to 32767).
+
+*chat_spam_ban* (`1h`)::
+Ban duration applied for chat flooding (0 to 32767 hours).
+
+*chat_maxline* (`255`)::
+Maximum length of a single chat line (1 to 512).
+
+*packet_spam_threshold* (`2s`)::
+Time window over which packet-spam scoring is measured (0 to 32767
+seconds).
+
+*packet_spam_flood* (`30`)::
+Packet count that counts as flooding (0 to 32767).
+
+*packet_spam_kick* (`true`)::
+When true, a packet-flooding client is kicked.
+
+== Miscellaneous
+
+*basic_skill_check* (`true`)::
+When true, basic-skill requirements (trade, party, and so on) are
+enforced.
+
+*alchemist_summon_reward* (default unset)::
+Controls whether summoning grants the alchemist a reward.
+
+*invite_request_check* (`true`)::
+When true, party invite requests are validated.
+
+*prevent_logout* (`true`)::
+When true, logging out is briefly blocked after combat.
+
+*display_delay_skill_fail* (`true`)::
+When true, a "skill failed" message is shown when a skill is on delay.
+
+*area_size* (`14`)::
+Half-width, in cells, of the area around a player kept visible and active.
+
+== Logging
+
+*battle_log* (`false`)::
+When true, write detailed combat events to the log.
+
+*monster_skill_log* (`false`)::
+When true, log monster skill use.
+
+*save_log* (`false`)::
+When true, log character-save events.
+
+*error_log* (`true`)::
+When true, log error messages.
+
+*etc_log* (`true`)::
+When true, log miscellaneous events.
+
+== See also
+
+*tmwa-map*(1), *tmwa-map.conf*(5), *tmwa-config*(5)
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.
