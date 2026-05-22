@@ -5633,15 +5633,15 @@ void builtin_mobwarp(ScriptState *st)
 }
 
 /*==========================================
- * Reads a single piece of data from a unit.
+ * Reads a single piece of data from a mob.
  *
- * getunitdata(<gid>, <UDT_*>)
+ * getunitdata(<mob_id>, <UDT_*>)
  *
- * Returns -1 if the gid or data type is invalid, otherwise an int
- * (0 when the key does not apply to this unit type).
+ * Returns -1 if the gid is not a mob or the data type is invalid.
  *
- * This covers only data with no other script accessor; see the UnitData
- * enum. Plain stats are read with get(<param>, <gid>) instead.
+ * Every UnitData key is mob-only; this covers mob internals that no
+ * other script facility reaches. Ordinary mob stats are read instead
+ * with get(<param>, <mob_id>).
  *------------------------------------------
  */
 static
@@ -5650,49 +5650,37 @@ void builtin_getunitdata(ScriptState *st)
     BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
     UnitData type = UnitData(conv_num(st, &AARG(1)));
 
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    if (bl == nullptr)
+    dumb_ptr<mob_data> md = map_id_is_mob(id);
+    if (md == nullptr)
     {
         push_int<ScriptDataInt>(st->stack, -1);
         return;
     }
-
-    dumb_ptr<map_session_data> sd = bl->is_player();
-    dumb_ptr<npc_data> nd = bl->is_npc();
-    dumb_ptr<mob_data> md = bl->is_mob();
 
     int val = 0;
 
     switch (type)
     {
         case UnitData::MODE:
-            if (md) val = static_cast<uint16_t>(md->mode);
-            break;
-        case UnitData::SIZE:
-            if (md) val = md->size;
+            val = static_cast<uint16_t>(md->mode);
             break;
         case UnitData::ADELAY:
-            if (md) val = md->stats[mob_stat::ADELAY];
+            val = md->stats[mob_stat::ADELAY];
             break;
         case UnitData::XP_BONUS:
-            if (md) val = md->stats[mob_stat::XP_BONUS];
+            val = md->stats[mob_stat::XP_BONUS];
             break;
         case UnitData::CRITICAL_DEF:
-            if (md) val = md->stats[mob_stat::CRITICAL_DEF];
+            val = md->stats[mob_stat::CRITICAL_DEF];
             break;
         case UnitData::TARGET_ID:
-            if (md) val = unwrap<BlockId>(md->target_id);
+            val = unwrap<BlockId>(md->target_id);
             break;
         case UnitData::MASTER_ID:
-            if (md) val = unwrap<BlockId>(md->master_id);
+            val = unwrap<BlockId>(md->master_id);
             break;
         case UnitData::CLASS:
-            if (md) val = unwrap<Species>(md->mob_class);
-            break;
-        case UnitData::OPTION:
-            if (sd) val = static_cast<uint16_t>(sd->status.option);
-            else if (nd) val = static_cast<uint16_t>(nd->option);
-            else if (md) val = static_cast<uint16_t>(md->option);
+            val = unwrap<Species>(md->mob_class);
             break;
         default:
             PRINTF("builtin_getunitdata: unknown UDT %d\n"_fmt,
@@ -5705,16 +5693,16 @@ void builtin_getunitdata(ScriptState *st)
 }
 
 /*==========================================
- * Writes a single piece of data on a unit.
+ * Writes a single piece of data on a mob.
  *
- * setunitdata(<gid>, <UDT_*>, <value>)
+ * setunitdata(<mob_id>, <UDT_*>, <value>)
  *
- * Returns 1 on success, 0 if the gid is invalid or the key does not
- * apply to this unit type. UDT_TARGET_ID is read-only.
+ * Returns 1 on success, 0 if the gid is not a mob, the data type is
+ * invalid, or the key is read-only (UDT_TARGET_ID).
  *
- * This covers only data with no other script accessor; see the UnitData
- * enum. Plain stats are written with set(<param>, <value>, <gid>) and
- * mob positions are changed with the mobwarp builtin.
+ * Every UnitData key is mob-only; this covers mob internals that no
+ * other script facility reaches. Ordinary mob stats are written instead
+ * with set(<param>, <value>, <mob_id>).
  *------------------------------------------
  */
 static
@@ -5723,16 +5711,12 @@ void builtin_setunitdata(ScriptState *st)
     BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
     UnitData type = UnitData(conv_num(st, &AARG(1)));
 
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    if (bl == nullptr)
+    dumb_ptr<mob_data> md = map_id_is_mob(id);
+    if (md == nullptr)
     {
         push_int<ScriptDataInt>(st->stack, 0);
         return;
     }
-
-    dumb_ptr<map_session_data> sd = bl->is_player();
-    dumb_ptr<npc_data> nd = bl->is_npc();
-    dumb_ptr<mob_data> md = bl->is_mob();
 
     int val = conv_num(st, &AARG(2));
     bool ok = true;
@@ -5740,58 +5724,26 @@ void builtin_setunitdata(ScriptState *st)
     switch (type)
     {
         case UnitData::MODE:
-            if (md) md->mode = static_cast<MobMode>(val);
-            else ok = false;
-            break;
-        case UnitData::SIZE:
-            if (md) md->size = val;
-            else ok = false;
+            md->mode = static_cast<MobMode>(val);
             break;
         case UnitData::ADELAY:
-            if (md) md->stats[mob_stat::ADELAY] = val;
-            else ok = false;
+            md->stats[mob_stat::ADELAY] = val;
             break;
         case UnitData::XP_BONUS:
-            if (md) md->stats[mob_stat::XP_BONUS] = val;
-            else ok = false;
+            md->stats[mob_stat::XP_BONUS] = val;
             break;
         case UnitData::CRITICAL_DEF:
-            if (md) md->stats[mob_stat::CRITICAL_DEF] = val;
-            else ok = false;
+            md->stats[mob_stat::CRITICAL_DEF] = val;
             break;
         case UnitData::MASTER_ID:
-            if (md) md->master_id = wrap<BlockId>(val);
-            else ok = false;
+            md->master_id = wrap<BlockId>(val);
             break;
         case UnitData::CLASS:
-            if (md)
-            {
-                // No mob class-change helper exists in TMWA; redraw the
-                // sprite by clearing and respawning the unit.
-                clif_clearchar(md, BeingRemoveWhy::WARPED);
-                md->mob_class = wrap<Species>(static_cast<uint16_t>(val));
-                clif_spawnmob(md);
-            }
-            else ok = false;
-            break;
-        case UnitData::OPTION:
-            if (sd)
-            {
-                sd->status.option = static_cast<Opt0>(val);
-                clif_changeoption(sd);
-            }
-            else if (nd)
-            {
-                nd->option = static_cast<Opt0>(val);
-                clif_changeoption(nd);
-            }
-            else if (md)
-            {
-                md->option = static_cast<Opt0>(val);
-                clif_changeoption(md);
-            }
-            else
-                ok = false;
+            // No mob class-change helper exists in TMWA; redraw the
+            // sprite by clearing and respawning the unit.
+            clif_clearchar(md, BeingRemoveWhy::WARPED);
+            md->mob_class = wrap<Species>(static_cast<uint16_t>(val));
+            clif_spawnmob(md);
             break;
 
         case UnitData::TARGET_ID:

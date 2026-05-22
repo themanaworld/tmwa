@@ -100,39 +100,28 @@ enum class MobInfo_DropArrays : uint8_t
     PERCENTS =  2,
 };
 
-// Identifies one piece of data on a unit, for use with the getunitdata
+// Identifies one piece of data on a mob, for use with the getunitdata
 // and setunitdata script builtins.
 //
-// These builtins deliberately cover only what no other script facility
-// reaches. Plain stats (level, hp, the six attributes, atk, def, speed,
-// ...) are available for both players and mobs through the PARAM system
-// (pc_readparam / pc_setparam), used as PARAM variables or through the
-// get() and set(<param>, <value>, <gid>) builtins. Player and NPC
-// looks, names, sex, exp, zeny, ids each have their own builtins
-// (getlook / setlook, strcharinfo, strnpcinfo, fakenpcname, getcharid).
-// Positions are read with get(POS_X / POS_Y, <gid>); a mob is moved
-// with the mobwarp builtin.
+// These cover only mob internals that no other script facility reaches.
+// Ordinary mob stats (level, hp, the attributes, atk, def, speed, ...)
+// go through the PARAM system instead: get() / set(<param>, <value>,
+// <mob_id>). A mob's position is read with get(POS_X / POS_Y, <gid>)
+// and changed with the mobwarp builtin.
 //
-// What is left here is mob internals that have no PARAM mapping, the
-// mob sprite no builtin reaches on a live mob, and the Opt0 status
-// flags usable on any unit type.
-//
-// Not every key applies to every unit type. Reading an inapplicable
-// key returns 0; writing one fails (0).
+// Every key here is mob-only: getunitdata returns -1 and setunitdata
+// returns 0 for a gid that is not a mob.
 enum class UnitData : uint8_t
 {
     // mob AI / combat internals (no PARAM mapping)
-    MODE            =  0, // mob behaviour flags (MobMode)
-    SIZE            =  1, // mob size class
-    ADELAY          =  2, // mob attack delay (ms)
-    XP_BONUS        =  3, // mob xp bonus (1024 = 100%)
-    CRITICAL_DEF    =  4, // mob critical-hit defense
-    TARGET_ID       =  5, // mob current target gid (read-only)
-    MASTER_ID       =  6, // mob master gid (e.g. for summons)
+    MODE            =  0, // mob behaviour flags; 0 = use the database default
+    ADELAY          =  1, // mob attack delay (ms)
+    XP_BONUS        =  2, // mob xp bonus (1024 = 100%)
+    CRITICAL_DEF    =  3, // mob critical-hit defense
+    TARGET_ID       =  4, // mob current attack target gid (read-only)
+    MASTER_ID       =  5, // mob master gid; following needs a mob master
     // mob sprite (no builtin reaches a live mob)
-    CLASS           =  7, // mob sprite class; respawns the mob
-    // any unit type
-    OPTION          =  8, // Opt0 status flags (mob / pc / npc); getopt2 is Opt2
+    CLASS           =  6, // mob sprite; also shifts db identity (drops/exp/skills)
 };
 } // namespace map
 } // namespace tmwa
