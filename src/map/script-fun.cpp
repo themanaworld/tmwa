@@ -5689,11 +5689,6 @@ void builtin_getunitdata(ScriptState *st)
         case UnitData::CLASS:
             if (md) val = unwrap<Species>(md->mob_class);
             break;
-        case UnitData::LOOK_DIR:
-            if (sd) val = static_cast<uint8_t>(sd->dir);
-            else if (nd) val = static_cast<uint8_t>(nd->dir);
-            else if (md) val = static_cast<uint8_t>(md->dir);
-            break;
         case UnitData::OPTION:
             if (sd) val = static_cast<uint16_t>(sd->status.option);
             else if (nd) val = static_cast<uint16_t>(nd->option);
@@ -5778,29 +5773,6 @@ void builtin_setunitdata(ScriptState *st)
                 clif_spawnmob(md);
             }
             else ok = false;
-            break;
-        case UnitData::LOOK_DIR:
-            {
-                DIR d = static_cast<DIR>(val);
-                if (sd)
-                {
-                    // No standalone direction packet exists for players;
-                    // the new direction syncs to other clients on the
-                    // next move/attack packet from this player.
-                    pc_setdir(sd, d);
-                }
-                else if (nd)
-                {
-                    nd->dir = d;
-                    clif_setnpcdirection(nd, d);
-                }
-                else if (md)
-                {
-                    md->dir = d;
-                }
-                else
-                    ok = false;
-            }
             break;
         case UnitData::OPTION:
             if (sd)
