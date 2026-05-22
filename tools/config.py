@@ -625,7 +625,6 @@ def build_config():
     battle_conf.opt('max_aspd', milliseconds, '199_ms', pre='conf.max_aspd = 2000_ms - conf.max_aspd * 10;', min='10_ms', max='1000_ms')
     battle_conf.opt('max_hp', i32, '32500', min='100', max='1000000')
     battle_conf.opt('max_sp', i32, '32500', min='100', max='1000000')
-    battle_conf.opt('max_lv', i32, '99')
     battle_conf.opt('max_parameter', i32, '99', min='10', max='10000')
     battle_conf.opt('monster_skill_log', bool, 'false')
     battle_conf.opt('battle_log', bool, 'false')
