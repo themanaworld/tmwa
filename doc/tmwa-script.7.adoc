@@ -1,0 +1,1224 @@
+= tmwa-script(7)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+// This file is a hand-editable, committed artifact.  Most of it is prose
+// written by humans.  Only the definition list of builtins, delimited by the
+// two GENERATED-BUILTIN-LIST marker comments further down, is mechanically
+// maintained: run tools/gen_script_docs.py to refresh it from the
+// builtin_functions[] table in src/map/script-fun.cpp.  Hand-written
+// per-builtin descriptions are preserved across regeneration.
+//
+// The ctest target script-docs-drift (tools/check_script_docs.py) fails the
+// build if this file and script-fun.cpp disagree.
+
+== Name
+
+tmwa-script - the TMWA server-side scripting language
+
+== Synopsis
+
+TMWA script source is plain text loaded by the map server (see
+*tmwa-map*(1)).  Most scripts define NPCs, but the same language and the
+same bytecode interpreter are used in several other contexts (see
+*DESCRIPTION*).  A trivial NPC script looks like:
+
+----
+example.gat,30,40,0|script|Example NPC|123,{
+    mes "Hello, world.";
+    close;
+}
+----
+
+== Description
+
+TMWA has a single embedded scripting language.  Script source is compiled
+to bytecode at server startup and the same interpreter
+(`run_script` / `run_script_l`, see _src/map/script-call.cpp_) executes
+that bytecode in every context below.  The language is therefore *not*
+NPC-specific, even though scripted NPCs are by far the most common use.
+
+A running script always has an *origin* (the NPC, item or other object the
+bytecode belongs to) and may have an attached player, the *RID* (the
+"running ID", the player a builtin like *mes* or *getitem* acts on).  Some
+contexts attach a player automatically; others run with no player attached
+and a builtin that needs one will fail unless the script first calls
+*attachrid*.
+
+=== Execution contexts
+
+The interpreter is entered from the following places.  All of them run the
+same language; the differences are only in what triggers the script and
+whether a player is attached.
+
+NPC dialogue and interaction::
+A player clicking a scripted NPC runs that NPC's script body
+(`npc_click`).  *next*, *menu*, *input* and similar builtins suspend the
+script; the player's later replies resume it (`npc_scriptcont`).  The
+clicking player is the RID.
+
+NPC event labels::
+Labels named `On<Something>` inside an NPC script are entry points
+triggered by the server rather than by a click.  *donpcevent* and the
+`callfunc`-style cross-NPC calls invoke them explicitly; the server
+invokes them implicitly:
++
+* `OnInit` runs for every NPC once, at server start.
+* `OnClock<hhmm>`, `OnDay<...>`, `OnHour<...>`, `OnMinute<...>` and
+  related labels run on a wall-clock schedule.
+* `OnTimer<ms>` labels run on per-NPC timers
+  (*initnpctimer*, *startnpctimer*).
+* `OnTouch` runs when a player steps onto the NPC's touch area.
+* `OnPCLoginEvent`, `OnPCLogoutEvent`, `OnPCDieEvent`,
+  `OnPCKillEvent` and `OnMobKillEvent` run on the corresponding player
+  or mob event; these are broadcast to every NPC defining the label.
+
+Mob "death" / kill events::
+A monster can be spawned with an associated NPC event (for example by
+*monster* or *areamonster*).  When the monster dies the server runs that
+event as an ordinary NPC event-label script, with the killing player as
+RID.
+
+Player-triggered timers::
+*addtimer* schedules an NPC event to run for a specific player after a
+delay; it executes as a normal event-label script when it fires.
+
+Item scripts::
+Items carry script fragments compiled by the same parser.  A *use*-type
+item runs its `use_script` when consumed; equipment runs its
+`equip_script` when equipped (and on recalculation of stats).  The
+player using or wearing the item is the RID.  See _src/map/pc.cpp_.
+
+The "magic" / spell system::
+TMWA no longer has a separate spell language in the shipped server.  A
+spell is just an NPC event registered with the *registercmd* builtin: a
+chat message a player types is matched against the registered
+invocations and, on a match, the associated NPC event runs as a normal
+event-label script (`magic_message`, see _src/map/npc.cpp_).  The
+historical standalone spell interpreter survives only under
+_old-doc/old-spell-language_ and is not part of the running server.
+
+User-defined functions and subroutines::
+*callfunc* and *callsub* call, respectively, a named `function` script
+object or a label in the current script.  These are not a separate
+context: they push a return frame and keep running on the same
+interpreter and the same RID.
+
+NOTE: Atcommands (the `@`/`#` GM commands) are *not* a script context.
+They are implemented in C++ in _src/map/atcommand.cpp_.  Scripts interact
+with them only indirectly, for example through the *remotecmd* builtin.
+
+=== Variable scopes
+
+Variable names carry their scope in a sigil prefix; a trailing `$`
+marks a string variable.
+
+[cols="1,4"]
+|===
+| _name_ | NPC-scope variable, shared by the script's NPC
+| `@`_name_ | temporary variable, attached to the RID for the current run
+| `$`_name_ | global variable, shared server-wide and persisted
+| `.`_name_ | function-scope (local) variable
+| `.@`_name_ | function-scope temporary variable
+|===
+
+Names without a sigil that match a known player parameter (for example
+`Hp`, `Zeny`, `BaseLevel`) read and write that parameter on the RID.
+
+== Builtin functions
+
+Each entry below lists the builtin's name and a signature derived from the
+argument-signature string in the `builtin_functions[]` table of
+_src/map/script-fun.cpp_.
+
+In a signature, an argument shown as a type name is a placeholder for a
+value of that kind; arguments inside `[ ]` are optional; `...` marks a
+repeatable trailing argument.  The argument-type vocabulary is:
+
+[cols="1,4"]
+|===
+| `int`    | integer expression
+| `str`    | string expression
+| `expr`   | expression of any type
+| `map`    | map name
+| `x`, `y` | map coordinates
+| `label`  | a label in the current script
+| `func`   | a function or label reference
+| `var`    | the name of a variable or player parameter
+| `item`   | an item (by numeric id or name)
+| `player` | a player (by name or account id)
+| `event`  | an NPC event, written `NpcName::OnLabel`
+| `timer`  | a timer interval, in milliseconds
+| `mob`    | a monster species
+| `status` | a status-condition (status-change) id
+|===
+
+A `-> type` suffix shows the value the builtin pushes back as an
+expression result; builtins with no suffix are statements.
+
+WARNING: Descriptions marked *TODO* have not been written yet.  The list
+of builtins itself is kept exact by the *script-docs-drift* test; only the
+prose is incomplete.  Contributions filling in TODO entries are welcome;
+edit the description text in place and it will survive regeneration by
+_tools/gen_script_docs.py_.
+
+//>>> GENERATED-BUILTIN-LIST
+*mes*::
++
+`mes([expr])`
++
+TODO: describe this builtin.
+
+*mesq*::
++
+`mesq([expr])`
++
+TODO: describe this builtin.
+
+*mesn*::
++
+`mesn([expr])`
++
+TODO: describe this builtin.
+
+*clear*::
++
+`clear()`
++
+TODO: describe this builtin.
+
+*goto*::
++
+`goto(label)`
++
+TODO: describe this builtin.
+
+*callfunc*::
++
+`callfunc(func)`
++
+TODO: describe this builtin.
+
+*call*::
++
+`call(func[, expr, ...]) -> variant (may be absent)`
++
+TODO: describe this builtin.
+
+*callsub*::
++
+`callsub(label)`
++
+TODO: describe this builtin.
+
+*getarg*::
++
+`getarg(int[, expr]) -> variant (int or str)`
++
+TODO: describe this builtin.
+
+*return*::
++
+`return([expr])`
++
+TODO: describe this builtin.
+
+*void*::
++
+`void([expr, ...])`
++
+TODO: describe this builtin.
+
+*next*::
++
+`next()`
++
+TODO: describe this builtin.
+
+*close*::
++
+`close()`
++
+TODO: describe this builtin.
+
+*close2*::
++
+`close2()`
++
+TODO: describe this builtin.
+
+*menu*::
++
+`menu(str, label, ...)`
++
+TODO: describe this builtin.
+
+*rand*::
++
+`rand(int[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*isat*::
++
+`isat(map, x, y) -> int`
++
+TODO: describe this builtin.
+
+*warp*::
++
+`warp(map, x, y)`
++
+TODO: describe this builtin.
+
+*areawarp*::
++
+`areawarp(map, x, y, x, y, map, x, y)`
++
+TODO: describe this builtin.
+
+*heal*::
++
+`heal(int, int[, expr])`
++
+TODO: describe this builtin.
+
+*injure*::
++
+`injure(int, int, int)`
++
+TODO: describe this builtin.
+
+*input*::
++
+`input(var)`
++
+TODO: describe this builtin.
+
+*requestitem*::
++
+`requestitem(var[, expr])`
++
+TODO: describe this builtin.
+
+*requestlang*::
++
+`requestlang(var)`
++
+TODO: describe this builtin.
+
+*if*::
++
+`if(int, func, ...)`
++
+TODO: describe this builtin.
+
+*elif*::
++
+`elif(int, func, ...)`
++
+TODO: describe this builtin.
+
+*else*::
++
+`else(func, ...)`
++
+TODO: describe this builtin.
+
+*set*::
++
+`set(var, expr[, expr])`
++
+TODO: describe this builtin.
+
+*get*::
++
+`get(var, expr) -> variant (int or str)`
++
+TODO: describe this builtin.
+
+*setarray*::
++
+`setarray(var, expr, ...)`
++
+TODO: describe this builtin.
+
+*cleararray*::
++
+`cleararray(var, expr, int)`
++
+TODO: describe this builtin.
+
+*getarraysize*::
++
+`getarraysize(var) -> int`
++
+TODO: describe this builtin.
+
+*getelementofarray*::
++
+`getelementofarray(var, int) -> variant (int or str)`
++
+TODO: describe this builtin.
+
+*array_search*::
++
+`array_search(expr, var) -> int`
++
+TODO: describe this builtin.
+
+*setlook*::
++
+`setlook(int, int)`
++
+TODO: describe this builtin.
+
+*countitem*::
++
+`countitem(item) -> int`
++
+TODO: describe this builtin.
+
+*checkweight*::
++
+`checkweight(item, int) -> int`
++
+TODO: describe this builtin.
+
+*getitem*::
++
+`getitem(item, int[, expr, expr])`
++
+TODO: describe this builtin.
+
+*makeitem*::
++
+`makeitem(item, int, map, x, y)`
++
+TODO: describe this builtin.
+
+*delitem*::
++
+`delitem(item, int)`
++
+TODO: describe this builtin.
+
+*getcharid*::
++
+`getcharid(int[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*getnpcid*::
++
+`getnpcid([expr]) -> int`
++
+TODO: describe this builtin.
+
+*getversion*::
++
+`getversion() -> int`
++
+TODO: describe this builtin.
+
+*strcharinfo*::
++
+`strcharinfo(int[, expr]) -> str`
++
+TODO: describe this builtin.
+
+*getequipid*::
++
+`getequipid(int[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*bonus*::
++
+`bonus(int, int)`
++
+TODO: describe this builtin.
+
+*bonus2*::
++
+`bonus2(int, int, int)`
++
+TODO: describe this builtin.
+
+*skill*::
++
+`skill(int, int[, expr])`
++
+TODO: describe this builtin.
+
+*setskill*::
++
+`setskill(int, int)`
++
+TODO: describe this builtin.
+
+*getskilllv*::
++
+`getskilllv(int) -> int`
++
+TODO: describe this builtin.
+
+*overrideattack*::
++
+`overrideattack([expr, expr, expr, expr, expr, expr])`
++
+TODO: describe this builtin.
+
+*getgmlevel*::
++
+`getgmlevel() -> int`
++
+TODO: describe this builtin.
+
+*end*::
++
+`end()`
++
+TODO: describe this builtin.
+
+*getopt2*::
++
+`getopt2() -> int`
++
+TODO: describe this builtin.
+
+*setopt2*::
++
+`setopt2(int)`
++
+TODO: describe this builtin.
+
+*savepoint*::
++
+`savepoint(map, x, y)`
++
+TODO: describe this builtin.
+
+*gettimetick*::
++
+`gettimetick(int) -> int`
++
+TODO: describe this builtin.
+
+*gettime*::
++
+`gettime(int) -> int`
++
+TODO: describe this builtin.
+
+*openstorage*::
++
+`openstorage()`
++
+TODO: describe this builtin.
+
+*getexp*::
++
+`getexp(int, int)`
++
+TODO: describe this builtin.
+
+*mobinfo*::
++
+`mobinfo(int, int) -> variant (int or str)`
++
+TODO: describe this builtin.
+
+*mobinfo_droparrays*::
++
+`mobinfo_droparrays(int, int, var) -> int`
++
+TODO: describe this builtin.
+
+*getmobdrops*::
++
+`getmobdrops(int) -> int`
++
+TODO: describe this builtin.
+
+*summon*::
++
+`summon(map, x, y, str, str, mob, int, int[, expr])`
++
+TODO: describe this builtin.
+
+*monster*::
++
+`monster(map, x, y, str, mob, int[, expr])`
++
+TODO: describe this builtin.
+
+*areamonster*::
++
+`areamonster(map, x, y, x, y, str, mob, int[, expr])`
++
+TODO: describe this builtin.
+
+*killmonster*::
++
+`killmonster(map, event)`
++
+TODO: describe this builtin.
+
+*donpcevent*::
++
+`donpcevent(event)`
++
+TODO: describe this builtin.
+
+*addtimer*::
++
+`addtimer(timer, event[, expr])`
++
+TODO: describe this builtin.
+
+*addnpctimer*::
++
+`addnpctimer(timer, event)`
++
+TODO: describe this builtin.
+
+*initnpctimer*::
++
+`initnpctimer([expr])`
++
+TODO: describe this builtin.
+
+*startnpctimer*::
++
+`startnpctimer([expr])`
++
+TODO: describe this builtin.
+
+*stopnpctimer*::
++
+`stopnpctimer([expr])`
++
+TODO: describe this builtin.
+
+*getnpctimer*::
++
+`getnpctimer(int[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*setnpctimer*::
++
+`setnpctimer(int[, expr])`
++
+TODO: describe this builtin.
+
+*setnpcdirection*::
++
+`setnpcdirection(int, int, int[, expr])`
++
+TODO: describe this builtin.
+
+*npcaction*::
++
+`npcaction(int[, expr, expr, expr])`
++
+TODO: describe this builtin.
+
+*camera*::
++
+`camera([expr, expr, expr])`
++
+TODO: describe this builtin.
+
+*announce*::
++
+`announce(str, int)`
++
+TODO: describe this builtin.
+
+*mapannounce*::
++
+`mapannounce(map, str, int)`
++
+TODO: describe this builtin.
+
+*getusers*::
++
+`getusers(int) -> int`
++
+TODO: describe this builtin.
+
+*getmapusers*::
++
+`getmapusers(map) -> int`
++
+TODO: describe this builtin.
+
+*getareausers*::
++
+`getareausers(map, x, y, x, y[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*getareadropitem*::
++
+`getareadropitem(map, x, y, x, y, int[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*enablenpc*::
++
+`enablenpc(str)`
++
+TODO: describe this builtin.
+
+*disablenpc*::
++
+`disablenpc(str)`
++
+TODO: describe this builtin.
+
+*sc_start*::
++
+`sc_start(int, status, int[, expr])`
++
+TODO: describe this builtin.
+
+*sc_end*::
++
+`sc_end(int[, expr])`
++
+TODO: describe this builtin.
+
+*sc_check*::
++
+`sc_check(int[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*debugmes*::
++
+`debugmes(str)`
++
+TODO: describe this builtin.
+
+*wgm*::
++
+`wgm(str)`
++
+TODO: describe this builtin.
+
+*gmlog*::
++
+`gmlog(str)`
++
+TODO: describe this builtin.
+
+*resetstatus*::
++
+`resetstatus()`
++
+TODO: describe this builtin.
+
+*attachrid*::
++
+`attachrid(int) -> int`
++
+TODO: describe this builtin.
+
+*detachrid*::
++
+`detachrid()`
++
+TODO: describe this builtin.
+
+*isloggedin*::
++
+`isloggedin(int) -> int`
++
+TODO: describe this builtin.
+
+*setmapflag*::
++
+`setmapflag(map, int)`
++
+TODO: describe this builtin.
+
+*removemapflag*::
++
+`removemapflag(map, int)`
++
+TODO: describe this builtin.
+
+*getmapflag*::
++
+`getmapflag(map, int) -> int`
++
+TODO: describe this builtin.
+
+*pvpon*::
++
+`pvpon(map)`
++
+TODO: describe this builtin.
+
+*pvpoff*::
++
+`pvpoff(map)`
++
+TODO: describe this builtin.
+
+*setpvpchannel*::
++
+`setpvpchannel(int)`
++
+TODO: describe this builtin.
+
+*getpvpflag*::
++
+`getpvpflag(int[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*emotion*::
++
+`emotion(int[, expr])`
++
+TODO: describe this builtin.
+
+*mapwarp*::
++
+`mapwarp(map, map, x, y)`
++
+TODO: describe this builtin.
+
+*mobcount*::
++
+`mobcount(map, event) -> int`
++
+TODO: describe this builtin.
+
+*marriage*::
++
+`marriage(player) -> int`
++
+TODO: describe this builtin.
+
+*divorce*::
++
+`divorce() -> int`
++
+TODO: describe this builtin.
+
+*getitemlink*::
++
+`getitemlink(item) -> str`
++
+TODO: describe this builtin.
+
+*getpartnerid2*::
++
+`getpartnerid2() -> int`
++
+TODO: describe this builtin.
+
+*explode*::
++
+`explode(var, str, str)`
++
+TODO: describe this builtin.
+
+*getinventorylist*::
++
+`getinventorylist()`
++
+TODO: describe this builtin.
+
+*getactivatedpoolskilllist*::
++
+`getactivatedpoolskilllist()`
++
+TODO: describe this builtin.
+
+*getunactivatedpoolskilllist*::
++
+`getunactivatedpoolskilllist()`
++
+TODO: describe this builtin.
+
+*poolskill*::
++
+`poolskill(int)`
++
+TODO: describe this builtin.
+
+*unpoolskill*::
++
+`unpoolskill(int)`
++
+TODO: describe this builtin.
+
+*misceffect*::
++
+`misceffect(int[, expr])`
++
+TODO: describe this builtin.
+
+*specialeffect*::
++
+`specialeffect(int)`
++
+TODO: describe this builtin.
+
+*specialeffect2*::
++
+`specialeffect2(int)`
++
+TODO: describe this builtin.
+
+*nude*::
++
+`nude()`
++
+TODO: describe this builtin.
+
+*unequipbyid*::
++
+`unequipbyid(int)`
++
+TODO: describe this builtin.
+
+*npcwarp*::
++
+`npcwarp(x, y, str)`
++
+TODO: describe this builtin.
+
+*npcareawarp*::
++
+`npcareawarp(x, y, x, y, int, str)`
++
+TODO: describe this builtin.
+
+*message*::
++
+`message(player, str)`
++
+TODO: describe this builtin.
+
+*npctalk*::
++
+`npctalk(str, str[, expr])`
++
+TODO: describe this builtin.
+
+*registercmd*::
++
+`registercmd(str, str)`
++
+TODO: describe this builtin.
+
+*title*::
++
+`title(str)`
++
+TODO: describe this builtin.
+
+*smsg*::
++
+`smsg(expr[, expr, expr])`
++
+TODO: describe this builtin.
+
+*remotecmd*::
++
+`remotecmd(str[, expr])`
++
+TODO: describe this builtin.
+
+*sendcollision*::
++
+`sendcollision(map, int, x, y[, expr, expr, expr])`
++
+TODO: describe this builtin.
+
+*music*::
++
+`music(str)`
++
+TODO: describe this builtin.
+
+*mapmask*::
++
+`mapmask(int[, expr])`
++
+TODO: describe this builtin.
+
+*getmask*::
++
+`getmask() -> int`
++
+TODO: describe this builtin.
+
+*getlook*::
++
+`getlook(int) -> int`
++
+TODO: describe this builtin.
+
+*getsavepoint*::
++
+`getsavepoint(int) -> variant (int or str)`
++
+TODO: describe this builtin.
+
+*areatimer*::
++
+`areatimer(map, x, y, x, y, timer, event, int)`
++
+TODO: describe this builtin.
+
+*foreach*::
++
+`foreach(int, map, x, y, x, y, event[, expr])`
++
+TODO: describe this builtin.
+
+*isin*::
++
+`isin(map, x, y, x, y) -> int`
++
+TODO: describe this builtin.
+
+*iscollision*::
++
+`iscollision(map, x, y) -> int`
++
+TODO: describe this builtin.
+
+*shop*::
++
+`shop(str)`
++
+TODO: describe this builtin.
+
+*isdead*::
++
+`isdead() -> int`
++
+TODO: describe this builtin.
+
+*aggravate*::
++
+`aggravate(int[, expr])`
++
+TODO: describe this builtin.
+
+*issummon*::
++
+`issummon(int) -> int`
++
+TODO: describe this builtin.
+
+*fakenpcname*::
++
+`fakenpcname(str, str, int)`
++
+TODO: describe this builtin.
+
+*puppet*::
++
+`puppet(mob, x, y, str, int[, expr, expr]) -> int`
++
+TODO: describe this builtin.
+
+*destroy*::
++
+`destroy([expr])`
++
+TODO: describe this builtin.
+
+*getx*::
++
+`getx() -> int`
++
+TODO: describe this builtin.
+
+*gety*::
++
+`gety() -> int`
++
+TODO: describe this builtin.
+
+*getdir*::
++
+`getdir() -> int`
++
+TODO: describe this builtin.
+
+*getnpcx*::
++
+`getnpcx([expr]) -> int`
++
+TODO: describe this builtin.
+
+*getnpcy*::
++
+`getnpcy([expr]) -> int`
++
+TODO: describe this builtin.
+
+*strnpcinfo*::
++
+`strnpcinfo(int[, expr]) -> str`
++
+TODO: describe this builtin.
+
+*getmap*::
++
+`getmap([expr]) -> str`
++
+TODO: describe this builtin.
+
+*getmapmaxx*::
++
+`getmapmaxx(map) -> int`
++
+TODO: describe this builtin.
+
+*getmapmaxy*::
++
+`getmapmaxy(map) -> int`
++
+TODO: describe this builtin.
+
+*getmaphash*::
++
+`getmaphash(map) -> int`
++
+TODO: describe this builtin.
+
+*getmapnamefromhash*::
++
+`getmapnamefromhash(int) -> str`
++
+TODO: describe this builtin.
+
+*mapexists*::
++
+`mapexists(map) -> int`
++
+TODO: describe this builtin.
+
+*numberofmaps*::
++
+`numberofmaps() -> int`
++
+TODO: describe this builtin.
+
+*getmapnamebyindex*::
++
+`getmapnamebyindex(int) -> str`
++
+TODO: describe this builtin.
+
+*mapexit*::
++
+`mapexit()`
++
+TODO: describe this builtin.
+
+*freeloop*::
++
+`freeloop(int)`
++
+TODO: describe this builtin.
+
+*if_then_else*::
++
+`if_then_else(int, int, int) -> variant (int or str)`
++
+TODO: describe this builtin.
+
+*max*::
++
+`max(expr[, expr, ...]) -> int`
++
+TODO: describe this builtin.
+
+*min*::
++
+`min(expr[, expr, ...]) -> int`
++
+TODO: describe this builtin.
+
+*average*::
++
+`average(int, int, ...) -> int`
++
+TODO: describe this builtin.
+
+*sqrt*::
++
+`sqrt(int) -> int`
++
+TODO: describe this builtin.
+
+*cbrt*::
++
+`cbrt(int) -> int`
++
+TODO: describe this builtin.
+
+*pow*::
++
+`pow(int, int) -> int`
++
+TODO: describe this builtin.
+
+*target*::
++
+`target(int, int, int) -> int`
++
+TODO: describe this builtin.
+
+*distance*::
++
+`distance(int, int[, expr]) -> int`
++
+TODO: describe this builtin.
+
+*chr*::
++
+`chr(int) -> str`
++
+TODO: describe this builtin.
+
+*ord*::
++
+`ord(str) -> int`
++
+TODO: describe this builtin.
+
+*l*::
++
+`l(str, ...) -> str`
++
+TODO: describe this builtin.
+//<<< GENERATED-BUILTIN-LIST
+
+== See also
+
+*tmwa-map*(1)
+
+The script-language sources live under _src/map/script-*.cpp_; the
+authoritative builtin table is `builtin_functions[]` in
+_src/map/script-fun.cpp_.
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.

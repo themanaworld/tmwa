@@ -1,0 +1,74 @@
+= tmwa-map(1)
+:doctype: manpage
+:manmanual: TMWA Manual
+:mansource: TMWA
+:revdate: 2026-05-22
+
+== Name
+
+tmwa-map - The Mana World Athena map server
+
+== Synopsis
+
+*tmwa-map* [_--help_] [_--version_] [_--write-atcommand-config_ _outfile_] [_config-file_...]
+
+== Description
+
+*tmwa-map* is the map server of TMWA (The Mana World Athena), an
+eAthena-derived MMORPG server.  It hosts the game maps, NPCs, monsters and
+the scripting engine, and connects to the char server (and through it the
+login server) to form a complete server.
+
+The map server compiles and runs the TMWA scripting language; see
+*tmwa-script*(7) for the language and its builtin functions.
+
+This page is a brief stub.  Operational documentation (deployment, the
+char/login/map split, world data layout) is not yet covered here.
+
+== Options
+
+_--help_::
+Print a usage summary and exit.
+
+_--version_::
+Print the server version and exit.
+
+_--write-atcommand-config_ _outfile_::
+Write the default atcommand (GM command) configuration to _outfile_ and
+exit.
+
+_config-file_::
+Path to a map-server configuration file.  Multiple files may be given and
+are loaded in order.  When no configuration file is given, the server
+loads `conf/tmwa-map.conf` from the working directory.
+
+== Files
+
+`conf/tmwa-map.conf`::
+Default map-server configuration file, relative to the working directory.
+
+== See also
+
+*tmwa-script*(7)
+
+Configuration-file formats are not yet documented as man pages; see
+*CONFIGURATION FILES* below.
+
+== Configuration files
+
+[NOTE]
+====
+Placeholder for future work.
+
+The TMWA configuration files (the map/char/login `.conf` files and the
+shared configuration) are not yet documented as man pages.  Section 5
+pages such as *tmwa.conf*(5) are a planned follow-up: when written they
+should live next to this file as `doc/tmwa.conf.5.adoc` (and similar) and
+be wired into the build the same way as this page.  Do not document the
+individual options here; that belongs in the dedicated section 5 pages.
+====
+
+== Reporting bugs
+
+Report bugs at the TMWA issue tracker:
+<https://github.com/themanaworld/tmwa/issues>.
