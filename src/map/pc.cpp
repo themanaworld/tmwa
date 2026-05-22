@@ -3917,6 +3917,9 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
 /*==========================================
  * script用PCステータス設定
  * PC status setting for script
+ *
+ * Returns 1 if the parameter was applied, 0 if it does not apply to
+ * this unit type (or bl is invalid).
  *------------------------------------------
  */
 int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
@@ -3936,6 +3939,9 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
         return 0;
 
     int i = 0;
+    // Becomes the return value: true once a case has applied the
+    // parameter, false if the key does not apply to this unit type.
+    bool ok = true;
 
     switch (type)
     {
@@ -3996,7 +4002,9 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                     npc_enable(nd->name, 1);
                 }
             }
-            return 0;
+            else
+                ok = false;
+            break;
         case SP::SKILLPOINT:
             nullpo_retz(sd);
             sd->status.skill_point = val;
@@ -4062,6 +4070,8 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                     chrif_save(sd);
                     clif_fixpcpos(sd);
                 }
+                else
+                    ok = false;
             }
             break;
         case SP::WEIGHT:
@@ -4146,18 +4156,26 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
         case SP::ATK1:
             if (md)
                 md->stats[mob_stat::ATK1] = val;
+            else
+                ok = false;
             break;
         case SP::ATK2:
             if (md)
                 md->stats[mob_stat::ATK2] = val;
+            else
+                ok = false;
             break;
         case SP::DEF1:
             if (md)
                 md->stats[mob_stat::DEF] = val;
+            else
+                ok = false;
             break;
         case SP::MDEF1:
             if (md)
                 md->stats[mob_stat::MDEF] = val;
+            else
+                ok = false;
             break;
         case SP::PARTNER:
             if (sd)
@@ -4176,12 +4194,16 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                 else
                     p_bl ? pc_marriage(sd, p_bl->is_player()) : 0;
             }
+            else
+                ok = false;
             break;
         case SP::INVISIBLE:
             if (sd)
                 pc_invisibility(sd, (val > 0) ? 1 : 0);
             else if (nd)
                 npc_enable(nd->name, (val > 0) ? false : true);
+            else
+                ok = false;
             break;
         case SP::GM:
             nullpo_retz(sd);
@@ -4238,9 +4260,14 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             nullpo_retz(sd);
             sd->automod = static_cast<AutoMod>(val);
             break;
+
+        default:
+            // a parameter pc_setparam does not handle
+            ok = false;
+            break;
     }
 
-    return 0;
+    return ok;
 }
 
 /*==========================================

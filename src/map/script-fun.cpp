@@ -1579,9 +1579,10 @@ void builtin_set(ScriptState *st)
  *
  * setparam(<param>, <value>{, <gid>})
  *
- * Like set on a PARAM-typed name, but a function: it returns 1 on
- * success and 0 if the first argument is not a parameter or the target
- * (the attached player when no gid is given) could not be resolved.
+ * Like set on a PARAM-typed name, but a function. Returns 0 if the
+ * first argument is not a parameter, if the target (the attached player
+ * when no gid is given) could not be resolved, or if the parameter does
+ * not apply to that unit type; 1 once the value has been applied.
  *------------------------------------------
  */
 static
@@ -1604,8 +1605,7 @@ void builtin_setparam(ScriptState *st)
     }
 
     int val = conv_num(st, &AARG(1));
-    set_reg(bl, VariableCode::PARAM, u->reg, val);
-    push_int<ScriptDataInt>(st->stack, 1);
+    push_int<ScriptDataInt>(st->stack, pc_setparam(bl, u->reg.sp(), val));
 }
 
 /*==========================================
