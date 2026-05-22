@@ -1436,6 +1436,40 @@ void builtin_puppet(ScriptState *st)
 }
 
 /*==========================================
+ * Resolves the optional target argument shared by the set and setparam
+ * builtins for a PARAM write. tgt is the target script_data, or nullptr
+ * for the script's attached player. Returns nullptr if the target could
+ * not be resolved.
+ *------------------------------------------
+ */
+static
+dumb_ptr<block_list> script_param_target(ScriptState *st, struct script_data *tgt)
+{
+    if (tgt == nullptr)
+        return map_id_is_player(st->rid);
+
+    get_val(st, tgt);
+    if (tgt->is<ScriptDataStr>())
+    {
+        CharName name = stringish<CharName>(ZString(conv_str(st, tgt)));
+        if (name.to__actual())
+            return map_nick2sd(name);
+        return nullptr;
+    }
+
+    int num = conv_num(st, tgt);
+    if (num >= 2000000)
+        return map_id2bl(wrap<BlockId>(num));
+    if (num >= 150000)
+    {
+        dumb_ptr<map_session_data> p_sd =
+            map_nick2sd(map_charid2nick(wrap<CharId>(num)));
+        return p_sd ? map_id2bl(p_sd->bl_id) : nullptr;
+    }
+    return nullptr;
+}
+
+/*==========================================
  * 変数設定
  * Variable settings
  *------------------------------------------
@@ -1448,44 +1482,14 @@ void builtin_set(ScriptState *st)
     if (auto *u = AARG(0).get_if<ScriptDataParam>())
     {
         SIR reg = u->reg;
-        if(HARG(2))
-        {
-            struct script_data *sdata = &AARG(2);
-            get_val(st, sdata);
-            CharName name;
-            if (sdata->is<ScriptDataStr>())
-            {
-                name = stringish<CharName>(ZString(conv_str(st, sdata)));
-                if (name.to__actual())
-                    bl = map_nick2sd(name);
-            }
-            else
-            {
-                int num = conv_num(st, sdata);
-                if (num >= 2000000)
-                    id = wrap<BlockId>(num);
-                else if (num >= 150000)
-                {
-                    dumb_ptr<map_session_data> p_sd = nullptr;
-                    if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(num)))) != nullptr)
-                        id = p_sd->bl_id;
-                    else
-                        return;
-                }
-                else
-                    return;
-                bl = map_id2bl(id);
-            }
-        }
-
-        else
-        {
-            bl = script_rid2sd(st);
+        bl = script_param_target(st, HARG(2) ? &AARG(2) : nullptr);
+        if (!HARG(2))
             script_nullpo_end(bl, "player not found"_s);
+        if (bl != nullptr)
+        {
+            int val = conv_num(st, &AARG(1));
+            set_reg(bl, VariableCode::PARAM, reg, val);
         }
-
-        int val = conv_num(st, &AARG(1));
-        set_reg(bl, VariableCode::PARAM, reg, val);
         return;
     }
 
@@ -1568,6 +1572,40 @@ void builtin_set(ScriptState *st)
         set_reg(bl, VariableCode::VARIABLE, reg, val);
     }
 
+}
+
+/*==========================================
+ * Writes a parameter and reports whether it was applied.
+ *
+ * setparam(<param>, <value>{, <gid>})
+ *
+ * Like set on a PARAM-typed name, but a function: it returns 1 on
+ * success and 0 if the first argument is not a parameter or the target
+ * (the attached player when no gid is given) could not be resolved.
+ *------------------------------------------
+ */
+static
+void builtin_setparam(ScriptState *st)
+{
+    auto *u = AARG(0).get_if<ScriptDataParam>();
+    if (u == nullptr)
+    {
+        PRINTF("builtin_setparam: first argument is not a parameter\n"_fmt);
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
+    dumb_ptr<block_list> bl =
+        script_param_target(st, HARG(2) ? &AARG(2) : nullptr);
+    if (bl == nullptr)
+    {
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
+    int val = conv_num(st, &AARG(1));
+    set_reg(bl, VariableCode::PARAM, u->reg, val);
+    push_int<ScriptDataInt>(st->stack, 1);
 }
 
 /*==========================================
@@ -5804,6 +5842,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(elif, "iF*"_s, '\0'),
     BUILTIN(else, "F*"_s, '\0'),
     BUILTIN(set, "Ne?"_s, '\0'),
+    BUILTIN(setparam, "Ne?"_s, 'i'),
     BUILTIN(get, "Ne"_s, 'v'),
     BUILTIN(setarray, "Ne*"_s, '\0'),
     BUILTIN(cleararray, "Nei"_s, '\0'),
