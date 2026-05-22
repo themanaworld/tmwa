@@ -1436,10 +1436,14 @@ void builtin_puppet(ScriptState *st)
 }
 
 /*==========================================
- * Resolves the optional target argument shared by the set and setparam
- * builtins for a PARAM write. tgt is the target script_data, or nullptr
- * for the script's attached player. Returns nullptr if the target could
- * not be resolved.
+ * Resolves the optional target argument shared by the get, set and
+ * setparam builtins for PARAM access. tgt is the target script_data, or
+ * nullptr for the script's attached player. Returns nullptr if the
+ * target could not be resolved.
+ *
+ * Using get / set / setparam on a non-player unit is deprecated: that
+ * is what getunitdata / setunitdata are for. A non-player target is
+ * resolved here as before, but warns.
  *------------------------------------------
  */
 static
@@ -1448,25 +1452,33 @@ dumb_ptr<block_list> script_param_target(ScriptState *st, struct script_data *tg
     if (tgt == nullptr)
         return map_id_is_player(st->rid);
 
+    dumb_ptr<block_list> bl = nullptr;
     get_val(st, tgt);
     if (tgt->is<ScriptDataStr>())
     {
         CharName name = stringish<CharName>(ZString(conv_str(st, tgt)));
         if (name.to__actual())
-            return map_nick2sd(name);
-        return nullptr;
+            bl = map_nick2sd(name);
+    }
+    else
+    {
+        int num = conv_num(st, tgt);
+        if (num >= 2000000)
+            bl = map_id2bl(wrap<BlockId>(num));
+        else if (num >= 150000)
+        {
+            dumb_ptr<map_session_data> p_sd =
+                map_nick2sd(map_charid2nick(wrap<CharId>(num)));
+            if (p_sd)
+                bl = map_id2bl(p_sd->bl_id);
+        }
     }
 
-    int num = conv_num(st, tgt);
-    if (num >= 2000000)
-        return map_id2bl(wrap<BlockId>(num));
-    if (num >= 150000)
-    {
-        dumb_ptr<map_session_data> p_sd =
-            map_nick2sd(map_charid2nick(wrap<CharId>(num)));
-        return p_sd ? map_id2bl(p_sd->bl_id) : nullptr;
-    }
-    return nullptr;
+    if (bl != nullptr && !bl->is_player())
+        PRINTF("script:%s: parameter access on a non-player unit is deprecated, use getunitdata/setunitdata\n"_fmt,
+                BUILTIN_NAME());
+
+    return bl;
 }
 
 /*==========================================
@@ -4662,46 +4674,13 @@ void builtin_get(ScriptState *st)
     if (auto *u = AARG(0).get_if<ScriptDataParam>())
     {
         SIR reg = u->reg;
-        struct script_data *sdata = &AARG(1);
-        get_val(st, sdata);
-        CharName name;
-        if (sdata->is<ScriptDataStr>())
-        {
-            name = stringish<CharName>(ZString(conv_str(st, sdata)));
-            if (name.to__actual())
-                bl = map_nick2sd(name);
-        }
-        else
-        {
-            int num = conv_num(st, sdata);
-            if (num >= 2000000)
-                id = wrap<BlockId>(num);
-            else if (num >= 150000)
-            {
-                dumb_ptr<map_session_data> p_sd = nullptr;
-                if ((p_sd = map_nick2sd(map_charid2nick(wrap<CharId>(num)))) != nullptr)
-                    id = p_sd->bl_id;
-                else
-                {
-                    push_int<ScriptDataInt>(st->stack, -1);
-                    return;
-                }
-            }
-            else
-            {
-                push_int<ScriptDataInt>(st->stack, -1);
-                return;
-            }
-            bl = map_id2bl(id);
-        }
-
+        bl = script_param_target(st, &AARG(1));
         if (bl == nullptr)
         {
             push_int<ScriptDataInt>(st->stack, -1);
             return;
         }
-        int var = pc_readparam(bl, reg.sp());
-        push_int<ScriptDataInt>(st->stack, var);
+        push_int<ScriptDataInt>(st->stack, pc_readparam(bl, reg.sp()));
         return;
     }
 
