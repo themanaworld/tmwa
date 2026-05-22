@@ -5635,20 +5635,20 @@ void builtin_mobwarp(ScriptState *st)
 /*==========================================
  * Reads a single piece of data from a mob.
  *
- * getunitdata(<mob_id>, <UDT_*>)
+ * getmobdata(<mob_id>, <MDT_*>)
  *
  * Returns -1 if the gid is not a mob or the data type is invalid.
  *
- * Every UnitData key is mob-only; this covers mob internals that no
+ * Every MobData key is mob-only; this covers mob internals that no
  * other script facility reaches. Ordinary mob stats are read instead
  * with get(<param>, <mob_id>).
  *------------------------------------------
  */
 static
-void builtin_getunitdata(ScriptState *st)
+void builtin_getmobdata(ScriptState *st)
 {
     BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
-    UnitData type = UnitData(conv_num(st, &AARG(1)));
+    MobData type = MobData(conv_num(st, &AARG(1)));
 
     dumb_ptr<mob_data> md = map_id_is_mob(id);
     if (md == nullptr)
@@ -5661,29 +5661,29 @@ void builtin_getunitdata(ScriptState *st)
 
     switch (type)
     {
-        case UnitData::MODE:
+        case MobData::MODE:
             val = static_cast<uint16_t>(md->mode);
             break;
-        case UnitData::ADELAY:
+        case MobData::ADELAY:
             val = md->stats[mob_stat::ADELAY];
             break;
-        case UnitData::XP_BONUS:
+        case MobData::XP_BONUS:
             val = md->stats[mob_stat::XP_BONUS];
             break;
-        case UnitData::CRITICAL_DEF:
+        case MobData::CRITICAL_DEF:
             val = md->stats[mob_stat::CRITICAL_DEF];
             break;
-        case UnitData::TARGET_ID:
+        case MobData::TARGET_ID:
             val = unwrap<BlockId>(md->target_id);
             break;
-        case UnitData::MASTER_ID:
+        case MobData::MASTER_ID:
             val = unwrap<BlockId>(md->master_id);
             break;
-        case UnitData::CLASS:
+        case MobData::CLASS:
             val = unwrap<Species>(md->mob_class);
             break;
         default:
-            PRINTF("builtin_getunitdata: unknown UDT %d\n"_fmt,
+            PRINTF("builtin_getmobdata: unknown key %d\n"_fmt,
                     static_cast<int>(type));
             push_int<ScriptDataInt>(st->stack, -1);
             return;
@@ -5695,21 +5695,21 @@ void builtin_getunitdata(ScriptState *st)
 /*==========================================
  * Writes a single piece of data on a mob.
  *
- * setunitdata(<mob_id>, <UDT_*>, <value>)
+ * setmobdata(<mob_id>, <MDT_*>, <value>)
  *
  * Returns 1 on success, 0 if the gid is not a mob, the data type is
- * invalid, or the key is read-only (UDT_TARGET_ID).
+ * invalid, or the key is read-only (MDT_TARGET_ID).
  *
- * Every UnitData key is mob-only; this covers mob internals that no
+ * Every MobData key is mob-only; this covers mob internals that no
  * other script facility reaches. Ordinary mob stats are written instead
  * with set(<param>, <value>, <mob_id>).
  *------------------------------------------
  */
 static
-void builtin_setunitdata(ScriptState *st)
+void builtin_setmobdata(ScriptState *st)
 {
     BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
-    UnitData type = UnitData(conv_num(st, &AARG(1)));
+    MobData type = MobData(conv_num(st, &AARG(1)));
 
     dumb_ptr<mob_data> md = map_id_is_mob(id);
     if (md == nullptr)
@@ -5723,22 +5723,22 @@ void builtin_setunitdata(ScriptState *st)
 
     switch (type)
     {
-        case UnitData::MODE:
+        case MobData::MODE:
             md->mode = static_cast<MobMode>(val);
             break;
-        case UnitData::ADELAY:
+        case MobData::ADELAY:
             md->stats[mob_stat::ADELAY] = val;
             break;
-        case UnitData::XP_BONUS:
+        case MobData::XP_BONUS:
             md->stats[mob_stat::XP_BONUS] = val;
             break;
-        case UnitData::CRITICAL_DEF:
+        case MobData::CRITICAL_DEF:
             md->stats[mob_stat::CRITICAL_DEF] = val;
             break;
-        case UnitData::MASTER_ID:
+        case MobData::MASTER_ID:
             md->master_id = wrap<BlockId>(val);
             break;
-        case UnitData::CLASS:
+        case MobData::CLASS:
             // No mob class-change helper exists in TMWA; redraw the
             // sprite by clearing and respawning the unit.
             clif_clearchar(md, BeingRemoveWhy::WARPED);
@@ -5746,13 +5746,13 @@ void builtin_setunitdata(ScriptState *st)
             clif_spawnmob(md);
             break;
 
-        case UnitData::TARGET_ID:
+        case MobData::TARGET_ID:
             // Read-only.
             ok = false;
             break;
 
         default:
-            PRINTF("builtin_setunitdata: unknown UDT %d\n"_fmt,
+            PRINTF("builtin_setmobdata: unknown key %d\n"_fmt,
                     static_cast<int>(type));
             ok = false;
             break;
@@ -5938,8 +5938,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmapnamebyindex, "i"_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
     BUILTIN(mobwarp, "iMxy"_s, 'i'),
-    BUILTIN(getunitdata, "ii"_s, 'i'),
-    BUILTIN(setunitdata, "iii"_s, 'i'),
+    BUILTIN(getmobdata, "ii"_s, 'i'),
+    BUILTIN(setmobdata, "iii"_s, 'i'),
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(if_then_else, "iii"_s, 'v'),
     BUILTIN(max, "e?*"_s, 'i'),

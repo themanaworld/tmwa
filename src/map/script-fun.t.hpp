@@ -100,8 +100,8 @@ enum class MobInfo_DropArrays : uint8_t
     PERCENTS =  2,
 };
 
-// Identifies one piece of data on a mob, for use with the getunitdata
-// and setunitdata script builtins.
+// Identifies one piece of data on a mob, for use with the getmobdata
+// and setmobdata script builtins.
 //
 // These cover only mob internals that no other script facility reaches.
 // Ordinary mob stats (level, hp, the attributes, atk, def, speed, ...)
@@ -109,9 +109,9 @@ enum class MobInfo_DropArrays : uint8_t
 // <mob_id>). A mob's position is read with get(POS_X / POS_Y, <gid>)
 // and changed with the mobwarp builtin.
 //
-// Every key here is mob-only: getunitdata returns -1 and setunitdata
+// Every key here is mob-only: getmobdata returns -1 and setmobdata
 // returns 0 for a gid that is not a mob.
-enum class UnitData : uint8_t
+enum class MobData : uint8_t
 {
     // mob AI / combat internals (no PARAM mapping)
     MODE            =  0, // mob behaviour flags; 0 = use the database default
