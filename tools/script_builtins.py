@@ -274,12 +274,20 @@ def parse_doc_comments(text):
     docs = []
     errors = []
 
-    # Match the structured /*===...===*/ doc-comment delimiter
-    # specifically.  A bare /\* would also match '/*' substrings hidden
-    # inside C++ '//' line comments (e.g. '//**'), which would then
-    # consume everything up to the next '*/' and pull the adjacent code
-    # into the parsed comment.
-    comment_re = re.compile(r'/\*=+[\s\S]*?=+\*/')
+    # Match the structured /*=+...*/ doc-comment delimiter.  Two
+    # anchors combine:
+    #   /\*=+   the opener must have '=' right after '/*'.  Without
+    #           this the regex would also latch onto '/*' substrings
+    #           hidden inside C++ '//' line comments such as '//**'.
+    #   body    '(?:[^*]|\*(?!/))*' excludes '*/' from the body, so
+    #           the match stops at the first '*/' close.  Anchoring
+    #           only the opener and looking for '=+\*/' at the end is
+    #           not enough: older eAthena-style block comments above
+    #           helper functions open with '/*=========================='
+    #           but close with '*------*/' (a '*/' not preceded by '='),
+    #           and a regex that skipped past those closes would pull
+    #           the helper's code into the following doc comment.
+    comment_re = re.compile(r'/\*=+(?:[^*]|\*(?!/))*\*/')
     for m in comment_re.finditer(text):
         block = m.group(0)
         if '@doc' not in block:

@@ -353,7 +353,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *areawarp*(_from_map_, _x0_, _y0_, _x1_, _y1_, _to_map_, _x_, _y_)::
-pass:c[エリア指定ワープ Area Designation Warp ------------------------------------------ / static void builtin_areawarp_sub(dumb_ptr<block_list> bl, MapName mapname, int x, int y) { dumb_ptr<map_session_data> sd = bl->is_player(); Option<P<map_local>> m = map_mapname2mapid(mapname); if (m.map([\](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false) && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level))) return; if (sd->bl_m->flag.get(MapFlag::NOWARP) && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level))) return; pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE); } /*======================================== Warp every player inside a rectangle on one map to a cell on another. The same nowarp/nowarpto GM-level restrictions as warp apply per player.]
+pass:c[Warp every player inside a rectangle on one map to a cell on another. The same nowarp/nowarpto GM-level restrictions as warp apply per player.]
 +
 ifdef::backend-html5[]
 * _from_map_ (_map_) pass:c[the map holding the source rectangle.]
@@ -499,7 +499,7 @@ endif::[]
 Returns _variant_: pass:c[the value of the variable.]
 
 *setarray*(_dest_[, _value_...])::
-pass:c[this is a special function that returns array index for a variable stored in another being ------------------------------------------ / static int getarraysize2(SIR reg, dumb_ptr<block_list> bl) { int i = reg.index(), c = i; bool zero = true; // index zero is empty for (; i < 256; i++) { struct script_data vd = ScriptDataVariable{reg.iplus(i)}; get_val(bl, &vd); MATCH_BEGIN (vd) { MATCH_CASE (const ScriptDataStr&, u) { if (u.str[0\]) { if (i == 0) zero = false; // index zero is not empty c = i; } continue; } MATCH_CASE (const ScriptDataInt&, u) { if (u.numi) { if (i == 0) zero = false; // index zero is not empty c = i; } continue; } } MATCH_END (); abort(); } return (c == 0 && zero) ? c : (c + 1); } /*======================================== Fill an array starting at its given index with the listed values. For an NPC-scope array the second argument is instead the NPC to target and the values follow.]
+pass:c[Fill an array starting at its given index with the listed values. For an NPC-scope array the second argument is instead the NPC to target and the values follow.]
 +
 ifdef::backend-html5[]
 * _dest_ (_var_) pass:c[the array variable to fill.]
@@ -525,7 +525,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *getarraysize*(_name_) -> int::
-pass:c[配列変数のサイズ所得 Size of the array variable income ------------------------------------------ / static int getarraysize(ScriptState *st, SIR reg) { int i = reg.index(), c = i; for (; i < 256; i++) { struct script_data vd = get_val2(st, reg.iplus(i)); MATCH_BEGIN (vd) { MATCH_CASE (const ScriptDataStr&, u) { if (u.str[0\]) c = i; continue; } MATCH_CASE (const ScriptDataInt&, u) { if (u.numi) c = i; continue; } } MATCH_END (); abort(); } return c + 1; } /*======================================== Return the logical size of an array: one past the index of its last nonzero or non-empty element.]
+pass:c[Return the logical size of an array: one past the index of its last nonzero or non-empty element.]
 +
 ifdef::backend-html5[]
 * _name_ (_var_) pass:c[the array variable to measure.]
@@ -577,7 +577,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *countitem*(_item_) -> int::
-pass:c[Get item parameter, supports both item ID and item name ------------------------------------------ / static ItemNameId get_item_id(ScriptState *st, struct script_data *data) { ItemNameId nameid; get_val(st, data); if (data->is<ScriptDataStr>()) { ZString name = ZString(conv_str(st, data)); Option<P<struct item_data>> item_data_ = itemdb_searchname(name); OMATCH_BEGIN_SOME (item_data, item_data_) { nameid = item_data->nameid; } OMATCH_END (); } else nameid = wrap<ItemNameId>(conv_num(st, data)); return nameid; } /*======================================== Return how many of an item the attached player carries in their inventory.]
+pass:c[Return how many of an item the attached player carries in their inventory.]
 +
 ifdef::backend-html5[]
 * _item_ (_item_) pass:c[the item, by numeric id or name.]
@@ -680,7 +680,7 @@ pass:c[Return the client-protocol version reported by the attached player's clie
 Returns _int_: pass:c[the client protocol version number.]
 
 *strcharinfo*(_type_[, _gid_]) -> str::
-pass:c[指定IDのPT名取得 Obtaining PT name of specified ID ------------------------------------------ / static RString builtin_getpartyname_sub(PartyId party_id) { Option<PartyPair> p = party_search(party_id); return p.pmd_pget(&PartyMost::name).copy_or(PartyName()); } /*======================================== Return a string about a character. The optional being id picks the character; without it the attached player is used.]
+pass:c[Return a string about a character. The optional being id picks the character; without it the attached player is used.]
 +
 ifdef::backend-html5[]
 * _type_ (_int_) pass:c[which string: 0 character name, 1 party name, 2 empty (guilds are unimplemented).]
@@ -868,7 +868,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *mobinfo*(_species_, _field_) -> variant::
-pass:c[Returns attributes of a monster return value -1 = mob not found ------------------------------------------ / static int get_mob_drop_nameid(Species mob_id, int index) { return unwrap<ItemNameId>(get_mob_db(mob_id).dropitem[index\].nameid); } static int get_mob_drop_percent(Species mob_id, int index) { return get_mob_db(mob_id).dropitem[index\].p.num; } static AString get_mob_drop_name(Species mob_id, int index) { Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[index\].nameid)); return i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s)); } /*======================================== Return a field of the monster-database entry for a species.]
+pass:c[Return a field of the monster-database entry for a species.]
 +
 ifdef::backend-html5[]
 * _species_ (_mob_) pass:c[the monster species id.]
@@ -984,7 +984,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *killmonster*(_map_, _event_)::
-pass:c[モンスター削除 Monster Removal ------------------------------------------ / static void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event) { dumb_ptr<mob_data> md = bl->is_mob(); if (event) { if (event == md->npc_event) mob_delete(md); return; } else if (!event) { if (md->spawn.delay1 == static_cast<interval_t>(-1) && md->spawn.delay2 == static_cast<interval_t>(-1)) mob_delete(md); return; } } /*======================================== Remove monsters on a map. With the special event string "All", all non- permanently-spawned monsters are removed; otherwise only monsters whose death event matches.]
+pass:c[Remove monsters on a map. With the special event string "All", all non- permanently-spawned monsters are removed; otherwise only monsters whose death event matches.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to clear.]
@@ -1146,7 +1146,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *mapannounce*(_map_, _message_, _flag_)::
-pass:c[天の声アナウンス（特定マップ） Voice of Heaven Announcement (Specific Map) ------------------------------------------ / static void builtin_mapannounce_sub(dumb_ptr<block_list> bl, XString str, int flag) { clif_GMmessage(bl, str, flag | 3); } /*======================================== Broadcast a message to every player on a map.]
+pass:c[Broadcast a message to every player on a map.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to broadcast on.]
@@ -1172,7 +1172,7 @@ endif::[]
 Returns _int_: pass:c[the requested user count.]
 
 *getmapusers*(_map_) -> int::
-pass:c[マップ指定ユーザー数所得 maps Designated User Count ------------------------------------------ / static void builtin_getareausers_sub(dumb_ptr<block_list> bl, int *users) { if (bool(bl->is_player()->status.option & Opt0::HIDE)) return; (*users)++; } /*======================================== Return the number of players currently on a map.]
+pass:c[Return the number of players currently on a map.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to count players on.]
@@ -1184,7 +1184,7 @@ endif::[]
 Returns _int_: pass:c[the player count, or -1 if the map does not exist.]
 
 *getareausers*(_map_, _x0_, _y0_, _x1_, _y1_[, _living_only_]) -> int::
-pass:c[エリア指定ユーザー数所得 Area Designated User Income ------------------------------------------ / static void builtin_getareausers_living_sub(dumb_ptr<block_list> bl, int *users) { if (bool(bl->is_player()->status.option & Opt0::HIDE)) return; if (!pc_isdead(bl->is_player())) (*users)++; } /*======================================== Return the number of players inside a rectangle on a map. Hidden players are never counted.]
+pass:c[Return the number of players inside a rectangle on a map. Hidden players are never counted.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map holding the rectangle.]
@@ -1206,7 +1206,7 @@ endif::[]
 Returns _int_: pass:c[the player count, or -1 if the map does not exist.]
 
 *getareadropitem*(_map_, _x0_, _y0_, _x1_, _y1_, _item_[, _remove_]) -> int::
-pass:c[エリア指定ドロップアイテム数所得 Area Designated Drop Item Number Income ------------------------------------------ / static void builtin_getareadropitem_sub(dumb_ptr<block_list> bl, ItemNameId item, int *amount) { dumb_ptr<flooritem_data> drop = bl->is_item(); if (drop->item_data.nameid == item) (*amount) += drop->item_data.amount; } /*========================================== ------------------------------------------ / static void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, ItemNameId item, int *amount) { dumb_ptr<flooritem_data> drop = bl->is_item(); if (drop->item_data.nameid == item) { (*amount) += drop->item_data.amount; clif_clearflooritem(drop, nullptr); map_delobject(drop->bl_id, drop->bl_type); } } /*======================================== Return the total quantity of floor items of a type lying inside a rectangle on a map.]
+pass:c[Return the total quantity of floor items of a type lying inside a rectangle on a map.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map holding the rectangle.]
@@ -1462,7 +1462,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *mobcount*(_map_, _event_) -> int::
-pass:c[------------------------------------------ / static void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c) { if (event == bl->is_mob()->npc_event) (*c)++; } /*======================================== Return the number of monsters on a map whose death event matches. The count is reported one lower than the raw total.]
+pass:c[Return the number of monsters on a map whose death event matches. The count is reported one lower than the raw total.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to count monsters on.]
@@ -1779,7 +1779,7 @@ endif::[]
 Returns _variant_: pass:c[the requested part of the save point.]
 
 *areatimer*(_type_, _map_, _x0_, _y0_, _x1_, _y1_, _delay_, _event_)::
-pass:c[areatimer ------------------------------------------ / static void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent event) { if (!bl) return; if (bl->bl_type == BL::PC) { dumb_ptr<map_session_data> sd = map_id_is_player(bl->bl_id); pc_addeventtimer(sd, tick, event); } } /*======================================== Schedule an NPC event to run after a delay for every player inside a rectangle on a map.]
+pass:c[Schedule an NPC event to run after a delay for every player inside a rectangle on a map.]
 +
 ifdef::backend-html5[]
 * _type_ (_int_) pass:c[being-type selector; must be 0 (players).]
@@ -1803,7 +1803,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *foreach*(_type_, _map_, _x0_, _y0_, _x1_, _y1_, _event_[, _caster_])::
-pass:c[------------------------------------------ / static void builtin_foreach_sub(dumb_ptr<block_list> bl, NpcEvent event, BlockId caster) { // call_spell_event_script argrec_t arg[1\] = { {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))}, }; npc_event_do_l(event, caster, arg); } /*======================================== Run an NPC event once for every being inside a rectangle on a map. Each invocation gets the matched being's id in @target_id.]
+pass:c[Run an NPC event once for every being inside a rectangle on a map. Each invocation gets the matched being's id in @target_id.]
 +
 ifdef::backend-html5[]
 * _type_ (_int_) pass:c[being type: 0 players, 1 NPCs, 2 monsters, 3 everything.]
