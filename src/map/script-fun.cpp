@@ -5596,12 +5596,83 @@ void builtin_getnpcy(ScriptState *st)
 }
 
 /*==========================================
+ * Warps a unit (player, mob or npc) to a position.
+ *
+ * unitwarp(<unit_id>, "<mapname>", <x>, <y>)
+ *
+ * A unit_id of 0 means the script's attached player. A mapname of
+ * "this" keeps the unit on its current map. NPCs are bound to their
+ * map and can only be moved within it. Returns 1 on success, 0 on
+ * failure.
+ *------------------------------------------
+ */
+static
+void builtin_unitwarp(ScriptState *st)
+{
+    BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
+    ZString mapname = ZString(conv_str(st, &AARG(1)));
+    int x = conv_num(st, &AARG(2));
+    int y = conv_num(st, &AARG(3));
+
+    dumb_ptr<block_list> bl = map_id2bl(id ? id : st->rid);
+    if (bl == nullptr)
+    {
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
+    // "this" keeps the unit on its current map.
+    P<map_local> m = bl->bl_m;
+    if (mapname != "this"_s)
+        m = TRY_UNWRAP(map_mapname2mapid(stringish<MapName>(mapname)),
+                {
+                    push_int<ScriptDataInt>(st->stack, 0);
+                    return;
+                });
+
+    if (dumb_ptr<map_session_data> sd = bl->is_player())
+    {
+        pc_setpos(sd, m->name_, x, y, BeingRemoveWhy::GONE);
+    }
+    else if (dumb_ptr<mob_data> md = bl->is_mob())
+    {
+        mob_warp(md, Some(m), x, y, BeingRemoveWhy::GONE);
+    }
+    else if (dumb_ptr<npc_data> nd = bl->is_npc())
+    {
+        // NPCs are registered with their map; only same-map moves are
+        // safe. Mirrors the bounds check in builtin_npcwarp.
+        if (m != bl->bl_m
+            || !nd->bl_prev
+            || x < 0 || x > m->xs - 1
+            || y < 0 || y > m->ys - 1)
+        {
+            push_int<ScriptDataInt>(st->stack, 0);
+            return;
+        }
+        npc_enable(nd->name, 0);
+        map_delblock(nd);
+        nd->bl_x = x;
+        nd->bl_y = y;
+        map_addblock(nd);
+        npc_enable(nd->name, 1);
+    }
+    else
+    {
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
+    push_int<ScriptDataInt>(st->stack, 1);
+}
+
+/*==========================================
  * Reads a single piece of data from a unit.
  *
  * getunitdata(<gid>, <UDT_*>)
  *
- * Returns -1 if the gid or data type is invalid, a string for UDT_MAP,
- * otherwise an int (0 when the key does not apply to this unit type).
+ * Returns -1 if the gid or data type is invalid, otherwise an int
+ * (0 when the key does not apply to this unit type).
  *
  * This covers only data with no other script accessor; see the UnitData
  * enum. Plain stats are read with get(<param>, <gid>) instead.
@@ -5652,15 +5723,6 @@ void builtin_getunitdata(ScriptState *st)
         case UnitData::CLASS:
             if (md) val = unwrap<Species>(md->mob_class);
             break;
-        case UnitData::X:
-            val = bl->bl_x;
-            break;
-        case UnitData::Y:
-            val = bl->bl_y;
-            break;
-        case UnitData::MAP:
-            push_str<ScriptDataStr>(st->stack, bl->bl_m->name_);
-            return;
         case UnitData::LOOK_DIR:
             if (sd) val = static_cast<uint8_t>(sd->dir);
             else if (nd) val = static_cast<uint8_t>(nd->dir);
@@ -5692,12 +5754,12 @@ void builtin_getunitdata(ScriptState *st)
  *
  * setunitdata(<gid>, <UDT_*>, <value>)
  *
- * The value is a string for UDT_MAP and an int otherwise. Returns 1 on
- * success, 0 if the gid is invalid or the key does not apply to this
- * unit type. UDT_TARGET_ID is read-only.
+ * Returns 1 on success, 0 if the gid is invalid or the key does not
+ * apply to this unit type. UDT_TARGET_ID is read-only.
  *
  * This covers only data with no other script accessor; see the UnitData
- * enum. Plain stats are written with set(<param>, <value>, <gid>).
+ * enum. Plain stats are written with set(<param>, <value>, <gid>) and
+ * positions are changed with the unitwarp builtin.
  *------------------------------------------
  */
 static
@@ -5716,26 +5778,6 @@ void builtin_setunitdata(ScriptState *st)
     dumb_ptr<map_session_data> sd = bl->is_player();
     dumb_ptr<npc_data> nd = bl->is_npc();
     dumb_ptr<mob_data> md = bl->is_mob();
-
-    // UDT_MAP takes a string value and teleports the mob to its current
-    // x,y on the named map. Handled before reading the int form below.
-    if (type == UnitData::MAP)
-    {
-        if (!md)
-        {
-            push_int<ScriptDataInt>(st->stack, 0);
-            return;
-        }
-        MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(2))));
-        P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname),
-                {
-                    push_int<ScriptDataInt>(st->stack, 0);
-                    return;
-                });
-        mob_warp(md, Some(m), bl->bl_x, bl->bl_y, BeingRemoveWhy::GONE);
-        push_int<ScriptDataInt>(st->stack, 1);
-        return;
-    }
 
     int val = conv_num(st, &AARG(2));
     bool ok = true;
@@ -5775,14 +5817,6 @@ void builtin_setunitdata(ScriptState *st)
                 md->mob_class = wrap<Species>(static_cast<uint16_t>(val));
                 clif_spawnmob(md);
             }
-            else ok = false;
-            break;
-        case UnitData::X:
-            if (md) mob_warp(md, None, val, bl->bl_y, BeingRemoveWhy::GONE);
-            else ok = false;
-            break;
-        case UnitData::Y:
-            if (md) mob_warp(md, None, bl->bl_x, val, BeingRemoveWhy::GONE);
             else ok = false;
             break;
         case UnitData::LOOK_DIR:
@@ -6027,8 +6061,9 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(numberofmaps, ""_s, 'i'),
     BUILTIN(getmapnamebyindex, "i"_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
-    BUILTIN(getunitdata, "ii"_s, 'v'),
-    BUILTIN(setunitdata, "iie"_s, 'i'),
+    BUILTIN(unitwarp, "iMxy"_s, 'i'),
+    BUILTIN(getunitdata, "ii"_s, 'i'),
+    BUILTIN(setunitdata, "iii"_s, 'i'),
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(if_then_else, "iii"_s, 'v'),
     BUILTIN(max, "e?*"_s, 'i'),

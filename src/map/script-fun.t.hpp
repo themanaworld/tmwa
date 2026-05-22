@@ -108,16 +108,17 @@ enum class MobInfo_DropArrays : uint8_t
 // ...) are available for both players and mobs through the PARAM system
 // (pc_readparam / pc_setparam), used as PARAM variables or through the
 // get() and set(<param>, <value>, <gid>) builtins. Player and NPC
-// looks, names, sex, exp, zeny, positions and ids each have their own
-// builtins (getlook / setlook, strcharinfo, strnpcinfo, fakenpcname,
-// getx / gety / getdir, getmap, warp, npcwarp, getcharid).
+// looks, names, sex, exp, zeny, ids each have their own builtins
+// (getlook / setlook, strcharinfo, strnpcinfo, fakenpcname, getcharid).
+// Positions are read with get(POS_X / POS_Y, <gid>) and changed with
+// the unitwarp builtin.
 //
-// What is left here is mob internals that have no PARAM mapping, mob
-// sprite/placement that no builtin reaches on a live mob, and a few
-// fields no builtin exposes at all.
+// What is left here is mob internals that have no PARAM mapping, the
+// mob sprite no builtin reaches on a live mob, and a few fields no
+// builtin exposes at all.
 //
 // Not every key applies to every unit type. Reading an inapplicable
-// key returns 0 (an empty string for UDT_MAP); writing one fails (0).
+// key returns 0; writing one fails (0).
 enum class UnitData : uint8_t
 {
     // mob AI / combat internals (no PARAM mapping)
@@ -128,17 +129,14 @@ enum class UnitData : uint8_t
     CRITICAL_DEF    =  4, // mob critical-hit defense
     TARGET_ID       =  5, // mob current target gid (read-only)
     MASTER_ID       =  6, // mob master gid (e.g. for summons)
-    // mob sprite / placement (no builtin reaches a live mob)
+    // mob sprite (no builtin reaches a live mob)
     CLASS           =  7, // mob sprite class; respawns the mob
-    X               =  8, // mob x; setting teleports it on the same map
-    Y               =  9, // mob y; setting teleports it on the same map
-    MAP             = 10, // mob map name (string); setting teleports it
     // any unit type
-    LOOK_DIR        = 11, // facing direction (mob / pc / npc)
-    OPTION          = 12, // Opt0 status flags (mob / pc / npc); getopt2 is Opt2
+    LOOK_DIR        =  8, // facing direction (mob / pc / npc)
+    OPTION          =  9, // Opt0 status flags (mob / pc / npc); getopt2 is Opt2
     // pc fields with no other accessor
-    KARMA           = 13, // pc karma
-    MANNER          = 14, // pc manner
+    KARMA           = 10, // pc karma
+    MANNER          = 11, // pc manner
 };
 } // namespace map
 } // namespace tmwa
