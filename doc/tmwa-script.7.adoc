@@ -942,7 +942,7 @@ variadic markers), not argument *type*.
 
 == See also
 
-*tmwa-map*(1)
+*tmwa-map*(1), *tmwa-map.conf*(5)
 
 The script-language sources live under _src/map/script-*.cpp_; the
 authoritative builtin table is `builtin_functions[]` in
