@@ -5634,31 +5634,33 @@ void builtin_getnpcy(ScriptState *st)
 }
 
 /*==========================================
- * Warps a mob to a position.
+ * Warps a unit (player, mob or npc) to a position.
  *
- * mobwarp(<mob_id>, "<mapname>", <x>, <y>)
+ * unitwarp(<unit_id>, "<mapname>", <x>, <y>)
  *
- * A mapname of "this" keeps the mob on its current map. Returns 1 on
- * success, 0 if the gid is not a mob or the map is unknown.
+ * A unit_id of 0 means the script's attached player; a mapname of
+ * "this" keeps the unit on its current map. NPCs are bound to their
+ * map and can only be moved within it. Returns 1 on success, 0 on
+ * failure.
  *------------------------------------------
  */
 static
-void builtin_mobwarp(ScriptState *st)
+void builtin_unitwarp(ScriptState *st)
 {
     BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
     ZString mapname = ZString(conv_str(st, &AARG(1)));
     int x = conv_num(st, &AARG(2));
     int y = conv_num(st, &AARG(3));
 
-    dumb_ptr<mob_data> md = map_id_is_mob(id);
-    if (md == nullptr)
+    dumb_ptr<block_list> bl = map_id2bl(id ? id : st->rid);
+    if (bl == nullptr)
     {
         push_int<ScriptDataInt>(st->stack, 0);
         return;
     }
 
-    // "this" keeps the mob on its current map.
-    P<map_local> m = md->bl_m;
+    // "this" keeps the unit on its current map.
+    P<map_local> m = bl->bl_m;
     if (mapname != "this"_s)
         m = TRY_UNWRAP(map_mapname2mapid(stringish<MapName>(mapname)),
                 {
@@ -5666,8 +5668,422 @@ void builtin_mobwarp(ScriptState *st)
                     return;
                 });
 
-    mob_warp(md, Some(m), x, y, BeingRemoveWhy::GONE);
+    if (dumb_ptr<map_session_data> sd = bl->is_player())
+    {
+        pc_setpos(sd, m->name_, x, y, BeingRemoveWhy::GONE);
+    }
+    else if (dumb_ptr<mob_data> md = bl->is_mob())
+    {
+        mob_warp(md, Some(m), x, y, BeingRemoveWhy::GONE);
+    }
+    else if (dumb_ptr<npc_data> nd = bl->is_npc())
+    {
+        // NPCs are registered with their map; only same-map moves are
+        // safe. Mirrors the bounds check in builtin_npcwarp.
+        if (m != bl->bl_m
+            || !nd->bl_prev
+            || x < 0 || x > m->xs - 1
+            || y < 0 || y > m->ys - 1)
+        {
+            push_int<ScriptDataInt>(st->stack, 0);
+            return;
+        }
+        npc_enable(nd->name, 0);
+        map_delblock(nd);
+        nd->bl_x = x;
+        nd->bl_y = y;
+        map_addblock(nd);
+        npc_enable(nd->name, 1);
+    }
+    else
+    {
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
     push_int<ScriptDataInt>(st->stack, 1);
+}
+
+/*==========================================
+ * Reads a single piece of data from a unit.
+ *
+ * getunitdata(<gid>, <UDT_*>)
+ *
+ * Operates on players, npcs and mobs. Returns -1 for an invalid gid or
+ * key, otherwise the value (0 when the key does not apply to that unit
+ * type). UDT_MAPIDXY is write-only; read positions with get(POS_X) and
+ * get(POS_Y).
+ *------------------------------------------
+ */
+static
+void builtin_getunitdata(ScriptState *st)
+{
+    BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
+    UnitData type = UnitData(conv_num(st, &AARG(1)));
+
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    if (bl == nullptr)
+    {
+        push_int<ScriptDataInt>(st->stack, -1);
+        return;
+    }
+
+    dumb_ptr<map_session_data> sd = bl->is_player();
+    dumb_ptr<npc_data> nd = bl->is_npc();
+    dumb_ptr<mob_data> md = bl->is_mob();
+
+    int val = 0;
+
+    switch (type)
+    {
+        case UnitData::TYPE:
+            val = static_cast<uint8_t>(bl->bl_type);
+            break;
+        case UnitData::LEVEL:
+            if (sd) val = sd->status.base_level;
+            else if (md) val = md->stats[mob_stat::LV];
+            break;
+        case UnitData::HP:
+            if (sd) val = sd->status.hp;
+            else if (md) val = md->hp;
+            break;
+        case UnitData::MAX_HP:
+            if (sd) val = sd->status.max_hp;
+            else if (md) val = md->stats[mob_stat::MAX_HP];
+            break;
+        case UnitData::SP:
+            if (sd) val = sd->status.sp;
+            break;
+        case UnitData::MAX_SP:
+            if (sd) val = sd->status.max_sp;
+            break;
+        case UnitData::SPEED:
+            if (sd) val = sd->speed.count();
+            else if (nd) val = nd->speed.count();
+            else if (md) val = md->stats[mob_stat::SPEED];
+            break;
+        case UnitData::MODE:
+            if (md) val = static_cast<uint16_t>(md->mode);
+            break;
+        case UnitData::SEX:
+            if (sd) val = static_cast<uint8_t>(sd->status.sex);
+            else if (nd) val = static_cast<uint8_t>(nd->sex);
+            break;
+        case UnitData::CLASS:
+            if (sd) val = unwrap<Species>(sd->status.species);
+            else if (nd) val = unwrap<Species>(nd->npc_class);
+            else if (md) val = unwrap<Species>(md->mob_class);
+            break;
+        case UnitData::HAIR_STYLE:
+            if (sd) val = sd->status.hair;
+            break;
+        case UnitData::HAIR_COLOR:
+            if (sd) val = sd->status.hair_color;
+            break;
+        case UnitData::CLOTHES_COLOR:
+            if (sd) val = sd->status.clothes_color;
+            break;
+        case UnitData::HEAD_TOP:
+            if (sd) val = unwrap<ItemNameId>(sd->status.head_top);
+            break;
+        case UnitData::HEAD_MIDDLE:
+            if (sd) val = unwrap<ItemNameId>(sd->status.head_mid);
+            break;
+        case UnitData::HEAD_BOTTOM:
+            if (sd) val = unwrap<ItemNameId>(sd->status.head_bottom);
+            break;
+        case UnitData::SHIELD:
+            if (sd) val = unwrap<ItemNameId>(sd->status.shield);
+            break;
+        case UnitData::WEAPON:
+            if (sd) val = static_cast<uint16_t>(sd->status.weapon);
+            break;
+        case UnitData::LOOK_DIR:
+            if (sd) val = static_cast<uint8_t>(sd->dir);
+            else if (nd) val = static_cast<uint8_t>(nd->dir);
+            else if (md) val = static_cast<uint8_t>(md->dir);
+            break;
+        case UnitData::STR:
+        case UnitData::AGI:
+        case UnitData::VIT:
+        case UnitData::INT:
+        case UnitData::DEX:
+        case UnitData::LUK:
+            {
+                int idx = static_cast<int>(type) - static_cast<int>(UnitData::STR);
+                if (sd)
+                    val = sd->status.attrs[ATTR(static_cast<int>(ATTR::STR) + idx)];
+                else if (md)
+                    val = md->stats[mob_stat(static_cast<int>(mob_stat::STR) + idx)];
+            }
+            break;
+        case UnitData::ATK_MIN:
+            if (sd) val = sd->watk;
+            else if (md) val = md->stats[mob_stat::ATK1];
+            break;
+        case UnitData::ATK_MAX:
+            if (sd) val = sd->watk2;
+            else if (md) val = md->stats[mob_stat::ATK2];
+            break;
+        case UnitData::DEF:
+            if (sd) val = sd->def;
+            else if (md) val = md->stats[mob_stat::DEF];
+            break;
+        case UnitData::MDEF:
+            if (sd) val = sd->mdef;
+            else if (md) val = md->stats[mob_stat::MDEF];
+            break;
+        case UnitData::ADELAY:
+            if (md) val = md->stats[mob_stat::ADELAY];
+            break;
+        case UnitData::STATUS_POINT:
+            if (sd) val = sd->status.status_point;
+            break;
+        case UnitData::XP_BONUS:
+            if (md) val = md->stats[mob_stat::XP_BONUS];
+            break;
+        case UnitData::CRITICAL_DEF:
+            if (md) val = md->stats[mob_stat::CRITICAL_DEF];
+            break;
+        case UnitData::TARGET_ID:
+            if (md) val = unwrap<BlockId>(md->target_id);
+            break;
+        default:
+            PRINTF("builtin_getunitdata: unknown key %d\n"_fmt,
+                    static_cast<int>(type));
+            push_int<ScriptDataInt>(st->stack, -1);
+            return;
+    }
+
+    push_int<ScriptDataInt>(st->stack, val);
+}
+
+/*==========================================
+ * Writes a single piece of data on a unit.
+ *
+ * setunitdata(<gid>, <UDT_*>, <value>)
+ *
+ * Operates on players, npcs and mobs. Returns 1 on success, 0 if the
+ * gid is invalid, the key is read-only, or the key does not apply to
+ * that unit type. A unit is repositioned with the unitwarp builtin.
+ *------------------------------------------
+ */
+static
+void builtin_setunitdata(ScriptState *st)
+{
+    BlockId id = wrap<BlockId>(conv_num(st, &AARG(0)));
+    UnitData type = UnitData(conv_num(st, &AARG(1)));
+
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    if (bl == nullptr)
+    {
+        push_int<ScriptDataInt>(st->stack, 0);
+        return;
+    }
+
+    dumb_ptr<map_session_data> sd = bl->is_player();
+    dumb_ptr<npc_data> nd = bl->is_npc();
+    dumb_ptr<mob_data> md = bl->is_mob();
+
+    int val = conv_num(st, &AARG(2));
+    bool ok = true;
+
+    switch (type)
+    {
+        case UnitData::TYPE:
+        case UnitData::TARGET_ID:
+            // read-only
+            ok = false;
+            break;
+        case UnitData::LEVEL:
+            if (sd) ok = pc_setparam(sd, SP::BASELEVEL, val);
+            else if (md) md->stats[mob_stat::LV] = val;
+            else ok = false;
+            break;
+        case UnitData::HP:
+            if (sd) ok = pc_setparam(sd, SP::HP, val);
+            else if (md) md->hp = val;
+            else ok = false;
+            break;
+        case UnitData::MAX_HP:
+            if (sd) ok = pc_setparam(sd, SP::MAXHP, val);
+            else if (md) md->stats[mob_stat::MAX_HP] = val;
+            else ok = false;
+            break;
+        case UnitData::SP:
+            if (sd) ok = pc_setparam(sd, SP::SP, val);
+            else ok = false;
+            break;
+        case UnitData::MAX_SP:
+            if (sd) ok = pc_setparam(sd, SP::MAXSP, val);
+            else ok = false;
+            break;
+        case UnitData::SPEED:
+            // PC speed is normally derived; set it directly like the
+            // @speed command (it holds until the next pc_calcstatus).
+            if (sd)
+            {
+                sd->speed = std::min(std::max(static_cast<interval_t>(val),
+                            MIN_WALK_SPEED), MAX_WALK_SPEED);
+                clif_updatestatus(sd, SP::SPEED);
+            }
+            else if (nd)
+                nd->speed = static_cast<interval_t>(val);
+            else if (md)
+                md->stats[mob_stat::SPEED] = val;
+            else ok = false;
+            break;
+        case UnitData::MODE:
+            if (md) md->mode = static_cast<MobMode>(val);
+            else ok = false;
+            break;
+        case UnitData::SEX:
+            if (sd || nd) ok = pc_setparam(bl, SP::SEX, val);
+            else ok = false;
+            break;
+        case UnitData::CLASS:
+            if (sd || nd)
+                ok = pc_setparam(bl, SP::CLASS, val);
+            else if (md)
+            {
+                // No mob class-change helper exists; redraw the sprite
+                // by clearing and respawning the mob.
+                clif_clearchar(md, BeingRemoveWhy::WARPED);
+                md->mob_class = wrap<Species>(static_cast<uint16_t>(val));
+                clif_spawnmob(md);
+            }
+            else ok = false;
+            break;
+        case UnitData::HAIR_STYLE:
+            if (sd) pc_changelook(sd, LOOK::HAIR, val);
+            else ok = false;
+            break;
+        case UnitData::HAIR_COLOR:
+            if (sd) pc_changelook(sd, LOOK::HAIR_COLOR, val);
+            else ok = false;
+            break;
+        case UnitData::CLOTHES_COLOR:
+            if (sd) pc_changelook(sd, LOOK::CLOTHES_COLOR, val);
+            else ok = false;
+            break;
+        case UnitData::WEAPON:
+            if (sd)
+            {
+                sd->status.weapon = static_cast<ItemLook>(val);
+                clif_changelook(sd, LOOK::WEAPON, val);
+            }
+            else ok = false;
+            break;
+        case UnitData::SHIELD:
+            if (sd)
+            {
+                sd->status.shield = wrap<ItemNameId>(static_cast<uint16_t>(val));
+                clif_changelook(sd, LOOK::SHIELD, val);
+            }
+            else ok = false;
+            break;
+        case UnitData::HEAD_TOP:
+            if (sd)
+            {
+                sd->status.head_top = wrap<ItemNameId>(static_cast<uint16_t>(val));
+                clif_changelook(sd, LOOK::HEAD_TOP, val);
+            }
+            else ok = false;
+            break;
+        case UnitData::HEAD_MIDDLE:
+            if (sd)
+            {
+                sd->status.head_mid = wrap<ItemNameId>(static_cast<uint16_t>(val));
+                clif_changelook(sd, LOOK::HEAD_MID, val);
+            }
+            else ok = false;
+            break;
+        case UnitData::HEAD_BOTTOM:
+            if (sd)
+            {
+                sd->status.head_bottom = wrap<ItemNameId>(static_cast<uint16_t>(val));
+                clif_changelook(sd, LOOK::HEAD_BOTTOM, val);
+            }
+            else ok = false;
+            break;
+        case UnitData::LOOK_DIR:
+            {
+                DIR d = static_cast<DIR>(val);
+                if (sd)
+                    pc_setdir(sd, d);
+                else if (nd)
+                {
+                    nd->dir = d;
+                    clif_setnpcdirection(nd, d);
+                }
+                else if (md)
+                    md->dir = d;
+                else
+                    ok = false;
+            }
+            break;
+        case UnitData::STR:
+        case UnitData::AGI:
+        case UnitData::VIT:
+        case UnitData::INT:
+        case UnitData::DEX:
+        case UnitData::LUK:
+            {
+                int idx = static_cast<int>(type) - static_cast<int>(UnitData::STR);
+                if (sd)
+                {
+                    static const SP sp_attr[] = {
+                        SP::STR, SP::AGI, SP::VIT, SP::INT, SP::DEX, SP::LUK,
+                    };
+                    ok = pc_setparam(sd, sp_attr[idx], val);
+                }
+                else if (md)
+                    md->stats[mob_stat(static_cast<int>(mob_stat::STR) + idx)] = val;
+                else
+                    ok = false;
+            }
+            break;
+        case UnitData::ATK_MIN:
+            // pc atk is derived by pc_calcstatus, so mob only
+            if (md) md->stats[mob_stat::ATK1] = val;
+            else ok = false;
+            break;
+        case UnitData::ATK_MAX:
+            if (md) md->stats[mob_stat::ATK2] = val;
+            else ok = false;
+            break;
+        case UnitData::DEF:
+            if (md) md->stats[mob_stat::DEF] = val;
+            else ok = false;
+            break;
+        case UnitData::MDEF:
+            if (md) md->stats[mob_stat::MDEF] = val;
+            else ok = false;
+            break;
+        case UnitData::ADELAY:
+            if (md) md->stats[mob_stat::ADELAY] = val;
+            else ok = false;
+            break;
+        case UnitData::STATUS_POINT:
+            if (sd) ok = pc_setparam(sd, SP::STATUSPOINT, val);
+            else ok = false;
+            break;
+        case UnitData::XP_BONUS:
+            if (md) md->stats[mob_stat::XP_BONUS] = val;
+            else ok = false;
+            break;
+        case UnitData::CRITICAL_DEF:
+            if (md) md->stats[mob_stat::CRITICAL_DEF] = val;
+            else ok = false;
+            break;
+        default:
+            PRINTF("builtin_setunitdata: unknown key %d\n"_fmt,
+                    static_cast<int>(type));
+            ok = false;
+            break;
+    }
+
+    push_int<ScriptDataInt>(st->stack, ok ? 1 : 0);
 }
 
 /*==========================================
@@ -5847,7 +6263,9 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(numberofmaps, ""_s, 'i'),
     BUILTIN(getmapnamebyindex, "i"_s, 's'),
     BUILTIN(mapexit, ""_s, '\0'),
-    BUILTIN(mobwarp, "iMxy"_s, 'i'),
+    BUILTIN(unitwarp, "iMxy"_s, 'i'),
+    BUILTIN(getunitdata, "ii"_s, 'i'),
+    BUILTIN(setunitdata, "iii"_s, 'i'),
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(if_then_else, "iii"_s, 'v'),
     BUILTIN(max, "e?*"_s, 'i'),

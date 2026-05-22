@@ -99,5 +99,58 @@ enum class MobInfo_DropArrays : uint8_t
     NAMES    =  1,
     PERCENTS =  2,
 };
+
+// Identifies one piece of data on a unit, for the getunitdata and
+// setunitdata script builtins.
+//
+// Constant names and numeric values match Hercules' UDT_* enum so that
+// a script using a shared key ports between TMWA and Hercules unchanged.
+// Only the keys TMWA can back with a real field are declared; the gaps
+// in the numbering are Hercules keys TMWA does not support (homunculus,
+// pet, mercenary and elemental fields, stats TMWA derives rather than
+// stores, and UDT_MAPIDXY, which Hercules itself deprecated in favour
+// of unitwarp). The three values from 100 up are TMWA extensions with
+// no Hercules equivalent.
+//
+// Applicability is per unit type; reading an inapplicable key yields 0
+// (-1 for an invalid gid or key), writing one fails (0).
+enum class UnitData : uint16_t
+{
+    TYPE            =   0, // BL type, read-only (1=PC, 2=NPC, 3=MOB)
+    LEVEL           =   2, // pc, mob
+    HP              =   3, // pc, mob
+    MAX_HP          =   4, // pc, mob
+    SP              =   5, // pc
+    MAX_SP          =   6, // pc
+    SPEED           =  11, // pc, npc, mob
+    MODE            =  12, // mob
+    SEX             =  15, // pc, npc
+    CLASS           =  16, // sprite class; pc, npc, mob
+    HAIR_STYLE      =  17, // pc
+    HAIR_COLOR      =  18, // pc
+    HEAD_BOTTOM     =  19, // pc
+    HEAD_MIDDLE     =  20, // pc
+    HEAD_TOP        =  21, // pc
+    CLOTHES_COLOR   =  22, // pc
+    SHIELD          =  23, // pc
+    WEAPON          =  24, // pc
+    LOOK_DIR        =  25, // facing direction; pc, npc, mob
+    STR             =  27, // pc, mob
+    AGI             =  28, // pc, mob
+    VIT             =  29, // pc, mob
+    INT             =  30, // pc, mob
+    DEX             =  31, // pc, mob
+    LUK             =  32, // pc, mob
+    ATK_MIN         =  34, // pc, mob
+    ATK_MAX         =  35, // pc, mob
+    DEF             =  38, // pc, mob
+    MDEF            =  39, // pc, mob
+    ADELAY          =  48, // mob attack delay (ms)
+    STATUS_POINT    =  54, // pc
+    // TMWA extensions (no Hercules UDT_* equivalent)
+    XP_BONUS        = 100, // mob xp bonus (1024 = 100%)
+    CRITICAL_DEF    = 101, // mob critical-hit defense
+    TARGET_ID       = 102, // mob current attack target gid, read-only
+};
 } // namespace map
 } // namespace tmwa
