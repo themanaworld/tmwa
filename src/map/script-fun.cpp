@@ -5699,12 +5699,6 @@ void builtin_getunitdata(ScriptState *st)
             else if (nd) val = static_cast<uint16_t>(nd->option);
             else if (md) val = static_cast<uint16_t>(md->option);
             break;
-        case UnitData::KARMA:
-            if (sd) val = sd->status.karma;
-            break;
-        case UnitData::MANNER:
-            if (sd) val = sd->status.manner;
-            break;
         default:
             PRINTF("builtin_getunitdata: unknown UDT %d\n"_fmt,
                     static_cast<int>(type));
@@ -5826,14 +5820,6 @@ void builtin_setunitdata(ScriptState *st)
             }
             else
                 ok = false;
-            break;
-        case UnitData::KARMA:
-            if (sd) sd->status.karma = val;
-            else ok = false;
-            break;
-        case UnitData::MANNER:
-            if (sd) sd->status.manner = val;
-            else ok = false;
             break;
 
         case UnitData::TARGET_ID:

@@ -113,9 +113,9 @@ enum class MobInfo_DropArrays : uint8_t
 // Positions are read with get(POS_X / POS_Y, <gid>); a mob is moved
 // with the mobwarp builtin.
 //
-// What is left here is mob internals that have no PARAM mapping, the
-// mob sprite no builtin reaches on a live mob, and a few fields no
-// builtin exposes at all.
+// What is left here is mob internals that have no PARAM mapping and the
+// mob sprite no builtin reaches on a live mob, plus two flag fields
+// usable on any unit type.
 //
 // Not every key applies to every unit type. Reading an inapplicable
 // key returns 0; writing one fails (0).
@@ -134,9 +134,6 @@ enum class UnitData : uint8_t
     // any unit type
     LOOK_DIR        =  8, // facing direction (mob / pc / npc)
     OPTION          =  9, // Opt0 status flags (mob / pc / npc); getopt2 is Opt2
-    // pc fields with no other accessor
-    KARMA           = 10, // pc karma
-    MANNER          = 11, // pc manner
 };
 } // namespace map
 } // namespace tmwa
