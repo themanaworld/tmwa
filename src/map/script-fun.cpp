@@ -103,10 +103,15 @@ enum class MonsterAttitude
 //
 // 埋め込み関数 | Embedded functions
 //
-/*==========================================
+/*========================================
+ * Print a line of dialogue in the NPC message box of the attached player;
+ * with no argument an empty line is printed. The text stays on screen until
+ * next, menu, close or clear is reached.
  *
- *------------------------------------------
- */
+ * @doc mes
+ * @optarg text: str; the line of text to show.
+ * @ret none
+ ========================================*/
 static
 void builtin_mes(ScriptState *st)
 {
@@ -117,10 +122,14 @@ void builtin_mes(ScriptState *st)
     clif_scriptmes(sd, st->oid, mes);
 }
 
-/*==========================================
+/*========================================
+ * Like mes, but the line is wrapped in double quotes before being sent; a
+ * convenience for quoting spoken text.
  *
- *------------------------------------------
- */
+ * @doc mesq
+ * @optarg text: str; the text to quote and show.
+ * @ret none
+ ========================================*/
 static
 void builtin_mesq(ScriptState *st)
 {
@@ -135,10 +144,15 @@ void builtin_mesq(ScriptState *st)
     clif_scriptmes(sd, st->oid, RString(mesq));
 }
 
-/*==========================================
+/*========================================
+ * Like mes, but the line is wrapped in square brackets; with no argument
+ * the NPC's own visible name (the part before any '#') is used, so it
+ * prints a [Name] speaker header.
  *
- *------------------------------------------
- */
+ * @doc mesn
+ * @optarg text: str; the name to bracket; defaults to the NPC name.
+ * @ret none
+ ========================================*/
 static
 void builtin_mesn(ScriptState *st)
 {
@@ -156,10 +170,13 @@ void builtin_mesn(ScriptState *st)
     clif_scriptmes(sd, st->oid, RString(mesq));
 }
 
-/*==========================================
+/*========================================
+ * Clear the NPC dialogue window of the attached player without ending the
+ * script, so following mes lines start from a blank box.
  *
- *------------------------------------------
- */
+ * @doc clear
+ * @ret none
+ ========================================*/
 static
 void builtin_clear(ScriptState *st)
 {
@@ -168,10 +185,14 @@ void builtin_clear(ScriptState *st)
     clif_npc_action(sd, st->oid, 9, 0, 0, 0);
 }
 
-/*==========================================
+/*========================================
+ * Jump unconditionally to a label in the current script; execution
+ * continues there.
  *
- *------------------------------------------
- */
+ * @doc goto
+ * @arg label: label; the label to jump to.
+ * @ret none
+ ========================================*/
 static
 void builtin_goto(ScriptState *st)
 {
@@ -186,11 +207,15 @@ void builtin_goto(ScriptState *st)
     st->state = ScriptEndState::GOTO;
 }
 
-/*==========================================
- * ユーザー定義関数の呼び出し
- * Calling user-defined functions
- *------------------------------------------
- */
+/*========================================
+ * Call the named user-defined function object; control transfers to the
+ * function and return comes back here. This form passes no arguments; use
+ * call to pass arguments.
+ *
+ * @doc callfunc
+ * @arg func: func; name of the user-defined function to call.
+ * @ret none
+ ========================================*/
 static
 void builtin_callfunc(ScriptState *st)
 {
@@ -226,10 +251,17 @@ void builtin_callfunc(ScriptState *st)
     OMATCH_END ();
 }
 
-/*==========================================
+/*========================================
+ * Call a user-defined function (when func is a string naming one) or a
+ * script position, passing the remaining arguments. The arguments are
+ * readable inside the callee with getarg. The value passed to return
+ * becomes this expression's result.
  *
- *------------------------------------------
- */
+ * @doc call
+ * @arg func: func; the function to call, or a script position.
+ * @rest args: expr; arguments to pass to the callee.
+ * @ret variant; the value the callee returned, if any.
+ ========================================*/
 static
 void builtin_call(ScriptState *st)
 {
@@ -288,10 +320,16 @@ void builtin_call(ScriptState *st)
 
 }
 
-/*==========================================
+/*========================================
+ * Return an argument passed to the current function or subroutine by call
+ * or callsub. If the index is out of range, the default is returned
+ * instead, or an ETX (0x03) marker string when no default is given.
  *
- *------------------------------------------
- */
+ * @doc getarg
+ * @arg index: int; zero-based index of the argument to fetch.
+ * @optarg default: expr; value to return when index is out of range.
+ * @ret variant; the requested argument, or the default.
+ ========================================*/
 static
 void builtin_getarg(ScriptState *st)
 {
@@ -320,21 +358,28 @@ void builtin_getarg(ScriptState *st)
     push_copy(st->stack, (st->defsp - 4 - i) + arg);
 }
 
-/*==========================================
+/*========================================
+ * Evaluate and discard the arguments; used to call an expression-valued
+ * builtin purely for its side effects.
  *
- *------------------------------------------
- */
+ * @doc void
+ * @rest args: expr; expressions to evaluate and throw away.
+ * @ret none
+ ========================================*/
 static
 void builtin_void(ScriptState *)
 {
     return;
 }
 
-/*==========================================
- * サブルーティンの呼び出し
- * Call of the Surbrutin
- *------------------------------------------
- */
+/*========================================
+ * Call a subroutine: transfer control to a label in the current script,
+ * pushing a return frame so a later return resumes after this call.
+ *
+ * @doc callsub
+ * @arg label: label; the subroutine label to call.
+ * @ret none
+ ========================================*/
 static
 void builtin_callsub(ScriptState *st)
 {
@@ -356,11 +401,15 @@ void builtin_callsub(ScriptState *st)
     st->state = ScriptEndState::GOTO;
 }
 
-/*==========================================
- * サブルーチン/ユーザー定義関数の終了
- * Terminating Subroutines/User-Defined Functions
- *------------------------------------------
- */
+/*========================================
+ * Return from the current callfunc, call or callsub. If a value is given it
+ * becomes the call's result. Using return outside a call frame is
+ * deprecated and logs a warning.
+ *
+ * @doc return
+ * @optarg value: expr; the value to return to the caller.
+ * @ret none
+ ========================================*/
 static
 void builtin_return(ScriptState *st)
 {
@@ -381,10 +430,13 @@ void builtin_return(ScriptState *st)
     st->state = ScriptEndState::RETFUNC;
 }
 
-/*==========================================
+/*========================================
+ * Suspend the script and show a "next" button in the player's dialogue
+ * window; the script resumes when the player clicks it.
  *
- *------------------------------------------
- */
+ * @doc next
+ * @ret none
+ ========================================*/
 static
 void builtin_next(ScriptState *st)
 {
@@ -394,10 +446,13 @@ void builtin_next(ScriptState *st)
     clif_scriptnext(sd, st->oid);
 }
 
-/*==========================================
+/*========================================
+ * End the script and close the player's dialogue window. Using close inside
+ * a callfunc or callsub frame is deprecated.
  *
- *------------------------------------------
- */
+ * @doc close
+ * @ret none
+ ========================================*/
 static
 void builtin_close(ScriptState *st)
 {
@@ -419,10 +474,14 @@ void builtin_close(ScriptState *st)
         clif_npc_action(sd, st->oid, 5, 0, 0, 0);
 }
 
-/*==========================================
+/*========================================
+ * Close the player's dialogue window but keep the script suspended rather
+ * than ending it, so execution can continue after the player dismisses the
+ * window.
  *
- *------------------------------------------
- */
+ * @doc close2
+ * @ret none
+ ========================================*/
 static
 void builtin_close2(ScriptState *st)
 {
@@ -435,10 +494,18 @@ void builtin_close2(ScriptState *st)
         clif_npc_action(sd, st->oid, 5, 0, 0, 0);
 }
 
-/*==========================================
+/*========================================
+ * Show a selection menu to the player. Arguments come in choice/label
+ * pairs: a choice string and the label to jump to if it is chosen. An empty
+ * choice string ends the displayed list. The script suspends; when the
+ * player picks an entry it jumps to the matching label and the 1-based
+ * choice index is stored in @menu. Cancelling ends the script.
  *
- *------------------------------------------
- */
+ * @doc menu
+ * @arg choice: str; text of the first menu choice.
+ * @rest label: label; the label paired with the preceding choice.
+ * @ret none
+ ========================================*/
 static
 void builtin_menu(ScriptState *st)
 {
@@ -495,10 +562,16 @@ void builtin_menu(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Return a random integer. With one argument, a value in 0..max-1 (0 if max
+ * is not positive). With two arguments, a value between the bounds
+ * inclusive (the bounds are swapped if given out of order).
  *
- *------------------------------------------
- */
+ * @doc rand
+ * @arg max: int; exclusive upper bound, or the first bound.
+ * @optarg upper: int; inclusive upper bound when given.
+ * @ret int; the random number.
+ ========================================*/
 static
 void builtin_rand(ScriptState *st)
 {
@@ -517,10 +590,15 @@ void builtin_rand(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Return the largest of the integer arguments. Called with a single array
+ * variable, it returns the largest element of that array.
  *
- *------------------------------------------
- */
+ * @doc max
+ * @arg value: expr; an integer, or a single array variable.
+ * @rest more: expr; further integers to compare.
+ * @ret int; the largest value.
+ ========================================*/
 static
 void builtin_max(ScriptState *st)
 {
@@ -566,10 +644,15 @@ void builtin_max(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, max);
 }
 
-/*==========================================
+/*========================================
+ * Return the smallest of the integer arguments. Called with a single array
+ * variable, it returns the smallest element of that array.
  *
- *------------------------------------------
- */
+ * @doc min
+ * @arg value: expr; an integer, or a single array variable.
+ * @rest more: expr; further integers to compare.
+ * @ret int; the smallest value.
+ ========================================*/
 static
 void builtin_min(ScriptState *st)
 {
@@ -616,10 +699,14 @@ void builtin_min(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, min);
 }
 
-/*==========================================
+/*========================================
+ * Return the integer (truncated) average of the integer arguments.
  *
- *------------------------------------------
- */
+ * @doc average
+ * @arg value: int; the first integer.
+ * @rest more: int; further integers to average.
+ * @ret int; the truncated average.
+ ========================================*/
 static
 void builtin_average(ScriptState *st)
 {
@@ -632,40 +719,56 @@ void builtin_average(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, (total / i));
 }
 
-/*==========================================
+/*========================================
+ * Return the integer square root of a number.
  *
- *------------------------------------------
- */
+ * @doc sqrt
+ * @arg value: int; the number to take the root of.
+ * @ret int; the integer square root.
+ ========================================*/
 static
 void builtin_sqrt(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
 }
 
-/*==========================================
+/*========================================
+ * Return the integer cube root of a number.
  *
- *------------------------------------------
- */
+ * @doc cbrt
+ * @arg value: int; the number to take the root of.
+ * @ret int; the integer cube root.
+ ========================================*/
 static
 void builtin_cbrt(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, static_cast<int>(cbrt(conv_num(st, &AARG(0)))));
 }
 
-/*==========================================
+/*========================================
+ * Return one integer raised to the power of another, truncated to an
+ * integer.
  *
- *------------------------------------------
- */
+ * @doc pow
+ * @arg base: int; the base.
+ * @arg exponent: int; the exponent.
+ * @ret int; base raised to the exponent.
+ ========================================*/
 static
 void builtin_pow(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, static_cast<int>(pow(conv_num(st, &AARG(0)), conv_num(st, &AARG(1)))));
 }
 
-/*==========================================
- * Check whether the PC is at the specified location
- *------------------------------------------
- */
+/*========================================
+ * Test whether the attached player is standing on a given map cell.
+ *
+ * @doc isat
+ * @arg map: map; the map name to test.
+ * @arg x: coordinate; the x coordinate to test.
+ * @arg y: coordinate; the y coordinate to test.
+ * @ret int; 1 if the player is at that cell, 0 otherwise.
+ ========================================*/
 static
 void builtin_isat(ScriptState *st)
 {
@@ -683,10 +786,17 @@ void builtin_isat(ScriptState *st)
             && (str == sd->bl_m->name_));
 }
 
-/*==========================================
+/*========================================
+ * Teleport the attached player to a map cell. The warp is refused if the
+ * source map has the nowarp flag or the destination has nowarpto, unless
+ * the player is a GM of sufficient level.
  *
- *------------------------------------------
- */
+ * @doc warp
+ * @arg map: map; the destination map name.
+ * @arg x: coordinate; the destination x coordinate.
+ * @arg y: coordinate; the destination y coordinate.
+ * @ret none
+ ========================================*/
 static
 void builtin_warp(ScriptState *st)
 {
@@ -729,6 +839,21 @@ void builtin_areawarp_sub(dumb_ptr<block_list> bl, MapName mapname, int x, int y
     pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE);
 }
 
+/*========================================
+ * Warp every player inside a rectangle on one map to a cell on another. The
+ * same nowarp/nowarpto GM-level restrictions as warp apply per player.
+ *
+ * @doc areawarp
+ * @arg from_map: map; the map holding the source rectangle.
+ * @arg x0: coordinate; x of one corner of the source rectangle.
+ * @arg y0: coordinate; y of one corner of the source rectangle.
+ * @arg x1: coordinate; x of the opposite corner.
+ * @arg y1: coordinate; y of the opposite corner.
+ * @arg to_map: map; the destination map name.
+ * @arg x: coordinate; the destination x coordinate.
+ * @arg y: coordinate; the destination y coordinate.
+ * @ret none
+ ========================================*/
 static
 void builtin_areawarp(ScriptState *st)
 {
@@ -753,10 +878,17 @@ void builtin_areawarp(ScriptState *st)
             BL::PC);
 }
 
-/*==========================================
+/*========================================
+ * Restore hit points and spell points to the attached player (negative
+ * values subtract). A dead player healed for positive HP is resurrected.
  *
- *------------------------------------------
- */
+ * @doc heal
+ * @arg hp: amount; hit points to restore.
+ * @arg sp: amount; spell points to restore.
+ * @optarg item_heal: bool; nonzero to treat it as item healing, subject to
+ *                          healing modifiers.
+ * @ret none
+ ========================================*/
 static
 void builtin_heal(ScriptState *st)
 {
@@ -780,10 +912,16 @@ void builtin_heal(ScriptState *st)
         pc_heal(sd, hp, sp);
 }
 
-/*==========================================
+/*========================================
+ * Return the straight-line (Pythagorean) distance between two beings.
+ * Beings on different maps are reported as a very large distance.
  *
- *------------------------------------------
- */
+ * @doc distance
+ * @arg a: GID; being id of the first being.
+ * @arg b: GID; being id of the second being.
+ * @optarg mode: int; distance mode; only mode 0 is implemented.
+ * @ret int; the distance between the beings.
+ ========================================*/
 static
 void builtin_distance(ScriptState *st)
 {
@@ -811,10 +949,18 @@ void builtin_distance(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, distance);
 }
 
-/*==========================================
+/*========================================
+ * Test the relationship between two beings and return a bitmask of the
+ * requested tests that passed.
  *
- *------------------------------------------
- */
+ * @doc target
+ * @arg source: GID; being id of the source.
+ * @arg target: GID; being id of the target.
+ * @arg tests: int; which tests to run: 0x01 within view range, 0x02 within
+ *                  attack range, 0x04 a clear walk path exists, 0x10
+ *                  attackable by the source, 0x20 in line of sight.
+ * @ret int; a bitmask of the tests that passed.
+ ========================================*/
 static
 void builtin_target(ScriptState *st)
 {
@@ -877,10 +1023,16 @@ void builtin_target(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, val);
 }
 
-/*==========================================
+/*========================================
+ * Deal damage to a being, attributed to another being. The damage is shown
+ * to clients and may kill (and free) the target.
  *
- *------------------------------------------
- */
+ * @doc injure
+ * @arg source: GID; being id credited with the damage.
+ * @arg target: GID; being id of the victim.
+ * @arg damage: amount; amount of damage to deal.
+ * @ret none
+ ========================================*/
 static
 void builtin_injure(ScriptState *st)
 {
@@ -901,10 +1053,16 @@ void builtin_injure(ScriptState *st)
     return;
 }
 
-/*==========================================
+/*========================================
+ * Prompt the attached player for input and store the result in a variable.
+ * A string variable opens a text prompt; a numeric variable opens a number
+ * prompt. The script suspends until the player answers; a negative numeric
+ * answer cancels the dialogue.
  *
- *------------------------------------------
- */
+ * @doc input
+ * @arg dest: var; the variable to store the answer in.
+ * @ret none
+ ========================================*/
 static
 void builtin_input(ScriptState *st)
 {
@@ -953,10 +1111,16 @@ void builtin_input(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Prompt the attached player to choose items from their inventory and store
+ * the chosen item ids (or names, if dest is a string array) into the array.
+ * The script suspends until the player answers.
  *
- *------------------------------------------
- */
+ * @doc requestitem
+ * @arg dest: var; array variable to receive the chosen items.
+ * @optarg count: amount; how many items to request, 1 to 16; defaults to 1.
+ * @ret none
+ ========================================*/
 static
 void builtin_requestitem(ScriptState *st)
 {
@@ -1058,10 +1222,14 @@ void builtin_requestitem(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Prompt the attached player for their client language and store the answer
+ * in a string variable. The script suspends until the client replies.
  *
- *------------------------------------------
- */
+ * @doc requestlang
+ * @arg dest: var; string variable to receive the language.
+ * @ret none
+ ========================================*/
 static
 void builtin_requestlang(ScriptState *st)
 {
@@ -1102,10 +1270,16 @@ void builtin_requestlang(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * If the condition is nonzero, call the given function with the remaining
+ * arguments. Records the test result so a following elif or else can react
+ * to it.
  *
- *------------------------------------------
- */
+ * @doc if
+ * @arg condition: int; the condition to test.
+ * @rest func: func; function to call and its arguments.
+ * @ret none
+ ========================================*/
 static
 void builtin_if (ScriptState *st)
 {
@@ -1128,10 +1302,16 @@ void builtin_if (ScriptState *st)
     run_func(st);
 }
 
-/*==========================================
+/*========================================
+ * Return one of two values depending on a condition. Both branches are
+ * evaluated.
  *
- *------------------------------------------
- */
+ * @doc if_then_else
+ * @arg condition: int; the condition to test.
+ * @arg if_true: int; the value to return when the condition is nonzero.
+ * @arg if_false: int; the value to return otherwise.
+ * @ret variant; the chosen value.
+ ========================================*/
 static
 void builtin_if_then_else (ScriptState *st)
 {
@@ -1139,10 +1319,14 @@ void builtin_if_then_else (ScriptState *st)
     push_copy(st->stack, st->start + (condition ? 3 : 4));
 }
 
-/*==========================================
+/*========================================
+ * Continuation of an if chain: if no earlier if or elif branch was taken,
+ * call the function with the remaining arguments.
  *
- *------------------------------------------
- */
+ * @doc else
+ * @rest func: func; function to call and its arguments.
+ * @ret none
+ ========================================*/
 static
 void builtin_else (ScriptState *st)
 {
@@ -1170,10 +1354,15 @@ void builtin_else (ScriptState *st)
     run_func(st);
 }
 
-/*==========================================
+/*========================================
+ * Continuation of an if chain: if no earlier branch was taken and the
+ * condition is nonzero, call the function with the remaining arguments.
  *
- *------------------------------------------
- */
+ * @doc elif
+ * @arg condition: int; the condition to test.
+ * @rest func: func; function to call and its arguments.
+ * @ret none
+ ========================================*/
 static
 void builtin_elif (ScriptState *st)
 {
@@ -1219,10 +1408,22 @@ void builtin_foreach_sub(dumb_ptr<block_list> bl, NpcEvent event, BlockId caster
     npc_event_do_l(event, caster, arg);
 }
 
-/*==========================================
+/*========================================
+ * Run an NPC event once for every being inside a rectangle on a map. Each
+ * invocation gets the matched being's id in @target_id.
  *
- *------------------------------------------
- */
+ * @doc foreach
+ * @arg type: int; being type: 0 players, 1 NPCs, 2 monsters, 3 everything.
+ * @arg map: map; the map holding the rectangle.
+ * @arg x0: coordinate; x of one corner of the rectangle.
+ * @arg y0: coordinate; y of one corner of the rectangle.
+ * @arg x1: coordinate; x of the opposite corner.
+ * @arg y1: coordinate; y of the opposite corner.
+ * @arg event: event; the NPC event to run.
+ * @optarg caster: GID; being id of the caster; defaults to the attached
+ *                      player.
+ * @ret none
+ ========================================*/
 static
 void builtin_foreach(ScriptState *st)
 {
@@ -1274,9 +1475,14 @@ void builtin_foreach(ScriptState *st)
 }
 
 /*========================================
- * Destructs a temp NPC
- *----------------------------------------
- */
+ * Destroy a temporary NPC. With no argument the script's own NPC is
+ * destroyed and the script ends; with a being id that NPC is destroyed
+ * instead. Only script-subtype NPCs can be destroyed.
+ *
+ * @doc destroy
+ * @optarg gid: GID; being id of the NPC to destroy.
+ * @ret none
+ ========================================*/
 static
 void builtin_destroy(ScriptState *st)
 {
@@ -1319,9 +1525,19 @@ void builtin_destroy(ScriptState *st)
         st->state = ScriptEndState::END;
 }
 /*========================================
- * Creates a temp NPC
- *----------------------------------------
- */
+ * Create a temporary NPC (a "puppet") with a sprite. It inherits the labels
+ * of the calling NPC.
+ *
+ * @doc puppet
+ * @arg sprite: mob; the puppet's sprite species id.
+ * @arg x: coordinate; the puppet's x coordinate.
+ * @arg y: coordinate; the puppet's y coordinate.
+ * @arg name: str; the puppet's NPC name.
+ * @arg map: int; the map name for the puppet.
+ * @optarg half_width: int; touch-area half-width.
+ * @optarg half_height: int; touch-area half-height.
+ * @ret int; the new NPC's being id, or 0 if the name is already in use.
+ ========================================*/
 static
 void builtin_puppet(ScriptState *st)
 {
@@ -1435,11 +1651,17 @@ void builtin_puppet(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, unwrap<BlockId>(nd->bl_id));
 }
 
-/*==========================================
- * 変数設定
- * Variable settings
- *------------------------------------------
- */
+/*========================================
+ * Assign a value to a variable or player parameter. The optional third
+ * argument selects whose copy to write: a character name or id for player-
+ * scope variables, an NPC name or id for NPC-scope variables.
+ *
+ * @doc set
+ * @arg dest: var; the variable or parameter to write.
+ * @arg value: expr; the value to assign.
+ * @optarg owner: expr; the character or NPC that owns the variable.
+ * @ret none
+ ========================================*/
 static
 void builtin_set(ScriptState *st)
 {
@@ -1612,11 +1834,16 @@ int getarraysize2(SIR reg, dumb_ptr<block_list> bl)
     return (c == 0 && zero) ? c : (c + 1);
 }
 
-/*==========================================
- * 配列変数設定
- * Array variable settings
- *------------------------------------------
- */
+/*========================================
+ * Fill an array starting at its given index with the listed values. For an
+ * NPC-scope array the second argument is instead the NPC to target and the
+ * values follow.
+ *
+ * @doc setarray
+ * @arg dest: var; the array variable to fill.
+ * @rest value: expr; the values to store, or an NPC then values.
+ * @ret none
+ ========================================*/
 static
 void builtin_setarray(ScriptState *st)
 {
@@ -1677,11 +1904,15 @@ void builtin_setarray(ScriptState *st)
     }
 }
 
-/*==========================================
- * 配列変数クリア
- * Clearing Array Variables
- *------------------------------------------
- */
+/*========================================
+ * Set the first count elements of an array to a single value.
+ *
+ * @doc cleararray
+ * @arg dest: var; the array variable to clear.
+ * @arg value: expr; the value to store in every element.
+ * @arg count: amount; how many elements to set.
+ * @ret none
+ ========================================*/
 static
 void builtin_cleararray(ScriptState *st)
 {
@@ -1750,10 +1981,14 @@ int getarraysize(ScriptState *st, SIR reg)
     return c + 1;
 }
 
-/*==========================================
+/*========================================
+ * Return the logical size of an array: one past the index of its last
+ * nonzero or non-empty element.
  *
- *------------------------------------------
- */
+ * @doc getarraysize
+ * @arg name: var; the array variable to measure.
+ * @ret int; the array size.
+ ========================================*/
 static
 void builtin_getarraysize(ScriptState *st)
 {
@@ -1770,11 +2005,15 @@ void builtin_getarraysize(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, getarraysize(st, reg));
 }
 
-/*==========================================
- * 指定要素を表す値(キー)を所得する
- * Obtain a value (key) representing the specified element
- *------------------------------------------
- */
+/*========================================
+ * Return one element of an array as a variable reference, the runtime form
+ * of the var[index] subscript syntax. Indices outside 0..255 yield 0.
+ *
+ * @doc getelementofarray
+ * @arg name: var; the array variable.
+ * @arg index: int; the element index.
+ * @ret variant; a reference to the requested element.
+ ========================================*/
 static
 void builtin_getelementofarray(ScriptState *st)
 {
@@ -1800,10 +2039,15 @@ void builtin_getelementofarray(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Search an array for a value and return the index of the first match, or
+ * -1 if the value is not present.
  *
- *------------------------------------------
- */
+ * @doc array_search
+ * @arg value: expr; the value to look for.
+ * @arg haystack: var; the array variable to search.
+ * @ret int; the index of the first match, or -1.
+ ========================================*/
 static
 void builtin_array_search(ScriptState *st)
 {
@@ -1852,10 +2096,14 @@ void builtin_array_search(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, c);
 }
 
-/*==========================================
+/*========================================
+ * Send a message, prefixed with [GM], as a whisper to all online GMs of at
+ * least the configured hack-info GM level.
  *
- *------------------------------------------
- */
+ * @doc wgm
+ * @arg message: str; the message to send.
+ * @ret none
+ ========================================*/
 static
 void builtin_wgm(ScriptState *st)
 {
@@ -1866,10 +2114,14 @@ void builtin_wgm(ScriptState *st)
             STRPRINTF("[GM] %s"_fmt, message));
 }
 
-/*==========================================
+/*========================================
+ * Write a message, prefixed with {SCRIPT}, to the GM/atcommand audit log,
+ * attributed to the attached player.
  *
- *------------------------------------------
- */
+ * @doc gmlog
+ * @arg message: str; the message to log.
+ * @ret none
+ ========================================*/
 static
 void builtin_gmlog(ScriptState *st)
 {
@@ -1879,10 +2131,14 @@ void builtin_gmlog(ScriptState *st)
     log_atcommand(sd, STRPRINTF("{SCRIPT} %s"_fmt, message));
 }
 
-/*==========================================
+/*========================================
+ * Change a cosmetic look value of the attached player.
  *
- *------------------------------------------
- */
+ * @doc setlook
+ * @arg type: int; a LOOK type: hair, weapon sprite, hair colour, and so on.
+ * @arg value: int; the new value for that look.
+ * @ret none
+ ========================================*/
 static
 void builtin_setlook(ScriptState *st)
 {
@@ -1920,10 +2176,14 @@ static ItemNameId get_item_id(ScriptState *st, struct script_data *data)
     return nameid;
 }
 
-/*==========================================
+/*========================================
+ * Return how many of an item the attached player carries in their
+ * inventory.
  *
- *------------------------------------------
- */
+ * @doc countitem
+ * @arg item: item; the item, by numeric id or name.
+ * @ret int; the quantity carried.
+ ========================================*/
 static
 void builtin_countitem(ScriptState *st)
 {
@@ -1951,11 +2211,16 @@ void builtin_countitem(ScriptState *st)
 
 }
 
-/*==========================================
- * 重量チェック
- * Weight check
- *------------------------------------------
- */
+/*========================================
+ * Test whether the attached player could carry more of an item without
+ * exceeding their weight limit. Also 0 for an invalid item or a non-
+ * positive amount.
+ *
+ * @doc checkweight
+ * @arg item: item; the item, by numeric id or name.
+ * @arg amount: amount; how many more units to test for.
+ * @ret int; 1 if the items would fit, 0 otherwise.
+ ========================================*/
 static
 void builtin_checkweight(ScriptState *st)
 {
@@ -1985,10 +2250,19 @@ void builtin_checkweight(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Give units of an item to a player. By default the recipient is the
+ * attached player; an optional being id gives the item to someone else.
+ * Items that do not fit in the inventory are dropped at the recipient's
+ * feet.
  *
- *------------------------------------------
- */
+ * @doc getitem
+ * @arg item: item; the item, by numeric id or name.
+ * @arg amount: amount; how many units to give.
+ * @optarg unused: expr; unused; kept for argument-order compatibility.
+ * @optarg gid: GID; being id of the recipient.
+ * @ret none
+ ========================================*/
 static
 void builtin_getitem(ScriptState *st)
 {
@@ -2021,10 +2295,18 @@ void builtin_getitem(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Create units of an item on the ground as a floor item. The map name
+ * "this" places it on the attached player's current map.
  *
- *------------------------------------------
- */
+ * @doc makeitem
+ * @arg item: item; the item, by numeric id or name.
+ * @arg amount: amount; how many units to create.
+ * @arg map: map; the map to drop the item on.
+ * @arg x: coordinate; the x coordinate of the drop.
+ * @arg y: coordinate; the y coordinate of the drop.
+ * @ret none
+ ========================================*/
 static
 void builtin_makeitem(ScriptState *st)
 {
@@ -2052,10 +2334,14 @@ void builtin_makeitem(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Remove units of an item from the attached player's inventory.
  *
- *------------------------------------------
- */
+ * @doc delitem
+ * @arg item: item; the item, by numeric id or name.
+ * @arg amount: amount; how many units to remove.
+ * @ret none
+ ========================================*/
 static
 void builtin_delitem(ScriptState *st)
 {
@@ -2095,6 +2381,13 @@ void builtin_delitem(ScriptState *st)
 
 }
 
+/*========================================
+ * Return the client-protocol version reported by the attached player's
+ * client.
+ *
+ * @doc getversion
+ * @ret int; the client protocol version number.
+ ========================================*/
 static
 void builtin_getversion(ScriptState *st)
 {
@@ -2103,11 +2396,16 @@ void builtin_getversion(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, unwrap<ClientVersion>(sd->client_version));
 }
 
-/*==========================================
- * キャラ関係のID取得
- * Acquisition of ID related to characters
- *------------------------------------------
- */
+/*========================================
+ * Return an id of a character. The optional name picks the character;
+ * without it the attached player is used.
+ *
+ * @doc getcharid
+ * @arg type: int; which id: 0 character id, 1 party id, 2 always 0 (guilds
+ *                 are unimplemented), 3 account id.
+ * @optarg name: str; name of the character to query.
+ * @ret int; the requested id, or -1 if no such player.
+ ========================================*/
 static
 void builtin_getcharid(ScriptState *st)
 {
@@ -2135,10 +2433,14 @@ void builtin_getcharid(ScriptState *st)
         push_int<ScriptDataInt>(st->stack, unwrap<AccountId>(sd->status_key.account_id));
 }
 
-/*==========================================
+/*========================================
+ * Return the block-list id of an NPC. With a name argument that NPC is
+ * looked up; otherwise the NPC running the script is used.
  *
- *------------------------------------------
- */
+ * @doc getnpcid
+ * @optarg name: str; name of the NPC to look up.
+ * @ret int; the NPC's block-list id, or -1 if not found.
+ ========================================*/
 static
 void builtin_getnpcid(ScriptState *st)
 {
@@ -2170,11 +2472,16 @@ RString builtin_getpartyname_sub(PartyId party_id)
     return p.pmd_pget(&PartyMost::name).copy_or(PartyName());
 }
 
-/*==========================================
- * キャラクタの名前
- * Character's name
- *------------------------------------------
- */
+/*========================================
+ * Return a string about a character. The optional being id picks the
+ * character; without it the attached player is used.
+ *
+ * @doc strcharinfo
+ * @arg type: int; which string: 0 character name, 1 party name, 2 empty
+ *                 (guilds are unimplemented).
+ * @optarg gid: GID; being id of the character to query.
+ * @ret str; the requested string.
+ ========================================*/
 static
 void builtin_strcharinfo(ScriptState *st)
 {
@@ -2228,10 +2535,15 @@ Array<EPOS, 11> equip //=
     EPOS::ARROW,
 }};
 
-/*==========================================
- * GetEquipID(Pos);     Pos: 1-10
- *------------------------------------------
- */
+/*========================================
+ * Return the item id worn in an equipment slot of a player. The optional
+ * name picks the character; otherwise the attached player is used.
+ *
+ * @doc getequipid
+ * @arg slot: int; equipment slot 1 to 11, indexing the equip_* constants.
+ * @optarg name: str; name of the character to query.
+ * @ret int; the worn item id, or -1 if the slot is empty.
+ ========================================*/
 static
 void builtin_getequipid(ScriptState *st)
 {
@@ -2268,10 +2580,15 @@ void builtin_getequipid(ScriptState *st)
     }
 }
 
-/*==========================================
- * freeloop
- *------------------------------------------
- */
+/*========================================
+ * Enable or disable free-looping for the current script, lifting the normal
+ * instruction-count limit that guards against runaway loops.
+ *
+ * @doc freeloop
+ * @arg enable: bool; 1 to enable free-looping, any other value to disable
+ *                    it.
+ * @ret none
+ ========================================*/
 static
 void builtin_freeloop(ScriptState *st)
 {
@@ -2287,11 +2604,16 @@ void builtin_freeloop(ScriptState *st)
     }
 }
 
-/*==========================================
- * 装備品による能力値ボーナス
- * Ability bonuses for equipment
- *------------------------------------------
- */
+/*========================================
+ * Add an equipment-style stat bonus to the attached player. Intended for
+ * item equip_script fragments; the effect lasts only until stats are
+ * recalculated.
+ *
+ * @doc bonus
+ * @arg type: int; an SP bonus type.
+ * @arg value: int; the bonus value.
+ * @ret none
+ ========================================*/
 static
 void builtin_bonus(ScriptState *st)
 {
@@ -2307,11 +2629,15 @@ void builtin_bonus(ScriptState *st)
 
 }
 
-/*==========================================
- * 装備品による能力値ボーナス
- * Ability bonuses for equipment
- *------------------------------------------
- */
+/*========================================
+ * Like bonus, but for bonus types that take an extra parameter.
+ *
+ * @doc bonus2
+ * @arg type: int; an SP bonus type.
+ * @arg extra: int; the extra parameter for the bonus type.
+ * @arg value: int; the bonus value.
+ * @ret none
+ ========================================*/
 static
 void builtin_bonus2(ScriptState *st)
 {
@@ -2328,11 +2654,15 @@ void builtin_bonus2(ScriptState *st)
 
 }
 
-/*==========================================
- * スキル所得
- * Skill Income
- *------------------------------------------
- */
+/*========================================
+ * Grant a skill at a given level to the attached player.
+ *
+ * @doc skill
+ * @arg skill: int; the skill id to grant.
+ * @arg level: int; the level to grant the skill at.
+ * @optarg flag: int; flag passed to the skill-granting code; defaults to 1.
+ * @ret none
+ ========================================*/
 static
 void builtin_skill(ScriptState *st)
 {
@@ -2350,10 +2680,15 @@ void builtin_skill(ScriptState *st)
 
 }
 
-/*==========================================
- * [Fate] Sets the skill level permanently
- *------------------------------------------
- */
+/*========================================
+ * Set the attached player's level in a skill permanently, clamped to
+ * 0..MAX_SKILL_LEVEL.
+ *
+ * @doc setskill
+ * @arg skill: int; the skill id to set.
+ * @arg level: int; the new skill level.
+ * @ret none
+ ========================================*/
 static
 void builtin_setskill(ScriptState *st)
 {
@@ -2371,11 +2706,14 @@ void builtin_setskill(ScriptState *st)
     clif_skillinfoblock(sd);
 }
 
-/*==========================================
- * スキルレベル所得
- * Skill Level Income
- *------------------------------------------
- */
+/*========================================
+ * Return the attached player's current level in a skill (0 if the player
+ * does not have it).
+ *
+ * @doc getskilllv
+ * @arg skill: int; the skill id to query.
+ * @ret int; the player's level in that skill.
+ ========================================*/
 static
 void builtin_getskilllv(ScriptState *st)
 {
@@ -2385,10 +2723,19 @@ void builtin_getskilllv(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, pc_checkskill(sd, id));
 }
 
-/*==========================================
+/*========================================
+ * Override the attached player's normal attack with a spell. Called with no
+ * arguments it removes the override and restores the normal attack.
  *
- *------------------------------------------
- */
+ * @doc overrideattack
+ * @optarg delay: timer; attack delay in milliseconds.
+ * @optarg range: int; attack range.
+ * @optarg icon: status; a status-change icon id.
+ * @optarg weapon: item; a weapon-look item id.
+ * @optarg event: event; NPC event to run on attack.
+ * @optarg charges: amount; number of charges; defaults to 1.
+ * @ret none
+ ========================================*/
 static
 void builtin_overrideattack(ScriptState *st)
 {
@@ -2422,10 +2769,13 @@ void builtin_overrideattack(ScriptState *st)
     }
 }
 
-/*==========================================
+/*========================================
+ * Return the GM privilege bitmask of the attached player (0 for an ordinary
+ * player).
  *
- *------------------------------------------
- */
+ * @doc getgmlevel
+ * @ret int; the GM privilege bitmask.
+ ========================================*/
 static
 void builtin_getgmlevel(ScriptState *st)
 {
@@ -2435,10 +2785,13 @@ void builtin_getgmlevel(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, pc_isGM(sd).get_all_bits());
 }
 
-/*==========================================
+/*========================================
+ * End the current script run. Using end inside a callfunc or callsub frame
+ * is deprecated.
  *
- *------------------------------------------
- */
+ * @doc end
+ * @ret none
+ ========================================*/
 static
 void builtin_end(ScriptState *st)
 {
@@ -2453,10 +2806,12 @@ void builtin_end(ScriptState *st)
     st->state = ScriptEndState::END;
 }
 
-/*==========================================
- * [Freeyorp] Return the current opt2
- *------------------------------------------
- */
+/*========================================
+ * Return the attached player's opt2 status-option bitmask.
+ *
+ * @doc getopt2
+ * @ret int; the opt2 bitmask.
+ ========================================*/
 static
 void builtin_getopt2(ScriptState *st)
 {
@@ -2469,10 +2824,14 @@ void builtin_getopt2(ScriptState *st)
 
 }
 
-/*==========================================
- * [Freeyorp] Sets opt2
- *------------------------------------------
- */
+/*========================================
+ * Set the attached player's opt2 status-option bitmask and refresh the look
+ * and stats.
+ *
+ * @doc setopt2
+ * @arg opt2: int; the new opt2 bitmask.
+ * @ret none
+ ========================================*/
 static
 void builtin_setopt2(ScriptState *st)
 {
@@ -2490,11 +2849,15 @@ void builtin_setopt2(ScriptState *st)
 
 }
 
-/*==========================================
- * セーブポイントの保存
- * Saving savepoints
- *------------------------------------------
- */
+/*========================================
+ * Set the attached player's respawn point.
+ *
+ * @doc savepoint
+ * @arg map: map; the respawn map name.
+ * @arg x: coordinate; the respawn x coordinate.
+ * @arg y: coordinate; the respawn y coordinate.
+ * @ret none
+ ========================================*/
 static
 void builtin_savepoint(ScriptState *st)
 {
@@ -2509,16 +2872,15 @@ void builtin_savepoint(ScriptState *st)
     pc_setsavepoint(script_rid2sd(st), str, x, y);
 }
 
-/*==========================================
- * gettimetick(type)
+/*========================================
+ * Return a time value. Type 0 is the server tick (an unsigned counter that
+ * wraps), type 1 is seconds elapsed since midnight, type 2 is the Unix
+ * timestamp. Any other value behaves as type 0.
  *
- * type The type of time measurement.
- *  Specify 0 for the system tick, 1 for
- *  seconds elapsed today, or 2 for seconds
- *  since Unix epoch. Defaults to 0 for any
- *  other value.
- *------------------------------------------
- */
+ * @doc gettimetick
+ * @arg type: int; which time value to return.
+ * @ret int; the requested time value.
+ ========================================*/
 static
 void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
 {
@@ -2547,13 +2909,14 @@ void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
     }
 }
 
-/*==========================================
- * GetTime(Type);
- * 1: Sec     2: Min     3: Hour
- * 4: WeekDay     5: MonthDay     6: Month
- * 7: Year
- *------------------------------------------
- */
+/*========================================
+ * Return a component of the current local time.
+ *
+ * @doc gettime
+ * @arg type: int; which component: 1 second, 2 minute, 3 hour, 4 weekday
+ *                 (0..6), 5 day of month, 6 month (1..12), 7 full year.
+ * @ret int; the requested time component, or -1 for an unknown type.
+ ========================================*/
 static
 void builtin_gettime(ScriptState *st)   /* Asgard Version */
 {
@@ -2590,11 +2953,12 @@ void builtin_gettime(ScriptState *st)   /* Asgard Version */
     }
 }
 
-/*==========================================
- * カプラ倉庫を開く
- * Opening a coupler warehouse
- *------------------------------------------
- */
+/*========================================
+ * Open the attached player's Kafra storage window and suspend the script.
+ *
+ * @doc openstorage
+ * @ret none
+ ========================================*/
 static
 void builtin_openstorage(ScriptState *st)
 {
@@ -2611,11 +2975,15 @@ void builtin_openstorage(ScriptState *st)
     storage_storageopen(sd);
 }
 
-/*==========================================
- * NPCで経験値上げる
- * Increase experience with NPCs
- *------------------------------------------
- */
+/*========================================
+ * Grant base and job experience to the attached player. Negative amounts
+ * are ignored.
+ *
+ * @doc getexp
+ * @arg base: amount; base experience to grant.
+ * @arg job: amount; job experience to grant.
+ * @ret none
+ ========================================*/
 static
 void builtin_getexp(ScriptState *st)
 {
@@ -2653,6 +3021,17 @@ AString get_mob_drop_name(Species mob_id, int index)
     Option<P<struct item_data>> i_data = Some(itemdb_search(get_mob_db(mob_id).dropitem[index].nameid));
     return i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
 }
+/*========================================
+ * Return a field of the monster-database entry for a species.
+ *
+ * @doc mobinfo
+ * @arg species: mob; the monster species id.
+ * @arg field: int; a MobInfo selector: id, names, level, HP/SP, experience,
+ *                  attack and defence stats, attributes, element, mode,
+ *                  speeds, and drop id/name/percent for drop slots 0..9.
+ * @ret variant; the requested field, or -1 for an unknown species or
+ *               selector.
+ ========================================*/
 static
 void builtin_mobinfo(ScriptState *st)
 {
@@ -2841,14 +3220,16 @@ void builtin_mobinfo(ScriptState *st)
         push_str<ScriptDataStr>(st->stack, info_str);
 }
 
-/*==========================================
- * Returns drops of a monster to an array
- * return values:
- * 0 = mob not found or error
- * 1 = mob found and has drops
- * 2 = mob found and has no drops
- *------------------------------------------
- */
+/*========================================
+ * Fill an array with the drops of a monster species.
+ *
+ * @doc mobinfo_droparrays
+ * @arg species: mob; the monster species id.
+ * @arg field: int; what to store: 0 item ids, 1 item names (string array),
+ *                  2 drop percents.
+ * @arg dest: var; the array variable to fill.
+ * @ret int; 0 on error, 1 if the monster has drops, 2 if it has none.
+ ========================================*/
 static
 void builtin_mobinfo_droparrays(ScriptState *st)
 {
@@ -2972,14 +3353,16 @@ void builtin_mobinfo_droparrays(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, status);
 }
 
-/*==========================================
- * Returns drops of a monster to standardized arrays
- * return values:
- * 0 = mob not found
- * 1 = mob found and has drops
- * 2 = mob found and has no drops
- *------------------------------------------
- */
+/*========================================
+ * Store the drops of a monster species into the global arrays
+ * $@MobDrop_item, $@MobDrop_name$ and $@MobDrop_rate, with the count in
+ * $@MobDrop_count.
+ *
+ * @doc getmobdrops
+ * @arg species: mob; the monster species id.
+ * @ret int; 0 if the species is unknown, 1 if it has drops, 2 if it has
+ *           none.
+ ========================================*/
 static
 void builtin_getmobdrops(ScriptState *st)
 {
@@ -3028,10 +3411,22 @@ void builtin_getmobdrops(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, status);
 }
 
-/*==========================================
+/*========================================
+ * Spawn a single monster owned by another being.
  *
- *------------------------------------------
- */
+ * @doc summon
+ * @arg map: map; the map to spawn on.
+ * @arg x: coordinate; the spawn x coordinate.
+ * @arg y: coordinate; the spawn y coordinate.
+ * @arg owner: str; the owner's being id, passed as a string.
+ * @arg name: str; the monster's display name.
+ * @arg species: mob; the monster species id.
+ * @arg attitude: int; an attitude code: servant, friendly, hostile or
+ *                     frozen.
+ * @arg lifespan: int; how long the monster lives, in milliseconds.
+ * @optarg event: event; NPC event to run on the monster's death.
+ * @ret none
+ ========================================*/
 static
 void builtin_summon(ScriptState *st)
 {
@@ -3107,11 +3502,19 @@ void builtin_summon(ScriptState *st)
     }
 }
 
-/*==========================================
- * モンスター発生
- * Monster Outbreak
- *------------------------------------------
- */
+/*========================================
+ * Spawn one or more monsters of a species at a fixed cell.
+ *
+ * @doc monster
+ * @arg map: map; the map to spawn on.
+ * @arg x: coordinate; the spawn x coordinate.
+ * @arg y: coordinate; the spawn y coordinate.
+ * @arg name: str; the monster's display name.
+ * @arg species: mob; the monster species id.
+ * @arg amount: amount; how many monsters to spawn.
+ * @optarg event: event; NPC event run when each monster dies.
+ * @ret none
+ ========================================*/
 static
 void builtin_monster(ScriptState *st)
 {
@@ -3132,11 +3535,21 @@ void builtin_monster(ScriptState *st)
             event);
 }
 
-/*==========================================
- * モンスター発生
- * Monster Outbreak
- *------------------------------------------
- */
+/*========================================
+ * Spawn one or more monsters of a species scattered within a rectangle.
+ *
+ * @doc areamonster
+ * @arg map: map; the map to spawn on.
+ * @arg x0: coordinate; x of one corner of the rectangle.
+ * @arg y0: coordinate; y of one corner of the rectangle.
+ * @arg x1: coordinate; x of the opposite corner.
+ * @arg y1: coordinate; y of the opposite corner.
+ * @arg name: str; the monster's display name.
+ * @arg species: mob; the monster species id.
+ * @arg amount: amount; how many monsters to spawn.
+ * @optarg event: event; NPC event run when each monster dies.
+ * @ret none
+ ========================================*/
 static
 void builtin_areamonster(ScriptState *st)
 {
@@ -3183,10 +3596,16 @@ void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event)
     }
 }
 
-/*==========================================
+/*========================================
+ * Remove monsters on a map. With the special event string "All", all non-
+ * permanently-spawned monsters are removed; otherwise only monsters whose
+ * death event matches.
  *
- *------------------------------------------
- */
+ * @doc killmonster
+ * @arg map: map; the map to clear.
+ * @arg event: event; the death event to match, or "All".
+ * @ret none
+ ========================================*/
 static
 void builtin_killmonster(ScriptState *st)
 {
@@ -3204,11 +3623,13 @@ void builtin_killmonster(ScriptState *st)
             BL::MOB);
 }
 
-/*==========================================
- * NPC主体イベント実行
- * NPC-Driven Event Execution
- *------------------------------------------
- */
+/*========================================
+ * Trigger an NPC event immediately, running it as an event-label script.
+ *
+ * @doc donpcevent
+ * @arg event: event; the NPC event to run.
+ * @ret none
+ ========================================*/
 static
 void builtin_donpcevent(ScriptState *st)
 {
@@ -3218,11 +3639,16 @@ void builtin_donpcevent(ScriptState *st)
     npc_event_do(event);
 }
 
-/*==========================================
- * イベントタイマー追加
- * Add Event Timer
- *------------------------------------------
- */
+/*========================================
+ * Schedule an NPC event to run for a player after a delay. The optional
+ * being id selects the player; otherwise the attached player is used.
+ *
+ * @doc addtimer
+ * @arg delay: timer; delay in milliseconds before the event runs.
+ * @arg event: event; the NPC event to schedule.
+ * @optarg gid: GID; being id of the player to run it for.
+ * @ret none
+ ========================================*/
 static
 void builtin_addtimer(ScriptState *st)
 {
@@ -3242,11 +3668,15 @@ void builtin_addtimer(ScriptState *st)
     pc_addeventtimer(sd, tick, event);
 }
 
-/*==========================================
- * NPCイベントタイマー追加
- * Add NPC Event Timer
- *------------------------------------------
- */
+/*========================================
+ * Schedule an NPC event to run after a delay, attached to the NPC named in
+ * the event.
+ *
+ * @doc addnpctimer
+ * @arg delay: timer; delay in milliseconds before the event runs.
+ * @arg event: event; the NPC event to schedule.
+ * @ret none
+ ========================================*/
 static
 void builtin_addnpctimer(ScriptState *st)
 {
@@ -3257,11 +3687,15 @@ void builtin_addnpctimer(ScriptState *st)
     npc_addeventtimer(npc_name2id(event.npc), tick, event);
 }
 
-/*==========================================
- * NPCタイマー初期化
- * NPC Timer Initialization
- *------------------------------------------
- */
+/*========================================
+ * Reset the NPC's timer to zero and start it running, which drives that
+ * NPC's OnTimer<ms> labels. The optional argument names another NPC.
+ *
+ * @doc initnpctimer
+ * @optarg npc: str; name of the NPC to act on; defaults to the script's own
+ *                   NPC.
+ * @ret none
+ ========================================*/
 static
 void builtin_initnpctimer(ScriptState *st)
 {
@@ -3278,11 +3712,15 @@ void builtin_initnpctimer(ScriptState *st)
     npc_timerevent_start(nd);
 }
 
-/*==========================================
- * NPCタイマー開始
- * NPC Timer Start
- *------------------------------------------
- */
+/*========================================
+ * Start or resume the NPC timer without resetting it. The optional argument
+ * names another NPC.
+ *
+ * @doc startnpctimer
+ * @optarg npc: str; name of the NPC to act on; defaults to the script's own
+ *                   NPC.
+ * @ret none
+ ========================================*/
 static
 void builtin_startnpctimer(ScriptState *st)
 {
@@ -3298,11 +3736,14 @@ void builtin_startnpctimer(ScriptState *st)
     npc_timerevent_start(nd);
 }
 
-/*==========================================
- * NPCタイマー停止
- * NPC Timer Stop
- *------------------------------------------
- */
+/*========================================
+ * Stop the NPC timer. The optional argument names another NPC.
+ *
+ * @doc stopnpctimer
+ * @optarg npc: str; name of the NPC to act on; defaults to the script's own
+ *                   NPC.
+ * @ret none
+ ========================================*/
 static
 void builtin_stopnpctimer(ScriptState *st)
 {
@@ -3318,11 +3759,16 @@ void builtin_stopnpctimer(ScriptState *st)
     npc_timerevent_stop(nd);
 }
 
-/*==========================================
- * NPCタイマー情報所得
- * NPC Timer Information Income
- *------------------------------------------
- */
+/*========================================
+ * Return information about an NPC timer. The optional name picks another
+ * NPC; otherwise the script's own NPC is used.
+ *
+ * @doc getnpctimer
+ * @arg type: int; which value: 0 current tick in milliseconds, 1 whether
+ *                 the timer is active, 2 number of OnTimer events defined.
+ * @optarg npc: str; name of the NPC to query.
+ * @ret int; the requested timer value.
+ ========================================*/
 static
 void builtin_getnpctimer(ScriptState *st)
 {
@@ -3352,11 +3798,15 @@ void builtin_getnpctimer(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, val);
 }
 
-/*==========================================
- * NPCタイマー値設定
- * Setting NPC Timer Values
- *------------------------------------------
- */
+/*========================================
+ * Set the NPC timer to a number of milliseconds. The optional name picks
+ * another NPC; otherwise the script's own NPC is used.
+ *
+ * @doc setnpctimer
+ * @arg tick: timer; the new timer value, in milliseconds.
+ * @optarg npc: str; name of the NPC to act on.
+ * @ret none
+ ========================================*/
 static
 void builtin_setnpctimer(ScriptState *st)
 {
@@ -3373,10 +3823,17 @@ void builtin_setnpctimer(ScriptState *st)
     npc_settimerevent_tick(nd, tick);
 }
 
-/*==========================================
+/*========================================
+ * Send a raw NPC client-action command to the attached player.
  *
- *------------------------------------------
- */
+ * @doc npcaction
+ * @arg command: int; the client-action command code.
+ * @optarg target: expr; a target being id, or an NPC name when the command
+ *                       is 2.
+ * @optarg x: coordinate; an x coordinate for the command.
+ * @optarg y: coordinate; a y coordinate for the command.
+ * @ret none
+ ========================================*/
 static
 void builtin_npcaction(ScriptState *st)
 {
@@ -3402,10 +3859,19 @@ void builtin_npcaction(ScriptState *st)
     clif_npc_action(sd, st->oid, command, id, x, y);
 }
 
-/*==========================================
+/*========================================
+ * Control the attached player's camera. With no arguments it returns the
+ * camera to the player. Two arguments move it to absolute coordinates. One
+ * or three arguments centre it on an actor.
  *
- *------------------------------------------
- */
+ * @doc camera
+ * @optarg actor: expr; a being id, or one of rid/player, oid/npc, relative,
+ *                      or an NPC name; or an x coordinate when moving to
+ *                      absolute coordinates.
+ * @optarg x: coordinate; x offset from the actor, or a y coordinate.
+ * @optarg y: coordinate; y offset from the actor.
+ * @ret none
+ ========================================*/
 static
 void builtin_camera(ScriptState *st)
 {
@@ -3462,10 +3928,18 @@ void builtin_camera(ScriptState *st)
     clif_npc_action(sd, st->oid, 2, unwrap<BlockId>(bl->bl_id), x, y);
 }
 
-/*==========================================
+/*========================================
+ * Set the facing direction and sitting state shown for an NPC. The optional
+ * name picks another NPC; otherwise the script's own NPC is used.
  *
- *------------------------------------------
- */
+ * @doc setnpcdirection
+ * @arg direction: int; the facing direction.
+ * @arg sit: bool; nonzero to make the NPC sit.
+ * @arg persistent: bool; nonzero to make the change persistent rather than
+ *                        per-viewer.
+ * @optarg npc: str; name of the NPC to act on.
+ * @ret none
+ ========================================*/
 static
 void builtin_setnpcdirection(ScriptState *st)
 {
@@ -3506,11 +3980,16 @@ void builtin_setnpcdirection(ScriptState *st)
     }
 }
 
-/*==========================================
- * 天の声アナウンス
- * Voice of Heaven Announcement
- *------------------------------------------
- */
+/*========================================
+ * Broadcast a message. The flag controls scope and styling: with the low
+ * bits clear it is a server-wide announcement; with bit 0x08 set it is
+ * limited to the running NPC's surroundings, otherwise to the player's.
+ *
+ * @doc announce
+ * @arg message: str; the message text.
+ * @arg flag: int; scope and styling flags.
+ * @ret none
+ ========================================*/
 static
 void builtin_announce(ScriptState *st)
 {
@@ -3543,10 +4022,15 @@ void builtin_mapannounce_sub(dumb_ptr<block_list> bl, XString str, int flag)
     clif_GMmessage(bl, str, flag | 3);
 }
 
-/*==========================================
+/*========================================
+ * Broadcast a message to every player on a map.
  *
- *------------------------------------------
- */
+ * @doc mapannounce
+ * @arg map: map; the map to broadcast on.
+ * @arg message: str; the message text.
+ * @arg flag: int; styling flags.
+ * @ret none
+ ========================================*/
 static
 void builtin_mapannounce(ScriptState *st)
 {
@@ -3564,11 +4048,15 @@ void builtin_mapannounce(ScriptState *st)
             BL::PC);
 }
 
-/*==========================================
- * ユーザー数所得
- * User Count
- *------------------------------------------
- */
+/*========================================
+ * Return a user count. Flag 1 returns the total players on the server; flag
+ * 0 is disabled (use getmapusers). Bit 0x08 selects the NPC rather than the
+ * player as the reference being.
+ *
+ * @doc getusers
+ * @arg flag: int; which count and reference being.
+ * @ret int; the requested user count.
+ ========================================*/
 static
 void builtin_getusers(ScriptState *st)
 {
@@ -3602,10 +4090,13 @@ void builtin_getusers(ScriptState *st)
      (*users)++;
  }
 
-/*==========================================
+/*========================================
+ * Return the number of players currently on a map.
  *
- *------------------------------------------
- */
+ * @doc getmapusers
+ * @arg map: map; the map to count players on.
+ * @ret int; the player count, or -1 if the map does not exist.
+ ========================================*/
 static
 void builtin_getmapusers(ScriptState *st)
 {
@@ -3624,10 +4115,15 @@ void builtin_getmapusers(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, users);
 }
 
-/*==========================================
+/*========================================
+ * Make a monster become aggressive towards a target. By default the target
+ * is the attached player.
  *
- *------------------------------------------
- */
+ * @doc aggravate
+ * @arg gid: GID; being id of the monster.
+ * @optarg target: GID; being id of the target to aggravate against.
+ * @ret none
+ ========================================*/
 static
 void builtin_aggravate(ScriptState *st)
 {
@@ -3643,10 +4139,13 @@ void builtin_aggravate(ScriptState *st)
     }
 }
 
-/*==========================================
- *  Check for summoned creature
- *------------------------------------------
- */
+/*========================================
+ * Test whether a monster is a summoned creature.
+ *
+ * @doc issummon
+ * @arg gid: GID; being id of the monster.
+ * @ret int; 1 if the monster is summoned, 0 otherwise.
+ ========================================*/
 static
 void builtin_issummon(ScriptState *st)
 {
@@ -3675,10 +4174,19 @@ void builtin_getareausers_living_sub(dumb_ptr<block_list> bl, int *users)
         (*users)++;
 }
 
-/*==========================================
+/*========================================
+ * Return the number of players inside a rectangle on a map. Hidden players
+ * are never counted.
  *
- *------------------------------------------
- */
+ * @doc getareausers
+ * @arg map: map; the map holding the rectangle.
+ * @arg x0: coordinate; x of one corner of the rectangle.
+ * @arg y0: coordinate; y of one corner of the rectangle.
+ * @arg x1: coordinate; x of the opposite corner.
+ * @arg y1: coordinate; y of the opposite corner.
+ * @optarg living_only: bool; nonzero to also exclude dead players.
+ * @ret int; the player count, or -1 if the map does not exist.
+ ========================================*/
 static
 void builtin_getareausers(ScriptState *st)
 {
@@ -3739,10 +4247,20 @@ void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, ItemNameId i
     }
 }
 
-/*==========================================
+/*========================================
+ * Return the total quantity of floor items of a type lying inside a
+ * rectangle on a map.
  *
- *------------------------------------------
- */
+ * @doc getareadropitem
+ * @arg map: map; the map holding the rectangle.
+ * @arg x0: coordinate; x of one corner of the rectangle.
+ * @arg y0: coordinate; y of one corner of the rectangle.
+ * @arg x1: coordinate; x of the opposite corner.
+ * @arg y1: coordinate; y of the opposite corner.
+ * @arg item: item; the item to count, by id or name.
+ * @optarg remove: bool; nonzero to also remove the matched floor items.
+ * @ret int; the total quantity, or -1 if the map does not exist.
+ ========================================*/
 static
 void builtin_getareadropitem(ScriptState *st)
 {
@@ -3781,11 +4299,13 @@ void builtin_getareadropitem(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, amount);
 }
 
-/*==========================================
- * NPCの有効化
- * Enabling NPCs
- *------------------------------------------
- */
+/*========================================
+ * Make a named NPC visible and interactive.
+ *
+ * @doc enablenpc
+ * @arg npc: str; name of the NPC to enable.
+ * @ret none
+ ========================================*/
 static
 void builtin_enablenpc(ScriptState *st)
 {
@@ -3793,11 +4313,13 @@ void builtin_enablenpc(ScriptState *st)
     npc_enable(str, 1);
 }
 
-/*==========================================
- * NPCの無効化
- * Disabling NPCs
- *------------------------------------------
- */
+/*========================================
+ * Make a named NPC invisible and non-interactive.
+ *
+ * @doc disablenpc
+ * @arg npc: str; name of the NPC to disable.
+ * @ret none
+ ========================================*/
 static
 void builtin_disablenpc(ScriptState *st)
 {
@@ -3805,11 +4327,18 @@ void builtin_disablenpc(ScriptState *st)
     npc_enable(str, 0);
 }
 
-/*==========================================
- * 状態異常にかかる
- * Suffering from an abnormal condition
- *------------------------------------------
- */
+/*========================================
+ * Apply a status condition to a being for a duration. By default the
+ * attached player is affected. For a few legacy potion-style conditions a
+ * duration under one second is reinterpreted as seconds.
+ *
+ * @doc sc_start
+ * @arg duration: int; duration in milliseconds.
+ * @arg status: status; the status-condition id to apply.
+ * @arg value: int; the value parameter for the condition.
+ * @optarg gid: GID; being id to affect instead of the player.
+ * @ret none
+ ========================================*/
 static
 void builtin_sc_start(ScriptState *st)
 {
@@ -3857,11 +4386,15 @@ void builtin_sc_start(ScriptState *st)
     skill_status_change_start(bl, type, val1, tick);
 }
 
-/*==========================================
- * 状態異常が直る
- * Abnormal condition is fixed
- *------------------------------------------
- */
+/*========================================
+ * Remove a status condition from a being. By default the attached player is
+ * affected.
+ *
+ * @doc sc_end
+ * @arg status: int; the status-condition id to remove.
+ * @optarg gid: GID; being id to affect instead of the player.
+ * @ret none
+ ========================================*/
 static
 void builtin_sc_end(ScriptState *st)
 {
@@ -3875,10 +4408,15 @@ void builtin_sc_end(ScriptState *st)
     skill_status_change_end(bl, type, nullptr);
 }
 
-/*==========================================
+/*========================================
+ * Test whether a status condition is currently active on a being. By
+ * default the attached player is checked.
  *
- *------------------------------------------
- */
+ * @doc sc_check
+ * @arg status: int; the status-condition id to test.
+ * @optarg gid: GID; being id to check instead of the player.
+ * @ret int; nonzero if the condition is active.
+ ========================================*/
 static
 void builtin_sc_check(ScriptState *st)
 {
@@ -3893,10 +4431,14 @@ void builtin_sc_check(ScriptState *st)
 
 }
 
-/*==========================================
+/*========================================
+ * Print a message, with the current RID and OID, to the server log. For
+ * script debugging; nothing is shown to players.
  *
- *------------------------------------------
- */
+ * @doc debugmes
+ * @arg text: str; the text to log.
+ * @ret none
+ ========================================*/
 static
 void builtin_debugmes(ScriptState *st)
 {
@@ -3905,11 +4447,13 @@ void builtin_debugmes(ScriptState *st)
             st->rid, st->oid, mes);
 }
 
-/*==========================================
- * ステータスリセット
- * Status Reset
- *------------------------------------------
- */
+/*========================================
+ * Reset the attached player's stat-point allocation, refunding spent
+ * points.
+ *
+ * @doc resetstatus
+ * @ret none
+ ========================================*/
 static
 void builtin_resetstatus(ScriptState *st)
 {
@@ -3919,11 +4463,13 @@ void builtin_resetstatus(ScriptState *st)
     pc_resetstate(sd);
 }
 
-/*==========================================
- * RIDのアタッチ
- * Attach RID
- *------------------------------------------
- */
+/*========================================
+ * Attach a player to the script as the RID.
+ *
+ * @doc attachrid
+ * @arg gid: GID; being id of the player to attach.
+ * @ret int; 1 if such a player exists and is now attached, 0 otherwise.
+ ========================================*/
 static
 void builtin_attachrid(ScriptState *st)
 {
@@ -3931,22 +4477,26 @@ void builtin_attachrid(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, (map_id2sd(st->rid) != nullptr));
 }
 
-/*==========================================
- * RIDのデタッチ
- * Detach RID
- *------------------------------------------
- */
+/*========================================
+ * Detach the current player (RID) from the script, so following player-
+ * specific builtins have no player to act on.
+ *
+ * @doc detachrid
+ * @ret none
+ ========================================*/
 static
 void builtin_detachrid(ScriptState *st)
 {
     st->rid = BlockId();
 }
 
-/*==========================================
- * 存在チェック
- * Existence check
- *------------------------------------------
- */
+/*========================================
+ * Test whether a player is currently online.
+ *
+ * @doc isloggedin
+ * @arg gid: GID; being id of the player to check.
+ * @ret int; 1 if the player is online, 0 otherwise.
+ ========================================*/
 static
 void builtin_isloggedin(ScriptState *st)
 {
@@ -3954,10 +4504,14 @@ void builtin_isloggedin(ScriptState *st)
               map_id2sd(wrap<BlockId>(conv_num(st, &AARG(0)))) != nullptr);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Set a map flag on a map.
+ *
+ * @doc setmapflag
+ * @arg map: map; the map to change.
+ * @arg flag: int; the map-flag number to set.
+ * @ret none
+ ========================================*/
 static
 void builtin_setmapflag(ScriptState *st)
 {
@@ -3972,10 +4526,14 @@ void builtin_setmapflag(ScriptState *st)
     OMATCH_END ();
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Clear a map flag on a map.
+ *
+ * @doc removemapflag
+ * @arg map: map; the map to change.
+ * @arg flag: int; the map-flag number to clear.
+ * @ret none
+ ========================================*/
 static
 void builtin_removemapflag(ScriptState *st)
 {
@@ -3990,10 +4548,14 @@ void builtin_removemapflag(ScriptState *st)
     OMATCH_END ();
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Return the state of a map flag on a map.
+ *
+ * @doc getmapflag
+ * @arg map: map; the map to query.
+ * @arg flag: int; the map-flag number to read.
+ * @ret int; the flag state (0 or 1), or -1 if the map does not exist.
+ ========================================*/
 static
 void builtin_getmapflag(ScriptState *st)
 {
@@ -4012,10 +4574,14 @@ void builtin_getmapflag(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, r);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Enable PvP on a map (unless it has the nopvp flag). Players already on
+ * the map gain a PvP rank, unless server-wide pk-mode is on.
+ *
+ * @doc pvpon
+ * @arg map: map; the map to enable PvP on.
+ * @ret none
+ ========================================*/
 static
 void builtin_pvpon(ScriptState *st)
 {
@@ -4050,10 +4616,13 @@ void builtin_pvpon(ScriptState *st)
     }
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Disable PvP on a map, cancelling the PvP ranking of players on it.
+ *
+ * @doc pvpoff
+ * @arg map: map; the map to disable PvP on.
+ * @ret none
+ ========================================*/
 static
 void builtin_pvpoff(ScriptState *st)
 {
@@ -4084,10 +4653,13 @@ void builtin_pvpoff(ScriptState *st)
     }
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Set the attached player's PvP channel (values below 1 mean channel 0).
+ *
+ * @doc setpvpchannel
+ * @arg channel: int; the new PvP channel.
+ * @ret none
+ ========================================*/
 static
 void builtin_setpvpchannel(ScriptState *st)
 {
@@ -4101,10 +4673,16 @@ void builtin_setpvpchannel(ScriptState *st)
     sd->state.pvpchannel = flag;
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Return a PvP-related flag for a player. The optional being id picks the
+ * player; otherwise the attached player is used.
+ *
+ * @doc getpvpflag
+ * @arg type: int; which flag: 0 the PvP channel, 1 whether the player is
+ *                 hidden.
+ * @optarg gid: GID; being id of the player to query.
+ * @ret int; the requested PvP flag.
+ ========================================*/
 static
 void builtin_getpvpflag(ScriptState *st)
 {
@@ -4131,11 +4709,16 @@ void builtin_getpvpflag(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, flag);
 }
 
-/*==========================================
- * NPCエモーション
- * NPC Emotion
- *------------------------------------------
- */
+/*========================================
+ * Show an emote. With a second argument naming a player, the emote is shown
+ * by the script's NPC towards that player; with the literal "self" it is
+ * shown by the attached player; otherwise by the NPC.
+ *
+ * @doc emotion
+ * @arg emote: int; the emote id, 0 to 200.
+ * @optarg target: str; a player name, or "self".
+ * @ret none
+ ========================================*/
 static
 void builtin_emotion(ScriptState *st)
 {
@@ -4157,10 +4740,16 @@ void builtin_emotion(ScriptState *st)
         clif_emotion(map_id2bl(st->oid), type);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Warp every player on one map to a cell on another map.
+ *
+ * @doc mapwarp
+ * @arg from_map: map; the map to warp players from.
+ * @arg to_map: map; the destination map name.
+ * @arg x: coordinate; the destination x coordinate.
+ * @arg y: coordinate; the destination y coordinate.
+ * @ret none
+ ========================================*/
 static
 void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 {
@@ -4195,10 +4784,15 @@ void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
         (*c)++;
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Return the number of monsters on a map whose death event matches. The
+ * count is reported one lower than the raw total.
+ *
+ * @doc mobcount
+ * @arg map: map; the map to count monsters on.
+ * @arg event: event; the death event to match.
+ * @ret int; the monster count, or -1 if the map does not exist.
+ ========================================*/
 static
 void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 {
@@ -4223,10 +4817,13 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Marry the attached player to another player.
+ *
+ * @doc marriage
+ * @arg partner: player; name of the player to marry.
+ * @ret int; 1 on success, 0 if a player is missing or the marriage fails.
+ ========================================*/
 static
 void builtin_marriage(ScriptState *st)
 {
@@ -4242,10 +4839,12 @@ void builtin_marriage(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, 1);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Divorce the attached player from their partner.
+ *
+ * @doc divorce
+ * @ret int; 1 on success, 0 on failure.
+ ========================================*/
 static
 void builtin_divorce(ScriptState *st)
 {
@@ -4260,10 +4859,13 @@ void builtin_divorce(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, 1);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Return a clickable item-link string (the @@id|@@ form) for an item.
+ *
+ * @doc getitemlink
+ * @arg item: item; the item, by numeric id or name.
+ * @ret str; the item-link string, or "Unknown Item" if it does not exist.
+ ========================================*/
 static
 void builtin_getitemlink(ScriptState *st)
 {
@@ -4278,10 +4880,13 @@ void builtin_getitemlink(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, buf);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Return the character id of the attached player's marriage partner (0 if
+ * unmarried).
+ *
+ * @doc getpartnerid2
+ * @ret int; the partner's character id.
+ ========================================*/
 static
 void builtin_getpartnerid2(ScriptState *st)
 {
@@ -4290,10 +4895,15 @@ void builtin_getpartnerid2(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, unwrap<CharId>(sd->status.partner_id));
 }
 
-/*==========================================
- * Translatable string
- *------------------------------------------
- */
+/*========================================
+ * Return a translatable string. Currently a pass-through: the translation
+ * lookup and argument substitution are not implemented in this server, so
+ * it returns its argument unchanged.
+ *
+ * @doc l
+ * @rest text: str; the translatable string and substitution arguments.
+ * @ret str; the (untranslated) string.
+ ========================================*/
 static
 void builtin_l(ScriptState *st)
 {
@@ -4303,10 +4913,13 @@ void builtin_l(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, mes);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Return a one-character string whose single byte has a given ASCII code.
+ *
+ * @doc chr
+ * @arg code: int; the ASCII code.
+ * @ret str; the one-character string.
+ ========================================*/
 static
 void builtin_chr(ScriptState *st)
 {
@@ -4314,10 +4927,13 @@ void builtin_chr(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, VString<1>(ascii));
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Return the ASCII code of the first character of a string.
+ *
+ * @doc ord
+ * @arg text: str; the string to inspect.
+ * @ret int; the ASCII code of the first character.
+ ========================================*/
 static
 void builtin_ord(ScriptState *st)
 {
@@ -4325,10 +4941,16 @@ void builtin_ord(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, static_cast<int>(ascii));
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Split a string on a single-character separator and store the pieces into
+ * an array. Pieces are stored as numbers unless dest is a string array.
+ *
+ * @doc explode
+ * @arg dest: var; the array variable to fill.
+ * @arg text: str; the string to split.
+ * @arg separator: str; the single-character separator.
+ * @ret none
+ ========================================*/
 static
 void builtin_explode(ScriptState *st)
 {
@@ -4392,11 +5014,14 @@ void builtin_explode(ScriptState *st)
     }
 }
 
-/*==========================================
- * PCの所持品情報読み取り
- * Read personal belongings information on your PC
- *------------------------------------------
- */
+/*========================================
+ * Copy the attached player's inventory into the temporary arrays
+ * @inventorylist_id, @inventorylist_amount and @inventorylist_equip, with
+ * the entry count in @inventorylist_count.
+ *
+ * @doc getinventorylist
+ * @ret none
+ ========================================*/
 static
 void builtin_getinventorylist(ScriptState *st)
 {
@@ -4421,10 +5046,14 @@ void builtin_getinventorylist(ScriptState *st)
     pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_count"_s)), j);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Copy the attached player's activated pool skills into the temporary
+ * arrays @skilllist_id, @skilllist_lv, @skilllist_flag and
+ * @skilllist_name$, with the count in @skilllist_count.
+ *
+ * @doc getactivatedpoolskilllist
+ * @ret none
+ ========================================*/
 static
 void builtin_getactivatedpoolskilllist(ScriptState *st)
 {
@@ -4456,10 +5085,14 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
 
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Copy the attached player's known-but-not-activated pool skills into the
+ * temporary arrays @skilllist_id, @skilllist_lv, @skilllist_flag and
+ * @skilllist_name$, with the count in @skilllist_count.
+ *
+ * @doc getunactivatedpoolskilllist
+ * @ret none
+ ========================================*/
 static
 void builtin_getunactivatedpoolskilllist(ScriptState *st)
 {
@@ -4489,10 +5122,13 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
     pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_count"_s)), count);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Activate a pool skill for the attached player.
+ *
+ * @doc poolskill
+ * @arg skill: int; the pool-skill id to activate.
+ * @ret none
+ ========================================*/
 static
 void builtin_poolskill(ScriptState *st)
 {
@@ -4504,10 +5140,13 @@ void builtin_poolskill(ScriptState *st)
 
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Deactivate a pool skill for the attached player.
+ *
+ * @doc unpoolskill
+ * @arg skill: int; the pool-skill id to deactivate.
+ * @ret none
+ ========================================*/
 static
 void builtin_unpoolskill(ScriptState *st)
 {
@@ -4519,18 +5158,16 @@ void builtin_unpoolskill(ScriptState *st)
 
 }
 
-/*==========================================
- * NPCから発生するエフェクト
- * Effects generated by NPCs
- * misceffect(effect, [target])
+/*========================================
+ * Display a miscellaneous visual effect. The optional target chooses where;
+ * with no target it falls back to the script's NPC, then the attached
+ * player.
  *
- * effect The effect type/ID.
- * target The player name or being ID on
- *  which to display the effect. If not
- *  specified, it attempts to default to
- *  the current NPC or invoking PC.
- *------------------------------------------
- */
+ * @doc misceffect
+ * @arg effect: int; the effect type id.
+ * @optarg target: expr; a player name or a being id to show it on.
+ * @ret none
+ ========================================*/
 static
 void builtin_misceffect(ScriptState *st)
 {
@@ -4575,10 +5212,13 @@ void builtin_misceffect(ScriptState *st)
 
 }
 
-/*==========================================
- * Special effects [Valaris]
- *------------------------------------------
- */
+/*========================================
+ * Display a special effect on the script's NPC.
+ *
+ * @doc specialeffect
+ * @arg effect: int; the special-effect id.
+ * @ret none
+ ========================================*/
 static
 void builtin_specialeffect(ScriptState *st)
 {
@@ -4594,10 +5234,13 @@ void builtin_specialeffect(ScriptState *st)
 
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Display a special effect on the attached player.
+ *
+ * @doc specialeffect2
+ * @arg effect: int; the special-effect id.
+ * @ret none
+ ========================================*/
 static
 void builtin_specialeffect2(ScriptState *st)
 {
@@ -4612,10 +5255,15 @@ void builtin_specialeffect2(ScriptState *st)
 
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Read a variable or player parameter belonging to another being and return
+ * its value. Returns 0 or an empty string when the target cannot be found.
+ *
+ * @doc get
+ * @arg name: var; the variable or parameter to read.
+ * @arg owner: expr; the character or NPC that owns the variable.
+ * @ret variant; the value of the variable.
+ ========================================*/
 static
 void builtin_get(ScriptState *st)
 {
@@ -4748,10 +5396,12 @@ void builtin_get(ScriptState *st)
     }
 }
 
-/*==========================================
- * Nude [Valaris]
- *------------------------------------------
- */
+/*========================================
+ * Unequip every item the attached player is wearing.
+ *
+ * @doc nude
+ * @ret none
+ ========================================*/
 static
 void builtin_nude(ScriptState *st)
 {
@@ -4769,10 +5419,13 @@ void builtin_nude(ScriptState *st)
 
 }
 
-/*==========================================
- * UnequipById [Freeyorp]
- *------------------------------------------
- */
+/*========================================
+ * Unequip whatever the attached player has in an equipment slot.
+ *
+ * @doc unequipbyid
+ * @arg slot: int; an EQUIP slot id.
+ * @ret none
+ ========================================*/
 static
 void builtin_unequipbyid(ScriptState *st)
 {
@@ -4792,11 +5445,16 @@ void builtin_unequipbyid(ScriptState *st)
 
 }
 
-/*==========================================
- * npcwarp [remoitnane]
- * Move NPC to a new position on the same map.
- *------------------------------------------
- */
+/*========================================
+ * Move a named NPC to a new cell on its current map. Out-of-bounds
+ * coordinates are ignored.
+ *
+ * @doc npcwarp
+ * @arg x: coordinate; the destination x coordinate.
+ * @arg y: coordinate; the destination y coordinate.
+ * @arg npc: str; name of the NPC to move.
+ * @ret none
+ ========================================*/
 static
 void builtin_npcwarp(ScriptState *st)
 {
@@ -4827,11 +5485,18 @@ void builtin_npcwarp(ScriptState *st)
 
 }
 
-/*==========================================
- * npcareawarp [remoitnane] [wushin]
- * Move NPC to a new area on the same map.
- *------------------------------------------
- */
+/*========================================
+ * Move a named NPC to a random cell inside a rectangle on its current map.
+ *
+ * @doc npcareawarp
+ * @arg x0: coordinate; x of one corner of the rectangle.
+ * @arg y0: coordinate; y of one corner of the rectangle.
+ * @arg x1: coordinate; x of the opposite corner.
+ * @arg y1: coordinate; y of the opposite corner.
+ * @arg walkable: bool; nonzero to require the chosen cell to be walkable.
+ * @arg npc: str; name of the NPC to move.
+ * @ret none
+ ========================================*/
 static
 void builtin_npcareawarp(ScriptState *st)
 {
@@ -4892,10 +5557,14 @@ void builtin_npcareawarp(ScriptState *st)
 
 }
 
-/*==========================================
- * message [MouseJstr]
- *------------------------------------------
- */
+/*========================================
+ * Send a plain chat message to a named player.
+ *
+ * @doc message
+ * @arg player: player; name of the recipient.
+ * @arg text: str; the message text.
+ * @ret none
+ ========================================*/
 static
 void builtin_message(ScriptState *st)
 {
@@ -4909,10 +5578,14 @@ void builtin_message(ScriptState *st)
 
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Set the title-bar text of the script's NPC dialogue window for the
+ * attached player.
+ *
+ * @doc title
+ * @arg text: str; the title-bar text.
+ * @ret none
+ ========================================*/
 static
 void builtin_title(ScriptState *st)
 {
@@ -4922,10 +5595,18 @@ void builtin_title(ScriptState *st)
     clif_npc_send_title(sd->sess, st->oid, msg);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Send a localized server message to a player. With one argument it is the
+ * message text; with two, the first is a numeric message type and the
+ * second the text.
+ *
+ * @doc smsg
+ * @arg type_or_text: expr; the message type, or the text when called with
+ *                          one argument.
+ * @optarg text: expr; the message text.
+ * @optarg player: expr; name of the recipient player.
+ * @ret none
+ ========================================*/
 static
 void builtin_smsg(ScriptState *st)
 {
@@ -4946,10 +5627,15 @@ void builtin_smsg(ScriptState *st)
     clif_server_message(sd, type, msg);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Send a remote command string to a player's client. The optional name
+ * picks the recipient; otherwise the attached player is used.
+ *
+ * @doc remotecmd
+ * @arg command: str; the remote command string.
+ * @optarg player: expr; name of the recipient player.
+ * @ret none
+ ========================================*/
 static
 void builtin_remotecmd(ScriptState *st)
 {
@@ -4968,10 +5654,21 @@ void builtin_remotecmd(ScriptState *st)
     clif_remote_command(sd, msg);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Send a client-side collision update for a map. The required x, y give one
+ * corner; an optional second x, y pair gives the opposite corner of a
+ * rectangle.
+ *
+ * @doc sendcollision
+ * @arg map: map; the map to update.
+ * @arg mask: int; the collision bitmask.
+ * @arg x: coordinate; x of one corner.
+ * @arg y: coordinate; y of one corner.
+ * @optarg x2: coordinate; x of the opposite corner.
+ * @optarg y2: coordinate; y of the opposite corner.
+ * @optarg player: expr; name of the player to send to.
+ * @ret none
+ ========================================*/
 static
 void builtin_sendcollision(ScriptState *st)
 {
@@ -5005,10 +5702,13 @@ void builtin_sendcollision(ScriptState *st)
     clif_update_collision(sd, x1, y1, x2, y2, map_name, mask);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Change the background music for the attached player.
+ *
+ * @doc music
+ * @arg track: str; the music track to play.
+ * @ret none
+ ========================================*/
 static
 void builtin_music(ScriptState *st)
 {
@@ -5018,10 +5718,16 @@ void builtin_music(ScriptState *st)
     clif_change_music(sd, msg);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Set the rendering mask for the attached player and send it to the client.
+ * With a second argument the mask is also stored on the current map.
+ *
+ * @doc mapmask
+ * @arg mask: int; the rendering mask.
+ * @optarg store: expr; present to also store the mask on the player's or
+ *                      NPC's map.
+ * @ret none
+ ========================================*/
 static
 void builtin_mapmask(ScriptState *st)
 {
@@ -5043,10 +5749,13 @@ void builtin_mapmask(ScriptState *st)
     clif_send_mask(sd, map_mask);
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Return the rendering mask of the current map, taken from the attached
+ * player's map, or the NPC's.
+ *
+ * @doc getmask
+ * @ret int; the rendering mask, or -1 if neither is available.
+ ========================================*/
 static
 void builtin_getmask(ScriptState *st)
 {
@@ -5069,11 +5778,17 @@ void builtin_getmask(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, map_mask);
 }
 
-/*==========================================
- * npctalk (sends message to surrounding
- * area) [Valaris]
- *------------------------------------------
- */
+/*========================================
+ * Make a named NPC say a line in local chat, shown to players around it.
+ * With a third argument naming a player, the line is shown only to that
+ * player.
+ *
+ * @doc npctalk
+ * @arg npc: str; name of the NPC that speaks.
+ * @arg text: str; the line to say.
+ * @optarg player: str; name of the only player to show it to.
+ * @ret none
+ ========================================*/
 static
 void builtin_npctalk(ScriptState *st)
 {
@@ -5097,10 +5812,16 @@ void builtin_npctalk(ScriptState *st)
         clif_message(nd, str);
 }
 
-/*==========================================
- * register cmd
- *------------------------------------------
- */
+/*========================================
+ * Register a spell invocation so that when a player types it as a chat
+ * message the named NPC event runs. This is how the magic system binds chat
+ * phrases to scripts.
+ *
+ * @doc registercmd
+ * @arg invocation: str; the chat phrase to register.
+ * @arg event: str; the NPC event to run when it is typed.
+ * @ret none
+ ========================================*/
 static
 void builtin_registercmd(ScriptState *st)
 {
@@ -5111,10 +5832,14 @@ void builtin_registercmd(ScriptState *st)
     spells_by_events.put(evoke, event);
 }
 
-/*==========================================
- * getlook char info. getlook(arg)
- *------------------------------------------
- */
+/*========================================
+ * Return a cosmetic look value of the attached player.
+ *
+ * @doc getlook
+ * @arg type: int; a LOOK type: hair, weapon, headgear, hair colour, clothes
+ *                 colour, shield.
+ * @ret int; the look value, or -1 for an unsupported type.
+ ========================================*/
 static
 void builtin_getlook(ScriptState *st)
 {
@@ -5156,10 +5881,13 @@ void builtin_getlook(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, val);
 }
 
-/*==========================================
- * get char save point. argument: 0- map name, 1- x, 2- y
- *------------------------------------------
- */
+/*========================================
+ * Return part of the attached player's save (respawn) point.
+ *
+ * @doc getsavepoint
+ * @arg type: int; which part: 0 map name, 1 x coordinate, 2 y coordinate.
+ * @ret variant; the requested part of the save point.
+ ========================================*/
 static
 void builtin_getsavepoint(ScriptState *st)
 {
@@ -5204,10 +5932,21 @@ void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent ev
     }
 }
 
-/*==========================================
- * 
- *------------------------------------------
- */
+/*========================================
+ * Schedule an NPC event to run after a delay for every player inside a
+ * rectangle on a map.
+ *
+ * @doc areatimer
+ * @arg type: int; being-type selector; must be 0 (players).
+ * @arg map: map; the map holding the rectangle.
+ * @arg x0: coordinate; x of one corner of the rectangle.
+ * @arg y0: coordinate; y of one corner of the rectangle.
+ * @arg x1: coordinate; x of the opposite corner.
+ * @arg y1: coordinate; y of the opposite corner.
+ * @arg delay: timer; delay in milliseconds before the event runs.
+ * @arg event: event; the NPC event to schedule.
+ * @ret none
+ ========================================*/
 static
 void builtin_areatimer(ScriptState *st)
 {
@@ -5243,10 +5982,17 @@ void builtin_areatimer(ScriptState *st)
             block_type);
 }
 
-/*==========================================
- * Check whether the PC is in the specified rectangle
- *------------------------------------------
- */
+/*========================================
+ * Test whether the attached player is inside a rectangle on a map.
+ *
+ * @doc isin
+ * @arg map: map; the map holding the rectangle.
+ * @arg x0: coordinate; x of one corner of the rectangle.
+ * @arg y0: coordinate; y of one corner of the rectangle.
+ * @arg x1: coordinate; x of the opposite corner.
+ * @arg y1: coordinate; y of the opposite corner.
+ * @ret int; 1 if the player is inside the rectangle, 0 otherwise.
+ ========================================*/
 static
 void builtin_isin(ScriptState *st)
 {
@@ -5267,10 +6013,15 @@ void builtin_isin(ScriptState *st)
               && (str == sd->bl_m->name_));
 }
 
-/*==========================================
- * Check whether the coords are collision
- *------------------------------------------
- */
+/*========================================
+ * Test whether a map cell is unwalkable (a collision cell).
+ *
+ * @doc iscollision
+ * @arg map: map; the map to test.
+ * @arg x: coordinate; the x coordinate to test.
+ * @arg y: coordinate; the y coordinate to test.
+ * @ret int; 1 if the cell is unwalkable, 0 otherwise.
+ ========================================*/
 static
 void builtin_iscollision(ScriptState *st)
 {
@@ -5285,10 +6036,14 @@ void builtin_iscollision(ScriptState *st)
         bool(map_getcell(m, x, y) & MapCell::UNWALKABLE));
 }
 
-/*==========================================
- * Trigger the shop on a (hopefully) nearby shop NPC
- *------------------------------------------
- */
+/*========================================
+ * Close the current dialogue and open the buy/sell window of a shop NPC for
+ * the attached player.
+ *
+ * @doc shop
+ * @arg npc: str; name of the shop NPC.
+ * @ret none
+ ========================================*/
 static
 void builtin_shop(ScriptState *st)
 {
@@ -5305,10 +6060,12 @@ void builtin_shop(ScriptState *st)
     clif_npcbuysell(sd, nd->bl_id);
 }
 
-/*==========================================
- * Check whether the PC is dead
- *------------------------------------------
- */
+/*========================================
+ * Test whether the attached player is dead.
+ *
+ * @doc isdead
+ * @ret int; 1 if the player is dead, 0 otherwise.
+ ========================================*/
 static
 void builtin_isdead(ScriptState *st)
 {
@@ -5319,9 +6076,14 @@ void builtin_isdead(ScriptState *st)
 }
 
 /*========================================
- * Changes a NPC name, and sprite
- *----------------------------------------
- */
+ * Rename a named NPC and change its sprite, then refresh it.
+ *
+ * @doc fakenpcname
+ * @arg npc: str; name of the NPC to change.
+ * @arg newname: str; the new NPC name.
+ * @arg sprite: int; the new sprite species id.
+ * @ret none
+ ========================================*/
 static
 void builtin_fakenpcname(ScriptState *st)
 {
@@ -5339,10 +6101,12 @@ void builtin_fakenpcname(ScriptState *st)
 
 }
 
-/*============================
- * Gets the PC's x pos
- *----------------------------
- */
+/*========================================
+ * Return the x coordinate of the attached player.
+ *
+ * @doc getx
+ * @ret int; the player's x coordinate.
+ ========================================*/
 static
 void builtin_getx(ScriptState *st)
 {
@@ -5351,10 +6115,12 @@ void builtin_getx(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, sd->bl_x);
 }
 
-/*============================
- * Gets the PC's y pos
- *----------------------------
- */
+/*========================================
+ * Return the y coordinate of the attached player.
+ *
+ * @doc gety
+ * @ret int; the player's y coordinate.
+ ========================================*/
 static
 void builtin_gety(ScriptState *st)
 {
@@ -5363,10 +6129,12 @@ void builtin_gety(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, sd->bl_y);
 }
 
-/*============================
- * Gets the PC's direction
- *----------------------------
- */
+/*========================================
+ * Return the facing direction of the attached player as a numeric DIR.
+ *
+ * @doc getdir
+ * @ret int; the player's facing direction.
+ ========================================*/
 static
 void builtin_getdir(ScriptState *st)
 {
@@ -5375,10 +6143,14 @@ void builtin_getdir(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, static_cast<uint8_t>(sd->dir));
 }
 
-/*==========================================
- * Get the PC's current map's name
- *------------------------------------------
- */
+/*========================================
+ * Return the name of the map a player is on. The optional being id picks
+ * the player; otherwise the attached player is used.
+ *
+ * @doc getmap
+ * @optarg gid: GID; being id of the player to query.
+ * @ret str; the map name, or an empty string if unavailable.
+ ========================================*/
 static
 void builtin_getmap(ScriptState *st)
 {
@@ -5397,10 +6169,13 @@ void builtin_getmap(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, sd->bl_m->name_);
 }
 
-/*==========================================
- * Get the maximum x coordinate of a map
- *------------------------------------------
- */
+/*========================================
+ * Return the highest valid x coordinate of a map (its width minus one).
+ *
+ * @doc getmapmaxx
+ * @arg map: map; the map to query.
+ * @ret int; the maximum x coordinate.
+ ========================================*/
 static
 void builtin_getmapmaxx(ScriptState *st)
 {
@@ -5409,10 +6184,13 @@ void builtin_getmapmaxx(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, m->xs-1);
 }
 
-/*==========================================
- * Get the maximum y coordinate of a map
- *------------------------------------------
- */
+/*========================================
+ * Return the highest valid y coordinate of a map (its height minus one).
+ *
+ * @doc getmapmaxy
+ * @arg map: map; the map to query.
+ * @ret int; the maximum y coordinate.
+ ========================================*/
 static
 void builtin_getmapmaxy(ScriptState *st)
 {
@@ -5421,10 +6199,13 @@ void builtin_getmapmaxy(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, m->ys-1);
 }
 
-/*==========================================
- * Get the hash of a map
- *------------------------------------------
- */
+/*========================================
+ * Return the numeric hash identifying a map.
+ *
+ * @doc getmaphash
+ * @arg map: map; the map to query.
+ * @ret int; the map's hash.
+ ========================================*/
 static
 void builtin_getmaphash(ScriptState *st)
 {
@@ -5433,10 +6214,13 @@ void builtin_getmaphash(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, m->hash);
 }
 
-/*==========================================
- * Get the map name from a hash
- *------------------------------------------
- */
+/*========================================
+ * Return the name of the map with a given hash.
+ *
+ * @doc getmapnamefromhash
+ * @arg hash: int; the map hash to look up.
+ * @ret str; the map name, or an empty string if none matches.
+ ========================================*/
 static
 void builtin_getmapnamefromhash(ScriptState *st)
 {
@@ -5454,13 +6238,13 @@ void builtin_getmapnamefromhash(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, mapname);
 }
 
-/*==========================================
- * Look if a map exists
- * return value:
- *  0 = map does not exist
- *  1 = map exists
- *------------------------------------------
- */
+/*========================================
+ * Test whether a map is loaded.
+ *
+ * @doc mapexists
+ * @arg map: map; the map name to test.
+ * @ret int; 1 if the map is loaded, 0 otherwise.
+ ========================================*/
 static
 void builtin_mapexists(ScriptState *st)
 {
@@ -5468,20 +6252,25 @@ void builtin_mapexists(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, map_mapname2mapid(mapname).is_some());
 }
 
-/*==========================================
- * Returns number of available maps
- *------------------------------------------
- */
+/*========================================
+ * Return the number of maps currently loaded on the server.
+ *
+ * @doc numberofmaps
+ * @ret int; the number of loaded maps.
+ ========================================*/
 static
 void builtin_numberofmaps(ScriptState *st)
 {
     push_int<ScriptDataInt>(st->stack, maps_db.size());
 }
 
-/*==========================================
- * Get the map name of a specific maps_db index
- *------------------------------------------
- */
+/*========================================
+ * Return the name of the map at a position in the server's map list.
+ *
+ * @doc getmapnamebyindex
+ * @arg index: int; the index into the map list.
+ * @ret str; the map name, or an empty string if the index is out of range.
+ ========================================*/
 static
 void builtin_getmapnamebyindex(ScriptState *st)
 {
@@ -5501,10 +6290,16 @@ void builtin_getmapnamebyindex(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, ""_s);
 }
 
-/*==========================================
- * Get the NPC's info
- *------------------------------------------
- */
+/*========================================
+ * Return a string about an NPC. The optional argument picks another NPC;
+ * otherwise the script's own NPC is used.
+ *
+ * @doc strnpcinfo
+ * @arg type: int; which string: 0 full name, 1 visible name (before any
+ *                 '#'), 2 hidden part (from the '#' on), 3 map name.
+ * @optarg npc: expr; an NPC name or being id to query.
+ * @ret str; the requested string.
+ ========================================*/
 static
 void builtin_strnpcinfo(ScriptState *st)
 {
@@ -5551,10 +6346,13 @@ void builtin_strnpcinfo(ScriptState *st)
     push_str<ScriptDataStr>(st->stack, name);
 }
 
-/*============================
- * Gets the NPC's x pos
- *----------------------------
- */
+/*========================================
+ * Return the x coordinate of an NPC.
+ *
+ * @doc getnpcx
+ * @optarg npc: str; name of the NPC; defaults to the script's own NPC.
+ * @ret int; the NPC's x coordinate.
+ ========================================*/
 static
 void builtin_getnpcx(ScriptState *st)
 {
@@ -5573,10 +6371,13 @@ void builtin_getnpcx(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, nd->bl_x);
 }
 
-/*============================
- * Gets the NPC's y pos
- *----------------------------
- */
+/*========================================
+ * Return the y coordinate of an NPC.
+ *
+ * @doc getnpcy
+ * @optarg npc: str; name of the NPC; defaults to the script's own NPC.
+ * @ret int; the NPC's y coordinate.
+ ========================================*/
 static
 void builtin_getnpcy(ScriptState *st)
 {
@@ -5595,10 +6396,12 @@ void builtin_getnpcy(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, nd->bl_y);
 }
 
-/*==========================================
+/*========================================
+ * Shut the map server down, clearing the run flag and ending the main loop.
  *
- *------------------------------------------
- */
+ * @doc mapexit
+ * @ret none
+ ========================================*/
 static
 void builtin_mapexit(ScriptState *)
 {
