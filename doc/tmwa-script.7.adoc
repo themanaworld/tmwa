@@ -35,11 +35,11 @@ example.gat,30,40,0|script|Example NPC|123,{
 
 == Description
 
-TMWA has a single embedded scripting language.  Script source is compiled
-to bytecode at server startup and the same interpreter
-(`run_script` / `run_script_l`, see _src/map/script-call.cpp_) executes
-that bytecode in every context below.  The language is therefore *not*
-NPC-specific, even though scripted NPCs are by far the most common use.
+TMWA has a single embedded scripting language.  Script source is
+compiled to bytecode at server startup and the same interpreter
+executes that bytecode in every context below.  The language is
+therefore *not* NPC-specific, even though scripted NPCs are by far the
+most common use.
 
 A running script always has an *origin* (the NPC, item or other object the
 bytecode belongs to) and may have an attached player, the *RID* (the
@@ -55,15 +55,15 @@ same language; the differences are only in what triggers the script and
 whether a player is attached.
 
 NPC dialogue and interaction::
-A player clicking a scripted NPC runs that NPC's script body
-(`npc_click`).  *next*, *menu*, *input* and similar builtins suspend the
-script; the player's later replies resume it (`npc_scriptcont`).  The
-clicking player is the RID.
+A player clicking a scripted NPC runs that NPC's script body.
+*next*, *menu*, *input* and similar builtins suspend the script;
+the player's later replies resume it.  The clicking player is the
+RID.
 
 NPC event labels::
 Labels named `On<Something>` inside an NPC script are entry points
-triggered by the server rather than by a click.  *donpcevent* and the
-`callfunc`-style cross-NPC calls invoke them explicitly; the server
+triggered by the server rather than by a click.  *donpcevent* and
+direct `NpcName::OnLabel` calls invoke them explicitly; the server
 invokes them implicitly:
 +
 * `OnInit` runs for every NPC once, at server start.
@@ -90,16 +90,16 @@ Item scripts::
 Items carry script fragments compiled by the same parser.  A *use*-type
 item runs its `use_script` when consumed; equipment runs its
 `equip_script` when equipped (and on recalculation of stats).  The
-player using or wearing the item is the RID.  See _src/map/pc.cpp_.
+player using or wearing the item is the RID.
 
 The "magic" / spell system::
 TMWA no longer has a separate spell language in the shipped server.  A
-spell is just an NPC event registered with the *registercmd* builtin: a
-chat message a player types is matched against the registered
+spell is just an NPC event registered with the *registercmd* builtin:
+a chat message a player types is matched against the registered
 invocations and, on a match, the associated NPC event runs as a normal
-event-label script (`magic_message`, see _src/map/npc.cpp_).  The
-historical standalone spell interpreter survives only under
-_old-doc/old-spell-language_ and is not part of the running server.
+event-label script.  The historical standalone spell interpreter
+survives only under _old-doc/old-spell-language_ and is not part of
+the running server.
 
 User-defined functions and subroutines::
 *callfunc* and *callsub* call, respectively, a named `function` script
@@ -108,8 +108,8 @@ context: they push a return frame and keep running on the same
 interpreter and the same RID.
 
 NOTE: Atcommands (the `@`/`#` GM commands) are *not* a script context.
-They are implemented in C++ in _src/map/atcommand.cpp_.  Scripts interact
-with them only indirectly, for example through the *remotecmd* builtin.
+Scripts interact with them only indirectly, for example through the
+*remotecmd* builtin.
 
 === Variable scopes
 
@@ -176,9 +176,9 @@ separately.
 [NOTE]
 ====
 Names without a sigil that match a known player parameter (for example
-`Hp`, `Zeny`, `BaseLevel`) are not variables: the parser resolves them
-at compile time to *pc_readparam* / *pc_setparam* on the RID, and they
-never reach the variable table.  Pick a different name for any
+`Hp`, `Zeny`, `BaseLevel`) are not variables: the parser recognises
+them at compile time and reads or writes the corresponding player
+parameter on the RID instead.  Pick a different name for any
 unprefixed variable you define.
 ====
 
@@ -236,13 +236,11 @@ argument carries.  The vocabulary is informal but consistent:
 These types are documentation only: the interpreter enforces argument
 *count* (and the optional / variadic markers), not argument *type*.
 
-This reference is generated.  The authoritative source for each builtin is
-a structured doc comment immediately above its `builtin_<name>` function in
-_src/map/script-fun.cpp_; *tools/gen_script_docs.py* extracts those
-comments into the definition list below, and the *script-docs-drift* ctest
-(*tools/check_script_docs.py*) fails the build if this file and the
-comments disagree.  To change a builtin's documentation, edit its doc
-comment and re-run the generator.
+// The definition list below is generated from doc comments above each
+// builtin_<name> function in src/map/script-fun.cpp.  To fix a builtin's
+// documentation, edit its doc comment there and re-run
+// tools/gen_script_docs.py; the script-docs-drift ctest enforces that the
+// two stay in sync.
 
 //>>> GENERATED-BUILTIN-LIST
 *mes*([_text_])::
@@ -2341,10 +2339,6 @@ Returns _str_: pass:c[the (untranslated) string.]
 == See also
 
 *tmwa-map*(1), *tmwa-map.conf*(5)
-
-The script-language sources live under _src/map/script-*.cpp_; the
-authoritative builtin table is `builtin_functions[]` in
-_src/map/script-fun.cpp_.
 
 == Reporting bugs
 
