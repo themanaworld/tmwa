@@ -107,7 +107,7 @@ object or a label in the current script.  These are not a separate
 context: they push a return frame and keep running on the same
 interpreter and the same RID.
 
-NOTE: Atcommands (the `@`/`#` GM commands) are *not* a script context.
+NOTE: Atcommands (the `@`/+#+ GM commands) are *not* a script context.
 Scripts interact with them only indirectly, for example through the
 *remotecmd* builtin.
 
@@ -160,7 +160,7 @@ separately.
 
 | ##_name_   | Per-account, persistent and shared across all
               char-servers attached to the same login server.
-              Identical to `#` for a single-char-server setup.
+              Identical to +#+ for a single-char-server setup.
 |===
 
 .Postfix: value type
@@ -168,8 +168,8 @@ separately.
 |===
 | (none)     | Integer.  All script integers are signed and whole; no
               floating-point arithmetic.
-| $          | String.  The same prefix rules apply, except that `#`
-              and `##` have no string flavour (the account-register
+| $          | String.  The same prefix rules apply, except that +#+
+              and +##+ have no string flavour (the account-register
               tables hold integers only).
 |===
 
@@ -194,7 +194,7 @@ strings.
 The array builtins (*setarray*, *cleararray*, *getarraysize*,
 *array_search*) only accept arrays whose prefix is `$`, `@` or `.`
 (including `$@` and `.@`).  Per-character persistent names (no
-prefix) and the account-scoped prefixes (`#`, `##`) cannot be used as
+prefix) and the account-scoped prefixes (+#+, +##+) cannot be used as
 arrays; attempting to do so prints _illegal scope_ at runtime.
 
 == Builtin functions
