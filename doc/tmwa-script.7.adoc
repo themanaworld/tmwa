@@ -145,12 +145,14 @@ separately.
               choice for inter-NPC communication that should not be
               persisted.
 
-| .__name__  | Per-NPC, in memory.  Read and written on the script's
-              origin object (`st->oid`) via the same register array as
-              `@`-variables.  Cleared when the NPC is reloaded or the
-              server restarts.  Other scripts can address the same
-              cell by passing the NPC as a third argument to *set* /
-              *setarray*.
+| .__name__  | Per-NPC, in memory.  Read on the script's origin
+              object (`st->oid`) via the same register array as
+              `@`-variables, and cleared when the NPC is reloaded or
+              the server restarts.  A `.`-variable is normally only
+              visible from inside its own NPC; *set* and *setarray*
+              can *write* to another NPC's `.`-variable by taking the
+              target NPC as a third argument, but there is no
+              corresponding read-side primitive.
 
 | .@_name_   | Scope-local.  Lives on the *current* interpreter frame
               (`st->regm` / `st->regstrm`); a *callsub* or *callfunc*
