@@ -129,10 +129,11 @@ separately.
               dotted name, is the default variable a script uses to
               remember something about the RID across sessions.
 
-| @_name_    | Per-character, temporary.  Lives on the RID's in-memory
-              register array (*pc_readreg* / *pc_setreg*) and is lost
-              when the player logs out (or when the script that owns
-              the RID detaches it).
+| @_name_    | Per-character, temporary.  Lives in the RID's own
+              `regm` / `regstrm` map (every `block_list` carries one;
+              *pc_readreg* / *pc_setreg* are just `sd->regm.get` /
+              `put`).  Lost when the player logs out or the script
+              detaches the RID.
 
 | $_name_    | Global, persistent.  Stored server-wide in `mapreg`
               (saved to _save/mapreg.txt_).  Survives restarts and is
@@ -145,10 +146,12 @@ separately.
               choice for inter-NPC communication that should not be
               persisted.
 
-| .__name__  | Per-NPC, in memory.  Read on the script's origin
-              object (`st->oid`) via the same register array as
-              `@`-variables, and cleared when the NPC is reloaded or
-              the server restarts.  A `.`-variable is normally only
+| .__name__  | Per-NPC, in memory.  Lives in the NPC's own `regm` /
+              `regstrm` map — the same per-`block_list` storage that
+              backs `@`-variables, just on a different object: a `.`
+              lookup uses the script's origin NPC (`st->oid`), an `@`
+              lookup uses the RID.  Cleared when the NPC is reloaded
+              or the server restarts.  A `.`-variable is normally only
               visible from inside its own NPC; *set* and *setarray*
               can *write* to another NPC's `.`-variable by taking the
               target NPC as a third argument, but there is no
