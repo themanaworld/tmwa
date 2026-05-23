@@ -107,7 +107,7 @@ object or a label in the current script.  These are not a separate
 context: they push a return frame and keep running on the same
 interpreter and the same RID.
 
-NOTE: Atcommands (the `@`/+#+ GM commands) are *not* a script context.
+NOTE: Atcommands (the `@` GM commands) are *not* a script context.
 Scripts interact with them only indirectly, for example through the
 *remotecmd* builtin.
 
