@@ -2,7 +2,7 @@
 :doctype: manpage
 :manmanual: TMWA Manual
 :mansource: TMWA
-:revdate: 2026-05-22
+:revdate: 2026-05-23
 
 // This file is a committed, reviewable artifact.  The prose around the
 // builtin reference (Name, Synopsis, Description, Variable scopes, See also)
@@ -113,20 +113,98 @@ with them only indirectly, for example through the *remotecmd* builtin.
 
 === Variable scopes
 
-Variable names carry their scope in a sigil prefix; a trailing `$`
-marks a string variable.
+A variable name is built from a *prefix* (which selects the scope and
+whether the variable is persisted) and a *postfix* (which selects the
+value type).  Most scopes come in both a persistent and a temporary
+flavour, distinguished by an `@` in the prefix; mixing the two is a
+common source of bugs, so the table below names every combination
+separately.
 
-[cols="1,4"]
+.Prefix: scope and persistence
+[cols="1m,4"]
 |===
-| _name_ | NPC-scope variable, shared by the script's NPC
-| `@`_name_ | temporary variable, attached to the RID for the current run
-| `$`_name_ | global variable, shared server-wide and persisted
-| `.`_name_ | function-scope (local) variable
-| `.@`_name_ | function-scope temporary variable
+| _name_     | Per-character, persistent.  Stored with the player save
+              data (`global_reg`) and read/written through
+              *pc_readglobalreg* / *pc_setglobalreg*.  This, *not* a
+              dotted name, is the default variable a script uses to
+              remember something about the RID across sessions.
+
+| @_name_    | Per-character, temporary.  Lives on the RID's in-memory
+              register array (*pc_readreg* / *pc_setreg*) and is lost
+              when the player logs out (or when the script that owns
+              the RID detaches it).
+
+| $_name_    | Global, persistent.  Stored server-wide in `mapreg`
+              (saved to _save/mapreg.txt_).  Survives restarts and is
+              not tied to any player, so it is safe to use from scripts
+              that run with no RID attached.
+
+| $@_name_   | Global, temporary.  Lives in the same `mapreg` table
+              but the saver skips names whose second character is `@`,
+              so the value is cleared on restart.  This is the usual
+              choice for inter-NPC communication that should not be
+              persisted.
+
+| .__name__  | Per-NPC, in memory.  Read and written on the script's
+              origin object (`st->oid`) via the same register array as
+              `@`-variables.  Cleared when the NPC is reloaded or the
+              server restarts.  Other scripts can address the same
+              cell by passing the NPC as a third argument to *set* /
+              *setarray*.
+
+| .@_name_   | Scope-local.  Lives on the *current* interpreter frame
+              (`st->regm` / `st->regstrm`); a *callsub* or *callfunc*
+              opens a new scope and the called code sees fresh
+              `.@`-variables.  When the call returns the scope is
+              destroyed: `return .@foo;` returns the *value*, not a
+              reference.
+
+| #_name_    | Per-account, persistent on this char-server.  Stored in
+              the account-register table (`accreg`,
+              *pc_readaccountreg* / *pc_setaccountreg*).  Shared by all
+              characters on the same account but not between
+              char-servers.
+
+| ##_name_   | Per-account, persistent and login-server-wide.  Stored
+              by the login server (*pc_readaccountreg2* /
+              *pc_setaccountreg2*).  Differs from `#` only when several
+              char-servers share one login server, in which case `##`
+              values are shared across all of them.
 |===
 
+.Postfix: value type
+[cols="1m,4"]
+|===
+| (none)     | Integer.  All script integers are signed and whole; no
+              floating-point arithmetic.
+| $          | String.  The same prefix rules apply, except that `#`
+              and `##` have no string flavour (the account-register
+              tables hold integers only).
+|===
+
+[NOTE]
+====
 Names without a sigil that match a known player parameter (for example
-`Hp`, `Zeny`, `BaseLevel`) read and write that parameter on the RID.
+`Hp`, `Zeny`, `BaseLevel`) are not variables: the parser resolves them
+at compile time to *pc_readparam* / *pc_setparam* on the RID, and they
+never reach the variable table.  Pick a different name for any
+unprefixed variable you define.
+====
+
+==== Arrays
+
+Any variable name may be subscripted as `name[i]`, with the index `i`
+in `0..255`; an out-of-range index reads as 0 and is silently dropped
+on write.  Element 0 is the same storage as the unsubscripted name,
+so `@foo` and `@foo[0]` refer to the same cell.  Element types follow
+the postfix: `@foo[]` is an array of integers, `@foo$[]` an array of
+strings.
+
+The array builtins (*setarray*, *cleararray*, *getarraysize*,
+*array_search*) only accept arrays whose prefix is `$`, `@` or `.`
+(including `$@` and `.@`).  Per-character persistent names (no
+prefix) and the account-scoped prefixes (`#`, `##`) cannot be used as
+arrays; attempting to do so prints _illegal scope_ at runtime.
 
 == Builtin functions
 
