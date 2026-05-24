@@ -3004,7 +3004,7 @@ void builtin_getmobdrops(ScriptState *st)
         auto& dropitem = mob_info.dropitem[i];
         if (dropitem.nameid)
         {
-            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_item"_s), i), dropitem.p.num);
+            set_reg(bl, VariableCode::VARIABLE, SIR::from(variable_names.intern("$@MobDrop_item"_s), i), unwrap<ItemNameId>(dropitem.nameid));
 
             Option<P<struct item_data>> i_data = Some(itemdb_search(dropitem.nameid));
             RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
