@@ -2077,22 +2077,18 @@ void builtin_delitem(ScriptState *st)
     {
         if (sd->status.inventory[i].nameid == nameid)
         {
-            if (sd->status.inventory[i].amount >= amount)
+            int avail = sd->status.inventory[i].amount;
+            if (avail >= amount)
             {
                 pc_delitem(sd, i, amount, 0);
                 break;
             }
-            else
+            else if (pc_delitem(sd, i, avail, 0) == 0)
             {
-                amount -= sd->status.inventory[i].amount;
-                if (amount == 0)
-                    amount = sd->status.inventory[i].amount;
-                pc_delitem(sd, i, amount, 0);
-                break;
+                amount -= avail;
             }
         }
     }
-
 }
 
 static
