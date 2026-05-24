@@ -3538,9 +3538,9 @@ void builtin_announce(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_mapannounce_sub(dumb_ptr<block_list> bl, XString str, int flag)
+void builtin_mapannounce_sub(dumb_ptr<block_list> bl, XString str)
 {
-    clif_GMmessage(bl, str, flag | 3);
+    clif_GMmessage(bl, str, 3);
 }
 
 /*==========================================
@@ -3550,14 +3550,17 @@ void builtin_mapannounce_sub(dumb_ptr<block_list> bl, XString str, int flag)
 static
 void builtin_mapannounce(ScriptState *st)
 {
-    int flag;
-
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     ZString str = ZString(conv_str(st, &AARG(1)));
-    flag = conv_num(st, &AARG(2));
+    // The optional third argument (flag) is accepted for backwards
+    // compatibility with existing scripts but has no observable effect:
+    // clif_GMmessage() masks its flag with 0x07, and mapannounce_sub
+    // always ORs in 3 (SendWho::SELF), so any caller-supplied bits are
+    // discarded before they reach the wire. The value is intentionally
+    // not even read here.
 
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
-    map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, flag & 0x10),
+    map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str),
             m,
             0, 0,
             m->xs, m->ys,
@@ -5689,7 +5692,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npcaction, "i???"_s, '\0'),
     BUILTIN(camera, "???"_s, '\0'),
     BUILTIN(announce, "si"_s, '\0'),
-    BUILTIN(mapannounce, "Msi"_s, '\0'),
+    BUILTIN(mapannounce, "Ms?"_s, '\0'),
     BUILTIN(getusers, "i"_s, 'i'),
     BUILTIN(getmapusers, "M"_s, 'i'),
     BUILTIN(getareausers, "Mxyxy?"_s, 'i'),
