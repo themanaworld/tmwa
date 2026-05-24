@@ -1,4 +1,5 @@
 #include "script-fun.hpp"
+#include <climits>
 //    script-fun.cpp - EAthena script frontend, engine, and library.
 //
 //    Copyright © ????-2004 Athena Dev Teams
@@ -524,7 +525,7 @@ void builtin_rand(ScriptState *st)
 static
 void builtin_max(ScriptState *st)
 {
-    int max=0, num;
+    int max=INT_MIN, num;
     if (HARG(1))
     {
         max = conv_num(st, &AARG(0));
@@ -573,7 +574,7 @@ void builtin_max(ScriptState *st)
 static
 void builtin_min(ScriptState *st)
 {
-    int min = 0xFFFFFFF6, num;
+    int min = INT_MAX, num;
 
     if (HARG(1))
     {
