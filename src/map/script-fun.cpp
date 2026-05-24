@@ -1763,7 +1763,7 @@ void builtin_getarraysize(ScriptState *st)
 
     if (prefix != '$' && prefix != '@' && prefix != '.')
     {
-        PRINTF("builtin_copyarray: illegal scope!\n"_fmt);
+        PRINTF("builtin_getarraysize: illegal scope!\n"_fmt);
         return;
     }
 
