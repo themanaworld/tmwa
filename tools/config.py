@@ -545,7 +545,6 @@ def build_config():
     char_conf.opt('max_connect_user', i32, '0')
     char_conf.opt('autosave_time', seconds, 'DEFAULT_AUTOSAVE_INTERVAL', {char_h}, min='1_s')
     char_conf.opt('start_point', Point, '{ {"001-1.gat"_s}, 273, 354 }')
-    char_conf.opt('unknown_char_name', CharName, 'stringish<CharName>("Unknown"_s)')
     char_conf.opt('char_log_filename', RString, lit('log/char.log'))
     char_conf.opt('char_name_letters', CharBitset, '{}')
     char_conf.opt('online_txt_filename', RString, lit('online.txt'))
