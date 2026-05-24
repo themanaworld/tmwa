@@ -56,9 +56,6 @@ one level.
 
 == Levels and limits
 
-*max_lv* (`99`)::
-Maximum normal character level.
-
 *maximum_level* (`255`)::
 Absolute level cap enforced by the server.
 
@@ -120,7 +117,8 @@ Extra range, in cells, added when checking whether a monster may use a
 skill.
 
 *castrate_dex_scale* (`150`)::
-DEX value at which casting time is halved.
+DEX value at which casting time reaches zero.  Casting time scales
+linearly: at half this value casting time is halved.
 
 *itemheal_regeneration_factor* (`1`)::
 Multiplier applied to healing from items.
@@ -257,7 +255,8 @@ Minimum GM level allowed to warp past `nowarp`/`nowarpto` map flags.
 When true, GM IP addresses are masked in logs and displays.
 
 *gm_log_delay* (`60min`)::
-Interval for flushing the GM action log.
+Per-entry write delay: each atcommand is held this long before it is
+appended to the GM action log file.
 
 == Character appearance
 

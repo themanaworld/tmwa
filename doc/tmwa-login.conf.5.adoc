@@ -56,7 +56,9 @@ first time it is used to log in.
 URL announced to clients as the update (download) host.  Empty means none.
 
 *main_server* (default empty)::
-Server name advertised to clients.
+Name of the char server that should occupy the primary slot (index 0)
+in the server list returned to connecting clients.  When a char server
+registers itself under this name, it is given that slot.
 
 *min_level_to_connect* (default `0`)::
 Minimum GM level required to connect.  `0` lets ordinary players in; a
@@ -83,10 +85,12 @@ Password the administration tool must present.  Set a strong value when
 List of IP addresses or subnets allowed to use remote administration.
 
 *userid* (default empty)::
-Account name used by the login server's own inter-server connections.
+Account name a char server must present when registering with the login
+server.  The char server's own *userid* / *passwd* in *tmwa-char.conf*(5)
+must match these.
 
 *passwd* (default empty)::
-Password matching *userid*.
+Password matching *userid*; see above.
 
 *display_parse_login* (default `false`)::
 When true, log details of packets parsed from game clients.

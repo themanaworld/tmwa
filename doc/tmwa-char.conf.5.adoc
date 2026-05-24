@@ -71,12 +71,11 @@ How often character data is written to disk.  Must be at least 1 second.
 *start_point* (default map `001-1.gat` at 273,354)::
 Map and coordinates where a freshly created character starts.
 
-*unknown_char_name* (default `Unknown`)::
-Name shown in place of a character whose name cannot be resolved.
-
 *char_name_letters* (default empty)::
-Set of characters permitted in character names.  Empty allows any
-character.
+Set of bytes permitted in character names; every permitted character
+must be listed explicitly.  An empty value forbids *every* character
+and effectively blocks new-character creation, so this option should
+be configured before the char server is exposed.
 
 *min_name_length* (default `4`)::
 Minimum length of a character name.  Must be at least 4.
@@ -95,7 +94,9 @@ Refresh interval, in seconds, written into the online HTML page.  Must be
 at least 1.
 
 *online_gm_display_min_level* (default `20`)::
-Minimum GM level a GM must have before being listed on the online pages.
+GMs whose level is at or above this threshold are *omitted* from the
+public online-player lists.  Set higher to expose more GMs; set to 0
+to hide every GM.
 
 *max_hair_style* (default `20`)::
 Highest selectable hair style id.  Must be at least 1.

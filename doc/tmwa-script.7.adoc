@@ -552,7 +552,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *get*(_name_, _owner_) -> variant::
-pass:c[Read a variable or player parameter belonging to another being and return its value. Returns 0 or an empty string when the target cannot be found.]
+pass:c[Read a variable or player parameter belonging to another being and return its value. When owner is a name, the lookup is by character name (or NPC name when name is a `.`-variable). When owner is a number, values >= 2000000 are taken as a block-list id and values 150000..1999999 as a character id; smaller values are rejected. Lookups against `$`-prefixed globals are not supported. For variables and string parameters: returns 0 or "" when the target cannot be resolved. For numeric player parameters specifically, an unresolved owner returns -1 (so that 0 can still be a legitimate value).]
 +
 ifdef::backend-html5[]
 * _name_ (_var_) pass:c[the variable or parameter to read.]
@@ -563,7 +563,7 @@ ifdef::backend-manpage[]
 {empty}• _owner_ (_expr_) pass:c[the character or NPC that owns the variable.]
 endif::[]
 +
-Returns _variant_: pass:c[the value of the variable.]
+Returns _variant_: pass:c[the value of the variable, or 0/""/-1 on failure (see above).]
 
 *setarray*(_dest_[, _value_...])::
 pass:c[Fill an array starting at its given index with the listed values. For an NPC-scope array the second argument is instead the NPC to target and the values follow.]
@@ -839,7 +839,7 @@ endif::[]
 Returns _int_: pass:c[the player's level in that skill.]
 
 *overrideattack*([_delay_, _range_, _icon_, _weapon_, _event_, _charges_])::
-pass:c[Override the attached player's normal attack with a spell. Called with no arguments it removes the override and restores the normal attack.]
+pass:c[Override the attached player's normal attack with a spell. Called with no arguments it removes the override and restores the normal attack. Otherwise the first five arguments (delay, range, icon, weapon, event) must all be supplied together; charges is the only argument that is genuinely optional on top of those.]
 +
 ifdef::backend-html5[]
 * _delay_ (_timer_, optional) pass:c[attack delay in milliseconds.]
@@ -1201,15 +1201,15 @@ ifdef::backend-manpage[]
 endif::[]
 
 *announce*(_message_, _flag_)::
-pass:c[Broadcast a message. The flag controls scope and styling: with the low bits clear it is a server-wide announcement; with bit 0x08 set it is limited to the running NPC's surroundings, otherwise to the player's.]
+pass:c[Broadcast a message. The flag is interpreted in two parts. The low nibble selects the audience: 0 broadcasts server-wide, 1 sends to every player on the reference being's map, 2 sends to every player around the reference being, and 3 sends only to the reference being itself. Bit 0x08 chooses the reference being: when set the reference is the script's NPC, when clear it is the attached player.]
 +
 ifdef::backend-html5[]
 * _message_ (_str_) pass:c[the message text.]
-* _flag_ (_int_) pass:c[scope and styling flags.]
+* _flag_ (_int_) pass:c[audience (low nibble) and reference-being bit (0x08).]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _message_ (_str_) pass:c[the message text.] +
-{empty}• _flag_ (_int_) pass:c[scope and styling flags.]
+{empty}• _flag_ (_int_) pass:c[audience (low nibble) and reference-being bit (0x08).]
 endif::[]
 
 *mapannounce*(_map_, _message_, _flag_)::
@@ -1218,25 +1218,25 @@ pass:c[Broadcast a message to every player on a map.]
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to broadcast on.]
 * _message_ (_str_) pass:c[the message text.]
-* _flag_ (_int_) pass:c[styling flags.]
+* _flag_ (_int_) pass:c[only bit 0x10 is read; all other bits are ignored.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _map_ (_map_) pass:c[the map to broadcast on.] +
 {empty}• _message_ (_str_) pass:c[the message text.] +
-{empty}• _flag_ (_int_) pass:c[styling flags.]
+{empty}• _flag_ (_int_) pass:c[only bit 0x10 is read; all other bits are ignored.]
 endif::[]
 
 *getusers*(_flag_) -> int::
-pass:c[Return a user count. Flag 1 returns the total players on the server; flag 0 is disabled (use getmapusers). Bit 0x08 selects the NPC rather than the player as the reference being.]
+pass:c[Return a user count. Flag 1 returns the total players on the server. Any other value of flag prints a console message and returns 0; in particular, flag 0 is disabled (use getmapusers).]
 +
 ifdef::backend-html5[]
-* _flag_ (_int_) pass:c[which count and reference being.]
+* _flag_ (_int_) pass:c[must be 1; other values return 0.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _flag_ (_int_) pass:c[which count and reference being.]
+{empty}• _flag_ (_int_) pass:c[must be 1; other values return 0.]
 endif::[]
 +
-Returns _int_: pass:c[the requested user count.]
+Returns _int_: pass:c[the requested user count, or 0 when flag is not 1.]
 
 *getmapusers*(_map_) -> int::
 pass:c[Return the number of players currently on a map.]
@@ -1316,18 +1316,18 @@ ifdef::backend-manpage[]
 {empty}• _npc_ (_str_) pass:c[name of the NPC to disable.]
 endif::[]
 
-*sc_start*(_duration_, _status_, _value_[, _gid_])::
+*sc_start*(_status_, _duration_, _value_[, _gid_])::
 pass:c[Apply a status condition to a being for a duration. By default the attached player is affected. For a few legacy potion-style conditions a duration under one second is reinterpreted as seconds.]
 +
 ifdef::backend-html5[]
-* _duration_ (_int_) pass:c[duration in milliseconds.]
 * _status_ (_status_) pass:c[the status-condition id to apply.]
+* _duration_ (_int_) pass:c[duration in milliseconds.]
 * _value_ (_int_) pass:c[the value parameter for the condition.]
 * _gid_ (_GID_, optional) pass:c[being id to affect instead of the player.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _duration_ (_int_) pass:c[duration in milliseconds.] +
 {empty}• _status_ (_status_) pass:c[the status-condition id to apply.] +
+{empty}• _duration_ (_int_) pass:c[duration in milliseconds.] +
 {empty}• _value_ (_int_) pass:c[the value parameter for the condition.] +
 {empty}• _gid_ (_GID_, optional) pass:c[being id to affect instead of the player.]
 endif::[]
@@ -1389,7 +1389,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *resetstatus*()::
-pass:c[Reset the attached player's stat-point allocation, refunding spent points.]
+pass:c[Reset the attached player's six attributes (STR, AGI, VIT, INT, DEX, LUK) to 1 and overwrite the unspent stat-point pool with the canonical pool for the player's current base level. Unspent points above the level-table value are discarded.]
 
 *attachrid*(_gid_) -> int::
 pass:c[Attach a player to the script as the RID.]
@@ -1880,7 +1880,7 @@ ifdef::backend-html5[]
 * _x1_ (_coordinate_) pass:c[x of the opposite corner.]
 * _y1_ (_coordinate_) pass:c[y of the opposite corner.]
 * _event_ (_event_) pass:c[the NPC event to run.]
-* _caster_ (_GID_, optional) pass:c[being id of the caster; defaults to the attached player.]
+* _caster_ (_player_, optional) pass:c[account id of the player on whose behalf the event runs; defaults to the attached player.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _type_ (_int_) pass:c[being type: 0 players, 1 NPCs, 2 monsters, 3 everything.] +
@@ -1890,7 +1890,7 @@ ifdef::backend-manpage[]
 {empty}• _x1_ (_coordinate_) pass:c[x of the opposite corner.] +
 {empty}• _y1_ (_coordinate_) pass:c[y of the opposite corner.] +
 {empty}• _event_ (_event_) pass:c[the NPC event to run.] +
-{empty}• _caster_ (_GID_, optional) pass:c[being id of the caster; defaults to the attached player.]
+{empty}• _caster_ (_player_, optional) pass:c[account id of the player on whose behalf the event runs; defaults to the attached player.]
 endif::[]
 
 *isin*(_map_, _x0_, _y0_, _x1_, _y1_) -> int::
@@ -1982,24 +1982,24 @@ ifdef::backend-manpage[]
 {empty}• _sprite_ (_int_) pass:c[the new sprite species id.]
 endif::[]
 
-*puppet*(_sprite_, _x_, _y_, _name_, _map_[, _half_width_, _half_height_]) -> int::
+*puppet*(_map_, _x_, _y_, _name_, _sprite_[, _half_width_, _half_height_]) -> int::
 pass:c[Create a temporary NPC (a "puppet") with a sprite. It inherits the labels of the calling NPC.]
 +
 ifdef::backend-html5[]
-* _sprite_ (_mob_) pass:c[the puppet's sprite species id.]
+* _map_ (_map_) pass:c[the map name for the puppet.]
 * _x_ (_coordinate_) pass:c[the puppet's x coordinate.]
 * _y_ (_coordinate_) pass:c[the puppet's y coordinate.]
 * _name_ (_str_) pass:c[the puppet's NPC name.]
-* _map_ (_int_) pass:c[the map name for the puppet.]
+* _sprite_ (_mob_) pass:c[the puppet's sprite species id.]
 * _half_width_ (_int_, optional) pass:c[touch-area half-width.]
 * _half_height_ (_int_, optional) pass:c[touch-area half-height.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _sprite_ (_mob_) pass:c[the puppet's sprite species id.] +
+{empty}• _map_ (_map_) pass:c[the map name for the puppet.] +
 {empty}• _x_ (_coordinate_) pass:c[the puppet's x coordinate.] +
 {empty}• _y_ (_coordinate_) pass:c[the puppet's y coordinate.] +
 {empty}• _name_ (_str_) pass:c[the puppet's NPC name.] +
-{empty}• _map_ (_int_) pass:c[the map name for the puppet.] +
+{empty}• _sprite_ (_mob_) pass:c[the puppet's sprite species id.] +
 {empty}• _half_width_ (_int_, optional) pass:c[touch-area half-width.] +
 {empty}• _half_height_ (_int_, optional) pass:c[touch-area half-height.]
 endif::[]
@@ -2188,7 +2188,7 @@ endif::[]
 Returns _variant_: pass:c[the chosen value.]
 
 *max*(_value_[, _more_...]) -> int::
-pass:c[Return the largest of the integer arguments. Called with a single array variable, it returns the largest element of that array.]
+pass:c[Return the largest of the integer arguments. Called with a single array variable, it scans the array from the given index up to index 255 and returns the largest element, with a floor of 0 (i.e. an array of all negative values returns 0).]
 +
 ifdef::backend-html5[]
 * _value_ (_expr_) pass:c[an integer, or a single array variable.]
@@ -2202,7 +2202,7 @@ endif::[]
 Returns _int_: pass:c[the largest value.]
 
 *min*(_value_[, _more_...]) -> int::
-pass:c[Return the smallest of the integer arguments. Called with a single array variable, it returns the smallest element of that array.]
+pass:c[Return the smallest of the integer arguments. Called with a single array variable, it scans the array from the given index up to index 255 and returns the smallest element, with a floor of -10 (i.e. an array whose elements are all greater than -10 still returns -10).]
 +
 ifdef::backend-html5[]
 * _value_ (_expr_) pass:c[an integer, or a single array variable.]

@@ -592,7 +592,9 @@ void builtin_rand(ScriptState *st)
 
 /*========================================
  * Return the largest of the integer arguments. Called with a single array
- * variable, it returns the largest element of that array.
+ * variable, it scans the array from the given index up to index 255 and
+ * returns the largest element, with a floor of 0 (i.e. an array of all
+ * negative values returns 0).
  *
  * @doc max
  * @arg value: expr; an integer, or a single array variable.
@@ -646,7 +648,9 @@ void builtin_max(ScriptState *st)
 
 /*========================================
  * Return the smallest of the integer arguments. Called with a single array
- * variable, it returns the smallest element of that array.
+ * variable, it scans the array from the given index up to index 255 and
+ * returns the smallest element, with a floor of -10 (i.e. an array whose
+ * elements are all greater than -10 still returns -10).
  *
  * @doc min
  * @arg value: expr; an integer, or a single array variable.
@@ -1420,8 +1424,8 @@ void builtin_foreach_sub(dumb_ptr<block_list> bl, NpcEvent event, BlockId caster
  * @arg x1: coordinate; x of the opposite corner.
  * @arg y1: coordinate; y of the opposite corner.
  * @arg event: event; the NPC event to run.
- * @optarg caster: GID; being id of the caster; defaults to the attached
- *                      player.
+ * @optarg caster: player; account id of the player on whose behalf the
+ *                          event runs; defaults to the attached player.
  * @ret none
  ========================================*/
 static
@@ -1529,11 +1533,11 @@ void builtin_destroy(ScriptState *st)
  * of the calling NPC.
  *
  * @doc puppet
- * @arg sprite: mob; the puppet's sprite species id.
+ * @arg map: map; the map name for the puppet.
  * @arg x: coordinate; the puppet's x coordinate.
  * @arg y: coordinate; the puppet's y coordinate.
  * @arg name: str; the puppet's NPC name.
- * @arg map: int; the map name for the puppet.
+ * @arg sprite: mob; the puppet's sprite species id.
  * @optarg half_width: int; touch-area half-width.
  * @optarg half_height: int; touch-area half-height.
  * @ret int; the new NPC's being id, or 0 if the name is already in use.
@@ -2726,6 +2730,9 @@ void builtin_getskilllv(ScriptState *st)
 /*========================================
  * Override the attached player's normal attack with a spell. Called with no
  * arguments it removes the override and restores the normal attack.
+ * Otherwise the first five arguments (delay, range, icon, weapon, event)
+ * must all be supplied together; charges is the only argument that is
+ * genuinely optional on top of those.
  *
  * @doc overrideattack
  * @optarg delay: timer; attack delay in milliseconds.
@@ -3981,13 +3988,16 @@ void builtin_setnpcdirection(ScriptState *st)
 }
 
 /*========================================
- * Broadcast a message. The flag controls scope and styling: with the low
- * bits clear it is a server-wide announcement; with bit 0x08 set it is
- * limited to the running NPC's surroundings, otherwise to the player's.
+ * Broadcast a message. The flag is interpreted in two parts. The low
+ * nibble selects the audience: 0 broadcasts server-wide, 1 sends to every
+ * player on the reference being's map, 2 sends to every player around the
+ * reference being, and 3 sends only to the reference being itself. Bit
+ * 0x08 chooses the reference being: when set the reference is the script's
+ * NPC, when clear it is the attached player.
  *
  * @doc announce
  * @arg message: str; the message text.
- * @arg flag: int; scope and styling flags.
+ * @arg flag: int; audience (low nibble) and reference-being bit (0x08).
  * @ret none
  ========================================*/
 static
@@ -4028,7 +4038,7 @@ void builtin_mapannounce_sub(dumb_ptr<block_list> bl, XString str, int flag)
  * @doc mapannounce
  * @arg map: map; the map to broadcast on.
  * @arg message: str; the message text.
- * @arg flag: int; styling flags.
+ * @arg flag: int; only bit 0x10 is read; all other bits are ignored.
  * @ret none
  ========================================*/
 static
@@ -4049,13 +4059,13 @@ void builtin_mapannounce(ScriptState *st)
 }
 
 /*========================================
- * Return a user count. Flag 1 returns the total players on the server; flag
- * 0 is disabled (use getmapusers). Bit 0x08 selects the NPC rather than the
- * player as the reference being.
+ * Return a user count. Flag 1 returns the total players on the server. Any
+ * other value of flag prints a console message and returns 0; in
+ * particular, flag 0 is disabled (use getmapusers).
  *
  * @doc getusers
- * @arg flag: int; which count and reference being.
- * @ret int; the requested user count.
+ * @arg flag: int; must be 1; other values return 0.
+ * @ret int; the requested user count, or 0 when flag is not 1.
  ========================================*/
 static
 void builtin_getusers(ScriptState *st)
@@ -4333,8 +4343,8 @@ void builtin_disablenpc(ScriptState *st)
  * duration under one second is reinterpreted as seconds.
  *
  * @doc sc_start
- * @arg duration: int; duration in milliseconds.
  * @arg status: status; the status-condition id to apply.
+ * @arg duration: int; duration in milliseconds.
  * @arg value: int; the value parameter for the condition.
  * @optarg gid: GID; being id to affect instead of the player.
  * @ret none
@@ -4448,8 +4458,10 @@ void builtin_debugmes(ScriptState *st)
 }
 
 /*========================================
- * Reset the attached player's stat-point allocation, refunding spent
- * points.
+ * Reset the attached player's six attributes (STR, AGI, VIT, INT, DEX,
+ * LUK) to 1 and overwrite the unspent stat-point pool with the canonical
+ * pool for the player's current base level. Unspent points above the
+ * level-table value are discarded.
  *
  * @doc resetstatus
  * @ret none
@@ -5257,12 +5269,21 @@ void builtin_specialeffect2(ScriptState *st)
 
 /*========================================
  * Read a variable or player parameter belonging to another being and return
- * its value. Returns 0 or an empty string when the target cannot be found.
+ * its value. When owner is a name, the lookup is by character name (or NPC
+ * name when name is a `.`-variable). When owner is a number, values >=
+ * 2000000 are taken as a block-list id and values 150000..1999999 as a
+ * character id; smaller values are rejected. Lookups against `$`-prefixed
+ * globals are not supported.
+ *
+ * For variables and string parameters: returns 0 or "" when the target
+ * cannot be resolved. For numeric player parameters specifically, an
+ * unresolved owner returns -1 (so that 0 can still be a legitimate value).
  *
  * @doc get
  * @arg name: var; the variable or parameter to read.
  * @arg owner: expr; the character or NPC that owns the variable.
- * @ret variant; the value of the variable.
+ * @ret variant; the value of the variable, or 0/""/-1 on failure (see
+ *               above).
  ========================================*/
 static
 void builtin_get(ScriptState *st)

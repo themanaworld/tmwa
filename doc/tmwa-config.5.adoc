@@ -25,15 +25,19 @@ loads them in order; when none is given it falls back to a default file in
 
 A configuration file is read line by line.
 
-* A blank line, or a line whose first non-blank characters are `//`, is a
-  comment and is ignored.  There are no end-of-line comments and no `#`
-  comments.
+* An empty line, or a line that *begins* with `//`, is treated as a
+  comment and ignored.  Leading whitespace disqualifies the comment
+  marker, so `  //note` is read as a value line and rejected as
+  malformed; and a whitespace-only line is not a blank line for this
+  purpose -- it too is rejected.  There are no end-of-line comments
+  and no `#` comments.
 * Any other line must have the form _key_*:*_value_.  The key is
-  everything before the first colon, with surrounding whitespace stripped;
-  the value is everything after it, with leading whitespace stripped but
-  trailing whitespace kept.
-* A line that contains a control character, or that has no colon, is a
-  fatal error.
+  everything before the first colon, with surrounding ASCII spaces
+  stripped; the value is everything after it, with leading ASCII
+  spaces stripped but trailing whitespace kept.  Tabs are *not*
+  stripped, and are not treated as whitespace anywhere by the parser.
+* A line that contains any byte below 0x20 (including tab and other
+  control characters), or that has no colon, is a fatal error.
 * An unknown key is a fatal error: the daemon reports the offending line
   and refuses to start.
 
