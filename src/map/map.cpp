@@ -1578,7 +1578,7 @@ int do_init(Slice<ZString> argv)
         {
             if (argvi == "--help"_s)
             {
-                PRINTF("Usage: %s [--help] [--version] [--write_atcommand_config outfile] [files...]\n"_fmt,
+                PRINTF("Usage: %s [--help] [--version] [--write-atcommand-config outfile] [files...]\n"_fmt,
                         argv0);
                 exit(0);
             }
