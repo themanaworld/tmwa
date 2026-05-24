@@ -3573,7 +3573,6 @@ static
 void builtin_getusers(ScriptState *st)
 {
     int flag = conv_num(st, &AARG(0));
-    dumb_ptr<block_list> bl = map_id2bl((flag & 0x08) ? st->oid : st->rid);
     int val = 0;
     switch (flag & 0x07)
     {
