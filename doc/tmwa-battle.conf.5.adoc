@@ -125,6 +125,8 @@ Multiplier applied to healing from items.
 
 *mob_splash_radius* (`-1`)::
 Splash radius, in cells, for monster area attacks; `-1` disables splash.
+Splash damage is only applied when the target is a player on a non-town
+map; monster-on-monster attacks and town maps are unaffected.
 
 == Targeting and AI
 
@@ -158,7 +160,9 @@ Base experience lost on death, in ten-thousandths.
 Job experience lost on death, in ten-thousandths.
 
 *restart_hp_rate* (`0`)::
-Percentage of maximum HP restored on respawn (0 to 100).
+Percentage of maximum HP restored on respawn (0 to 100).  A value of 0
+gives the respawn the minimum 1 HP; values between 1 and 49 are
+silently treated as 50, so the effective range is `0` or `50..100`.
 
 *restart_sp_rate* (`0`)::
 Percentage of maximum SP restored on respawn (0 to 100).
@@ -243,7 +247,10 @@ When true, only GMs may use atcommands.
 Cap on how many monsters a single spawn atcommand may create.
 
 *gm_all_equipment* (`0`)::
-Minimum GM level allowed to equip any item regardless of restrictions.
+Minimum GM level at which the server bypasses an item's sex and
+equip-level restrictions when wearing.  Only those two checks are
+relaxed; other equip restrictions still apply.  The default `0`
+disables the override entirely.
 
 *hack_info_GM_level* (`60`)::
 Minimum GM level that receives hack/cheat notification messages.
@@ -278,7 +285,9 @@ Allowed range of clothes-colour ids.
 Penalty points added for a "lame" chat message.
 
 *chat_spam_threshold* (`10s`)::
-Time window over which chat-spam scoring is measured (0 to 32767 seconds).
+Time window over which chat-spam scoring is measured (0 to 32767
+seconds).  The repeat-message window — how long an identical message
+counts as a repeat of the previous one — is *60×* this value.
 
 *chat_spam_flood* (`10`)::
 Chat-spam score that counts as flooding (0 to 32767).

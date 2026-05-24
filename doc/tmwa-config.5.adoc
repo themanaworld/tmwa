@@ -41,9 +41,32 @@ A configuration file is read line by line.
 * An unknown key is a fatal error: the daemon reports the offending line
   and refuses to start.
 
+== Value formats
+
 Boolean values accept `true`, `on`, `yes`, `oui`, `ja`, `si` or `1` for
-true and `false`, `off`, `no`, `non`, `nein` or `0` for false.  Durations
-are written with a unit-suffixed integer such as `30s`, `5min` or `1h`.
+true and `false`, `off`, `no`, `non`, `nein` or `0` for false.
+
+Integer values are decimal.  Many options declare a minimum and/or
+maximum: a value outside that range is rejected and the daemon refuses
+to start (no clamping, no warning).
+
+Duration values are either a bare integer (interpreted in the option's
+native unit, typically seconds) or a unit-suffixed integer.  The
+accepted suffixes, smallest to largest, are `ns`, `us`, `ms`, `s`,
+`min`, `h`, `d`; a duration written in any unit at least as fine as
+the option's native unit is accepted, so a seconds-typed option also
+takes `5min`, `1h`, `2d` and so on.
+
+IP addresses are dotted-quad, for example `203.0.113.5`.  An IP
+*mask* is `address/prefix-length` (`203.0.113.0/24`) or
+`address/dotted-mask` (`203.0.113.0/255.255.255.0`); a bare address is
+treated as a `/32`.  An *IP set* is a comma-separated list of masks.
+
+A *map point* (`start_point`-style) is written as
+`"map.gat", x, y`.
+
+String values are taken literally: the parser does not interpret
+quotes, backslash escapes or any other special syntax inside a value.
 
 == Directives
 

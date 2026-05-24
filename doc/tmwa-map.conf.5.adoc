@@ -15,9 +15,12 @@ This page documents the configuration of the TMWA map server,
 _key_*:*_value_ lines, *import* and *version* directives) see
 *tmwa-config*(5).
 
-The file named on the *tmwa-map* command line (or `conf/tmwa-map.conf` by
-default) is a *meta* configuration file.  It does not hold the map options
-below directly; instead each key points at another file to load:
+The file(s) named on the *tmwa-map* command line (or `conf/tmwa-map.conf`
+by default) are *meta* configuration files.  They do not hold the map
+options below directly; instead each key points at another file to load.
+All of the keys below except *atcommand_conf* are required: there are no
+built-in defaults, so omitting any of them aborts startup.  Use *import*
+(see *tmwa-config*(5)) to compose the meta file from smaller pieces.
 
 *map_conf*::
 Path of the file holding the map-server options listed under
@@ -51,7 +54,9 @@ Path of the script-constant database, mapping names to numbers for use in
 scripts.
 
 *resnametable*::
-Path of the resource-name translation table.
+Path of the resource-name translation table.  Each line maps a logical
+`.gat` map name (as named in *map:* directives) to the on-disk data
+file (typically `.wlk`) that the map loader actually reads.
 
 == Map options
 
@@ -76,28 +81,38 @@ Account name this map server uses to authenticate to the char server.
 *passwd* (default empty)::
 Password matching *userid*.
 
-*autosave_time* (default the built-in autosave interval)::
-How often map-server state is written to disk.
+*autosave_time* (default `1min`)::
+Per-character save period: each online character is written to disk
+once per interval, but the writes are spread out across the interval
+(the autosave timer fires every `autosave_time / (online + 1)` and
+flushes one character per tick), so save activity is effectively
+continuous when many players are online.
 
 *mapreg_txt* (default `save/mapreg.txt`)::
 Path of the file storing persistent global script variables (the
 `$`-prefixed registers).
 
 *log_file* (default empty)::
-Path of the map-server log file.  Empty disables file logging.
+Filename prefix of the map-server log file.  The actual file is
+`<log_file>.<index>`; older files are rotated and gzipped over time.
+Empty disables file logging.
 
 *gm_log* (default empty)::
-Path of the GM-action log file.  Empty disables GM logging.
+Filename prefix of the GM-action log file.  The actual file is
+`<gm_log>.YYYY-MM`, rotated monthly.  Empty disables GM logging.
 
 The following keys may appear *more than once*; each occurrence adds or
 removes one entry, and they are processed in order:
 
 *map*::
-Add a `.gat` map to the set of maps the server loads.
+Add a `.gat` map to the set of maps the server loads.  The special
+value `map: clear` removes every map currently in the set, which is
+useful after an *import* to start from a clean slate.
 
 *delmap*::
-Remove a previously added map.  Useful after an *import* to drop a map the
-imported file added.
+Remove a previously added map.  Useful after an *import* to drop a map
+the imported file added.  The special value `delmap: all` clears the
+entire map set in one step.
 
 *npc*::
 Add an NPC script file (or a script-tree root) to load.

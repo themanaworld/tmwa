@@ -890,7 +890,9 @@ void builtin_areawarp(ScriptState *st)
  * @arg hp: amount; hit points to restore.
  * @arg sp: amount; spell points to restore.
  * @optarg item_heal: bool; nonzero to treat it as item healing, subject to
- *                          healing modifiers.
+ *                          healing modifiers.  The modifier path is taken
+ *                          only when hp is positive; non-positive hp
+ *                          ignores the flag and uses the plain heal path.
  * @ret none
  ========================================*/
 static
@@ -1061,7 +1063,10 @@ void builtin_injure(ScriptState *st)
  * Prompt the attached player for input and store the result in a variable.
  * A string variable opens a text prompt; a numeric variable opens a number
  * prompt. The script suspends until the player answers; a negative numeric
- * answer cancels the dialogue.
+ * answer cancels the dialogue. The negative value is still written to
+ * dest before the dialogue is closed, so a script checking dest after a
+ * cancellation will see that negative value rather than the previous
+ * contents.
  *
  * @doc input
  * @arg dest: var; the variable to store the answer in.
@@ -1658,7 +1663,10 @@ void builtin_puppet(ScriptState *st)
 /*========================================
  * Assign a value to a variable or player parameter. The optional third
  * argument selects whose copy to write: a character name or id for player-
- * scope variables, an NPC name or id for NPC-scope variables.
+ * scope variables, an NPC name or id for NPC-scope variables. When given
+ * as a number for a player-scope target, values >= 2000000 are interpreted
+ * as a block-list id and values 150000..1999999 as a character id; smaller
+ * numeric owners are silently ignored.
  *
  * @doc set
  * @arg dest: var; the variable or parameter to write.
@@ -2339,7 +2347,11 @@ void builtin_makeitem(ScriptState *st)
 }
 
 /*========================================
- * Remove units of an item from the attached player's inventory.
+ * Remove units of an item from the attached player's inventory. Only the
+ * first inventory slot that holds the item is touched: any further copies
+ * of the same item id in later inventory slots are left alone, so to
+ * remove a quantity that may be split across stacks the script must call
+ * delitem repeatedly.
  *
  * @doc delitem
  * @arg item: item; the item, by numeric id or name.
@@ -2406,7 +2418,8 @@ void builtin_getversion(ScriptState *st)
  *
  * @doc getcharid
  * @arg type: int; which id: 0 character id, 1 party id, 2 always 0 (guilds
- *                 are unimplemented), 3 account id.
+ *                 are unimplemented), 3 account id.  Any other value
+ *                 leaves nothing on the stack and is a script error.
  * @optarg name: str; name of the character to query.
  * @ret int; the requested id, or -1 if no such player.
  ========================================*/
@@ -2609,9 +2622,10 @@ void builtin_freeloop(ScriptState *st)
 }
 
 /*========================================
- * Add an equipment-style stat bonus to the attached player. Intended for
- * item equip_script fragments; the effect lasts only until stats are
- * recalculated.
+ * Add an equipment-style stat bonus to the attached player. Typically
+ * used inside an item's equip_script, where it is re-applied on every
+ * recalculation; from a regular script the bonus persists until the next
+ * stat recalculation clears it.
  *
  * @doc bonus
  * @arg type: int; an SP bonus type.
@@ -2880,9 +2894,10 @@ void builtin_savepoint(ScriptState *st)
 }
 
 /*========================================
- * Return a time value. Type 0 is the server tick (an unsigned counter that
- * wraps), type 1 is seconds elapsed since midnight, type 2 is the Unix
- * timestamp. Any other value behaves as type 0.
+ * Return a time value. Type 0 is the server tick in milliseconds (an
+ * unsigned counter that wraps), type 1 is seconds elapsed since midnight,
+ * type 2 is the Unix timestamp in seconds. Any other value behaves as
+ * type 0.
  *
  * @doc gettimetick
  * @arg type: int; which time value to return.
@@ -3234,7 +3249,10 @@ void builtin_mobinfo(ScriptState *st)
  * @arg species: mob; the monster species id.
  * @arg field: int; what to store: 0 item ids, 1 item names (string array),
  *                  2 drop percents.
- * @arg dest: var; the array variable to fill.
+ * @arg dest: var; the array variable to fill.  Must be prefixed `$`, `@`
+ *                 or `.` (the same prefixes the array builtins accept);
+ *                 for field 1 it must also be a `$`-postfixed string
+ *                 array.  Other shapes cause the call to return 0.
  * @ret int; 0 on error, 1 if the monster has drops, 2 if it has none.
  ========================================*/
 static
@@ -3419,13 +3437,16 @@ void builtin_getmobdrops(ScriptState *st)
 }
 
 /*========================================
- * Spawn a single monster owned by another being.
+ * Spawn a single monster owned by another being. Only player owners take
+ * effect today: a non-player owner is silently dropped and the spawn has
+ * no master.
  *
  * @doc summon
  * @arg map: map; the map to spawn on.
  * @arg x: coordinate; the spawn x coordinate.
  * @arg y: coordinate; the spawn y coordinate.
- * @arg owner: str; the owner's being id, passed as a string.
+ * @arg owner: str; the owner's being id, passed as a string.  Only a
+ *                  player id has any effect.
  * @arg name: str; the monster's display name.
  * @arg species: mob; the monster species id.
  * @arg attitude: int; an attitude code: servant, friendly, hostile or
@@ -4476,7 +4497,10 @@ void builtin_resetstatus(ScriptState *st)
 }
 
 /*========================================
- * Attach a player to the script as the RID.
+ * Attach a player to the script as the RID. The RID is set to the given
+ * id unconditionally before the existence check, so even when the return
+ * is 0 the script's RID has still been changed to point at the (now
+ * non-existent) id the caller passed in.
  *
  * @doc attachrid
  * @arg gid: GID; being id of the player to attach.
@@ -4798,7 +4822,9 @@ void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
 
 /*========================================
  * Return the number of monsters on a map whose death event matches. The
- * count is reported one lower than the raw total.
+ * count is reported one lower than the raw total, by historical
+ * convention: a spawn-source NPC counts toward the total, so the -1
+ * cancels it out.
  *
  * @doc mobcount
  * @arg map: map; the map to count monsters on.
@@ -4940,10 +4966,11 @@ void builtin_chr(ScriptState *st)
 }
 
 /*========================================
- * Return the ASCII code of the first character of a string.
+ * Return the ASCII code of the first character of a string. The string
+ * must be non-empty; calling ord on an empty string is undefined.
  *
  * @doc ord
- * @arg text: str; the string to inspect.
+ * @arg text: str; the string to inspect; must be non-empty.
  * @ret int; the ASCII code of the first character.
  ========================================*/
 static
@@ -5171,9 +5198,11 @@ void builtin_unpoolskill(ScriptState *st)
 }
 
 /*========================================
- * Display a miscellaneous visual effect. The optional target chooses where;
- * with no target it falls back to the script's NPC, then the attached
- * player.
+ * Display a miscellaneous visual effect. The optional target chooses
+ * where: an offline player name silently no-ops (no fallback), the
+ * literal "self" falls back to the attached player, and any other value
+ * falls back to the script's NPC. With no target the effect is shown on
+ * the attached player if present, otherwise on the script's NPC.
  *
  * @doc misceffect
  * @arg effect: int; the effect type id.
@@ -5619,13 +5648,15 @@ void builtin_title(ScriptState *st)
 /*========================================
  * Send a localized server message to a player. With one argument it is the
  * message text; with two, the first is a numeric message type and the
- * second the text.
+ * second the text. With three, the third names the recipient.  An
+ * attached player is required even when an explicit recipient is given,
+ * because the recipient lookup runs only after that check.
  *
  * @doc smsg
  * @arg type_or_text: expr; the message type, or the text when called with
  *                          one argument.
  * @optarg text: expr; the message text.
- * @optarg player: expr; name of the recipient player.
+ * @optarg player: str; name of the recipient player.
  * @ret none
  ========================================*/
 static
@@ -5650,11 +5681,14 @@ void builtin_smsg(ScriptState *st)
 
 /*========================================
  * Send a remote command string to a player's client. The optional name
- * picks the recipient; otherwise the attached player is used.
+ * picks the recipient; otherwise the attached player is used.  An attached
+ * player is required either way: the recipient lookup runs only after a
+ * RID check, so calling remotecmd from an unattached script aborts even
+ * when a name has been supplied.
  *
  * @doc remotecmd
  * @arg command: str; the remote command string.
- * @optarg player: expr; name of the recipient player.
+ * @optarg player: str; name of the recipient player.
  * @ret none
  ========================================*/
 static
@@ -5676,9 +5710,11 @@ void builtin_remotecmd(ScriptState *st)
 }
 
 /*========================================
- * Send a client-side collision update for a map. The required x, y give one
- * corner; an optional second x, y pair gives the opposite corner of a
- * rectangle.
+ * Send a client-side collision update for a map. The required x, y give
+ * one corner; an optional second x, y pair gives the opposite corner of
+ * a rectangle. The recipient is either the attached player, or a player
+ * named explicitly — which may follow x, y directly (5-arg form
+ * `map, mask, x, y, player`) or follow x2, y2 (7-arg form).
  *
  * @doc sendcollision
  * @arg map: map; the map to update.
@@ -5687,7 +5723,7 @@ void builtin_remotecmd(ScriptState *st)
  * @arg y: coordinate; y of one corner.
  * @optarg x2: coordinate; x of the opposite corner.
  * @optarg y2: coordinate; y of the opposite corner.
- * @optarg player: expr; name of the player to send to.
+ * @optarg player: str; name of the player to send to.
  * @ret none
  ========================================*/
 static
@@ -5740,13 +5776,17 @@ void builtin_music(ScriptState *st)
 }
 
 /*========================================
- * Set the rendering mask for the attached player and send it to the client.
- * With a second argument the mask is also stored on the current map.
+ * Set the rendering mask for the attached player and send it to the
+ * client. With a second argument the mask is also stored on the current
+ * map (the script's NPC's map, or the attached player's map if there is
+ * no NPC). Only the presence of the second argument matters; its value
+ * is ignored. With no attached player only the store happens; the client
+ * update is skipped.
  *
  * @doc mapmask
  * @arg mask: int; the rendering mask.
- * @optarg store: expr; present to also store the mask on the player's or
- *                      NPC's map.
+ * @optarg store: expr; if present, also store the mask on the map; the
+ *                      value itself is unused.
  * @ret none
  ========================================*/
 static
@@ -5857,9 +5897,12 @@ void builtin_registercmd(ScriptState *st)
  * Return a cosmetic look value of the attached player.
  *
  * @doc getlook
- * @arg type: int; a LOOK type: hair, weapon, headgear, hair colour, clothes
- *                 colour, shield.
- * @ret int; the look value, or -1 for an unsupported type.
+ * @arg type: int; a LOOK type: 1 hair, 2 weapon, 3 head-bottom equip,
+ *                 4 head-top equip, 5 head-middle equip, 6 hair colour,
+ *                 7 clothes colour, 8 shield.  Type 9 (shoes) is accepted
+ *                 but not stored, so always returns -1.
+ * @ret int; the look value, or -1 for an unrecognised or unimplemented
+ *           type.
  ========================================*/
 static
 void builtin_getlook(ScriptState *st)
@@ -5907,7 +5950,7 @@ void builtin_getlook(ScriptState *st)
  *
  * @doc getsavepoint
  * @arg type: int; which part: 0 map name, 1 x coordinate, 2 y coordinate.
- * @ret variant; the requested part of the save point.
+ * @ret variant; a string for type 0, an int for types 1 and 2.
  ========================================*/
 static
 void builtin_getsavepoint(ScriptState *st)

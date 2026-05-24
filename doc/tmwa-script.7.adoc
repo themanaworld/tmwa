@@ -449,12 +449,12 @@ pass:c[Restore hit points and spell points to the attached player (negative valu
 ifdef::backend-html5[]
 * _hp_ (_amount_) pass:c[hit points to restore.]
 * _sp_ (_amount_) pass:c[spell points to restore.]
-* _item_heal_ (_bool_, optional) pass:c[nonzero to treat it as item healing, subject to healing modifiers.]
+* _item_heal_ (_bool_, optional) pass:c[nonzero to treat it as item healing, subject to healing modifiers.  The modifier path is taken only when hp is positive; non-positive hp ignores the flag and uses the plain heal path.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _hp_ (_amount_) pass:c[hit points to restore.] +
 {empty}• _sp_ (_amount_) pass:c[spell points to restore.] +
-{empty}• _item_heal_ (_bool_, optional) pass:c[nonzero to treat it as item healing, subject to healing modifiers.]
+{empty}• _item_heal_ (_bool_, optional) pass:c[nonzero to treat it as item healing, subject to healing modifiers.  The modifier path is taken only when hp is positive; non-positive hp ignores the flag and uses the plain heal path.]
 endif::[]
 
 *injure*(_source_, _target_, _damage_)::
@@ -472,7 +472,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *input*(_dest_)::
-pass:c[Prompt the attached player for input and store the result in a variable. A string variable opens a text prompt; a numeric variable opens a number prompt. The script suspends until the player answers; a negative numeric answer cancels the dialogue.]
+pass:c[Prompt the attached player for input and store the result in a variable. A string variable opens a text prompt; a numeric variable opens a number prompt. The script suspends until the player answers; a negative numeric answer cancels the dialogue. The negative value is still written to dest before the dialogue is closed, so a script checking dest after a cancellation will see that negative value rather than the previous contents.]
 +
 ifdef::backend-html5[]
 * _dest_ (_var_) pass:c[the variable to store the answer in.]
@@ -538,7 +538,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *set*(_dest_, _value_[, _owner_])::
-pass:c[Assign a value to a variable or player parameter. The optional third argument selects whose copy to write: a character name or id for player- scope variables, an NPC name or id for NPC-scope variables.]
+pass:c[Assign a value to a variable or player parameter. The optional third argument selects whose copy to write: a character name or id for player- scope variables, an NPC name or id for NPC-scope variables. When given as a number for a player-scope target, values >= 2000000 are interpreted as a block-list id and values 150000..1999999 as a character id; smaller numeric owners are silently ignored.]
 +
 ifdef::backend-html5[]
 * _dest_ (_var_) pass:c[the variable or parameter to write.]
@@ -704,7 +704,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *delitem*(_item_, _amount_)::
-pass:c[Remove units of an item from the attached player's inventory.]
+pass:c[Remove units of an item from the attached player's inventory. Only the first inventory slot that holds the item is touched: any further copies of the same item id in later inventory slots are left alone, so to remove a quantity that may be split across stacks the script must call delitem repeatedly.]
 +
 ifdef::backend-html5[]
 * _item_ (_item_) pass:c[the item, by numeric id or name.]
@@ -719,11 +719,11 @@ endif::[]
 pass:c[Return an id of a character. The optional name picks the character; without it the attached player is used.]
 +
 ifdef::backend-html5[]
-* _type_ (_int_) pass:c[which id: 0 character id, 1 party id, 2 always 0 (guilds are unimplemented), 3 account id.]
+* _type_ (_int_) pass:c[which id: 0 character id, 1 party id, 2 always 0 (guilds are unimplemented), 3 account id.  Any other value leaves nothing on the stack and is a script error.]
 * _name_ (_str_, optional) pass:c[name of the character to query.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _type_ (_int_) pass:c[which id: 0 character id, 1 party id, 2 always 0 (guilds are unimplemented), 3 account id.] +
+{empty}• _type_ (_int_) pass:c[which id: 0 character id, 1 party id, 2 always 0 (guilds are unimplemented), 3 account id.  Any other value leaves nothing on the stack and is a script error.] +
 {empty}• _name_ (_str_, optional) pass:c[name of the character to query.]
 endif::[]
 +
@@ -775,7 +775,7 @@ endif::[]
 Returns _int_: pass:c[the worn item id, or -1 if the slot is empty.]
 
 *bonus*(_type_, _value_)::
-pass:c[Add an equipment-style stat bonus to the attached player. Intended for item equip_script fragments; the effect lasts only until stats are recalculated.]
+pass:c[Add an equipment-style stat bonus to the attached player. Typically used inside an item's equip_script, where it is re-applied on every recalculation; from a regular script the bonus persists until the next stat recalculation clears it.]
 +
 ifdef::backend-html5[]
 * _type_ (_int_) pass:c[an SP bonus type.]
@@ -896,7 +896,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *gettimetick*(_type_) -> int::
-pass:c[Return a time value. Type 0 is the server tick (an unsigned counter that wraps), type 1 is seconds elapsed since midnight, type 2 is the Unix timestamp. Any other value behaves as type 0.]
+pass:c[Return a time value. Type 0 is the server tick in milliseconds (an unsigned counter that wraps), type 1 is seconds elapsed since midnight, type 2 is the Unix timestamp in seconds. Any other value behaves as type 0.]
 +
 ifdef::backend-html5[]
 * _type_ (_int_) pass:c[which time value to return.]
@@ -954,12 +954,12 @@ pass:c[Fill an array with the drops of a monster species.]
 ifdef::backend-html5[]
 * _species_ (_mob_) pass:c[the monster species id.]
 * _field_ (_int_) pass:c[what to store: 0 item ids, 1 item names (string array), 2 drop percents.]
-* _dest_ (_var_) pass:c[the array variable to fill.]
+* _dest_ (_var_) pass:c[the array variable to fill.  Must be prefixed `$`, `@` or `.` (the same prefixes the array builtins accept); for field 1 it must also be a `$`-postfixed string array.  Other shapes cause the call to return 0.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _species_ (_mob_) pass:c[the monster species id.] +
 {empty}• _field_ (_int_) pass:c[what to store: 0 item ids, 1 item names (string array), 2 drop percents.] +
-{empty}• _dest_ (_var_) pass:c[the array variable to fill.]
+{empty}• _dest_ (_var_) pass:c[the array variable to fill.  Must be prefixed `$`, `@` or `.` (the same prefixes the array builtins accept); for field 1 it must also be a `$`-postfixed string array.  Other shapes cause the call to return 0.]
 endif::[]
 +
 Returns _int_: pass:c[0 on error, 1 if the monster has drops, 2 if it has none.]
@@ -977,13 +977,13 @@ endif::[]
 Returns _int_: pass:c[0 if the species is unknown, 1 if it has drops, 2 if it has none.]
 
 *summon*(_map_, _x_, _y_, _owner_, _name_, _species_, _attitude_, _lifespan_[, _event_])::
-pass:c[Spawn a single monster owned by another being.]
+pass:c[Spawn a single monster owned by another being. Only player owners take effect today: a non-player owner is silently dropped and the spawn has no master.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to spawn on.]
 * _x_ (_coordinate_) pass:c[the spawn x coordinate.]
 * _y_ (_coordinate_) pass:c[the spawn y coordinate.]
-* _owner_ (_str_) pass:c[the owner's being id, passed as a string.]
+* _owner_ (_str_) pass:c[the owner's being id, passed as a string.  Only a player id has any effect.]
 * _name_ (_str_) pass:c[the monster's display name.]
 * _species_ (_mob_) pass:c[the monster species id.]
 * _attitude_ (_int_) pass:c[an attitude code: servant, friendly, hostile or frozen.]
@@ -994,7 +994,7 @@ ifdef::backend-manpage[]
 {empty}• _map_ (_map_) pass:c[the map to spawn on.] +
 {empty}• _x_ (_coordinate_) pass:c[the spawn x coordinate.] +
 {empty}• _y_ (_coordinate_) pass:c[the spawn y coordinate.] +
-{empty}• _owner_ (_str_) pass:c[the owner's being id, passed as a string.] +
+{empty}• _owner_ (_str_) pass:c[the owner's being id, passed as a string.  Only a player id has any effect.] +
 {empty}• _name_ (_str_) pass:c[the monster's display name.] +
 {empty}• _species_ (_mob_) pass:c[the monster species id.] +
 {empty}• _attitude_ (_int_) pass:c[an attitude code: servant, friendly, hostile or frozen.] +
@@ -1392,7 +1392,7 @@ endif::[]
 pass:c[Reset the attached player's six attributes (STR, AGI, VIT, INT, DEX, LUK) to 1 and overwrite the unspent stat-point pool with the canonical pool for the player's current base level. Unspent points above the level-table value are discarded.]
 
 *attachrid*(_gid_) -> int::
-pass:c[Attach a player to the script as the RID.]
+pass:c[Attach a player to the script as the RID. The RID is set to the given id unconditionally before the existence check, so even when the return is 0 the script's RID has still been changed to point at the (now non-existent) id the caller passed in.]
 +
 ifdef::backend-html5[]
 * _gid_ (_GID_) pass:c[being id of the player to attach.]
@@ -1529,7 +1529,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *mobcount*(_map_, _event_) -> int::
-pass:c[Return the number of monsters on a map whose death event matches. The count is reported one lower than the raw total.]
+pass:c[Return the number of monsters on a map whose death event matches. The count is reported one lower than the raw total, by historical convention: a spawn-source NPC counts toward the total, so the -1 cancels it out.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to count monsters on.]
@@ -1620,7 +1620,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *misceffect*(_effect_[, _target_])::
-pass:c[Display a miscellaneous visual effect. The optional target chooses where; with no target it falls back to the script's NPC, then the attached player.]
+pass:c[Display a miscellaneous visual effect. The optional target chooses where: an offline player name silently no-ops (no fallback), the literal "self" falls back to the attached player, and any other value falls back to the script's NPC. With no target the effect is shown on the attached player if present, otherwise on the script's NPC.]
 +
 ifdef::backend-html5[]
 * _effect_ (_int_) pass:c[the effect type id.]
@@ -1747,33 +1747,33 @@ ifdef::backend-manpage[]
 endif::[]
 
 *smsg*(_type_or_text_[, _text_, _player_])::
-pass:c[Send a localized server message to a player. With one argument it is the message text; with two, the first is a numeric message type and the second the text.]
+pass:c[Send a localized server message to a player. With one argument it is the message text; with two, the first is a numeric message type and the second the text. With three, the third names the recipient.  An attached player is required even when an explicit recipient is given, because the recipient lookup runs only after that check.]
 +
 ifdef::backend-html5[]
 * _type_or_text_ (_expr_) pass:c[the message type, or the text when called with one argument.]
 * _text_ (_expr_, optional) pass:c[the message text.]
-* _player_ (_expr_, optional) pass:c[name of the recipient player.]
+* _player_ (_str_, optional) pass:c[name of the recipient player.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _type_or_text_ (_expr_) pass:c[the message type, or the text when called with one argument.] +
 {empty}• _text_ (_expr_, optional) pass:c[the message text.] +
-{empty}• _player_ (_expr_, optional) pass:c[name of the recipient player.]
+{empty}• _player_ (_str_, optional) pass:c[name of the recipient player.]
 endif::[]
 
 *remotecmd*(_command_[, _player_])::
-pass:c[Send a remote command string to a player's client. The optional name picks the recipient; otherwise the attached player is used.]
+pass:c[Send a remote command string to a player's client. The optional name picks the recipient; otherwise the attached player is used.  An attached player is required either way: the recipient lookup runs only after a RID check, so calling remotecmd from an unattached script aborts even when a name has been supplied.]
 +
 ifdef::backend-html5[]
 * _command_ (_str_) pass:c[the remote command string.]
-* _player_ (_expr_, optional) pass:c[name of the recipient player.]
+* _player_ (_str_, optional) pass:c[name of the recipient player.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _command_ (_str_) pass:c[the remote command string.] +
-{empty}• _player_ (_expr_, optional) pass:c[name of the recipient player.]
+{empty}• _player_ (_str_, optional) pass:c[name of the recipient player.]
 endif::[]
 
 *sendcollision*(_map_, _mask_, _x_, _y_[, _x2_, _y2_, _player_])::
-pass:c[Send a client-side collision update for a map. The required x, y give one corner; an optional second x, y pair gives the opposite corner of a rectangle.]
+pass:c[Send a client-side collision update for a map. The required x, y give one corner; an optional second x, y pair gives the opposite corner of a rectangle. The recipient is either the attached player, or a player named explicitly — which may follow x, y directly (5-arg form `map, mask, x, y, player`) or follow x2, y2 (7-arg form).]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to update.]
@@ -1782,7 +1782,7 @@ ifdef::backend-html5[]
 * _y_ (_coordinate_) pass:c[y of one corner.]
 * _x2_ (_coordinate_, optional) pass:c[x of the opposite corner.]
 * _y2_ (_coordinate_, optional) pass:c[y of the opposite corner.]
-* _player_ (_expr_, optional) pass:c[name of the player to send to.]
+* _player_ (_str_, optional) pass:c[name of the player to send to.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _map_ (_map_) pass:c[the map to update.] +
@@ -1791,7 +1791,7 @@ ifdef::backend-manpage[]
 {empty}• _y_ (_coordinate_) pass:c[y of one corner.] +
 {empty}• _x2_ (_coordinate_, optional) pass:c[x of the opposite corner.] +
 {empty}• _y2_ (_coordinate_, optional) pass:c[y of the opposite corner.] +
-{empty}• _player_ (_expr_, optional) pass:c[name of the player to send to.]
+{empty}• _player_ (_str_, optional) pass:c[name of the player to send to.]
 endif::[]
 
 *music*(_track_)::
@@ -1805,15 +1805,15 @@ ifdef::backend-manpage[]
 endif::[]
 
 *mapmask*(_mask_[, _store_])::
-pass:c[Set the rendering mask for the attached player and send it to the client. With a second argument the mask is also stored on the current map.]
+pass:c[Set the rendering mask for the attached player and send it to the client. With a second argument the mask is also stored on the current map (the script's NPC's map, or the attached player's map if there is no NPC). Only the presence of the second argument matters; its value is ignored. With no attached player only the store happens; the client update is skipped.]
 +
 ifdef::backend-html5[]
 * _mask_ (_int_) pass:c[the rendering mask.]
-* _store_ (_expr_, optional) pass:c[present to also store the mask on the player's or NPC's map.]
+* _store_ (_expr_, optional) pass:c[if present, also store the mask on the map; the value itself is unused.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _mask_ (_int_) pass:c[the rendering mask.] +
-{empty}• _store_ (_expr_, optional) pass:c[present to also store the mask on the player's or NPC's map.]
+{empty}• _store_ (_expr_, optional) pass:c[if present, also store the mask on the map; the value itself is unused.]
 endif::[]
 
 *getmask*() -> int::
@@ -1825,13 +1825,13 @@ Returns _int_: pass:c[the rendering mask, or -1 if neither is available.]
 pass:c[Return a cosmetic look value of the attached player.]
 +
 ifdef::backend-html5[]
-* _type_ (_int_) pass:c[a LOOK type: hair, weapon, headgear, hair colour, clothes colour, shield.]
+* _type_ (_int_) pass:c[a LOOK type: 1 hair, 2 weapon, 3 head-bottom equip, 4 head-top equip, 5 head-middle equip, 6 hair colour, 7 clothes colour, 8 shield.  Type 9 (shoes) is accepted but not stored, so always returns -1.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _type_ (_int_) pass:c[a LOOK type: hair, weapon, headgear, hair colour, clothes colour, shield.]
+{empty}• _type_ (_int_) pass:c[a LOOK type: 1 hair, 2 weapon, 3 head-bottom equip, 4 head-top equip, 5 head-middle equip, 6 hair colour, 7 clothes colour, 8 shield.  Type 9 (shoes) is accepted but not stored, so always returns -1.]
 endif::[]
 +
-Returns _int_: pass:c[the look value, or -1 for an unsupported type.]
+Returns _int_: pass:c[the look value, or -1 for an unrecognised or unimplemented type.]
 
 *getsavepoint*(_type_) -> variant::
 pass:c[Return part of the attached player's save (respawn) point.]
@@ -1843,7 +1843,7 @@ ifdef::backend-manpage[]
 {empty}• _type_ (_int_) pass:c[which part: 0 map name, 1 x coordinate, 2 y coordinate.]
 endif::[]
 +
-Returns _variant_: pass:c[the requested part of the save point.]
+Returns _variant_: pass:c[a string for type 0, an int for types 1 and 2.]
 
 *areatimer*(_type_, _map_, _x0_, _y0_, _x1_, _y1_, _delay_, _event_)::
 pass:c[Schedule an NPC event to run after a delay for every player inside a rectangle on a map.]
@@ -2312,13 +2312,13 @@ endif::[]
 Returns _str_: pass:c[the one-character string.]
 
 *ord*(_text_) -> int::
-pass:c[Return the ASCII code of the first character of a string.]
+pass:c[Return the ASCII code of the first character of a string. The string must be non-empty; calling ord on an empty string is undefined.]
 +
 ifdef::backend-html5[]
-* _text_ (_str_) pass:c[the string to inspect.]
+* _text_ (_str_) pass:c[the string to inspect; must be non-empty.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _text_ (_str_) pass:c[the string to inspect.]
+{empty}• _text_ (_str_) pass:c[the string to inspect; must be non-empty.]
 endif::[]
 +
 Returns _int_: pass:c[the ASCII code of the first character.]

@@ -43,7 +43,8 @@ Path of the file listing GM accounts and their GM levels.
 
 *gm_account_filename_check_timer* (default `15s`)::
 How often the GM account file is checked for modification and reloaded.
-A value of zero disables periodic reloading.
+A value of zero disables periodic reloading.  Negative values are
+clamped back to 15 seconds; `1s` is silently clamped to `2s`.
 
 *login_log_filename* (default `log/login.log`)::
 Path of the login-server log file.
@@ -79,10 +80,14 @@ administration tool to connect.
 
 *admin_pass* (default empty)::
 Password the administration tool must present.  Set a strong value when
-*admin_state* is enabled.
+*admin_state* is enabled.  An empty password or the literal value
+`admin` disables remote administration entirely and is reported as
+insecure at startup.
 
 *ladminallowip* (default empty)::
 List of IP addresses or subnets allowed to use remote administration.
+An empty list permits *every* IP and is reported as insecure at
+startup; restrict this to known administrators.
 
 *userid* (default empty)::
 Account name a char server must present when registering with the login
@@ -110,9 +115,12 @@ true.
 
 *conn_limit_enable* (default `true`)::
 When true, limits the rate of new connections from a single address.
+Connections whose source IP is inside *lan_subnet* are exempt from the
+rate limit.
 
 *conn_limit_interval* (default `5s`)::
-Window over which the connection-rate limit is measured.
+After this interval the recent-IP list is cleared; until then, a second
+connection from the same IP is refused.
 
 == Lan options
 
@@ -121,10 +129,13 @@ login server which addresses belong to the local network, so it can hand
 char servers a LAN-side address instead of a public one.
 
 *lan_char_ip* (default `127.0.0.1`)::
-LAN address of the char server.
+Address handed to clients whose source IP falls inside *lan_subnet* in
+place of each char server's public address.
 
 *lan_subnet* (default `127.0.0.1/255.255.255.255`)::
-Subnet (address and mask) considered "local".
+Subnet (address and mask) considered "local".  Addresses inside this
+subnet receive *lan_char_ip* instead of the public char-server address
+and are also exempt from *conn_limit_enable*.
 
 == See also
 

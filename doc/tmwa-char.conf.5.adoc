@@ -65,11 +65,13 @@ Path of the char-server log file.
 *max_connect_user* (default `0`)::
 Maximum number of simultaneously connected users; `0` means unlimited.
 
-*autosave_time* (default the built-in autosave interval)::
+*autosave_time* (default `5min`)::
 How often character data is written to disk.  Must be at least 1 second.
 
 *start_point* (default map `001-1.gat` at 273,354)::
-Map and coordinates where a freshly created character starts.
+Map and coordinates where a freshly created character starts.  This is
+also used as the character's initial respawn (save) point, so until
+the player has saved elsewhere their respawn defaults here too.
 
 *char_name_letters* (default empty)::
 Set of bytes permitted in character names; every permitted character
