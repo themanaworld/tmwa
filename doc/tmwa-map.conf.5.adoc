@@ -122,7 +122,8 @@ Remove a previously added NPC script source.
 
 == See also
 
-*tmwa-map*(1), *tmwa-battle.conf*(5), *tmwa-config*(5), *tmwa-script*(7)
+*tmwa-map*(1), *tmwa-battle.conf*(5), *tmwa-char.conf*(5),
+*tmwa-config*(5), *tmwa-script*(7)
 
 == Reporting bugs
 

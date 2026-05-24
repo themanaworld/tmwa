@@ -267,10 +267,10 @@ endif::[]
 pass:c[Like mes, but the line is wrapped in square brackets; with no argument the NPC's own visible name (the part before any '#') is used, so it prints a [Name\] speaker header.]
 +
 ifdef::backend-html5[]
-* _text_ (_str_, optional) pass:c[the name to bracket; defaults to the NPC name.]
+* _text_ (_str_, optional) pass:c[text to put in brackets; defaults to the NPC's visible name (everything before any `#`).]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _text_ (_str_, optional) pass:c[the name to bracket; defaults to the NPC name.]
+{empty}• _text_ (_str_, optional) pass:c[text to put in brackets; defaults to the NPC's visible name (everything before any `#`).]
 endif::[]
 
 *clear*()::
@@ -458,7 +458,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *injure*(_source_, _target_, _damage_)::
-pass:c[Deal damage to a being, attributed to another being. The damage is shown to clients and may kill (and free) the target.]
+pass:c[Deal damage to a being, attributed to another being. The damage is shown to clients and may kill (and free) the target.  A player source is forced to stand before the damage frame is sent.]
 +
 ifdef::backend-html5[]
 * _source_ (_GID_) pass:c[being id credited with the damage.]
@@ -486,11 +486,11 @@ pass:c[Prompt the attached player to choose items from their inventory and store
 +
 ifdef::backend-html5[]
 * _dest_ (_var_) pass:c[array variable to receive the chosen items.]
-* _count_ (_amount_, optional) pass:c[how many items to request, 1 to 16; defaults to 1.]
+* _count_ (_amount_, optional) pass:c[how many items to request, 1 to 16; defaults to 1.  Values outside 1..16 are silently treated as 1.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _dest_ (_var_) pass:c[array variable to receive the chosen items.] +
-{empty}• _count_ (_amount_, optional) pass:c[how many items to request, 1 to 16; defaults to 1.]
+{empty}• _count_ (_amount_, optional) pass:c[how many items to request, 1 to 16; defaults to 1.  Values outside 1..16 are silently treated as 1.]
 endif::[]
 
 *requestlang*(_dest_)::
@@ -592,7 +592,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *getarraysize*(_name_) -> int::
-pass:c[Return the logical size of an array: one past the index of its last nonzero or non-empty element.]
+pass:c[Return the logical size of an array: one past the index of its last nonzero or non-empty element.  An entirely empty or all-zero array returns 1 rather than 0, because the running index is seeded with the starting index of the scan.]
 +
 ifdef::backend-html5[]
 * _name_ (_var_) pass:c[the array variable to measure.]
@@ -618,7 +618,7 @@ endif::[]
 Returns _variant_: pass:c[a reference to the requested element.]
 
 *array_search*(_value_, _haystack_) -> int::
-pass:c[Search an array for a value and return the index of the first match, or -1 if the value is not present.]
+pass:c[Search an array for a value and return the index of the first match, or -1 if the value is not present.  The needle is coerced to both an integer and a string up front, so the same call can match string elements in a string array or integer elements in an integer array.]
 +
 ifdef::backend-html5[]
 * _value_ (_expr_) pass:c[the value to look for.]
@@ -801,7 +801,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *skill*(_skill_, _level_[, _flag_])::
-pass:c[Grant a skill at a given level to the attached player.]
+pass:c[Grant a skill at a given level to the attached player and re-send the skill list to their client.]
 +
 ifdef::backend-html5[]
 * _skill_ (_int_) pass:c[the skill id to grant.]
@@ -923,7 +923,7 @@ Returns _int_: pass:c[the requested time component, or -1 for an unknown type.]
 pass:c[Open the attached player's Kafra storage window and suspend the script.]
 
 *getexp*(_base_, _job_)::
-pass:c[Grant base and job experience to the attached player. Negative amounts are ignored.]
+pass:c[Grant base and job experience to the attached player.  If either amount is negative the call is a no-op (the negative is not silently treated as zero; the whole grant is skipped).]
 +
 ifdef::backend-html5[]
 * _base_ (_amount_) pass:c[base experience to grant.]
@@ -939,11 +939,11 @@ pass:c[Return a field of the monster-database entry for a species.]
 +
 ifdef::backend-html5[]
 * _species_ (_mob_) pass:c[the monster species id.]
-* _field_ (_int_) pass:c[a MobInfo selector: id, names, level, HP/SP, experience, attack and defence stats, attributes, element, mode, speeds, and drop id/name/percent for drop slots 0..9.]
+* _field_ (_int_) pass:c[a MobInfo selector: id, names, level, HP/SP, experience, attack and defence stats, attributes, element, mode, speeds, and drop id/name/percent for drop slots 0..9. Name selectors (species name, JP name, and drop names) return a string; everything else returns an int.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _species_ (_mob_) pass:c[the monster species id.] +
-{empty}• _field_ (_int_) pass:c[a MobInfo selector: id, names, level, HP/SP, experience, attack and defence stats, attributes, element, mode, speeds, and drop id/name/percent for drop slots 0..9.]
+{empty}• _field_ (_int_) pass:c[a MobInfo selector: id, names, level, HP/SP, experience, attack and defence stats, attributes, element, mode, speeds, and drop id/name/percent for drop slots 0..9. Name selectors (species name, JP name, and drop names) return a string; everything else returns an int.]
 endif::[]
 +
 Returns _variant_: pass:c[the requested field, or -1 for an unknown species or selector.]
@@ -1003,7 +1003,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *monster*(_map_, _x_, _y_, _name_, _species_, _amount_[, _event_])::
-pass:c[Spawn one or more monsters of a species at a fixed cell.]
+pass:c[Spawn one or more monsters of a species at a fixed cell.  If a player is attached, the spawn records them as its owner; without an attached player the spawn has no owner.  Either way the death event still fires.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to spawn on.]
@@ -1025,7 +1025,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *areamonster*(_map_, _x0_, _y0_, _x1_, _y1_, _name_, _species_, _amount_[, _event_])::
-pass:c[Spawn one or more monsters of a species scattered within a rectangle.]
+pass:c[Spawn one or more monsters of a species scattered within a rectangle. If a player is attached, the spawn records them as its owner; without an attached player the spawn has no owner.  Either way the death event still fires.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to spawn on.]
@@ -1051,7 +1051,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *killmonster*(_map_, _event_)::
-pass:c[Remove monsters on a map. With the special event string "All", all non- permanently-spawned monsters are removed; otherwise only monsters whose death event matches.]
+pass:c[Remove monsters on a map. With the special event string "All" (the match is case-sensitive), every non-permanently-spawned monster is removed; otherwise only monsters whose death event matches.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to clear.]
@@ -1078,12 +1078,12 @@ pass:c[Schedule an NPC event to run for a player after a delay. The optional bei
 ifdef::backend-html5[]
 * _delay_ (_timer_) pass:c[delay in milliseconds before the event runs.]
 * _event_ (_event_) pass:c[the NPC event to schedule.]
-* _gid_ (_GID_, optional) pass:c[being id of the player to run it for.]
+* _gid_ (_player_, optional) pass:c[account id of the player to run it for; must resolve to an online player.]
 endif::[]
 ifdef::backend-manpage[]
 {empty}• _delay_ (_timer_) pass:c[delay in milliseconds before the event runs.] +
 {empty}• _event_ (_event_) pass:c[the NPC event to schedule.] +
-{empty}• _gid_ (_GID_, optional) pass:c[being id of the player to run it for.]
+{empty}• _gid_ (_player_, optional) pass:c[account id of the player to run it for; must resolve to an online player.]
 endif::[]
 
 *addnpctimer*(_delay_, _event_)::
@@ -1336,11 +1336,11 @@ endif::[]
 pass:c[Remove a status condition from a being. By default the attached player is affected.]
 +
 ifdef::backend-html5[]
-* _status_ (_int_) pass:c[the status-condition id to remove.]
+* _status_ (_status_) pass:c[the status-condition id to remove.]
 * _gid_ (_GID_, optional) pass:c[being id to affect instead of the player.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _status_ (_int_) pass:c[the status-condition id to remove.] +
+{empty}• _status_ (_status_) pass:c[the status-condition id to remove.] +
 {empty}• _gid_ (_GID_, optional) pass:c[being id to affect instead of the player.]
 endif::[]
 
@@ -1419,7 +1419,7 @@ endif::[]
 Returns _int_: pass:c[1 if the player is online, 0 otherwise.]
 
 *setmapflag*(_map_, _flag_)::
-pass:c[Set a map flag on a map.]
+pass:c[Set a map flag on a map.  Silently does nothing if the map does not exist.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to change.]
@@ -1431,7 +1431,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *removemapflag*(_map_, _flag_)::
-pass:c[Clear a map flag on a map.]
+pass:c[Clear a map flag on a map.  Silently does nothing if the map does not exist.]
 +
 ifdef::backend-html5[]
 * _map_ (_map_) pass:c[the map to change.]
@@ -1477,7 +1477,7 @@ ifdef::backend-manpage[]
 endif::[]
 
 *setpvpchannel*(_channel_)::
-pass:c[Set the attached player's PvP channel (values below 1 mean channel 0).]
+pass:c[Set the attached player's PvP channel.  Values of 0 or below are clamped to channel 0.]
 +
 ifdef::backend-html5[]
 * _channel_ (_int_) pass:c[the new PvP channel.]
@@ -1501,7 +1501,7 @@ endif::[]
 Returns _int_: pass:c[the requested PvP flag.]
 
 *emotion*(_emote_[, _target_])::
-pass:c[Show an emote. With a second argument naming a player, the emote is shown by the script's NPC towards that player; with the literal "self" it is shown by the attached player; otherwise by the NPC.]
+pass:c[Show an emote.  With a second argument, the literal "self" shows the emote on the attached player; any other string is looked up as a player name and the emote is shown on that player if they are online, otherwise on the script's NPC.  With no second argument, the emote is shown on the NPC.]
 +
 ifdef::backend-html5[]
 * _emote_ (_int_) pass:c[the emote id, 0 to 200.]
@@ -1849,7 +1849,7 @@ Returns _variant_: pass:c[a string for type 0, an int for types 1 and 2.]
 pass:c[Schedule an NPC event to run after a delay for every player inside a rectangle on a map.]
 +
 ifdef::backend-html5[]
-* _type_ (_int_) pass:c[being-type selector; must be 0 (players).]
+* _type_ (_int_) pass:c[being-type selector; must be 0 (players).  Any other value is a silent no-op.]
 * _map_ (_map_) pass:c[the map holding the rectangle.]
 * _x0_ (_coordinate_) pass:c[x of one corner of the rectangle.]
 * _y0_ (_coordinate_) pass:c[y of one corner of the rectangle.]
@@ -1859,7 +1859,7 @@ ifdef::backend-html5[]
 * _event_ (_event_) pass:c[the NPC event to schedule.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _type_ (_int_) pass:c[being-type selector; must be 0 (players).] +
+{empty}• _type_ (_int_) pass:c[being-type selector; must be 0 (players).  Any other value is a silent no-op.] +
 {empty}• _map_ (_map_) pass:c[the map holding the rectangle.] +
 {empty}• _x0_ (_coordinate_) pass:c[x of one corner of the rectangle.] +
 {empty}• _y0_ (_coordinate_) pass:c[y of one corner of the rectangle.] +
@@ -2059,11 +2059,11 @@ Returns _int_: pass:c[the NPC's y coordinate.]
 pass:c[Return a string about an NPC. The optional argument picks another NPC; otherwise the script's own NPC is used.]
 +
 ifdef::backend-html5[]
-* _type_ (_int_) pass:c[which string: 0 full name, 1 visible name (before any '#'), 2 hidden part (from the '#' on), 3 map name.]
+* _type_ (_int_) pass:c[which string: 0 full name, 1 visible name (before any '#'), 2 hidden part (from the '#' on; empty if the name contains no '#'), 3 map name.]
 * _npc_ (_expr_, optional) pass:c[an NPC name or being id to query.]
 endif::[]
 ifdef::backend-manpage[]
-{empty}• _type_ (_int_) pass:c[which string: 0 full name, 1 visible name (before any '#'), 2 hidden part (from the '#' on), 3 map name.] +
+{empty}• _type_ (_int_) pass:c[which string: 0 full name, 1 visible name (before any '#'), 2 hidden part (from the '#' on; empty if the name contains no '#'), 3 map name.] +
 {empty}• _npc_ (_expr_, optional) pass:c[an NPC name or being id to query.]
 endif::[]
 +
@@ -2268,7 +2268,7 @@ endif::[]
 Returns _int_: pass:c[base raised to the exponent.]
 
 *target*(_source_, _target_, _tests_) -> int::
-pass:c[Test the relationship between two beings and return a bitmask of the requested tests that passed.]
+pass:c[Test the relationship between two beings and return a bitmask of the requested tests that passed.  Returns 0 if either GID does not resolve to a being.]
 +
 ifdef::backend-html5[]
 * _source_ (_GID_) pass:c[being id of the source.]
@@ -2284,7 +2284,7 @@ endif::[]
 Returns _int_: pass:c[a bitmask of the tests that passed.]
 
 *distance*(_a_, _b_[, _mode_]) -> int::
-pass:c[Return the straight-line (Pythagorean) distance between two beings. Beings on different maps are reported as a very large distance.]
+pass:c[Return the straight-line (Pythagorean) distance between two beings. Beings on different maps return `0x7fffffff` (INT_MAX), so a script can test for cross-map by comparing against that sentinel.]
 +
 ifdef::backend-html5[]
 * _a_ (_GID_) pass:c[being id of the first being.]
@@ -2300,7 +2300,7 @@ endif::[]
 Returns _int_: pass:c[the distance between the beings.]
 
 *chr*(_code_) -> str::
-pass:c[Return a one-character string whose single byte has a given ASCII code.]
+pass:c[Return a one-character string whose single byte has the given numeric value.  The argument is truncated to a byte, so values outside 0..255 wrap around; this is a byte builder, not specifically ASCII.]
 +
 ifdef::backend-html5[]
 * _code_ (_int_) pass:c[the ASCII code.]

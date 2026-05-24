@@ -150,7 +150,8 @@ void builtin_mesq(ScriptState *st)
  * prints a [Name] speaker header.
  *
  * @doc mesn
- * @optarg text: str; the name to bracket; defaults to the NPC name.
+ * @optarg text: str; text to put in brackets; defaults to the NPC's
+ *                    visible name (everything before any `#`).
  * @ret none
  ========================================*/
 static
@@ -920,7 +921,8 @@ void builtin_heal(ScriptState *st)
 
 /*========================================
  * Return the straight-line (Pythagorean) distance between two beings.
- * Beings on different maps are reported as a very large distance.
+ * Beings on different maps return `0x7fffffff` (INT_MAX), so a script
+ * can test for cross-map by comparing against that sentinel.
  *
  * @doc distance
  * @arg a: GID; being id of the first being.
@@ -957,7 +959,8 @@ void builtin_distance(ScriptState *st)
 
 /*========================================
  * Test the relationship between two beings and return a bitmask of the
- * requested tests that passed.
+ * requested tests that passed.  Returns 0 if either GID does not resolve
+ * to a being.
  *
  * @doc target
  * @arg source: GID; being id of the source.
@@ -1031,7 +1034,8 @@ void builtin_target(ScriptState *st)
 
 /*========================================
  * Deal damage to a being, attributed to another being. The damage is shown
- * to clients and may kill (and free) the target.
+ * to clients and may kill (and free) the target.  A player source is
+ * forced to stand before the damage frame is sent.
  *
  * @doc injure
  * @arg source: GID; being id credited with the damage.
@@ -1127,7 +1131,9 @@ void builtin_input(ScriptState *st)
  *
  * @doc requestitem
  * @arg dest: var; array variable to receive the chosen items.
- * @optarg count: amount; how many items to request, 1 to 16; defaults to 1.
+ * @optarg count: amount; how many items to request, 1 to 16; defaults to
+ *                        1.  Values outside 1..16 are silently treated
+ *                        as 1.
  * @ret none
  ========================================*/
 static
@@ -1995,7 +2001,9 @@ int getarraysize(ScriptState *st, SIR reg)
 
 /*========================================
  * Return the logical size of an array: one past the index of its last
- * nonzero or non-empty element.
+ * nonzero or non-empty element.  An entirely empty or all-zero array
+ * returns 1 rather than 0, because the running index is seeded with the
+ * starting index of the scan.
  *
  * @doc getarraysize
  * @arg name: var; the array variable to measure.
@@ -2053,7 +2061,9 @@ void builtin_getelementofarray(ScriptState *st)
 
 /*========================================
  * Search an array for a value and return the index of the first match, or
- * -1 if the value is not present.
+ * -1 if the value is not present.  The needle is coerced to both an
+ * integer and a string up front, so the same call can match string
+ * elements in a string array or integer elements in an integer array.
  *
  * @doc array_search
  * @arg value: expr; the value to look for.
@@ -2673,7 +2683,8 @@ void builtin_bonus2(ScriptState *st)
 }
 
 /*========================================
- * Grant a skill at a given level to the attached player.
+ * Grant a skill at a given level to the attached player and re-send the
+ * skill list to their client.
  *
  * @doc skill
  * @arg skill: int; the skill id to grant.
@@ -2998,8 +3009,9 @@ void builtin_openstorage(ScriptState *st)
 }
 
 /*========================================
- * Grant base and job experience to the attached player. Negative amounts
- * are ignored.
+ * Grant base and job experience to the attached player.  If either amount
+ * is negative the call is a no-op (the negative is not silently treated
+ * as zero; the whole grant is skipped).
  *
  * @doc getexp
  * @arg base: amount; base experience to grant.
@@ -3051,6 +3063,8 @@ AString get_mob_drop_name(Species mob_id, int index)
  * @arg field: int; a MobInfo selector: id, names, level, HP/SP, experience,
  *                  attack and defence stats, attributes, element, mode,
  *                  speeds, and drop id/name/percent for drop slots 0..9.
+ *                  Name selectors (species name, JP name, and drop names)
+ *                  return a string; everything else returns an int.
  * @ret variant; the requested field, or -1 for an unknown species or
  *               selector.
  ========================================*/
@@ -3531,7 +3545,10 @@ void builtin_summon(ScriptState *st)
 }
 
 /*========================================
- * Spawn one or more monsters of a species at a fixed cell.
+ * Spawn one or more monsters of a species at a fixed cell.  If a player
+ * is attached, the spawn records them as its owner; without an attached
+ * player the spawn has no owner.  Either way the death event still
+ * fires.
  *
  * @doc monster
  * @arg map: map; the map to spawn on.
@@ -3565,6 +3582,9 @@ void builtin_monster(ScriptState *st)
 
 /*========================================
  * Spawn one or more monsters of a species scattered within a rectangle.
+ * If a player is attached, the spawn records them as its owner; without
+ * an attached player the spawn has no owner.  Either way the death event
+ * still fires.
  *
  * @doc areamonster
  * @arg map: map; the map to spawn on.
@@ -3625,9 +3645,9 @@ void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event)
 }
 
 /*========================================
- * Remove monsters on a map. With the special event string "All", all non-
- * permanently-spawned monsters are removed; otherwise only monsters whose
- * death event matches.
+ * Remove monsters on a map. With the special event string "All" (the
+ * match is case-sensitive), every non-permanently-spawned monster is
+ * removed; otherwise only monsters whose death event matches.
  *
  * @doc killmonster
  * @arg map: map; the map to clear.
@@ -3674,7 +3694,8 @@ void builtin_donpcevent(ScriptState *st)
  * @doc addtimer
  * @arg delay: timer; delay in milliseconds before the event runs.
  * @arg event: event; the NPC event to schedule.
- * @optarg gid: GID; being id of the player to run it for.
+ * @optarg gid: player; account id of the player to run it for; must
+ *                      resolve to an online player.
  * @ret none
  ========================================*/
 static
@@ -4422,7 +4443,7 @@ void builtin_sc_start(ScriptState *st)
  * affected.
  *
  * @doc sc_end
- * @arg status: int; the status-condition id to remove.
+ * @arg status: status; the status-condition id to remove.
  * @optarg gid: GID; being id to affect instead of the player.
  * @ret none
  ========================================*/
@@ -4541,7 +4562,8 @@ void builtin_isloggedin(ScriptState *st)
 }
 
 /*========================================
- * Set a map flag on a map.
+ * Set a map flag on a map.  Silently does nothing if the map does not
+ * exist.
  *
  * @doc setmapflag
  * @arg map: map; the map to change.
@@ -4563,7 +4585,8 @@ void builtin_setmapflag(ScriptState *st)
 }
 
 /*========================================
- * Clear a map flag on a map.
+ * Clear a map flag on a map.  Silently does nothing if the map does not
+ * exist.
  *
  * @doc removemapflag
  * @arg map: map; the map to change.
@@ -4690,7 +4713,8 @@ void builtin_pvpoff(ScriptState *st)
 }
 
 /*========================================
- * Set the attached player's PvP channel (values below 1 mean channel 0).
+ * Set the attached player's PvP channel.  Values of 0 or below are
+ * clamped to channel 0.
  *
  * @doc setpvpchannel
  * @arg channel: int; the new PvP channel.
@@ -4746,9 +4770,11 @@ void builtin_getpvpflag(ScriptState *st)
 }
 
 /*========================================
- * Show an emote. With a second argument naming a player, the emote is shown
- * by the script's NPC towards that player; with the literal "self" it is
- * shown by the attached player; otherwise by the NPC.
+ * Show an emote.  With a second argument, the literal "self" shows the
+ * emote on the attached player; any other string is looked up as a
+ * player name and the emote is shown on that player if they are online,
+ * otherwise on the script's NPC.  With no second argument, the emote is
+ * shown on the NPC.
  *
  * @doc emotion
  * @arg emote: int; the emote id, 0 to 200.
@@ -4952,7 +4978,9 @@ void builtin_l(ScriptState *st)
 }
 
 /*========================================
- * Return a one-character string whose single byte has a given ASCII code.
+ * Return a one-character string whose single byte has the given numeric
+ * value.  The argument is truncated to a byte, so values outside 0..255
+ * wrap around; this is a byte builder, not specifically ASCII.
  *
  * @doc chr
  * @arg code: int; the ASCII code.
@@ -6001,7 +6029,8 @@ void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent ev
  * rectangle on a map.
  *
  * @doc areatimer
- * @arg type: int; being-type selector; must be 0 (players).
+ * @arg type: int; being-type selector; must be 0 (players).  Any other
+ *                 value is a silent no-op.
  * @arg map: map; the map holding the rectangle.
  * @arg x0: coordinate; x of one corner of the rectangle.
  * @arg y0: coordinate; y of one corner of the rectangle.
@@ -6360,7 +6389,8 @@ void builtin_getmapnamebyindex(ScriptState *st)
  *
  * @doc strnpcinfo
  * @arg type: int; which string: 0 full name, 1 visible name (before any
- *                 '#'), 2 hidden part (from the '#' on), 3 map name.
+ *                 '#'), 2 hidden part (from the '#' on; empty if the
+ *                 name contains no '#'), 3 map name.
  * @optarg npc: expr; an NPC name or being id to query.
  * @ret str; the requested string.
  ========================================*/
