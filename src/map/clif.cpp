@@ -69,6 +69,7 @@
 #include "npc.hpp"
 #include "party.hpp"
 #include "pc.hpp"
+#include "quest.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 #include "tmw.hpp"

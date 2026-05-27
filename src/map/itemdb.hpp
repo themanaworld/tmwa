@@ -83,8 +83,6 @@ int itemdb_value_sell(ItemNameId n)
 bool itemdb_isequip(ItemNameId);
 bool itemdb_isequip2(Borrowed<struct item_data>);
 
-void itemdb_reload(void);
-
 void do_final_itemdb(void);
 bool itemdb_readdb(ZString filename);
 } // namespace map

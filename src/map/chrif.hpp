@@ -37,7 +37,6 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
         MapName name, int x, int y,
         IP4Address ip, short port);
 
-void chrif_changegm(AccountId id, ZString pass);
 void chrif_changeemail(AccountId id, AccountEmail actual_email, AccountEmail new_email);
 void chrif_char_ask_name(AccountId id, CharName character_name, short operation_type,
         HumanTimeDiff modif);

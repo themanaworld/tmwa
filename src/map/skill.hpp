@@ -125,8 +125,6 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 
 int skill_update_heal_animation(dumb_ptr<map_session_data> sd); // [Fate]  Check whether the healing flag must be updated, do so if needed
 
-void skill_reload(void);
-
 // [Fate] Skill pools API
 
 // Max. # of active entries in the skill pool
