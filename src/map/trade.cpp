@@ -207,7 +207,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, IOff2 index, int amount)
                     }
                     else
                     {
-                        for (c = 0; c == trade_i - 1; c++)
+                        for (c = 0; c < trade_i; c++)
                         {       // re-deal exploit protection [Valaris]
                             if (sd->deal_item_index[c] == index)
                             {
