@@ -6110,7 +6110,17 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type, XString
 
     // Step beyond the separator. for older clients
     if (type == ChatType::Global && sd->client_version < wrap<ClientVersion>(6))
-        return buf.xslice_t(sd->status_key.name.to__actual().size() + 3);
+    {
+        // The "name : " prefix must actually be present; otherwise the slice
+        // offset runs past the end of buf, producing an out-of-bounds view.
+        size_t prefix_len = sd->status_key.name.to__actual().size() + 3;
+        if (buf.size() < prefix_len)
+        {
+            WARN_MALFORMED_MSG(sd, "Global message shorter than name prefix"_s);
+            return AString();
+        }
+        return buf.xslice_t(prefix_len);
+    }
 
     // newer clients will not send the name
     return buf;
