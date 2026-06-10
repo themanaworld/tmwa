@@ -6067,7 +6067,7 @@ Map<XString, AtCommandInfo> atcommand_info =
         80, atcommand_set_magic,
         "Force magic skill level"_s}},
     {"setvar"_s, {"<variable> <index> <value> <charname>"_s,
-        40, atcommand_set_var,
+        80, atcommand_set_var,
         "Sets an arbitrary variable."_s}},
     {"getvar"_s, {"<variable> <index> <charname>"_s,
         40, atcommand_get_var,
