@@ -1740,7 +1740,7 @@ void builtin_cleararray(ScriptState *st)
     for (int i = 0; i < sz; i++)
     {
         if (name.startswith(".@"_s))
-            set_scope_reg(st, reg.iplus(i), &AARG(i));
+            set_scope_reg(st, reg.iplus(i), &AARG(1));
         else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARG(1)));
         else
