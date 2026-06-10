@@ -389,6 +389,17 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                     MAP_LOG_PC(sd, " TRADECANCEL"_fmt);
                     return;
                 }
+                // Don't let either side end up above the zeny cap: the commit
+                // below credits zeny with a raw addition, so an uncapped trade
+                // is a way to exceed MAX_ZENY. Cancel rather than silently
+                // destroying the overflow.
+                if (target_sd->status.zeny > MAX_ZENY - sd->deal_zeny
+                    || sd->status.zeny > MAX_ZENY - target_sd->deal_zeny)
+                {
+                    trade_tradecancel(sd);
+                    MAP_LOG_PC(sd, " TRADECANCEL"_fmt);
+                    return;
+                }
                 sd->trade_partner = AccountId();
                 target_sd->trade_partner = AccountId();
                 for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
