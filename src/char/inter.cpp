@@ -331,11 +331,10 @@ RecvResult mapif_parse_WisReply(Session *tms)
     uint8_t flag = fixed.flag;
 
     const CharPair *smcs = search_character_id(id);
-    CharName from = smcs->key.name;
-    Session *sms = server_for(smcs);
 
-    if (sms)
+    if (Session *sms = server_for(smcs))
     {
+        CharName from = smcs->key.name;
         mapif_wis_end(sms, from, flag);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
     }
 
