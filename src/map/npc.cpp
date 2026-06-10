@@ -1012,16 +1012,28 @@ int npc_selllist(dumb_ptr<map_session_data> sd,
 
     if (npc_checknear(sd, sd->npc_shopid))
         return 1;
+
+    GenericArray<bool, InventoryIndexing<IOff0, MAX_INVENTORY>> seen = {};
+
     for (i = 0, z = 0; i < item_list.size(); i++)
     {
         if (!item_list[i].ioff2.ok())
             return 1;
-        ItemNameId nameid = sd->status.inventory[item_list[i].ioff2.unshift()].nameid;
+        IOff0 item_index = item_list[i].ioff2.unshift();
+
+        // Reject the same inventory slot listed more than once: it would be
+        // priced (and paid for) on every occurrence but can only be removed
+        // once, letting a client sell a single stack repeatedly for free zeny.
+        if (seen[item_index])
+            return 1;
+        seen[item_index] = true;
+
+        ItemNameId nameid = sd->status.inventory[item_index].nameid;
         if (!nameid ||
-            sd->status.inventory[item_list[i].ioff2.unshift()].amount < item_list[i].count)
+            sd->status.inventory[item_index].amount < item_list[i].count)
             return 1;
 
-        OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[item_list[i].ioff2.unshift()])
+        OMATCH_BEGIN_SOME (sdidn, sd->inventory_data[item_index])
         {
             GmLevel gmlvl = pc_isGM(sd);
             if (bool(sdidn->mode & ItemMode::NO_SELL_TO_NPC) && gmlvl.get_all_bits() < 60)
