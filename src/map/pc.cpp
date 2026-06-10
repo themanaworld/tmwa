@@ -3436,7 +3436,8 @@ int pc_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
 {
     nullpo_retz(sd);
 
-    if (sd->status.skill[skill_num].lv
+    if (skill_num < MAX_SKILL
+        && sd->status.skill[skill_num].lv
         && sd->status.skill_point >= sd->status.skill[skill_num].lv
         && sd->status.skill[skill_num].lv < skill_db[skill_num].max_raise)
     {
