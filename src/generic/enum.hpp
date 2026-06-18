@@ -72,20 +72,6 @@ public:
     }
 };
 
-// std::underlying_type isn't supported until gcc 4.7
-// this is a poor man's emulation
-// TODO I'm depending on GCC 4.7 now, this can go away
-template<class E>
-struct underlying_type
-{
-    static_assert(std::is_enum<E>::value, "Only enums have underlying type!");
-    typedef typename std::conditional<
-        std::is_signed<E>::value,
-        typename std::make_signed<E>::type,
-        typename std::make_unsigned<E>::type
-    >::type type;
-};
-
 template<class E, bool=std::is_enum<E>::value>
 struct remove_enum
 {
@@ -94,7 +80,7 @@ struct remove_enum
 template<class E>
 struct remove_enum<E, true>
 {
-    typedef typename underlying_type<E>::type type;
+    typedef typename std::underlying_type<E>::type type;
 };
 
 
@@ -104,19 +90,19 @@ struct remove_enum<E, true>
 inline                                  \
 E operator & (E l, E r)                 \
 {                                       \
-    typedef underlying_type<E>::type U; \
+    typedef std::underlying_type<E>::type U; \
     return E(U(l) & U(r));              \
 }                                       \
 inline                                  \
 E operator | (E l, E r)                 \
 {                                       \
-    typedef underlying_type<E>::type U; \
+    typedef std::underlying_type<E>::type U; \
     return E(U(l) | U(r));              \
 }                                       \
 inline                                  \
 E operator ^ (E l, E r)                 \
 {                                       \
-    typedef underlying_type<E>::type U; \
+    typedef std::underlying_type<E>::type U; \
     return E(U(l) ^ U(r));              \
 }                                       \
 inline                                  \
@@ -143,7 +129,7 @@ E operator ~ (E r)                      \
 template<class E>
 class EnumMath
 {
-    typedef typename underlying_type<E>::type U;
+    typedef typename std::underlying_type<E>::type U;
 public:
     static
     E inced(E v)
