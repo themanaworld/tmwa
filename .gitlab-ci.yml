@@ -36,6 +36,8 @@ variables: &base_vars
   script:
     - printf "Building TMW Athena version %s on ubuntu:%s\n" "$(git describe --tags HEAD)" "${UBUNTU_TAG}"
     - cmake -S . -B build/${UBUNTU_TAG} -G Ninja -DCMAKE_INSTALL_PREFIX=$HOME/.local -DTMWA_BUILD_TESTS=ON
+    # Run after configure so generated headers (e.g. *_conf.hpp) are present.
+    - python3 tools/check-fwd.py
     - cmake --build build/${UBUNTU_TAG}
     - cmake --install build/${UBUNTU_TAG}
   artifacts:

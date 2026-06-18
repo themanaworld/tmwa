@@ -31,6 +31,10 @@ jobs:
       - name: Configure (CMake)
         run: cmake -S . -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
 
+      # Run after configure so generated headers (e.g. *_conf.hpp) are present.
+      - name: Check fwd.hpp consistency
+        run: python3 tools/check-fwd.py
+
       - name: Build
         run: cmake --build build -j"$(nproc)"
 
