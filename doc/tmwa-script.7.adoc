@@ -149,10 +149,13 @@ separately.
               read-side primitive.
 
 | .@_name_   | Scope-local.  Lives only inside the current script
-              invocation.  A *callsub* or *callfunc* opens a fresh
-              scope, and `.@`-variables created inside the call vanish
-              when it returns: `return .@foo;` returns the *value*,
-              not a reference.
+              run.  *callsub* and *callfunc* do not open a fresh
+              scope: the callee sees the caller's `.@`-variables, and
+              ones created inside the call remain visible after it
+              returns.  A builtin that pauses the script to wait for
+              the client (*next*, *menu*, *input*, *close2*) ends the
+              run, so `.@`-variables do not survive such a pause: on
+              resume they read as 0 or the empty string.
 
 | #_name_    | Per-account, persistent on this char-server.  Shared
               by all characters on the same account, but not shared
