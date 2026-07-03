@@ -128,9 +128,9 @@ separately.
               the default place to remember something about the RID
               across sessions.
 
-| @_name_    | Per-character, temporary.  Attached to the RID and lost
-              when the player logs out, or when the script detaches
-              the RID.
+| @_name_    | Per-character, temporary.  Stored on the player and
+              shared by every script that runs with that player
+              attached; lost when the player logs out.
 
 | $_name_    | Global, persistent.  Shared server-wide and saved
               across restarts.  Not tied to any player, so safe to
