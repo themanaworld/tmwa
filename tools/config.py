@@ -196,9 +196,9 @@ class Option(object):
         self.default = default
         self.headers = type.headers | extra_headers
 
-    def dump1(self, hpp):
+    def dump_member(self, hpp):
         hpp.write('    %s %s = %s;\n' % (self.type.type_name(), self.name, self.default))
-    def dump2(self, cpp, x):
+    def dump_parse(self, cpp, x):
         # NOTE about hashing
         # dead simple hash: pack 6 bits of first 5 letters into an int
         y = self.name[:5]
@@ -229,7 +229,7 @@ class Option(object):
             return 'conf.%s' % self.name
         return None
 
-    def dump3(self, cpp):
+    def dump_getter(self, cpp):
         expr = self.int_read_expr()
         if expr is None:
             return
@@ -357,7 +357,7 @@ bool extract(XString str, std::bitset<256> *v)
             cpp.write('namespace %s\n{\n' % namespace_name)
             hpp.write('struct %s\n{\n' % class_name)
             for o in values:
-                o.dump1(hpp)
+                o.dump_member(hpp)
             hpp.write('}; // struct %s\n' % class_name)
             hpp.write('bool parse_%s(%s& conf, io::Spanned<XString> key, io::Spanned<ZString> value);\n' % (var_name, class_name))
             if self.getter:
@@ -365,7 +365,7 @@ bool extract(XString str, std::bitset<256> *v)
             hpp.write('} // namespace %s\n' % namespace_name)
             hpp.write('} // namespace tmwa\n')
             cpp.write('bool parse_%s(%s& conf, io::Spanned<XString> key, io::Spanned<ZString> value)\n{\n' % (var_name, class_name))
-            # see NOTE about hashing in Option.dump2
+            # see NOTE about hashing in Option.dump_parse
             cpp.write('    int key_hash = 0;\n')
             cpp.write('    if (key.data.size() > 0)\n')
             cpp.write('        key_hash |= key.data[0] << 24;\n')
@@ -381,7 +381,7 @@ bool extract(XString str, std::bitset<256> *v)
             cpp.write('    {\n')
             x = None
             for o in values:
-                x = o.dump2(cpp, x)
+                x = o.dump_parse(cpp, x)
             cpp.write('        break;\n')
             cpp.write('    } // switch\n')
             cpp.write('    key.span.error("Unknown config key"_s);\n')
@@ -391,7 +391,7 @@ bool extract(XString str, std::bitset<256> *v)
                 cpp.write('\n')
                 cpp.write('bool get_%s(const %s& conf, XString key, int32_t *value)\n{\n' % (var_name, class_name))
                 for o in values:
-                    o.dump3(cpp)
+                    o.dump_getter(cpp)
                 cpp.write('    return false;\n')
                 cpp.write('} // fn get_%s()\n' % var_name)
             cpp.write('} // namespace %s\n' % namespace_name)
