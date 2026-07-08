@@ -219,13 +219,34 @@ class Option(object):
         cpp.write('        }\n')
         return y
 
+    def int_read_expr(self):
+        # expression reading this option as an integer, for options of a
+        # type that has a meaningful integer representation
+        tn = self.type.type_name()
+        if tn == 'GmLevel':
+            return 'conf.%s.get_all_bits()' % self.name
+        if tn in ('bool', 'int8_t', 'int16_t', 'int32_t', 'uint8_t', 'uint16_t'):
+            return 'conf.%s' % self.name
+        return None
+
+    def dump3(self, cpp):
+        expr = self.int_read_expr()
+        if expr is None:
+            return
+        cpp.write('    if (key == "{name}"_s)\n'.format(name=self.name))
+        cpp.write('    {\n')
+        cpp.write('        *value = %s;\n' % expr)
+        cpp.write('        return true;\n')
+        cpp.write('    }\n')
+
 class Group(object):
-    __slots__ = ('name', 'options', 'extra_headers')
+    __slots__ = ('name', 'options', 'extra_headers', 'getter')
 
     def __init__(self, name):
         self.name = name
         self.options = {}
         self.extra_headers = []
+        self.getter = False
 
     def extra(self, h):
         self.extra_headers.append(h)
@@ -339,6 +360,8 @@ bool extract(XString str, std::bitset<256> *v)
                 o.dump1(hpp)
             hpp.write('}; // struct %s\n' % class_name)
             hpp.write('bool parse_%s(%s& conf, io::Spanned<XString> key, io::Spanned<ZString> value);\n' % (var_name, class_name))
+            if self.getter:
+                hpp.write('bool get_%s(const %s& conf, XString key, int32_t *value);\n' % (var_name, class_name))
             hpp.write('} // namespace %s\n' % namespace_name)
             hpp.write('} // namespace tmwa\n')
             cpp.write('bool parse_%s(%s& conf, io::Spanned<XString> key, io::Spanned<ZString> value)\n{\n' % (var_name, class_name))
@@ -364,6 +387,13 @@ bool extract(XString str, std::bitset<256> *v)
             cpp.write('    key.span.error("Unknown config key"_s);\n')
             cpp.write('    return false;\n')
             cpp.write('} // fn parse_%s_conf()\n' % var_name)
+            if self.getter:
+                cpp.write('\n')
+                cpp.write('bool get_%s(const %s& conf, XString key, int32_t *value)\n{\n' % (var_name, class_name))
+                for o in values:
+                    o.dump3(cpp)
+                cpp.write('    return false;\n')
+                cpp.write('} // fn get_%s()\n' % var_name)
             cpp.write('} // namespace %s\n' % namespace_name)
             cpp.write('} // namespace tmwa\n')
 
@@ -430,6 +460,8 @@ def build_config():
 
     map_conf = map_realm.conf()
     battle_conf = map_realm.conf('battle')
+    # scripts can read battle config settings via the getbattleconfig builtin
+    battle_conf.getter = True
 
     # headers
     cstdint_sys = SystemHeader('cstdint')

@@ -3992,7 +3992,23 @@ void builtin_getmapflag(ScriptState *st)
 }
 
 /*==========================================
- * 
+ * Returns the value of a battle config setting,
+ * or -1 for settings that are unknown or have no
+ * integer representation
+ *------------------------------------------
+ */
+static
+void builtin_getbattleconfig(ScriptState *st)
+{
+    ZString key = ZString(conv_str(st, &AARG(0)));
+    int32_t value = -1;
+    if (!get_battle_conf(battle_config, key, &value))
+        PRINTF("builtin_getbattleconfig: unknown battle config setting: %s\n"_fmt, key);
+    push_int<ScriptDataInt>(st->stack, value);
+}
+
+/*==========================================
+ *
  *------------------------------------------
  */
 static
@@ -5688,6 +5704,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(setmapflag, "Mi"_s, '\0'),
     BUILTIN(removemapflag, "Mi"_s, '\0'),
     BUILTIN(getmapflag, "Mi"_s, 'i'),
+    BUILTIN(getbattleconfig, "s"_s, 'i'),
     BUILTIN(pvpon, "M"_s, '\0'),
     BUILTIN(pvpoff, "M"_s, '\0'),
     BUILTIN(setpvpchannel, "i"_s, '\0'),
