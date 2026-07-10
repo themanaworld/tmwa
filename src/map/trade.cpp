@@ -351,6 +351,48 @@ void trade_tradecancel(dumb_ptr<map_session_data> sd)
     }
 }
 
+// Would `receiver` be able to hold everything `giver` has staged in the trade
+// window? Checks without mutating anything, mirroring the up-front validation
+// npc_buylist() does: accumulate the added weight and the number of fresh
+// inventory slots required, and refuse if any stack would pass MAX_AMOUNT, the
+// receiver would end up overweight, or there aren't enough free slots. This
+// lets trade_tradecommit() stay all-or-nothing rather than committing the
+// trade while silently dropping the items pc_additem() can't place.
+static
+bool trade_can_receive(dumb_ptr<map_session_data> giver,
+        dumb_ptr<map_session_data> receiver)
+{
+    int new_stacks = 0;
+    int weight = 0;
+    for (int trade_i = 0; trade_i < TRADE_MAX; trade_i++)
+    {
+        if (giver->deal_item_amount[trade_i] == 0)
+            continue;
+        IOff0 n = giver->deal_item_index[trade_i].unshift();
+        ItemNameId nameid = giver->status.inventory[n].nameid;
+        int amount = giver->deal_item_amount[trade_i];
+        switch (pc_checkadditem(receiver, nameid, amount))
+        {
+            case ADDITEM::EXIST:
+                break;
+            case ADDITEM::NEW:
+                if (itemdb_isequip(nameid))
+                    new_stacks += amount;
+                else
+                    new_stacks++;
+                break;
+            case ADDITEM::OVERAMOUNT:
+                return false;
+        }
+        weight += itemdb_weight(nameid) * amount;
+    }
+    if (weight + receiver->weight > receiver->max_weight)
+        return false;
+    if (pc_inventoryblank(receiver) < new_stacks)
+        return false;
+    return true;
+}
+
 /*==========================================
  * 取引許諾(trade押し)
  *------------------------------------------
@@ -385,6 +427,29 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                 if (target_sd->deal_zeny > target_sd->status.zeny)
                 {
                     target_sd->deal_zeny = 0;
+                    trade_tradecancel(sd);
+                    MAP_LOG_PC(sd, " TRADECANCEL"_fmt);
+                    return;
+                }
+                // Commit is all-or-nothing: if either side couldn't receive
+                // everything the other staged (a stack would pass MAX_AMOUNT,
+                // overweight, or no free slot), cancel the whole trade instead
+                // of transferring part of it and dropping the rest. The client
+                // ignores the fail field on the trade-complete packet, so the
+                // reason has to be sent as a plain message before we cancel.
+                dumb_ptr<map_session_data> full = nullptr;
+                if (!trade_can_receive(sd, target_sd))
+                    full = target_sd;
+                else if (!trade_can_receive(target_sd, sd))
+                    full = sd;
+                if (full != nullptr)
+                {
+                    dumb_ptr<map_session_data> other = (full == sd) ? target_sd : sd;
+                    clif_displaymessage(full->sess,
+                            "Trade canceled: you can't hold all of the offered items."_s);
+                    clif_displaymessage(other->sess, STRPRINTF(
+                            "Trade canceled: %s can't hold all of the offered items."_fmt,
+                            full->status_key.name));
                     trade_tradecancel(sd);
                     MAP_LOG_PC(sd, " TRADECANCEL"_fmt);
                     return;
