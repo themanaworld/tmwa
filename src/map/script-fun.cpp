@@ -684,7 +684,11 @@ void builtin_isat(ScriptState *st)
 }
 
 /*==========================================
- *
+ * Warp character to destination
+ * Parameters:
+ * 0 - destination map
+ * 1 - destination x
+ * 2 - destination y
  *------------------------------------------
  */
 static
@@ -692,12 +696,12 @@ void builtin_warp(ScriptState *st)
 {
     int x, y;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    MapName map_name = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
     script_nullpo_end(sd, "player not found"_s);
 
-    pc_setpos(sd, map_name, x, y, BeingRemoveWhy::GONE);
+    pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE);
 }
 
 /*==========================================
@@ -712,6 +716,19 @@ void builtin_areawarp_sub(dumb_ptr<block_list> bl, MapName mapname, int x, int y
     pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE);
 }
 
+/*==========================================
+ * Warp all characters in source square to destination
+ * Parameters:
+ * 0 - source map
+ * 1 - source x0
+ * 2 - source y0
+ * 3 - source x1
+ * 4 - source y1
+ * 5 - destination map
+ * 6 - destination x
+ * 7 - destination y
+ *------------------------------------------
+ */
 static
 void builtin_areawarp(ScriptState *st)
 {
@@ -728,6 +745,38 @@ void builtin_areawarp(ScriptState *st)
     y = conv_num(st, &AARG(7));
 
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+
+    map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
+            m,
+            x0, y0,
+            x1, y1,
+            BL::PC);
+}
+
+/*==========================================
+ * Warp all characters on source map to destination
+ * Parameters:
+ * 0 - source map
+ * 1 - destination map
+ * 2 - destination x
+ * 3 - destination y
+ *------------------------------------------
+ */
+static
+void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
+{
+    int x, y;
+    int x0, y0, x1, y1;
+
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x0 = 0;
+    y0 = 0;
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+    x1 = m->xs;
+    y1 = m->ys;
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
+    x = conv_num(st, &AARG(2));
+    y = conv_num(st, &AARG(3));
 
     map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
             m,
@@ -4157,33 +4206,6 @@ void builtin_emotion(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
-{
-    int x, y;
-    int x0, y0, x1, y1;
-
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
-    x0 = 0;
-    y0 = 0;
-    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
-    x1 = m->xs;
-    y1 = m->ys;
-    MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
-    x = conv_num(st, &AARG(2));
-    y = conv_num(st, &AARG(3));
-
-    map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
-            m,
-            x0, y0,
-            x1, y1,
-            BL::PC);
-}
-
-/*==========================================
- * 
- *------------------------------------------
- */
-static
 void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
 {
     if (event == bl->is_mob()->npc_event)
@@ -5624,6 +5646,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(isat, "Mxy"_s, 'i'),
     BUILTIN(warp, "Mxy"_s, '\0'),
     BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
+    BUILTIN(mapwarp, "MMxy"_s, '\0'),
     BUILTIN(heal, "ii?"_s, '\0'),
     BUILTIN(injure, "iii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
@@ -5710,7 +5733,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(setpvpchannel, "i"_s, '\0'),
     BUILTIN(getpvpflag, "i?"_s, 'i'),
     BUILTIN(emotion, "i?"_s, '\0'),
-    BUILTIN(mapwarp, "MMxy"_s, '\0'),
     BUILTIN(mobcount, "ME"_s, 'i'),
     BUILTIN(marriage, "P"_s, 'i'),
     BUILTIN(divorce, ""_s, 'i'),

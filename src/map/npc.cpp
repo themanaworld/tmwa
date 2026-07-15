@@ -695,11 +695,18 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, Borrowed<map_local> m, int 
             Option<P<map_local>> ml = map_mapname2mapid(m->npc[i]->is_warp()->warp.name);
             if (ml.map([](P<map_local> m_){ return m_->flag.get(MapFlag::NOWARPTO); }).copy_or(false)
                 && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
+            {
+                clif_displaymessage(sd->sess,
+                        "The destination of this warp is closed at the moment."_s);
                 return 2;
+            }
             if (sd->bl_m->flag.get(MapFlag::NOWARP)
                 && !(pc_isGM(sd).satisfies(battle_config.any_warp_GM_min_level)))
+            {
+                clif_displaymessage(sd->sess,
+                        "This warp is closed at the moment."_s);
                 return 2;
-
+            }
             skill_stop_dancing(sd, 0);
             pc_setpos(sd, m->npc[i]->is_warp()->warp.name,
                        m->npc[i]->is_warp()->warp.x, m->npc[i]->is_warp()->warp.y, BeingRemoveWhy::GONE);
