@@ -4754,16 +4754,26 @@ ATCE atcommand_chareffect(Session *s, dumb_ptr<map_session_data> sd,
 {
     CharName target;
     int type = 0;
+    dumb_ptr<map_session_data> pl_sd;
 
-    if (!asplit(message, &type, &target))
+    if (extract(message, &type))
+        pl_sd = sd;
+    else if (asplit(message, &type, &target))
+        pl_sd = map_nick2sd(target);
+    else
         return ATCE::USAGE;
 
-    dumb_ptr<map_session_data> pl_sd = map_nick2sd(target);
     if (pl_sd == nullptr || (bool(pl_sd->status.option & Opt0::HIDE) && !pc_isGM(sd).detects(pc_isGM(pl_sd))))
+    {
+        clif_displaymessage(s, "Character not found."_s);
         return ATCE::EXIST;
+    }
 
     clif_specialeffect(pl_sd, type, 0);
-    clif_displaymessage(s, "Your Effect Has Changed."_s);
+    if (pl_sd == sd)
+        clif_displaymessage(s, "Your effect has changed."_s);
+    else
+        clif_displaymessage(s, "The effect of the target has changed."_s);
 
     return ATCE::OKAY;
 }
@@ -5999,7 +6009,7 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"charpvp"_s, {"<charname> <channel>"_s,
         40, atcommand_charpvp,
         "Set the pvp channel of another player"_s}},
-    {"chareffect"_s, {"<type> <target>"_s,
+    {"chareffect"_s, {"<type> [target]"_s,
         40, atcommand_chareffect,
         "Apply effect type with arg 0 to a player"_s}},
     {"dropall"_s, {""_s,
