@@ -174,6 +174,18 @@ void dialog_after_resume(dumb_ptr<map_session_data> sd, int status,
             dialog_teardown(sd);
             return;
         }
+        if (ls.prompt == LuaPrompt::NONE)
+        {
+            // a raw coroutine.yield() reached the dialog driver: no
+            // primitive sent a packet, so the client would wait forever
+            // and every later dialog packet would be ignored
+            lua_warn("dialog driver: raw coroutine.yield from a dialog "
+                    "handler (dialog aborted)"_s);
+            if (ls.dialog_mes || had_prompt)
+                clif_scriptclose(sd, sd->npc_id);
+            lua_dialog_end(sd);
+            return;
+        }
         if (ls.prompt != LuaPrompt::CLOSE)
             // the yielding primitive sent its packet and set the prompt;
             // wait for the client

@@ -40,6 +40,10 @@ namespace map
 bool lua_compile_item_script(XString body, ItemNameId nameid, bool is_equip,
         int* out_ref);
 
+// Release a compiled item script's registry ref (no-op for lua_noref);
+// used when a duplicate item_db id overwrites an earlier row.
+void lua_item_script_unref(int script_ref);
+
 // Use script: dialog coroutine on the #itemdialog NPC, args = { itemId }.
 // The caller (pc_useitem) captures script_ref before pc_delitem.
 void lua_item_use(dumb_ptr<map_session_data> sd, int script_ref,

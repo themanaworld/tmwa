@@ -32,10 +32,24 @@ namespace map
 static size_t alloc_used = 0;
 static size_t alloc_limit = 0;   // 0 = unlimited (before lua_init sets it)
 static int alloc_failures = 0;
+// The cap is enforced only while a driver runs script code (budget_push/pop
+// toggle this): host-side bookkeeping outside the drivers has no protected
+// frame, so an allocation failure there would panic-abort the server.
+static bool alloc_enforced = false;
 
 void lua_alloc_set_limit(size_t bytes)
 {
     alloc_limit = bytes;
+}
+
+size_t lua_alloc_limit()
+{
+    return alloc_limit;
+}
+
+void lua_alloc_set_enforced(bool on)
+{
+    alloc_enforced = on;
 }
 
 size_t lua_alloc_used()
@@ -64,7 +78,7 @@ void* lua_capped_alloc(void*, void* ptr, size_t osize, size_t nsize)
         return nullptr;
     }
 
-    if (nsize > old && alloc_limit)
+    if (nsize > old && alloc_limit && alloc_enforced)
     {
         size_t grow = nsize - old;
         if (alloc_used + grow > alloc_limit)

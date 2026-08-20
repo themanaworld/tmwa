@@ -4,15 +4,6 @@
 -- client protocol and asserts on the packets they emit. Marker strings
 -- ("E2E_...") are what the runner greps for; keep them in sync.
 
--- Workaround for a real server bug (see the harness bug notes): NPC handles
--- carry their block id in the raw field "id", but check_npc/check_being only
--- accept "__id", so NPC self-methods raise "handle expected". Stamping the
--- cached handle once makes all self-methods work. Remove when fixed.
-local function fixhandle(self)
-    rawset(self, "__id", self.id)
-    return self
-end
-
 -- 1. Dialog NPC: mes/next/menu/input/input_str/close
 npc.script{
     name = "Greeter", map = "test", x = 32, y = 30, dir = 0, sprite = 102,
@@ -62,18 +53,21 @@ npc.script{
 
 -- 4. on_init + NPC timer. on_init proves itself through the announced
 --    boot marker; the timer re-arms itself and announces a bounded number
---    of ticks (0x009a to every client on the server).
+--    of ticks (0x009a to every client on the server). A puppet shares the
+--    on_timer handler but runs its own independent counter (boot=9 ticks).
 npc.script{
     name = "Ticker", map = "test", x = 26, y = 30, dir = 0, sprite = 105,
     on_init = function(self)
-        fixhandle(self)
         self.vars.boot = 7
         self.vars.ticks = 0
         self:initnpctimer()
+        local pup = self:puppet("test", 26, 31, "TickerPup", 105)
+        pup.vars.boot = 9
+        pup.vars.ticks = 0
+        pup:initnpctimer()
     end,
     on_timer = {
         [1500] = function(self)
-            fixhandle(self)
             self:setnpctimer(0)
             if self.vars.ticks < 400 then
                 self.vars.ticks = self.vars.ticks + 1
@@ -109,6 +103,9 @@ npc.script{
             killer:getitem("E2ePotion", 1)
             killer:message("E2E_MOB_DEAD")
         end)
+        -- regression: args passed to npc.event from inside a dialog
+        -- coroutine must reach the handler (cross-thread push)
+        npc.event("MobMaster::OnArgs", nil, {n = 5})
         p:message("E2E_MOB_SPAWNED")
         map.foreach(2, "test", 38, 38, 42, 42, function(fself, caller, fargs)
             caller:injure(being(fargs.target_id), 100000)
@@ -117,6 +114,9 @@ npc.script{
     events = {
         OnEcho = function(self, p, args)
             p:message("E2E_ECHO:" .. args)
+        end,
+        OnArgs = function(self, p, args)
+            map.mapannounce("test", "E2E_ARGS n=" .. args.n, 0)
         end,
     },
 }

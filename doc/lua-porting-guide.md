@@ -69,17 +69,21 @@ cmake --build build -j$(nproc)
 The binary that matters for porting is `tmwa-map`. `ctest --test-dir build` runs the unit
 tests (engine invariants, array/menu/timer semantics, the item brace scanner).
 
-**Convert the old tree** (once per old-content update; deterministic and idempotent):
+**Convert the old tree** (once per old-content update; deterministic and re-runnable):
 
 ```
-tools/lua-port/convert-npc-data.py <serverdata>/world/map
+tools/lua-port/convert-npc-data.py --src <serverdata>/world/map/npc --out <luadata>/world/map
 ```
 
 The converter rewrites `scripts.conf` and the `_import.txt` files to point at `.lua`
 files, fully converts the data entries (`warp`, `shop`, `monster`, `mapflag`), and turns
 every `script`/`function` body into a bootable stub: `PORTME()` calls with the original
-source embedded in a `--[==[ ... ]==]` comment block. Re-running it only rewrites stubs
-still marked PORTME, so ported files are never clobbered. It also seeds `funcdefs.tsv`
+source embedded in a `--[==[ ... ]==]` comment block. Preservation on re-run is per
+BEGIN/END PORT block (one block per NPC, holding all its handler stubs): a fully ported
+block (no `PORTME` left) is always kept, an untouched stub block is regenerated, and a
+block that still contains `PORTME` but differs from the fresh conversion (partially
+ported, or the source changed) is kept with a loud warning; delete such a block to
+regenerate it. It also seeds `funcdefs.tsv`
 (appendix A) and emits `-- AUDIT:` comments at every site on the behaviour-change list
 (section 22). `PORTME` is a global defined by the converter's support file; it raises when
 called, so a half-ported tree still loads.
@@ -90,13 +94,16 @@ specification is `doc/lua-engine.md` section 15.)
 **Lint one file or the whole tree**:
 
 ```
-tools/lua-port/lint.py world/map/npc/001-1/gossip.lua
+tmwa-map --dump-lua-api > api.txt
+tools/lua-port/lint.py --api api.txt world/map/npc/001-1/gossip.lua
 ```
 
 Checks: Lua syntax (`luac -p`), the forbidden-subset token scan, undefined globals against
 the engine's API surface (`tmwa-map --dump-lua-api`) plus const_db names plus
 content-defined globals, a PORTME count, and heuristic warnings (tables indexed with both
-0 and 1 in one file, side-effecting operands of `and`/`or`, int/string `==` mixes).
+literal `[0]` and `[1]` in one file, handle-typed values assigned into `vars` tables,
+`continue` used as an identifier). Without `--api` the undefined-global check is silently
+skipped, so always pass the api file for a full run.
 
 **Check the whole tree with the real engine** (from the serverdata `world/map` directory,
 because the conf chain uses relative paths):
@@ -114,8 +121,8 @@ form for the inner loop until the on_init stubs in the tree are ported. Load-tim
 fatal, which is exactly what makes this check strong.
 
 **Play-test**: run the normal server trio (`tmwa-login`, `tmwa-char`, `tmwa-map`) against
-a client, or use the packet-level e2e harness (`tools/e2e/`, pytest) for scripted dialog
-scenarios.
+a client, or use the packet-level e2e harness (`python3 tools/e2e/run-e2e.py`) for
+scripted dialog scenarios.
 
 ---------------------------------------------------------------------------------------------------
 
@@ -358,7 +365,7 @@ target's handle (`players.byname(n)`, `players.byid(id)`, `players.bycharid(c)`,
 | 28 | `else` | (lang) `else` |
 | 29 | `set` | assignment: `p.tmp.x = v`, `p.vars.X = v`, `p.Zeny = v`, `world.X = v`; target form: `players.byid(id).Zeny = v`, `npc.get(n).vars.x = v` |
 | 30 | `get` | read on the target's handle: `players.byid(id).Hp`, `npc.get(n).vars.x`; SP-number reads: `p:param(sp)` |
-| 31 | `setarray` | `setarray(array(scope, "name"), start, v1, ...)`; append form: `setarray(t, getarraysize(t), ...)` |
+| 31 | `setarray` | `setarray(array(scope, "name"), start, v1, ...)`; append form: `setarray(t, getarraysize(t), ...)`. Cross-NPC target form: the old builtin auto-appended whenever the target NPC was not the running NPC, so translate those with the append form, not start 0 (AUDIT, section 22) |
 | 32 | `cleararray` | `cleararray(t, start, value, count)` |
 | 33 | `getarraysize` | `getarraysize(t)` (empty array now 0, was 1; AUDIT, section 22) |
 | 34 | `getelementofarray` | `t[i]` |
@@ -898,9 +905,9 @@ which happens to match the intent everywhere in content).
 
 The old engine evaluated both sides of `&&`/`||` always. Lua `and`/`or` short-circuit.
 The census found only pure right-hand sides in content, so `and`/`or` is the standard
-translation; the lint flags side-effecting right operands (function calls outside the
-known-pure list) for manual review. If a right operand has a needed side effect, hoist it:
-`local b = f(...) if a ~= 0 and b ~= 0 then`.
+translation. The lint does NOT check this: side-effecting right operands must be found
+manually via the converter's `-- AUDIT:` comments (section 22 row 2). If a right operand
+has a needed side effect, hoist it: `local b = f(...) if a ~= 0 and b ~= 0 then`.
 
 Related: the old engine evaluated an `if`-guarded statement's arguments BEFORE the
 condition. Lua evaluates the condition first. No content depends on the old order (census
@@ -1374,9 +1381,16 @@ setarray .arr, "ConfigNpc", 1, 2, 3;
 ```lua
 p.tmpstr.invocation = npc.get("detect-magic").varstr.invocation
 npc.get("#FerryConfig").vars.warp_delay = 20000
-setarray(array(npc.get("ConfigNpc").vars, "arr"), 0, 1, 2, 3)
+local t = array(npc.get("ConfigNpc").vars, "arr")
+setarray(t, getarraysize(t), 1, 2, 3)
 ```
-Append form: `local t = array(npc.get("N").vars, "arr"); setarray(t, getarraysize(t), ...)`.
+The append form is the correct translation for cross-NPC `setarray`: the old builtin
+started writing at `getarraysize2` (one past the last non-empty index) whenever the
+target NPC was not the running NPC, so cross-NPC `setarray` APPENDED automatically;
+writing from 0 was only the self-target (`"this"`/`"oid"`/id 0) behaviour. The
+`_nodes.txt` files rely on this: each map's Node NPC accumulates rows onto the shared
+`_N-Alchemy` collector, and a start-0 translation would leave only the last-loaded
+map's rows. Use start 0 only when the target is the running NPC itself.
 
 ### Idiom 24: GM commands (`commands/mute.txt`, section 19.2)
 
@@ -1533,6 +1547,7 @@ shop `"*N"` prices. Keep old numbers and comparisons verbatim; do not "fix" quir
 | 20 | `freeloop` dropped | delete the statement (instruction budget is per-resume and large) |
 | 21 | `p:requestitem` returns a sequence (names with the `true` flag) instead of filling `$` arrays | mechanical rewrite at each site |
 | 22 | `puppet` returns a handle or nil (was id or 0) | `< 1` checks become `not` checks (idiom 15) |
+| 23 | cross-NPC `setarray` no longer auto-appends (old started at the array size when the target NPC was not the running NPC) | translate with the append form `setarray(t, getarraysize(t), ...)` (idiom 23); start 0 only for self-targets |
 
 ---------------------------------------------------------------------------------------------------
 

@@ -78,6 +78,9 @@ void* lua_capped_alloc(void* ud, void* ptr, size_t osize, size_t nsize);
 // Current total allocation, and the failure count (allocations refused by
 // the cap). The limit is set from lua_conf by lua_init().
 void lua_alloc_set_limit(size_t bytes);
+size_t lua_alloc_limit();
+// enforce the cap (true while a driver runs script code; budget_push/pop)
+void lua_alloc_set_enforced(bool on);
 size_t lua_alloc_used();
 int lua_alloc_failures();
 } // namespace map

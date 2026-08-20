@@ -506,9 +506,14 @@ via `lua_run_sync` with `args = {target_id}`.
   `lua_conf.instruction_budget = 20000000` per host entry/resume; `budget_push/pop` nest.
   No `freeloop`.
 * **Memory cap**: the `lua_Alloc` passed to `new_state` enforces
-  `lua_conf.memory_limit_mb` (default 512): allocations beyond it fail, surfacing as
-  `LUA_ERRMEM` through the normal error path. `@luastats` prints usage, `g_live_refs`, and
-  budget-abort counts.
+  `lua_conf.memory_limit_mb` (default 512), but only while a driver is running script
+  code (`budget_push`/`budget_pop` toggle the enforcement): there a failed allocation
+  surfaces as `LUA_ERRMEM` through the protected error path. Host-side bookkeeping
+  outside the drivers (dialog resume pushes, session attach, npc register, queue
+  replay) runs with the cap lifted, because no protected frame is active there and an
+  ERRMEM would reach the panic handler; those allocations are small and bounded. The
+  panic handler prints the memory usage and limit before aborting. `@luastats` prints
+  usage, `g_live_refs`, and budget-abort counts.
 * **Sandbox** (built in `lua_init`): a fresh environment table with the whitelisted base
   functions, copies of `string`/`table`/`math`/`utf8`/read-only `coroutine`,
   `os = {time, clock, date(UTC-forced)}`, `bit32` and the engine globals; `print` redirected;
@@ -755,7 +760,7 @@ map, fixture dbs, pre-seeded account). `client.py` implements login -> char sele
 connect -> LoadEndAck and the dialog verbs (`click_npc`, `next`, `menu`, `input`,
 `input_str`, `close`, `say`, `expect`).
 
-Scenarios (pytest): the full dialog flow against a sample NPC; menu cancel; wrong-order
+Scenarios (standalone runner, `python3 tools/e2e/run-e2e.py`): the full dialog flow against a sample NPC; menu cancel; wrong-order
 packets ignored; 0x0146 mid-menu frees the player (walk accepted afterwards); storage
 open/close resume; `@command` chat -> registered handler output; command mid-dialog abandons
 the dialog and runs; mob spawn/kill death event; item use script that opens a dialog
@@ -779,8 +784,10 @@ loop. Requires the real `world/map` working directory (conf paths are relative).
 
 ### 15.1 Converter `tools/lua-port/convert-npc-data.py`
 
-Deterministic and idempotent (re-running rewrites only stubs still marked PORTME). Reads the
-old tree via the conf chain:
+Deterministic and re-runnable. Preservation is per BEGIN/END PORT block: fully ported
+blocks (no PORTME left) are always kept, untouched stub blocks are regenerated, and a
+block that still contains PORTME but differs from the fresh conversion is kept with a
+warning (delete it to regenerate). Reads the old tree via the conf chain:
 
 * Data entries are fully converted, no stubs: `warp` -> `npc.warp{...}` (file xs/ys numbers
   kept), `shop` -> `npc.shop{...}` (price forms kept), `monster` -> `npc.monster{...}`,

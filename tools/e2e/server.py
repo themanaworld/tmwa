@@ -194,6 +194,21 @@ class World(object):
         return proc
 
     def start(self):
+        # fail fast on a port collision: a foreign listener would satisfy
+        # _wait_port while our server exits with 'bind: Address already in
+        # use', and two concurrent runs would cross-talk
+        for port in (self.login_port, self.char_port, self.map_port):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # match the servers' own SO_REUSEADDR so lingering TIME_WAIT
+            # connections from a previous run do not fail the probe
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind(('127.0.0.1', port))
+            except OSError:
+                raise RuntimeError('port %d already in use (set E2E_BASE_PORT '
+                                   'to pick a free range)' % port)
+            finally:
+                s.close()
         w = self.world_dir
         self.login = self._spawn('tmwa-login', os.path.join(w, 'login'),
                                  'login.stdout.log')
@@ -214,6 +229,13 @@ class World(object):
             try:
                 s = socket.create_connection(('127.0.0.1', port), timeout=0.5)
                 s.close()
+                # a bind failure can race the connect (something else may
+                # own the port); re-check that the server is still alive
+                time.sleep(0.3)
+                if proc.poll() is not None:
+                    raise RuntimeError('%s exited with code %d (see %s)'
+                                       % (name, proc.returncode,
+                                          self.logs[-1]))
                 return
             except OSError:
                 time.sleep(0.1)

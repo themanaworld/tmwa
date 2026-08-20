@@ -79,6 +79,13 @@ bool lua_compile_item_script(XString body, ItemNameId nameid, bool is_equip,
     return true;
 }
 
+void lua_item_script_unref(int script_ref)
+{
+    lua_State* L = lua_state();
+    if (L != nullptr)
+        luac::unref(L, script_ref);
+}
+
 void lua_item_use(dumb_ptr<map_session_data> sd, int script_ref,
         ItemNameId nameid)
 {
@@ -105,6 +112,10 @@ void lua_item_use(dumb_ptr<map_session_data> sd, int script_ref,
     ctx.npc = nd->bl_id;
     ctx.player = sd->bl_id;
     ctx.what = "item use script";
+    // clif_parse_UseItem only forwards the packet when npc_id is empty, so
+    // this cannot clobber an active dialog (same as the other dialog
+    // entry points in lua-events.cpp)
+    sd->npc_id = nd->bl_id;
     lua_run_dialog(sd, nd, ctx, 2);
 }
 

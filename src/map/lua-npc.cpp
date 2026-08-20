@@ -167,10 +167,14 @@ void lua_push_npc_handle(lua_State* L, dumb_ptr<npc_data> nd)
         return;
     }
     lua_pop(L, 1);
-    // create the handle: { id = <blockid>, vars = {}, varstr = {} }
-    lua_createtable(L, 0, 3);
+    // create the handle: { id = <blockid>, __id = <blockid>, vars = {},
+    // varstr = {} }; handle_extract (lua-handle-being.cpp) identifies a
+    // handle by its raw "__id" field, so NPC handles must carry it too
+    lua_createtable(L, 0, 4);
     lua_pushinteger(L, unwrap<BlockId>(nd->bl_id));
     lua_setfield(L, -2, "id");
+    lua_pushinteger(L, unwrap<BlockId>(nd->bl_id));
+    lua_setfield(L, -2, "__id");
     lua_newtable(L);
     lua_push_engine_table(L, LuaTable::INT_DEFAULT_MT);
     lua_setmetatable(L, -2);
@@ -818,6 +822,29 @@ int ln_self_addnpctimer(lua_State* L)
     return 0;
 }
 
+// Collect the sorted on_timer interval list from a definition table's
+// __timers field (seeded by npc.script; shared by puppets).
+static
+std::vector<interval_t> def_timer_intervals(lua_State* L, int def_idx)
+{
+    std::vector<interval_t> intervals;
+    lua_getfield(L, def_idx, "__timers");
+    if (lua_istable(L, -1))
+    {
+        int n = static_cast<int>(luac::raw_len(L, -1));
+        for (int i = 1; i <= n; ++i)
+        {
+            lua_rawgeti(L, -1, i);
+            int ms;
+            if (luac::to_int(L, -1, &ms) && ms > 0)
+                intervals.push_back(interval_t(ms));
+            lua_pop(L, 1);
+        }
+    }
+    lua_pop(L, 1);
+    return intervals;
+}
+
 // puppet: a temp NPC sharing all of the parent's handlers
 // (script-fun.cpp:1358-1470 minus the label machinery)
 static
@@ -896,6 +923,9 @@ int ln_self_puppet(lua_State* L)
     if (lua_npc_push_def(L, parent_nd))
     {
         defs_set(L, pd->bl_id, -1);
+        // the puppet gets its own OnTimer counter over the parent's
+        // interval list (the old builtin_puppet copied timer_eventv)
+        lua_npc_timer_setup(pd, def_timer_intervals(L, lua_gettop(L)));
         lua_pop(L, 1);
     }
     lua_npc_register(pd);
@@ -1335,8 +1365,10 @@ int ln_ns_script(lua_State* L)
                 "npc.script: 'x'/'y'/'dir'/'xs'/'ys' require 'map'");
     if (dirv < 0 || dirv > 7)
         return luaL_error(L, "npc.script: 'dir' must be 0..7");
-    if (sprite < 0 || sprite > 65535)
-        return luaL_error(L, "npc.script: 'sprite' must be 0..65535");
+    if (sprite < -1 || sprite > 65535)
+        return luaL_error(L, "npc.script: 'sprite' must be -1 or 0..65535");
+    if (sprite == -1)
+        sprite = 0;     // NEGATIVE_SPECIES, as the old file parser mapped it
     if (xs_file < 0 || ys_file < 0)
         return luaL_error(L, "npc.script: 'xs'/'ys' must be >= 0");
     // the touch radius is stored as a diameter, exactly like the old file
@@ -1453,24 +1485,7 @@ int ln_ns_script(lua_State* L)
     defs_set(L, nd->bl_id, def);
     lua_npc_register(nd);
     // seed the OnTimer machine from the sorted def.__timers list
-    {
-        std::vector<interval_t> intervals;
-        lua_getfield(L, def, "__timers");
-        if (lua_istable(L, -1))
-        {
-            int n = static_cast<int>(luac::raw_len(L, -1));
-            for (int i = 1; i <= n; ++i)
-            {
-                lua_rawgeti(L, -1, i);
-                int ms;
-                if (luac::to_int(L, -1, &ms) && ms > 0)
-                    intervals.push_back(interval_t(ms));
-                lua_pop(L, 1);
-            }
-        }
-        lua_pop(L, 1);
-        lua_npc_timer_setup(nd, std::move(intervals));
-    }
+    lua_npc_timer_setup(nd, def_timer_intervals(L, def));
     lua_push_npc_handle(L, nd);
     return 1;
 }
@@ -1604,8 +1619,10 @@ int ln_ns_shop(lua_State* L)
     int sprite = req_int_field(L, "npc.shop", "sprite");
     if (dirv < 0 || dirv > 7)
         return luaL_error(L, "npc.shop: 'dir' must be 0..7");
-    if (sprite < 0 || sprite > 65535)
-        return luaL_error(L, "npc.shop: 'sprite' must be 0..65535");
+    if (sprite < -1 || sprite > 65535)
+        return luaL_error(L, "npc.shop: 'sprite' must be -1 or 0..65535");
+    if (sprite == -1)
+        sprite = 0;     // NEGATIVE_SPECIES, as the old file parser mapped it
     if (!push_raw_field(L, 1, "items"))
         return luaL_error(L, "npc.shop: missing 'items'");
     if (!lua_istable(L, -1))

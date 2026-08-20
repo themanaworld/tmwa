@@ -81,10 +81,12 @@ def s01_login_hook(c, ctx, world):
 
 
 def s02_oninit_npctimer(c, ctx, world):
-    """on_init ran at boot; the NPC timer fires and re-arms."""
+    """on_init ran at boot; the NPC timer fires and re-arms. The puppet
+    created in on_init runs the shared handler on its own counter."""
     pkt = c.wait_gm_chat('E2E_TICK boot=7', timeout=15.0)
     text = pkt.tail(4).rstrip(b'\0').decode('utf-8', 'replace')
     assert 'n=' in text, text
+    c.wait_gm_chat('E2E_TICK boot=9', timeout=15.0)
 
 
 def s03_dialog(c, ctx, world):
@@ -243,6 +245,7 @@ def s10_mob_death_event(c, ctx, world):
     """Runtime mob spawn with a death event; the event fires with the
     killer attached."""
     c.say('@e2espawn')
+    c.wait_gm_chat('E2E_ARGS n=5')
     c.wait_chat('E2E_MOB_SPAWNED')
     spawn = c.map.wait(lambda p:
                        (p.id == 0x0078 and p.u16(14) == 1002)
@@ -375,11 +378,16 @@ def main():
         print('!! harness error: %s: %s' % (type(e).__name__, e))
         traceback.print_exc()
         results.append(('<harness>', 'FAIL', str(e)))
-        world.dump_logs()
     finally:
         if client is not None:
             client.disconnect()
         world.stop()
+        # preserve the diagnostics before the world dir is deleted: dump
+        # the server logs on any failure (scenario FAIL, server death, or
+        # harness error; all leave a FAIL row). After stop(), so a live
+        # server's buffered stdout has been flushed by its exit path.
+        if any(s == 'FAIL' for _, s, _ in results):
+            world.dump_logs()
         if args.keep:
             print('== world kept in %s' % world_dir)
         elif args.world_dir is None:

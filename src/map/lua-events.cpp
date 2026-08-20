@@ -208,8 +208,15 @@ void push_event_args(lua_State* L, const EventArgs& args)
         lua_pushnil(L);
         return;
     }
-    // single interpreter state: args.from is always the same L
-    lua_pushvalue(L, args.idx);
+    // dialog handlers run on a coroutine: the binding's C frame (and its
+    // positive indices) lives on args.from, which may differ from L
+    if (args.from != L)
+    {
+        lua_pushvalue(args.from, args.idx);
+        lua_xmove(args.from, L, 1);
+    }
+    else
+        lua_pushvalue(L, args.idx);
 }
 
 // ------------------------------------------------------------------------

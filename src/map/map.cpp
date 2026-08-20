@@ -811,8 +811,6 @@ void map_quit(dumb_ptr<map_session_data> sd)
 
     party_send_logout(sd);     // パーティのログアウトメッセージ送信
 
-    lua_pc_cleareventtimer(sd);    // イベントタイマを破棄する
-
     skill_castcancel(sd, 0);  // 詠唱を中断する
     skill_stop_dancing(sd, 1);    // ダンス/演奏中断
 
@@ -835,6 +833,11 @@ void map_quit(dumb_ptr<map_session_data> sd)
         chrif_save(sd);
     else if (sd->state.storage_open)
         storage_storage_quit(sd);
+
+    // destroy the event timer slots; after pc_calcstatus, because equip
+    // scripts running there may arm new ones, and the slot table is keyed
+    // by account id, so a leaked slot could fire into a later login
+    lua_pc_cleareventtimer(sd);
 
     // abandon any dialog, release queued events and the player handle
     lua_session_detach(sd);
@@ -1647,7 +1650,8 @@ int do_init(Slice<ZString> argv)
         exit(0);
     }
 
-    map_set_logfile();
+    if (!lua_check_only())
+        map_set_logfile();
 
     runflag &= map_readallmap();
 

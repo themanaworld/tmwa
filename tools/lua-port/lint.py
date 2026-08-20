@@ -180,12 +180,16 @@ def scan_subset(toks, path, findings):
             elif t.text == "PORTME":
                 portme += 1
             elif t.text in FORBIDDEN_GLOBALS and not (
-                    prv and prv.kind == "op" and prv.text in (".", ":")):
+                    (prv and prv.kind == "op" and prv.text in (".", ":"))
+                    # table-constructor key or assignment target, not a
+                    # read of the forbidden global ('==' is one token)
+                    or (nxt and nxt.kind == "op" and nxt.text == "=")):
                 findings.append(Finding("error", path, t.line,
                                         "'%s' is not available in the "
                                         "sandbox" % t.text))
             elif t.text == "os" and not (
-                    prv and prv.kind == "op" and prv.text in (".", ":")):
+                    (prv and prv.kind == "op" and prv.text in (".", ":"))
+                    or (nxt and nxt.kind == "op" and nxt.text == "=")):
                 if nxt and nxt.kind == "op" and nxt.text == ".":
                     mem = toks[k + 2] if k + 2 < len(toks) else None
                     if mem is None or mem.kind != "id" \

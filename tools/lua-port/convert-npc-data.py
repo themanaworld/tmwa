@@ -11,8 +11,11 @@
 # '-- AUDIT:' comments mark the behaviour-change hotspots of
 # doc/lua-api.md section 13.
 #
-# Deterministic and idempotent: re-running rewrites only stubs still marked
-# PORTME; blocks whose PORTME() call was replaced by ported code are kept.
+# Deterministic and re-runnable. Preservation is per BEGIN/END PORT block:
+# a block with no PORTME() left is always kept; a block that still contains
+# PORTME() but differs from the fresh conversion (partially ported, or the
+# source .txt changed) is also kept, with a loud warning, so hand-ported
+# handlers are never silently reverted. Delete a block to regenerate it.
 #
 # Usage:
 #   convert-npc-data.py [--src NPCDIR] --out OUTDIR
@@ -536,6 +539,24 @@ def audit_scan(toks, label_kind_of_tok):
         elif name == "getarraysize":
             add("getarraysize", t.line,
                 "returns 0 for an empty array (old returned 1)")
+        elif name == "setarray":
+            args, _ = split_args(toks, k + 1)
+            # target form: setarray .var, <npc>, v1, ... where <npc> is the
+            # target NPC (string name, "this"/"oid", or numeric id, 0=self)
+            if len(args) >= 2 and len(args[0]) == 1 \
+                    and args[0][0].kind == "id" \
+                    and args[0][0].text.startswith(".") \
+                    and not args[0][0].text.startswith(".@"):
+                tgt = args[1]
+                self_target = (len(tgt) == 1 and (
+                    (tgt[0].kind == "str" and tgt[0].text in ("this", "oid"))
+                    or (tgt[0].kind == "num" and tgt[0].text == "0")))
+                if not self_target:
+                    add("setarray-target", t.line,
+                        "cross-NPC setarray auto-appended in the old engine "
+                        "(started at the array size, not 0); translate as "
+                        "setarray(t, getarraysize(t), ...) on the target's "
+                        "array")
         elif name == "fakenpcname":
             add("fakenpcname", t.line,
                 "self:rename really renames (updates registries)")
@@ -693,6 +714,59 @@ def segments_of_body(body, body_line, filename, item_line):
     return segments, toks, label_kind_of_tok
 
 
+def cross_segment_refs(toks, segments, seg_of_tok):
+    """Audit entries for goto/callsub/menu targets whose label lives in a
+    different On* segment: the referencing stub's embedded source is not
+    self-sufficient, and deleting the defining stub would lose the only
+    copy of the shared code."""
+    defseg = {}
+    defline = {}
+    for k, lname in find_labels(toks):
+        defseg[lname] = seg_of_tok.get(k, "")
+        defline[lname] = toks[k].line
+    seg_by_label = {s["label"]: s for s in segments}
+
+    def segname(label):
+        return label if label else "the click body"
+
+    out = []
+    seen = set()
+
+    def ref(k, target):
+        refseg = seg_of_tok.get(k, "")
+        dseg = defseg.get(target)
+        if dseg is None or dseg == refseg:
+            return
+        if (target, refseg) in seen:
+            return
+        seen.add((target, refseg))
+        d = seg_by_label.get(dseg)
+        rng = (" (original lines %d-%d)" % (d["line0"], d["line1"])) \
+            if d else ""
+        out.append(("cross-segment-goto", toks[k].line,
+                    "%s: target label lives in segment %s%s; extract the "
+                    "shared block before deleting either stub"
+                    % (target, segname(dseg), rng)))
+        out.append(("cross-segment-goto", defline[target],
+                    "label %s is a jump target from segment %s; extract "
+                    "the shared block before deleting either stub"
+                    % (target, segname(refseg))))
+
+    for k, t in enumerate(toks):
+        if t.kind != "id":
+            continue
+        if t.text in ("goto", "callsub"):
+            if k + 1 < len(toks) and toks[k + 1].kind == "id":
+                ref(k, toks[k + 1].text)
+        elif t.text == "menu":
+            args, _ = split_args(toks, k + 1)
+            for a_i in range(1, len(args), 2):
+                a = args[a_i]
+                if len(a) == 1 and a[0].kind == "id":
+                    ref(k, a[0].text)
+    return out
+
+
 def convert_script_item(it, filename, stats, mangle_taken, funcdefs):
     """Returns (marker_key, lua_text)."""
     if it.kind == "script_function":
@@ -701,6 +775,7 @@ def convert_script_item(it, filename, stats, mangle_taken, funcdefs):
     segments, toks, seg_of_tok = segments_of_body(
             it.body, it.body_line, filename, it.line)
     audits = audit_scan(toks, seg_of_tok)
+    audits.extend(cross_segment_refs(toks, segments, seg_of_tok))
     stats.audits += len(audits)
     for kind, _, _ in audits:
         stats.audit_kinds[kind] = stats.audit_kinds.get(kind, 0) + 1
@@ -847,22 +922,22 @@ def convert_file(src_path, rel, existing_text, stats, funcdefs,
     parser = TopParser(text, rel)
     items = parser.parse_all()
 
-    # existing PORT blocks that are already ported (no PORTME left)
-    preserved = {}
+    # every existing PORT block; fully ported ones (no PORTME left) are
+    # always kept, and partially ported ones are kept with a warning
+    existing_blocks = {}
     if existing_text is not None:
         for m in re.finditer(
                 r"^-- BEGIN PORT (.+?)$\n(.*?)^-- END PORT \1$\n",
                 existing_text, re.M | re.S):
-            key, block = m.group(1), m.group(0)
-            if "PORTME(" not in block:
-                preserved[key] = block
+            existing_blocks[m.group(1)] = m.group(0)
 
     if mangle_taken is None:
         mangle_taken = {}
     out = []
     out.append("-- Converted from %s by tools/lua-port/convert-npc-data.py" % rel)
-    out.append("-- Stubs marked PORTME() are regenerated on re-conversion;")
-    out.append("-- ported blocks (no PORTME left) are preserved.")
+    out.append("-- Untouched PORTME() stubs are regenerated on re-conversion;")
+    out.append("-- ported and partially ported blocks are preserved (a")
+    out.append("-- partially ported block warns; delete it to regenerate).")
     out.append("")
     for it in items:
         if it.kind == "comment":
@@ -932,8 +1007,20 @@ def convert_file(src_path, rel, existing_text, stats, funcdefs,
         # script kinds
         key, lua = convert_script_item(it, rel, stats, mangle_taken, funcdefs)
         block = "-- BEGIN PORT %s\n%s\n-- END PORT %s\n" % (key, lua, key)
-        if key in preserved:
-            block = preserved[key]
+        existing = existing_blocks.get(key)
+        if existing is not None:
+            if "PORTME(" not in existing:
+                # fully ported: always kept
+                block = existing
+            elif existing != block:
+                # still contains PORTME but differs from the fresh
+                # conversion: partially ported or hand-edited (or the
+                # source changed); never silently revert it
+                print("WARNING: %s: block '%s' is partially ported or "
+                      "hand-edited; kept the existing block (delete it "
+                      "to regenerate from source)" % (rel, key),
+                      file=sys.stderr)
+                block = existing
         out.append(block.rstrip("\n"))
     return "\n".join(out).rstrip("\n") + "\n"
 

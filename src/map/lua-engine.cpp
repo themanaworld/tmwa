@@ -235,12 +235,17 @@ void budget_hook(lua_State* L)
 void budget_push()
 {
     g_budget.push_back(lua_conf.instruction_budget);
+    // the memory cap applies only while a driver runs script code;
+    // host-side bookkeeping outside the drivers has no protected frame, so
+    // an ERRMEM there would reach the panic handler and abort
+    lua_alloc_set_enforced(true);
 }
 
 void budget_pop()
 {
     if (!g_budget.empty())
         g_budget.pop_back();
+    lua_alloc_set_enforced(!g_budget.empty());
 }
 
 // ------------------------------------------------------------------------
@@ -272,27 +277,47 @@ int msgh(lua_State* L)
     return 1;
 }
 
-void lua_report_error(lua_State* failed, LuaCtx ctx)
+// Stringifies the error object (arg 1); when a coroutine thread is passed
+// as arg 2, appends that thread's traceback. Must run under lua_pcall:
+// luaL_tolstring can invoke a throwing __tostring metamethod and
+// luaL_traceback allocates, and lua_report_error runs after the failed
+// pcall/resume returned, so no error jump is installed any more.
+static
+int report_stringify(lua_State* L)
 {
-    AString msg;
-    {
-        if (lua_type(failed, -1) != LUA_TSTRING)
-            luaL_tolstring(failed, -1, nullptr);
-        else
-            lua_pushvalue(failed, -1);
-        size_t len;
-        ZString z = luac::to_string(failed, -1, &len);
-        msg = AString(XString(z));
-        lua_pop(failed, 1);
-    }
-    if (failed != g_L)
+    luaL_tolstring(L, 1, nullptr);
+    if (lua_isthread(L, 2))
     {
         // errors from a coroutine resume carry no traceback yet
-        luac::traceback(g_L, failed, msg.c_str());
-        size_t len;
-        ZString z = luac::to_string(g_L, -1, &len);
-        msg = AString(XString(z));
-        lua_pop(g_L, 1);
+        lua_State* T = lua_tothread(L, 2);
+        luac::traceback(L, T, lua_tostring(L, -1));
+    }
+    return 1;
+}
+
+void lua_report_error(lua_State* failed, LuaCtx ctx)
+{
+    AString msg = "(unprintable error object)"_s;
+    {
+        luac::push_cfunction(g_L, report_stringify, "report_stringify");
+        int nargs = 1;
+        if (failed == g_L)
+            lua_pushvalue(g_L, -2);     // the error object, below the helper
+        else
+        {
+            lua_pushvalue(failed, -1);
+            lua_xmove(failed, g_L, 1);
+            lua_pushthread(failed);
+            lua_xmove(failed, g_L, 1);
+            nargs = 2;
+        }
+        if (lua_pcall(g_L, nargs, 1, 0) == LUA_OK)
+        {
+            size_t len;
+            ZString z = luac::to_string(g_L, -1, &len);
+            msg = AString(XString(z));
+        }
+        lua_pop(g_L, 1);    // the result string or the pcall error
     }
     AString npc_name;
     {

@@ -195,6 +195,11 @@ bool itemdb_readdb(ZString filename)
                     return false;
 
                 Borrowed<struct item_data> id = itemdb_search(idv.nameid);
+                // a duplicate id overwrites the earlier row (last wins,
+                // like the old parser); release its compiled scripts so
+                // the registry refs do not leak
+                lua_item_script_unref(id->use_script_ref);
+                lua_item_script_unref(id->equip_script_ref);
                 *id = std::move(idv);
             }
         }

@@ -72,9 +72,13 @@ foreach(dir admin ast char compat generic high ints io login map mmo net proto-b
     list(FILTER ${dir}_SOURCES EXCLUDE REGEX ".*_test.cpp")
     message("Adding sources in ${dir}: ${${dir}_SOURCES}")
 
-    # Build OBJECT libraries to allow object reuse across targets
-    add_library(tmwa-obj-${dir} OBJECT EXCLUDE_FROM_ALL ${${dir}_SOURCES})
-    set_target_properties(tmwa-obj-${dir} PROPERTIES LINKER_LANGUAGE CXX)
+    # Build OBJECT libraries to allow object reuse across targets.
+    # The map sources are consumed by tmwa-map-lib instead (which gets the
+    # Lua include directory); only the glob above is needed for them.
+    if(NOT dir STREQUAL "map")
+        add_library(tmwa-obj-${dir} OBJECT EXCLUDE_FROM_ALL ${${dir}_SOURCES})
+        set_target_properties(tmwa-obj-${dir} PROPERTIES LINKER_LANGUAGE CXX)
+    endif()
 endforeach()
 
 set_target_properties(tmwa-obj-io

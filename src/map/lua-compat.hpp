@@ -50,6 +50,10 @@ namespace tmwa
 {
 namespace map
 {
+// lua-alloc.cpp (declared here too so the panic handler can report usage)
+size_t lua_alloc_used();
+size_t lua_alloc_limit();
+
 namespace luac
 {
 // lua_noref (lua-types.hpp) must match the real constant so that host structs
@@ -65,6 +69,8 @@ int compat_panic(lua_State* L)
         FPRINTF(stderr, "lua: PANIC: %s\n"_fmt, ZString(msg, msg + len, nullptr));
     else
         FPRINTF(stderr, "lua: PANIC: (non-string error object)\n"_fmt);
+    FPRINTF(stderr, "lua: PANIC: memory used %zu of limit %zu\n"_fmt,
+            lua_alloc_used(), lua_alloc_limit());
     abort();
 }
 
