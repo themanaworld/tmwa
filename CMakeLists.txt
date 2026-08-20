@@ -27,6 +27,10 @@ endif()
 
 project(tmwAthena VERSION ${VERSION} LANGUAGES CXX)
 
+# The map server embeds Lua 5.4 (doc/lua-engine.md); works with Fedora's
+# lua-devel and Debian's liblua5.4-dev.
+find_package(Lua 5.4 REQUIRED)
+
 option(TMWA_BUILD_TESTS "Build unit tests with GoogleTest and CTest" OFF)
 if(TMWA_BUILD_TESTS)
   include(CTest)
@@ -164,7 +168,26 @@ add_executable(tmwa-char ${char_SOURCES}
 )
 target_link_libraries(tmwa-char tmwa-shared)
 
-add_executable(tmwa-map ${map_SOURCES}
+# The Lua engine sources (src/map/lua-*.cpp) are compiled in their own object
+# library so compile errors surface, but are NOT yet linked into tmwa-map:
+# the integration phase moves them into tmwa-map-lib (doc/lua-engine.md,
+# CMake / packaging).
+set(map_LUA_SOURCES ${map_SOURCES})
+list(FILTER map_LUA_SOURCES INCLUDE REGEX ".*/lua-[^/]*\\.cpp$")
+list(FILTER map_SOURCES EXCLUDE REGEX ".*/lua-[^/]*\\.cpp$")
+
+# Object library with the map sources minus main.cpp, shared between the
+# tmwa-map executable and the map test executables.
+set(map_LIB_SOURCES ${map_SOURCES})
+list(FILTER map_LIB_SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
+add_library(tmwa-map-lib OBJECT ${map_LIB_SOURCES})
+target_include_directories(tmwa-map-lib PRIVATE ${LUA_INCLUDE_DIR})
+
+add_library(tmwa-obj-lua OBJECT ${map_LUA_SOURCES})
+target_include_directories(tmwa-obj-lua PRIVATE ${LUA_INCLUDE_DIR})
+
+add_executable(tmwa-map src/map/main.cpp
+  $<TARGET_OBJECTS:tmwa-map-lib>
   $<TARGET_OBJECTS:tmwa-obj-ast>
   $<TARGET_OBJECTS:tmwa-obj-compat>
   $<TARGET_OBJECTS:tmwa-obj-generic>
@@ -173,7 +196,8 @@ add_executable(tmwa-map ${map_SOURCES}
   $<TARGET_OBJECTS:tmwa-obj-net>
   $<TARGET_OBJECTS:tmwa-obj-wire>
   )
-target_link_libraries(tmwa-map tmwa-shared)
+target_include_directories(tmwa-map PRIVATE ${LUA_INCLUDE_DIR})
+target_link_libraries(tmwa-map tmwa-shared ${LUA_LIBRARIES})
 
 add_executable(tmwa-admin ${admin_SOURCES}
   $<TARGET_OBJECTS:tmwa-obj-generic>
@@ -217,6 +241,15 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
 
     add_executable(${test_target} ${test_src})
     target_link_libraries(${test_target} tmwa-core GTest::gtest_main)
+
+    # map tests need the map objects and the Lua engine
+    if(test_src MATCHES "/src/map/")
+      target_sources(${test_target} PRIVATE
+        $<TARGET_OBJECTS:tmwa-map-lib>
+        $<TARGET_OBJECTS:tmwa-obj-lua>)
+      target_include_directories(${test_target} PRIVATE ${LUA_INCLUDE_DIR})
+      target_link_libraries(${test_target} ${LUA_LIBRARIES})
+    endif()
 
     gtest_discover_tests(${test_target})
   endforeach()

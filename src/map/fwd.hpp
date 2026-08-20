@@ -69,6 +69,16 @@ struct ScriptState;
 struct str_data_t;
 class SIR;
 
+// Lua engine (doc/lua-engine.md)
+enum class LuaPrompt : uint8_t;
+struct LuaSession;
+struct LuaAnswer;
+struct LuaCallback;
+struct LuaTimerSlot;
+struct LuaArgs;
+struct LuaCtx;
+struct LuaConf;
+
 struct AuthFifoEntry;
 
 } // namespace map

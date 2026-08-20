@@ -1,0 +1,128 @@
+#pragma once
+//    lua-engine.hpp - Lua state lifetime, sandbox, budgets, and the two drivers.
+//
+//    Copyright © 2026 The Mana World Development Team
+//
+//    This file is part of The Mana World (Athena server)
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "fwd.hpp"
+
+#include "lua-compat.hpp"
+
+#include "../strings/xstring.hpp"
+#include "../strings/zstring.hpp"
+
+#include "../generic/dumb_ptr.hpp"
+
+#include "../mmo/ids.hpp"
+
+#include "lua-types.hpp"
+
+
+namespace tmwa
+{
+namespace map
+{
+// The context of a host -> Lua entry: pushed on the ctx stack for the
+// duration of the call and re-pushed on every coroutine resume, so p:mesn()
+// defaults, p:addtimer self capture, and error messages know their context.
+struct LuaCtx
+{
+    BlockId npc;
+    BlockId player;
+    const char* what = "";
+};
+
+// Engine limits. SCAFFOLD NOTE: fed from map_conf's lua_conf keys
+// (instruction_budget, memory_limit_mb) at integration time; until then these
+// are the defaults from doc/lua-engine.md section 8.
+struct LuaConf
+{
+    int instruction_budget = 20000000;
+    int memory_limit_mb = 512;
+};
+extern LuaConf lua_conf;
+
+// State lifetime. lua_init() runs before config parsing (item scripts compile
+// during config load); lua_final() runs after the mapreg save.
+void lua_init();
+void lua_final();
+
+// The single interpreter state (nullptr before lua_init / after lua_final).
+lua_State* lua_state();
+
+// Parse one const_db file (same format as the old read_constdb: name value
+// [param-flag], '//' whole-line comments). Third column nonzero registers a
+// param name instead of a constant. Returns false on any bad line.
+bool lua_read_constdb(ZString filename);
+
+// Load every content file from the conf 'npc:' list (npc_srcs) via import();
+// false if any error (fatal at startup).
+bool lua_load_content();
+
+// The C++ side of import(): load and run one content file once, under the
+// sandbox env, chunk name = the path. Returns false on error (already logged).
+bool lua_import(ZString path);
+
+// Compile src under the sandbox environment. On success pushes the function
+// and returns true; on failure logs the compile error and returns false.
+bool lua_load_chunk_sandboxed(XString chunkname, XString src);
+
+// Instruction budget nesting: a sync handler run from inside a coroutine gets
+// a fresh budget and restores the outer one.
+void budget_push();
+void budget_pop();
+
+// The two drivers (doc/lua-engine.md section 3). Stack of lua_state() on
+// entry: [function, arg1..argN].
+//
+// Synchronous: lua_pcall on the main state with the traceback handler.
+// Returns true if the handler completed (or ended via stop()).
+bool lua_run_sync(LuaCtx ctx, int nargs);
+
+// Dialog coroutine: new thread anchored in the registry, resumed later by the
+// packet handlers via lua_dialog_resume.
+void lua_run_dialog(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> dialog_npc,
+        LuaCtx ctx, int nargs);
+
+// True when the error object at idx is the stop() sentinel (handler
+// termination without an error log).
+bool lua_error_is_stop(lua_State* L, int idx);
+
+// Log the error object on top of `failed`'s stack (with traceback and
+// NPC/player/what context), then pop it.
+void lua_report_error(lua_State* failed, LuaCtx ctx);
+
+// True from lua_init() until lua_loading_done(): content files are loading
+// (new globals allowed, import() allowed, errors fatal).
+bool lua_loading();
+// Called after lua_run_oninit(): new-global writes start warning.
+void lua_loading_done();
+
+// --check-scripts[=load] support.
+void lua_set_check_only(bool enable, bool skip_oninit);
+bool lua_check_only();
+bool lua_check_skip_oninit();
+
+// --dump-lua-api: print the API surface (globals, namespaces, constants,
+// params) to stdout, sorted, for tools/lua-port/lint.py.
+void lua_dump_api();
+
+// @luastats inputs.
+size_t lua_mem_used();
+int lua_budget_aborts();
+} // namespace map
+} // namespace tmwa
