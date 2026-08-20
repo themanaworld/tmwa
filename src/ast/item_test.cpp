@@ -139,10 +139,71 @@ namespace item
                 EXPECT_SPAN(p->mode.span, 1,48, 1,48);
                 EXPECT_EQ(p->mode.data, ItemMode::NO_DROP);
                 EXPECT_SPAN(p->use_script.span, 1,51, 1,56);
-                EXPECT_EQ(p->use_script.braced_body, "{end;}"_s);
+                EXPECT_EQ(p->use_script.text, "end;"_s);
                 EXPECT_SPAN(p->equip_script.span, 1,59, 1,60);
-                EXPECT_EQ(p->equip_script.braced_body, "{}"_s);
+                EXPECT_EQ(p->equip_script.text, ""_s);
             }
+        }
+    }
+    TEST(itemast, luascripts)
+    {
+        QuietFd q;
+        struct Case
+        {
+            LString input;
+            LString use;
+            LString equip;
+        };
+        Case cases[] =
+        {
+            // plain lua call
+            {"1,abc ,3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {p:heal(15, 0, 1)}, {}"_s,
+                "p:heal(15, 0, 1)"_s, ""_s},
+            // empty bodies
+            {"1,abc ,3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {}, {}"_s,
+                ""_s, ""_s},
+            // brace inside a double-quoted string is not a closer
+            {"1,abc ,3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {t = \"}\"}, {}"_s,
+                "t = \"}\""_s, ""_s},
+            // brace inside a single-quoted string, with an escape
+            {"1,abc ,3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {t = '\\'}'}, {}"_s,
+                "t = '\\'}'"_s, ""_s},
+            // nested braces (table constructor)
+            {"1,abc ,3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {t = {a = 1}}, {u = {}}"_s,
+                "t = {a = 1}"_s, "u = {}"_s},
+        };
+        for (auto& c : cases)
+        {
+            io::LineCharReader lr(io::from_string, "<string>"_s, c.input);
+            auto res = TRY_UNWRAP(parse_item(lr), FAIL());
+            EXPECT_TRUE(res.get_success().is_some());
+            auto top = TRY_UNWRAP(std::move(res.get_success()), FAIL());
+            auto p = top.get_if<Item>();
+            EXPECT_TRUE(p);
+            if (p)
+            {
+                EXPECT_EQ(p->use_script.text, c.use);
+                EXPECT_EQ(p->equip_script.text, c.equip);
+            }
+        }
+    }
+    TEST(itemast, luascriptbad)
+    {
+        QuietFd q;
+        LString inputs[] =
+        {
+            // unbalanced brace
+            "1,abc ,3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {t = {}, {}"_s,
+            // unterminated string hits EOL
+            "1,abc ,3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, {t = \"}, {}"_s,
+            // missing script column entirely
+            "1,abc ,3,4,5,6,7,8,9,10,xx,2,16,12,13,11,1, nope, {}"_s,
+        };
+        for (auto input : inputs)
+        {
+            io::LineCharReader lr(io::from_string, "<string>"_s, input);
+            auto res = TRY_UNWRAP(parse_item(lr), FAIL());
+            EXPECT_TRUE(res.get_success().is_none());
         }
     }
 } // namespace item

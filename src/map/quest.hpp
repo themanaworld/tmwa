@@ -24,7 +24,6 @@
 #include "../high/mmo.hpp"
 
 #include "map.hpp"
-#include "script-buffer.hpp"
 
 namespace tmwa
 {

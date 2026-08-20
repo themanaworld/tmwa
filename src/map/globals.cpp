@@ -29,8 +29,7 @@
 #include "quest.hpp"
 #include "map_conf.hpp"
 #include "mob.hpp"
-#include "npc-internal.hpp"
-#include "script-parse-internal.hpp"
+#include "npc.hpp"
 #include "skill.hpp"
 
 #include "../poison.hpp"
@@ -74,9 +73,7 @@ namespace tmwa
         std::list<AString> npc_srcs;
         int npc_warp, npc_shop, npc_script, npc_mob;
         BlockId npc_id = START_NPC_NUM;
-        Map<NpcEvent, struct event_data> ev_db;
         DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
-        DMap<RString, NpcEvent> spells_by_events;
         // used for clock-based event triggers
         // only tm_min, tm_hour, and tm_mday are used
         tm ev_tm_b =
@@ -99,19 +96,7 @@ namespace tmwa
         bool save_flag;
         Map<AccountId, Storage> storage_db;
 
-        Map<RString, str_data_t> str_datam;
-        str_data_t LABEL_NEXTLINE_;
-        Map<ScriptLabel, int> scriptlabel_db;
-        std::set<ScriptLabel> probable_labels;
-        UPMap<RString, const ScriptBuffer> userfunc_db;
-        int parse_cmd_if = 0;
-        Option<Borrowed<str_data_t>> parse_cmdp = None;
         InternPool variable_names;
-        // TODO: replace this whole mess with some sort of input stream that works
-        // a line at a time.
-        ZString startptr;
-        int startline;
-        int script_errors = 0;
         DMap<SIR, int> mapreg_db;
         Map<SIR, RString> mapregstr_db;
         int mapreg_dirty = -1;
@@ -129,8 +114,6 @@ namespace tmwa
         //
         //  src/map/atcommand.cpp:
         //      Map<XString, AtCommandInfo> atcommand_info;
-        //  src/map/script-fun.cpp:
-        //      BuiltinFunction builtin_functions[];
         //  src/map/clif.cpp:
         //      func_table clif_parse_func_table[0x0220];
     } // namespace map

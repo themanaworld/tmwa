@@ -37,7 +37,7 @@
 
 #include "consts.hpp"
 #include "mob.hpp"
-#include "script-buffer.hpp"
+#include "lua-types.hpp"
 
 
 namespace tmwa
@@ -68,9 +68,7 @@ namespace tmwa
         extern std::list<AString> npc_srcs;
         extern int npc_warp, npc_shop, npc_script, npc_mob;
         extern BlockId npc_id;
-        extern Map<NpcEvent, event_data> ev_db;
         extern DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
-        extern DMap<RString, NpcEvent> spells_by_events;
         extern tm ev_tm_b;
         extern Map<PartyId, PartyMost> party_db;
         extern std::map<AccountId, GmLevel> gm_accountm;
@@ -79,17 +77,9 @@ namespace tmwa
         extern int last_save_fd;
         extern bool save_flag;
         extern Map<AccountId, Storage> storage_db;
-        extern Map<RString, str_data_t> str_datam;
-        extern str_data_t LABEL_NEXTLINE_;
-        extern Map<ScriptLabel, int> scriptlabel_db;
-        extern std::set<ScriptLabel> probable_labels;
-        extern UPMap<RString, const ScriptBuffer> userfunc_db;
-        extern int parse_cmd_if;
-        extern Option<Borrowed<str_data_t>> parse_cmdp;
+        // mapreg names (full old spelling "$NAME" / "$NAME$") interned for
+        // the SIR keys below; lua-mapreg.cpp is the only writer now
         extern InternPool variable_names;
-        extern ZString startptr;
-        extern int startline;
-        extern int script_errors;
         extern DMap<SIR, int> mapreg_db;
         extern Map<SIR, RString> mapregstr_db;
         extern int mapreg_dirty;

@@ -24,12 +24,9 @@
 
 #include <cstdint>
 
-#include "../range/slice.hpp"
-
 #include "../net/timer.t.hpp"
 
 #include "map.hpp"
-#include "script-call.t.hpp"
 
 
 namespace tmwa
@@ -43,22 +40,13 @@ constexpr Species WARP_CLASS = wrap<Species>(45);
 constexpr Species FAKE_NPC_CLASS = wrap<Species>(127);
 constexpr Species INVISIBLE_CLASS = wrap<Species>(32767);
 
+// End the player's dialog association: clears npc_id, abandons any
+// suspended Lua dialog coroutine, and schedules one queued event
+// (doc/lua-engine.md section 4.2).
 int npc_event_dequeue(dumb_ptr<map_session_data> sd);
-int npc_event(dumb_ptr<map_session_data>, NpcEvent, int, Slice<argrec_t>);
-inline
-int npc_event(dumb_ptr<map_session_data> sd, NpcEvent npcname, int i)
-{
-    return npc_event(sd, npcname, i, nullptr);
-}
-inline
-int npc_event(BlockId rid, NpcEvent eventname, int mob_kill, Slice<argrec_t> args)
-{
-    return npc_event(rid ? map_id2bl(rid)->is_player() : nullptr, eventname, mob_kill, args);
-}
-int npc_addeventtimer(dumb_ptr<block_list> bl, interval_t tick, NpcEvent name);
 int npc_touch_areanpc(dumb_ptr<map_session_data>, Borrowed<map_local>, int, int);
 int npc_click(dumb_ptr<map_session_data>, BlockId);
-int npc_scriptcont(dumb_ptr<map_session_data>, BlockId);
+int npc_checknear(dumb_ptr<map_session_data> sd, BlockId id);
 int npc_buysellsel(dumb_ptr<map_session_data>, BlockId, int);
 int npc_buylist(dumb_ptr<map_session_data>, const std::vector<Packet_Repeat<0x00c8>>&);
 int npc_selllist(dumb_ptr<map_session_data>, const std::vector<Packet_Repeat<0x00c9>>&);
@@ -74,29 +62,22 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation);
  */
 void npc_free(dumb_ptr<npc_data> npc);
 
-int npc_event_do_oninit(void);
-
-int npc_event_doall_l(ScriptLabel name, BlockId rid, Slice<argrec_t> argv);
-inline
-int npc_event_do_l(NpcEvent name, BlockId rid, Slice<argrec_t> argv)
-{
-    return npc_event(rid, name, 0, argv);
-}
-inline
-int npc_event_doall(ScriptLabel name)
-{
-    return npc_event_doall_l(name, BlockId(), nullptr);
-}
-inline
-int npc_event_do(NpcEvent name)
-{
-    return npc_event_do_l(name, BlockId(), nullptr);
-}
-
+// The NPC OnTimer machine (state on npc_data_script::scr, handlers resolved
+// against the Lua definition table; bodies in lua-timers.cpp).
 void npc_timerevent_start(dumb_ptr<npc_data_script> nd);
 void npc_timerevent_stop(dumb_ptr<npc_data_script> nd);
 interval_t npc_gettimerevent_tick(dumb_ptr<npc_data_script> nd);
 void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer);
+// Seed the OnTimer machine from the sorted interval list (npc.script).
+void lua_npc_timer_setup(dumb_ptr<npc_data_script> nd,
+        std::vector<interval_t> intervals);
+// One-shot NPC timer slots (self:addnpctimer; bodies in lua-timers.cpp).
+int lua_npc_addeventtimer(dumb_ptr<npc_data> nd, interval_t tick,
+        LuaCallback cb);
+void lua_npc_cleareventtimer(dumb_ptr<npc_data> nd);
+// Full timer cleanup for one NPC (lua_npc_detach / npc_free).
+void lua_npc_timer_detach(dumb_ptr<npc_data> nd);
+
 int npc_delete(dumb_ptr<npc_data> nd);
 } // namespace map
 } // namespace tmwa

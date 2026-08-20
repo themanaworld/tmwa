@@ -59,13 +59,6 @@ namespace tmwa
 {
 namespace map
 {
-// Implemented in lua-timers.cpp (doc/lua-engine.md section 6); that TU has
-// no header of its own, its declarations move into pc.hpp at host
-// integration time. Declared here so this TU builds against the
-// pre-integration tree. Takes ownership of cb (a full slot table releases
-// it and logs).
-int lua_pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick,
-        LuaCallback cb);
 
 // Every binding follows the longjmp discipline of doc/lua-engine.md
 // section 11: raising checks first (trivial locals only), then a worker

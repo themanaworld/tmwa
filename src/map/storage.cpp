@@ -34,6 +34,7 @@
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "pc.hpp"
+#include "lua-dialog.hpp"
 
 #include "../poison.hpp"
 
@@ -259,7 +260,7 @@ int storage_storageclose(dumb_ptr<map_session_data> sd)
     if (sd->npc_flags.storage)
     {
         sd->npc_flags.storage = 0;
-        map_scriptcont(sd, sd->npc_id);
+        lua_dialog_resume(sd, sd->npc_id, LuaPrompt::STORAGE, LuaAnswer());
     }
 
     return 0;

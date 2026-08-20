@@ -27,7 +27,6 @@
 #include "../compat/nullpo.hpp"
 #include "../compat/fun.hpp"
 
-#include "script-call-internal.hpp"
 #include "../generic/intern-pool.hpp"
 
 #include "../strings/mstring.hpp"
@@ -42,6 +41,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
 #include "../io/read.hpp"
+#include "../io/span.hpp"
 #include "../io/write.hpp"
 
 #include "../net/socket.hpp"
@@ -60,14 +60,13 @@
 #include "../high/mmo.hpp"
 #include "../high/utils.hpp"
 
-#include "../ast/npc.hpp"
-
 #include "battle.hpp"
 #include "battle_conf.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
 #include "intif.hpp"
+#include "lua-admin.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "map_conf.hpp"
@@ -4725,20 +4724,10 @@ ATCE atcommand_addwarp(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     AString w3 = STRPRINTF("%s%d%d%d%d"_fmt, mapname, sd->bl_x, sd->bl_y, x, y);
-    NpcName w3name = stringish<NpcName>(w3);
 
-    ast::npc::Warp warp;
-    warp.m.data = sd->mapname_;
-    warp.x.data = sd->bl_x;
-    warp.y.data = sd->bl_y;
-    warp.name.data = w3name;
-    warp.xs.data = 1;
-    warp.ys.data = 1;
-    warp.to_m.data = mapname;
-    warp.to_x.data = x;
-    warp.to_y.data = y;
-
-    if (!npc_load_warp(warp))
+    // the builder adds 2 to the file spans; -1 keeps the old span of 1
+    if (npc_create_warp(sd->mapname_, sd->bl_x, sd->bl_y, -1, -1,
+                mapname, x, y) == nullptr)
         // warp failed
         return ATCE::RANGE;
 
@@ -5229,10 +5218,8 @@ ATCE atcommand_set_var(Session *s, dumb_ptr<map_session_data> sd,
 {
     CharName character;
     XString vname;
-    XString value;
     XString vindex;
-    char prefix;
-    char postfix;
+    XString value;
 
     if (!asplit(message, &vname, &vindex, &value, &character))
     {
@@ -5242,44 +5229,28 @@ ATCE atcommand_set_var(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    prefix = vname.front();
-    postfix = vname.back();
-    SIR reg = SIR::from(variable_names.intern(vname), atoi((RString(vindex)).c_str()));
 
-    if (prefix != '.' && prefix != '$')
+    if (vname.front() != '$' && pl_sd == nullptr)
     {
-        if (pl_sd == nullptr)
-        {
-            clif_displaymessage(s, "Character not found."_s);
-            return ATCE::EXIST;
-        }
+        clif_displaymessage(s, "Character not found."_s);
+        return ATCE::EXIST;
     }
 
-    if (postfix == '$')
+    AString vname_z = AString(vname);
+    AString value_z = AString(value);
+    int idx = atoi((RString(vindex)).c_str());
+    AString out;
+    bool ok = lua_admin_setvar(pl_sd, ZString(vname_z), idx,
+            ZString(value_z), &out);
+    if (!ok)
     {
-        set_reg(pl_sd, VariableCode::VARIABLE, reg, value);
-    }
-    else
-    {
-        int val = atoi((RString(value)).c_str());
-        set_reg(pl_sd, VariableCode::VARIABLE, reg, val);
-    }
-
-    AString output = STRPRINTF("variable %s[%s] = `%s`."_fmt,
-            RString(vname), RString(vindex), RString(value));
-
-    if (pl_sd != nullptr)
-    {
-        output = STRPRINTF("variable %s[%s] = `%s` for player %s."_fmt,
-            RString(vname), RString(vindex), RString(value), character);
-
-        if (pl_sd->sess != sd->sess)
-        {
-            clif_displaymessage(pl_sd->sess, output);
-        }
+        clif_displaymessage(sd->sess, out);
+        return ATCE::USAGE;
     }
 
-    clif_displaymessage(sd->sess, output);
+    if (pl_sd != nullptr && pl_sd->sess != sd->sess)
+        clif_displaymessage(pl_sd->sess, out);
+    clif_displaymessage(sd->sess, out);
     return ATCE::OKAY;
 }
 
@@ -5299,29 +5270,27 @@ ATCE atcommand_get_var(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    SIR reg = SIR::from(variable_names.intern(vname), atoi((RString(vindex)).c_str()));
 
-    struct script_data dat = ScriptDataVariable{reg};
-    get_val(pl_sd, &dat);
-
-    RString rval;
-    MATCH_BEGIN (dat)
+    if (vname.front() != '$' && pl_sd == nullptr)
     {
-        MATCH_CASE (const ScriptDataStr&, u)
-        {
-            rval = u.str;
-        }
-        MATCH_CASE (const ScriptDataInt&, u)
-        {
-            rval = STRPRINTF("%i"_fmt, u.numi);
-        }
+        clif_displaymessage(s, "Character not found."_s);
+        return ATCE::EXIST;
     }
-    MATCH_END ();
 
-    AString output = STRPRINTF("variable %s[%s] == `%s` for player %s."_fmt,
-            RString(vname), RString(vindex), rval, character);
+    AString vname_z = AString(vname);
+    int idx = atoi((RString(vindex)).c_str());
+    AString out;
+    bool ok = lua_admin_getvar(pl_sd, ZString(vname_z), idx, &out);
 
-    clif_displaymessage(sd->sess, output);
+    clif_displaymessage(sd->sess, out);
+    return ok ? ATCE::OKAY : ATCE::USAGE;
+}
+
+static
+ATCE atcommand_luastats(Session *s, dumb_ptr<map_session_data>,
+        ZString)
+{
+    clif_displaymessage(s, lua_admin_stats());
     return ATCE::OKAY;
 }
 
@@ -6072,6 +6041,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"getvar"_s, {"<variable> <index> <charname>"_s,
         40, atcommand_get_var,
         "Gets the value of an arbitrary variable."_s}},
+    {"luastats"_s, {""_s,
+        40, atcommand_luastats,
+        "Show Lua engine statistics"_s}},
     {"magicinfo"_s, {"<charname>"_s,
         80, atcommand_magic_info,
         "Show magic skills of a palyer"_s}},

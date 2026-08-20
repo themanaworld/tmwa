@@ -58,6 +58,7 @@
 #include "path.hpp"
 #include "pc.hpp"
 #include "skill.hpp"
+#include "lua-events.hpp"
 
 #include "../poison.hpp"
 
@@ -1028,6 +1029,7 @@ int mob_setdelayspawn(BlockId id)
         && md->spawn.delay2 == static_cast<interval_t>(-1)
         && md->n == 0)
     {
+        lua_mob_forget(md->bl_id);
         map_deliddb(md);
         md->lootitemv.clear();
         MapBlockLock::freeblock(md);
@@ -2267,6 +2269,7 @@ int mob_delete(dumb_ptr<mob_data> md)
     clif_clearchar(md, BeingRemoveWhy::DEAD);
     map_delblock(md);
     mob_deleteslave(md);
+    lua_mob_forget(md->bl_id);
     mob_setdelayspawn(md->bl_id);
     return 0;
 }
@@ -2713,17 +2716,11 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         }
         if (sd)
         {
-            if (md->npc_event)
-                npc_event(sd, md->npc_event, 0);
+            // per-spawn death handler (named event or function form)
+            lua_hook_mob_death(md, sd);
 
             // TODO: in the future, OnPCKillEvent, OnMobKillEvent and OnPCDieEvent should be combined
-            argrec_t arg[3] =
-            {
-                {"@mobID"_s, static_cast<int32_t>(unwrap<Species>(md->mob_class))},
-                {"@mobX"_s, static_cast<int32_t>(md->bl_x)},
-                {"@mobY"_s, static_cast<int32_t>(md->bl_y)},
-            };
-            npc_event_doall_l(stringish<ScriptLabel>("OnMobKillEvent"_s), sd->bl_id, arg);
+            lua_hook_mobkill(sd, md->mob_class, md->bl_x, md->bl_y);
         }
     }
 

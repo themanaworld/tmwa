@@ -56,6 +56,14 @@ int lua_npc_broadcast(ScriptLabel label, dumb_ptr<map_session_data> sd,
 // events[label]) and push the handler function; false if there is none.
 bool lua_npc_push_handler(lua_State* L, dumb_ptr<npc_data> nd, XString label);
 
+// True when nd's definition table has a handler for label (host-side query;
+// npc_touch_areanpc uses it for the no-OnTouch "fall back to click" rule).
+bool lua_npc_has_handler(dumb_ptr<npc_data> nd, XString label);
+
+// The npc_click script path: run the NPC's click body as a dialog coroutine
+// (sets sd->npc_id). False when the NPC has no click body.
+bool lua_npc_click(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd);
+
 // Fire a function-form callback (consumes fn_ref, including its live-ref
 // count) through the normal event path: queue rules apply when sd is
 // mid-dialog; self_npc is pushed as `self` (nil when zero).
@@ -126,13 +134,13 @@ void lua_events_npc_remove(BlockId id);
 bool lua_npc_event_from_stack(lua_State* L, dumb_ptr<map_session_data> sd,
         NpcEvent ev, int args_idx, bool force_inline);
 
-// TRANSITION (until map.hpp's eventqueuel becomes std::list<LuaCallback>):
-// the mid-dialog event queue lives engine-side in lua-events.cpp. At
-// integration time npc_event_dequeue calls lua_event_dequeue once per END:
-// it pops the front queued event and schedules it 100 ms later (the old
-// pc_addeventtimer replay); returns true if one was scheduled.
-// lua_event_queue_clear releases everything for the player (pc_authok,
-// map_quit).
+// The mid-dialog event queue lives engine-side in lua-events.cpp (design
+// deviation, kept at integration: doc/lua-engine.md 2.1 put it on
+// map_session_data::eventqueuel). npc_event_dequeue calls lua_event_dequeue
+// once per END: it pops the front queued event and schedules it 100 ms
+// later (the old pc_addeventtimer replay); returns true if one was
+// scheduled. lua_event_queue_clear releases everything for the player
+// (pc_authok, lua_session_detach on map_quit).
 bool lua_event_dequeue(dumb_ptr<map_session_data> sd);
 void lua_event_queue_clear(dumb_ptr<map_session_data> sd);
 } // namespace map

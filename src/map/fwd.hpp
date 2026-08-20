@@ -50,7 +50,6 @@ struct charid2nick;
 struct map_abstract;
 struct mob_db_;
 struct skill_db_;
-struct event_data;
 
 struct block_list;
 struct map_session_data;
@@ -65,8 +64,6 @@ class npc_data_warp;
 struct item_data;
 struct quest_data;
 
-struct ScriptState;
-struct str_data_t;
 class SIR;
 
 // Lua engine (doc/lua-engine.md)

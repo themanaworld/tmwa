@@ -70,16 +70,16 @@ std::vector<BlockId> g_script_npcs;
 static
 std::map<RString, LuaCallback> g_commands;
 
-// TRANSITION: the mid-dialog event queue. The design puts this on
-// map_session_data::eventqueuel as std::list<LuaCallback>; until the
-// integration phase changes that field's type it lives here, keyed by the
-// player's block id.
+// The mid-dialog event queue, keyed by the player's block id (design
+// deviation, kept at integration: the design put this on
+// map_session_data::eventqueuel; engine-side storage behaves identically
+// and keeps map.hpp free of callback ownership).
 static
 std::map<uint32_t, std::list<LuaCallback>> g_event_queue;
 
-// TRANSITION: the 100 ms queue-replay timers. The design runs these through
-// pc_addeventtimer's 32 LuaTimerSlots; until pc.cpp is integrated they live
-// here.
+// The 100 ms queue-replay timers (design deviation, kept at integration:
+// the design ran these through the 32 player timer slots; a dedicated map
+// avoids competing with p:addtimer slots and is cleared on detach).
 struct LuaEventReplay
 {
     Timer timer;
@@ -250,6 +250,14 @@ bool npc_handler_exists(lua_State* L, dumb_ptr<npc_data> nd, XString label)
     return true;
 }
 
+bool lua_npc_has_handler(dumb_ptr<npc_data> nd, XString label)
+{
+    lua_State* L = lua_state();
+    if (L == nullptr || nd == nullptr)
+        return false;
+    return npc_handler_exists(L, nd, label);
+}
+
 // -1: no handler; 0: handler ran and failed; 1: handler ran (or was ended
 // by stop()).
 static
@@ -296,8 +304,20 @@ bool run_label_dialog(dumb_ptr<npc_data> nd, XString label,
     return true;
 }
 
+// The npc_click script path (npc.cpp): start the dialog coroutine on the
+// NPC's click body. The caller verified sd is free and the NPC is clickable.
+bool lua_npc_click(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
+{
+    if (sd == nullptr || nd == nullptr)
+        return false;
+    EventArgs ea;
+    LuaArgs none = LuaArgs::none();
+    ea.c = &none;
+    return run_label_dialog(nd, ""_s, sd, ea, "click");
+}
+
 // ------------------------------------------------------------------------
-// the event queue (TRANSITION storage, see lua-events.hpp)
+// the event queue (engine-side storage, see lua-events.hpp)
 
 static
 void queue_push(dumb_ptr<map_session_data> sd, LuaCallback cb)
@@ -933,12 +953,35 @@ void lua_fire_attack_spell(dumb_ptr<map_session_data> sd, BlockId target_id)
 {
     if (sd == nullptr)
         return;
-    // TRANSITION: sd->magic_attack is still the old NpcEvent field; when
-    // map.hpp turns it into a LuaCallback this switches to lua_cb-based
-    // dispatch (function form via lua_fire_fn_ref with empty()-proof args).
-    NpcEvent ev = sd->magic_attack;
-    if (!bool(ev))
+    if (!bool(sd->magic_attack))
         return;
+    // function form: run synchronously without consuming the stored
+    // reference (charges fire it repeatedly; release points are the
+    // overrideattack replace/discharge, death reset, and map_quit)
+    if (sd->magic_attack.fn_ref != lua_noref)
+    {
+        lua_State* L = lua_state();
+        if (L == nullptr)
+            return;
+        dumb_ptr<npc_data> self_nd = map_id_is_npc(sd->magic_attack.self_npc);
+        luac::push_ref(L, sd->magic_attack.fn_ref);
+        if (!lua_isfunction(L, -1))
+        {
+            lua_pop(L, 1);
+            return;
+        }
+        lua_push_npc_handle(L, self_nd);
+        lua_push_player_handle(L, sd);
+        LuaArgs fargs = LuaArgs::target(target_id);
+        push_lua_args(L, fargs);
+        LuaCtx fctx;
+        fctx.npc = self_nd != nullptr ? self_nd->bl_id : BlockId();
+        fctx.player = sd->bl_id;
+        fctx.what = "attack spell";
+        lua_run_sync(fctx, 3);
+        return;
+    }
+    NpcEvent ev = sd->magic_attack.event;
     NpcName evnpc = ev.npc;
     if (!evnpc || evnpc.front() == '~')
         return;

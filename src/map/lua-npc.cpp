@@ -62,49 +62,6 @@ namespace tmwa
 namespace map
 {
 // ------------------------------------------------------------------------
-// TRANSITION: builder functions the integration phase adds to
-// npc-parse.cpp/.hpp (the declarations below move into npc-parse.hpp; they
-// are listed in this phase's report). Each is the corresponding
-// npc_load_* body (npc-parse.cpp:129-636) carved free of the AST types so
-// the Lua constructors and @addwarp can share it:
-//  - npc_create_warp: npc_load_warp minus the ast::npc::Warp wrapper;
-//    xs_file/ys_file are the raw file numbers, the builder adds 2 exactly
-//    like ast/npc.cpp:68-72. Returns nullptr on unknown map.
-//  - npc_create_shop: npc_load_shop with the item list already resolved
-//    (absolute values; the "*N" multiply happens in the binding).
-//  - npc_create_monster: npc_load_monster; applies mob_count_rate; returns
-//    the number of mobs spawned, -1 on unknown map.
-//  - npc_set_mapflag: npc_load_mapflag semantics (NOPVP clears PVP;
-//    NOSAVE/RESAVE use extra_map/x/y; MASK uses mask).
-//  - npc_create_script_npc: npc_load_script_none (placed == false: floating
-//    NPC on undefined_gat, INVISIBLE_CLASS forced, id_db.put) or
-//    npc_load_script_map (placed == true: map_addnpc/map_addblock/
-//    clif_spawnnpc), both minus the bytecode/label parts; xs/ys are the
-//    stored diameters (already 2n+1 or 0). Returns nullptr on unknown map.
-dumb_ptr<npc_data_warp> npc_create_warp(MapName mapname, int x, int y,
-        int xs_file, int ys_file, MapName to_map, int to_x, int to_y);
-dumb_ptr<npc_data_shop> npc_create_shop(NpcName name, MapName mapname,
-        int x, int y, DIR dir, Species npc_class,
-        std::vector<npc_item_list> items);
-int npc_create_monster(MapName mapname, int x, int y, int xs, int ys,
-        MobName name, Species mob_class, int amount,
-        interval_t delay1, interval_t delay2, NpcEvent event);
-bool npc_set_mapflag(MapName mapname, MapFlag mf, MapName extra_map,
-        int extra_x, int extra_y, int mask);
-dumb_ptr<npc_data_script> npc_create_script_npc(NpcName name,
-        MapName mapname, bool placed, int x, int y, DIR dir,
-        Species npc_class, int xs, int ys);
-
-// TRANSITION: NPC one-shot timer slots (self:addnpctimer), implemented in
-// lua-timers.cpp over the future Array<LuaTimerSlot, MAX_EVENTTIMER>; the
-// declarations move to npc.hpp at integration. lua_npc_addeventtimer owns
-// cb (releases it when the slots are full, firing consumes it);
-// lua_npc_cleareventtimer cancels and releases every slot.
-int lua_npc_addeventtimer(dumb_ptr<npc_data> nd, interval_t tick,
-        LuaCallback cb);
-void lua_npc_cleareventtimer(dumb_ptr<npc_data> nd);
-
-// ------------------------------------------------------------------------
 // module state
 
 // blockid -> definition table (doc/lua-engine.md 2.2 def_ref; engine-side
@@ -323,7 +280,7 @@ void lua_npc_detach(dumb_ptr<npc_data> nd)
 {
     if (nd == nullptr)
         return;
-    lua_npc_cleareventtimer(nd);
+    lua_npc_timer_detach(nd);
     lua_hook_index_remove(nd->bl_id);
     lua_events_npc_remove(nd->bl_id);
     lua_State* L = lua_state();
@@ -1495,6 +1452,25 @@ int ln_ns_script(lua_State* L)
                 "(unknown map '%s'?)", name.c_str(), mapname.c_str());
     defs_set(L, nd->bl_id, def);
     lua_npc_register(nd);
+    // seed the OnTimer machine from the sorted def.__timers list
+    {
+        std::vector<interval_t> intervals;
+        lua_getfield(L, def, "__timers");
+        if (lua_istable(L, -1))
+        {
+            int n = static_cast<int>(luac::raw_len(L, -1));
+            for (int i = 1; i <= n; ++i)
+            {
+                lua_rawgeti(L, -1, i);
+                int ms;
+                if (luac::to_int(L, -1, &ms) && ms > 0)
+                    intervals.push_back(interval_t(ms));
+                lua_pop(L, 1);
+            }
+        }
+        lua_pop(L, 1);
+        lua_npc_timer_setup(nd, std::move(intervals));
+    }
     lua_push_npc_handle(L, nd);
     return 1;
 }

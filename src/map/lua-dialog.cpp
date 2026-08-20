@@ -35,6 +35,7 @@
 #include "storage.hpp"
 #include "lua-callback.hpp"
 #include "lua-engine.hpp"
+#include "lua-events.hpp"
 #include "lua-handles.hpp"
 #include "lua-internal.hpp"
 #include "lua-value.hpp"
@@ -46,11 +47,6 @@ namespace tmwa
 {
 namespace map
 {
-// Defined in npc.cpp but not declared in npc.hpp. INTEGRATION NOTE: the
-// declaration moves into npc.hpp when the host files are edited; until then
-// this local extern declaration avoids touching npc.hpp.
-int npc_checknear(dumb_ptr<map_session_data> sd, BlockId id);
-
 // ------------------------------------------------------------------------
 // module state
 
@@ -572,11 +568,9 @@ void lua_session_detach(dumb_ptr<map_session_data> sd)
     if (sd == nullptr)
         return;
     lua_dialog_abandon(sd);
-    // INTEGRATION NOTE: once eventqueuel is std::list<LuaCallback> and
-    // magic_attack is a LuaCallback (doc/lua-engine.md section 2.1), every
-    // entry must be lua_cb_release'd here. With the transitional NpcEvent
-    // types there are no references to drop.
-    sd->eventqueuel.clear();
+    // release every queued event callback and the attack-spell override
+    lua_event_queue_clear(sd);
+    lua_cb_release(sd->magic_attack);
     g_mismatch_logged.erase(unwrap<BlockId>(sd->bl_id));
     lua_State* L = lua_state();
     if (L != nullptr)

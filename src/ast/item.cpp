@@ -18,6 +18,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "../strings/mstring.hpp"
+
 #include "../io/extract.hpp"
 #include "../io/line.hpp"
 
@@ -95,20 +97,68 @@ namespace item
         return Some(respan(span, RString(accum)));
     }
 
+    // Lua brace scanner (doc/lua-engine.md section 7.2): after '{', count
+    // brace depth; braces inside "..." / '...' strings (with backslash
+    // escapes) are ignored. Long brackets and '--' comments are NOT
+    // recognised: item lines are one physical line. The text between the
+    // outer braces is the chunk.
     static
-    Result<ast::script::ScriptBody> lex_script(io::LineCharReader& lr)
+    Result<ScriptBody> lex_lua_body(io::LineCharReader& lr)
     {
-        ast::script::ScriptOptions opt;
-        opt.implicit_start = true;
-        opt.implicit_end = true;
-        opt.one_line = true;
-        opt.no_event = true;
-        auto rv = ast::script::parse_script_body(lr, opt);
-        if (rv.get_success().is_some())
+        io::LineChar c;
+        while (lr.get(c) && c.ch() == ' ')
+            lr.adv();
+        if (!lr.get(c))
+            return Err("unexpected EOF before item script"_s);
+        if (c.ch() != '{')
+            return Err(c.error_str("expected '{' to start item script"_s));
+        ScriptBody rv;
+        rv.span.begin = c;
+        rv.span.end = c;
+        lr.adv();
+        MString accum;
+        int depth = 1;
+        char quote = '\0';
+        bool escaped = false;
+        while (true)
         {
-            skip_comma_space(lr);
+            if (!lr.get(c))
+                return Err("unexpected EOF in item script"_s);
+            if (c.ch() == '\n')
+                return Err(c.error_str("unexpected EOL in item script"_s));
+            char ch = c.ch();
+            if (quote)
+            {
+                if (escaped)
+                    escaped = false;
+                else if (ch == '\\')
+                    escaped = true;
+                else if (ch == quote)
+                    quote = '\0';
+            }
+            else
+            {
+                if (ch == '"' || ch == '\'')
+                    quote = ch;
+                else if (ch == '{')
+                    depth++;
+                else if (ch == '}')
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        rv.span.end = c;
+                        lr.adv();
+                        break;
+                    }
+                }
+            }
+            accum += ch;
+            lr.adv();
         }
-        return rv;
+        rv.text = RString(accum);
+        skip_comma_space(lr);
+        return Ok(std::move(rv));
     }
 
 #define SPAN_EXTRACT(bitexpr, var) ({ auto bit = bitexpr; if (!extract(bit.data, &var.data)) return Err(bit.span.error_str("failed to extract "_s #var)); var.span = bit.span; })
@@ -143,8 +193,8 @@ namespace item
         SPAN_EXTRACT(TRY_UNWRAP(lex_nonscript(lr, false), return EOL_ERROR(lr)), item.elv);
         SPAN_EXTRACT(TRY_UNWRAP(lex_nonscript(lr, false), return EOL_ERROR(lr)), item.view);
         SPAN_EXTRACT(TRY_UNWRAP(lex_nonscript(lr, false), return EOL_ERROR(lr)), item.mode);
-        item.use_script = TRY(lex_script(lr));
-        item.equip_script = TRY(lex_script(lr));
+        item.use_script = TRY(lex_lua_body(lr));
+        item.equip_script = TRY(lex_lua_body(lr));
         ItemOrComment rv = std::move(item);
         rv.span.begin = item.id.span.begin;
         rv.span.end = item.equip_script.span.end;

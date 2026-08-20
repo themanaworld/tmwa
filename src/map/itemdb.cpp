@@ -38,7 +38,7 @@
 #include "../ast/item.hpp"
 
 #include "globals.hpp"
-#include "script-parse.hpp"
+#include "lua-item-scripts.hpp"
 
 #include "../poison.hpp"
 
@@ -186,8 +186,13 @@ bool itemdb_readdb(ZString filename)
                 idv.look = item.view.data;
                 idv.mode = item.mode.data;
 
-                idv.use_script = compile_script(STRPRINTF("use script %d"_fmt, idv.nameid), item.use_script, true);
-                idv.equip_script = compile_script(STRPRINTF("equip script %d"_fmt, idv.nameid), item.equip_script, true);
+                // compile errors are fatal at startup (return false)
+                if (!lua_compile_item_script(item.use_script.text,
+                            idv.nameid, false, &idv.use_script_ref))
+                    return false;
+                if (!lua_compile_item_script(item.equip_script.text,
+                            idv.nameid, true, &idv.equip_script_ref))
+                    return false;
 
                 Borrowed<struct item_data> id = itemdb_search(idv.nameid);
                 *id = std::move(idv);
@@ -204,8 +209,9 @@ bool itemdb_readdb(ZString filename)
 static
 void itemdb_final(struct item_data *id)
 {
-    id->use_script.reset();
-    id->equip_script.reset();
+    // registry refs die with the interpreter state (lua_final runs first)
+    id->use_script_ref = lua_noref;
+    id->equip_script_ref = lua_noref;
 }
 
 /*==========================================

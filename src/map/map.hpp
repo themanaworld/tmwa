@@ -45,8 +45,7 @@
 #include "../mmo/clif.t.hpp"
 #include "mapflag.hpp"
 #include "mob.t.hpp"
-#include "script-buffer.hpp"
-#include "script-persist.hpp"
+#include "lua-types.hpp"
 #include "../mmo/skill.t.hpp"
 
 
@@ -76,13 +75,6 @@ struct block_list
     Borrowed<map_local> bl_m = borrow(undefined_gat);
     short bl_x, bl_y;
     BL bl_type;
-
-    // register keys are ints (interned)
-    // Not anymore! Well, sort of.
-    DMap<SIR, int> regm;
-    // can't be DMap because we want predictable .c_str()s
-    // TODO this can change now
-    Map<SIR, RString> regstrm;
 
     // This deletes the copy-ctor also
     // TODO give proper ctors.
@@ -137,7 +129,6 @@ struct map_session_data : block_list, SessionData
         unsigned auth:1;
         unsigned change_walk_target:1;
         unsigned attack_continue:1;
-        unsigned menu_or_input:1;
         unsigned dead_sit:2;
         unsigned skillcastcancel:1;
         unsigned waitingdisconnect:1;
@@ -156,7 +147,6 @@ struct map_session_data : block_list, SessionData
         unsigned shroud_disappears_on_talk:1;
         unsigned pvpchannel;
         unsigned pvp_rank;
-        unsigned npc_dialog_mes:1;
     } state;
     struct
     {
@@ -196,19 +186,12 @@ struct map_session_data : block_list, SessionData
     struct walkpath_data walkpath;
     Timer walktimer;
     BlockId npc_id, areanpc_id, npc_shopid;
-    // this is important
-    int npc_pos;
-    int npc_menu;
-    int npc_amount;
-    // I have no idea exactly what these are doing ...
-    // but one should probably be replaced with a ScriptPointer ???
-    Option<Borrowed<const ScriptBuffer>> npc_script = None, npc_scriptroot = None;
-    std::vector<struct script_data> npc_stackbuf;
-    RString npc_str;
     struct
     {
         unsigned storage:1;
     } npc_flags;
+    // Lua engine per-session state (doc/lua-engine.md section 2.1)
+    LuaSession lua;
 
     Timer attacktimer;
     BlockId attacktarget;
@@ -220,7 +203,7 @@ struct map_session_data : block_list, SessionData
 
     //tick_t cast_tick;     // [Fate] Next tick at which spellcasting is allowed
     BlockId attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
-    NpcEvent magic_attack;
+    LuaCallback magic_attack;
     // like a weapon.  Check pc_attack_timer() for details.
     // Weapon equipment slot (slot 4) item override
     StatusChange attack_spell_icon_override;
@@ -285,9 +268,6 @@ struct map_session_data : block_list, SessionData
     int pvp_point, pvp_rank;
     Timer pvp_timer;
 
-    std::list<NpcEvent> eventqueuel;
-    Array<Timer, MAX_EVENTTIMER> eventtimer;
-
     struct
     {
         unsigned in_progress:1;
@@ -328,15 +308,13 @@ struct map_session_data : block_list, SessionData
     }
 };
 
+// One OnTimer interval of a script NPC's timer machine. The bytecode `pos`
+// is gone with the old engine: the handler is looked up by the interval
+// ("OnTimer<ms>" in the NPC's Lua definition table, lua-timers.cpp).
 struct npc_timerevent_list
 {
     interval_t timer;
-    int pos;
-};
-struct npc_label_list
-{
-    ScriptLabel name;
-    int pos;
+    int pos;    // unused; kept so the timer machine stays byte-for-byte
 };
 struct npc_item_list
 {
@@ -383,8 +361,6 @@ class npc_data_script : public npc_data
 public:
     struct
     {
-        // The bytecode unique to this NPC.
-        std::unique_ptr<const ScriptBuffer> script;
         // Diameter.
         short xs, ys;
         bool event_needs_map;
@@ -405,11 +381,9 @@ public:
         std::vector<npc_timerevent_list>::iterator next_event;
         // When the timer started. Needed to get the true diff, or to stop.
         tick_t timertick;
-        // List of label events to call.
+        // Sorted OnTimer intervals (from the definition table's on_timer
+        // keys; seeded by npc.script through lua_npc_timer_setup).
         std::vector<npc_timerevent_list> timer_eventv;
-
-        // List of (name, offset) label locations in the bytecode
-        std::vector<npc_label_list> label_listv;
     } scr;
 };
 
@@ -673,7 +647,6 @@ int map_setipport(MapName name, IP4Address ip, int port);
 void map_addiddb(dumb_ptr<block_list>);
 void map_deliddb(dumb_ptr<block_list> bl);
 void map_addnickdb(dumb_ptr<map_session_data>);
-int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id);  /* Continues a script either on a spell or on an NPC */
 dumb_ptr<map_session_data> map_nick2sd(CharName);
 int compare_item(Item *a, Item *b);
 

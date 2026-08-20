@@ -36,6 +36,7 @@
 
 #include "globals.hpp"
 #include "map.hpp"
+#include "lua_conf.hpp"
 #include "lua-callback.hpp"
 #include "lua-dialog.hpp"
 #include "lua-events.hpp"

@@ -26,7 +26,7 @@
 #include "../high/mmo.hpp"
 
 #include "map.t.hpp"
-#include "script-buffer.hpp"
+#include "lua-types.hpp"
 
 
 namespace tmwa
@@ -52,8 +52,10 @@ struct item_data
     int wlv;
     ItemMode mode;
 
-    std::unique_ptr<const ScriptBuffer> use_script;
-    std::unique_ptr<const ScriptBuffer> equip_script;
+    // registry refs of the compiled Lua use/equip chunks (lua_noref when
+    // the item_db column was empty; doc/lua-engine.md section 7.2)
+    int use_script_ref = lua_noref;
+    int equip_script_ref = lua_noref;
 };
 
 struct random_item_data

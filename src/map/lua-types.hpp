@@ -179,5 +179,26 @@ struct LuaArgs
         return a;
     }
 };
+
+// Interned-name + array-index key for the persistent mapreg store
+// (lua-mapreg.cpp). Moved here (trimmed of its SP half) from the deleted
+// script-persist.hpp: the mapreg databases in globals.hpp key on it and the
+// on-disk mapreg.txt format round-trips through it byte-identically.
+class SIR
+{
+    uint32_t impl;
+    SIR(unsigned v, uint8_t i)
+    : impl((i << 24) | v)
+    {}
+public:
+    SIR() : impl() {}
+
+    unsigned base() const { return impl & 0x00ffffff; }
+    uint8_t index() const { return impl >> 24; }
+    static SIR from(unsigned v, uint8_t i=0) { return SIR(v, i); }
+
+    friend bool operator == (SIR l, SIR r) { return l.impl == r.impl; }
+    friend bool operator < (SIR l, SIR r) { return l.impl < r.impl; }
+};
 } // namespace map
 } // namespace tmwa

@@ -32,14 +32,10 @@ namespace tmwa
 {
 namespace ast
 {
-namespace npc
+namespace item
 {
-class Warp;
-} // namespace npc
-namespace script
-{
-class ScriptBody;
-} // namespace script
+struct ScriptBody;
+} // namespace item
 } // namespace ast
 // meh, add more when I feel like it
 } // namespace tmwa

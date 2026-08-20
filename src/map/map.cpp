@@ -76,10 +76,15 @@
 #include "npc-parse.hpp"
 #include "party.hpp"
 #include "pc.hpp"
-#include "script-startup.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 #include "trade.hpp"
+#include "lua_conf.hpp"
+#include "lua-dialog.hpp"
+#include "lua-engine.hpp"
+#include "lua-events.hpp"
+#include "lua-internal.hpp"
+#include "lua-mapreg.hpp"
 
 #include "../poison.hpp"
 
@@ -806,7 +811,7 @@ void map_quit(dumb_ptr<map_session_data> sd)
 
     party_send_logout(sd);     // パーティのログアウトメッセージ送信
 
-    pc_cleareventtimer(sd);    // イベントタイマを破棄する
+    lua_pc_cleareventtimer(sd);    // イベントタイマを破棄する
 
     skill_castcancel(sd, 0);  // 詠唱を中断する
     skill_stop_dancing(sd, 1);    // ダンス/演奏中断
@@ -831,7 +836,8 @@ void map_quit(dumb_ptr<map_session_data> sd)
     else if (sd->state.storage_open)
         storage_storage_quit(sd);
 
-    sd->npc_stackbuf.clear();
+    // abandon any dialog, release queued events and the player handle
+    lua_session_detach(sd);
 
     map_delblock(sd);
 
@@ -1487,12 +1493,20 @@ bool battle_config_(io::Spanned<XString> key, io::Spanned<ZString> value)
 }
 
 static
+bool lua_config(io::Spanned<XString> key, io::Spanned<ZString> value)
+{
+    return parse_lua_conf(lua_conf, key, value);
+}
+
+static
 bool map_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
 {
     if (key.data == "map_conf"_s)
         return load_config_file(value.data, map_config);
     if (key.data == "battle_conf"_s)
         return load_config_file(value.data, battle_config_);
+    if (key.data == "lua_conf"_s)
+        return load_config_file(value.data, lua_config);
     if (key.data == "atcommand_conf"_s)
         return atcommand_config_read(value.data);
 
@@ -1510,20 +1524,11 @@ bool map_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
     if (key.data == "resnametable"_s)
         return load_resnametable(value.data);
     if (key.data == "const_db"_s)
-        return read_constdb(value.data);
+        return lua_read_constdb(value.data);
     key.span.error("Unknown meta-key for map server"_s);
     return false;
 }
 
-int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-
-    if (!bl)
-        return 0;
-
-    return npc_scriptcont(sd, id);
-}
 } // namespace map
 
 /*==========================================
@@ -1553,7 +1558,8 @@ void term_func(void)
 
     maps_db.clear();
 
-    do_final_script();
+    mapreg_final();            // save mapreg if dirty, before the state dies
+    lua_final();               // close the interpreter (refs become dead)
     do_final_itemdb();
     do_final_storage();
 
@@ -1570,6 +1576,11 @@ int do_init(Slice<ZString> argv)
 
     ZString argv0 = argv.pop_front();
 
+    // The interpreter state exists before config parsing: item_db compiles
+    // its script chunks while the config is being read (section 13).
+    lua_init();
+
+    bool dump_lua_api = false;
     bool loaded_config_yet = false;
     while (argv)
     {
@@ -1578,9 +1589,21 @@ int do_init(Slice<ZString> argv)
         {
             if (argvi == "--help"_s)
             {
-                PRINTF("Usage: %s [--help] [--version] [--write-atcommand-config outfile] [files...]\n"_fmt,
+                PRINTF("Usage: %s [--help] [--version] [--write-atcommand-config outfile] [--check-scripts[=load]] [--dump-lua-api] [files...]\n"_fmt,
                         argv0);
                 exit(0);
+            }
+            else if (argvi == "--check-scripts"_s)
+            {
+                lua_set_check_only(true, false);
+            }
+            else if (argvi == "--check-scripts=load"_s)
+            {
+                lua_set_check_only(true, true);
+            }
+            else if (argvi == "--dump-lua-api"_s)
+            {
+                dump_lua_api = true;
             }
             else if (argvi == "--version"_s)
             {
@@ -1614,20 +1637,43 @@ int do_init(Slice<ZString> argv)
     if (!loaded_config_yet)
         runflag &= load_config_file("conf/tmwa-map.conf"_s, map_confs);
 
+    // conf-driven memory cap (the state was created with the default)
+    lua_alloc_set_limit(static_cast<size_t>(lua_conf.memory_limit_mb)
+            * 1024 * 1024);
+
+    if (dump_lua_api)
+    {
+        lua_dump_api();
+        exit(0);
+    }
+
     map_set_logfile();
 
     runflag &= map_readallmap();
 
-    do_init_chrif();
-    do_init_clif();
+    if (!lua_check_only())
+    {
+        // --check-scripts: no listening sockets, no chrif connect
+        do_init_chrif();
+        do_init_clif();
+    }
     do_init_mob2();
-    do_init_script();
 
-    runflag &= do_init_npc();
+    mapreg_init();             // load mapreg.txt, start the 10 s autosave
+    lua_create_item_dialog_npc();
+
+    runflag &= lua_load_content();   // each conf 'npc:' entry: import(file)
     do_init_pc();
     do_init_party();
 
-    npc_event_do_oninit();     // npcのOnInitイベント実行
+    lua_run_oninit();          // every on_init in definition order
+
+    if (lua_check_only())
+    {
+        PRINTF("check-scripts: %s\n"_fmt,
+                runflag ? "OK"_s : "FAILED"_s);
+        exit(runflag ? 0 : 1);
+    }
 
     if (battle_config.pk_mode == 1)
         PRINTF("The server is running in " SGR_BOLD SGR_RED "PK Mode" SGR_RESET "\n"_fmt);

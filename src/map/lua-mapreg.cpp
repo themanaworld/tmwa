@@ -36,11 +36,6 @@
 #include "globals.hpp"
 #include "map.hpp"
 #include "map_conf.hpp"
-// TEMPORARY (coexistence): SIR lives in script-persist.hpp until the old
-// engine is deleted; the storage keys stay shared with it so both engines
-// see the same mapreg data (see the module instructions in
-// doc/lua-engine.md section 1: the dbs move here at integration time).
-#include "script-persist.hpp"
 #include "lua-engine.hpp"
 #include "lua-internal.hpp"
 #include "lua-libs.hpp"

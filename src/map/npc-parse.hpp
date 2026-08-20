@@ -1,5 +1,5 @@
 #pragma once
-//    npc-parse.hpp - Noncombatants.
+//    npc-parse.hpp - NPC builders shared by the Lua constructors and @addwarp.
 //
 //    Copyright © ????-2004 Athena Dev Teams
 //    Copyright © 2004-2011 The Mana World Development Team
@@ -22,16 +22,51 @@
 
 #include "fwd.hpp"
 
+#include <vector>
+
+#include "../net/timer.t.hpp"
+
+#include "map.hpp"
+
 
 namespace tmwa
 {
 namespace map
 {
-bool npc_load_warp(ast::npc::Warp& warp);
-
+// The conf 'npc:'/'delnpc:' list (now .lua files, loaded by the engine).
 void npc_addsrcfile(AString name);
 void npc_delsrcfile(XString name);
 void register_npc_name(dumb_ptr<npc_data> nd);
-bool do_init_npc(void);
+
+// C++ builders behind the Lua content constructors (lua-npc.cpp) and
+// @addwarp. Each is the corresponding old npc_load_* body carved free of
+// the AST and bytecode parts.
+
+// xs_file/ys_file are the raw file numbers; the builder adds 2 exactly like
+// the old warp parser (-1 keeps meaning "span 1"). nullptr on unknown map.
+dumb_ptr<npc_data_warp> npc_create_warp(MapName mapname, int x, int y,
+        int xs_file, int ys_file, MapName to_map, int to_x, int to_y);
+
+// item list already resolved to absolute prices. nullptr on unknown map.
+dumb_ptr<npc_data_shop> npc_create_shop(NpcName name, MapName mapname,
+        int x, int y, DIR dir, Species npc_class,
+        std::vector<npc_item_list> items);
+
+// applies battle_config.mob_count_rate; returns the number of mobs
+// spawned, -1 on unknown map.
+int npc_create_monster(MapName mapname, int x, int y, int xs, int ys,
+        MobName name, Species mob_class, int amount,
+        interval_t delay1, interval_t delay2, NpcEvent event);
+
+// NOPVP clears PVP; NOSAVE/RESAVE use extra_map/x/y; MASK uses mask.
+bool npc_set_mapflag(MapName mapname, MapFlag mf, MapName extra_map,
+        int extra_x, int extra_y, int mask);
+
+// placed == false: floating NPC on undefined_gat, INVISIBLE_CLASS forced;
+// placed == true: on the map, spawned to clients. xs/ys are the stored
+// diameters (already 2n+1 or 0). nullptr on unknown map.
+dumb_ptr<npc_data_script> npc_create_script_npc(NpcName name,
+        MapName mapname, bool placed, int x, int y, DIR dir,
+        Species npc_class, int xs, int ys);
 } // namespace map
 } // namespace tmwa

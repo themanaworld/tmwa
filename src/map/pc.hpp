@@ -144,10 +144,6 @@ int pc_changelook(dumb_ptr<map_session_data>, LOOK, int);
 
 int pc_readparam(dumb_ptr<block_list>, SP);
 int pc_setparam(dumb_ptr<block_list>, SP, int);
-int pc_readreg(dumb_ptr<block_list>, SIR);
-void pc_setreg(dumb_ptr<block_list>, SIR, int);
-ZString pc_readregstr(dumb_ptr<block_list> sd, SIR reg);
-void pc_setregstr(dumb_ptr<block_list> sd, SIR reg, RString str);
 int pc_readglobalreg(dumb_ptr<map_session_data>, VarName );
 int pc_setglobalreg(dumb_ptr<map_session_data>, VarName , int);
 int pc_readaccountreg(dumb_ptr<map_session_data>, VarName );
@@ -155,9 +151,12 @@ int pc_setaccountreg(dumb_ptr<map_session_data>, VarName , int);
 int pc_readaccountreg2(dumb_ptr<map_session_data>, VarName );
 int pc_setaccountreg2(dumb_ptr<map_session_data>, VarName , int);
 
-int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick,
-        NpcEvent name);
-int pc_cleareventtimer(dumb_ptr<map_session_data> sd);
+// One-shot player event timers, Lua-callback based (doc/lua-engine.md
+// section 6; bodies in lua-timers.cpp). lua_pc_addeventtimer takes
+// ownership of cb (a full slot table releases it and logs).
+int lua_pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick,
+        LuaCallback cb);
+void lua_pc_cleareventtimer(dumb_ptr<map_session_data> sd);
 
 int pc_calc_pvprank(dumb_ptr<map_session_data> sd);
 void pc_calc_pvprank_timer(TimerData *, tick_t, BlockId);

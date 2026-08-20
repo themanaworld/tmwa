@@ -75,6 +75,8 @@
 #include "tmw.hpp"
 #include "trade.hpp"
 #include "mob.hpp"
+#include "lua-dialog.hpp"
+#include "lua-events.hpp"
 
 #include "../poison.hpp"
 
@@ -3749,7 +3751,7 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     clif_changelook(sd, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::W_FIST));
     clif_updatestatus(sd, SP::MAXWEIGHT);
     clif_updatestatus(sd, SP::WEIGHT);
-    npc_event_doall_l(stringish<ScriptLabel>("OnPCLoginEvent"_s), sd->bl_id, nullptr);
+    lua_hook_login(sd);
     sd->state.connect_new = 0;
 
     return rv;
@@ -5025,8 +5027,9 @@ RecvResult clif_parse_NpcSelectMenu(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    sd->npc_menu = fixed.menu_entry;
-    map_scriptcont(sd, fixed.npc_id);
+    LuaAnswer a;
+    a.menu = fixed.menu_entry;
+    lua_dialog_resume(sd, fixed.npc_id, LuaPrompt::MENU, a);
 
     return rv;
 }
@@ -5043,7 +5046,7 @@ RecvResult clif_parse_NpcNextClicked(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    map_scriptcont(sd, fixed.npc_id);
+    lua_dialog_resume(sd, fixed.npc_id, LuaPrompt::NEXT, LuaAnswer());
 
     return rv;
 }
@@ -5060,8 +5063,9 @@ RecvResult clif_parse_NpcAmountInput(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    sd->npc_amount = fixed.input_int_value;
-    map_scriptcont(sd, fixed.block_id);
+    LuaAnswer a;
+    a.amount = fixed.input_int_value;
+    lua_dialog_resume(sd, fixed.block_id, LuaPrompt::INPUT_INT, a);
 
     return rv;
 }
@@ -5081,9 +5085,9 @@ RecvResult clif_parse_NpcStringInput(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    sd->npc_str = repeat;
-
-    map_scriptcont(sd, head.block_id);
+    LuaAnswer a;
+    a.str = ZString(repeat);
+    lua_dialog_resume(sd, head.block_id, LuaPrompt::INPUT_STR, a);
 
     return rv;
 }
@@ -5100,7 +5104,7 @@ RecvResult clif_parse_NpcCloseClicked(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    map_scriptcont(sd, fixed.block_id);
+    lua_dialog_resume(sd, fixed.block_id, LuaPrompt::CLOSE2, LuaAnswer());
 
     return rv;
 }

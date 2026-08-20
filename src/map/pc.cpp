@@ -60,7 +60,10 @@
 #include "npc.hpp"
 #include "party.hpp"
 #include "path.hpp"
-#include "script-call.hpp"
+#include "lua-callback.hpp"
+#include "lua-dialog.hpp"
+#include "lua-events.hpp"
+#include "lua-item-scripts.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 #include "trade.hpp"
@@ -909,7 +912,10 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->party_hp = -1;
 
     // イベント関係の初期化 | Initializing Event Relationships
-    sd->eventqueuel.clear();
+    lua_event_queue_clear(sd);
+
+    // create the Lua player handle (bumps the session serial)
+    lua_session_attach(sd);
 
     {
         Opt0 old_option = sd->status.option;
@@ -1290,30 +1296,18 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 else
                 {
                     //二刀流武器以外 | Other than two-pronged weapons
-                    argrec_t arg[2] =
-                    {
-                        {"@slotId"_s, static_cast<int>(i)},
-                        {"@itemId"_s, unwrap<ItemNameId>(sdidi->nameid)},
-                    };
                     sd->watk += sdidi->atk;
 
                     sd->attackrange += sdidi->range;
-                    run_script_l(ScriptPointer(borrow(*sdidi->equip_script), 0),
-                            sd->bl_id, BlockId(),
-                            arg);
+                    lua_item_equip(sd, sdidi->equip_script_ref,
+                            static_cast<int>(i), sdidi->nameid);
                 }
             }
             else if (sdidi->type == ItemType::ARMOR)
             {
-                argrec_t arg[2] =
-                {
-                    {"@slotId"_s, static_cast<int>(i)},
-                    {"@itemId"_s, unwrap<ItemNameId>(sdidi->nameid)},
-                };
                 sd->watk += sdidi->atk;
-                run_script_l(ScriptPointer(borrow(*sdidi->equip_script), 0),
-                        sd->bl_id, BlockId(),
-                        arg);
+                lua_item_equip(sd, sdidi->equip_script_ref,
+                        static_cast<int>(i), sdidi->nameid);
             }
         }
         OMATCH_END ();
@@ -1331,15 +1325,9 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         IOff0 index = aidx;
         OMATCH_BEGIN_SOME (sdidi, sd->inventory_data[index])
         {                       //まだ属性が入っていない | Attributes not yet included
-            argrec_t arg[2] =
-            {
-                {"@slotId"_s, static_cast<int>(EQUIP::ARROW)},
-                {"@itemId"_s, unwrap<ItemNameId>(sdidi->nameid)},
-            };
             sd->state.lr_flag_is_arrow_2 = 1;
-            run_script_l(ScriptPointer(borrow(*sdidi->equip_script), 0),
-                    sd->bl_id, BlockId(),
-                    arg);
+            lua_item_equip(sd, sdidi->equip_script_ref,
+                    static_cast<int>(EQUIP::ARROW), sdidi->nameid);
             sd->state.lr_flag_is_arrow_2 = 0;
             sd->arrow_atk += sdidi->atk;
         }
@@ -2419,7 +2407,9 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
             return 1;
         }
 
-        P<const ScriptBuffer> script = borrow(*sdidn->use_script);
+        // capture before pc_delitem (the item row may go away)
+        int script_ref = sdidn->use_script_ref;
+        ItemNameId nameid = sdidn->nameid;
 
         if (!bool(sdidn->mode & ItemMode::KEEP_AFTER_USE))
         {
@@ -2436,7 +2426,7 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
                 sd->activity.items_used++;
         }
 
-        run_script(ScriptPointer(script, 0), sd->bl_id, BlockId());
+        lua_item_use(sd, script_ref, nameid);
     }
     OMATCH_END ();
 
@@ -2932,16 +2922,13 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
             pc_stop_walking(sd, 1);
 
         // call_spell_event_script
-        argrec_t arg[1] =
-        {
-            {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
-        };
-        npc_event_do_l(sd->magic_attack, sd->bl_id, arg);
+        lua_fire_attack_spell(sd, bl->bl_id);
         sd->attackabletime = tick + sd->aspd; // sd->attack_spell_delay
         sd->attack_spell_charges--;
         if (!sd->attack_spell_charges)
         {
             sd->attack_spell_override = BlockId();
+            lua_cb_release(sd->magic_attack);
             pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
             pc_set_attack_info(sd, interval_t::zero(), 0);
             pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
@@ -3585,6 +3572,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     if (sd->attack_spell_override)
     {
         sd->attack_spell_override = BlockId();
+        lua_cb_release(sd->magic_attack);
         pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
         pc_set_attack_info(sd, interval_t::zero(), 0);
     }
@@ -3667,18 +3655,14 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     if (src && src->bl_type == BL::PC)
     {
         // [Fate] PK death, trigger scripts
-        argrec_t arg[1] =
-        {
-            {"@victimrid"_s, static_cast<int32_t>(unwrap<BlockId>(sd->bl_id))},
-        };
-        npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"_s), src->bl_id, arg);
+        lua_hook_kill(src->is_player(), sd);
 
         sd->state.pvp_rank = 0;
         src->is_player()->state.pvp_rank++;
         clif_pvpstatus(sd);
         clif_pvpstatus(src->is_player());
     }
-    npc_event_doall_l(stringish<ScriptLabel>("OnPCDieEvent"_s), sd->bl_id, nullptr);
+    lua_hook_die(sd);
 
     return 0;
 }
@@ -4442,61 +4426,6 @@ int pc_changelook(dumb_ptr<map_session_data> sd, LOOK type, int val)
 }
 
 /*==========================================
- * script用変数の値を読む
- * Read the value of a variable for script
- *------------------------------------------
- */
-int pc_readreg(dumb_ptr<block_list> sd, SIR reg)
-{
-    nullpo_retz(sd);
-
-    return sd->regm.get(reg);
-}
-
-/*==========================================
- * script用変数の値を設定
- * Set the value of a variable for script
- *------------------------------------------
- */
-void pc_setreg(dumb_ptr<block_list> sd, SIR reg, int val)
-{
-    nullpo_retv(sd);
-
-    sd->regm.put(reg, val);
-}
-
-/*==========================================
- * script用文字列変数の値を読む
- * Reading the value of a string variable for script
- *------------------------------------------
- */
-ZString pc_readregstr(dumb_ptr<block_list> sd, SIR reg)
-{
-    nullpo_retr(ZString(), sd);
-
-    Option<P<RString>> s = sd->regstrm.search(reg);
-    return s.map([](P<RString> s_) -> ZString { return *s_; }).copy_or(""_s);
-}
-
-/*==========================================
- * script用文字列変数の値を設定
- * Set the value of a string variable for script
- *------------------------------------------
- */
-void pc_setregstr(dumb_ptr<block_list> sd, SIR reg, RString str)
-{
-    nullpo_retv(sd);
-
-    if (!str)
-    {
-        sd->regstrm.erase(reg);
-        return;
-    }
-
-    sd->regstrm.insert(reg, str);
-}
-
-/*==========================================
  * script用グローバル変数の値を読む
  * Read the value of a global variable for script
  *------------------------------------------
@@ -4768,61 +4697,6 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, VarName reg, int val)
                 reg, ACCOUNT_REG2_NUM);
 
     return 1;
-}
-
-/*==========================================
- * イベントタイマー処理
- * Event Timer Processing
- *------------------------------------------
- */
-static
-void pc_eventtimer(TimerData *, tick_t, BlockId id, NpcEvent data)
-{
-    dumb_ptr<map_session_data> sd = map_id2sd(id);
-    assert (sd != nullptr);
-
-    npc_event(sd, data, 0);
-}
-
-/*==========================================
- * イベントタイマー追加
- * Add Event Timer
- *------------------------------------------
- */
-int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, NpcEvent name)
-{
-    int i;
-
-    nullpo_retz(sd);
-
-    for (i = 0; i < MAX_EVENTTIMER; i++)
-        if (!sd->eventtimer[i])
-            break;
-
-    if (i < MAX_EVENTTIMER)
-    {
-        sd->eventtimer[i] = Timer(gettick() + tick,
-                std::bind(pc_eventtimer, ph::_1, ph::_2,
-                    sd->bl_id, name));
-        return 1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- * イベントタイマー全削除
- * Delete all event timers
- *------------------------------------------
- */
-int pc_cleareventtimer(dumb_ptr<map_session_data> sd)
-{
-    nullpo_retz(sd);
-
-    for (int i = 0; i < MAX_EVENTTIMER; i++)
-        sd->eventtimer[i].cancel();
-
-    return 0;
 }
 
 //
@@ -5746,7 +5620,7 @@ int pc_logout(dumb_ptr<map_session_data> sd) // [fate] Player logs out
 #endif
         pc_setglobalreg(sd, stringish<VarName>("MAGIC_CAST_TICK"_s), 0);
 
-    npc_event_doall_l(stringish<ScriptLabel>("OnPCLogoutEvent"_s), sd->bl_id, nullptr);
+    lua_hook_logout(sd);
 
     MAP_LOG_STATS(sd, "LOGOUT"_fmt);
     return 0;

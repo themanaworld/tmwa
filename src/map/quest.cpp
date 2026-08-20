@@ -37,7 +37,6 @@
 
 #include "../poison.hpp"
 #include "globals.hpp"
-#include "script-parse.hpp"
 
 namespace tmwa
 {

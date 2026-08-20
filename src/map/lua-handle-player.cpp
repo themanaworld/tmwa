@@ -70,11 +70,6 @@ namespace map
 // two handle modules; not part of any public header)
 int lua_check_int32_wrap(lua_State* L, int idx);
 
-// The LuaCallback overload of the player event-timer entry, implemented in
-// lua-timers.cpp per doc/lua-engine.md section 6. The old NpcEvent overload
-// in pc.cpp stays untouched until host integration.
-int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick,
-        LuaCallback cb);
 
 static int g_player_mt_ref = lua_noref;
 // index/newindex metatables of the p.vars / p.acc / p.acc2 proxies
@@ -799,6 +794,7 @@ int lp_p_overrideattack(lua_State* L)
             return 0;
         {
             sd->attack_spell_override = BlockId();
+            lua_cb_release(sd->magic_attack);
             pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
             pc_set_attack_info(sd, interval_t::zero(), 0);
             pc_calcstatus(sd, static_cast<int>(CalcStatusKind::NORMAL_RECALC));
@@ -809,22 +805,17 @@ int lp_p_overrideattack(lua_State* L)
     int range = check_int(L, 3);
     int icon = check_int(L, 4);
     int look = check_int(L, 5);
-    if (lua_type(L, 6) == LUA_TFUNCTION)
-        // DESIGN DEVIATION: the design stores a LuaCallback in
-        // sd->magic_attack, but that field is still the old NpcEvent until
-        // host integration (map.hpp edit list), so the function form cannot
-        // be stored yet. The named-event form covers all existing content;
-        // this raises loudly instead of silently dropping the handler.
-        return luaL_error(L,
-                "overrideattack: function handlers need host integration; use a \"Npc::OnX\" event");
-    NpcEvent event = check_event(L, 6);
     int charges = opt_int(L, 7, 1);
     if (sd == nullptr)
         return 0;
+    // a function (takes a registry ref; released on replace/discharge,
+    // death reset, and map_quit) or a "Npc::OnX" event string
+    LuaCallback cb = lua_cb_from_stack(L, 6);
     {
         sd->attack_spell_override = lua_current_ctx().npc;
         sd->attack_spell_charges = static_cast<short>(charges);
-        sd->magic_attack = event;
+        lua_cb_release(sd->magic_attack);
+        sd->magic_attack = cb;
         pc_set_weapon_icon(sd, 1, static_cast<StatusChange>(icon),
                 wrap<ItemNameId>(static_cast<uint16_t>(look)));
         pc_set_attack_info(sd, static_cast<interval_t>(delay), range);
@@ -1148,7 +1139,7 @@ int lp_p_addtimer(lua_State* L)
     }
     {
         // 32 slots; when full the slot machinery releases cb and logs
-        pc_addeventtimer(sd, static_cast<interval_t>(ms), cb);
+        lua_pc_addeventtimer(sd, static_cast<interval_t>(ms), cb);
     }
     return 0;
 }

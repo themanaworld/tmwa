@@ -460,6 +460,7 @@ def build_config():
 
     map_conf = map_realm.conf()
     battle_conf = map_realm.conf('battle')
+    lua_conf = map_realm.conf('lua')
     # scripts can read battle config settings via the getbattleconfig builtin
     battle_conf.getter = True
 
@@ -612,6 +613,10 @@ def build_config():
     map_conf.opt('mapreg_txt', RString, lit('save/mapreg.txt'))
     map_conf.opt('gm_log', RString, '{}')
     map_conf.opt('log_file', RString, '{}')
+
+    # Lua engine limits (doc/lua-engine.md section 8)
+    lua_conf.opt('instruction_budget', i32, '20000000', min='1000')
+    lua_conf.opt('memory_limit_mb', i32, '512', min='16')
 
     battle_conf.opt('enemy_critical', bool, 'false')
     battle_conf.opt('enemy_critical_rate', percent, '100')

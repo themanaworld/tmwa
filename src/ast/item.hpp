@@ -30,8 +30,6 @@
 #include "../mmo/ids.hpp"
 #include "../mmo/strs.hpp"
 
-#include "script.hpp"
-
 
 namespace tmwa
 {
@@ -44,6 +42,13 @@ namespace item
     struct Comment
     {
         RString comment;
+    };
+    // A braced Lua chunk from an item_db line: the text between the outer
+    // braces (braces inside quoted strings are ignored by the scanner).
+    struct ScriptBody
+    {
+        RString text;
+        io::LineSpan span;
     };
     struct Item
     {
@@ -65,8 +70,8 @@ namespace item
         Spanned<ItemLook> view;
         Spanned<ItemMode> mode;
 
-        ast::script::ScriptBody use_script;
-        ast::script::ScriptBody equip_script;
+        ScriptBody use_script;
+        ScriptBody equip_script;
     };
 
     using ItemOrCommentBase = Variant<Comment, Item>;
