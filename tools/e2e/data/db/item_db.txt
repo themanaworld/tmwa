@@ -1,0 +1,6 @@
+// Fixture item db for the e2e harness. Same column layout as serverdata's
+// item_db_*.txt; the two brace columns are Lua (see doc/lua-api.md 11).
+//ID,   Name,        Type, Price, Sell, Weight, ATK, DEF, Range, Mbonus, Slot, Gender, Loc, wLV, eLV, View, Mode, {UseScript}, {EquipScript}
+501,    E2ePotion,   0,    50,    25,   1,      0,   0,   0,     0,      0,    2,      0,   0,   0,   0,    0,    {p:heal(10, 0, 1)}, {}
+502,    E2eScroll,   0,    100,   50,   1,      0,   0,   0,     0,      0,    2,      0,   0,   0,   0,    0,    {UseE2eScroll(p)}, {}
+601,    E2eRing,     5,    1000,  500,  5,      0,   0,   0,     0,      0,    2,      128, 0,   0,   0,    0,    {}, {p:bonus(bStr, 5)}

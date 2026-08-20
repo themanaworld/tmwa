@@ -2,7 +2,7 @@
 
 This document is the binding C++ design for the Lua 5.4 scripting engine that replaces the
 eAthena script engine in the map server. The script-facing surface it implements is
-`lua-scripting.md` (the API reference); the content translation rules are in
+`lua-api.md` (the API reference); the content translation rules are in
 `lua-porting-guide.md`. Line numbers in section 12 refer to commit f5c87302.
 
 Ground rules (from DECISIONS.md, restated where they shape the code):

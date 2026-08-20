@@ -1,0 +1,34 @@
+// Fixture const/param db for the e2e harness.
+// Two columns = read-only global constant; third column 1 = player param
+// (a property on player handles, read/write through pc_readparam/setparam).
+
+SPEED           0    1
+BASEEXP         1    1
+JOBEXP          2    1
+Hp              5    1
+MaxHp           6    1
+Sp              7    1
+MaxSp           8    1
+STATUSPOINT     9    1
+BaseLevel       11   1
+SKILLPOINT      12   1
+Str             13   1
+Agi             14   1
+Vit             15   1
+Int             16   1
+Dex             17   1
+Luk             18   1
+Class           19   1
+Zeny            20   1
+Sex             21   1
+Weight          24   1
+MaxWeight       25   1
+GM              500  1
+
+// bonus type constants (used by equip scripts)
+bStr            13
+bAgi            14
+bVit            15
+bInt            16
+bDex            17
+bLuk            18
