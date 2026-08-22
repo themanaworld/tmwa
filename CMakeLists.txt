@@ -27,6 +27,11 @@ endif()
 
 project(tmwAthena VERSION ${VERSION} LANGUAGES CXX)
 
+# Build position independent executables, so they benefit from ASLR.
+include(CheckPIESupported)
+check_pie_supported()
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 option(TMWA_BUILD_TESTS "Build unit tests with GoogleTest and CTest" OFF)
 if(TMWA_BUILD_TESTS)
   include(CTest)
@@ -85,7 +90,13 @@ include_directories(include)
 # FIXME this is currently broken
 #set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 # General purpose build flags.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fstack-protector -fno-strict-aliasing -flto=auto")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fstack-protector-strong -fstack-clash-protection -fno-strict-aliasing -flto=auto")
+# Fortified libc calls (needs an optimising build to do anything).
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
+# Trap on out-of-bounds accesses to arrays with a statically known size.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=bounds -fsanitize-trap=all")
+# Full RELRO, non-executable stack, and no mixed code/data pages.
+add_link_options(-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -Wl,-z,separate-code)
 # Enable link time optimization, and track function and data sections. We let
 # the linker remove unused code.
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=auto -ffunction-sections -fdata-sections -Wl,--gc-sections")
