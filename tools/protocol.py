@@ -5779,7 +5779,7 @@ def build_context():
         post=[HUMAN],
         desc='''
             Result of moving a character to another account.
-            error: 0=success 1=char not found 2=account not found 3=no slots 4=server error
+            error: 0=success 1=char not found 2=account not found 3=no slots
         ''',
     )
     # 2bfa/2bfb are injected above

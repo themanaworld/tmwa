@@ -751,9 +751,6 @@ int chrif_setcharaccount_answer(Session *, const Packet_Fixed<0x2b18>& fixed)
             case 3:
                 output = STRPRINTF("No available character slots in account id %d."_fmt, dest_account_id);
                 break;
-            case 4:
-                output = "Character server error occurred."_s;
-                break;
             default:
                 output = STRPRINTF("Unknown error (code: %d)."_fmt, fixed.error);
                 break;
