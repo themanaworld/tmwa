@@ -1869,14 +1869,14 @@ void parse_frommap(Session *ms)
                 if (rv != RecvResult::Complete)
                     break;
 
-                AccountId aid = payload.account_id;
+                // The key (account, slot, name) is owned by the char server
+                // and may have changed while the character was online (see
+                // 0x2b17), so only match on the char id and keep the key.
                 CharId cid = payload.char_id;
                 for (CharPair& cd : char_keys)
                 {
-                    if (cd.key.account_id == aid &&
-                        cd.key.char_id == cid)
+                    if (cd.key.char_id == cid)
                     {
-                        cd.key = payload.char_key;
                         *cd.data = payload.char_data;
                         break;
                     }
