@@ -869,5 +869,25 @@ void inter_party_leave(PartyId party_id, AccountId account_id)
 {
     mapif_parse_PartyLeave(nullptr, party_id, account_id);
 }
+
+// Remove a character from whatever party it is in. Unlike the party id
+// stored in the character data, the party db is up to date while the
+// character is online.
+void inter_party_leave_character(AccountId account_id, CharName name)
+{
+    for (auto& pair : party_db)
+    {
+        PartyPair p{pair.first, borrow(pair.second)};
+        for (int i = 0; i < MAX_PARTY; i++)
+        {
+            if (p->member[i].account_id == account_id
+                    && p->member[i].name == name)
+            {
+                mapif_parse_PartyLeave(nullptr, p.party_id, account_id);
+                return;
+            }
+        }
+    }
+}
 } // namespace char_
 } // namespace tmwa

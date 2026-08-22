@@ -2219,12 +2219,17 @@ void parse_frommap(Session *ms)
                 {
                     int dest_char_num = std::distance(slots.begin(), free_slot_it);
 
-                    // Update character data
                     AccountId old_account_id = char_found->key.account_id;
                     int old_char_num = char_found->key.char_num;
 
+                    // Party membership is tied to the account id, so leave
+                    // the party before the move.
+                    inter_party_leave_character(old_account_id, char_name);
+                    char_found->data->party_id = PartyId();
+
                     char_found->key.account_id = dest_account_id;
                     char_found->key.char_num = dest_char_num;
+                    mmo_char_sync();
 
                     fixed_18.error = 0; // success
                     CHAR_LOG("Character '%s' moved from account %d (slot %d) to account %d (slot %d)\n"_fmt,
