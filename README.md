@@ -33,6 +33,11 @@ The rest of this file contains information relevant to distributors and contribu
 - glibc 2.27 or higher
 - clang++ is not supported, but will likely work
 
+#### Lua
+
+- Lua 5.4 development files, used by the map server's script engine
+- Debian/Ubuntu: `liblua5.4-dev`, Fedora: `lua-devel`
+
 ## 2. CMake Instructions
 
 ### 2.1 Configuration
