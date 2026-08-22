@@ -763,7 +763,8 @@ int chrif_setcharaccount_answer(Session *, const Packet_Fixed<0x2b18>& fixed)
             if (target_sd)
             {
                 target_sd->login_id1++;
-                clif_displaymessage(target_sd->sess, output);
+                if (target_sd != sd)
+                    clif_displaymessage(target_sd->sess, output);
                 clif_setwaitclose(target_sd->sess);
             }
         }
