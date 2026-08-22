@@ -635,6 +635,16 @@ void mapif_parse_PartyChangeLeader(Session *s, PartyId party_id, AccountId accou
 }
 
 // パーティ脱退要求
+static
+void party_remove_member(PartyPair p, int i)
+{
+    mapif_party_leaved(p.party_id, p->member[i].account_id, p->member[i].name);
+
+    p->member[i] = PartyMember{};
+    if (party_check_empty(p) == 0)
+        mapif_party_info(nullptr, p);   // まだ人がいるのでデータ送信
+}
+
 void mapif_parse_PartyLeave(Session *, PartyId party_id, AccountId account_id)
 {
     PartyPair p{party_id, TRY_UNWRAP(party_db.search(party_id), return)};
@@ -643,11 +653,7 @@ void mapif_parse_PartyLeave(Session *, PartyId party_id, AccountId account_id)
     {
         if (p->member[i].account_id != account_id)
             continue;
-        mapif_party_leaved(party_id, account_id, p->member[i].name);
-
-        p->member[i] = PartyMember{};
-        if (party_check_empty(p) == 0)
-            mapif_party_info(nullptr, p);   // まだ人がいるのでデータ送信
+        party_remove_member(p, i);
         return;
     }
 }
@@ -883,7 +889,7 @@ void inter_party_leave_character(AccountId account_id, CharName name)
             if (p->member[i].account_id == account_id
                     && p->member[i].name == name)
             {
-                mapif_parse_PartyLeave(nullptr, p.party_id, account_id);
+                party_remove_member(p, i);
                 return;
             }
         }
