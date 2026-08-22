@@ -5677,6 +5677,12 @@ ATCE atcommand_setcharaccount(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::EXIST;
     }
 
+    if (!pc_isGM(sd).overwhelms(pc_isGM(target_sd)))
+    {
+        clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player."_s);
+        return ATCE::PERM;
+    }
+
     // Check if trying to move character to the same account
     if (target_sd->status_key.account_id == dest_account_id)
     {

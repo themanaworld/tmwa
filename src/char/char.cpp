@@ -2174,7 +2174,7 @@ void parse_frommap(Session *ms)
                 AccountId dest_account_id = fixed.dest_account_id;
 
                 Packet_Fixed<0x2b18> fixed_18;
-                fixed_18.source_account_id = fixed.source_account_id;
+                fixed_18.gm_account_id = fixed.gm_account_id;
                 fixed_18.char_name = char_name;
                 fixed_18.dest_account_id = dest_account_id;
 

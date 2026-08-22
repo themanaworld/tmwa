@@ -708,13 +708,13 @@ int chrif_send_divorce(CharId char_id)
  * Sends a request to the char-server to move a character to a different account.
  *-------------------------------------
  */
-void chrif_setcharaccount(AccountId source_account_id, CharName character_name, AccountId dest_account_id)
+void chrif_setcharaccount(AccountId gm_account_id, CharName character_name, AccountId dest_account_id)
 {
     if (!char_session)
         return;
 
     Packet_Fixed<0x2b17> fixed_17;
-    fixed_17.source_account_id = source_account_id;
+    fixed_17.gm_account_id = gm_account_id;
     fixed_17.char_name = character_name;
     fixed_17.dest_account_id = dest_account_id;
     send_fpacket<0x2b17, 34>(char_session, fixed_17);
@@ -727,7 +727,7 @@ void chrif_setcharaccount(AccountId source_account_id, CharName character_name, 
 static
 int chrif_setcharaccount_answer(Session *, const Packet_Fixed<0x2b18>& fixed)
 {
-    AccountId acc = fixed.source_account_id;
+    AccountId acc = fixed.gm_account_id;
 
     dumb_ptr<map_session_data> sd = map_id2sd(account_to_block(acc));
     if (acc && sd != nullptr)

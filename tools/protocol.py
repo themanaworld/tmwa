@@ -5755,7 +5755,7 @@ def build_context():
     char_map.r(0x2b17, 'set character account',
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, account_id, 'source account id'),
+            at(2, account_id, 'gm account id'),
             at(6, char_name, 'char name'),
             at(30, account_id, 'dest account id'),
         ],
@@ -5769,7 +5769,7 @@ def build_context():
     char_map.s(0x2b18, 'set character account result',
         fixed=[
             at(0, u16, 'packet id'),
-            at(2, account_id, 'source account id'),
+            at(2, account_id, 'gm account id'),
             at(6, char_name, 'char name'),
             at(30, account_id, 'dest account id'),
             at(34, u8, 'error'),
