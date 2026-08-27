@@ -6335,8 +6335,7 @@ def build_context():
             Response to client's request for server version.
 
             Flags: bit 0 = new accounts can be created by appending
-            _M or _F to the username; bit 1 = the server understands
-            the online count request.
+            _M or _F to the username.
         ''',
     )
     any_user.r(0x7533, 'online count',
@@ -6350,8 +6349,9 @@ def build_context():
         desc='''
             Request from client for the number of players online.
 
-            Does not require authentication. Only send this if the
-            server version reply advertised support with flag bit 1.
+            Does not require authentication. Only send this to servers
+            whose version, as reported in the version reply, is recent
+            enough to support it (any release after 2026-08-27).
         ''',
     )
     any_user.s(0x7534, 'online count result',

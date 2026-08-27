@@ -127,7 +127,6 @@ namespace login
 
 // flags in the server version reply (0x7531)
 #define LOGIN_VERSION_NEW_ACCOUNT (1<<0)
-#define LOGIN_VERSION_ONLINE_COUNT (1<<1)
 
 struct mmo_account
 {
@@ -2907,9 +2906,7 @@ void parse_login(Session *s)
 
                 Packet_Fixed<0x7531> fixed_31;
                 Version version = CURRENT_LOGIN_SERVER_VERSION;
-                version.flags = LOGIN_VERSION_ONLINE_COUNT;
-                if (login_conf.new_account)
-                    version.flags |= LOGIN_VERSION_NEW_ACCOUNT;
+                version.flags = login_conf.new_account ? LOGIN_VERSION_NEW_ACCOUNT : 0;
                 fixed_31.version = version;
                 send_fpacket<0x7531, 10>(s, fixed_31);
                 break;
