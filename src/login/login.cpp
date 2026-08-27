@@ -125,6 +125,10 @@ namespace login
 {
 #define VERSION_2_UPDATEHOST (1<<0)
 
+// flags in the server version reply (0x7531)
+#define LOGIN_VERSION_NEW_ACCOUNT (1<<0)
+#define LOGIN_VERSION_ONLINE_COUNT (1<<1)
+
 struct mmo_account
 {
     AccountName userid;
@@ -2903,9 +2907,33 @@ void parse_login(Session *s)
 
                 Packet_Fixed<0x7531> fixed_31;
                 Version version = CURRENT_LOGIN_SERVER_VERSION;
-                version.flags = login_conf.new_account ? 1 : 0;
+                version.flags = LOGIN_VERSION_ONLINE_COUNT;
+                if (login_conf.new_account)
+                    version.flags |= LOGIN_VERSION_NEW_ACCOUNT;
                 fixed_31.version = version;
                 send_fpacket<0x7531, 10>(s, fixed_31);
+                break;
+            }
+
+            case 0x7533:       // Request for the number of players online
+            {
+                Packet_Fixed<0x7533> fixed;
+                rv = recv_fpacket<0x7533, 2>(s, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+
+                Packet_Fixed<0x7534> fixed_34;
+                fixed_34.servers = 0;
+                fixed_34.users = 0;
+                for (int i = 0; i < MAX_SERVERS; i++)
+                {
+                    if (server_session[i])
+                    {
+                        fixed_34.servers++;
+                        fixed_34.users += server[i].users;
+                    }
+                }
+                send_fpacket<0x7534, 8>(s, fixed_34);
                 break;
             }
 

@@ -6330,9 +6330,43 @@ def build_context():
         ],
         fixed_size=10,
         pre=[0x7530],
-        post=[0x0064],
+        post=[0x0064, 0x7533],
         desc='''
             Response to client's request for server version.
+
+            Flags: bit 0 = new accounts can be created by appending
+            _M or _F to the username; bit 1 = the server understands
+            the online count request.
+        ''',
+    )
+    any_user.r(0x7533, 'online count',
+        define='CMSG_ONLINE_COUNT_REQUEST',
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+        pre=[HUMAN, 0x7531],
+        post=[0x7534],
+        desc='''
+            Request from client for the number of players online.
+
+            Does not require authentication. Only send this if the
+            server version reply advertised support with flag bit 1.
+        ''',
+    )
+    any_user.s(0x7534, 'online count result',
+        define='SMSG_ONLINE_COUNT_RESPONSE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'servers'),
+            at(4, u32, 'users'),
+        ],
+        fixed_size=8,
+        pre=[0x7533],
+        post=[0x7530, 0x7532, 0x0064],
+        desc='''
+            Number of connected char servers and the total number of
+            players online across them.
         ''',
     )
     any_user.r(0x7532, 'disconnect',
