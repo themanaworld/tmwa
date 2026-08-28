@@ -2752,7 +2752,10 @@ int pc_walktoxy_sub(dumb_ptr<map_session_data> sd)
     interval_t i = calc_next_walk_step(sd);
     if (i > interval_t::zero())
     {
-        i = i / 4;
+        // The walk starts at the center of a tile, so the boundary is
+        // reached after half a step. Using a quarter step here let players
+        // walk faster by changing their destination every tile.
+        i = i / 2;
         sd->walktimer = Timer(gettick() + i,
                 std::bind(pc_walk, ph::_1, ph::_2,
                     sd->bl_id, 0));
