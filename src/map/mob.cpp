@@ -844,7 +844,7 @@ int mob_changestate(dumb_ptr<mob_data> md, MS state, bool type)
             interval_t i = calc_next_walk_step(md);
             if (i > interval_t::zero())
             {
-                i = i / 4;
+                i = i / 2;
                 md->timer = Timer(gettick() + i,
                         std::bind(mob_timer, ph::_1, ph::_2,
                             md->bl_id, 0));
