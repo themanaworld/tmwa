@@ -1144,7 +1144,179 @@ int battle_calc_damage(dumb_ptr<block_list>, dumb_ptr<block_list> bl,
 }
 
 /*==========================================
- * 
+ * Hit rate of a weapon attack, before attacker specific adjustments
+ *------------------------------------------
+ */
+static
+int battle_calc_weapon_hitrate(dumb_ptr<block_list> src,
+        dumb_ptr<block_list> target)
+{
+    int flee = battle_get_flee(target);
+    int target_count = 1;
+
+    if (battle_config.agi_penaly_type > 0
+        || battle_config.vit_penaly_type > 0)
+        target_count +=
+            battle_counttargeted(target, src,
+                    battle_config.agi_penaly_count_lv);
+    if (battle_config.agi_penaly_type > 0)
+    {
+        if (target_count >= battle_config.agi_penaly_count)
+        {                       // ペナルティ設定より対象が多い | More targets than penalty setting
+            if (battle_config.agi_penaly_type == 1) // 回避率がagi_penaly_num%ずつ減少 | Evasion rate decreased by agi_penaly_num%
+                flee =
+                    (flee *
+                     (100 -
+                      (target_count -
+                       (battle_config.agi_penaly_count -
+                        1)) * battle_config.agi_penaly_num)) / 100;
+            else if (battle_config.agi_penaly_type == 2)    // 回避率がagi_penaly_num分減少 | Avoidance rate is reduced
+                flee -=
+                    (target_count -
+                     (battle_config.agi_penaly_count -
+                      1)) * battle_config.agi_penaly_num;
+            if (flee < 1)
+                flee = 1;       // 回避率は最低でも1 | Evasion rate is at least 1
+        }
+    }
+    return battle_get_hit(src) - flee + 80; // 命中率計算 | hit rate calculation
+}
+
+/*==========================================
+ * Reduce the damage by the defense and vitality of the target
+ *------------------------------------------
+ */
+static
+int battle_apply_target_defense(dumb_ptr<block_list> src,
+        dumb_ptr<block_list> target, int damage)
+{
+    int def1 = battle_get_def(target);
+    int def2 = battle_get_def2(target);
+    int t_vit = battle_get_vit(target);
+
+    // ディバインプロテクション（ここでいいのかな？） | Divine Protection (maybe here?)
+    if (def1 < 1000000)
+    {                   // DEF, VIT無視 | DEF, VIT ignore
+        int t_def;
+        int vitbonusmax;
+        int target_count =
+            1 + battle_counttargeted(target, src,
+                    battle_config.vit_penaly_count_lv);
+        if (battle_config.vit_penaly_type > 0)
+        {
+            if (target_count >= battle_config.vit_penaly_count)
+            {
+                if (battle_config.vit_penaly_type == 1)
+                {
+                    def1 =
+                        (def1 *
+                         (100 -
+                          (target_count -
+                           (battle_config.vit_penaly_count -
+                            1)) * battle_config.vit_penaly_num)) /
+                        100;
+                    def2 =
+                        (def2 *
+                         (100 -
+                          (target_count -
+                           (battle_config.vit_penaly_count -
+                            1)) * battle_config.vit_penaly_num)) /
+                        100;
+                    t_vit =
+                        (t_vit *
+                         (100 -
+                          (target_count -
+                           (battle_config.vit_penaly_count -
+                            1)) * battle_config.vit_penaly_num)) /
+                        100;
+                }
+                else if (battle_config.vit_penaly_type == 2)
+                {
+                    def1 -=
+                        (target_count -
+                         (battle_config.vit_penaly_count -
+                          1)) * battle_config.vit_penaly_num;
+                    def2 -=
+                        (target_count -
+                         (battle_config.vit_penaly_count -
+                          1)) * battle_config.vit_penaly_num;
+                    t_vit -=
+                        (target_count -
+                         (battle_config.vit_penaly_count -
+                          1)) * battle_config.vit_penaly_num;
+                }
+                if (def1 < 0)
+                    def1 = 0;
+                if (def2 < 1)
+                    def2 = 1;
+                if (t_vit < 1)
+                    t_vit = 1;
+            }
+        }
+        t_def = def2 * 8 / 10;
+        vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
+
+        damage = damage * (100 - def1) / 100;
+        damage -= t_def;
+        if (vitbonusmax > 0)
+            damage -= random_::in(0, vitbonusmax);
+    }
+    return damage;
+}
+
+/*==========================================
+ * Common tail of a weapon attack: perfect flee, plant mode,
+ * final damage adjustments and the animation delays
+ *------------------------------------------
+ */
+static
+void battle_finish_weapon_attack(dumb_ptr<block_list> src,
+        dumb_ptr<block_list> target, SkillID skill_num, int skill_lv,
+        struct Damage& wd)
+{
+    dumb_ptr<map_session_data> tsd = nullptr;
+    dumb_ptr<mob_data> tmd = nullptr;
+
+    if (target->bl_type == BL::PC)
+        tsd = target->is_player();
+    else if (target->bl_type == BL::MOB)
+        tmd = target->is_mob();
+    MobMode t_mode = battle_get_mode(target);
+
+    // 完全回避の判定 | Judgment of complete avoidance
+    if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr && wd.div_ < 255
+        && random_::chance({battle_get_flee2(target), 1000}))
+    {
+        wd.damage = 0;
+        wd.type = DamageType::FLEE2;
+        wd.dmg_lv = ATK::LUCKY;
+    }
+
+    // 対象が完全回避をする設定がONなら | If the setting to completely avoid the target is ON
+    if (battle_config.enemy_perfect_flee)
+    {
+        if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != nullptr && wd.div_ < 255
+            && random_::chance({battle_get_flee2(target), 1000}))
+        {
+            wd.damage = 0;
+            wd.type = DamageType::FLEE2;
+            wd.dmg_lv = ATK::LUCKY;
+        }
+    }
+
+    // MobのModeに頑強フラグが立っているときの処理 | Processing when the stubborn flag is set in the mob's mode
+    if (bool(t_mode & MobMode::PLANT) && wd.damage > 0)
+        wd.damage = 1;
+
+    wd.damage = battle_calc_damage(src, target, wd.damage, wd.div_,
+            skill_num, skill_lv, wd.flag);
+
+    wd.amotion = battle_get_amotion(src);
+    wd.dmotion = battle_get_dmotion(target);
+}
+
+/*==========================================
+ *
  *------------------------------------------
  */
 static
@@ -1154,12 +1326,8 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
                                                     int skill_lv, int)
 {
     dumb_ptr<map_session_data> tsd = nullptr;
-    dumb_ptr<mob_data> md = src->is_mob(), tmd = nullptr;
-    int hitrate, flee, cri = 0, atkmin, atkmax;
-    int target_count = 1;
-    int def1 = battle_get_def(target);
-    int def2 = battle_get_def2(target);
-    int t_vit = battle_get_vit(target);
+    dumb_ptr<mob_data> md = src->is_mob();
+    int hitrate, cri = 0, atkmin, atkmax;
     struct Damage wd {};
     int damage;
     DamageType type;
@@ -1175,40 +1343,11 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     // ターゲット
     if (target->bl_type == BL::PC)
         tsd = target->is_player();
-    else if (target->bl_type == BL::MOB)
-        tmd = target->is_mob();
-    MobMode t_mode = battle_get_mode(target);
 
     flag = BF::SHORT | BF::WEAPON | BF::NORMAL;    // 攻撃の種類の設定 | attack type settings
 
     // 回避率計算、回避判定は後で | Evasion rate calculation, avoidance judgment later
-    flee = battle_get_flee(target);
-    if (battle_config.agi_penaly_type > 0
-        || battle_config.vit_penaly_type > 0)
-        target_count +=
-            battle_counttargeted(target, src,
-                    battle_config.agi_penaly_count_lv);
-    if (battle_config.agi_penaly_type > 0)
-    {
-        if (target_count >= battle_config.agi_penaly_count)
-        {
-            if (battle_config.agi_penaly_type == 1)
-                flee =
-                    (flee *
-                     (100 -
-                      (target_count -
-                       (battle_config.agi_penaly_count -
-                        1)) * battle_config.agi_penaly_num)) / 100;
-            else if (battle_config.agi_penaly_type == 2)
-                flee -=
-                    (target_count -
-                     (battle_config.agi_penaly_count -
-                      1)) * battle_config.agi_penaly_num;
-            if (flee < 1)
-                flee = 1;
-        }
-    }
-    hitrate = battle_get_hit(src) - flee + 80;
+    hitrate = battle_calc_weapon_hitrate(src, target);
 
     type = DamageType::NORMAL;
     div_ = 1;                   // single attack
@@ -1253,8 +1392,6 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     }
     else
     {
-        int vitbonusmax;
-
         if (atkmax > atkmin)
             damage += random_::in(atkmin, atkmax);
         else
@@ -1265,77 +1402,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
             flag = (flag & ~BF::SKILLMASK) | BF::SKILL;
         }
 
-        {
-            // 対 象の防御力によるダメージの減少 | Decreased damage due to target's defense
-            // ディバインプロテクション（ここでいいのかな？） | Divine Protection (maybe here?)
-            if (def1 < 1000000)
-            {                   // DEF, VIT無視 | DEF, VIT ignore
-                int t_def;
-                target_count =
-                    1 + battle_counttargeted(target, src,
-                            battle_config.vit_penaly_count_lv);
-                if (battle_config.vit_penaly_type > 0)
-                {
-                    if (target_count >= battle_config.vit_penaly_count)
-                    {
-                        if (battle_config.vit_penaly_type == 1)
-                        {
-                            def1 =
-                                (def1 *
-                                 (100 -
-                                  (target_count -
-                                   (battle_config.vit_penaly_count -
-                                    1)) * battle_config.vit_penaly_num)) /
-                                100;
-                            def2 =
-                                (def2 *
-                                 (100 -
-                                  (target_count -
-                                   (battle_config.vit_penaly_count -
-                                    1)) * battle_config.vit_penaly_num)) /
-                                100;
-                            t_vit =
-                                (t_vit *
-                                 (100 -
-                                  (target_count -
-                                   (battle_config.vit_penaly_count -
-                                    1)) * battle_config.vit_penaly_num)) /
-                                100;
-                        }
-                        else if (battle_config.vit_penaly_type == 2)
-                        {
-                            def1 -=
-                                (target_count -
-                                 (battle_config.vit_penaly_count -
-                                  1)) * battle_config.vit_penaly_num;
-                            def2 -=
-                                (target_count -
-                                 (battle_config.vit_penaly_count -
-                                  1)) * battle_config.vit_penaly_num;
-                            t_vit -=
-                                (target_count -
-                                 (battle_config.vit_penaly_count -
-                                  1)) * battle_config.vit_penaly_num;
-                        }
-                        if (def1 < 0)
-                            def1 = 0;
-                        if (def2 < 1)
-                            def2 = 1;
-                        if (t_vit < 1)
-                            t_vit = 1;
-                    }
-                }
-                t_def = def2 * 8 / 10;
-
-                vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
-                {
-                    damage = damage * (100 - def1) / 100;
-                    damage -= t_def;
-                    if (vitbonusmax > 0)
-                       damage -= random_::in(0, vitbonusmax);
-                }
-            }
-        }
+        damage = battle_apply_target_defense(src, target, damage);
     }
 
     // 0未満だった場合1に補正 | Corrected to 1 if less than 0
@@ -1359,45 +1426,17 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     if (damage < 0)
         damage = 0;
 
-    // 完全回避の判定 | Judgment of complete avoidance
-    if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr
-        && random_::chance({battle_get_flee2(target), 1000}))
-    {
-        damage = 0;
-        type = DamageType::FLEE2;
-        dmg_lv = ATK::LUCKY;
-    }
-
-    if (battle_config.enemy_perfect_flee)
-    {
-        if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != nullptr
-            && random_::chance({battle_get_flee2(target), 1000}))
-        {
-            damage = 0;
-            type = DamageType::FLEE2;
-            dmg_lv = ATK::LUCKY;
-        }
-    }
-
-//  if(def1 >= 1000000 && damage > 0)
-    if (bool(t_mode & MobMode::PLANT) && damage > 0)
-        damage = 1;
-
-    damage = battle_calc_damage(src, target, damage, div_,
-            skill_num, skill_lv, flag);
-
     wd.damage = damage;
     wd.type = type;
     wd.div_ = div_;
-    wd.amotion = battle_get_amotion(src);
-    wd.dmotion = battle_get_dmotion(target);
     wd.flag = flag;
     wd.dmg_lv = dmg_lv;
+    battle_finish_weapon_attack(src, target, skill_num, skill_lv, wd);
     return wd;
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int battle_is_unarmed(dumb_ptr<block_list> bl)
@@ -1430,18 +1469,14 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
 {
     dumb_ptr<map_session_data> sd = src->is_player(), tsd = nullptr;
     dumb_ptr<mob_data> tmd = nullptr;
-    int hitrate, flee, cri = 0, atkmin, atkmax;
-    int dex, target_count = 1;
-    int def1 = battle_get_def(target);
-    int def2 = battle_get_def2(target);
-    int t_vit = battle_get_vit(target);
+    int hitrate, cri = 0, atkmin, atkmax;
+    int dex;
     struct Damage wd {};
     int damage;
     DamageType type;
     int div_;
     BF flag;
     ATK dmg_lv = ATK::ZERO;
-    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data, t_sc_data;
     int watk;
     bool da = false, ds = false;
     int ac_flag = 0;
@@ -1451,9 +1486,6 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     nullpo_retr(wd, target);
     nullpo_retr(wd, sd);
 
-    // アタッカー | attacker
-    sc_data = battle_get_sc_data(src); // ステータス異常 | Abnormal status
-
     sd->state.attack_type = BF::WEAPON;  // 攻撃タイプは武器攻撃 | Attack type is weapon attack
 
     // ターゲット | target
@@ -1462,36 +1494,11 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     else if (target->bl_type == BL::MOB)    // 対象がMobなら | If the target is a mob
         tmd = target->is_mob();   // tmdに代入(tsdはNULL) | Assign to tmd (tsd is NULL)
     MobMode t_mode = battle_get_mode(target);  // 対象のMode | Target Mode
-    t_sc_data = battle_get_sc_data(target);    // 対象のステータス異常 | Target status ailment
 
     flag = BF::SHORT | BF::WEAPON | BF::NORMAL;    // 攻撃の種類の設定 | attack type settings
 
     // 回避率計算、回避判定は後で | Evasion rate calculation, avoidance judgment later
-    flee = battle_get_flee(target);
-    if (battle_config.agi_penaly_type > 0 || battle_config.vit_penaly_type > 0) // AGI、VITペナルティ設定が有効 | AGI and VIT penalty settings are enabled
-        target_count += battle_counttargeted(target, src,
-                battle_config.agi_penaly_count_lv);  // 対象の数を算出 | Calculate the number of targets
-    if (battle_config.agi_penaly_type > 0)
-    {
-        if (target_count >= battle_config.agi_penaly_count)
-        {                       // ペナルティ設定より対象が多い | More targets than penalty setting
-            if (battle_config.agi_penaly_type == 1) // 回避率がagi_penaly_num%ずつ減少 | Evasion rate decreased by agi_penaly_num%
-                flee =
-                    (flee *
-                     (100 -
-                      (target_count -
-                       (battle_config.agi_penaly_count -
-                        1)) * battle_config.agi_penaly_num)) / 100;
-            else if (battle_config.agi_penaly_type == 2)    // 回避率がagi_penaly_num分減少 | Avoidance rate is reduced
-                flee -=
-                    (target_count -
-                     (battle_config.agi_penaly_count -
-                      1)) * battle_config.agi_penaly_num;
-            if (flee < 1)
-                flee = 1;       // 回避率は最低でも1 | Evasion rate is at least 1
-        }
-    }
-    hitrate = battle_get_hit(src) - flee + 80; // 命中率計算 | hit rate calculation
+    hitrate = battle_calc_weapon_hitrate(src, target);
 
     {                           // [fate] Reduce hit chance by distance
         int dx = abs(src->bl_x - target->bl_x);
@@ -1563,7 +1570,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
             // ダブルアタックが発動していない | Double Attack is not activated
             // クリティカル計算 | critical calculation
             cri = battle_get_critical(src);
-    
+
             if (sd->state.arrow_atk)
                 cri += sd->arrow_cri;
             cri -= battle_get_luk(target) * 3;
@@ -1575,7 +1582,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
             cri = cri * (100 - tsd->critical_def) / 100;
         else if (tmd && tmd->stats[mob_stat::CRITICAL_DEF])
             cri = cri * (100 - tmd->stats[mob_stat::CRITICAL_DEF]) / 100;
-    
+
         // ダブルアタックが発動していない | Double Attack is not activated
         // 判定（スキルの場合は無視） | Judgment (ignored for skills)
         if (!da && skill_num == SkillID::ZERO && skill_lv >= 0
@@ -1592,8 +1599,6 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         }
         else
         {
-            int vitbonusmax;
-
             if (atkmax > atkmin)
                 damage += random_::in(atkmin, atkmax);
             else
@@ -1615,79 +1620,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
                 flag = (flag & ~BF::SKILLMASK) | BF::SKILL;
             }
 
-            {
-                // 対 象の防御力によるダメージの減少 | Decreased damage due to target's defense
-                // ディバインプロテクション（ここでいいのかな？） | Divine Protection (maybe here?)
-                if (def1 < 1000000)
-                {                   // DEF, VIT無視 | DEF, VIT ignore
-                    int t_def;
-                    target_count =
-                        1 + battle_counttargeted(target, src,
-                                battle_config.vit_penaly_count_lv);
-                    if (battle_config.vit_penaly_type > 0)
-                    {
-                        if (target_count >= battle_config.vit_penaly_count)
-                        {
-                            if (battle_config.vit_penaly_type == 1)
-                            {
-                                def1 =
-                                    (def1 *
-                                     (100 -
-                                      (target_count -
-                                       (battle_config.vit_penaly_count -
-                                        1)) * battle_config.vit_penaly_num)) /
-                                    100;
-                                def2 =
-                                    (def2 *
-                                     (100 -
-                                      (target_count -
-                                       (battle_config.vit_penaly_count -
-                                        1)) * battle_config.vit_penaly_num)) /
-                                    100;
-                                t_vit =
-                                    (t_vit *
-                                     (100 -
-                                      (target_count -
-                                       (battle_config.vit_penaly_count -
-                                        1)) * battle_config.vit_penaly_num)) /
-                                    100;
-                            }
-                            else if (battle_config.vit_penaly_type == 2)
-                            {
-                                def1 -=
-                                    (target_count -
-                                     (battle_config.vit_penaly_count -
-                                      1)) * battle_config.vit_penaly_num;
-                                def2 -=
-                                    (target_count -
-                                     (battle_config.vit_penaly_count -
-                                      1)) * battle_config.vit_penaly_num;
-                                t_vit -=
-                                    (target_count -
-                                     (battle_config.vit_penaly_count -
-                                      1)) * battle_config.vit_penaly_num;
-                            }
-                            if (def1 < 0)
-                                def1 = 0;
-                            if (def2 < 1)
-                                def2 = 1;
-                            if (t_vit < 1)
-                                t_vit = 1;
-                        }
-                    }
-                    t_def = def2 * 8 / 10;
-                    vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
-
-                    {
-                        {
-                            damage = damage * (100 - def1) / 100;
-                            damage -= t_def;
-                            if (vitbonusmax > 0)
-                                damage -= random_::in(0, vitbonusmax);
-                        }
-                    }
-                }
-            }
+            damage = battle_apply_target_defense(src, target, damage);
         }
         // 精錬ダメージの追加 | Add refining damage
         {                           // DEF, VIT無視 | DEF, VIT ignore
@@ -1701,11 +1634,6 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     // 0未満だった場合1に補正 | Corrected to 1 if less than 0
     if (damage < 1)
         damage = 1;
-
-    // スキル修正２（修練系） | Skill Modification 2 (Training)
-    // 修練ダメージ(右手のみ) ソニックブロー時は別処理（1撃に付き1/8適応) | Training damage (right hand only) Separate processing during sonic blow (1/8 adaptation per hit)
-    {                           //修練ダメージ無視 | Ignores training damage
-    }
 
     if (sd->perfect_hit > 0)
     {
@@ -1745,51 +1673,12 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         type = DamageType::DOUBLED;
     }
 
-    // 完全回避の判定 | Judgment of complete avoidance
-    if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr && div_ < 255
-        && random_::chance({battle_get_flee2(target), 1000}))
-    {
-        damage = 0;
-        type = DamageType::FLEE2;
-        dmg_lv = ATK::LUCKY;
-    }
-
-    // 対象が完全回避をする設定がONなら | If the setting to completely avoid the target is ON
-    if (battle_config.enemy_perfect_flee)
-    {
-        if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != nullptr && div_ < 255
-            && random_::chance({battle_get_flee2(target), 1000}))
-        {
-            damage = 0;
-            type = DamageType::FLEE2;
-            dmg_lv = ATK::LUCKY;
-        }
-    }
-
-    // MobのModeに頑強フラグが立っているときの処理 | Processing when the stubborn flag is set in the mob's mode
-    if (bool(t_mode & MobMode::PLANT))
-    {
-        if (damage > 0)
-            damage = 1;
-    }
-
-    if (damage > 0)
-    {
-        {
-            damage =
-                battle_calc_damage(src, target, damage, div_, skill_num,
-                                    skill_lv, flag);
-        }
-    }
-
     wd.damage = damage;
     wd.type = type;
     wd.div_ = div_;
-    wd.amotion = battle_get_amotion(src);
-    wd.dmotion = battle_get_dmotion(target);
     wd.flag = flag;
     wd.dmg_lv = dmg_lv;
-
+    battle_finish_weapon_attack(src, target, skill_num, skill_lv, wd);
     return wd;
 }
 
