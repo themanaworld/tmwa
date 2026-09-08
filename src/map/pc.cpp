@@ -2925,6 +2925,9 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
 
     if (sd->attack_spell_override)   // [Fate] If we have an active attack spell, use that
     {
+        if (pc_issit(sd))
+            pc_setstand(sd);
+
         if (battle_config.player_attack_direction_change)
             sd->dir = sd->head_dir = map_calc_dir(sd, bl->bl_x, bl->bl_y);
 
@@ -2970,6 +2973,9 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
         }
         else
         {
+            if (pc_issit(sd))
+                pc_setstand(sd);
+
             if (battle_config.player_attack_direction_change)
                 sd->dir = sd->head_dir = map_calc_dir(sd, bl->bl_x, bl->bl_y);  //向き設定 | Orientation setting
 
