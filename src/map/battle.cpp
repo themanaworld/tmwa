@@ -1151,6 +1151,10 @@ static
 int battle_calc_weapon_hitrate(dumb_ptr<block_list> src,
         dumb_ptr<block_list> target)
 {
+    // A sitting player cannot dodge
+    if (target->bl_type == BL::PC && pc_issit(target->is_player()))
+        return 1000000;
+
     int flee = battle_get_flee(target);
     int target_count = 1;
 
@@ -1285,6 +1289,7 @@ void battle_finish_weapon_attack(dumb_ptr<block_list> src,
 
     // 完全回避の判定 | Judgment of complete avoidance
     if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != nullptr && wd.div_ < 255
+        && !pc_issit(tsd)
         && random_::chance({battle_get_flee2(target), 1000}))
     {
         wd.damage = 0;
