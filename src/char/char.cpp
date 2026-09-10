@@ -2222,18 +2222,25 @@ void parse_frommap(Session *ms)
                     AccountId old_account_id = char_found->key.account_id;
                     int old_char_num = char_found->key.char_num;
 
-                    // Party membership is tied to the account id, so leave
-                    // the party before the move.
-                    inter_party_leave_character(old_account_id, char_name);
-                    char_found->data->party_id = PartyId();
+                    // Party membership is keyed by account id, so move the
+                    // member entry along, or leave the party when the
+                    // destination account already has a member in it.
+                    bool party_kept = inter_party_move_character(old_account_id,
+                            char_name, dest_account_id);
+                    if (!party_kept)
+                    {
+                        inter_party_leave_character(old_account_id, char_name);
+                        char_found->data->party_id = PartyId();
+                    }
 
                     char_found->key.account_id = dest_account_id;
                     char_found->key.char_num = dest_char_num;
                     mmo_char_sync();
 
                     fixed_18.error = 0; // success
-                    CHAR_LOG("Character '%s' moved from account %d (slot %d) to account %d (slot %d)\n"_fmt,
-                            char_name, old_account_id, old_char_num, dest_account_id, dest_char_num);
+                    CHAR_LOG("Character '%s' moved from account %d (slot %d) to account %d (slot %d)%s\n"_fmt,
+                            char_name, old_account_id, old_char_num, dest_account_id, dest_char_num,
+                            party_kept ? " (party kept)"_s : ""_s);
                 }
 
                 send_fpacket<0x2b18, 35>(ms, fixed_18);

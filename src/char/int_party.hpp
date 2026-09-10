@@ -34,5 +34,7 @@ RecvResult inter_party_parse_frommap(Session *ms, uint16_t);
 
 void inter_party_leave(PartyId party_id, AccountId account_id);
 void inter_party_leave_character(AccountId account_id, CharName name);
+bool inter_party_move_character(AccountId account_id, CharName name,
+        AccountId new_account_id);
 } // namespace char_
 } // namespace tmwa

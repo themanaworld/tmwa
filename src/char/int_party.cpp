@@ -895,5 +895,40 @@ void inter_party_leave_character(AccountId account_id, CharName name)
         }
     }
 }
+
+// Move a party member to another account, keeping the membership.
+// Returns false if the character is not in a party, or if the destination
+// account already has a member in that party (a party can hold only one
+// character per account, see party_invite on the map server).
+bool inter_party_move_character(AccountId account_id, CharName name,
+        AccountId new_account_id)
+{
+    for (auto& pair : party_db)
+    {
+        PartyPair p{pair.first, borrow(pair.second)};
+        int found = -1;
+        bool new_account_in_party = false;
+        for (int i = 0; i < MAX_PARTY; i++)
+        {
+            if (p->member[i].account_id == account_id
+                    && p->member[i].name == name)
+                found = i;
+            if (p->member[i].account_id == new_account_id)
+                new_account_in_party = true;
+        }
+        if (found < 0)
+            continue;
+        if (new_account_in_party)
+            return false;
+
+        p->member[found].account_id = new_account_id;
+        // The map server disconnects the moved character, but its logout
+        // notice still carries the old account id and would not match.
+        p->member[found].online = 0;
+        mapif_party_info(nullptr, p);
+        return true;
+    }
+    return false;
+}
 } // namespace char_
 } // namespace tmwa
