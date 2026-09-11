@@ -3696,6 +3696,8 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     if (sd->bl_m->flag.get(MapFlag::PVP))
         clif_map_pvp(sd); // send map pvp status
 
+    pc_checkweighticon(sd); // restore the overweight status cleared by dying
+
     // pvp
     /*if (!battle_config.pk_mode)
         sd->pvp_timer.cancel();
