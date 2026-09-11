@@ -4615,7 +4615,9 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
         sd->status.global_reg[i].str = reg;
         if (questid)
         {
-            bitval = ((sd->status.global_reg[i].value & ~(((1 << quest_mask) - 1) << (quest_shift * quest_mask))) | (val << (quest_shift * quest_mask)));
+            // Do not read the slot's old value: a variable deleted earlier
+            // may have left its value behind in it.
+            bitval = val << (quest_shift * quest_mask);
             clif_sendquest(sd, questid, val);
         }
         sd->status.global_reg[i].value = bitval;
