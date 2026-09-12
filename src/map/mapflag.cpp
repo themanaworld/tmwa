@@ -81,6 +81,7 @@ bool impl_extract(XString str, MapFlag *mf)
         {"town"_s, MapFlag::TOWN},
         {"outside"_s, MapFlag::OUTSIDE},
         {"resave"_s, MapFlag::RESAVE},
+        {"player_full_access"_s, MapFlag::PLAYER_FULL_ACCESS},
     };
     for (auto& pair : flags)
         if (str == pair.str)

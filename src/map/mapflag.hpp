@@ -65,7 +65,8 @@ enum class MapFlag
 
     OUTSIDE = 1 << 29,
     RESAVE = 1 << 30,
-    //UNUSED3 = 1 << 31,
+    PLAYER_FULL_ACCESS = 1 << 31
+    // There's no space for more flags without server code change.
 };
 
 
