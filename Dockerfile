@@ -15,8 +15,7 @@ WORKDIR /tmwa
 COPY . /tmwa
 
 RUN cmake -B build . -DCMAKE_INSTALL_PREFIX=/usr \
-                     -DCMAKE_INSTALL_SYSCONFDIR=/etc \
-                     -DCMAKE_INSTALL_LOCALSTATEDIR=/var && \
+                     -DCMAKE_INSTALL_SYSCONFDIR=/etc && \
     cmake --build build -j$(nproc) && \
     DESTDIR=/tmwa/install cmake --install build
 

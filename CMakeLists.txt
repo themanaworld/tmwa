@@ -130,7 +130,6 @@ endif()
 
 include(GNUInstallDirs)
 set(PACKAGEDATADIR "${CMAKE_INSTALL_FULL_DATADIR}/tmwa")
-set(LOCALSTATEDIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
 set(SYSCONFDIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}")
 list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 
@@ -242,6 +241,3 @@ install(TARGETS tmwa-login tmwa-char tmwa-map tmwa-admin tmwa-shared
 # Install shared configuration and data
 install(FILES etc/tmwa/shared.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/tmwa)
 install(FILES share/tmwa/shared.data DESTINATION ${CMAKE_INSTALL_DATADIR}/tmwa)
-
-# Make sure there is a var directory
-install(DIRECTORY DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/tmwa)
