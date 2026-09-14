@@ -39,12 +39,4 @@ namespace tmwa
 #  error "Please upgrade to at least GCC 4.7"
 # endif // __GNUC_MINOR__ < 7 && !defined(__clang__)
 #endif // __GNUC__ == 4
-
-#if not defined(__i386__) and not defined(__x86_64__)
-// There are no longer any *known* platform-independent bits,
-// but nothing has been tested yet. It compiles, though, so ship it!
-# ifndef QUIET
-#  warning "Unsupported platform, upstream uses x86 / amd64 only"
-# endif
-#endif // not __i386__
 } // namespace tmwa
