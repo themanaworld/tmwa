@@ -4057,6 +4057,23 @@ void builtin_getbattleconfig(ScriptState *st)
 }
 
 /*==========================================
+ * Sets the value of a battle config setting
+ * marked as writable. Pushes 1 on success,
+ * 0 for unknown/read-only/out-of-range
+ *------------------------------------------
+ */
+static
+void builtin_setbattleconfig(ScriptState *st)
+{
+    ZString key = ZString(conv_str(st, &AARG(0)));
+    int32_t value = conv_num(st, &AARG(1));
+    SetBattleConfResult r = set_battle_conf(battle_config, key, value);
+    if (r != SetBattleConfResult::OK)
+        PRINTF("builtin_setbattleconfig: cannot set battle config setting %s to %d\n"_fmt, key, value);
+    push_int<ScriptDataInt>(st->stack, r == SetBattleConfResult::OK);
+}
+
+/*==========================================
  *
  *------------------------------------------
  */
@@ -5728,6 +5745,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(removemapflag, "Mi"_s, '\0'),
     BUILTIN(getmapflag, "Mi"_s, 'i'),
     BUILTIN(getbattleconfig, "s"_s, 'i'),
+    BUILTIN(setbattleconfig, "si"_s, 'i'),
     BUILTIN(pvpon, "M"_s, '\0'),
     BUILTIN(pvpoff, "M"_s, '\0'),
     BUILTIN(setpvpchannel, "i"_s, '\0'),
