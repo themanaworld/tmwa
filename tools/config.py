@@ -188,13 +188,16 @@ class MinBoundedType(ConfigType):
 '''.format(low=self.low, var=var, name=var.split('.')[-1]))
 
 class Option(object):
-    __slots__ = ('name', 'type', 'default', 'headers')
+    __slots__ = ('name', 'type', 'default', 'headers', 'writable', 'min', 'max')
 
-    def __init__(self, name, type, default, extra_headers=set()):
+    def __init__(self, name, type, default, extra_headers=set(), writable=False, min=None, max=None):
         self.name = name
         self.type = type
         self.default = default
         self.headers = type.headers | extra_headers
+        self.writable = writable
+        self.min = min
+        self.max = max
 
     def dump_member(self, hpp):
         hpp.write('    %s %s = %s;\n' % (self.type.type_name(), self.name, self.default))
@@ -239,19 +242,54 @@ class Option(object):
         cpp.write('        return true;\n')
         cpp.write('    }\n')
 
+    def dump_setter(self, cpp, result_name):
+        if not self.writable:
+            return
+        tn = self.type.type_name()
+        # types that can be assigned a whole int32_t
+        int_range = {
+                'int8_t': ('INT8_MIN', 'INT8_MAX'),
+                'int16_t': ('INT16_MIN', 'INT16_MAX'),
+                'int32_t': None,
+                'uint8_t': ('0', 'UINT8_MAX'),
+                'uint16_t': ('0', 'UINT16_MAX'),
+        }
+        assert tn == 'bool' or tn in int_range, \
+            'Option %r is not writable as an integer' % self.name
+        checks = []
+        if tn == 'bool':
+            checks.append('(value == 0 || value == 1)')
+        elif int_range[tn] is not None:
+            checks.append('(%s <= value && value <= %s)' % int_range[tn])
+        if self.min is not None and self.max is not None:
+            checks.append('(%s <= value && value <= %s)' % (self.min, self.max))
+        elif self.min is not None:
+            checks.append('(%s <= value)' % self.min)
+        elif self.max is not None:
+            checks.append('(value <= %s)' % self.max)
+        cpp.write('    if (key == "{name}"_s)\n'.format(name=self.name))
+        cpp.write('    {\n')
+        for c in checks:
+            cpp.write('        if (!%s)\n' % c)
+            cpp.write('            return %s::OUT_OF_RANGE;\n' % result_name)
+        cpp.write('        conf.%s = value;\n' % self.name)
+        cpp.write('        return %s::OK;\n' % result_name)
+        cpp.write('    }\n')
+
 class Group(object):
-    __slots__ = ('name', 'options', 'extra_headers', 'getter')
+    __slots__ = ('name', 'options', 'extra_headers', 'getter', 'setter')
 
     def __init__(self, name):
         self.name = name
         self.options = {}
         self.extra_headers = []
         self.getter = False
+        self.setter = False
 
     def extra(self, h):
         self.extra_headers.append(h)
 
-    def opt(self, name, type, default, extra_headers=set(), pre=None, post=None, min=None, max=None):
+    def opt(self, name, type, default, extra_headers=set(), pre=None, post=None, min=None, max=None, writable=False):
         assert name not in self.options, 'Duplicate option name: %s' % name
         assert isinstance(default, str)
         if pre is not None:
@@ -265,7 +303,7 @@ class Group(object):
             assert max is None
         if post is not None:
             type = TransformedType(type, post)
-        self.options[name] = rv = Option(name, type, default, extra_headers)
+        self.options[name] = rv = Option(name, type, default, extra_headers, writable, min, max)
         return rv
 
     def dump_in(self, path, namespace_name):
@@ -362,6 +400,15 @@ bool extract(XString str, std::bitset<256> *v)
             hpp.write('bool parse_%s(%s& conf, io::Spanned<XString> key, io::Spanned<ZString> value);\n' % (var_name, class_name))
             if self.getter:
                 hpp.write('bool get_%s(const %s& conf, XString key, int32_t *value);\n' % (var_name, class_name))
+            if self.setter:
+                result_name = 'Set%sResult' % class_name
+                hpp.write('enum class %s\n' % result_name)
+                hpp.write('{\n')
+                hpp.write('    OK,\n')
+                hpp.write('    UNKNOWN,\n')
+                hpp.write('    OUT_OF_RANGE,\n')
+                hpp.write('};\n')
+                hpp.write('%s set_%s(%s& conf, XString key, int32_t value);\n' % (result_name, var_name, class_name))
             hpp.write('} // namespace %s\n' % namespace_name)
             hpp.write('} // namespace tmwa\n')
             cpp.write('bool parse_%s(%s& conf, io::Spanned<XString> key, io::Spanned<ZString> value)\n{\n' % (var_name, class_name))
@@ -394,6 +441,14 @@ bool extract(XString str, std::bitset<256> *v)
                     o.dump_getter(cpp)
                 cpp.write('    return false;\n')
                 cpp.write('} // fn get_%s()\n' % var_name)
+            if self.setter:
+                result_name = 'Set%sResult' % class_name
+                cpp.write('\n')
+                cpp.write('%s set_%s(%s& conf, XString key, int32_t value)\n{\n' % (result_name, var_name, class_name))
+                for o in values:
+                    o.dump_setter(cpp, result_name)
+                cpp.write('    return %s::UNKNOWN;\n' % result_name)
+                cpp.write('} // fn set_%s()\n' % var_name)
             cpp.write('} // namespace %s\n' % namespace_name)
             cpp.write('} // namespace tmwa\n')
 
@@ -460,8 +515,10 @@ def build_config():
 
     map_conf = map_realm.conf()
     battle_conf = map_realm.conf('battle')
-    # scripts can read battle config settings via the getbattleconfig builtin
+    # scripts can read battle config settings via the getbattleconfig builtin,
+    # and write the ones marked writable via setbattleconfig
     battle_conf.getter = True
+    battle_conf.setter = True
 
     # headers
     cstdint_sys = SystemHeader('cstdint')
@@ -628,9 +685,9 @@ def build_config():
     battle_conf.opt('item_first_get_time', milliseconds, '3_s')
     battle_conf.opt('item_second_get_time', milliseconds, '1_s')
     battle_conf.opt('item_third_get_time', milliseconds, '1_s')
-    battle_conf.opt('base_exp_rate', percent, '100')
-    battle_conf.opt('job_exp_rate', percent, '100')
-    battle_conf.opt('drop_rate', percent, '100')
+    battle_conf.opt('base_exp_rate', percent, '100', min='0', writable=True)
+    battle_conf.opt('job_exp_rate', percent, '100', min='0', writable=True)
+    battle_conf.opt('drop_rate', percent, '100', min='0', writable=True)
     battle_conf.opt('max_rate', percent, '500')
     battle_conf.opt('death_penalty_type', i32, '0', min='0', max='2')
     battle_conf.opt('death_penalty_base', per10kd, '0')
