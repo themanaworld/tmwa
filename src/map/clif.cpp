@@ -4357,7 +4357,6 @@ RecvResult clif_parse_ActionRequest(Session *s, dumb_ptr<map_session_data> sd)
 
     tick_t tick = gettick();
 
-    pc_stop_walking(sd, 0);
     pc_stopattack(sd);
 
     BlockId target_id = fixed.target_id;
@@ -4549,10 +4548,7 @@ RecvResult clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
     if (rv != RecvResult::Complete)
         return rv;
 
-    dumb_ptr<flooritem_data> fitem;
-
     BlockId map_object_id = fixed.object_id;
-    fitem = map_id_is_item(map_object_id);
 
     if (pc_isdead(sd))
     {
@@ -4569,17 +4565,14 @@ RecvResult clif_parse_TakeItem(Session *s, dumb_ptr<map_session_data> sd)
             return rv;
     }
 
-    if (fitem == nullptr || fitem->bl_m != sd->bl_m)
-        return rv;
-
-    if (abs(sd->bl_x - fitem->bl_x) >= 2
-        || abs(sd->bl_y - fitem->bl_y) >= 2)
-        return rv;                 // too far away to pick up
-
 //    if (sd->state.shroud_active && sd->state.shroud_disappears_on_pickup)
 //        magic_unshroud(sd);
 
-    pc_takeitem(sd, fitem);
+    // The client may be ahead of the server's view of the walk; retry
+    // the pickup when the next tile boundary is crossed.
+    if (pc_takeitem(sd, map_object_id) == PickupResult::OUT_OF_RANGE
+        && sd->walktimer)
+        sd->pickup_target = map_object_id;
 
     return rv;
 }

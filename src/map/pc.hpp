@@ -106,7 +106,13 @@ int pc_count_all_items(dumb_ptr<map_session_data> player, ItemNameId item_id);
 int pc_remove_items(dumb_ptr<map_session_data> player,
         ItemNameId item_id, int count);
 
-int pc_takeitem(dumb_ptr<map_session_data>, dumb_ptr<flooritem_data>);
+enum class PickupResult
+{
+    DONE,          // item taken, or a normal failure was reported
+    OUT_OF_RANGE,  // too far away; may succeed after more walking
+    NO_ITEM,       // no such item on this map
+};
+PickupResult pc_takeitem(dumb_ptr<map_session_data>, BlockId);
 int pc_dropitem(dumb_ptr<map_session_data>, IOff0, int);
 
 int pc_checkweighticon(dumb_ptr<map_session_data> sd);

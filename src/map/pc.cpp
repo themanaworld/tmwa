@@ -560,6 +560,8 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
  */
 static
 int pc_walktoxy_sub(dumb_ptr<map_session_data>);
+static
+void pc_attack_timer(TimerData *, tick_t, BlockId);
 
 /*==========================================
  * saveに必要なステータス修正を行なう
@@ -2317,13 +2319,20 @@ int can_pick_item_up_from(dumb_ptr<map_session_data> self, BlockId other_id)
  * 
  *------------------------------------------
  */
-int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
+PickupResult pc_takeitem(dumb_ptr<map_session_data> sd, BlockId item_id)
 {
     tick_t tick = gettick();
     int can_take;
 
-    nullpo_retz(sd);
-    nullpo_retz(fitem);
+    nullpo_retr(PickupResult::NO_ITEM, sd);
+
+    dumb_ptr<flooritem_data> fitem = map_id_is_item(item_id);
+    if (fitem == nullptr || fitem->bl_m != sd->bl_m)
+        return PickupResult::NO_ITEM;
+
+    if (abs(sd->bl_x - fitem->bl_x) >= 2
+        || abs(sd->bl_y - fitem->bl_y) >= 2)
+        return PickupResult::OUT_OF_RANGE;
 
     /* Sometimes the owners reported to us are buggy: */
 
@@ -2365,12 +2374,12 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
             clif_takeitem(sd, fitem);
             map_clearflooritem(fitem->bl_id);
         }
-        return 0;
+        return PickupResult::DONE;
     }
 
     /* Otherwise, we can't pick up */
     clif_additem(sd, IOff0::from(0), 0, PickupFail::DROP_STEAL);
-    return 0;
+    return PickupResult::DONE;
 }
 
 /*==========================================
@@ -2622,6 +2631,17 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
             pc_walktoxy_sub(sd);
             return;
         }
+        if (sd->walkpath.path_pos >= sd->walkpath.path_len)
+        {
+            // Reached the destination; drop queued requests that never
+            // came into range.
+            sd->pickup_target = BlockId();
+            if (!sd->attacktimer)
+            {
+                sd->attacktarget = BlockId();
+                sd->state.attack_continue = 0;
+            }
+        }
     }
     else
     {                           //マス目境界へ到着 | Arriving at the grid boundary
@@ -2716,6 +2736,17 @@ void pc_walk(TimerData *, tick_t tick, BlockId id, unsigned char data)
 
         if (npc_touch_areanpc(sd, sd->bl_m, x, y) != 2)
             sd->areanpc_id = BlockId();
+
+        // Crossing a tile boundary may bring a queued pickup or attack
+        // into range; retry them here instead of dropping the request.
+        if (sd->pickup_target != BlockId()
+            && pc_takeitem(sd, sd->pickup_target)
+                    != PickupResult::OUT_OF_RANGE)
+            sd->pickup_target = BlockId();
+        if (sd->attacktarget != BlockId() && !sd->attacktimer)
+            sd->attacktimer = Timer(tick + 1_ms,
+                    std::bind(pc_attack_timer, ph::_1, ph::_2,
+                        sd->bl_id));
     }
     interval_t i = calc_next_walk_step(sd);
     if (i > interval_t::zero())
@@ -2815,6 +2846,7 @@ int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
     sd->walkpath.path_len = 0;
     sd->to_x = sd->bl_x;
     sd->to_y = sd->bl_y;
+    sd->pickup_target = BlockId();
     if (type & 0x01)
         clif_fixpos(sd);
     if (type & 0x02 && battle_config.player_damage_delay)
@@ -2893,7 +2925,11 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
 
     bl = map_id2bl(sd->attacktarget);
     if (bl == nullptr || bl->bl_prev == nullptr)
+    {
+        sd->attacktarget = BlockId();
+        sd->state.attack_continue = 0;
         return;
+    }
 
     if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))
         return;
@@ -2921,7 +2957,12 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     }
 
     if (sd->attackabletime > tick)
-        return;               // cannot attack yet
+    {
+        sd->attacktimer = Timer(sd->attackabletime,
+                std::bind(pc_attack_timer, ph::_1, ph::_2,
+                    sd->bl_id));
+        return;
+    }
 
     if (sd->attack_spell_override)   // [Fate] If we have an active attack spell, use that
     {
@@ -2960,6 +3001,13 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
         {                       //届 かないので移動 | Move because it does not arrive
             //if(pc_can_reach(sd,bl->bl_x,bl->bl_y))
             //clif_movetoattack(sd,bl);
+            // While walking, keep the request queued; it is retried on
+            // the next tile boundary.  Otherwise drop it as before.
+            if (!sd->walktimer)
+            {
+                sd->attacktarget = BlockId();
+                sd->state.attack_continue = 0;
+            }
             return;
         }
 
@@ -2999,6 +3047,8 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
                 std::bind(pc_attack_timer, ph::_1, ph::_2,
                     sd->bl_id));
     }
+    else
+        sd->attacktarget = BlockId();
 }
 
 /*==========================================

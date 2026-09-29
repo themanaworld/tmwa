@@ -214,6 +214,7 @@ struct map_session_data : block_list, SessionData
     BlockId attacktarget;
     ATK attacktarget_lv;
     tick_t attackabletime;
+    BlockId pickup_target;
 
     // used by @hugo and @linus
     BlockId followtarget;
