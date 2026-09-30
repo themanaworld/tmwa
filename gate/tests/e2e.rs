@@ -372,11 +372,12 @@ async fn wait_map_up() {
 }
 
 #[tokio::test]
+#[allow(clippy::await_holding_lock)]
 async fn e2e_all() {
     if std::env::var("TMWA_E2E").is_err() {
         return;
     }
-    let _g = e2e_lock();
+    let _e2e_guard = e2e_lock();
     fresh_gate();
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
@@ -730,11 +731,12 @@ async fn e2e_all() {
 /// `TMWA_E2E_RESTART` path exercises the hold/rejoin machinery:
 /// separate test so the baseline stays fast.
 #[tokio::test]
+#[allow(clippy::await_holding_lock)]
 async fn e2e_restart() {
     if std::env::var("TMWA_E2E").is_err() {
         return;
     }
-    let _g = e2e_lock();
+    let _e2e_guard = e2e_lock();
     fresh_gate();
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
@@ -768,7 +770,10 @@ async fn e2e_restart() {
         let p91 = P0091::decode(&p.bytes).unwrap();
         assert!(!p91.map_name.to_string_lossy().is_empty(), "empty map name");
         eprintln!("e2e: rejoined at {}", p91.map_name.to_string_lossy());
-        eprintln!("e2e: {name} restart rejoined ({}ms from kill)", t_kill.elapsed().as_millis());
+        eprintln!(
+            "e2e: {name} restart rejoined ({}ms from kill)",
+            t_kill.elapsed().as_millis()
+        );
         // client acks the map change, then the login burst lands;
         // the 0x01ee inventory must still carry the candy for the
         // SIGTERM case (the shutdown saved it)
@@ -780,7 +785,9 @@ async fn e2e_restart() {
                     Ok(Ok(Some(p))) if p.id == 0x01ee => {
                         if let Ok(inv) = P01EE::decode(&p.bytes) {
                             saved = inv.repeat.iter().any(|r| r.name_id.0 == 535);
-                            if saved { break; }
+                            if saved {
+                                break;
+                            }
                         }
                     }
                     Ok(Ok(Some(_))) => continue,
@@ -825,19 +832,13 @@ async fn e2e_restart() {
         let chars = char_connect(&mut c, acct, id1, id2).await;
         let slot = chars[0].char_num;
         let sel = char_select(&mut c, slot).await;
-        let old_map = {
-            // map name from the 0x0071 doesn't matter; we compare
-            // 0x0091s instead
-            let _ = sel;
-            ()
-        };
+        let _ = sel; // 0x0071 contents don't matter; compare 0x0091s
         drop(c);
         let mut c = Client::connect().await;
         map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
 
         // warp to a different map; the shutdown save must persist it
-        c.wr
-            .write_all(&chat_pkt("@warp 029-2 22 24"))
+        c.wr.write_all(&chat_pkt("@warp 029-2 22 24"))
             .await
             .unwrap();
         tokio::time::sleep(Duration::from_secs(3)).await;
@@ -849,7 +850,6 @@ async fn e2e_restart() {
         let nm = p91.map_name.to_string_lossy();
         eprintln!("e2e: warp+term rejoin map = {nm}");
         assert!(nm.contains("029-2"), "rejoin used stale map: {nm}");
-        let _ = old_map;
         drop(c);
     }
 
@@ -1019,11 +1019,12 @@ async fn e2e_restart() {
 /// NPC dialog open during restart: expects 0x00b6 before 0x0091.
 /// Also exercises the real-client-IP path (bind 127.0.0.2).
 #[tokio::test]
+#[allow(clippy::await_holding_lock)]
 async fn e2e_restart_npc() {
     if std::env::var("TMWA_E2E").is_err() {
         return;
     }
-    let _g = e2e_lock();
+    let _e2e_guard = e2e_lock();
     fresh_gate();
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
@@ -1081,9 +1082,7 @@ async fn e2e_restart_npc() {
     }
     eprintln!("e2e: chat echo = {echoed}");
     tokio::time::sleep(Duration::from_millis(600)).await;
-    c.wr.write_all(&chat_pkt("@npc Sorfina"))
-        .await
-        .unwrap();
+    c.wr.write_all(&chat_pkt("@npc Sorfina")).await.unwrap();
     // dump everything the map answers (0x008e display messages tell
     // us why a command was rejected)
     for _ in 0..20 {
@@ -1091,7 +1090,12 @@ async fn e2e_restart_npc() {
             Ok(Ok(Some(p))) => {
                 if p.id == 0x008e {
                     if let Ok(m) = P008E::decode(&p.bytes) {
-                        eprintln!("  server says: {:?}", String::from_utf8_lossy(&m.repeat.iter().map(|c| c.c).collect::<Vec<_>>()));
+                        eprintln!(
+                            "  server says: {:?}",
+                            String::from_utf8_lossy(
+                                &m.repeat.iter().map(|c| c.c).collect::<Vec<_>>()
+                            )
+                        );
                     }
                 }
             }

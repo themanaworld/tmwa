@@ -1526,9 +1526,7 @@ async fn relay(
                 let st2 = st.clone();
                 let rec2 = rec.clone();
                 let mid = cur_map_id;
-                let mut att = tokio::spawn(async move {
-                    upstream_rejoin(&st2, &rec2, mid).await
-                });
+                let mut att = tokio::spawn(async move { upstream_rejoin(&st2, &rec2, mid).await });
                 'attempt: loop {
                     tokio::select! {
                         out = &mut att => {
