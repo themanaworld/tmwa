@@ -22,6 +22,8 @@
 
 import glob
 import os
+import re
+import sys
 import filecmp
 from posixpath import relpath
 from weakref import ref as wr
@@ -1144,12 +1146,13 @@ def packet(id, name, define=None,
 #   #if PACKET_LOGIN || PACKET_CHAR || PACKET_MAP || PACKET_ADMIN || PACKET_USER
 # (for an 'all' packet) around the send/recv portions separately
 class Channel(object):
-    __slots__ = ('server', 'client', 'packets')
+    __slots__ = ('server', 'client', 'packets', 'dirs')
 
     def __init__(self, server, client):
         self.server = server
         self.client = client
         self.packets = []
+        self.dirs = {}
 
     def __repr__(self):
         return '<Channel(%r, %r) with %d packets>' % (
@@ -1160,9 +1163,22 @@ class Channel(object):
 
 
     def x(self, id, name, **kwargs):
-        self.packets.append(packet(id, name, **kwargs))
-    r = x
-    s = x
+        p = packet(id, name, **kwargs)
+        self.packets.append(p)
+        self.dirs[id] = 'unknown'
+        return p
+
+    def r(self, id, name, **kwargs):
+        p = packet(id, name, **kwargs)
+        self.packets.append(p)
+        self.dirs[id] = 'ToServer'
+        return p
+
+    def s(self, id, name, **kwargs):
+        p = packet(id, name, **kwargs)
+        self.packets.append(p)
+        self.dirs[id] = 'FromServer'
+        return p
 
     def dump(self, outdir):
         server = self.server
@@ -7242,9 +7258,746 @@ def make_dots(ctx):
         print('Obsolete: %s' % g)
         os.remove(g)
 
+# ---------------------------------------------------------------------------
+# Rust backend for the tmwa-gate crate.
+#
+# Invoked as `protocol.py --rust <file>`; writes a single Rust source file
+# and nothing else. Hand-written wire types it refers to live in
+# gate/src/proto/types.rs.
+# ---------------------------------------------------------------------------
+
+_RUST_KEYWORDS = {
+    'as', 'break', 'const', 'continue', 'crate', 'else', 'enum', 'extern',
+    'false', 'fn', 'for', 'if', 'impl', 'in', 'let', 'loop', 'match', 'mod',
+    'move', 'mut', 'pub', 'ref', 'return', 'self', 'static', 'struct',
+    'super', 'trait', 'true', 'type', 'unsafe', 'use', 'where', 'while',
+    'async', 'await', 'dyn', 'abstract', 'become', 'box', 'do', 'final',
+    'macro', 'override', 'priv', 'typeof', 'unsized', 'virtual', 'yield',
+    'try', 'gen',
+}
+
+
+def _rust_ident(s):
+    '''Make a protocol field name a valid Rust field name.'''
+    if s in _RUST_KEYWORDS:
+        return s + '_'
+    return s
+
+
+# Mapping from C++ native (a_tag) name to Rust type name.
+_RUST_NAMES = {
+    'SEX': 'Sex',
+    'Opt0': 'Opt0',
+    'EPOS': 'Epos',
+    'ItemLook': 'ItemLook',
+    'DIR': 'Dir',
+    'Opt1': 'Opt1',
+    'Opt2': 'Opt2',
+    'Opt3': 'Opt3',
+    'ItemType': 'ItemType',
+    'PickupFail': 'PickupFail',
+    'DamageType': 'DamageType',
+    'SP': 'Sp',
+    'LOOK': 'Look',
+    'BeingRemoveWhy': 'BeingRemoveWhy',
+    'SkillID': 'SkillId',
+    'StatusChange': 'StatusChange',
+    'SkillFlags': 'SkillFlags',
+    'Species': 'Species',
+    'AccountId': 'AccountId',
+    'ClientVersion': 'ClientVersion',
+    'CharId': 'CharId',
+    'PartyId': 'PartyId',
+    'ItemNameId': 'ItemNameId',
+    'BlockId': 'BlockId',
+    'GmLevel': 'GmLevel',
+    'TimeT': 'TimeT',
+    'tick_t': 'TickT',
+    'interval_t': 'IntervalT',
+    'IOff2': 'IOff2',
+    'SOff1': 'SOff1',
+    'IP4Address': 'Ip4Address',
+    'Position1': 'Position1',
+    'Position2': 'Position2',
+}
+
+_RUST_INTS = {
+    'uint8_t': 'u8', 'uint16_t': 'u16', 'uint32_t': 'u32',
+    'uint64_t': 'u64', 'int8_t': 'i8', 'int16_t': 'i16',
+    'int32_t': 'i32', 'int64_t': 'i64',
+}
+
+_RUST_INT_SIZES = {
+    'u8': 1, 'u16': 2, 'u32': 4, 'u64': 8,
+    'i8': 1, 'i16': 2, 'i32': 4, 'i64': 8,
+}
+
+# Wire size in bytes of each integer network type.
+_NET_INT_SIZES = {
+    'Byte': 1, 'char': 1, 'bool': 1,
+    'Little16': 2, 'Little32': 4, 'Little64': 8,
+}
+
+# Provided types that go over the wire as a blob, not a plain integer.
+_PROVIDED_SPECIAL = {
+    'NetPosition1': 3,
+    'NetPosition2': 5,
+    'IP4Address': 4,
+}
+
+# String sizes: C++ native name -> fixed wire length in bytes.
+_RUST_STRING_SIZES = {
+    'VString<15>': 16,
+    'VString<19>': 20,
+    'VString<23>': 24,
+    'VString<31>': 32,
+    'VString<39>': 40,
+    'timestamp_seconds_buffer': 20,
+    'timestamp_milliseconds_buffer': 24,
+    'AccountName': 24,
+    'AccountPass': 24,
+    'AccountEmail': 40,
+    'ServerName': 20,
+    'PartyName': 24,
+    'VarName': 32,
+    'CharName': 24,
+    'MapName': 16,
+}
+
+
+def _rust_header_paths():
+    '''C++ headers the Rust backend resolves array bounds and enum counts
+    from, relative to the repository root. build.rs should register these
+    for rerun-if-changed.'''
+    return ['src/mmo/consts.hpp', 'src/mmo/enums.hpp']
+
+
+def _rust_resolve_constants(ctx):
+    '''Resolve C++ constants used as array bounds to plain integers, like
+    the C++ generated code resolves them at compile time.'''
+    values = {}
+
+    # constexpr <type> NAME = <number>; or constexpr <type> NAME = Type(<n>);
+    cexpr = re.compile(
+        r'constexpr\s+[\w:<>,\s*]+?\b([A-Z][A-Z0-9_]*)\s*=\s*'
+        r'(?:[\w:]+\s*\()?(\d+)')
+    # 'enum class NAME { ... COUNT = N ... }' (or COUNT as last member)
+    enum_re = re.compile(r'enum\s+class\s+(\w+)[^\{]*\{(.*?)\}', re.S)
+
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for rel in _rust_header_paths():
+        with open(os.path.join(root, rel)) as f:
+            text = f.read()
+        for name, val in cexpr.findall(text):
+            values.setdefault(name, int(val))
+        for name, body in enum_re.findall(text):
+            m = re.search(r'\bCOUNT\s*=\s*(\d+)', body)
+            if m:
+                values[name + '::COUNT'] = int(m.group(1))
+            elif re.search(r'\bCOUNT\b', body):
+                n = len(re.findall(r'\b[A-Z][A-Z0-9_]*\s*[,}\n]',
+                                   body.split('COUNT')[0]))
+                values[name + '::COUNT'] = n
+
+    def resolve(count):
+        if isinstance(count, int):
+            return count
+        count = count.strip()
+        if count.isdigit():
+            return int(count)
+        if count in values:
+            return values[count]
+        raise RuntimeError(
+            'cannot resolve array bound %r from C++ headers %r'
+            % (count, _rust_header_paths()))
+
+    return resolve
+
+
+def _rust_doc(desc):
+    out = []
+    for line in desc.split('\n'):
+        line = line.strip()
+        out.append('/// ' + line if line else '///')
+    return '\n'.join(out) + '\n'
+
+
+class _RustGen(object):
+    '''Collects type info and emits the Rust module.'''
+
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.resolve = _rust_resolve_constants(ctx)
+        # native_tag -> (rust name, inner int type) for generated newtypes
+        self.newtypes = {}
+        # StructType id -> wire size
+        self.struct_sizes = {}
+        # StructType id -> rust struct name
+        self.packet_structs = {}
+        self._collect()
+
+    # ---- type naming ----
+
+    def rust_name(self, native_tag):
+        if native_tag in _RUST_NAMES:
+            return _RUST_NAMES[native_tag]
+        if native_tag in _RUST_INTS:
+            return _RUST_INTS[native_tag]
+        raise RuntimeError('no Rust name mapping for native %r' % native_tag)
+
+    # ---- newtype collection ----
+
+    def _collect(self):
+        # EnumType and WrappedType instances get one newtype each, keyed on
+        # the native name. PolyFakeType merges its members into one newtype
+        # with the widest underlying integer.
+        for t in self.ctx._types:
+            if not getattr(t, 'do_dump', True):
+                continue
+            if isinstance(t, EnumType):
+                native = t.native_tag()
+                rust = self.rust_name(native)
+                inner = _RUST_INTS[t.under.native_tag()]
+                self._add_newtype(rust, inner)
+            elif isinstance(t, WrappedType):
+                native = t.native_tag()
+                rust = self.rust_name(native)
+                inner = _RUST_INTS[t.under.native_tag()]
+                self._add_newtype(rust, inner)
+            elif isinstance(t, PolyFakeType):
+                native = t.native_tag()
+                rust = self.rust_name(native)
+                inner = max((_RUST_INTS[a.under.native_tag()]
+                            for a in t.already), key=_RUST_INT_SIZES.get)
+                self._add_newtype(rust, inner)
+        # Provided integer-backed newtypes are hand-written in types.rs.
+
+    def _add_newtype(self, rust, inner):
+        if rust in self.newtypes:
+            assert self.newtypes[rust] == inner, (rust, inner)
+        else:
+            self.newtypes[rust] = inner
+
+    # ---- field type info ----
+    # dict: 'rust' type expr, 'wire' bytes (None for nested structs),
+    # 'kind' int|bool|int_newtype|wire_trait|struct|skew
+
+    def field_info(self, t):
+        if isinstance(t, ProvidedType):
+            native = t.native_tag()
+            network = t.network_tag()
+            if network in _PROVIDED_SPECIAL:
+                rust = _RUST_NAMES[native]
+                return {'rust': rust, 'wire': _PROVIDED_SPECIAL[network],
+                        'kind': 'wire_trait'}
+            if native == 'IP4Address':
+                return {'rust': 'Ip4Address', 'wire': 4, 'kind': 'wire_trait'}
+            rust = self.rust_name(native)
+            w = _NET_INT_SIZES[network]
+            kind = 'int' if rust in _RUST_INT_SIZES else 'int_newtype'
+            return {'rust': rust, 'wire': w, 'kind': kind}
+        if isinstance(t, (EnumType, WrappedType)):
+            native = t.native_tag()
+            rust = self.rust_name(native)
+            w = self.wire_int_width(t.network_tag())
+            return {'rust': rust, 'wire': w, 'kind': 'int_newtype'}
+        if isinstance(t, StringType):
+            native = t.native.a_tag()
+            n = _RUST_STRING_SIZES[native]
+            return {'rust': 'FixedStr<%d>' % n, 'wire': n,
+                    'kind': 'wire_trait'}
+        if isinstance(t, SkewLengthType):
+            w = self.wire_int_width(t.type.network_tag())
+            return {'rust': None, 'wire': w, 'kind': 'skew', 'skew': t.skew}
+        if isinstance(t, (ArrayType, EArrayType, InvArrayType)):
+            e = self.field_info(t.element)
+            count = self.resolve(t.count)
+            return {'rust': '[%s; %d]' % (e['rust'], count),
+                    'wire': count * self._info_wire(e),
+                    'kind': 'wire_trait'}
+        if isinstance(t, PartialStructType):
+            name = t.native_tag()
+            return {'rust': name, 'wire': None, 'kind': 'struct',
+                    'struct': t}
+        if isinstance(t, StructType):
+            return {'rust': t.name, 'wire': None, 'kind': 'struct',
+                    'struct': t}
+        if isinstance(t, NeutralType):
+            if t.name == 'bool':
+                return {'rust': 'bool', 'wire': 1, 'kind': 'bool'}
+            if t.name == 'char':
+                return {'rust': 'u8', 'wire': 1, 'kind': 'int'}
+            if t.name == 'IP4Address':
+                return {'rust': 'Ip4Address', 'wire': 4, 'kind': 'wire_trait'}
+            raise RuntimeError('unknown neutral type %r' % t.name)
+        raise RuntimeError('unhandled field type %r' % type(t))
+
+    def wire_int_width(self, network_tag):
+        if network_tag in _NET_INT_SIZES:
+            return _NET_INT_SIZES[network_tag]
+        raise RuntimeError('no wire width for %r' % network_tag)
+
+    def _info_wire(self, info):
+        w = info['wire']
+        if w is None:
+            w = self.struct_wire_size(info['struct'])
+        return w
+
+    def struct_fields(self, st):
+        '''Uniform (offset, type, name) tuples for struct-like types.'''
+        if isinstance(st, StructType):
+            return st.fields
+        if isinstance(st, PartialStructType):
+            return [(None, ty, n) for n, ty in st.body]
+        raise RuntimeError('not a struct: %r' % st)
+
+    def struct_wire_size(self, st):
+        key = id(st)
+        if key in self.struct_sizes:
+            return self.struct_sizes[key]
+        total = 0
+        cursor = 0
+        for o, t, n in self.struct_fields(st):
+            info = self.field_info(t)
+            w = self._info_wire(info)
+            off = o if o is not None else cursor
+            total = max(total, off + w)
+            cursor = off + w
+        self.struct_sizes[key] = total
+        return total
+
+    # ---- emit helpers ----
+
+    def _doc_comment(self, p):
+        name = p.name or 'unnamed'
+        define = p.define or ''
+        text = '0x%04x %s' % (p.id, name)
+        if define:
+            text += ' (%s)' % define
+        lines = [text] + [l for l in p.desc.split('\n')]
+        return ''.join('/// %s\n' % l.strip() if l.strip() else '///\n'
+                       for l in lines)
+
+    def _field_rust_type(self, t):
+        return self.field_info(t)['rust']
+
+    def _field_codec(self, info, w):
+        '''Returns (decode_expr_with_{buf,off}, encode_stmt_with_{out,off,self_x}).'''
+        kind = info['kind']
+        rust = info['rust']
+        if kind == 'int':
+            # rust is a plain integer type (u8..u64 / i8..i64)
+            if w == 1:
+                return ('buf[off] as %s' % rust,
+                        'out[off] = X as u8')
+            return ('%s::from_le_bytes(buf[off..off + %d].try_into().unwrap())'
+                    % (rust, w),
+                    'out[off..off + %d].copy_from_slice(&X.to_le_bytes())' % w)
+        if kind == 'bool':
+            return ('buf[off] != 0', 'out[off] = X as u8')
+        if kind == 'int_newtype':
+            inner = self.newtypes.get(rust) or _rust_inner(rust)
+            wire_t = 'u%d' % (w * 8)
+            if w == 1:
+                dec = '%s(buf[off] as %s)' % (rust, inner)
+                enc = 'out[off] = X.0 as %s' % wire_t
+            else:
+                dec = ('%s(%s::from_le_bytes(buf[off..off + %d]'
+                       '.try_into().unwrap()) as %s)'
+                       % (rust, wire_t, w, inner))
+                enc = ('out[off..off + %d].copy_from_slice('
+                       '&(X.0 as %s).to_le_bytes())' % (w, wire_t))
+            # debug_assert when the native integer is wider than the wire
+            if _RUST_INT_SIZES[inner] > w:
+                enc = 'debug_assert!(%s::try_from(X.0).is_ok()); %s' % (
+                    wire_t, enc)
+            return (dec, enc)
+        if kind == 'skew':
+            raise RuntimeError('skew field not encodable as a field')
+        # wire_trait: FixedStr, Ip4Address, Position1/2, arrays
+        if w is None:
+            w = self.struct_wire_size(info['struct'])
+        dec = '<%s as Wire>::wire_decode(&buf[off..off + %d])?' % (rust, w)
+        enc = 'X.wire_encode(&mut out[off..off + %d])' % w
+        return (dec, enc)
+
+
+def _rust_inner(rust):
+    '''Inner integer type of provided (types.rs) newtypes.'''
+    return {
+        'Sex': 'u8', 'GmLevel': 'u32', 'TimeT': 'i64', 'TickT': 'u32',
+        'IntervalT': 'u32', 'IOff2': 'u16', 'SOff1': 'u16',
+    }[rust]
+
+
+class _RustEmit(_RustGen):
+    '''Emits the full generated Rust file.'''
+
+    def channel_name(self, ch):
+        s = '%s_%s' % (ch.server, ch.client)
+        return ''.join(w.title() for w in s.split('_'))
+
+    def struct_name(self, st):
+        if st.id is not None:
+            # Packet_Fixed<0x0064> -> P0064, Packet_Repeat<0x0069> ->
+            # P0069Repeat, Packet_Option<0x3821> -> P3821Option.
+            m = re.match(r'Packet_(\w+)<0x([0-9a-fA-F]+)>', st.name)
+            kind, pid = m.group(1), m.group(2).upper()
+            suffix = '' if kind in ('Fixed', 'Head', 'Payload') else kind
+            return 'P%s%s' % (pid, suffix)
+        return st.name
+
+    def emit_struct(self, f, st, name=None):
+        name = name or self.struct_name(st)
+        f.write('#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n')
+        f.write('pub struct %s {\n' % name)
+        for o, t, n in self.struct_fields(st):
+            if n in ('magic_packet_id', 'magic_packet_length'):
+                continue
+            info = self.field_info(t)
+            f.write('    pub %s: %s,\n' % (_rust_ident(n), info['rust']))
+        f.write('}\n\n')
+        # all these types are plain old data; all-zero is a valid value
+        f.write('impl Default for %s {\n' % name)
+        f.write('    fn default() -> Self {\n')
+        f.write('        unsafe { core::mem::zeroed() }\n')
+        f.write('    }\n}\n\n')
+        # encode/decode at explicit offsets
+        total = self.struct_wire_size(st)
+        f.write('impl Wire for %s {\n' % name)
+        f.write('    const LEN: usize = %d;\n\n' % total)
+        f.write('    fn wire_encode(&self, out: &mut [u8]) {\n')
+        f.write('        debug_assert!(out.len() >= Self::LEN);\n')
+        cursor = 0
+        for o, t, n in self.struct_fields(st):
+            info = self.field_info(t)
+            w = self._info_wire(info)
+            off = o if o is not None else cursor
+            cursor = off + w
+            if n in ('magic_packet_id', 'magic_packet_length'):
+                continue
+            dec, enc = self._field_codec(info, w)
+            stmt = enc.replace('off', str(off))
+            stmt = stmt.replace('X', 'self.%s' % _rust_ident(n))
+            f.write('        %s;\n' % stmt.rstrip(';'))
+        f.write('    }\n\n')
+        f.write('    fn wire_decode(buf: &[u8]) -> Result<Self, DecodeError> {\n')
+        f.write('        if buf.len() < Self::LEN {\n')
+        f.write('            return Err(DecodeError::Short);\n')
+        f.write('        }\n')
+        cursor = 0
+        f.write('        Ok(Self {\n')
+        for o, t, n in self.struct_fields(st):
+            info = self.field_info(t)
+            w = self._info_wire(info)
+            off = o if o is not None else cursor
+            cursor = off + w
+            if n in ('magic_packet_id', 'magic_packet_length'):
+                continue
+            dec, enc = self._field_codec(info, w)
+            expr = dec.replace('off', str(off))
+            f.write('            %s: %s,\n' % (_rust_ident(n), expr))
+        f.write('        })\n    }\n}\n\n')
+
+    def emit(self, out):
+        ctx = self.ctx
+        with open(out, 'w') as f:
+            f.write('// TMWA protocol packets, generated by tools/protocol.py.\n')
+            f.write('// Do not edit; the hand-written wire types it uses\n')
+            f.write('// live in `crate::proto::types`.\n')
+            f.write('use crate::proto::types::*;\n\n')
+
+            # ---- enum + wrap newtypes ----
+            for rust, inner in sorted(self.newtypes.items(),
+                                      key=lambda kv: kv[0].lower()):
+                f.write('#[derive(Clone, Copy, Debug, Default, PartialEq, '
+                        'Eq, PartialOrd, Ord, Hash)]\n')
+                f.write('#[repr(transparent)]\n')
+                f.write('pub struct %s(pub %s);\n\n' % (rust, inner))
+
+            # ---- generated structs (non-packet) ----
+            emitted = set()
+            for t in ctx._types:
+                if isinstance(t, StructType) and t.id is None:
+                    self.emit_struct(f, t, self.struct_name(t))
+                    emitted.add(id(t))
+                elif isinstance(t, PartialStructType):
+                    # emit like a normal struct from its body
+                    fields = [(None, ty, n) for n, ty in t.body]
+                    fake = StructType(None, t.native_tag(), fields, None)
+                    self.emit_struct(f, fake, t.native_tag())
+                    emitted.add(id(t))
+
+            # ---- packet repeat/option structs ----
+            for ch in ctx._channels:
+                for p in ch.packets:
+                    if isinstance(p, VarPacket):
+                        st = p.repeat_struct
+                        self.emit_struct(f, st, self.struct_name(st))
+
+            # ---- packet structs ----
+            metas = []
+            for ch in ctx._channels:
+                for p in ch.packets:
+                    metas.append((ch, p))
+                    self.emit_packet(f, ch, p)
+
+            # ---- length + meta table ----
+            self.emit_tables(f, metas)
+        print('wrote %s' % out)
+
+    def _length_kind(self, p):
+        '''Return ('fixed', size) or ('var', offset, skew, wide).'''
+        st = (p.fixed_struct if isinstance(p, FixedPacket)
+              else p.head_struct)
+        for o, t, n in self.struct_fields(st):
+            if n == 'magic_packet_length':
+                if isinstance(t, SkewLengthType):
+                    off = o
+                    w = self.wire_int_width(t.type.network_tag())
+                    return ('var', off, t.skew, w == 4)
+                return ('var', o, 0, False)
+        if isinstance(p, VarPacket):
+            return ('var', 2, 0, False)
+        return ('fixed', p.fixed_struct.size)
+
+    def emit_packet(self, f, ch, p):
+        name = self.struct_name(
+            p.fixed_struct if isinstance(p, FixedPacket) else p.head_struct)
+        f.write(self._doc_comment(p))
+        f.write('#[derive(Clone, Debug, Default, PartialEq)]\n')
+        f.write('pub struct %s {\n' % name)
+        is_var = isinstance(p, VarPacket)
+        st = p.fixed_struct if isinstance(p, FixedPacket) else p.head_struct
+        head_has_opt = False
+        for o, t, n in self.struct_fields(st):
+            if n in ('magic_packet_id', 'magic_packet_length'):
+                continue
+            info = self.field_info(t)
+            f.write('    pub %s: %s,\n' % (_rust_ident(n), info['rust']))
+        if is_var:
+            rep = self.struct_name(p.repeat_struct)
+            if 'Option' in p.repeat_struct.name:
+                f.write('    pub option: Option<%s>,\n' % rep)
+                head_has_opt = True
+            else:
+                f.write('    pub repeat: Vec<%s>,\n' % rep)
+        f.write('}\n\n')
+
+        channel = self.channel_name(ch)
+        # direction is not stored per-packet in python; use call conv below
+        f.write('impl %s {\n' % name)
+        f.write('    pub const ID: u16 = 0x%04x;\n' % p.id)
+        f.write('    pub const CHANNEL: Channel = Channel::%s;\n' % channel)
+        f.write('    pub const WIRE_LEN: usize = %d;\n\n'
+                % self.struct_wire_size(st))
+
+        # ---- encode ----
+        f.write('    pub fn encode(&self, out: &mut Vec<u8>) {\n')
+        f.write('        let base = out.len();\n')
+        if is_var and not head_has_opt:
+            rep = self.struct_name(p.repeat_struct)
+            rlen = self.struct_wire_size(p.repeat_struct)
+            hlen = self.struct_wire_size(st)
+            f.write('        out.resize(base + %d + self.repeat.len() * %d, '
+                    '0);\n' % (hlen, rlen))
+        elif is_var and head_has_opt:
+            hlen = self.struct_wire_size(st)
+            f.write('        let opt_len = if self.option.is_some() { <%s as Wire>::LEN } else { 0 };\n'
+                    % self.struct_name(p.repeat_struct))
+            f.write('        out.resize(base + %d + opt_len, 0);\n' % hlen)
+        else:
+            f.write('        out.resize(base + Self::WIRE_LEN, 0);\n')
+        f.write('        out[base..base + 2].copy_from_slice('
+                '&Self::ID.to_le_bytes());\n')
+
+        # length field(s)
+        cursor = 0
+        wrote_lenvar = False
+        for o, t, n in self.struct_fields(st):
+            info = self.field_info(t)
+            w = self._info_wire(info)
+            off = o if o is not None else cursor
+            cursor = off + w
+            if n == 'magic_packet_length':
+                if not wrote_lenvar:
+                    f.write('        let pktlen = (out.len() - base) as u32;\n')
+                    wrote_lenvar = True
+                if isinstance(t, SkewLengthType):
+                    wt = 'u%d' % (info['wire'] * 8)
+                    f.write('        out[base + %d..base + %d + %d]'
+                            '.copy_from_slice(&((pktlen - %d)'
+                            ' as %s).to_le_bytes());\n'
+                            % (off, off, info['wire'], t.skew, wt))
+                else:
+                    f.write('        out[base + %d..base + %d + 2]'
+                            '.copy_from_slice(&(pktlen as u16)'
+                            '.to_le_bytes());\n' % (off, off))
+                continue
+            if n == 'magic_packet_id':
+                continue
+            dec, enc = self._field_codec(info, w)
+            stmt = enc.replace('out', 'out').replace('off', 'base + %d' % off)
+            stmt = stmt.replace('X', 'self.%s' % _rust_ident(n))
+            f.write('        %s;\n' % stmt.rstrip(';'))
+
+        if is_var and not head_has_opt:
+            rep = self.struct_name(p.repeat_struct)
+            rlen = self.struct_wire_size(p.repeat_struct)
+            hlen = self.struct_wire_size(st)
+            f.write('        for (i, e) in self.repeat.iter().enumerate() {\n')
+            f.write('            e.wire_encode(&mut out[base + %d + i * %d'
+                    '..base + %d + (i + 1) * %d]);\n'
+                    % (hlen, rlen, hlen, rlen))
+            f.write('        }\n')
+        elif is_var and head_has_opt:
+            hlen = self.struct_wire_size(st)
+            f.write('        if let Some(o) = &self.option {\n')
+            f.write('            o.wire_encode(&mut out[base + %d..]);\n' % hlen)
+            f.write('        }\n')
+        f.write('    }\n\n')
+
+        # ---- decode ----
+        f.write('    pub fn decode(buf: &[u8]) -> Result<Self, DecodeError> {\n')
+        if not is_var:
+            f.write('        if buf.len() != Self::WIRE_LEN {\n')
+            f.write('            return Err(DecodeError::Size);\n')
+            f.write('        }\n')
+        else:
+            hlen = self.struct_wire_size(st)
+            f.write('        if buf.len() < %d {\n' % hlen)
+            f.write('            return Err(DecodeError::Short);\n')
+            f.write('        }\n')
+        has_fields = any(n not in ('magic_packet_id', 'magic_packet_length')
+                       for _, _, n in self.struct_fields(st))
+        if is_var or has_fields:
+            f.write('        let mut this = Self::default();\n')
+        else:
+            f.write('        let this = Self::default();\n')
+        cursor = 0
+        for o, t, n in self.struct_fields(st):
+            info = self.field_info(t)
+            w = self._info_wire(info)
+            off = o if o is not None else cursor
+            cursor = off + w
+            if n in ('magic_packet_id', 'magic_packet_length'):
+                continue
+            dec, enc = self._field_codec(info, w)
+            expr = dec.replace('off', str(off))
+            f.write('        this.%s = %s;\n' % (_rust_ident(n), expr))
+        if is_var and not head_has_opt:
+            rep = self.struct_name(p.repeat_struct)
+            rlen = self.struct_wire_size(p.repeat_struct)
+            hlen = self.struct_wire_size(st)
+            f.write('        let rest = buf.len() - %d;\n' % hlen)
+            f.write('        if rest %% %d != 0 {\n' % rlen)
+            f.write('            return Err(DecodeError::Size);\n')
+            f.write('        }\n')
+            f.write('        for i in 0..rest / %d {\n' % rlen)
+            f.write('            this.repeat.push(<%s>::wire_decode(&buf[%d'
+                    ' + i * %d..%d + (i + 1) * %d])?);\n'
+                    % (rep, hlen, rlen, hlen, rlen))
+            f.write('        }\n')
+        elif is_var and head_has_opt:
+            hlen = self.struct_wire_size(st)
+            rep = self.struct_name(p.repeat_struct)
+            f.write('        if buf.len() > %d {\n' % hlen)
+            f.write('            this.option = Some(<%s>::wire_decode('
+                    '&buf[%d..])?);\n' % (rep, hlen))
+            f.write('        }\n')
+        f.write('        Ok(this)\n')
+        f.write('    }\n}\n\n')
+
+    def emit_tables(self, f, metas):
+        f.write('/// Framing information for one packet id.\n')
+        f.write('#[derive(Clone, Copy, Debug, PartialEq)]\n')
+        f.write('pub enum PacketLen {\n')
+        f.write('    Fixed(usize),\n')
+        f.write('    /// A u16 (wide=false) or u32 (wide=true) length field\n')
+        f.write('    /// at `offset` holds total_length - skew.\n')
+        f.write('    Variable { offset: usize, skew: usize, wide: bool },\n')
+        f.write('}\n\n')
+        f.write('/// Which channel a packet travels on.\n')
+        chans = []
+        for ch, p in metas:
+            n = self.channel_name(ch)
+            if n not in chans:
+                chans.append(n)
+        f.write('#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n')
+        f.write('pub enum Channel {\n')
+        for n in chans:
+            f.write('    %s,\n' % n)
+        f.write('}\n\n')
+        f.write('/// Direction on the channel: ToServer means client to\n')
+        f.write('/// server, FromServer means server to client.\n')
+        f.write('#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n')
+        f.write('pub enum Direction { ToServer, FromServer }\n\n')
+        f.write('pub fn packet_len(id: u16) -> Option<PacketLen> {\n')
+        f.write('    match id {\n')
+        for ch, p in metas:
+            k = self._length_kind(p)
+            if k[0] == 'fixed':
+                f.write('        0x%04x => Some(PacketLen::Fixed(%d)),\n'
+                        % (p.id, k[1]))
+            else:
+                f.write('        0x%04x => Some(PacketLen::Variable '
+                        '{ offset: %d, skew: %d, wide: %s }),\n'
+                        % (p.id, k[1], k[2], 'true' if k[3] else 'false'))
+        f.write('        _ => None,\n    }\n}\n\n')
+        f.write('pub fn packet_meta(id: u16) -> Option<(Channel, Direction)> '
+                '{\n    match id {\n')
+        for ch, p in metas:
+            d = ch.dirs.get(p.id, 'ToServer')
+            if d == 'unknown':
+                d = 'ToServer'
+            f.write('        0x%04x => Some((Channel::%s, Direction::%s)),\n'
+                    % (p.id, self.channel_name(ch), d))
+        f.write('        _ => None,\n    }\n}\n\n')
+        f.write('pub const ALL_PACKET_IDS: &[u16] = &[\n')
+        for ch, p in metas:
+            f.write('    0x%04x,\n' % p.id)
+        f.write('];\n\n')
+        # helpers used by tests and by generic dispatch
+        f.write('/// Encode a default packet of the given id.\n')
+        f.write('pub fn encode_default(id: u16) -> Option<Vec<u8>> {\n')
+        f.write('    match id {\n')
+        for ch, p in metas:
+            name = self.struct_name(
+                p.fixed_struct if isinstance(p, FixedPacket)
+                else p.head_struct)
+            f.write('        0x%04x => { let mut v = Vec::new();\n'
+                    '            %s::default().encode(&mut v); Some(v) },\n'
+                    % (p.id, name))
+        f.write('        _ => None,\n    }\n}\n\n')
+        f.write('/// Decode one packet and re-encode it; returns the\n')
+        f.write('/// canonical encoding (useful for round-trip checks).\n')
+        f.write('pub fn decode_encode(id: u16, buf: &[u8])'
+                ' -> Result<Vec<u8>, DecodeError> {\n')
+        f.write('    match id {\n')
+        for ch, p in metas:
+            name = self.struct_name(
+                p.fixed_struct if isinstance(p, FixedPacket)
+                else p.head_struct)
+            f.write('        0x%04x => { let p = %s::decode(buf)?;\n'
+                    '            let mut v = Vec::new();\n'
+                    '            p.encode(&mut v); Ok(v) },\n'
+                    % (p.id, name))
+        f.write('        _ => Err(DecodeError::UnknownId(id)),\n')
+        f.write('    }\n}\n')
+
+
+def dump_rust(ctx, outpath):
+    '''Write the whole protocol as one Rust source file (for tmwa-gate).'''
+    _RustEmit(ctx).emit(outpath)
+
+
 # TOC_MAIN
 
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == '--rust':
+        ctx = build_context()
+        dump_rust(ctx, sys.argv[2])
+        return
     ctx = build_context()
     ## teardown
     make_dots(ctx)
