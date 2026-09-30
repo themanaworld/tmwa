@@ -53,3 +53,8 @@ char_slots = 9
 
 [inter]
 party_share_level = 10
+
+# Seamless map restart:
+# hold_timeout_secs = 180
+# hold_message = "Server restarting, please wait."
+# admin_socket = "tmwa-gate.sock"

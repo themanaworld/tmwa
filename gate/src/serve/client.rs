@@ -20,7 +20,7 @@ use tokio::sync::mpsc;
 use super::state::{AuthEntry, PendingSel, State, enc, send_bytes};
 use crate::db::Db;
 use crate::net::framing::PacketFramer;
-use crate::proto::types::{FixedStr, Ip4Address};
+use crate::proto::types::{FixedStr, Ip4Address, TickT};
 use crate::proto::*;
 
 const VERSION_2_UPDATEHOST: u8 = 1;
@@ -525,7 +525,15 @@ async fn char_session(
     loop {
         let pkt = match tokio::time::timeout(deadline, fr.next()).await {
             Ok(Ok(Some(p))) => p,
-            _ => break,
+            Ok(Ok(None)) => {
+                tracing::debug!(account_id, "char: client closed");
+                break;
+            }
+            Ok(Err(e)) => {
+                tracing::warn!(account_id, "char: frame error {e}");
+                break;
+            }
+            Err(_) => break,
         };
         match pkt.id {
             0x7530 => {
@@ -784,9 +792,8 @@ async fn handle_char_select(
         },
     );
 
-    // 0x3829 to all map servers; ip = the gate's own address as seen
-    // by tmwa-map (the upstream connection's local address) — the
-    // real client IP needs a tmwa-map change. TODO: pass real ip.
+    // 0x3829 to all map servers; ip = the real client IP. The map
+    // trusts it because its map_conf lists us as trusted_proxy_ip.
     let mut p = P3829::default();
     p.account_id = AccountId(sd.account_id);
     p.char_id = ck.char_id;
@@ -812,6 +819,7 @@ async fn handle_char_create(
     let hair_color = fixed.hair_color;
     let hair_style = fixed.hair_style;
     let cfg = &st.cfg.char_;
+    tracing::debug!(account = sd.account_id, %name, slot, "char: create request");
 
     let err = |code: u8| {
         let mut p = P006E::default();
@@ -821,13 +829,16 @@ async fn handle_char_create(
 
     // printable + no leading/trailing whitespace
     if name.is_empty() || !name.bytes().all(|b| (32..=126).contains(&b)) || name != name.trim() {
+        tracing::debug!(%name, "create: bad name");
         return err(0x02);
     }
     if name.len() < cfg.min_name_length as usize {
+        tracing::debug!(%name, "create: too short");
         return err(0x02);
     }
     let letters = st.cfg.name_letters();
     if !name.bytes().all(|b| letters.contains(&b)) {
+        tracing::debug!(%name, "create: bad letters");
         return err(0x02);
     }
     let sum: u32 = stats.str as u32
@@ -837,6 +848,7 @@ async fn handle_char_create(
         + stats.dex as u32
         + stats.luk as u32;
     if sum != cfg.total_stat_sum as u32 {
+        tracing::debug!(%name, sum, "create: bad stats");
         return err(0x03);
     }
     if slot >= cfg.char_slots as u8 {
@@ -1060,8 +1072,320 @@ async fn handle_char_delete(
 }
 
 // ------------------------------------------------------------------
-// map relay (0x0072)
+// map relay (0x0072): client <-> upstream splice with hold/rejoin
 // ------------------------------------------------------------------
+
+use super::state::PlayerSession;
+
+/// How a forwarding session ended.
+enum FwdEnd {
+    /// Client socket closed, or a normal logout/char-select that the
+    /// map confirmed by closing.
+    ClientGone,
+    /// Upstream closed (map crash/restart or drain).
+    UpstreamGone,
+    /// Something we can't hold for (0x0092 multi-map request).
+    Fatal,
+}
+
+/// Track client-UI state from an S->C packet (open NPC dialog, trade,
+/// storage; also the server tick for hold-mode ping replies).
+fn track_sc(rec: &std::sync::Mutex<PlayerSession>, id: u16, bytes: &[u8]) {
+    let mut r = rec.lock().unwrap();
+    match id {
+        0x00b4 | 0x00b5 | 0x00b7 | 0x0142 | 0x01d4 => {
+            if bytes.len() >= 8 {
+                r.npc_id = u32::from_le_bytes(bytes[4..8].try_into().unwrap());
+            }
+        }
+        0x00b6 => r.npc_id = 0,
+        0x00e7 => {
+            if bytes.len() >= 3 && bytes[2] == 0 {
+                r.trade_open = true;
+            }
+        }
+        0x00ee | 0x00f0 => r.trade_open = false,
+        0x00f2 | 0x01f0 | 0x00a6 => r.storage_open = true,
+        0x00f8 => r.storage_open = false,
+        0x007f if bytes.len() >= 6 => {
+            r.server_tick = u32::from_le_bytes(bytes[2..6].try_into().unwrap());
+            r.server_tick_at = Instant::now();
+        }
+        _ => {}
+    }
+}
+
+/// Send a single 0x009a announcement to the client.
+fn announce(tx: &mpsc::Sender<Vec<u8>>, msg: &str) {
+    let mut p = P009A::default();
+    let mut bytes = msg.as_bytes().to_vec();
+    bytes.push(0);
+    p.repeat = bytes.iter().map(|&c| P009ARepeat { c }).collect();
+    send_bytes(tx, enc(move |v| p.encode(v)));
+}
+
+/// Connect upstream and run the client-auth prelude: connect to the
+/// map's client port and write 0x0072 (the auth entry from char
+/// select is already in place). Returns the split halves.
+async fn upstream_open(
+    st: &Arc<State>,
+    map_id: usize,
+    pkt72: Vec<u8>,
+    account_id: u32,
+    char_id: u32,
+    login_id1: u32,
+) -> Option<(
+    tokio::net::tcp::OwnedReadHalf,
+    tokio::net::tcp::OwnedWriteHalf,
+)> {
+    let Some((mip, mport)) = st.map_addr(map_id) else {
+        tracing::warn!("relay: map server {map_id} gone");
+        return None;
+    };
+    let upstream_addr = std::net::SocketAddr::new(
+        std::net::IpAddr::V4(Ipv4Addr::from(mip.to_le_bytes())),
+        mport,
+    );
+    let Ok(mut up) = TcpStream::connect(upstream_addr).await else {
+        tracing::warn!("relay: cannot connect to map {upstream_addr}");
+        return None;
+    };
+    let _ = up.set_nodelay(true);
+    // remember the address tmwa-map sees (it reports it in 0x2afc)
+    if let Ok(la) = up.local_addr() {
+        if let std::net::IpAddr::V4(v4) = la.ip() {
+            st.set_auth_upstream_ip(
+                account_id,
+                char_id,
+                login_id1,
+                u32::from_le_bytes(v4.octets()),
+            );
+        }
+    }
+    if up.write_all(&pkt72).await.is_err() {
+        return None;
+    }
+    Some(up.into_split())
+}
+
+/// Rejoin a map server: push a fresh stage-3 auth, send 0x3829, wait
+/// for 0x3830, then run the client-auth prelude (0x0072 -> 0x8000 ->
+/// 0x0073). Returns the upstream halves and the 0x0073 position.
+async fn upstream_rejoin(
+    st: &Arc<State>,
+    rec: &std::sync::Mutex<PlayerSession>,
+    map_id: usize,
+) -> Option<(
+    tokio::net::tcp::OwnedReadHalf,
+    tokio::net::tcp::OwnedWriteHalf,
+    P0073,
+)> {
+    let (account_id, char_id, login_id1, login_id2, sex, client_ip) = {
+        let r = rec.lock().unwrap();
+        (
+            r.account_id,
+            r.char_id,
+            r.login_id1,
+            r.login_id2,
+            r.sex,
+            r.client_ip,
+        )
+    };
+    st.push_auth(AuthEntry {
+        account_id,
+        char_id,
+        login_id1,
+        login_id2,
+        ip: client_ip,
+        client_version: 0,
+        map_id: Some(map_id),
+        upstream_ip: None,
+        delflag: 3,
+        created: Instant::now(),
+    });
+    let mut p29 = P3829::default();
+    p29.account_id = AccountId(account_id);
+    p29.char_id = CharId(char_id);
+    p29.login_id1 = login_id1;
+    p29.login_id2 = login_id2;
+    p29.ip = ip4(client_ip);
+    st.map_send(map_id, enc(move |v| p29.encode(v)));
+
+    let (rtx, rrx) = tokio::sync::oneshot::channel::<()>();
+    st.rejoin_notify
+        .lock()
+        .unwrap()
+        .insert((account_id, char_id), rtx);
+    if tokio::time::timeout(Duration::from_secs(5), rrx)
+        .await
+        .is_err()
+    {
+        st.rejoin_notify
+            .lock()
+            .unwrap()
+            .remove(&(account_id, char_id));
+        tracing::warn!(char_id, "rejoin: no 0x3830 from map {map_id}");
+        return None;
+    }
+
+    let mut pkt72 = Vec::new();
+    P0072 {
+        account_id: AccountId(account_id),
+        char_id: CharId(char_id),
+        login_id1,
+        client_tick: 0,
+        sex: Sex(sex),
+    }
+    .encode(&mut pkt72);
+    let (mut urd, uwr) = upstream_open(st, map_id, pkt72, account_id, char_id, login_id1).await?;
+    // swallow the 0x8000 magic and the 0x0073 login reply; the client
+    // gets our 0x0091 instead
+    let mut ufr = PacketFramer::new(&mut urd);
+    let mut p73: Option<P0073> = None;
+    for _ in 0..4 {
+        match tokio::time::timeout(Duration::from_secs(5), ufr.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x8000 => continue,
+            Ok(Ok(Some(p))) if p.id == 0x0073 => {
+                p73 = P0073::decode(&p.bytes).ok();
+                break;
+            }
+            Ok(Ok(Some(_))) => continue,
+            _ => break,
+        }
+    }
+    drop(ufr);
+    p73.map(|p73| (urd, uwr, p73))
+}
+
+/// Held session: keep the client alive, answer pings, wait for a map
+/// that serves the player's map to come back (or the drain fallback
+/// at half the timeout). Returns the map id to rejoin on, or None if
+/// the client is gone / hold timed out.
+async fn hold_wait(
+    st: &Arc<State>,
+    rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
+    fr: &mut PacketFramer<tokio::net::tcp::OwnedReadHalf>,
+    tx: &mpsc::Sender<Vec<u8>>,
+) -> Option<usize> {
+    let (char_id, deadline, half) = {
+        let r = rec.lock().unwrap();
+        let t = Duration::from_secs(st.cfg.gate.hold_timeout_secs);
+        let since = r.held_since.unwrap_or_else(Instant::now);
+        (r.char_id, since + t, t / 2)
+    };
+    loop {
+        let now = Instant::now();
+        if now >= deadline {
+            tracing::info!(char_id, "hold timed out; closing client");
+            return None;
+        }
+        // a map that serves the player's map, or the old map id once
+        // half the timeout passed and nothing happened (drain fallback)
+        let target = {
+            let r = rec.lock().unwrap();
+            let (mid, _) = st.map_for(&r.map_name);
+            mid.or_else(|| {
+                if now - r.held_since.unwrap_or(now) >= half && st.map_addr(r.map_id).is_some() {
+                    Some(r.map_id)
+                } else {
+                    None
+                }
+            })
+        };
+        if let Some(m) = target {
+            return Some(m);
+        }
+        // still nothing: read client input while we wait
+        let wait = (deadline - now).min(Duration::from_secs(1));
+        match tokio::time::timeout(wait, fr.next()).await {
+            Ok(Ok(Some(p))) => {
+                if p.id == 0x007e {
+                    let (tick, at) = {
+                        let r = rec.lock().unwrap();
+                        (r.server_tick, r.server_tick_at)
+                    };
+                    let mut rep = P007F::default();
+                    rep.tick = TickT(tick + at.elapsed().as_millis() as u32);
+                    send_bytes(tx, enc(move |v| rep.encode(v)));
+                }
+                // all other packets are dropped while held
+            }
+            Ok(Ok(None)) | Ok(Err(_)) => return None,
+            Err(_) => {} // timeout, re-evaluate
+        }
+    }
+}
+
+/// Forward packets in both directions until either side ends or a
+/// drain asks us to hold. Returns how it ended.
+async fn forward_phase(
+    _st: &Arc<State>,
+    rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
+    fr: &mut PacketFramer<tokio::net::tcp::OwnedReadHalf>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    mut up: tokio::net::tcp::OwnedWriteHalf,
+    mut urd: tokio::net::tcp::OwnedReadHalf,
+    hold_signal: &std::sync::Arc<tokio::sync::Notify>,
+) -> FwdEnd {
+    let mut ufr = PacketFramer::new(&mut urd);
+    loop {
+        tokio::select! {
+            p = fr.next() => {
+                match p {
+                    Ok(Some(p)) => {
+                        if p.id == 0x00b2 {
+                            rec.lock().unwrap().quitting = true;
+                        }
+                        if p.id == 0x0146 {
+                            rec.lock().unwrap().npc_id = 0;
+                        }
+                        if up.write_all(&p.bytes).await.is_err() {
+                            return FwdEnd::UpstreamGone;
+                        }
+                    }
+                    Ok(None) => return FwdEnd::ClientGone,
+                    Err(e) => {
+                        tracing::warn!("relay: client frame error {e}");
+                        return FwdEnd::ClientGone;
+                    }
+                }
+            }
+            p = ufr.next() => {
+                match p {
+                    Ok(Some(p)) => {
+                        if p.id == 0x0092 {
+                            tracing::warn!(
+                                "relay: map requests map change; multi-map splicing not implemented; closing"
+                            );
+                            return FwdEnd::Fatal;
+                        }
+                        track_sc(rec, p.id, &p.bytes);
+                        if tx.send(p.bytes).await.is_err() {
+                            return FwdEnd::ClientGone;
+                        }
+                    }
+                    Ok(None) => {
+                        return if rec.lock().unwrap().quitting {
+                            FwdEnd::ClientGone
+                        } else {
+                            FwdEnd::UpstreamGone
+                        };
+                    }
+                    Err(e) => {
+                        tracing::warn!("relay: upstream frame error {e}");
+                        return FwdEnd::UpstreamGone;
+                    }
+                }
+            }
+            _ = hold_signal.notified() => {
+                // drain: close upstream so tmwa-map runs map_quit
+                // (which sends its 0x2b01 save), then stop
+                let _ = up.shutdown().await;
+                return FwdEnd::UpstreamGone;
+            }
+        }
+    }
+}
 
 async fn relay(
     st: Arc<State>,
@@ -1076,7 +1400,7 @@ async fn relay(
         return;
     };
     // match the char->map auth entry
-    let map_id = {
+    let found = {
         let a = st.auth.lock().unwrap();
         a.values()
             .find(|e| {
@@ -1086,9 +1410,9 @@ async fn relay(
                     && e.login_id1 == fixed.login_id1
                     && e.ip == ip
             })
-            .and_then(|e| e.map_id)
+            .map(|e| (e.map_id, e.login_id2))
     };
-    let Some(map_id) = map_id else {
+    let Some((map_id, login_id2)) = found else {
         tracing::warn!(
             "relay: no map auth for account {} char {} from {ip:#x}",
             fixed.account_id.0,
@@ -1096,92 +1420,156 @@ async fn relay(
         );
         return;
     };
-    let Some((mip, mport)) = st.map_addr(map_id) else {
-        tracing::warn!("relay: map server {map_id} gone");
+    let Some(map_id) = map_id else {
+        tracing::warn!(
+            "relay: auth entry has no map for account {}",
+            fixed.account_id.0
+        );
         return;
     };
-    let upstream_addr = std::net::SocketAddr::new(
-        std::net::IpAddr::V4(Ipv4Addr::from(mip.to_le_bytes())),
-        mport,
-    );
-    let Ok(mut up) = TcpStream::connect(upstream_addr).await else {
-        tracing::warn!("relay: cannot connect to map {upstream_addr}");
-        return;
-    };
-    let _ = up.set_nodelay(true);
-    // remember the source address tmwa-map will see (it reports it in
-    // 0x2afc)
-    if let Ok(la) = up.local_addr() {
-        if let std::net::IpAddr::V4(v4) = la.ip() {
-            st.set_auth_upstream_ip(
+
+    let map_name = st
+        .load_char(fixed.char_id.0)
+        .await
+        .map(|r| r.data.last_point.map_.to_string_lossy())
+        .unwrap_or_default();
+    let hold_signal = std::sync::Arc::new(tokio::sync::Notify::new());
+    let rec = std::sync::Arc::new(std::sync::Mutex::new(PlayerSession {
+        account_id: fixed.account_id.0,
+        char_id: fixed.char_id.0,
+        sex: fixed.sex.0,
+        login_id1: fixed.login_id1,
+        login_id2,
+        client_ip: ip,
+        server_tick: fixed.client_tick,
+        server_tick_at: Instant::now(),
+        map_id,
+        map_name,
+        npc_id: 0,
+        trade_open: false,
+        storage_open: false,
+        quitting: false,
+        held: false,
+        hold_signal: Some(hold_signal.clone()),
+        held_since: None,
+    }));
+    st.player_sessions
+        .lock()
+        .unwrap()
+        .insert(fixed.char_id.0, rec.clone());
+
+    let mut cur_map_id = map_id;
+    let pkt72 = first;
+    let mut first_iter = true;
+
+    'life: loop {
+        // ---- open upstream ----
+        let (urd, uwr) = if first_iter {
+            first_iter = false;
+            match upstream_open(
+                &st,
+                cur_map_id,
+                pkt72.clone(),
                 fixed.account_id.0,
                 fixed.char_id.0,
                 fixed.login_id1,
-                u32::from_le_bytes(v4.octets()),
-            );
+            )
+            .await
+            {
+                Some(v) => v,
+                None => {
+                    // can't even open the map once: hold the client
+                    // and wait for a map to come back
+                    rec.lock().unwrap().held = true;
+                    match hold_wait(&st, &rec, &mut fr, &tx).await {
+                        Some(m) => {
+                            cur_map_id = m;
+                            continue 'life;
+                        }
+                        None => break 'life,
+                    }
+                }
+            }
+        } else {
+            // rejoin: fresh auth + 0x3829 + 0x3830 + 0x0072 -> 0x0073
+            let deadline = {
+                let r = rec.lock().unwrap();
+                r.held_since.unwrap_or_else(Instant::now)
+                    + Duration::from_secs(st.cfg.gate.hold_timeout_secs)
+            };
+            let mut joined = None;
+            while Instant::now() < deadline {
+                match upstream_rejoin(&st, &rec, cur_map_id).await {
+                    Some(v) => {
+                        joined = Some(v);
+                        break;
+                    }
+                    None => tokio::time::sleep(Duration::from_secs(1)).await,
+                }
+            }
+            match joined {
+                Some((urd, uwr, p73)) => {
+                    // client-side session cleanup before the 0x0091:
+                    // close an open NPC dialog / trade / storage
+                    let (npc, trade, storage) = {
+                        let mut r = rec.lock().unwrap();
+                        r.held = false;
+                        r.map_id = cur_map_id;
+                        (r.npc_id, r.trade_open, r.storage_open)
+                    };
+                    if npc != 0 {
+                        let mut p = P00B6::default();
+                        p.block_id = BlockId(npc);
+                        send_bytes(&tx, enc(move |v| p.encode(v)));
+                    }
+                    if trade {
+                        send_bytes(&tx, enc(|v| P00EE::default().encode(v)));
+                    }
+                    if storage {
+                        send_bytes(&tx, enc(|v| P00F8::default().encode(v)));
+                    }
+                    let mut p91 = P0091::default();
+                    p91.map_name = FixedStr::<16>::try_from_str(&rec.lock().unwrap().map_name)
+                        .unwrap_or_default();
+                    p91.x = p73.pos.x;
+                    p91.y = p73.pos.y;
+                    send_bytes(&tx, enc(move |v| p91.encode(v)));
+                    {
+                        let mut r = rec.lock().unwrap();
+                        r.server_tick = p73.tick.0;
+                        r.server_tick_at = Instant::now();
+                    }
+                    (urd, uwr)
+                }
+                None => break 'life,
+            }
+        };
+
+        // ---- forward ----
+        let end = forward_phase(&st, &rec, &mut fr, &tx, uwr, urd, &hold_signal).await;
+        match end {
+            FwdEnd::ClientGone | FwdEnd::Fatal => break 'life,
+            FwdEnd::UpstreamGone => {
+                // hold: client stays, announce once, wait for rejoin
+                {
+                    let mut r = rec.lock().unwrap();
+                    r.held = true;
+                    r.held_since = Some(Instant::now());
+                }
+                announce(&tx, &st.cfg.gate.hold_message.clone());
+                match hold_wait(&st, &rec, &mut fr, &tx).await {
+                    Some(m) => {
+                        cur_map_id = m;
+                        continue 'life;
+                    }
+                    None => break 'life,
+                }
+            }
         }
-    }
-    if up.write_all(&first).await.is_err() {
-        return;
     }
 
-    // splice: client->upstream raw; upstream->client framed so we can
-    // drop on 0x0092 (multi-map-server splicing is a later phase).
-    let (urd, uwr) = up.into_split();
-    let (utx, uwh) = spawn_writer(uwr);
-    // forward client frames to upstream
-    let utx2 = utx.clone();
-    let c2u = tokio::spawn(async move {
-        loop {
-            match fr.next().await {
-                Ok(Some(p)) => {
-                    if utx2.send(p.bytes).await.is_err() {
-                        break;
-                    }
-                }
-                Ok(None) => break,
-                Err(e) => {
-                    tracing::warn!("relay: client frame error {e}");
-                    break;
-                }
-            }
-        }
-        drop(utx2);
-    });
-    // upstream frames to client
-    let tx2 = tx.clone();
-    let u2c = tokio::spawn(async move {
-        let mut ufr = PacketFramer::new(urd);
-        loop {
-            match ufr.next().await {
-                Ok(Some(p)) => {
-                    if p.id == 0x0092 {
-                        tracing::warn!(
-                            "relay: map server requests map change;                              multi-map splicing not implemented; closing"
-                        );
-                        break;
-                    }
-                    if tx2.send(p.bytes).await.is_err() {
-                        break;
-                    }
-                }
-                Ok(None) => break,
-                Err(e) => {
-                    tracing::warn!("relay: upstream frame error {e}");
-                    break;
-                }
-            }
-        }
-        drop(tx2);
-    });
-    // whichever direction dies first ends the whole connection, like
-    // tmwa's session model.
-    tokio::select! {
-        _ = c2u => {}
-        _ = u2c => {}
-    }
+    st.player_sessions.lock().unwrap().remove(&fixed.char_id.0);
     drop(tx);
-    drop(utx);
     let _ = wh.await;
-    let _ = uwh.await;
+    let _ = pkt72;
 }

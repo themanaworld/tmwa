@@ -43,6 +43,12 @@ pub struct GateConf {
     pub gm_account_file: PathBuf,
     pub online_txt: PathBuf,
     pub online_html: PathBuf,
+    /// Unix socket for the admin channel.
+    pub admin_socket: PathBuf,
+    /// How long a client may be held while its map server restarts.
+    pub hold_timeout_secs: u64,
+    /// Announcement sent once when a client's map server goes down.
+    pub hold_message: String,
 }
 
 impl Default for GateConf {
@@ -55,6 +61,9 @@ impl Default for GateConf {
             gm_account_file: "save/gm_account.txt".into(),
             online_txt: "online.txt".into(),
             online_html: "online.html".into(),
+            admin_socket: "tmwa-gate.sock".into(),
+            hold_timeout_secs: 180,
+            hold_message: "Server restarting, please wait.".into(),
         }
     }
 }

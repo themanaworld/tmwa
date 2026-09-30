@@ -166,6 +166,7 @@ async fn handle(
     id: u16,
     bytes: &[u8],
 ) -> HResult {
+    tracing::debug!(map_id, "maplink rx 0x{id:04x} ({})", bytes.len());
     match id {
         0x2afa => {
             let Ok(p) = P2AFA::decode(bytes) else {
@@ -294,6 +295,13 @@ async fn handle(
             Ok(())
         }
         0x2b01 => {
+            // a drain waiter may be listening
+            {
+                let Ok(p) = P2B01::decode(bytes) else {
+                    return Err(());
+                };
+                st.drain_pending.lock().unwrap().remove(&p.char_id.0);
+            }
             let Ok(p) = P2B01::decode(bytes) else {
                 return Err(());
             };
@@ -495,6 +503,11 @@ async fn handle(
                 return Err(());
             };
             let key = (fixed.account_id.0, fixed.char_id.0);
+            // a rejoining player's relay is waiting on this
+            if let Some(notify) = st.rejoin_notify.lock().unwrap().remove(&key) {
+                let _ = notify.send(());
+                return Ok(());
+            }
             let send71 = {
                 let mut pend = st.pending_sel.lock().unwrap();
                 if let Some(ps) = pend.get_mut(&key) {

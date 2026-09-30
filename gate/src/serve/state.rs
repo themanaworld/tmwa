@@ -40,6 +40,40 @@ pub struct AuthEntry {
 
 const AUTH_TTL: Duration = Duration::from_secs(300);
 
+/// A client connection being relayed to a map server. The relay
+/// keeps this record so a crashed/restarting map can be held and
+/// rejoined without dropping the client.
+pub struct PlayerSession {
+    pub account_id: u32,
+    pub char_id: u32,
+    pub sex: u8,
+    pub login_id1: u32,
+    pub login_id2: u32,
+    /// Real client IP (the socket's peer address).
+    pub client_ip: u32,
+    /// Last server tick seen on 0x007f replies (used to keep
+    /// answering client pings while the map is down).
+    pub server_tick: u32,
+    pub server_tick_at: Instant,
+    /// Map server slot this player is/was on.
+    pub map_id: usize,
+    /// The map name the character is on (for rejoin matching).
+    pub map_name: String,
+    /// Client-side UI state rebuilt by watching S->C traffic.
+    pub npc_id: u32,
+    pub trade_open: bool,
+    pub storage_open: bool,
+    /// Client asked to quit (0x00b2): an upstream close is then a
+    /// normal logout, not a crash.
+    pub quitting: bool,
+    /// Upstream gone; waiting for the map to come back.
+    pub held: bool,
+    /// Set by `drain` to force the relay into hold mode.
+    pub hold_signal: Option<std::sync::Arc<tokio::sync::Notify>>,
+    /// When the player was put on hold (for the timeout).
+    pub held_since: Option<Instant>,
+}
+
 /// One connected tmwa-map session.
 pub struct MapHandle {
     pub id: usize,
@@ -53,6 +87,8 @@ pub struct MapHandle {
     pub maps: Vec<String>,
     /// Users as last reported by 0x2aff.
     pub users: u16,
+    /// Marked by `drain`: no new players are sent here.
+    pub draining: bool,
 }
 
 impl MapHandle {
@@ -114,6 +150,13 @@ pub struct State {
     pub recent_logins: Mutex<HashMap<u32, Instant>>,
     /// notify the online-file writer to refresh
     pub online_notify: tokio::sync::Notify,
+    /// char_id -> live player relay session.
+    pub player_sessions: Mutex<HashMap<u32, std::sync::Arc<Mutex<PlayerSession>>>>,
+    /// (account, char) -> oneshot fired when the map answers 0x3830
+    /// for a rejoin.
+    pub rejoin_notify: Mutex<HashMap<(u32, u32), tokio::sync::oneshot::Sender<()>>>,
+    /// char ids whose 0x2b01 a `drain --wait` is still waiting on.
+    pub drain_pending: Mutex<std::collections::HashSet<u32>>,
 }
 
 impl State {
@@ -135,6 +178,17 @@ impl State {
             next_party_id: AtomicU64::new(next_party_id),
             recent_logins: Mutex::new(HashMap::new()),
             online_notify: tokio::sync::Notify::new(),
+            player_sessions: Mutex::new(HashMap::new()),
+            rejoin_notify: Mutex::new(HashMap::new()),
+            drain_pending: Mutex::new(std::collections::HashSet::new()),
+        }
+    }
+
+    /// Mark a map server draining / clear the flag.
+    pub fn map_set_draining(&self, id: usize, draining: bool) {
+        let mut ms = self.map_servers.lock().unwrap();
+        if let Some(Some(h)) = ms.get_mut(id) {
+            h.draining = draining;
         }
     }
 
@@ -238,6 +292,7 @@ impl State {
                     port,
                     maps: vec![],
                     users: 0,
+                    draining: false,
                 });
                 return id;
             }
@@ -250,6 +305,7 @@ impl State {
             port,
             maps: vec![],
             users: 0,
+            draining: false,
         }));
         id
     }
@@ -292,15 +348,17 @@ impl State {
         let ms = self.map_servers.lock().unwrap();
         for (i, slot) in ms.iter().enumerate() {
             if let Some(h) = slot {
-                if h.maps.iter().any(|m| m == map) {
+                if !h.draining && h.maps.iter().any(|m| m == map) {
                     return (Some(i), None);
                 }
             }
         }
         for (i, slot) in ms.iter().enumerate() {
             if let Some(h) = slot {
-                if let Some(first) = h.maps.first() {
-                    return (Some(i), Some(first.clone()));
+                if !h.draining {
+                    if let Some(first) = h.maps.first() {
+                        return (Some(i), Some(first.clone()));
+                    }
                 }
             }
         }

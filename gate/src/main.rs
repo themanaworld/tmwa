@@ -4,6 +4,39 @@ use clap::{Parser, Subcommand};
 use tmwa_gate::db::Db;
 use tmwa_gate::import::{self, ImportFiles};
 
+/// Send one JSON line to the admin socket and print the reply.
+async fn admin_cli(sock: &std::path::Path, args: &[String], _json: bool) -> std::io::Result<()> {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+    let mut req = serde_json::Map::new();
+    match args {
+        [cmd] if cmd == "status" => {
+            req.insert("cmd".into(), "status".into());
+        }
+        [cmd, flag] if cmd == "drain" && flag == "--wait" => {
+            req.insert("cmd".into(), "drain".into());
+            req.insert("wait".into(), true.into());
+        }
+        [cmd] if cmd == "drain" => {
+            req.insert("cmd".into(), "drain".into());
+        }
+        _ => {
+            eprintln!("admin: unknown command {args:?} (status|drain [--wait])");
+            std::process::exit(1);
+        }
+    }
+    let conn = tokio::net::UnixStream::connect(sock).await?;
+    let (rd, mut wr) = conn.into_split();
+    wr.write_all(serde_json::Value::from(req).to_string().as_bytes())
+        .await?;
+    wr.write_all(b"\n").await?;
+    wr.shutdown().await.ok();
+    let mut lines = BufReader::new(rd).lines();
+    while let Some(line) = lines.next_line().await? {
+        println!("{line}");
+    }
+    Ok(())
+}
+
 #[derive(Parser)]
 #[command(name = "tmwa-gate", about = "TMWA client gateway")]
 struct Cli {
@@ -25,6 +58,13 @@ enum Command {
         /// Emit JSON where applicable.
         #[arg(long)]
         json: bool,
+        /// Admin unix socket path (or `--config` to read it from
+        /// gate.toml's [gate] admin_socket).
+        #[arg(long)]
+        socket: Option<PathBuf>,
+        /// Path to gate.toml (to find the admin socket).
+        #[arg(long)]
+        config: Option<PathBuf>,
         /// Admin command and arguments, e.g. `drain`.
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
@@ -74,8 +114,28 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        Command::Admin { json, args } => {
-            println!("admin (json={json:?}, args={args:?}): not implemented yet")
+        Command::Admin {
+            json,
+            socket,
+            config,
+            args,
+        } => {
+            let sock = socket.or_else(|| {
+                config.and_then(|c| {
+                    tmwa_gate::config::Config::load(&c)
+                        .ok()
+                        .map(|cfg| cfg.gate.admin_socket)
+                })
+            });
+            let Some(sock) = sock else {
+                eprintln!("admin: need --socket or --config");
+                std::process::exit(1);
+            };
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            if let Err(e) = rt.block_on(admin_cli(&sock, &args, json)) {
+                eprintln!("admin: {e}");
+                std::process::exit(1);
+            }
         }
         Command::Import {
             db,

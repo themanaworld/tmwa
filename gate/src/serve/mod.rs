@@ -11,9 +11,10 @@
 //! relay. tmwa-map connects to `map.listen` (the old char server's
 //! inter port).
 
+pub mod admin;
 mod client;
 pub(crate) mod maplink;
-pub mod state;
+mod state;
 
 pub use state::State;
 
@@ -55,6 +56,16 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
             loop {
                 iv.tick().await;
                 reload_gm(&st);
+            }
+        });
+    }
+
+    // admin unix socket
+    {
+        let st = st.clone();
+        tokio::spawn(async move {
+            if let Err(e) = admin::run(st).await {
+                tracing::warn!("admin socket: {e}");
             }
         });
     }
