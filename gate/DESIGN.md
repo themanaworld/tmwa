@@ -113,9 +113,23 @@ Restarting the gate itself still disconnects everyone. Handing live
 sockets over to a new gate process is possible later, but not planned for
 the first version.
 
-Open risk: whether all clients accept the resync sequence mid-session.
-This is checked first, with a throwaway spike, before anything else is
-built.
+A throwaway spike (a proxy in front of unmodified tmwa that logs in
+again upstream and splices the new map session) confirmed this with the
+Mana desktop client: after `0x0091` it reloads the map, drops the old
+monsters, takes the new inventory and equipment (sent after `0x007d`),
+and walking, chat and NPCs keep working, across repeated restarts with
+SIGTERM and SIGKILL. Findings to carry over:
+
+- An NPC dialog that is open during the restart stays open but can't be
+  advanced, because the new session has no NPC state; it closes with its
+  close button, and the next NPC works. The gate should close it on
+  resync.
+- Every upstream step of a reconnect needs a timeout; a hung `tmwa-map`
+  otherwise leaves players waiting forever.
+- `tmwa-map` took about 14 s to accept players again (about 60 s with a
+  cold page cache).
+
+ManaPlus, Manaverse and the wasm build still need the same check.
 
 ## Multiple map servers
 
