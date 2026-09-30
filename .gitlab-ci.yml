@@ -89,6 +89,20 @@ ubuntu2604:test:
     - job: ubuntu2604:build
       artifacts: true
 
+# Build and test the tmwa-gate Rust crate. Needs python3 for the
+# protocol generator run by build.rs.
+gate:test:
+  extends: .amd64_runner
+  stage: test
+  image: "rust:1.98"
+  script:
+    - apt-get update
+    - apt-get install -y -qq python3
+    - cd gate
+    - cargo test --locked
+    - cargo clippy -- -D warnings
+    - cargo fmt --check
+
 # Build Docker image for testing
 docker:build:
   extends: .amd64_runner
