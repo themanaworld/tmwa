@@ -516,7 +516,10 @@ fn save_character_keeps_account_vars() {
 #[test]
 fn password_edge_cases() {
     // pass_ok's salt: skip first char whatever it is, up to '$' or end
-    assert_eq!(legacy_salt("!xF];6$bf80d2e93be8cc38906cba48"), Some("xF];6"));
+    assert_eq!(
+        legacy_salt("!xF];6$bf80d2e93be8cc38906cba48"),
+        Some("xF];6")
+    );
     assert_eq!(legacy_salt("garbage$rest"), Some("arbage"));
     assert_eq!(legacy_salt("nodollar"), Some("odollar"));
     assert_eq!(legacy_salt("!"), None);
@@ -540,15 +543,22 @@ fn garbage_password_import() {
     let db = import_to(&files);
     // 'garbage' account: pass 'notahash' does not start with '!'
     // and memo is '!' (not '-') -> treated as legacy, never verifies
-    let (hash, scheme, salt) = db.with_conn(|conn| {
-        conn.query_row(
-            "SELECT password_hash,password_scheme,legacy_salt
+    let (hash, scheme, salt) = db
+        .with_conn(|conn| {
+            conn.query_row(
+                "SELECT password_hash,password_scheme,legacy_salt
              FROM accounts WHERE name='garbage'",
-            [],
-            |r| Ok((r.get::<usize, String>(0)?, r.get::<usize, String>(1)?,
-                    r.get::<usize, Option<String>>(2)?)),
-        )
-    }).unwrap();
+                [],
+                |r| {
+                    Ok((
+                        r.get::<usize, String>(0)?,
+                        r.get::<usize, String>(1)?,
+                        r.get::<usize, Option<String>>(2)?,
+                    ))
+                },
+            )
+        })
+        .unwrap();
     assert_eq!(scheme, "argon2id-md5");
     assert_eq!(salt.as_deref(), Some("otahash"));
     assert_eq!(
@@ -556,12 +566,12 @@ fn garbage_password_import() {
         Verify::Fail
     );
     // bob's memo was '-' and pass plaintext -> memo stored as '!'
-    let memo: String = db.with_conn(|conn| {
-        conn.query_row(
-            "SELECT memo FROM accounts WHERE name='bob'",
-            [],
-            |r| r.get(0),
-        )
-    }).unwrap();
+    let memo: String = db
+        .with_conn(|conn| {
+            conn.query_row("SELECT memo FROM accounts WHERE name='bob'", [], |r| {
+                r.get(0)
+            })
+        })
+        .unwrap();
     assert_eq!(memo, "!");
 }
