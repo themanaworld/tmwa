@@ -1,0 +1,55 @@
+# tmwa-gate configuration; names and defaults follow tmwa's
+# login_conf / char_conf / inter_conf where they still apply.
+
+[gate]
+# The single client-facing listen address.
+listen = "0.0.0.0:6901"
+# Advertised to clients in 0x0069 (char select) and 0x0071 (map).
+public_ip = "127.0.0.1"
+public_port = 6901
+# SQLite database.
+db = "gate.db"
+# tmwa-format GM file; reloaded when its mtime changes (every
+# gm_account_filename_check_timer seconds).
+gm_account_file = "save/gm_account.txt"
+online_txt = "online.txt"
+online_html = "online.html"
+
+[map]
+# tmwa-map connects here (kept localhost-only by default).
+listen = "127.0.0.1:6121"
+userid = "s1"
+password = "p1"
+
+[login]
+new_account = true
+update_host = ""
+min_level_to_connect = 0
+order = "deny_allow"
+allow = []
+deny = []
+conn_limit_enable = true
+conn_limit_interval = 5
+gm_account_filename_check_timer = 15
+
+[char]
+server_name = "The Mana World"
+max_connect_user = 0
+start_point = "001-1.gat,273,354"
+# Allowed letters for new character names (same set as the stock
+# char_athena.conf; concatenated).
+char_name_letters = ["$ &'()*+,-.", "0123456789", ";<=>?",
+                     "ABCDEFGHIJKLMNOPRSTQUVWXYZ", "\\^_`",
+                     "abcdefghijklmnoprstquvwxyz"]
+online_gm_display_min_level = 20
+online_refresh_html = 20
+max_hair_style = 20
+max_hair_color = 11
+min_stat_value = 1
+max_stat_value = 9
+total_stat_sum = 30
+min_name_length = 4
+char_slots = 9
+
+[inter]
+party_share_level = 10

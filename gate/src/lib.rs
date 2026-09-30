@@ -1,6 +1,8 @@
 #[allow(dead_code)]
 pub mod auth;
 #[allow(dead_code)]
+pub mod config;
+#[allow(dead_code)]
 pub mod db;
 #[allow(dead_code)]
 pub mod import;
@@ -8,3 +10,5 @@ pub mod import;
 pub mod net;
 #[allow(dead_code)]
 pub mod proto;
+#[allow(dead_code)]
+pub mod serve;

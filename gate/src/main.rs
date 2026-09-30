@@ -14,7 +14,12 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Run the gateway (login, char, map relay, HTTP).
-    Serve,
+    /// Run the gateway (login, char, map relay).
+    Serve {
+        /// Path to gate.toml.
+        #[arg(long)]
+        config: PathBuf,
+    },
     /// Talk to a running gateway over its admin socket.
     Admin {
         /// Emit JSON where applicable.
@@ -49,7 +54,20 @@ enum Command {
 fn main() {
     let cli = Cli::parse();
     match cli.command {
-        Command::Serve => println!("serve: not implemented yet"),
+        Command::Serve { config } => {
+            let cfg = match tmwa_gate::config::Config::load(&config) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("cannot load {}: {e}", config.display());
+                    std::process::exit(1);
+                }
+            };
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            if let Err(e) = rt.block_on(tmwa_gate::serve::run(cfg)) {
+                eprintln!("serve: {e}");
+                std::process::exit(1);
+            }
+        }
         Command::Admin { json, args } => {
             println!("admin (json={json:?}, args={args:?}): not implemented yet")
         }
