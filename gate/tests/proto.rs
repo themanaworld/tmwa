@@ -34,11 +34,12 @@ fn packet_len_covers_all() {
 
 #[test]
 fn p0064_login() {
-    let mut p = P0064::default();
-    p.client_protocol_version = ClientVersion(0x01020304);
-    p.account_name = FixedStr::<24>::try_from_str("testuser").unwrap();
-    p.account_pass = FixedStr::<24>::try_from_str("secret").unwrap();
-    p.flags = 3;
+    let p = P0064 {
+        client_protocol_version: ClientVersion(0x01020304),
+        account_name: FixedStr::<24>::try_from_str("testuser").unwrap(),
+        account_pass: FixedStr::<24>::try_from_str("secret").unwrap(),
+        flags: 3,
+    };
     let mut v = Vec::new();
     p.encode(&mut v);
     assert_eq!(v.len(), 55);
@@ -56,12 +57,13 @@ fn p0064_login() {
 
 #[test]
 fn p0072_map_connect() {
-    let mut p = P0072::default();
-    p.account_id = AccountId(2000000);
-    p.char_id = CharId(150000);
-    p.login_id1 = 0xA5A5A5A5;
-    p.client_tick = 0x01020304;
-    p.sex = Sex(1);
+    let p = P0072 {
+        account_id: AccountId(2000000),
+        char_id: CharId(150000),
+        login_id1: 0xA5A5A5A5,
+        client_tick: 0x01020304,
+        sex: Sex(1),
+    };
     let mut v = Vec::new();
     p.encode(&mut v);
     assert_eq!(v.len(), 19);
@@ -77,10 +79,11 @@ fn p0072_map_connect() {
 
 #[test]
 fn p0091_change_map() {
-    let mut p = P0091::default();
-    p.map_name = FixedStr::<16>::try_from_str("001-1").unwrap();
-    p.x = 32;
-    p.y = 59;
+    let p = P0091 {
+        map_name: FixedStr::<16>::try_from_str("001-1").unwrap(),
+        x: 32,
+        y: 59,
+    };
     let mut v = Vec::new();
     p.encode(&mut v);
     assert_eq!(v.len(), 22);
@@ -95,12 +98,13 @@ fn p0091_change_map() {
 
 #[test]
 fn p2afc_map_auth() {
-    let mut p = P2AFC::default();
-    p.account_id = AccountId(2000000);
-    p.char_id = CharId(150000);
-    p.login_id1 = 1;
-    p.login_id2 = 2;
-    p.ip = Ip4Address([127, 0, 0, 1]);
+    let p = P2AFC {
+        account_id: AccountId(2000000),
+        char_id: CharId(150000),
+        login_id1: 1,
+        login_id2: 2,
+        ip: Ip4Address([127, 0, 0, 1]),
+    };
     let mut v = Vec::new();
     p.encode(&mut v);
     assert_eq!(v.len(), 22);
@@ -115,6 +119,7 @@ fn p2afc_map_auth() {
 /// 0x2afd carries a full CharData; set non-default values in the
 /// inventory, skills and account registers to catch layout mistakes.
 #[test]
+#[allow(clippy::field_reassign_with_default)]
 fn p2afd_char_data() {
     let mut p = P2AFD::default();
     p.account_id = AccountId(2000000);
@@ -171,8 +176,10 @@ fn p2afd_char_data() {
 /// length field is written.
 #[test]
 fn p0069_variable() {
-    let mut p = P0069::default();
-    p.login_id1 = 7;
+    let mut p = P0069 {
+        login_id1: 7,
+        ..Default::default()
+    };
     p.repeat.push(P0069Repeat {
         ip: Ip4Address([127, 0, 0, 1]),
         port: 6121,

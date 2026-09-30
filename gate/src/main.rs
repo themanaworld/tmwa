@@ -1,4 +1,8 @@
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
+use tmwa_gate::db::Db;
+use tmwa_gate::import::{self, ImportFiles};
 
 #[derive(Parser)]
 #[command(name = "tmwa-gate", about = "TMWA client gateway")]
@@ -20,6 +24,26 @@ enum Command {
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
+    /// Import tmwa's flat save files into the SQLite database.
+    Import {
+        /// Database file to create.
+        #[arg(long)]
+        db: PathBuf,
+        /// Directory containing the tmwa save files (one dir holding
+        /// all of them).
+        #[arg(long)]
+        save_dir: PathBuf,
+        #[arg(long)]
+        account_txt: Option<PathBuf>,
+        #[arg(long)]
+        athena_txt: Option<PathBuf>,
+        #[arg(long)]
+        party_txt: Option<PathBuf>,
+        #[arg(long)]
+        storage_txt: Option<PathBuf>,
+        #[arg(long)]
+        accreg_txt: Option<PathBuf>,
+    },
 }
 
 fn main() {
@@ -28,6 +52,48 @@ fn main() {
         Command::Serve => println!("serve: not implemented yet"),
         Command::Admin { json, args } => {
             println!("admin (json={json:?}, args={args:?}): not implemented yet")
+        }
+        Command::Import {
+            db,
+            save_dir,
+            account_txt,
+            athena_txt,
+            party_txt,
+            storage_txt,
+            accreg_txt,
+        } => {
+            let files = ImportFiles {
+                save_dir,
+                account_txt,
+                athena_txt,
+                party_txt,
+                storage_txt,
+                accreg_txt,
+            };
+            let db = match Db::open(&db) {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("cannot open {}: {e}", db.display());
+                    std::process::exit(1);
+                }
+            };
+            match import::run(&files, &db, |m| println!("{m}")) {
+                Ok(s) => {
+                    println!(
+                        "imported: {} accounts, {} characters, {} parties, \
+                         {} storage items, {} accreg vars",
+                        s.accounts, s.characters, s.parties, s.storage_entries, s.vars
+                    );
+                    println!("password hashing took {:.2}s", s.password_seconds);
+                    for l in &s.skipped {
+                        println!("skipped: {l}");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("import failed: {e}");
+                    std::process::exit(1);
+                }
+            }
         }
     }
 }

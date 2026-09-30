@@ -34,8 +34,10 @@ impl tokio::io::AsyncRead for ChunkReader<'_> {
 }
 
 fn login_packet() -> Vec<u8> {
-    let mut p = P0064::default();
-    p.account_name = FixedStr::<24>::try_from_str("u").unwrap();
+    let p = P0064 {
+        account_name: FixedStr::<24>::try_from_str("u").unwrap(),
+        ..Default::default()
+    };
     let mut v = Vec::new();
     p.encode(&mut v);
     v
