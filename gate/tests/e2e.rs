@@ -5,15 +5,26 @@
 #![allow(clippy::collapsible_if)]
 //!   TMWA_E2E_ADDR   client port (default 127.0.0.1:16901)
 //!   TMWA_E2E_MAPLINK map-link port (default 127.0.0.1:6121)
-//!   TMWA_E2E_DB     path to the gate's DB (for state assertions)
 //!   TMWA_E2E_USER / TMWA_E2E_PASS  account (default spiketest/spikepass)
 //!   TMWA_E2E_MAPUSER/_MAPPASS    map-link auth (default s1/p1)
+//!   TMWA_E2E_SAVE_DIR save dir holding athena.txt/party.txt/...
+//!                    (default ~/projects/tmw/serverdata/world/save)
+//!   TMWA_E2E_ACCOUNT_TXT  account.txt path
+//!                    (default ~/projects/tmw/serverdata/login/save)
+//!   TMWA_E2E_RUNDIR  gate runtime dir for the fresh DB/config/logs
+//!                    (default ~/gate-run)
+//!
+//! The test imports a fresh DB from the save fixtures and
+//! (re)spawns `tmwa-gate serve` itself, so each run starts from a
+//! clean world regardless of what previous runs left behind.
 
 use std::time::Duration;
 
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
+
+use std::process::Command;
 
 use tmwa_gate::db::Db;
 use tmwa_gate::net::framing::{Packet, PacketFramer};
@@ -209,11 +220,71 @@ fn whisper_pkt(name: &str, msg: &str) -> Vec<u8> {
     v
 }
 
+/// Import a fresh DB from the save fixtures and (re)start the gate.
+/// The running map server reconnects to the new gate on its own
+/// timer (char conf connect_retry ~ 15 s).
+fn fresh_gate() {
+    let home = std::env::var("HOME").unwrap();
+    let rundir = env("TMWA_E2E_RUNDIR", &format!("{home}/gate-run"));
+    let account_txt = env(
+        "TMWA_E2E_ACCOUNT_TXT",
+        &format!("{home}/projects/tmw/serverdata/login/save/account.txt"),
+    );
+    let save_dir = env(
+        "TMWA_E2E_SAVE_DIR",
+        &format!("{home}/projects/tmw/serverdata/world/save"),
+    );
+    let db = format!("{rundir}/gate.db");
+    let bin = env!("CARGO_BIN_EXE_tmwa-gate");
+
+    // fresh DB
+    let _ = std::fs::remove_file(&db);
+    let out = Command::new(bin)
+        .args(["import", "--db", &db, "--save-dir", &save_dir])
+        .arg("--account-txt")
+        .arg(&account_txt)
+        .output()
+        .expect("tmwa-gate import");
+    eprintln!("import: {}", String::from_utf8_lossy(&out.stdout));
+    assert!(out.status.success(), "import failed: {:?}", out);
+
+    // fresh config (gm file + online files from the run dir)
+    let toml = format!(
+        "[gate]\nlisten = '0.0.0.0:16901'\npublic_ip = '127.0.0.1'\npublic_port = 16901\ndb = '{db}'\ngm_account_file = '{rundir}/gm_account.txt'\nonline_txt = '{rundir}/online.txt'\nonline_html = '{rundir}/online.html'\n\n[map]\nlisten = '127.0.0.1:6121'\nuserid = '{}'\npassword = '{}'\n\n[login]\nnew_account = true\n",
+        env("TMWA_E2E_MAPUSER", "s1").replace('\'', ""),
+        env("TMWA_E2E_MAPPASS", "p1").replace('\'', ""),
+    );
+    std::fs::write(format!("{rundir}/gate.toml"), &toml).unwrap();
+
+    // (re)start the gate on the fresh DB; stays running after the
+    // test so manual use continues
+    let _ = Command::new("pkill").args(["-x", "tmwa-gate"]).status();
+    std::thread::sleep(Duration::from_secs(1));
+    let log = std::fs::File::create(format!("{rundir}/gate.log")).unwrap();
+    Command::new(bin)
+        .args(["serve", "--config", &format!("{rundir}/gate.toml")])
+        .stdout(log.try_clone().unwrap())
+        .stderr(log)
+        .spawn()
+        .expect("spawn tmwa-gate");
+
+    // wait for the client port, then for the map link to have a
+    // map registered (the running tmwa-map reconnects itself)
+    for _ in 0..50 {
+        if std::net::TcpStream::connect("127.0.0.1:16901").is_ok() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    std::thread::sleep(Duration::from_secs(1));
+}
+
 #[tokio::test]
 async fn e2e_all() {
     if std::env::var("TMWA_E2E").is_err() {
         return;
     }
+    fresh_gate();
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
 
@@ -272,7 +343,11 @@ async fn e2e_all() {
     eprintln!("e2e: persistence OK (candy in inventory after relog)");
 
     // 4. password rehash happened after the first login
-    if let Ok(dbp) = std::env::var("TMWA_E2E_DB") {
+    {
+        let dbp = env(
+            "TMWA_E2E_DB",
+            &format!("{}/gate-run/gate.db", std::env::var("HOME").unwrap()),
+        );
         let db = Db::open(std::path::Path::new(&dbp)).unwrap();
         let row = db.find_account_by_name(&user).unwrap().unwrap();
         assert_eq!(row.2, "argon2id", "expected rehash after login");
@@ -499,7 +574,11 @@ async fn e2e_all() {
         drop(lwr);
     }
     // verify vars reached the DB
-    if let Ok(dbp) = std::env::var("TMWA_E2E_DB") {
+    {
+        let dbp = env(
+            "TMWA_E2E_DB",
+            &format!("{}/gate-run/gate.db", std::env::var("HOME").unwrap()),
+        );
         let db = Db::open(std::path::Path::new(&dbp)).unwrap();
         let v2 = db.get_account_vars(acct as i64, 2).unwrap();
         assert!(v2.iter().any(|(n, v)| n == "##e2e_var" && *v == 4242));
@@ -510,7 +589,8 @@ async fn e2e_all() {
 
     // 7. online.txt should list two players (poll: the file is
     // refreshed from the map's periodic 0x2aff)
-    if let Ok(txt) = std::env::var("TMWA_E2E_ONLINE_TXT") {
+    {
+        let txt = format!("{}/gate-run/online.txt", std::env::var("HOME").unwrap());
         let mut ok = false;
         for _ in 0..15 {
             if let Ok(t) = std::fs::read_to_string(&txt) {

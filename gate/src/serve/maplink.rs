@@ -246,7 +246,8 @@ async fn handle(
             let Some(e) = entry else {
                 tracing::warn!(
                     "maplink: REJECTED 0x2afc account {} char {}",
-                    fixed.account_id.0, fixed.char_id.0
+                    fixed.account_id.0,
+                    fixed.char_id.0
                 );
                 let mut p = P2AFE::default();
                 p.account_id = fixed.account_id;

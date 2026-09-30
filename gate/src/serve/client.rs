@@ -552,7 +552,10 @@ async fn char_session(
                 // logout (handled at map; ignore here)
             }
             id => {
-                tracing::debug!(ip = format_args!("{ip:#x}"), "char: unknown packet 0x{id:04x}");
+                tracing::debug!(
+                    ip = format_args!("{ip:#x}"),
+                    "char: unknown packet 0x{id:04x}"
+                );
             }
         }
     }
@@ -1088,7 +1091,8 @@ async fn relay(
     let Some(map_id) = map_id else {
         tracing::warn!(
             "relay: no map auth for account {} char {} from {ip:#x}",
-            fixed.account_id.0, fixed.char_id.0
+            fixed.account_id.0,
+            fixed.char_id.0
         );
         return;
     };
