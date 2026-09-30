@@ -15,6 +15,10 @@ use std::time::{Duration, Instant};
 
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
+
+/// Client-side halves, generic over the transport (TCP or WS).
+type Rd<S> = tokio::io::ReadHalf<S>;
+type Wr<S> = tokio::io::WriteHalf<S>;
 use tokio::sync::mpsc;
 
 use super::state::{AuthEntry, PendingSel, State, enc, send_bytes};
@@ -42,8 +46,8 @@ fn gate_version(flags: u8) -> Version {
 
 /// Per-connection writer: a task that owns the write half; handlers
 /// push complete packet buffers.
-fn spawn_writer(
-    w: tokio::net::tcp::OwnedWriteHalf,
+fn spawn_writer<W: tokio::io::AsyncWrite + Unpin + Send + 'static>(
+    w: W,
 ) -> (mpsc::Sender<Vec<u8>>, tokio::task::JoinHandle<()>) {
     let (tx, mut rx) = mpsc::channel::<Vec<u8>>(256);
     let h = tokio::spawn(async move {
@@ -59,9 +63,12 @@ fn spawn_writer(
     (tx, h)
 }
 
-pub async fn run(st: Arc<State>, sock: TcpStream, ip4: Ipv4Addr) {
+pub async fn run<S>(st: Arc<State>, sock: S, ip4: Ipv4Addr)
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
     let ip = u32::from_le_bytes(ip4.octets());
-    let (rd, wr) = sock.into_split();
+    let (rd, wr) = tokio::io::split(sock);
     let (tx, wh) = spawn_writer(wr);
     let mut fr = PacketFramer::new(rd);
 
@@ -471,10 +478,10 @@ fn cidr_covers(ip: Ipv4Addr, net: Ipv4Addr, bits: u8) -> bool {
 // char screen (0x0065 onward)
 // ------------------------------------------------------------------
 
-async fn char_session(
+async fn char_session<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
     st: Arc<State>,
     tx: &mpsc::Sender<Vec<u8>>,
-    fr: &mut PacketFramer<tokio::net::tcp::OwnedReadHalf>,
+    fr: &mut PacketFramer<Rd<S>>,
     ip: u32,
     first: &[u8],
 ) {
@@ -1269,10 +1276,10 @@ async fn upstream_rejoin(
 /// that serves the player's map to come back (or the drain fallback
 /// at half the timeout). Returns the map id to rejoin on, or None if
 /// the client is gone / hold timed out.
-async fn hold_wait(
+async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
     st: &Arc<State>,
     rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
-    fr: &mut PacketFramer<tokio::net::tcp::OwnedReadHalf>,
+    fr: &mut PacketFramer<Rd<S>>,
     tx: &mpsc::Sender<Vec<u8>>,
 ) -> Option<usize> {
     let (char_id, deadline, half) = {
@@ -1338,10 +1345,10 @@ async fn hold_wait(
 
 /// Forward packets in both directions until either side ends or a
 /// drain asks us to hold. Returns how it ended.
-async fn forward_phase(
+async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
     _st: &Arc<State>,
     rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
-    fr: &mut PacketFramer<tokio::net::tcp::OwnedReadHalf>,
+    fr: &mut PacketFramer<Rd<S>>,
     tx: &mpsc::Sender<Vec<u8>>,
     mut up: tokio::net::tcp::OwnedWriteHalf,
     mut urd: tokio::net::tcp::OwnedReadHalf,
@@ -1407,11 +1414,11 @@ async fn forward_phase(
     }
 }
 
-async fn relay(
+async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
     st: Arc<State>,
     tx: mpsc::Sender<Vec<u8>>,
     wh: tokio::task::JoinHandle<()>,
-    mut fr: PacketFramer<tokio::net::tcp::OwnedReadHalf>,
+    mut fr: PacketFramer<Rd<S>>,
     ip: u32,
     first: Vec<u8>,
 ) {
@@ -1470,6 +1477,7 @@ async fn relay(
         trade_open: false,
         storage_open: false,
         quitting: false,
+        kicked: false,
         held: false,
         hold_signal: Some(hold_signal.clone()),
         held_since: None,
@@ -1616,6 +1624,9 @@ async fn relay(
         match end {
             FwdEnd::ClientGone | FwdEnd::Fatal => break 'life,
             FwdEnd::UpstreamGone => {
+                if rec.lock().unwrap().kicked {
+                    break 'life;
+                }
                 // hold: client stays, announce once, wait for rejoin
                 {
                     let mut r = rec.lock().unwrap();

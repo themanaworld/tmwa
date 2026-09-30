@@ -15,6 +15,7 @@ use serde::Deserialize;
 pub struct Config {
     pub gate: GateConf,
     pub login: LoginConf,
+    pub http: HttpConf,
     #[serde(rename = "char")]
     pub char_: CharConf,
     pub inter: InterConf,
@@ -165,6 +166,51 @@ impl Default for CharConf {
             total_stat_sum: 30,
             min_name_length: 4,
             char_slots: 9,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(default)]
+pub struct HttpConf {
+    /// HTTP listen address for the JSON API + WebSocket.
+    pub listen: String,
+    /// URL prefix the tmw-api routes live under.
+    pub base: String,
+    /// WebSocket client path on the HTTP listener.
+    pub ws_path: String,
+    /// Verify X-CAPTCHA-TOKEN with reCAPTCHA siteverify.
+    pub captcha: bool,
+    pub recaptcha_secret: String,
+    pub mailer_from: String,
+    /// sendmail binary for account mails.
+    pub sendmail: String,
+    /// Frontend URL the reset code is appended to.
+    pub reset_url: String,
+    /// Server name/url for GET {base}/server.
+    pub name: String,
+    pub url: String,
+    /// Addresses allowed to send X-Forwarded-For.
+    pub trusted_proxies: Vec<String>,
+    /// Global cap on TCP + WS client connections.
+    pub max_connections: usize,
+}
+
+impl Default for HttpConf {
+    fn default() -> Self {
+        HttpConf {
+            listen: "127.0.0.1:8080".into(),
+            base: "/api/tmwa".into(),
+            ws_path: "/tmwa".into(),
+            captcha: true,
+            recaptcha_secret: String::new(),
+            mailer_from: "The Mana World <noreply@themanaworld.org>".into(),
+            sendmail: "/usr/sbin/sendmail".into(),
+            reset_url: "https://themanaworld.org/reset#".into(),
+            name: "The Mana World".into(),
+            url: "https://themanaworld.org/".into(),
+            trusted_proxies: vec!["127.0.0.1".into(), "::1".into()],
+            max_connections: 1000,
         }
     }
 }

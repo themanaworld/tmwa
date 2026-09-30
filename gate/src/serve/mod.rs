@@ -12,9 +12,11 @@
 //! inter port).
 
 pub mod admin;
-mod client;
+pub mod client;
+pub mod http;
 pub(crate) mod maplink;
-mod state;
+pub mod state;
+pub mod ws;
 
 pub use state::State;
 
@@ -87,6 +89,16 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
         });
     }
 
+    // http + websocket listener
+    {
+        let st = st.clone();
+        tokio::spawn(async move {
+            if let Err(e) = http::run(st).await {
+                tracing::warn!("http: {e}");
+            }
+        });
+    }
+
     let client_addr = st
         .cfg
         .listen_addr()
@@ -126,11 +138,16 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
                 let st = st.clone();
                 tokio::spawn(async move {
                     let _ = sock.set_nodelay(true);
+                    if st.conn_count() >= st.cfg.http.max_connections {
+                        return; // over the limit: just close
+                    }
+                    st.conn_inc();
                     if let std::net::IpAddr::V4(v4) = peer.ip() {
-                        client::run(st, sock, v4).await;
+                        client::run(st.clone(), sock, v4).await;
                     } else {
                         tracing::warn!("client: non-v4 peer {peer} dropped");
                     }
+                    st.conn_dec();
                 });
             }
             Err(e) => tracing::warn!("client accept: {e}"),

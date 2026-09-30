@@ -1253,3 +1253,207 @@ async fn e2e_restart_npc() {
     }
     eprintln!("e2e: npc/hold-timeout done");
 }
+
+// ---- WebSocket transport -------------------------------------------------
+
+type WsInner = tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
+
+struct WsClient {
+    rd: PacketFramer<WsRead<futures_util::stream::SplitStream<WsInner>>>,
+    wr: futures_util::stream::SplitSink<WsInner, tokio_tungstenite::tungstenite::Message>,
+}
+
+// The PacketFramer expects AsyncRead — WS is message-oriented, so the
+// read side is a tiny adapter that concatenates binary frames.
+struct WsRead<S> {
+    s: S,
+    buf: Vec<u8>,
+    pos: usize,
+}
+
+impl<S> tokio::io::AsyncRead for WsRead<S>
+where
+    S: futures_util::Stream<
+            Item = Result<
+                tokio_tungstenite::tungstenite::Message,
+                tokio_tungstenite::tungstenite::Error,
+            >,
+        > + Unpin,
+{
+    fn poll_read(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        loop {
+            if self.pos < self.buf.len() {
+                let n = buf.remaining().min(self.buf.len() - self.pos);
+                buf.put_slice(&self.buf[self.pos..self.pos + n]);
+                self.pos += n;
+                if self.pos >= self.buf.len() {
+                    self.buf.clear();
+                    self.pos = 0;
+                }
+                return std::task::Poll::Ready(Ok(()));
+            }
+            match futures_util::ready!(futures_util::Stream::poll_next(
+                std::pin::Pin::new(&mut self.s),
+                cx
+            )) {
+                Some(Ok(tokio_tungstenite::tungstenite::Message::Binary(d))) => {
+                    self.buf = d.to_vec();
+                    self.pos = 0;
+                }
+                Some(Ok(_)) => continue,
+                Some(Err(e)) => {
+                    return std::task::Poll::Ready(Err(std::io::Error::other(e.to_string())));
+                }
+                None => return std::task::Poll::Ready(Ok(())),
+            }
+        }
+    }
+}
+
+impl WsClient {
+    async fn connect() -> WsClient {
+        let url = "ws://127.0.0.1:8080/tmwa";
+        let (ws, _) =
+            tokio_tungstenite::connect_async_with_config(tungstenite_url(url), None, false)
+                .await
+                .expect("ws connect");
+        let (wr, rd) = futures_util::StreamExt::split(ws);
+        WsClient {
+            rd: PacketFramer::new(WsRead {
+                s: rd,
+                buf: Vec::new(),
+                pos: 0,
+            }),
+            wr,
+        }
+    }
+}
+
+fn tungstenite_url(u: &str) -> tokio_tungstenite::tungstenite::http::Uri {
+    u.parse().unwrap()
+}
+
+// The ws Client wrapper shares the same send/wait helpers; to keep
+// this small, do the login/char/map handshake by hand here.
+#[tokio::test]
+#[allow(clippy::await_holding_lock)]
+async fn e2e_ws() {
+    if std::env::var("TMWA_E2E").is_err() {
+        return;
+    }
+    let _g = e2e_lock();
+    fresh_gate();
+
+    use futures_util::SinkExt;
+    let mut c = WsClient::connect().await;
+
+    // login over WS
+    let mut v = Vec::new();
+    P0064 {
+        client_protocol_version: ClientVersion(999),
+        account_name: f24(&env("TMWA_E2E_USER", "spiketest")),
+        account_pass: f24(&env("TMWA_E2E_PASS", "spikepass")),
+        flags: 3,
+    }
+    .encode(&mut v);
+    c.wr.send(tokio_tungstenite::tungstenite::Message::Binary(v.into()))
+        .await
+        .unwrap();
+    let p = c.rd.next().await.unwrap().unwrap();
+    let p69 = P0069::decode(&p.bytes).unwrap();
+    drop(c);
+
+    // char stage on a fresh WS connection
+    let mut c = WsClient::connect().await;
+    let mut v = Vec::new();
+    P0065 {
+        account_id: p69.account_id,
+        login_id1: p69.login_id1,
+        login_id2: p69.login_id2,
+        unused_client_protocol_version: 0,
+        sex: Sex(1),
+    }
+    .encode(&mut v);
+    c.wr.send(tokio_tungstenite::tungstenite::Message::Binary(v.into()))
+        .await
+        .unwrap();
+    let mut chars = Vec::new();
+    let _ = chars;
+    loop {
+        let p = c.rd.next().await.unwrap().unwrap();
+        if p.id == 0x006b {
+            let l = P006B::decode(&p.bytes).unwrap();
+            chars = l.repeat;
+            break;
+        }
+    }
+    let mut v = Vec::new();
+    P0066 { code: 0 }.encode(&mut v);
+    c.wr.send(tokio_tungstenite::tungstenite::Message::Binary(v.into()))
+        .await
+        .unwrap();
+    loop {
+        let p = c.rd.next().await.unwrap().unwrap();
+        if p.id == 0x0071 {
+            break;
+        }
+    }
+    drop(c);
+
+    // map stage on a third WS connection
+    let mut c = WsClient::connect().await;
+    let mut v = Vec::new();
+    P0072 {
+        account_id: p69.account_id,
+        char_id: chars[0].char_select.char_id,
+        login_id1: p69.login_id1,
+        client_tick: 999999,
+        sex: Sex(1),
+    }
+    .encode(&mut v);
+    c.wr.send(tokio_tungstenite::tungstenite::Message::Binary(v.into()))
+        .await
+        .unwrap();
+    let mut got_map = false;
+    for _ in 0..40 {
+        match tokio::time::timeout(Duration::from_secs(5), c.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x0073 || p.id == 0x0091 => {
+                got_map = true;
+                break;
+            }
+            Ok(Ok(Some(_))) => continue,
+            _ => break,
+        }
+    }
+    assert!(got_map, "ws client never reached the map");
+    eprintln!("e2e: ws login+char+map OK");
+
+    // hold/rejoin over WS: kill the map, wait for the 0x0091
+    kill_map("-TERM");
+    spawn_map();
+    wait_map_up().await;
+    let mut rejoined = false;
+    let mut idle = 0;
+    for _ in 0..60 {
+        match tokio::time::timeout(Duration::from_secs(3), c.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x0091 => {
+                rejoined = true;
+                break;
+            }
+            Ok(Ok(Some(_))) => continue,
+            Err(_) => {
+                idle += 1;
+                if idle > 20 {
+                    break;
+                }
+            }
+            _ => break,
+        }
+    }
+    assert!(rejoined, "ws client never rejoined");
+    eprintln!("e2e: ws hold+rejoin OK");
+}

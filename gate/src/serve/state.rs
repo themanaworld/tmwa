@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 use std::sync::Mutex;
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use tokio::sync::mpsc;
@@ -73,6 +73,8 @@ pub struct PlayerSession {
     pub held: bool,
     /// Set by `drain` to force the relay into hold mode.
     pub hold_signal: Option<std::sync::Arc<tokio::sync::Notify>>,
+    /// Admin kicked: the relay closes the client connection.
+    pub kicked: bool,
     /// When the player was put on hold (for the timeout).
     pub held_since: Option<Instant>,
 }
@@ -160,6 +162,8 @@ pub struct State {
     pub rejoin_notify: Mutex<HashMap<(u32, u32), tokio::sync::oneshot::Sender<()>>>,
     /// char ids whose 0x2b01 a `drain --wait` is still waiting on.
     pub drain_pending: Mutex<std::collections::HashSet<u32>>,
+    /// TCP+WS client connections currently open.
+    pub conn_count: AtomicU64,
 }
 
 impl State {
@@ -179,6 +183,7 @@ impl State {
             gm_mtime: Mutex::new(None),
             parties: Mutex::new(HashMap::new()),
             next_party_id: AtomicU64::new(next_party_id),
+            conn_count: AtomicU64::new(0),
             recent_logins: Mutex::new(HashMap::new()),
             online_notify: tokio::sync::Notify::new(),
             player_sessions: Mutex::new(HashMap::new()),
@@ -379,6 +384,16 @@ impl State {
     }
 
     // ---- characters / online ----
+
+    pub fn conn_inc(&self) {
+        self.conn_count.fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn conn_dec(&self) {
+        self.conn_count.fetch_sub(1, Ordering::Relaxed);
+    }
+    pub fn conn_count(&self) -> usize {
+        self.conn_count.load(Ordering::Relaxed) as usize
+    }
 
     pub fn count_users(&self) -> usize {
         self.online.lock().unwrap().len()
