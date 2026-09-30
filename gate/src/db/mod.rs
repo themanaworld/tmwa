@@ -484,7 +484,7 @@ impl Db {
         &self,
         f: impl FnOnce(&mut Connection) -> rusqlite::Result<R>,
     ) -> Result<R> {
-        let mut conn = self.conn.lock().unwrap();
+        let mut conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
         f(&mut conn).map_err(DbError::from)
     }
 

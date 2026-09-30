@@ -4,37 +4,99 @@ use clap::{Parser, Subcommand};
 use tmwa_gate::db::Db;
 use tmwa_gate::import::{self, ImportFiles};
 
-/// Send one JSON line to the admin socket and print the reply.
-async fn admin_cli(sock: &std::path::Path, args: &[String], _json: bool) -> std::io::Result<()> {
-    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-    let mut req = serde_json::Map::new();
-    match args {
-        [cmd] if cmd == "status" => {
-            req.insert("cmd".into(), "status".into());
+/// Parse `tmwa-gate admin` args into a JSON request. Passwords can
+/// come from stdin (--password-stdin) instead of argv.
+fn parse_admin_args(args: &[String]) -> (String, Vec<String>, Option<String>) {
+    let mut rest: Vec<String> = Vec::new();
+    let mut pw = None;
+    for a in args.iter() {
+        if a == "--password-stdin" {
+            use std::io::BufRead;
+            pw = std::io::stdin().lock().lines().next().and_then(|l| l.ok());
+            continue;
         }
-        [cmd, flag] if cmd == "drain" && flag == "--wait" => {
-            req.insert("cmd".into(), "drain".into());
-            req.insert("wait".into(), true.into());
-        }
-        [cmd] if cmd == "drain" => {
-            req.insert("cmd".into(), "drain".into());
-        }
-        _ => {
-            eprintln!("admin: unknown command {args:?} (status|drain [--wait])");
-            std::process::exit(1);
-        }
+        rest.push(a.clone());
     }
+    let cmd = rest.first().cloned().unwrap_or_default();
+    (cmd, rest.into_iter().skip(1).collect(), pw)
+}
+
+/// Send one JSON line to the admin socket and print the reply.
+async fn admin_cli(sock: &std::path::Path, args: &[String], json: bool) -> std::io::Result<()> {
+    // stdin mode: one command per line, tmwa-admin style
+    if args.is_empty() {
+        use std::io::BufRead;
+        let mut stdin = std::io::stdin().lock();
+        loop {
+            let mut line = String::new();
+            if stdin.read_line(&mut line)? == 0 {
+                break;
+            }
+            let line = line.trim().to_string();
+            let line = Some(line);
+            let Some(line) = line else { break };
+            let parts: Vec<String> = line.split_whitespace().map(|s| s.to_string()).collect();
+            if parts.is_empty() {
+                continue;
+            }
+            let (cmd, cargs, pw) = parse_admin_args(&parts);
+            if matches!(cmd.as_str(), "quit" | "exit" | "end" | "q") {
+                println!("Bye.");
+                break;
+            }
+            let reply = admin_request(sock, &cmd, &cargs, pw).await?;
+            if json {
+                println!("{reply}");
+            } else if let Some(t) = reply.get("text").and_then(|t| t.as_str()) {
+                print!("{t}");
+            } else if let Some(e) = reply.get("error").and_then(|t| t.as_str()) {
+                println!("{e}");
+            } else {
+                println!("{reply}");
+            }
+        }
+        return Ok(());
+    }
+
+    let (cmd, cargs, pw) = parse_admin_args(args);
+    let reply = admin_request(sock, &cmd, &cargs, pw).await?;
+    let ok = reply.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
+    if json {
+        println!("{reply}");
+    } else if let Some(t) = reply.get("text").and_then(|t| t.as_str()) {
+        print!("{t}");
+    } else if let Some(e) = reply.get("error").and_then(|t| t.as_str()) {
+        eprintln!("{e}");
+    } else {
+        println!("{reply}");
+    }
+    if !ok {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+async fn admin_request(
+    sock: &std::path::Path,
+    cmd: &str,
+    args: &[String],
+    password: Option<String>,
+) -> std::io::Result<serde_json::Value> {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
     let conn = tokio::net::UnixStream::connect(sock).await?;
     let (rd, mut wr) = conn.into_split();
+    let mut req = serde_json::Map::new();
+    req.insert("cmd".into(), cmd.into());
+    req.insert("args".into(), serde_json::json!(args));
+    if let Some(p) = password {
+        req.insert("password".into(), p.into());
+    }
     wr.write_all(serde_json::Value::from(req).to_string().as_bytes())
         .await?;
     wr.write_all(b"\n").await?;
-    wr.shutdown().await.ok();
     let mut lines = BufReader::new(rd).lines();
-    while let Some(line) = lines.next_line().await? {
-        println!("{line}");
-    }
-    Ok(())
+    let line = lines.next_line().await?.unwrap_or_else(|| "{}".into());
+    Ok(serde_json::from_str(&line).unwrap_or(serde_json::json!({})))
 }
 
 #[derive(Parser)]
@@ -66,7 +128,7 @@ enum Command {
         #[arg(long)]
         config: Option<PathBuf>,
         /// Admin command and arguments, e.g. `drain`.
-        #[arg(trailing_var_arg = true)]
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
     /// Import tmwa's flat save files into the SQLite database.
