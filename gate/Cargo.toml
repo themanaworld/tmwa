@@ -7,6 +7,12 @@ description = "Client-facing gateway for The Mana World Athena servers"
 publish = false
 
 [dependencies]
+argon2 = "0.6.0"
 clap = { version = "4", features = ["derive"] }
+md-5 = "0.11.0"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 thiserror = "2"
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
