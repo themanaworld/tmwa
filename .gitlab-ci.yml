@@ -98,6 +98,7 @@ gate:test:
   script:
     - apt-get update
     - apt-get install -y -qq python3
+    - rustup component add clippy rustfmt
     - cd gate
     - cargo test --locked
     - cargo clippy -- -D warnings
