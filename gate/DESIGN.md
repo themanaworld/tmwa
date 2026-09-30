@@ -182,13 +182,27 @@ Small, and compatible with `tmwa-char` where possible:
 
 ## Storage
 
-SQLite from the start (WAL mode), one database file. Tables for accounts,
-GM levels, bans, characters (with inventory, skills and variables as
-child tables or JSON columns, to be decided while porting), parties,
-storage, account variables and password reset codes.
+SQLite from the start (WAL mode), one database file, accessed with
+rusqlite (bundled SQLite) from blocking tasks. Schema versions via
+`PRAGMA user_version` and embedded migrations. Ids are kept from tmwa
+(account ids, char ids, party ids), so logs and GM habits stay valid.
 
-A one-time importer reads the tmwa flat files: `account.txt`,
-`gm_account.txt`, `athena.txt`, `party.txt`, `storage.txt`, `accreg.txt`.
+- `accounts`: name, password hash and scheme, email, state, error
+  message, ban end, memo, last login, login count, last IP.
+- `account_vars`: `#` and `##` variables, per account.
+- `characters`: one row per character with the scalar fields of
+  `CharKey`/`CharData` as columns (so admins can query them), plus
+  `character_items`, `character_skills` and `character_vars`.
+- `parties` and `party_members`; `storage_items`.
+- `password_resets`: code, account, expiry.
+
+GM levels stay in `gm_account.txt`, which Ansible renders on aurora: the
+gate reads it at startup and when it changes (as `tmwa-login` checks it
+every 15 s), `reloadgm` rereads it, and `gm` rewrites it like
+`tmwa-login` does.
+
+A one-time importer (`tmwa-gate import`) reads the tmwa flat files:
+`account.txt`, `athena.txt`, `party.txt`, `storage.txt`, `accreg.txt`.
 Rollback means going back to the pre-import files.
 
 ## Passwords
