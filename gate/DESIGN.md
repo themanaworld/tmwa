@@ -24,8 +24,8 @@ Status: design. Nothing here is implemented yet.
               +---------------+---------------+
                               | one TCP connection per player
                               | + one inter-server connection
-                              v
-                          tmwa-map
+                              v   per map server
+                     tmwa-map [tmwa-map ...]
 ```
 
 - Clients connect to the gate for everything: login, character select and
@@ -116,6 +116,45 @@ the first version.
 Open risk: whether all clients accept the resync sequence mid-session.
 This is checked first, with a throwaway spike, before anything else is
 built.
+
+## Multiple map servers
+
+Several `tmwa-map` processes can each serve a different set of maps, to
+use more than one CPU. Clients don't notice: they only ever talk to the
+gate.
+
+- Each `tmwa-map` connects to the gate and reports its maps (`0x2afa`).
+  The gate keeps a map to server table and sends each server the maps of
+  the others (`0x2b04`), so `tmwa-map`'s existing remote map handling
+  works unchanged.
+- **Warping to a map on another server:** `tmwa-map` saves the character
+  (`0x2b01`) and asks for a server change (`0x2b05`); the gate answers as
+  the char server does (`0x2b06`), after which `tmwa-map` sends the client
+  `0x0092` (change map server). The gate intercepts `0x0092`, pushes
+  `0x3829` to the target server, opens a new upstream connection there
+  and resyncs the client with `0x0091` to the new map, the same way as
+  after a restart.
+- Whispers, party messages and GM broadcasts are routed between servers
+  by the gate, as `tmwa-char` does now (the inter-server packets were made
+  for this).
+- Restarting one map server only holds the players on its maps.
+
+The limits are in `tmwa-map` and serverdata, not in the gate. State that
+is global today becomes per process:
+
+- `$` variables (each process has its own `mapreg.txt`).
+- Global NPC events and timers (`OnInit`, `OnClock`/`OnDay`, floating
+  NPCs) run on every server.
+- Lookups by player name (`map_nick2sd`: `isloggedin`, `@recall`, `@kick`,
+  `@where` and similar) and the online list only see local players.
+- NPCs on a map the process doesn't load are an error ("Map not found"),
+  so the script list must be split per server, or `tmwa-map` must skip
+  them.
+
+So running more than one map server in production needs work in
+`tmwa-map` and serverdata first. Before that, measure whether `tmwa-map`
+is actually CPU bound under load. The gate supports several map servers
+from the start, since it only adds a routing table.
 
 ## Changes to tmwa-map
 
@@ -210,3 +249,5 @@ and tests the crate on the amd64 runners.
 5. Test deployment on sauna, then aurora (Ansible role replacing
    `tmwa-login`, `tmwa-char` and `tmw-api`; Caddy routes; mirror-lake
    changes).
+6. Multiple map servers, once load tests show `tmwa-map` needs more than
+   one CPU, together with the `tmwa-map` and serverdata changes above.
