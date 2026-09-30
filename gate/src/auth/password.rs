@@ -72,15 +72,38 @@ pub fn verify_legacy(password: &[u8], stored: &str) -> bool {
     let Some(salt) = legacy_salt(stored) else {
         return false;
     };
-    md5_saltcrypt(password, salt.as_bytes()) == stored
+    let Ok(candidate) = md5_saltcrypt_strict(password, salt.as_bytes()) else {
+        return false;
+    };
+    // pass_ok compares the whole stored string; the truncated
+    // recompute only matches when `stored` is exactly the truncated
+    // form.
+    candidate == stored
 }
 
-/// The salt of a stored `!salt$hash` legacy string (bytes between the
-/// leading '!' and the first '$').
+/// md5_saltcrypt that returns None when the salt would make the
+/// result start with something other than '!' (non-matching stored
+/// strings can never compare equal anyway).
+fn md5_saltcrypt_strict(password: &[u8], salt: &[u8]) -> Result<String, ()> {
+    if salt.is_empty() {
+        return Err(());
+    }
+    Ok(md5_saltcrypt(password, salt))
+}
+
+/// The salt of a stored `!salt$hash` legacy string, matching tmwa's
+/// `pass_ok` exactly: the first character is skipped whatever it is,
+/// and the salt is everything after it up to the first '$' or the end
+/// of the string.
 pub fn legacy_salt(stored: &str) -> Option<&str> {
-    let rest = stored.strip_prefix('!')?;
-    let dollar = rest.find('$')?;
-    Some(&rest[..dollar])
+    let rest = stored.get(1..)?;
+    if rest.is_empty() {
+        return None;
+    }
+    Some(match rest.find('$') {
+        Some(i) => &rest[..i],
+        None => rest,
+    })
 }
 
 pub fn hash_argon2id(password: &[u8]) -> Result<String, PasswordError> {

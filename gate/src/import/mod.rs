@@ -721,14 +721,18 @@ pub fn run(
                         break;
                     }
                     let a = &accounts[i];
-                    let r = if a.pass_raw.starts_with('!') {
-                        let salt = password::legacy_salt(&a.pass_raw).unwrap_or("").to_string();
-                        let h = password::wrap_legacy(&a.pass_raw).expect("argon2 wrap failed");
-                        (h, "argon2id-md5", Some(salt))
-                    } else {
+                    // tmwa (login.cpp impl_extract): plaintext iff the
+                    // pass does not start with '!' AND the memo starts
+                    // with '-'; anything else is wrapped like a legacy
+                    // entry (and never verifies if it isn't one).
+                    let r = if !a.pass_raw.starts_with('!') && a.memo.starts_with('-') {
                         let h = password::hash_argon2id(a.pass_raw.as_bytes())
                             .expect("argon2 hash failed");
                         (h, "argon2id", None)
+                    } else {
+                        let salt = password::legacy_salt(&a.pass_raw).unwrap_or("").to_string();
+                        let h = password::wrap_legacy(&a.pass_raw).expect("argon2 wrap failed");
+                        (h, "argon2id-md5", Some(salt))
                     };
                     *results[i].lock().unwrap() = Some(r);
                 }
@@ -753,6 +757,12 @@ pub fn run(
             } else {
                 Some(a.email.as_str())
             };
+            // plaintext migrations store '!' in memo like tmwa does
+            let memo = if scheme == "argon2id" && a.memo.starts_with('-') {
+                "!"
+            } else {
+                &a.memo
+            };
             Db::insert_account(
                 &tx,
                 a.id,
@@ -764,7 +774,7 @@ pub fn run(
                 a.state,
                 a.error_message.as_deref(),
                 a.ban_until,
-                &a.memo,
+                memo,
                 a.last_login,
                 a.login_count,
                 a.ip.as_deref(),

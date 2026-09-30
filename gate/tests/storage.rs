@@ -19,6 +19,7 @@ fn fixtures_dir() -> tempfile::TempDir {
 2000002\tcarol\t!salt!$01b9d165bad5ee929de4ab03\t-\tS\t0\t7\t-\t-\t0\t-\t-\t0\t\n\
 2000003\tdave\t!12345$d7dcddc821ffc58264a16bce\t-\tM\t0\t0\tdave@example.com\t-\t0\t-\t-\t0\t\n\
 broken line without enough fields\n\
+2000006\tgarbage\tnotahash\t-\tM\t0\t0\ta@a.com\t-\t0\t-\t!\t0\t\n\
 2000004\terin\t!12345$d7dcddc821ffc58264a16bce\t-\tM\t0\t0\tnofetch\t-\t0\t-\t-\t1893456000\t\n\
 2000004\terin2\t!12345$d7dcddc821ffc58264a16bce\t-\tM\t0\t0\ta@a.com\t-\t0\t-\t-\t0\t\n\
 2000005\t%newid%\n",
@@ -59,7 +60,7 @@ broken line without enough fields\n\
 fn import_to(files: &ImportFiles) -> Db {
     let db = Db::open_memory().unwrap();
     let sum = import::run(files, &db, |_| {}).unwrap();
-    assert_eq!(sum.accounts, 5);
+    assert_eq!(sum.accounts, 6);
     assert_eq!(sum.characters, 2);
     assert_eq!(sum.parties, 1);
     assert_eq!(sum.storage_entries, 2);
@@ -184,7 +185,7 @@ fn import_fixture() {
     assert_eq!(vars1, vec![("#var1".into(), 11), ("#var2".into(), 22)]);
 
     // meta ids continue above tmwa's
-    assert_eq!(db.meta("next_account_id").unwrap(), Some(2000005));
+    assert_eq!(db.meta("next_account_id").unwrap(), Some(2000007));
     assert_eq!(db.meta("next_char_id").unwrap(), Some(150002));
     assert_eq!(db.meta("next_party_id").unwrap(), Some(235));
 
@@ -481,4 +482,86 @@ fn timing_10k() {
         t0.elapsed().as_secs_f64(),
         sum.password_seconds
     );
+}
+
+/// 0x2b01-style saves must not touch account_vars: tmwa persists
+/// `#` vars only via 0x3004 and `##` vars only via 0x2b10.
+#[test]
+fn save_character_keeps_account_vars() {
+    let d = fixtures_dir();
+    let files = ImportFiles {
+        save_dir: d.path().to_path_buf(),
+        account_txt: None,
+        athena_txt: None,
+        party_txt: None,
+        storage_txt: None,
+        accreg_txt: None,
+    };
+    let db = import_to(&files);
+    let (key, mut cd) = db.load_character(150000).unwrap();
+    // an admin / 0x2b10 path sets a newer ## var
+    db.set_account_var(2000000, 2, "##foo", 99).unwrap();
+    // stale CharData save (still has the imported ##foo=7 snapshot)
+    cd.hp = 500;
+    db.save_character(&key, &cd).unwrap();
+    assert_eq!(
+        db.get_account_vars(2000000, 2).unwrap(),
+        vec![("##bar".to_string(), -3), ("##foo".to_string(), 99)]
+    );
+}
+
+/// Password import rules: plaintext only when pass lacks '!' AND memo
+/// starts with '-'; other non-'!' entries are wrapped as argon2id-md5
+/// and (like tmwa) never verify.
+#[test]
+fn password_edge_cases() {
+    // pass_ok's salt: skip first char whatever it is, up to '$' or end
+    assert_eq!(legacy_salt("!xF];6$bf80d2e93be8cc38906cba48"), Some("xF];6"));
+    assert_eq!(legacy_salt("garbage$rest"), Some("arbage"));
+    assert_eq!(legacy_salt("nodollar"), Some("odollar"));
+    assert_eq!(legacy_salt("!"), None);
+    assert_eq!(legacy_salt(""), None);
+    // a non-legacy string never verifies
+    assert!(!verify_legacy(b"notahash", "notahash"));
+    assert!(!verify_legacy(b"x", "!xF];6$bf80d2e93be8cc38906cba49"));
+}
+
+#[test]
+fn garbage_password_import() {
+    let d = fixtures_dir();
+    let files = ImportFiles {
+        save_dir: d.path().to_path_buf(),
+        account_txt: None,
+        athena_txt: None,
+        party_txt: None,
+        storage_txt: None,
+        accreg_txt: None,
+    };
+    let db = import_to(&files);
+    // 'garbage' account: pass 'notahash' does not start with '!'
+    // and memo is '!' (not '-') -> treated as legacy, never verifies
+    let (hash, scheme, salt) = db.with_conn(|conn| {
+        conn.query_row(
+            "SELECT password_hash,password_scheme,legacy_salt
+             FROM accounts WHERE name='garbage'",
+            [],
+            |r| Ok((r.get::<usize, String>(0)?, r.get::<usize, String>(1)?,
+                    r.get::<usize, Option<String>>(2)?)),
+        )
+    }).unwrap();
+    assert_eq!(scheme, "argon2id-md5");
+    assert_eq!(salt.as_deref(), Some("otahash"));
+    assert_eq!(
+        verify("argon2id-md5", &hash, salt.as_deref(), b"notahash").unwrap(),
+        Verify::Fail
+    );
+    // bob's memo was '-' and pass plaintext -> memo stored as '!'
+    let memo: String = db.with_conn(|conn| {
+        conn.query_row(
+            "SELECT memo FROM accounts WHERE name='bob'",
+            [],
+            |r| r.get(0),
+        )
+    }).unwrap();
+    assert_eq!(memo, "!");
 }

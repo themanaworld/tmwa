@@ -215,6 +215,44 @@ impl Db {
         Ok(())
     }
 
+    /// Set one account var (# scope 1 / ## scope 2); used by the
+    /// 0x3004 and 0x2b10 handlers and admin commands.
+    pub fn set_account_var(
+        &self,
+        account_id: i64,
+        scope: i64,
+        name: &str,
+        value: i64,
+    ) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO account_vars(account_id,scope,name,value)
+             VALUES(?1,?2,?3,?4)
+             ON CONFLICT(account_id,scope,name) DO UPDATE SET
+             value=excluded.value",
+            params![account_id, scope, name, value],
+        )?;
+        Ok(())
+    }
+
+    /// All vars for an account/scope, name order.
+    pub fn get_account_vars(
+        &self,
+        account_id: i64,
+        scope: i64,
+    ) -> Result<Vec<(String, i64)>> {
+        let conn = self.conn.lock().unwrap();
+        let mut st = conn.prepare(
+            "SELECT name,value FROM account_vars
+             WHERE account_id=?1 AND scope=?2 ORDER BY name",
+        )?;
+        Ok(st
+            .query_map(params![account_id, scope], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
     /// Run `f` with the connection under the lock.
     pub fn with_conn<R>(
         &self,
@@ -642,31 +680,10 @@ fn save_character_tx(tx: &Transaction<'_>, key: &CharKey, cd: &CharData) -> rusq
             ])?;
         }
     }
-    tx.execute(
-        "DELETE FROM account_vars WHERE account_id=?1",
-        [key.account_id.0 as i64],
-    )?;
-    {
-        let mut st = tx.prepare(
-            "INSERT INTO account_vars(account_id,scope,name,value)
-             VALUES(?1,?2,?3,?4)",
-        )?;
-        for (scope, regs, num) in [
-            (1i64, &cd.account_reg[..], cd.account_reg_num),
-            (2i64, &cd.account_reg2[..], cd.account_reg2_num),
-        ] {
-            for reg in regs.iter().take(num as usize) {
-                if reg.str.as_bytes().is_empty() {
-                    continue;
-                }
-                st.execute(params![
-                    key.account_id.0 as i64,
-                    scope,
-                    reg.str.to_string_lossy(),
-                    reg.value as i64
-                ])?;
-            }
-        }
-    }
+    // NOTE: account_reg (#) and account_reg2 (##) are NOT saved
+    // here. In tmwa, athena.txt never persists them: # vars are
+    // written only by the 0x3004 handler (inter.cpp) and ## vars only
+    // by 0x2b10 (login). A 0x2b01 save carries a stale snapshot in
+    // CharData and must not overwrite newer values.
     Ok(())
 }
