@@ -258,15 +258,18 @@ fn fresh_gate() {
 
     // (re)start the gate on the fresh DB; stays running after the
     // test so manual use continues
+    #[allow(clippy::zombie_processes)]
     let _ = Command::new("pkill").args(["-x", "tmwa-gate"]).status();
     std::thread::sleep(Duration::from_secs(1));
     let log = std::fs::File::create(format!("{rundir}/gate.log")).unwrap();
-    Command::new(bin)
+    #[allow(clippy::zombie_processes)]
+    let _child = Command::new(bin)
         .args(["serve", "--config", &format!("{rundir}/gate.toml")])
         .stdout(log.try_clone().unwrap())
         .stderr(log)
         .spawn()
         .expect("spawn tmwa-gate");
+    drop(_child);
 
     // wait for the client port, then for the map link to have a
     // map registered (the running tmwa-map reconnects itself)
