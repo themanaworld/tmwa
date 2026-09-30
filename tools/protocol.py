@@ -7789,6 +7789,10 @@ class _RustEmit(_RustGen):
         f.write('impl %s {\n' % name)
         f.write('    pub const ID: u16 = 0x%04x;\n' % p.id)
         f.write('    pub const CHANNEL: Channel = Channel::%s;\n' % channel)
+        d = ch.dirs.get(p.id, 'unknown')
+        if d == 'unknown':
+            d = 'ToServer'
+        f.write('    pub const DIR: Direction = Direction::%s;\n' % d)
         f.write('    pub const WIRE_LEN: usize = %d;\n\n'
                 % self.struct_wire_size(st))
 
