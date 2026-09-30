@@ -7552,9 +7552,9 @@ class _RustGen(object):
         raise RuntimeError('not a struct: %r' % st)
 
     def struct_wire_size(self, st):
-        key = id(st)
-        if key in self.struct_sizes:
-            return self.struct_sizes[key]
+        # NOTE: don't memoize by id(st): emit() creates throwaway
+        # StructType wrappers for PartialStructType, and a freed object's
+        # id() can be reused by the next one.
         total = 0
         cursor = 0
         for o, t, n in self.struct_fields(st):
@@ -7563,7 +7563,6 @@ class _RustGen(object):
             off = o if o is not None else cursor
             total = max(total, off + w)
             cursor = off + w
-        self.struct_sizes[key] = total
         return total
 
     # ---- emit helpers ----
@@ -7717,16 +7716,25 @@ class _RustEmit(_RustGen):
 
             # ---- generated structs (non-packet) ----
             emitted = set()
+            struct_names = []
             for t in ctx._types:
                 if isinstance(t, StructType) and t.id is None:
                     self.emit_struct(f, t, self.struct_name(t))
                     emitted.add(id(t))
+                    struct_names.append(self.struct_name(t))
                 elif isinstance(t, PartialStructType):
                     # emit like a normal struct from its body
                     fields = [(None, ty, n) for n, ty in t.body]
                     fake = StructType(None, t.native_tag(), fields, None)
                     self.emit_struct(f, fake, t.native_tag())
                     emitted.add(id(t))
+                    struct_names.append(t.native_tag())
+            f.write('/// Generated struct wire sizes, for cross-checking\n')
+            f.write('/// against the C++ sizes.\n')
+            f.write('pub const STRUCT_SIZES: &[(&str, usize)] = &[\n')
+            for n in struct_names:
+                f.write('    ("%s", <%s as Wire>::LEN),\n' % (n, n))
+            f.write('];\n\n')
 
             # ---- packet repeat/option structs ----
             for ch in ctx._channels:
@@ -7987,7 +7995,22 @@ class _RustEmit(_RustGen):
                     '            p.encode(&mut v); Ok(v) },\n'
                     % (p.id, name))
         f.write('        _ => Err(DecodeError::UnknownId(id)),\n')
-        f.write('    }\n}\n')
+        f.write('    }\n}\n\n')
+        f.write('/// (head, repeat-element) wire sizes for a packet id.\n')
+        f.write('pub fn wire_sizes(id: u16) -> Option<(usize, usize)> {\n')
+        f.write('    match id {\n')
+        for ch, p in metas:
+            name = self.struct_name(
+                p.fixed_struct if isinstance(p, FixedPacket)
+                else p.head_struct)
+            if isinstance(p, VarPacket):
+                rep = self.struct_name(p.repeat_struct)
+                f.write('        0x%04x => Some((%s::WIRE_LEN, '
+                        '<%s as Wire>::LEN)),\n' % (p.id, name, rep))
+            else:
+                f.write('        0x%04x => Some((%s::WIRE_LEN, 0)),\n'
+                        % (p.id, name))
+        f.write('        _ => None,\n    }\n}\n')
 
 
 def dump_rust(ctx, outpath):
