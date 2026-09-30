@@ -1533,6 +1533,30 @@ int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
 void term_func(void)
 {
     using namespace tmwa::map;
+
+    // Give every client a normal logout (clif_delete -> pc_logout ->
+    // map_quit -> chrif_save -> 0x2b01) so a SIGTERM restart loses at
+    // most a few seconds of play. char_session is kept: it carries
+    // the saves out.
+    if (char_session)
+    {
+        for (io::FD i : iter_fds())
+        {
+            Session *s = get_session(i);
+            if (!s || s == char_session)
+                continue;
+            delete_session(s);
+        }
+        // flush the char-server link so the queued 0x2b01 packets
+        // actually leave, bounded to 5 s so a dead peer can't hang
+        // the shutdown forever. gettick() only updates when the main
+        // loop runs, so use milli_clock::now() here.
+        tick_t deadline = milli_clock::now() + interval_t(5000);
+        while (char_session->wdata_size && !char_session->get_eof()
+               && milli_clock::now() < deadline)
+            do_sendrecv(interval_t(10));
+    }
+
     for (auto& mit : maps_db)
     {
         if (!mit.second->gat)
