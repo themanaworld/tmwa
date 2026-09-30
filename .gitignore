@@ -38,3 +38,4 @@
 # CI build
 /build-atto/
 /build-cmake/
+/gate/target/
