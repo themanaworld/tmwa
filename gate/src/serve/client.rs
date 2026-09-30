@@ -1191,6 +1191,14 @@ async fn upstream_rejoin(
             r.client_ip,
         )
     };
+    // refresh the map name from the saved CharData: this is exactly
+    // where the map server will place the player after a shutdown
+    // save, and it must be what we send in the client's 0x0091.
+    if let Some(row) = st.load_char(char_id).await {
+        let m = row.data.last_point.map_.to_string_lossy();
+        let mut r = rec.lock().unwrap();
+        r.map_name = m;
+    }
     st.push_auth(AuthEntry {
         account_id,
         char_id,
@@ -1282,6 +1290,18 @@ async fn hold_wait(
         // a map that serves the player's map, or the old map id once
         // half the timeout passed and nothing happened (drain fallback)
         let target = {
+            // refresh once from the DB: the shutdown/drain save can
+            // have moved the player to their saved map
+            let needs = rec.lock().unwrap().map_name_stale;
+            if needs {
+                let cid = rec.lock().unwrap().char_id;
+                if let Some(row) = st.load_char(cid).await {
+                    let m = row.data.last_point.map_.to_string_lossy();
+                    let mut r = rec.lock().unwrap();
+                    r.map_name = m;
+                    r.map_name_stale = false;
+                }
+            }
             let r = rec.lock().unwrap();
             let (mid, _) = st.map_for(&r.map_name);
             mid.or_else(|| {
@@ -1445,6 +1465,7 @@ async fn relay(
         server_tick_at: Instant::now(),
         map_id,
         map_name,
+        map_name_stale: true,
         npc_id: 0,
         trade_open: false,
         storage_open: false,
@@ -1498,14 +1519,61 @@ async fn relay(
                     + Duration::from_secs(st.cfg.gate.hold_timeout_secs)
             };
             let mut joined = None;
-            while Instant::now() < deadline {
-                match upstream_rejoin(&st, &rec, cur_map_id).await {
-                    Some(v) => {
-                        joined = Some(v);
-                        break;
+            'retry: while Instant::now() < deadline {
+                // the attempt blocks on map-link round-trips; run it
+                // in a task so the held client is still served
+                // (pings answered, quit noticed).
+                let st2 = st.clone();
+                let rec2 = rec.clone();
+                let mid = cur_map_id;
+                let mut att = tokio::spawn(async move {
+                    upstream_rejoin(&st2, &rec2, mid).await
+                });
+                'attempt: loop {
+                    tokio::select! {
+                        out = &mut att => {
+                            match out {
+                                Ok(Some(v)) => {
+                                    joined = Some(v);
+                                    break 'attempt;
+                                }
+                                Ok(None) => break 'attempt,
+                                Err(_) => break 'attempt,
+                            }
+                        }
+                        p = fr.next() => {
+                            match p {
+                                Ok(Some(p)) if p.id == 0x007e => {
+                                    let (tick, at) = {
+                                        let r = rec.lock().unwrap();
+                                        (r.server_tick, r.server_tick_at)
+                                    };
+                                    let mut rep = P007F::default();
+                                    rep.tick = TickT(tick + at.elapsed().as_millis() as u32);
+                                    send_bytes(&tx, enc(move |v| rep.encode(v)));
+                                }
+                                Ok(Some(_)) => {} // drop held input
+                                _ => {
+                                    att.abort();
+                                    break 'life;
+                                }
+                            }
+                        }
+                        _ = tokio::time::sleep_until(
+                            tokio::time::Instant::from_std(deadline),
+                        ) => {
+                            att.abort();
+                            break 'attempt;
+                        }
                     }
-                    None => tokio::time::sleep(Duration::from_secs(1)).await,
+                    if Instant::now() >= deadline {
+                        break 'attempt;
+                    }
                 }
+                if joined.is_some() || Instant::now() >= deadline {
+                    break 'retry;
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
             }
             match joined {
                 Some((urd, uwr, p73)) => {
@@ -1569,6 +1637,11 @@ async fn relay(
     }
 
     st.player_sessions.lock().unwrap().remove(&fixed.char_id.0);
+    // don't let a stale attempt steal the next login's 0x3830
+    st.rejoin_notify
+        .lock()
+        .unwrap()
+        .remove(&(fixed.account_id.0, fixed.char_id.0));
     drop(tx);
     let _ = wh.await;
     let _ = pkt72;

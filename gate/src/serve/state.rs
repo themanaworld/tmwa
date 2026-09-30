@@ -59,6 +59,9 @@ pub struct PlayerSession {
     pub map_id: usize,
     /// The map name the character is on (for rejoin matching).
     pub map_name: String,
+    /// Set when the upstream goes away: the saved map may have
+    /// changed (warp + shutdown save), so the next hold reloads it.
+    pub map_name_stale: bool,
     /// Client-side UI state rebuilt by watching S->C traffic.
     pub npc_id: u32,
     pub trade_open: bool,

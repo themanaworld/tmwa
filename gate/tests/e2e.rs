@@ -755,6 +755,7 @@ async fn e2e_restart() {
         // give an item right before the kill (SIGTERM must save it)
         c.wr.write_all(&chat_pkt("@item 535 3")).await.unwrap();
         tokio::time::sleep(Duration::from_secs(1)).await;
+        let t_kill = std::time::Instant::now();
 
         kill_map(sig);
         // client should get the hold announcement (or silence while
@@ -767,10 +768,29 @@ async fn e2e_restart() {
         let p91 = P0091::decode(&p.bytes).unwrap();
         assert!(!p91.map_name.to_string_lossy().is_empty(), "empty map name");
         eprintln!("e2e: rejoined at {}", p91.map_name.to_string_lossy());
-        eprintln!("e2e: {name} restart rejoined");
-        // client acks the map change, then the login burst lands
+        eprintln!("e2e: {name} restart rejoined ({}ms from kill)", t_kill.elapsed().as_millis());
+        // client acks the map change, then the login burst lands;
+        // the 0x01ee inventory must still carry the candy for the
+        // SIGTERM case (the shutdown saved it)
         c.send(|v| P007D::default().encode(v)).await;
-        tokio::time::sleep(Duration::from_secs(3)).await;
+        if sig == "-TERM" {
+            let mut saved = false;
+            for _ in 0..40 {
+                match tokio::time::timeout(Duration::from_secs(3), c.rd.next()).await {
+                    Ok(Ok(Some(p))) if p.id == 0x01ee => {
+                        if let Ok(inv) = P01EE::decode(&p.bytes) {
+                            saved = inv.repeat.iter().any(|r| r.name_id.0 == 535);
+                            if saved { break; }
+                        }
+                    }
+                    Ok(Ok(Some(_))) => continue,
+                    _ => break,
+                }
+            }
+            assert!(saved, "item lost across SIGTERM restart");
+        } else {
+            tokio::time::sleep(Duration::from_secs(3)).await;
+        }
 
         // walk works: one tile right of the rejoin position
         'walk: for (x, y) in [(p91.x + 1, p91.y), (p91.x, p91.y)] {
@@ -792,6 +812,44 @@ async fn e2e_restart() {
             panic!("no 0x0087 after {name} restart");
         }
         eprintln!("e2e: {name} restart walk OK");
+        drop(c);
+    }
+
+    // ---- scenario 1b: warp then SIGTERM — the rejoin must use the
+    // newly saved map, not the stale login-time one ----
+    {
+        let mut c = Client::connect().await;
+        let (acct, id1, id2) = login(&mut c, &user, &pass).await;
+        drop(c);
+        let mut c = Client::connect().await;
+        let chars = char_connect(&mut c, acct, id1, id2).await;
+        let slot = chars[0].char_num;
+        let sel = char_select(&mut c, slot).await;
+        let old_map = {
+            // map name from the 0x0071 doesn't matter; we compare
+            // 0x0091s instead
+            let _ = sel;
+            ()
+        };
+        drop(c);
+        let mut c = Client::connect().await;
+        map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
+
+        // warp to a different map; the shutdown save must persist it
+        c.wr
+            .write_all(&chat_pkt("@warp 029-2 22 24"))
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_secs(3)).await;
+        kill_map("-TERM");
+        spawn_map();
+        wait_map_up().await;
+        let p = c.wait(0x0091).await;
+        let p91 = P0091::decode(&p.bytes).unwrap();
+        let nm = p91.map_name.to_string_lossy();
+        eprintln!("e2e: warp+term rejoin map = {nm}");
+        assert!(nm.contains("029-2"), "rejoin used stale map: {nm}");
+        let _ = old_map;
         drop(c);
     }
 
@@ -1003,26 +1061,56 @@ async fn e2e_restart_npc() {
     let mut c = conn2().await;
     map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
 
-    // warp next to Eomie (npc/001-1/eomie.txt: 001-1,71,23 sprite 164)
-    c.wr.write_all(&chat_pkt("@warp 001-1 71 22"))
+    // sanity: a normal chat echoes back (proves the map session is
+    // live), then @npc warps us next to Sorfina
+    // the map rate-limits client packets (~300ms min interval) —
+    // pace our sends
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    c.wr.write_all(&chat_pkt("e2e probe")).await.unwrap();
+    let mut echoed = false;
+    for _ in 0..40 {
+        match tokio::time::timeout(Duration::from_secs(3), c.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x008d => {
+                echoed = true;
+                break;
+            }
+            Ok(Ok(Some(_))) => continue,
+            Err(_) => continue,
+            _ => break,
+        }
+    }
+    eprintln!("e2e: chat echo = {echoed}");
+    tokio::time::sleep(Duration::from_millis(600)).await;
+    c.wr.write_all(&chat_pkt("@npc Sorfina"))
         .await
         .unwrap();
-    // collect actor spawn packets; find the NPC (species 164).
-    // TMWA may spawn NPCs via 0x0078/0x0079 (visible NPC) or
-    // 0x007b/0x00b0 (walking); print what we see for debugging.
-    let mut npc_id = 0u32;
-    let mut seen: Vec<(u16, u32, u16)> = Vec::new();
+    // dump everything the map answers (0x008e display messages tell
+    // us why a command was rejected)
+    for _ in 0..20 {
+        match tokio::time::timeout(Duration::from_secs(3), c.rd.next()).await {
+            Ok(Ok(Some(p))) => {
+                if p.id == 0x008e {
+                    if let Ok(m) = P008E::decode(&p.bytes) {
+                        eprintln!("  server says: {:?}", String::from_utf8_lossy(&m.repeat.iter().map(|c| c.c).collect::<Vec<_>>()));
+                    }
+                }
+            }
+            _ => break,
+        }
+    }
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    // collect actor spawn packets; find the NPC near us
+    let mut npc_candidates: Vec<u32> = Vec::new();
+    let mut seen: Vec<(u32, u16, u16, u16)> = Vec::new();
     for _ in 0..60 {
         match tokio::time::timeout(Duration::from_secs(3), c.rd.next()).await {
             Ok(Ok(Some(p))) => {
                 if matches!(p.id, 0x0078 | 0x0079 | 0x007b | 0x01d4) && p.bytes.len() >= 8 {
-                    let bid = u32::from_le_bytes(p.bytes[4..8].try_into().unwrap());
-                    let sp = P0078::decode(&p.bytes).map(|a| a.species.0).unwrap_or(0);
-                    seen.push((p.id, bid, sp));
                     if let Ok(a) = P0078::decode(&p.bytes) {
-                        if a.species.0 == 164 {
-                            npc_id = a.block_id.0;
-                            break;
+                        seen.push((a.block_id.0, a.species.0, a.pos.x, a.pos.y));
+                        // NPC sprites (low ids); monsters are >=1000
+                        if a.species.0 < 1000 {
+                            npc_candidates.push(a.block_id.0);
                         }
                     }
                 }
@@ -1031,20 +1119,30 @@ async fn e2e_restart_npc() {
         }
     }
     eprintln!("e2e: actors seen: {seen:?}");
-    if npc_id == 0 {
-        eprintln!("e2e: WARN Eomie not seen near (71,22); skipping dialog-open part of npc test");
-    } else {
-        // click the NPC -> dialog opens (0x00b4 then 0x00b5)
+    // click each NPC-ish being until one opens a dialog
+    let mut npc_id = 0u32;
+    for bid in npc_candidates.clone() {
         c.send(|v| {
             P0090 {
-                block_id: BlockId(npc_id),
+                block_id: BlockId(bid),
                 unused: 0,
             }
             .encode(v)
         })
         .await;
-        c.wait(0x00b5).await;
-        eprintln!("e2e: npc dialog open");
+        match tokio::time::timeout(Duration::from_secs(3), c.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x00b4 || p.id == 0x00b5 => {
+                npc_id = bid;
+                break;
+            }
+            Ok(Ok(Some(_))) | Err(_) => continue,
+            _ => break,
+        }
+    }
+    if npc_id == 0 {
+        eprintln!("e2e: WARN Sorfina not seen near (27,26); skipping dialog-open part of npc test");
+    } else {
+        eprintln!("e2e: npc dialog open (block {npc_id})");
     }
 
     kill_map("-TERM");

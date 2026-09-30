@@ -1076,7 +1076,6 @@ async fn party_add(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) ->
                 lv: fixed.level as i32,
             };
             reply(0);
-            party_info_to(st, None, pid);
             let mut flag = 0u8;
             if p.exp > 0 && !party_check_exp_share(st, &p) {
                 p.exp = 0;
@@ -1092,6 +1091,9 @@ async fn party_add(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) ->
                 st.map_broadcast(&enc(move |v| o.encode(v)));
             }
             party_put(st, pid, p);
+            // broadcast AFTER the update, or the member table the
+            // maps learn is missing the new member
+            party_info_to(st, None, pid);
             return Ok(());
         }
     }
