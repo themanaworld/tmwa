@@ -290,6 +290,7 @@ fn fresh_gate() {
     #[allow(clippy::zombie_processes)]
     let _child = Command::new(bin)
         .args(["serve", "--config", &format!("{rundir}/gate.toml")])
+        .env("RUST_LOG", "debug")
         .stdout(log.try_clone().unwrap())
         .stderr(log)
         .spawn()
@@ -337,13 +338,14 @@ fn spawn_map() {
 }
 
 fn kill_map(sig: &str) {
-    let _ = Command::new("pkill")
-        .args([sig, "-x", "tmwa-map"])
-        .status();
+    let _ = Command::new("pkill").args([sig, "-x", "tmwa-map"]).status();
 }
 
 async fn admin_cmd(args: &[&str]) -> String {
-    let rundir = env("TMWA_E2E_RUNDIR", &format!("{}/gate-run", std::env::var("HOME").unwrap()));
+    let rundir = env(
+        "TMWA_E2E_RUNDIR",
+        &format!("{}/gate-run", std::env::var("HOME").unwrap()),
+    );
     let mut cmd: Vec<String> = vec![
         "admin".into(),
         "--socket".into(),
@@ -578,10 +580,8 @@ async fn e2e_all() {
     })
     .await;
     c.wait(0x00fb).await; // party info with both members
-    // let the 0x3822 member-add propagate on the map side before the
-    // chat, otherwise party_send_message can race the member list
-    tokio::time::sleep(Duration::from_secs(2)).await;
-    // party chat 0x0108
+    // the map binds the new member's session via its own ordering of
+    // 0x3822/0x3821/0x3825 — retry the chat until it lands
     let mut pmsg = Vec::new();
     let mut pm = P0108::default();
     pm.repeat = b"hi party\0"
@@ -589,8 +589,19 @@ async fn e2e_all() {
         .map(|&x| P0108Repeat { c: x })
         .collect();
     pm.encode(&mut pmsg);
-    c.wr.write_all(&pmsg).await.unwrap();
-    c2.wait(0x0109).await; // party chat received
+    let mut got_chat = false;
+    for _ in 0..6 {
+        c.wr.write_all(&pmsg).await.unwrap();
+        match tokio::time::timeout(Duration::from_secs(10), c2.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x0109 => {
+                got_chat = true;
+                break;
+            }
+            Ok(Ok(Some(_))) => continue,
+            _ => continue,
+        }
+    }
+    assert!(got_chat, "party chat never delivered");
     // leave
     c.send(|v| P0100::default().encode(v)).await;
     c.wait(0x0105).await; // party left
@@ -754,7 +765,8 @@ async fn e2e_restart() {
         // rejoin: client sees 0x0091 (map-change) from the gate
         let p = c.wait(0x0091).await;
         let p91 = P0091::decode(&p.bytes).unwrap();
-        assert!(!p91.map_name.to_string_lossy().is_empty(), "empty map name"); eprintln!("e2e: rejoined at {}", p91.map_name.to_string_lossy());
+        assert!(!p91.map_name.to_string_lossy().is_empty(), "empty map name");
+        eprintln!("e2e: rejoined at {}", p91.map_name.to_string_lossy());
         eprintln!("e2e: {name} restart rejoined");
         // client acks the map change, then the login burst lands
         c.send(|v| P007D::default().encode(v)).await;
@@ -879,10 +891,14 @@ async fn e2e_restart() {
     // ---- scenario 5: hold timeout (restart the gate with a short
     // timeout, kill the map, verify the client gets closed) ----
     {
-        let rundir = env("TMWA_E2E_RUNDIR", &format!("{}/gate-run", std::env::var("HOME").unwrap()));
+        let rundir = env(
+            "TMWA_E2E_RUNDIR",
+            &format!("{}/gate-run", std::env::var("HOME").unwrap()),
+        );
         // copy the standard config but with an 8s hold timeout
-        let mut toml = std::fs::read_to_string(format!("{rundir}/gate.toml")).unwrap();
-        toml.push_str("\n# test override\nhold_timeout_secs = 8\n");
+        // 8s hold timeout, inserted inside the [gate] section
+        let toml = std::fs::read_to_string(format!("{rundir}/gate.toml")).unwrap();
+        let toml = toml.replace("\n[map]", "\nhold_timeout_secs = 8\n\n[map]");
         std::fs::write(format!("{rundir}/gate-hold.toml"), &toml).unwrap();
         #[allow(clippy::zombie_processes)]
         let _ = Command::new("pkill").args(["-x", "tmwa-gate"]).status();
@@ -891,8 +907,20 @@ async fn e2e_restart() {
         #[allow(clippy::zombie_processes)]
         let _ = Command::new(bin)
             .args(["serve", "--config", &format!("{rundir}/gate-hold.toml")])
-            .stdout(std::fs::OpenOptions::new().append(true).create(true).open(format!("{rundir}/gate.log")).unwrap())
-            .stderr(std::fs::OpenOptions::new().append(true).create(true).open(format!("{rundir}/gate.log")).unwrap())
+            .stdout(
+                std::fs::OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(format!("{rundir}/gate.log"))
+                    .unwrap(),
+            )
+            .stderr(
+                std::fs::OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(format!("{rundir}/gate.log"))
+                    .unwrap(),
+            )
             .spawn();
         tokio::time::sleep(Duration::from_secs(2)).await;
         wait_map_up().await;
@@ -915,7 +943,10 @@ async fn e2e_restart() {
             match tokio::time::timeout(Duration::from_secs(30), c.rd.next()).await {
                 Ok(Ok(None)) | Ok(Err(_)) => {
                     eprintln!("e2e: hold closed client after {:?}", t0.elapsed());
-                    assert!(t0.elapsed() >= Duration::from_secs(6) && t0.elapsed() < Duration::from_secs(20));
+                    assert!(
+                        t0.elapsed() >= Duration::from_secs(6)
+                            && t0.elapsed() < Duration::from_secs(20)
+                    );
                     break;
                 }
                 Ok(Ok(Some(_))) => continue,
@@ -973,8 +1004,7 @@ async fn e2e_restart_npc() {
     map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
 
     // warp next to Eomie (npc/001-1/eomie.txt: 001-1,71,23 sprite 164)
-    c.wr
-        .write_all(&chat_pkt("@warp 001-1 71 22"))
+    c.wr.write_all(&chat_pkt("@warp 001-1 71 22"))
         .await
         .unwrap();
     // collect actor spawn packets; find the NPC (species 164).
@@ -1045,4 +1075,79 @@ async fn e2e_restart_npc() {
     }
     assert!(saw_91, "no 0x0091");
     eprintln!("e2e: npc rejoin done (b6={saw_b6})");
+
+    // the map must have logged the real client IP (127.0.0.2) in the
+    // pre-auth line: trusted_proxy_ip lets the gate pass it through
+    let mlog = std::fs::read_to_string("/tmp/e2e-map.log").unwrap_or_default();
+    assert!(
+        mlog.contains("[127.0.0.2]"),
+        "map never saw the real client IP"
+    );
+    eprintln!("e2e: real client IP forwarded (map saw 127.0.0.2)");
+
+    // ---- hold timeout ----
+    // restart the gate with an 8s hold_timeout, kill the map, and
+    // don't restart it: the client must be closed
+    {
+        let rundir = env(
+            "TMWA_E2E_RUNDIR",
+            &format!("{}/gate-run", std::env::var("HOME").unwrap()),
+        );
+        // 8s hold timeout, inserted inside the [gate] section
+        let toml = std::fs::read_to_string(format!("{rundir}/gate.toml")).unwrap();
+        let toml = toml.replace("\n[map]", "\nhold_timeout_secs = 8\n\n[map]");
+        std::fs::write(format!("{rundir}/gate-hold.toml"), &toml).unwrap();
+        #[allow(clippy::zombie_processes)]
+        let _ = Command::new("pkill").args(["-x", "tmwa-gate"]).status();
+        std::thread::sleep(Duration::from_secs(1));
+        let bin = env!("CARGO_BIN_EXE_tmwa-gate");
+        #[allow(clippy::zombie_processes)]
+        let _ = Command::new(bin)
+            .args(["serve", "--config", &format!("{rundir}/gate-hold.toml")])
+            .stdout(
+                std::fs::OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(format!("{rundir}/gate.log"))
+                    .unwrap(),
+            )
+            .stderr(
+                std::fs::OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(format!("{rundir}/gate.log"))
+                    .unwrap(),
+            )
+            .spawn();
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        wait_map_up().await;
+
+        let mut c = Client::connect().await;
+        let (acct, id1, id2) = login(&mut c, &user, &pass).await;
+        drop(c);
+        let mut c = Client::connect().await;
+        let chars = char_connect(&mut c, acct, id1, id2).await;
+        let slot = chars[0].char_num;
+        char_select(&mut c, slot).await;
+        drop(c);
+        let mut c = Client::connect().await;
+        map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
+
+        kill_map("-KILL");
+        let t0 = std::time::Instant::now();
+        loop {
+            match tokio::time::timeout(Duration::from_secs(30), c.rd.next()).await {
+                Ok(Ok(None)) | Ok(Err(_)) => {
+                    let el = t0.elapsed();
+                    eprintln!("e2e: hold closed client after {el:?}");
+                    assert!(el >= Duration::from_secs(6) && el < Duration::from_secs(25));
+                    break;
+                }
+                Ok(Ok(Some(_))) => continue,
+                Err(_) => panic!("hold never timed out"),
+            }
+        }
+        spawn_map();
+    }
+    eprintln!("e2e: npc/hold-timeout done");
 }
