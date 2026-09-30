@@ -6,7 +6,7 @@
 
 //! Shared runtime state for `tmwa-gate serve`.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicU64;
 use std::time::{Duration, Instant};
@@ -14,7 +14,6 @@ use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
 use crate::config::Config;
-use crate::db::Db;
 use crate::proto::PartyMost;
 
 /// delflag values mirroring tmwa's auth_fifo semantics:
@@ -59,7 +58,7 @@ pub struct MapHandle {
 impl MapHandle {
     pub fn send(&self, bytes: Vec<u8>) {
         if let Err(e) = self.tx.try_send(bytes) {
-            eprintln!("map {id}: queue full/dropped: {e}", id = self.id);
+            tracing::warn!("map {id}: queue full/dropped: {e}", id = self.id);
         }
     }
 }
@@ -88,8 +87,10 @@ pub struct CharRecord {
 
 pub struct State {
     pub cfg: Config,
-    pub db: Db,
-    pub auth: Mutex<VecDeque<AuthEntry>>,
+    pub db: std::sync::Arc<crate::db::Db>,
+    /// account_id -> pending auth entry (a new login replaces the
+    /// account's previous entry; entries expire after AUTH_TTL).
+    pub auth: Mutex<HashMap<u32, AuthEntry>>,
     /// (account_id, char_id) of clients waiting on 0x3830.
     pub pending_sel: Mutex<HashMap<(u32, u32), PendingSel>>,
     /// Map server slots; None = free.
@@ -108,19 +109,20 @@ pub struct State {
     pub gm_mtime: Mutex<Option<std::time::SystemTime>>,
     pub parties: Mutex<HashMap<u32, PartyMost>>,
     pub next_party_id: AtomicU64,
-    /// login flood protection: ip -> last attempt
+    /// login flood protection: ip -> last attempt. Entries older
+    /// than the configured interval are pruned on each insert.
     pub recent_logins: Mutex<HashMap<u32, Instant>>,
     /// notify the online-file writer to refresh
     pub online_notify: tokio::sync::Notify,
 }
 
 impl State {
-    pub fn new(cfg: Config, db: Db) -> State {
+    pub fn new(cfg: Config, db: std::sync::Arc<crate::db::Db>) -> State {
         let next_party_id = db.meta("next_party_id").ok().flatten().unwrap_or(0) as u64;
         State {
             cfg,
             db,
-            auth: Mutex::new(VecDeque::new()),
+            auth: Mutex::new(HashMap::new()),
             pending_sel: Mutex::new(HashMap::new()),
             map_servers: Mutex::new(Vec::new()),
             online: Mutex::new(HashMap::new()),
@@ -136,28 +138,19 @@ impl State {
         }
     }
 
-    pub fn random_u32() -> u32 {
+    /// Cryptographic random; callers must refuse the action on
+    /// error, never fall back to a predictable value.
+    pub fn random_u32() -> Option<u32> {
         let mut b = [0u8; 4];
-        getrandom::fill(&mut b).unwrap_or_else(|_| {
-            b.copy_from_slice(
-                &(std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_nanos() as u32)
-                    .to_le_bytes(),
-            );
-        });
-        u32::from_le_bytes(b)
+        getrandom::fill(&mut b).ok()?;
+        Some(u32::from_le_bytes(b))
     }
 
     pub fn push_auth(&self, e: AuthEntry) {
         let mut a = self.auth.lock().unwrap();
         let now = Instant::now();
-        a.retain(|x| x.delflag != 1 && now.duration_since(x.created) < AUTH_TTL);
-        if a.len() >= 64 {
-            a.pop_front();
-        }
-        a.push_back(e);
+        a.retain(|_, x| x.delflag != 1 && now.duration_since(x.created) < AUTH_TTL);
+        a.insert(e.account_id, e);
     }
 
     /// Take a pending auth entry (marks it consumed). `stage` is the
@@ -169,9 +162,12 @@ impl State {
     ) -> Option<AuthEntry> {
         let mut a = self.auth.lock().unwrap();
         let now = Instant::now();
-        a.retain(|x| now.duration_since(x.created) < AUTH_TTL);
-        let pos = a.iter().position(|e| e.delflag == stage && pred(e))?;
-        let mut e = a.remove(pos)?;
+        a.retain(|_, x| now.duration_since(x.created) < AUTH_TTL);
+        let key = a
+            .iter()
+            .find(|(_, e)| e.delflag == stage && pred(e))
+            .map(|(k, _)| *k)?;
+        let mut e = a.remove(&key)?;
         e.delflag = 1;
         Some(e)
     }
@@ -181,20 +177,16 @@ impl State {
     pub fn find_auth<F: FnMut(&AuthEntry) -> bool>(&self, stage: u8, mut pred: F) -> bool {
         let mut a = self.auth.lock().unwrap();
         let now = Instant::now();
-        a.retain(|x| now.duration_since(x.created) < AUTH_TTL);
-        a.iter().any(|e| e.delflag == stage && pred(e))
+        a.retain(|_, x| now.duration_since(x.created) < AUTH_TTL);
+        a.values().any(|e| e.delflag == stage && pred(e))
     }
 
     /// Mark upstream_ip on a matching entry (relay learned the
     /// address tmwa-map will see).
     pub fn set_auth_upstream_ip(&self, account_id: u32, char_id: u32, login_id1: u32, ip: u32) {
         let mut a = self.auth.lock().unwrap();
-        for e in a.iter_mut() {
-            if e.delflag == 3
-                && e.account_id == account_id
-                && e.char_id == char_id
-                && e.login_id1 == login_id1
-            {
+        if let Some(e) = a.get_mut(&account_id) {
+            if e.delflag == 3 && e.char_id == char_id && e.login_id1 == login_id1 {
                 e.upstream_ip = Some(ip);
             }
         }
@@ -336,9 +328,12 @@ impl State {
         if let Some(&id) = self.char_names.lock().unwrap().get(name) {
             return Some(id);
         }
-        let db = &self.db;
         let name2 = name.to_string();
-        let id = db.char_id_by_name(&name2).ok()??;
+        let id = self
+            .db
+            .blocking(move |db| db.char_id_by_name(&name2))
+            .await
+            .ok()??;
         let mut names = self.char_names.lock().unwrap();
         names.insert(name.to_string(), id as u32);
         Some(id as u32)
@@ -361,12 +356,15 @@ impl State {
         if data.party_id.0 != found {
             data.party_id = crate::proto::PartyId(found);
             let cid = key.char_id.0 as i64;
-            let _ = self.db.with_conn(move |conn| {
-                conn.execute(
-                    "UPDATE characters SET party_id=?2 WHERE id=?1",
-                    rusqlite::params![cid, found as i64],
-                )
-            });
+            let db = self.db.clone();
+            drop(tokio::task::spawn_blocking(move || {
+                db.with_conn(move |conn| {
+                    conn.execute(
+                        "UPDATE characters SET party_id=?2 WHERE id=?1",
+                        rusqlite::params![cid, found as i64],
+                    )
+                })
+            }));
         }
     }
 
@@ -379,7 +377,11 @@ impl State {
                 online_map: c.online_map,
             });
         }
-        let (key, mut data) = self.db.load_character(char_id as i64).ok()?;
+        let (key, mut data) = self
+            .db
+            .blocking(move |db| db.load_character(char_id as i64))
+            .await
+            .ok()?;
         self.fix_party_id(&key, &mut data);
         let mut chars = self.chars.lock().unwrap();
         let rec = CharRecord {

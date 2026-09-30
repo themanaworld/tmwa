@@ -72,7 +72,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip4: Ipv4Addr) {
             Ok(Ok(Some(p))) => p,
             Ok(Ok(None)) | Err(_) => break, // eof / timeout
             Ok(Err(e)) => {
-                eprintln!(
+                tracing::warn!(
                     "client {}: frame error {e}",
                     Ipv4Addr::from(ip.to_le_bytes())
                 );
@@ -104,7 +104,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip4: Ipv4Addr) {
                 return;
             }
             id => {
-                eprintln!(
+                tracing::warn!(
                     "client {}: unknown first packet 0x{id:04x}",
                     Ipv4Addr::from(ip.to_le_bytes())
                 );
@@ -161,8 +161,10 @@ async fn handle_login(
     // flood protection
     if st.cfg.login.conn_limit_enable {
         let mut rl = st.recent_logins.lock().unwrap();
+        let int = Duration::from_secs(st.cfg.login.conn_limit_interval);
+        rl.retain(|_, t| t.elapsed() < int);
         if let Some(t) = rl.get(&ip) {
-            if t.elapsed() < Duration::from_secs(st.cfg.login.conn_limit_interval) {
+            if t.elapsed() < int {
                 let mut p = P0081::default();
                 p.error_code = 2;
                 send_bytes(tx, enc(move |v| p.encode(v)));
@@ -189,9 +191,13 @@ async fn handle_login(
         }
     }
 
+    let db = st.db.clone();
     let db_name = name.clone();
-    let db = &st.db;
-    let row = db.account_auth_row(&db_name).ok().flatten();
+    let row = db
+        .blocking(move |db| db.account_auth_row(&db_name))
+        .await
+        .ok()
+        .flatten();
 
     // resolve account: existing (verify + checks) or create
     let account_id: u32;
@@ -243,7 +249,7 @@ async fn handle_login(
                     send_6a(st, tx, 6, ban, errmsg.clone());
                     return Some(());
                 }
-                let _ = db.set_account_ban(id, 0);
+                let _ = db.blocking(move |db| db.set_account_ban(id, 0)).await;
             }
             if v == crate::auth::password::Verify::OkNeedsRehash {
                 let pass2 = pass0.clone();
@@ -252,7 +258,9 @@ async fn handle_login(
                 })
                 .await;
                 if let Ok(Ok(h)) = h {
-                    let _ = db.set_password(id, &h, "argon2id", None);
+                    let _ = db
+                        .blocking(move |db| db.set_password(id, &h, "argon2id", None))
+                        .await;
                 }
             }
             account_id = id as u32;
@@ -275,20 +283,25 @@ async fn handle_login(
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs() as i64;
-            let name2 = db_name.clone();
-            let id = st.db.with_conn(move |conn| {
-                let t = conn.transaction()?;
-                let id = Db::alloc_meta_id(&t, "next_account_id")?;
-                Db::insert_account(
-                    &t, id, &name2, &hash, "argon2id", None, None, 0, None, 0, "!", None, 0, None,
-                    now,
-                )?;
-                t.commit().map(|_| id)
-            });
+            let name2 = name.clone();
+            let id = st
+                .db
+                .blocking(move |db| {
+                    db.with_conn(move |conn| {
+                        let t = conn.transaction()?;
+                        let id = Db::alloc_meta_id(&t, "next_account_id")?;
+                        Db::insert_account(
+                            &t, id, &name2, &hash, "argon2id", None, None, 0, None, 0, "!", None,
+                            0, None, now,
+                        )?;
+                        t.commit().map(|_| id)
+                    })
+                })
+                .await;
             match id {
                 Ok(i) => account_id = i as u32,
                 Err(e) => {
-                    eprintln!("create account: {e}");
+                    tracing::warn!("create account: {e}");
                     send_6a(st, tx, 3, 0, None);
                     return Some(());
                 }
@@ -309,8 +322,14 @@ async fn handle_login(
         return Some(());
     }
 
-    let login_id1 = State::random_u32();
-    let login_id2 = State::random_u32();
+    let Some(login_id1) = State::random_u32() else {
+        tracing::error!("getrandom failed; refusing login");
+        return Some(());
+    };
+    let Some(login_id2) = State::random_u32() else {
+        tracing::error!("getrandom failed; refusing login");
+        return Some(());
+    };
     let now_ms = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
@@ -471,7 +490,7 @@ async fn char_session(
     let account_id = fixed.account_id.0;
     let entry = st.take_char_auth(account_id, fixed.login_id1, fixed.login_id2, ip);
     let Some(entry) = entry else {
-        eprintln!("char: unauthenticated 0x0065 for account {account_id} from {ip:#x}");
+        tracing::warn!("char: unauthenticated 0x0065 for account {account_id} from {ip:#x}");
         return;
     };
     if st.cfg.char_.max_connect_user > 0 && st.count_users() as i32 >= st.cfg.char_.max_connect_user
@@ -484,7 +503,7 @@ async fn char_session(
 
     let gm = crate::serve::is_gm(&st, account_id);
     if gm != 0 {
-        eprintln!("char: account {account_id} logged on (GM level {gm})");
+        tracing::info!(account_id, "character account logged on (gm={gm})");
     }
 
     // register session (for disconnect_player on ban/delete)
@@ -533,7 +552,7 @@ async fn char_session(
                 // logout (handled at map; ignore here)
             }
             id => {
-                eprintln!("char: unknown packet 0x{id:04x} from {ip:#x}");
+                tracing::debug!(ip = format_args!("{ip:#x}"), "char: unknown packet 0x{id:04x}");
             }
         }
     }
@@ -671,7 +690,11 @@ async fn handle_change_pass(
         })
         .await
         {
-            if db.set_password(aid, &h, "argon2id", None).is_ok() {
+            if db
+                .blocking(move |db| db.set_password(aid, &h, "argon2id", None))
+                .await
+                .is_ok()
+            {
                 code = 0;
             }
         }
@@ -830,7 +853,15 @@ async fn handle_char_create(
     if name == "#wisp#" {
         return err(0x01);
     }
-    if st.db.char_id_by_name(&name).ok().flatten().is_some() {
+    let name2 = name.clone();
+    if st
+        .db
+        .blocking(move |db| db.char_id_by_name(&name2))
+        .await
+        .ok()
+        .flatten()
+        .is_some()
+    {
         return err(0x01);
     }
     // slot already used?
@@ -875,11 +906,14 @@ async fn handle_char_create(
 
     let name_s = name.clone();
     let aid = sd.account_id as i64;
-    let res = st.db.with_conn(move |conn| {
-        let tx2 = conn.transaction()?;
-        let cid = Db::alloc_meta_id(&tx2, "next_char_id")?;
-        tx2.execute(
-            "INSERT INTO characters(id,account_id,slot,name,sex,species,
+    let res = st
+        .db
+        .blocking(move |db| {
+            db.with_conn(move |conn| {
+                let tx2 = conn.transaction()?;
+                let cid = Db::alloc_meta_id(&tx2, "next_char_id")?;
+                tx2.execute(
+                    "INSERT INTO characters(id,account_id,slot,name,sex,species,
              base_level,job_level,base_exp,job_exp,zeny,hp,max_hp,sp,max_sp,
              attr_str,attr_agi,attr_vit,attr_int,attr_dex,attr_luk,
              status_point,skill_point,option_,karma,manner,party_id,
@@ -889,41 +923,43 @@ async fn handle_char_create(
              VALUES(?1,?2,?3,?4,?5,?6,?7,?8,0,0,0,?9,?10,?11,?12,
              ?13,?14,?15,?16,?17,?18,0,0,0,0,0,0,
              ?19,?20,0,0,0,0,0,0,?21,?22,?23,?24,?25,?26,0)",
-            rusqlite::params![
-                cid,
-                aid,
-                slot as i64,
-                name_s,
-                3i64,
-                0i64,
-                1i64,
-                1i64,
-                cd.hp,
-                cd.max_hp,
-                cd.sp,
-                cd.max_sp,
-                stats_arr[0] as i64,
-                stats_arr[1] as i64,
-                stats_arr[2] as i64,
-                stats_arr[3] as i64,
-                stats_arr[4] as i64,
-                stats_arr[5] as i64,
-                hair_style as i64,
-                hair_color as i64,
-                map,
-                x as i64,
-                y as i64,
-                map,
-                x as i64,
-                y as i64,
-            ],
-        )?;
-        tx2.commit().map(|_| cid)
-    });
+                    rusqlite::params![
+                        cid,
+                        aid,
+                        slot as i64,
+                        name_s,
+                        3i64,
+                        0i64,
+                        1i64,
+                        1i64,
+                        cd.hp,
+                        cd.max_hp,
+                        cd.sp,
+                        cd.max_sp,
+                        stats_arr[0] as i64,
+                        stats_arr[1] as i64,
+                        stats_arr[2] as i64,
+                        stats_arr[3] as i64,
+                        stats_arr[4] as i64,
+                        stats_arr[5] as i64,
+                        hair_style as i64,
+                        hair_color as i64,
+                        map,
+                        x as i64,
+                        y as i64,
+                        map,
+                        x as i64,
+                        y as i64,
+                    ],
+                )?;
+                tx2.commit().map(|_| cid)
+            })
+        })
+        .await;
     let cid = match res {
         Ok(c) => c as u32,
         Err(e) => {
-            eprintln!("char create db: {e}");
+            tracing::warn!("char create db: {e}");
             return err(0x02);
         }
     };
@@ -1003,7 +1039,10 @@ async fn handle_char_delete(
         .map(|r| r.key.account_id.0 == sd.account_id)
         .unwrap_or(false);
     if owns {
-        let _ = st.db.delete_character(cid as i64);
+        let _ = st
+            .db
+            .blocking(move |db| db.delete_character(cid as i64))
+            .await;
         st.chars.lock().unwrap().remove(&cid);
         if let Some(name) = rec.map(|r| r.key.name.to_string_lossy()) {
             st.char_names.lock().unwrap().remove(&name);
@@ -1030,13 +1069,13 @@ async fn relay(
     first: Vec<u8>,
 ) {
     let Ok(fixed) = P0072::decode(&first) else {
-        eprintln!("relay: bad 0x0072 from {ip:#x}");
+        tracing::warn!("relay: bad 0x0072 from {ip:#x}");
         return;
     };
     // match the char->map auth entry
     let map_id = {
         let a = st.auth.lock().unwrap();
-        a.iter()
+        a.values()
             .find(|e| {
                 e.delflag == 3
                     && e.account_id == fixed.account_id.0
@@ -1047,14 +1086,14 @@ async fn relay(
             .and_then(|e| e.map_id)
     };
     let Some(map_id) = map_id else {
-        eprintln!(
+        tracing::warn!(
             "relay: no map auth for account {} char {} from {ip:#x}",
             fixed.account_id.0, fixed.char_id.0
         );
         return;
     };
     let Some((mip, mport)) = st.map_addr(map_id) else {
-        eprintln!("relay: map server {map_id} gone");
+        tracing::warn!("relay: map server {map_id} gone");
         return;
     };
     let upstream_addr = std::net::SocketAddr::new(
@@ -1062,7 +1101,7 @@ async fn relay(
         mport,
     );
     let Ok(mut up) = TcpStream::connect(upstream_addr).await else {
-        eprintln!("relay: cannot connect to map {upstream_addr}");
+        tracing::warn!("relay: cannot connect to map {upstream_addr}");
         return;
     };
     let _ = up.set_nodelay(true);
@@ -1098,7 +1137,7 @@ async fn relay(
                 }
                 Ok(None) => break,
                 Err(e) => {
-                    eprintln!("relay: client frame error {e}");
+                    tracing::warn!("relay: client frame error {e}");
                     break;
                 }
             }
@@ -1113,7 +1152,7 @@ async fn relay(
             match ufr.next().await {
                 Ok(Some(p)) => {
                     if p.id == 0x0092 {
-                        eprintln!(
+                        tracing::warn!(
                             "relay: map server requests map change;                              multi-map splicing not implemented; closing"
                         );
                         break;
@@ -1124,7 +1163,7 @@ async fn relay(
                 }
                 Ok(None) => break,
                 Err(e) => {
-                    eprintln!("relay: upstream frame error {e}");
+                    tracing::warn!("relay: upstream frame error {e}");
                     break;
                 }
             }
