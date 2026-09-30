@@ -3606,6 +3606,12 @@ RecvResult clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd
     special.magic_packet_length = 4;
     send_ppacket<0x8000>(s, special);
 
+    // A trusted proxy (tmwa-gate) vouches for the real client IP
+    // inside the 0x3829 pre-auth; don't compare it with the socket.
+    bool is_proxy = map_conf.trusted_proxy_ip != IP4Address()
+        && s->client_ip == map_conf.trusted_proxy_ip;
+    IP4Address client_ip = s->client_ip;
+
     bool is_valid = false;
     for (AuthFifoEntry& afi : auth_fifo)
     {
@@ -3613,11 +3619,13 @@ RecvResult clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd
             && afi.char_id == fixed.char_id
             && afi.login_id1 == fixed.login_id1
             //&& afi.login_id2 == sd->login_id2
-            && afi.ip == s->client_ip
+            && (afi.ip == s->client_ip || is_proxy)
             && afi.delflag == 0)
         {
             is_valid = true;
             afi.delflag = 1;
+            if (is_proxy)
+                client_ip = afi.ip;
             break;
         }
     }
@@ -3640,6 +3648,7 @@ RecvResult clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd
     }
     else
     {
+        s->client_ip = client_ip;
         sd.new_();
         s->session_data.reset(sd.operator->());
         sd->sess = s;

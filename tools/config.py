@@ -604,6 +604,7 @@ def build_config():
     map_conf.opt('char_port', u16, '6121', min='1024')
     map_conf.opt('map_ip', IP4Address, '{}')
     map_conf.opt('map_port', u16, '5121', min='1024')
+    map_conf.opt('trusted_proxy_ip', IP4Address, '{}')
     map_conf.opt('map', addmap, '{}')
     map_conf.opt('delmap', delmap, '{}')
     map_conf.opt('npc', addnpc, '{}')
