@@ -669,7 +669,7 @@ pub fn run(
         }
         match parse_party(line) {
             Some(p) => {
-                next_party_id = next_party_id.max(p.id + 1);
+                next_party_id = next_party_id.max(p.id);
                 parties.push(p);
             }
             None => skipped.push(format!("party.txt:{}", i + 1)),
