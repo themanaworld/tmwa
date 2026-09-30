@@ -99,8 +99,9 @@ fn acct_name_by_id(conn: &rusqlite::Connection, id: i64) -> Option<String> {
         .ok()
 }
 
-/// Kick (disconnect) a player by account/char id: mark the session
-/// and nudge its relay.
+/// Kick (disconnect) a player: with a char id, match exactly that
+/// character's session; without one, match the account. A 0 must
+/// never match anything.
 fn kick_player(st: &Arc<State>, account_id: u32, char_id: u32) {
     let rec = {
         st.player_sessions
@@ -109,7 +110,13 @@ fn kick_player(st: &Arc<State>, account_id: u32, char_id: u32) {
             .values()
             .find(|r| {
                 let r = r.lock().unwrap();
-                r.account_id == account_id || r.char_id == char_id
+                if char_id != 0 {
+                    r.char_id == char_id
+                } else if account_id != 0 {
+                    r.account_id == account_id
+                } else {
+                    false
+                }
             })
             .cloned()
     };
@@ -120,8 +127,6 @@ fn kick_player(st: &Arc<State>, account_id: u32, char_id: u32) {
             sig.notify_one();
         }
     }
-    // also close a client sitting on the char screen
-    let _ = (st, account_id, char_id);
 }
 
 fn state_label(state: i64) -> &'static str {
@@ -815,25 +820,50 @@ async fn delete(st: &Arc<State>, args: &[String]) -> Value {
         return err_text("usage: delete <account name>");
     };
     let name = name.clone();
-    let stc = st.clone();
     let namec = name.clone();
     let r = run_db(st, move |c| match acct_id_by_name(c, &namec) {
-        Some(id) => {
-            c.execute("DELETE FROM accounts WHERE id=?1", [id]).unwrap();
-            Ok(id)
-        }
+        Some(id) => Ok(id),
         None => Err(()),
     })
     .await;
-    match r {
-        Ok(id) => {
-            kick_account(&stc, id as u32);
-            ok_text(format!(
-                "Account [{name}][id: {id}] is successfully DELETED.\n"
-            ))
+    let Ok(id) = r else {
+        return err_text(format!("Account [{name}] not found."));
+    };
+    // kick first and let the map's final 0x2b01 land before the rows
+    // disappear
+    kick_account(st, id as u32);
+    for _ in 0..50 {
+        let still = {
+            st.player_sessions
+                .lock()
+                .unwrap()
+                .values()
+                .any(|r| r.lock().unwrap().account_id == id as u32)
+        };
+        if !still {
+            break;
         }
-        Err(()) => err_text(format!("Account [{name}] not found.")),
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
+    // delete each character through the same routine the char screen
+    // uses (party leave, divorce)
+    let cids: Vec<i64> = run_db(st, move |c| {
+        let mut q = c
+            .prepare("SELECT id FROM characters WHERE account_id=?1")
+            .unwrap();
+        q.query_map([id], |r| r.get(0)).unwrap().flatten().collect()
+    })
+    .await;
+    for cid in cids {
+        super::client::delete_character(st, cid as u32).await;
+    }
+    run_db(st, move |c| {
+        c.execute("DELETE FROM accounts WHERE id=?1", [id]).unwrap();
+    })
+    .await;
+    ok_text(format!(
+        "Account [{name}][id: {id}] is successfully DELETED.\n"
+    ))
 }
 
 async fn password_cmd(st: &Arc<State>, args: &[String], password_stdin: Option<String>) -> Value {
@@ -896,25 +926,22 @@ async fn create(st: &Arc<State>, args: &[String], password_stdin: Option<String>
     let name = args[0].clone();
     let email = args[1].clone();
     let pw = pw.unwrap();
+    let Ok(h) = crate::auth::password::hash_argon2id(pw.as_bytes()) else {
+        return err_text("hashing failed");
+    };
     run_db(st, move |c| {
         if acct_id_by_name(c, &name).is_some() {
             return err_text(format!("Account [{name}] already exists."));
         }
-        let h = crate::auth::password::hash_argon2id(pw.as_bytes()).unwrap_or_default();
-        let id: i64 = c
-            .query_row(
-                "SELECT COALESCE(MAX(id)+1, 2000000) FROM accounts",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
-        c.execute(
-            "INSERT INTO accounts (id,name,password_hash,password_scheme,email,state,ban_until,memo,last_login,login_count,last_ip,created_at) \
-             VALUES (?1,?2,?3,'argon2id',?4,0,0,'',0,0,0,strftime('%s','now')*1000)",
-            rusqlite::params![id, name, h, email],
-        )
-        .unwrap();
-        ok_text(format!("Account [{name}] is successfully created [id: {id}].\n"))
+        match crate::db::Db::create_account(c, &name, &h, &email) {
+            Ok(id) => ok_text(format!(
+                "Account [{name}] is successfully created [id: {id}].\n"
+            )),
+            Err(crate::db::DbError::NameTaken) => {
+                err_text(format!("Account [{name}] already exists."))
+            }
+            Err(e) => err_text(format!("create failed: {e}")),
+        }
     })
     .await
 }
@@ -1201,9 +1228,9 @@ async fn find(st: &Arc<State>, args: &[String]) -> Value {
                 let id: i64 = r.get(0)?;
                 let name: String = r.get(1)?;
                 let state: i64 = r.get(2)?;
-                let email: String = r.get::<_, String>(3).unwrap_or_default();
-                let last: i64 = r.get(4)?;
-                let cnt: i64 = r.get(5)?;
+                let email: String = r.get::<_, Option<String>>(3)?.unwrap_or_default();
+                let last: i64 = r.get::<_, Option<i64>>(4)?.unwrap_or(0);
+                let cnt: i64 = r.get::<_, Option<i64>>(5)?.unwrap_or(0);
                 let ip: String = r.get::<_, Option<String>>(6)?.unwrap_or_default();
                 let memo: String = r.get::<_, String>(7).unwrap_or_default();
                 let last_s = chrono::DateTime::from_timestamp(last / 1000, 0)

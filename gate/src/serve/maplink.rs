@@ -1140,7 +1140,7 @@ async fn party_leave(st: &Arc<State>, bytes: &[u8]) -> HResult {
     Ok(())
 }
 
-fn party_leave_do(st: &Arc<State>, pid: u32, account_id: u32) {
+pub(crate) fn party_leave_do(st: &Arc<State>, pid: u32, account_id: u32) {
     let mut p = match party_get(st, pid) {
         Some(p) => p,
         None => return,

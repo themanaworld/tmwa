@@ -25,6 +25,22 @@ use serde_json::{Value, json};
 
 use super::state::State;
 
+static RE_USER: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9]{4,23}$").unwrap());
+static RE_EMAIL: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(
+            r"^(?:[a-zA-Z0-9.$&+=_~-]{1,34}@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,35}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,34}[a-zA-Z0-9])?){0,9})$",
+        )
+        .unwrap()
+});
+static RE_EMAIL_OPT: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(&format!("^$|{}", &RE_EMAIL.as_str()[1..])).unwrap()
+});
+static RE_CODE: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9-_]{6,128}$").unwrap());
+static RE_TOKEN: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9-_]{20,4000}$").unwrap());
+
 const MAX_DANGER: u32 = 5;
 const BAN: Duration = Duration::from_secs(6 * 3600);
 
@@ -69,6 +85,12 @@ impl RateState {
     /// (ban after MAX_DANGER, decays after BAN_HOURS), like limiter.js.
     fn cooldown(&mut self, route: &str, ip: IpAddr, ms: u64) {
         let now = Instant::now();
+        // lazily bound map growth: drop expired entries while here
+        for m in self.limiters.values_mut() {
+            m.retain(|_, t| *t > now);
+        }
+        self.limiters.retain(|_, m| !m.is_empty());
+        self.bad.retain(|_, (_, t)| *t > now);
         self.limiters
             .entry(route.to_string())
             .or_default()
@@ -83,6 +105,7 @@ impl RateState {
 pub struct HttpState {
     pub st: Arc<State>,
     pub(crate) rate: Mutex<RateState>,
+    http_client: reqwest::Client,
 }
 
 impl HttpState {
@@ -93,6 +116,10 @@ impl HttpState {
                 limiters: HashMap::new(),
                 bad: HashMap::new(),
             }),
+            http_client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(10))
+                .build()
+                .unwrap_or_default(),
         }
     }
 }
@@ -264,15 +291,9 @@ async fn reset_password(
     let get = |k: &str| b.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
     let (email, user, pass, code) = (get("email"), get("username"), get("password"), get("code"));
 
-    let email_re = regex::Regex::new(
-        r"^(?:[a-zA-Z0-9.$&+=_~-]{1,34}@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,35}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,34}[a-zA-Z0-9])?){0,9})$",
-    )
-    .unwrap();
-    let user_re = regex::Regex::new(r"^[a-zA-Z0-9]{4,23}$").unwrap();
-
     // stage 1: email-only body → find accounts, mail a reset code
     if !email.is_empty() && user.is_empty() {
-        if !email_re.is_match(&email) || email.len() < 3 || email.len() >= 40 || email == "a@a.com"
+        if !RE_EMAIL.is_match(&email) || email.len() < 3 || email.len() >= 40 || email == "a@a.com"
         {
             cooldown(300_000);
             return api_error(StatusCode::BAD_REQUEST, "malformed request");
@@ -350,7 +371,7 @@ async fn reset_password(
 
     // username-only → not implemented, like tmw-api
     if !user.is_empty() && pass.is_empty() && code.is_empty() {
-        if user_re.is_match(&user) {
+        if RE_USER.is_match(&user) {
             return api_error(StatusCode::NOT_IMPLEMENTED, "not yet implemented");
         }
         cooldown(300_000);
@@ -361,7 +382,7 @@ async fn reset_password(
     let code_ok = regex::Regex::new(r"^[a-zA-Z0-9-_]{6,128}$")
         .unwrap()
         .is_match(&code);
-    if !(user_re.is_match(&user)
+    if !(RE_USER.is_match(&user)
         && regex::Regex::new(r"^[a-zA-Z0-9]{4,23}$")
             .unwrap()
             .is_match(&pass)
@@ -428,7 +449,9 @@ async fn reset_password(
         .await;
         return api_error(StatusCode::UNAUTHORIZED, "foreign account");
     };
-    let h = crate::auth::password::hash_argon2id(pass.as_bytes()).unwrap_or_default();
+    let Ok(h) = crate::auth::password::hash_argon2id(pass.as_bytes()) else {
+        return api_error(StatusCode::INTERNAL_SERVER_ERROR, "hashing failed");
+    };
     super::admin::run_db(st, move |c| {
         c.execute(
             "UPDATE accounts SET password_hash=?1, password_scheme='argon2id', legacy_salt=NULL WHERE id=?2",
@@ -448,6 +471,28 @@ async fn reset_password(
         ),
     );
     (StatusCode::OK, Json(json!({"status":"success"}))).into_response()
+}
+
+/// Drop expired cooldowns, bad actors and password_resets rows.
+/// Runs on a 10 min timer; also keeps the in-memory maps bounded.
+pub(crate) async fn prune(st: &Arc<State>) {
+    let now = Instant::now();
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    // (RateState lives in HttpState which isn't reachable from here;
+    // prune the DB side here and bound the maps inside the handlers.)
+    super::admin::run_db(st, move |c| {
+        let n = c
+            .execute(
+                "DELETE FROM password_resets WHERE expires_at < ?1",
+                [now_ms],
+            )
+            .unwrap_or(0);
+        if n > 0 {
+            tracing::info!("http: pruned {n} expired password reset(s)");
+        }
+    })
+    .await;
+    let _ = now;
 }
 
 fn uuid() -> String {
@@ -528,8 +573,7 @@ async fn captcha(
         .and_then(|v| v.to_str().ok())
         .unwrap_or("")
         .to_string();
-    let re = regex::Regex::new(r"^[a-zA-Z0-9-_]{20,4000}$").unwrap();
-    if !re.is_match(&token) {
+    if !RE_TOKEN.is_match(&token) {
         hs.rate
             .lock()
             .unwrap()

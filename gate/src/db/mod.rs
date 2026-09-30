@@ -146,6 +146,8 @@ pub enum DbError {
     Msg(String),
     #[error("string too long")]
     StrTooLong,
+    #[error("account name taken")]
+    NameTaken,
 }
 
 pub type Result<T> = std::result::Result<T, DbError>;
@@ -283,6 +285,51 @@ impl Db {
             "UPDATE meta SET value=?1 WHERE key=?2",
             params![id + 1, key],
         )?;
+        Ok(id)
+    }
+
+    /// Create an account row inside one transaction: uniqueness
+    /// check, next_account_id allocation, default columns. Used by
+    /// the _M/_F registration, the admin create command and the
+    /// HTTP API so all paths allocate ids the same way.
+    pub fn create_account(
+        conn: &mut Connection,
+        name: &str,
+        password_hash: &str,
+        email: &str,
+    ) -> Result<i64> {
+        let tx = conn.transaction()?;
+        let dupe: i64 = tx
+            .query_row("SELECT COUNT(*) FROM accounts WHERE name=?1", [name], |r| {
+                r.get(0)
+            })
+            .unwrap_or(0);
+        if dupe > 0 {
+            return Err(DbError::NameTaken);
+        }
+        let id = Self::alloc_meta_id(&tx, "next_account_id")?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as i64;
+        Self::insert_account(
+            &tx,
+            id,
+            name,
+            password_hash,
+            "argon2id",
+            None,
+            Some(email),
+            0,
+            None,
+            0,
+            "",
+            None,
+            0,
+            None,
+            now,
+        )?;
+        tx.commit()?;
         Ok(id)
     }
 

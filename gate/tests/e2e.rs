@@ -1269,6 +1269,7 @@ struct WsRead<S> {
     s: S,
     buf: Vec<u8>,
     pos: usize,
+    close_code: Option<u16>,
 }
 
 impl<S> tokio::io::AsyncRead for WsRead<S>
@@ -1327,9 +1328,16 @@ impl WsClient {
                 s: rd,
                 buf: Vec::new(),
                 pos: 0,
+                close_code: None,
             }),
             wr,
         }
+    }
+}
+
+impl<S> WsRead<S> {
+    fn close_code(&self) -> Option<u16> {
+        self.close_code
     }
 }
 
@@ -1364,7 +1372,31 @@ async fn e2e_ws() {
         .await
         .unwrap();
     let p = c.rd.next().await.unwrap().unwrap();
+    assert_eq!(p.id, 0x0069);
     let p69 = P0069::decode(&p.bytes).unwrap();
+    // the login role is one-shot: the gate must close with a normal
+    // 1000 close frame, not a bare TCP-style drop (1005)
+    let code = {
+        // drain until the close frame; read the raw stream since
+        // the framer treats the close as plain EOF
+        for _ in 0..10 {
+            match tokio::time::timeout(
+                Duration::from_secs(5),
+                futures_util::StreamExt::next(&mut c.rd.reader_mut().s),
+            )
+            .await
+            {
+                Ok(Some(Ok(tokio_tungstenite::tungstenite::Message::Close(f)))) => {
+                    c.rd.reader_mut().close_code = f.map(|f| f.code.into());
+                    break;
+                }
+                Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
+                Ok(Some(Ok(_))) => continue,
+            }
+        }
+        c.rd.reader().close_code()
+    };
+    assert_eq!(code, Some(1000), "login ws close code {code:?}");
     drop(c);
 
     // char stage on a fresh WS connection
@@ -1402,6 +1434,32 @@ async fn e2e_ws() {
             break;
         }
     }
+    // the char role ends by the client disconnecting; closing the
+    // ws client-side should still complete a normal 1000 handshake
+    let _ =
+        c.wr.send(tokio_tungstenite::tungstenite::Message::Close(Some(
+            tokio_tungstenite::tungstenite::protocol::CloseFrame {
+                code: tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Normal,
+                reason: "".into(),
+            },
+        )))
+        .await;
+    for _ in 0..10 {
+        match tokio::time::timeout(
+            Duration::from_secs(5),
+            futures_util::StreamExt::next(&mut c.rd.reader_mut().s),
+        )
+        .await
+        {
+            Ok(Some(Ok(tokio_tungstenite::tungstenite::Message::Close(f)))) => {
+                c.rd.reader_mut().close_code = f.map(|f| f.code.into());
+                break;
+            }
+            Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
+            Ok(Some(Ok(_))) => continue,
+        }
+    }
+    assert_eq!(c.rd.reader().close_code(), Some(1000), "char ws close code");
     drop(c);
 
     // map stage on a third WS connection

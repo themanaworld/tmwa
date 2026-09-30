@@ -279,3 +279,14 @@ and tests the crate on the amd64 runners.
    changes).
 6. Multiple map servers, once load tests show `tmwa-map` needs more than
    one CPU, together with the `tmwa-map` and serverdata changes above.
+
+### IPv6 clients
+
+tmwa-map's client auth carries an IPv4 address, so the gate maps
+every client address to an IPv4. IPv4 passes through; an IPv6
+address becomes a stable pseudo-IPv4 in 240.0.0.0/4, hashed (FNV-1a)
+from the /64 prefix so privacy-extension host bits do not matter.
+The mapped address goes everywhere an IPv4 is required — map auth
+(0x3829), last_ip, IP ACLs and rate limits, online files — and the
+gate logs the real IPv6 next to it at connect so operators can
+correlate.

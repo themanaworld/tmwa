@@ -38,6 +38,17 @@ impl<R: AsyncRead + Unpin> PacketFramer<R> {
         }
     }
 
+    /// Read access to the wrapped reader (e.g. to check the WebSocket
+    /// close code the transport recorded).
+    pub fn reader(&self) -> &R {
+        &self.reader
+    }
+
+    /// Mutable access for the same purpose.
+    pub fn reader_mut(&mut self) -> &mut R {
+        &mut self.reader
+    }
+
     /// Buffered bytes not yet consumed (for tests).
     #[allow(dead_code)]
     pub fn buffered(&self) -> usize {

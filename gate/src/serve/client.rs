@@ -286,22 +286,14 @@ async fn handle_login(
                 send_6a(st, tx, 3, 0, None);
                 return Some(());
             };
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs() as i64;
             let name2 = name.clone();
             let id = st
                 .db
                 .blocking(move |db| {
                     db.with_conn(move |conn| {
-                        let t = conn.transaction()?;
-                        let id = Db::alloc_meta_id(&t, "next_account_id")?;
-                        Db::insert_account(
-                            &t, id, &name2, &hash, "argon2id", None, None, 0, None, 0, "!", None,
-                            0, None, now,
-                        )?;
-                        t.commit().map(|_| id)
+                        Db::create_account(conn, &name2, &hash, "").map_err(|e| {
+                            rusqlite::Error::ToSqlConversionFailure(e.to_string().into())
+                        })
                     })
                 })
                 .await;
@@ -1061,14 +1053,7 @@ async fn handle_char_delete(
         .map(|r| r.key.account_id.0 == sd.account_id)
         .unwrap_or(false);
     if owns {
-        let _ = st
-            .db
-            .blocking(move |db| db.delete_character(cid as i64))
-            .await;
-        st.chars.lock().unwrap().remove(&cid);
-        if let Some(name) = rec.map(|r| r.key.name.to_string_lossy()) {
-            st.char_names.lock().unwrap().remove(&name);
-        }
+        delete_character(st, cid).await;
         let p = P006F::default();
         send_bytes(tx, enc(move |v| p.encode(v)));
     } else {
@@ -1083,6 +1068,29 @@ async fn handle_char_delete(
 // ------------------------------------------------------------------
 
 use super::state::PlayerSession;
+
+/// Delete one character, mirroring tmwa's char_delete: leave its
+/// party (0x3824 broadcast), divorce if married, delete the row and
+/// the in-memory copies. Callers delete the account row separately.
+pub(crate) async fn delete_character(st: &Arc<State>, cid: u32) {
+    let rec = st.load_char(cid).await;
+    if let Some(r) = rec.as_ref() {
+        let pid = r.data.party_id.0;
+        if pid != 0 {
+            super::maplink::party_leave_do(st, pid, r.key.account_id.0);
+        }
+        let cid64 = cid as i64;
+        let _ = st.db.blocking(move |db| db.divorce(cid64)).await;
+    }
+    let _ = st
+        .db
+        .blocking(move |db| db.delete_character(cid as i64))
+        .await;
+    st.chars.lock().unwrap().remove(&cid);
+    if let Some(name) = rec.map(|r| r.key.name.to_string_lossy()) {
+        st.char_names.lock().unwrap().remove(&name);
+    }
+}
 
 /// How a forwarding session ended.
 enum FwdEnd {

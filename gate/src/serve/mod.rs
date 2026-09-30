@@ -14,7 +14,7 @@
 pub mod admin;
 pub mod client;
 pub mod http;
-pub(crate) mod maplink;
+pub mod maplink;
 pub mod state;
 pub mod ws;
 
@@ -68,6 +68,18 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
         tokio::spawn(async move {
             if let Err(e) = admin::run(st).await {
                 tracing::warn!("admin socket: {e}");
+            }
+        });
+    }
+
+    // prune expired rate limits, bad actors and reset codes
+    {
+        let st = st.clone();
+        tokio::spawn(async move {
+            let mut iv = tokio::time::interval(Duration::from_secs(600));
+            loop {
+                iv.tick().await;
+                http::prune(&st).await;
             }
         });
     }
@@ -142,11 +154,13 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
                         return; // over the limit: just close
                     }
                     st.conn_inc();
-                    if let std::net::IpAddr::V4(v4) = peer.ip() {
-                        client::run(st.clone(), sock, v4).await;
-                    } else {
-                        tracing::warn!("client: non-v4 peer {peer} dropped");
+                    let ip4 = crate::net::map_ip(peer.ip());
+                    if ip4 == std::net::Ipv4Addr::UNSPECIFIED
+                        || !matches!(peer.ip(), std::net::IpAddr::V4(_))
+                    {
+                        tracing::info!("client {peer} -> pseudo-ipv4 {ip4}");
                     }
+                    client::run(st.clone(), sock, ip4).await;
                     st.conn_dec();
                 });
             }

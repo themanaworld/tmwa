@@ -9,17 +9,33 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{ConnectInfo, State as AxState};
 use axum::http::HeaderMap;
 use axum::response::Response;
-use futures_util::{Sink, Stream};
+use futures_util::{SinkExt, Stream};
 
-/// Adapt an axum WebSocket to AsyncRead+AsyncWrite carrying binary
+/// Decrements the connection count on drop — panic-safe.
+struct ConnGuard(Arc<super::state::State>);
+
+impl ConnGuard {
+    fn new(st: Arc<super::state::State>) -> Self {
+        st.conn_inc();
+        ConnGuard(st)
+    }
+}
+
+impl Drop for ConnGuard {
+    fn drop(&mut self) {
+        self.0.conn_dec();
+    }
+}
+
+/// Read half of the WebSocket as an AsyncRead of concatenated binary
 /// payloads (frame boundaries are meaningless to the protocol).
-struct WsStream {
-    inner: WebSocket,
+struct WsRead {
+    inner: futures_util::stream::SplitStream<WebSocket>,
     buf: bytes::BytesMut,
     closed: bool,
 }
 
-impl tokio::io::AsyncRead for WsStream {
+impl tokio::io::AsyncRead for WsRead {
     fn poll_read(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
@@ -58,42 +74,78 @@ impl tokio::io::AsyncRead for WsStream {
     }
 }
 
-impl tokio::io::AsyncWrite for WsStream {
+/// Write half: bytes go into a channel whose background task turns
+/// them into binary frames. Closing the channel (or a shutdown)
+/// makes the task send a normal Close(1000) frame so the client sees
+/// a clean disconnect rather than 1005.
+struct WsWrite {
+    tx: tokio::sync::mpsc::UnboundedSender<Vec<u8>>,
+}
+
+impl tokio::io::AsyncWrite for WsWrite {
+    fn poll_write(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<std::io::Result<usize>> {
+        match self.tx.send(buf.to_vec()) {
+            Ok(()) => std::task::Poll::Ready(Ok(buf.len())),
+            Err(_) => std::task::Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "ws writer gone",
+            ))),
+        }
+    }
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        std::task::Poll::Ready(Ok(()))
+    }
+    fn poll_shutdown(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        // dropping the sender ends the writer task, which then sends
+        // the Close frame — synchronous shutdown semantics.
+        std::task::Poll::Ready(Ok(()))
+    }
+}
+
+struct WsIo {
+    r: WsRead,
+    w: WsWrite,
+}
+
+impl tokio::io::AsyncRead for WsIo {
+    fn poll_read(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        std::pin::Pin::new(&mut self.r).poll_read(cx, buf)
+    }
+}
+
+impl tokio::io::AsyncWrite for WsIo {
     fn poll_write(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
         buf: &[u8],
     ) -> std::task::Poll<std::io::Result<usize>> {
-        match std::pin::Pin::new(&mut self.inner).poll_ready(cx) {
-            std::task::Poll::Ready(Ok(())) => {
-                match std::pin::Pin::new(&mut self.inner)
-                    .start_send(Message::Binary(buf.to_vec().into()))
-                {
-                    Ok(()) => std::task::Poll::Ready(Ok(buf.len())),
-                    Err(e) => std::task::Poll::Ready(Err(std::io::Error::other(e.to_string()))),
-                }
-            }
-            std::task::Poll::Ready(Err(e)) => {
-                std::task::Poll::Ready(Err(std::io::Error::other(e.to_string())))
-            }
-            std::task::Poll::Pending => std::task::Poll::Pending,
-        }
+        std::pin::Pin::new(&mut self.w).poll_write(cx, buf)
     }
     fn poll_flush(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<std::io::Result<()>> {
-        std::pin::Pin::new(&mut self.inner)
-            .poll_flush(cx)
-            .map_err(|e| std::io::Error::other(e.to_string()))
+        std::pin::Pin::new(&mut self.w).poll_flush(cx)
     }
     fn poll_shutdown(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<std::io::Result<()>> {
-        std::pin::Pin::new(&mut self.inner)
-            .poll_close(cx)
-            .map_err(|e| std::io::Error::other(e.to_string()))
+        std::pin::Pin::new(&mut self.w).poll_shutdown(cx)
     }
 }
 
@@ -103,37 +155,24 @@ pub async fn handle_ws(
     headers: HeaderMap,
     ws: WebSocketUpgrade,
 ) -> Response {
-    // real client IP behind a trusted proxy
-    let ip: Ipv4Addr = {
-        let mut ip = match peer.ip() {
-            IpAddr::V4(v) => v,
-            IpAddr::V6(v6) => v6.to_ipv4().unwrap_or(Ipv4Addr::LOCALHOST),
-        };
-        if hs
-            .st
-            .cfg
-            .http
-            .trusted_proxies
-            .iter()
-            .any(|p| p.parse::<IpAddr>().map(|t| t == peer.ip()).unwrap_or(false))
-        {
-            if let Some(xff) = headers.get("x-forwarded-for") {
-                if let Ok(s) = xff.to_str() {
-                    if let Some(first) = s.split(',').next() {
-                        if let Ok(IpAddr::V4(v)) = first.trim().parse() {
-                            ip = v;
-                        }
-                    }
-                }
-            }
-        }
-        ip
-    };
+    // real client IP behind a trusted proxy; IPv6 gets a stable
+    // 240/4 pseudo address (see net::map_ip)
+    let real = crate::net::forwarded_for(
+        peer.ip(),
+        headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()),
+        &hs.st.cfg.http.trusted_proxies,
+    );
+    if !matches!(real, IpAddr::V4(_)) {
+        tracing::info!("ws client from {real} -> {}", crate::net::map_ip(real));
+    }
+    let ip: Ipv4Addr = crate::net::map_ip(real);
 
     // global connection cap across TCP + WS
     if hs.st.conn_count() >= hs.st.cfg.http.max_connections {
         return ws
             .protocols(["binary"])
+            .max_message_size(64 * 1024)
+            .max_frame_size(64 * 1024)
             .on_upgrade(move |mut s: WebSocket| async move {
                 let _ = s
                     .send(Message::Close(Some(axum::extract::ws::CloseFrame {
@@ -144,14 +183,37 @@ pub async fn handle_ws(
             });
     }
 
-    ws.protocols(["binary"]).on_upgrade(move |sock| async move {
-        hs.st.conn_inc();
-        let stream = WsStream {
-            inner: sock,
-            buf: bytes::BytesMut::new(),
-            closed: false,
-        };
-        super::client::run(hs.st.clone(), stream, ip).await;
-        hs.st.conn_dec();
-    })
+    ws.protocols(["binary"])
+        .max_message_size(64 * 1024)
+        .max_frame_size(64 * 1024)
+        .on_upgrade(move |sock| async move {
+            let _guard = ConnGuard::new(hs.st.clone());
+            let (mut sink, stream) = futures_util::StreamExt::split(sock);
+            let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
+            // writer task: binary frames, then a clean Close(1000)
+            // when the channel ends (session over)
+            tokio::spawn(async move {
+                while let Some(buf) = rx.recv().await {
+                    if sink.send(Message::Binary(buf.into())).await.is_err() {
+                        return;
+                    }
+                }
+                let _ = sink
+                    .send(Message::Close(Some(axum::extract::ws::CloseFrame {
+                        code: 1000,
+                        reason: "".into(),
+                    })))
+                    .await;
+                let _ = sink.close().await;
+            });
+            let io = WsIo {
+                r: WsRead {
+                    inner: stream,
+                    buf: bytes::BytesMut::new(),
+                    closed: false,
+                },
+                w: WsWrite { tx },
+            };
+            super::client::run(hs.st.clone(), io, ip).await;
+        })
 }
