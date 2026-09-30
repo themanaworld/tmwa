@@ -154,6 +154,20 @@ pub type Result<T> = std::result::Result<T, DbError>;
 /// legacy_salt).
 pub type AuthRow = (i64, String, String, Option<String>);
 
+/// The accounts row the login path needs.
+pub struct LoginRow {
+    pub id: i64,
+    pub password_hash: String,
+    pub password_scheme: String,
+    pub legacy_salt: Option<String>,
+    pub email: Option<String>,
+    pub state: i64,
+    pub error_message: Option<String>,
+    pub ban_until: i64,
+    pub login_count: i64,
+    pub memo: String,
+}
+
 /// The database. Callers that need async should go through
 /// `tokio::task::spawn_blocking`.
 pub struct Db {
@@ -236,21 +250,219 @@ impl Db {
     }
 
     /// All vars for an account/scope, name order.
-    pub fn get_account_vars(
-        &self,
-        account_id: i64,
-        scope: i64,
-    ) -> Result<Vec<(String, i64)>> {
+    pub fn get_account_vars(&self, account_id: i64, scope: i64) -> Result<Vec<(String, i64)>> {
         let conn = self.conn.lock().unwrap();
         let mut st = conn.prepare(
             "SELECT name,value FROM account_vars
              WHERE account_id=?1 AND scope=?2 ORDER BY name",
         )?;
         Ok(st
-            .query_map(params![account_id, scope], |r| {
-                Ok((r.get(0)?, r.get(1)?))
+            .query_map(params![account_id, scope], |r| Ok((r.get(0)?, r.get(1)?)))?
+            .collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    /// Allocate an id from meta (next_account_id/next_char_id/...),
+    /// bumping the counter inside the caller's transaction.
+    pub fn alloc_meta_id(tx: &Transaction<'_>, key: &str) -> rusqlite::Result<i64> {
+        let id: i64 = tx.query_row("SELECT value FROM meta WHERE key=?1", [key], |r| r.get(0))?;
+        tx.execute(
+            "UPDATE meta SET value=?1 WHERE key=?2",
+            params![id + 1, key],
+        )?;
+        Ok(id)
+    }
+
+    /// Account id by exact name.
+    pub fn account_id_by_name(&self, name: &str) -> Result<Option<i64>> {
+        let conn = self.conn.lock().unwrap();
+        Ok(conn
+            .query_row("SELECT id FROM accounts WHERE name=?1", [name], |r| {
+                r.get(0)
+            })
+            .optional()?)
+    }
+
+    /// Full account row for the login path.
+    pub fn account_auth_row(&self, name: &str) -> Result<Option<LoginRow>> {
+        let conn = self.conn.lock().unwrap();
+        Ok(conn
+            .query_row(
+                "SELECT id,password_hash,password_scheme,legacy_salt,
+                 email,state,error_message,ban_until,login_count,memo
+                 FROM accounts WHERE name=?1",
+                [name],
+                |r| {
+                    Ok(LoginRow {
+                        id: r.get(0)?,
+                        password_hash: r.get(1)?,
+                        password_scheme: r.get(2)?,
+                        legacy_salt: r.get(3)?,
+                        email: r.get(4)?,
+                        state: r.get(5)?,
+                        error_message: r.get(6)?,
+                        ban_until: r.get(7)?,
+                        login_count: r.get(8)?,
+                        memo: r.get(9)?,
+                    })
+                },
+            )
+            .optional()?)
+    }
+
+    /// Record a successful login (stamp + ip + count).
+    /// Returns the previous last_login (ms) for the 0x0069 field.
+    pub fn record_login(&self, account_id: i64, now_ms: i64, ip: &str) -> Result<Option<i64>> {
+        let conn = self.conn.lock().unwrap();
+        let prev: Option<i64> = conn
+            .query_row(
+                "SELECT last_login FROM accounts WHERE id=?1",
+                [account_id],
+                |r| r.get(0),
+            )
+            .optional()?;
+        conn.execute(
+            "UPDATE accounts SET last_login=?2, last_ip=?3,
+             login_count=login_count+1 WHERE id=?1",
+            params![account_id, now_ms, ip],
+        )?;
+        Ok(prev)
+    }
+
+    /// Update the password (hash + scheme; clears legacy_salt for
+    /// plain argon2id).
+    pub fn set_password(
+        &self,
+        account_id: i64,
+        hash: &str,
+        scheme: &str,
+        salt: Option<&str>,
+    ) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE accounts SET password_hash=?2, password_scheme=?3,
+             legacy_salt=?4 WHERE id=?1",
+            params![account_id, hash, scheme, salt],
+        )?;
+        Ok(())
+    }
+
+    pub fn account_email(&self, account_id: i64) -> Result<Option<String>> {
+        let conn = self.conn.lock().unwrap();
+        Ok(conn
+            .query_row(
+                "SELECT email FROM accounts WHERE id=?1",
+                [account_id],
+                |r| r.get(0),
+            )
+            .optional()?
+            .flatten())
+    }
+
+    pub fn set_email(&self, account_id: i64, email: Option<&str>) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE accounts SET email=?2 WHERE id=?1",
+            params![account_id, email],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_account_state(&self, account_id: i64, state: i64) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE accounts SET state=?2 WHERE id=?1",
+            params![account_id, state],
+        )?;
+        Ok(())
+    }
+
+    /// ban_until (unix seconds) or unblock when 0.
+    pub fn set_account_ban(&self, account_id: i64, ban_until: i64) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE accounts SET ban_until=?2 WHERE id=?1",
+            params![account_id, ban_until],
+        )?;
+        Ok(())
+    }
+
+    /// Char id by exact name.
+    pub fn char_id_by_name(&self, name: &str) -> Result<Option<i64>> {
+        let conn = self.conn.lock().unwrap();
+        Ok(conn
+            .query_row("SELECT id FROM characters WHERE name=?1", [name], |r| {
+                r.get(0)
+            })
+            .optional()?)
+    }
+
+    /// Char ids of one account.
+    pub fn char_ids_of_account(&self, account_id: i64) -> Result<Vec<i64>> {
+        let conn = self.conn.lock().unwrap();
+        let mut st = conn.prepare("SELECT id FROM characters WHERE account_id=?1 ORDER BY slot")?;
+        Ok(st
+            .query_map([account_id], |r| r.get(0))?
+            .collect::<rusqlite::Result<Vec<i64>>>()?)
+    }
+
+    pub fn delete_character(&self, char_id: i64) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM characters WHERE id=?1", [char_id])?;
+        Ok(())
+    }
+
+    /// Clear partner_id both directions (0x2b16 divorce).
+    pub fn divorce(&self, char_id: i64) -> Result<Option<i64>> {
+        let conn = self.conn.lock().unwrap();
+        let partner: Option<i64> = conn
+            .query_row(
+                "SELECT partner_id FROM characters WHERE id=?1",
+                [char_id],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if let Some(pid) = partner {
+            #[allow(clippy::collapsible_if)]
+            if pid != 0 {
+                conn.execute(
+                    "UPDATE characters SET partner_id=0 WHERE id IN (?1,?2)",
+                    params![char_id, pid],
+                )?;
+            }
+        }
+        Ok(partner.filter(|p| *p != 0))
+    }
+
+    /// Storage items for an account, slot order.
+    pub fn load_storage(&self, account_id: i64) -> Result<Vec<(i64, i64, i64, i64)>> {
+        let conn = self.conn.lock().unwrap();
+        let mut st = conn.prepare(
+            "SELECT idx,item_id,amount,equip FROM storage_items
+             WHERE account_id=?1 ORDER BY idx",
+        )?;
+        Ok(st
+            .query_map([account_id], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    /// Replace a whole storage (0x3011 semantics): items are
+    /// (item_id, amount, equip) in slot order.
+    pub fn save_storage(&self, account_id: i64, items: &[(i64, i64, i64)]) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "DELETE FROM storage_items WHERE account_id=?1",
+            [account_id],
+        )?;
+        let mut st = conn.prepare(
+            "INSERT INTO storage_items(account_id,idx,item_id,amount,equip)
+             VALUES(?1,?2,?3,?4,?5)",
+        )?;
+        for (idx, item) in items.iter().enumerate() {
+            st.execute(params![account_id, idx as i64, item.0, item.1, item.2])?;
+        }
+        Ok(())
     }
 
     /// Run `f` with the connection under the lock.
