@@ -168,10 +168,24 @@ pub struct LoginRow {
     pub memo: String,
 }
 
-/// The database. Callers that need async should go through
-/// `tokio::task::spawn_blocking`.
+/// The database. Held as `Arc<Db>`; async callers go through
+/// [`Db::blocking`] (spawn_blocking) instead of touching `conn`.
 pub struct Db {
     conn: Mutex<Connection>,
+}
+
+impl Db {
+    /// Run `f` on a blocking thread (for async callers).
+    pub async fn blocking<F, T>(self: &std::sync::Arc<Self>, f: F) -> T
+    where
+        F: FnOnce(&Db) -> T + Send + 'static,
+        T: Send + 'static,
+    {
+        let db = std::sync::Arc::clone(self);
+        tokio::task::spawn_blocking(move || f(&db))
+            .await
+            .expect("blocking db task panicked")
+    }
 }
 
 impl Db {

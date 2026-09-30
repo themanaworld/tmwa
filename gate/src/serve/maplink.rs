@@ -64,13 +64,13 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                 {
                     p.code = 3;
                     send_bytes(&tx, enc(move |v| p.encode(v)));
-                    eprintln!("maplink: bad map auth from {ip}");
+                    tracing::warn!("maplink: bad map auth from {ip}");
                     break 'auth false;
                 }
                 p.code = 0;
                 send_bytes(&tx, enc(move |v| p.encode(v)));
                 let id = st.map_register(tx.clone(), u32::from_le_bytes(fixed.ip.0), fixed.port);
-                eprintln!(
+                tracing::warn!(
                     "maplink: map server {id} registered from {ip} \
                      (client port {}:{})",
                     Ipv4Addr::from(fixed.ip.0),
@@ -92,7 +92,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                 break 'auth true;
             }
             Ok(Some(pkt)) => {
-                eprintln!(
+                tracing::warn!(
                     "maplink: first packet 0x{:04x} from {ip}, expected 0x2af8",
                     pkt.id
                 );
@@ -114,7 +114,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
         };
         let r = handle(&st, &tx, map_id, pkt.id, &pkt.bytes).await;
         if r.is_err() {
-            eprintln!("maplink: error handling 0x{:04x} from map {map_id}", pkt.id);
+            tracing::warn!("maplink: error handling 0x{:04x} from map {map_id}", pkt.id);
             break;
         }
     }
@@ -122,7 +122,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
     st.map_unregister(map_id);
     drop(tx);
     let _ = wh.await;
-    eprintln!("maplink: map server {map_id} disconnected");
+    tracing::info!(map_id, "map server disconnected");
 }
 
 /// Update the online set from a 0x2aff list (port of char.cpp
@@ -182,7 +182,7 @@ async fn handle(
                     h.maps = maps.clone();
                 }
             }
-            eprintln!("maplink: map {map_id} loaded {} maps", maps.len());
+            tracing::info!(map_id, maps = maps.len(), "map list received");
             let p = P2AFB::default();
             send_bytes(tx, enc(move |v| p.encode(v)));
             // 0x2b04: tell the others about this server; tell this
@@ -244,7 +244,7 @@ async fn handle(
                 u32::from_le_bytes(fixed.ip.0),
             );
             let Some(e) = entry else {
-                eprintln!(
+                tracing::warn!(
                     "maplink: REJECTED 0x2afc account {} char {}",
                     fixed.account_id.0, fixed.char_id.0
                 );
@@ -281,7 +281,7 @@ async fn handle(
             p.char_key = key;
             p.char_data = cd;
             send_bytes(tx, enc(move |v| p.encode(v)));
-            eprintln!("maplink: authenticated char {cid} for map {map_id}");
+            tracing::info!(map_id, char_id = cid, "authenticated char for map");
             Ok(())
         }
         0x2aff => {
@@ -395,9 +395,19 @@ async fn handle(
             let old = fixed.old_email.to_string_lossy();
             let new = fixed.new_email.to_string_lossy();
             let aid = fixed.account_id.0 as i64;
-            let cur = st.db.account_email(aid).ok().flatten().unwrap_or_default();
-            if cur == old {
-                let _ = st.db.set_email(aid, Some(&new));
+            let old2 = old.clone();
+            let cur = st
+                .db
+                .blocking(move |db| db.account_email(aid))
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_default();
+            if cur == old2 {
+                let _ = st
+                    .db
+                    .blocking(move |db| db.set_email(aid, Some(&new)))
+                    .await;
             }
             Ok(())
         }
@@ -659,8 +669,12 @@ async fn handle(
             let Ok(fixed) = P3005::decode(bytes) else {
                 return Err(());
             };
-            let aid = fixed.account_id.0;
-            let vars = st.db.get_account_vars(aid as i64, 1).unwrap_or_default();
+            let aid = fixed.account_id.0 as i64;
+            let vars = st
+                .db
+                .blocking(move |db| db.get_account_vars(aid, 1))
+                .await
+                .unwrap_or_default();
             let mut p = P3804::default();
             p.account_id = fixed.account_id;
             p.repeat = vars
@@ -740,7 +754,7 @@ async fn handle(
         0x3028 => party_check(st, bytes).await,
 
         _ => {
-            eprintln!("maplink: unknown packet 0x{id:04x} from map {map_id}");
+            tracing::debug!(map_id, "unknown packet 0x{id:04x} from map");
             Err(())
         }
     }
@@ -781,7 +795,7 @@ async fn handle_named_op(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, fixed: P2B
                 let aid = target_acc as i64;
                 match op {
                     1 => {
-                        let _ = st.db.set_account_state(aid, 5);
+                        let _ = st.db.blocking(move |db| db.set_account_state(aid, 5)).await;
                         kick_online(st, target_acc, 5, 0);
                     }
                     2 => {
@@ -791,14 +805,17 @@ async fn handle_named_op(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, fixed: P2B
                             .unwrap_or_default()
                             .as_secs() as i64
                             + htd_seconds(&fixed.ban_add);
-                        let _ = st.db.set_account_ban(aid, until);
+                        let _ = st
+                            .db
+                            .blocking(move |db| db.set_account_ban(aid, until))
+                            .await;
                         kick_online(st, target_acc, 1, until);
                     }
                     3 => {
-                        let _ = st.db.set_account_state(aid, 0);
+                        let _ = st.db.blocking(move |db| db.set_account_state(aid, 0)).await;
                     }
                     4 => {
-                        let _ = st.db.set_account_ban(aid, 0);
+                        let _ = st.db.blocking(move |db| db.set_account_ban(aid, 0)).await;
                     }
                     _ => {
                         // changesex etc: no account sex anymore
@@ -842,19 +859,20 @@ fn party_get(st: &State, party_id: u32) -> Option<PartyMost> {
     st.parties.lock().unwrap().get(&party_id).copied()
 }
 
-fn party_put(st: &State, party_id: u32, p: PartyMost) {
+fn party_put(st: &std::sync::Arc<State>, party_id: u32, p: PartyMost) {
     st.parties.lock().unwrap().insert(party_id, p);
     persist_party(st, party_id);
 }
 
-fn party_del(st: &State, party_id: u32) {
+fn party_del(st: &std::sync::Arc<State>, party_id: u32) {
     st.parties.lock().unwrap().remove(&party_id);
-    let _ = st
-        .db
-        .with_conn(|conn| conn.execute("DELETE FROM parties WHERE id=?1", [party_id as i64]));
+    let db = st.db.clone();
+    drop(tokio::task::spawn_blocking(move || {
+        db.with_conn(|conn| conn.execute("DELETE FROM parties WHERE id=?1", [party_id as i64]))
+    }));
 }
 
-fn persist_party(st: &State, party_id: u32) {
+fn persist_party(st: &std::sync::Arc<State>, party_id: u32) {
     let p = match party_get(st, party_id) {
         Some(p) => p,
         None => return,
@@ -872,27 +890,30 @@ fn persist_party(st: &State, party_id: u32) {
             )
         })
         .collect();
-    let _ = st.db.with_conn(|conn| {
-        let tx = conn.transaction()?;
-        tx.execute(
-            "INSERT INTO parties(id,name,exp_share,item_share) VALUES(?1,?2,?3,?4)
+    let db = st.db.clone();
+    drop(tokio::task::spawn_blocking(move || {
+        db.with_conn(|conn| {
+            let tx = conn.transaction()?;
+            tx.execute(
+                "INSERT INTO parties(id,name,exp_share,item_share) VALUES(?1,?2,?3,?4)
              ON CONFLICT(id) DO UPDATE SET name=excluded.name,
              exp_share=excluded.exp_share,item_share=excluded.item_share",
-            rusqlite::params![party_id as i64, name, p.exp as i64, p.item as i64],
-        )?;
-        tx.execute(
-            "DELETE FROM party_members WHERE party_id=?1",
-            [party_id as i64],
-        )?;
-        for (a, n, l) in members {
-            tx.execute(
-                "INSERT INTO party_members(party_id,account_id,char_name,leader)
-                 VALUES(?1,?2,?3,?4)",
-                rusqlite::params![party_id as i64, a, n, l],
+                rusqlite::params![party_id as i64, name, p.exp as i64, p.item as i64],
             )?;
-        }
-        tx.commit()
-    });
+            tx.execute(
+                "DELETE FROM party_members WHERE party_id=?1",
+                [party_id as i64],
+            )?;
+            for (a, n, l) in members {
+                tx.execute(
+                    "INSERT INTO party_members(party_id,account_id,char_name,leader)
+                 VALUES(?1,?2,?3,?4)",
+                    rusqlite::params![party_id as i64, a, n, l],
+                )?;
+            }
+            tx.commit()
+        })
+    }));
 }
 
 /// party_check_exp_share: exp share legal when online levels are
@@ -913,7 +934,7 @@ fn party_check_exp_share(st: &State, p: &PartyMost) -> bool {
     maxlv == 0 || maxlv - minlv <= st.cfg.inter.party_share_level as i32
 }
 
-fn party_check_empty(st: &State, party_id: u32) -> bool {
+fn party_check_empty(st: &std::sync::Arc<State>, party_id: u32) -> bool {
     if let Some(p) = party_get(st, party_id) {
         if p.member.iter().any(|m| m.account_id.0 != 0) {
             return false;
@@ -994,7 +1015,10 @@ async fn party_create(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8])
         lv: fixed.level as i32,
     };
     party_put(st, pid, p);
-    let _ = st.db.set_meta("next_party_id", pid as i64);
+    let _ = st
+        .db
+        .blocking(move |db| db.set_meta("next_party_id", pid as i64))
+        .await;
     reply(0, pid, name);
     party_info_to(st, Some(tx), pid);
     Ok(())
@@ -1195,7 +1219,7 @@ async fn party_leader(st: &Arc<State>, bytes: &[u8]) -> HResult {
 
 async fn party_message(st: &Arc<State>, bytes: &[u8]) -> HResult {
     let Ok(p) = P3027::decode(bytes) else {
-        eprintln!("party_message: decode failed");
+        tracing::warn!("party_message: decode failed");
         return Err(());
     };
 

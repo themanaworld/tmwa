@@ -36,9 +36,14 @@ pub enum ServeError {
 }
 
 pub async fn run(cfg: Config) -> Result<(), ServeError> {
-    let db = Db::open(&cfg.gate.db)?;
+    let db = std::sync::Arc::new(Db::open(&cfg.gate.db)?);
     let st = Arc::new(State::new(cfg, db));
-    maplink::load_parties(&st);
+    {
+        let st2 = st.clone();
+        tokio::task::spawn_blocking(move || maplink::load_parties(&st2))
+            .await
+            .expect("load_parties panicked");
+    }
 
     // load GM levels once at startup, then watch the file
     reload_gm(&st);
@@ -82,7 +87,7 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
 
     let client_listener = TcpListener::bind(client_addr).await?;
     let map_listener = TcpListener::bind(map_addr).await?;
-    eprintln!("gate: clients on {client_addr}, map link on {map_addr}");
+    tracing::info!("gate: clients on {client_addr}, map link on {map_addr}");
 
     let st2 = st.clone();
     tokio::spawn(async move {
@@ -95,11 +100,11 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
                         if let std::net::IpAddr::V4(v4) = peer.ip() {
                             maplink::run(st, sock, v4).await;
                         } else {
-                            eprintln!("maplink: non-v4 peer {peer} dropped");
+                            tracing::warn!("maplink: non-v4 peer {peer} dropped");
                         }
                     });
                 }
-                Err(e) => eprintln!("map accept: {e}"),
+                Err(e) => tracing::warn!("map accept: {e}"),
             }
         }
     });
@@ -113,11 +118,11 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
                     if let std::net::IpAddr::V4(v4) = peer.ip() {
                         client::run(st, sock, v4).await;
                     } else {
-                        eprintln!("client: non-v4 peer {peer} dropped");
+                        tracing::warn!("client: non-v4 peer {peer} dropped");
                     }
                 });
             }
-            Err(e) => eprintln!("client accept: {e}"),
+            Err(e) => tracing::warn!("client accept: {e}"),
         }
     }
 }
@@ -146,15 +151,15 @@ pub fn reload_gm(st: &State) {
                     it.next().unwrap_or("").parse::<u32>(),
                     it.next().unwrap_or("").parse::<u32>(),
                 ) else {
-                    eprintln!("gate: bad gm_account line {line:?}");
+                    tracing::warn!("gate: bad gm_account line {line:?}");
                     continue;
                 };
                 map.insert(id, lv);
             }
-            eprintln!("gate: {} GM account(s) loaded", map.len());
+            tracing::info!("gate: {} GM account(s) loaded", map.len());
         }
         Err(e) => {
-            eprintln!("gate: cannot read {}: {e}", path.display());
+            tracing::warn!("gate: cannot read {}: {e}", path.display());
         }
     }
     *st.gm.lock().unwrap() = map;
