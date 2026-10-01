@@ -58,6 +58,9 @@ fn http_addr() -> std::net::SocketAddr {
 fn map_port() -> u16 {
     env("TMWA_E2E_MAPPORT", "5122").parse().unwrap()
 }
+fn map2_port() -> u16 {
+    env("TMWA_E2E_MAPPORT2", "5123").parse().unwrap()
+}
 fn map_user() -> String {
     env("TMWA_E2E_MAPUSER", "s1").replace('\'', "")
 }
@@ -72,28 +75,19 @@ fn e2e_lock() -> std::sync::MutexGuard<'static, ()> {
     E2E_LOCK.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-struct Client {
-    rd: PacketFramer<OwnedReadHalf>,
-    wr: OwnedWriteHalf,
-}
-
-impl Client {
-    async fn connect() -> Client {
-        let s = TcpStream::connect(gate_addr())
-            .await
-            .expect("connect client port");
-        s.set_nodelay(true).unwrap();
-        let (rd, wr) = s.into_split();
-        Client {
-            rd: PacketFramer::new(rd),
-            wr,
-        }
-    }
+/// Both test transports (raw TCP `Client` and `WsClient`) implement
+/// this so the login/char/map helpers can be written once.
+#[allow(async_fn_in_trait)]
+trait Con {
+    /// One raw packet (encoded bytes).
+    async fn send_pkt(&mut self, v: Vec<u8>);
+    /// Next packet; None on EOF or close.
+    async fn next_pkt(&mut self) -> Option<Packet>;
 
     async fn send<P: Fn(&mut Vec<u8>)>(&mut self, f: P) {
         let mut v = Vec::new();
         f(&mut v);
-        self.wr.write_all(&v).await.unwrap();
+        self.send_pkt(v).await;
     }
 
     /// Wait for a packet id, dropping others. Tolerates up to 4
@@ -102,11 +96,10 @@ impl Client {
     async fn wait(&mut self, id: u16) -> Packet {
         let mut idle = 0;
         for _ in 0..200 {
-            match tokio::time::timeout(Duration::from_secs(10), self.rd.next()).await {
-                Ok(Ok(Some(p))) if p.id == id => return p,
-                Ok(Ok(Some(_))) => continue,
-                Ok(Ok(None)) => panic!("eof waiting for 0x{id:04x}"),
-                Ok(Err(e)) => panic!("frame error {e} waiting for 0x{id:04x}"),
+            match tokio::time::timeout(Duration::from_secs(10), self.next_pkt()).await {
+                Ok(Some(p)) if p.id == id => return p,
+                Ok(Some(_)) => continue,
+                Ok(None) => panic!("eof waiting for 0x{id:04x}"),
                 Err(_) => {
                     idle += 1;
                     if idle > 4 {
@@ -116,6 +109,54 @@ impl Client {
             }
         }
         panic!("never got 0x{id:04x}");
+    }
+
+    async fn wait_any(&mut self, ids: &[u16]) -> Packet {
+        for _ in 0..400 {
+            let p = tokio::time::timeout(Duration::from_secs(10), self.next_pkt())
+                .await
+                .expect("timeout")
+                .expect("eof");
+            if ids.contains(&p.id) {
+                return p;
+            }
+        }
+        panic!("none of {ids:?} arrived");
+    }
+}
+
+struct Client {
+    rd: PacketFramer<OwnedReadHalf>,
+    wr: OwnedWriteHalf,
+}
+
+impl Con for Client {
+    async fn send_pkt(&mut self, v: Vec<u8>) {
+        self.wr.write_all(&v).await.unwrap();
+    }
+
+    async fn next_pkt(&mut self) -> Option<Packet> {
+        self.rd.next().await.ok().flatten()
+    }
+}
+
+impl Client {
+    async fn connect() -> Client {
+        Self::connect_addr(gate_addr()).await
+    }
+
+    /// Open a raw TCP connection to an arbitrary address (e.g. the
+    /// map-server address a 0x0071 or 0x0092 advertises).
+    async fn connect_addr(addr: std::net::SocketAddr) -> Client {
+        let s = TcpStream::connect(addr)
+            .await
+            .unwrap_or_else(|e| panic!("connect {addr}: {e}"));
+        s.set_nodelay(true).unwrap();
+        let (rd, wr) = s.into_split();
+        Client {
+            rd: PacketFramer::new(rd),
+            wr,
+        }
     }
 }
 
@@ -132,12 +173,12 @@ async fn login_or_register(c: &mut Client, name: &str, pass: &str) -> (u32, u32,
             .encode(v)
         })
         .await;
-        match tokio::time::timeout(Duration::from_secs(10), c.rd.next()).await {
-            Ok(Ok(Some(p))) if p.id == 0x0069 => {
+        match tokio::time::timeout(Duration::from_secs(10), c.next_pkt()).await {
+            Ok(Some(p)) if p.id == 0x0069 => {
                 let p = P0069::decode(&p.bytes).unwrap();
                 return (p.account_id.0, p.login_id1, p.login_id2);
             }
-            Ok(Ok(Some(p))) if p.id == 0x006a => {
+            Ok(Some(p)) if p.id == 0x006a => {
                 let e = P006A::decode(&p.bytes).unwrap();
                 if e.error_code == 0 {
                     let mut c3 = Client::connect().await;
@@ -160,40 +201,45 @@ fn f40(s: &str) -> FixedStr<40> {
     FixedStr::<40>::try_from_str(s).unwrap()
 }
 
-/// 0x0064 login; returns (account_id, login_id1, login_id2).
+/// One 0x0064 attempt; `Some` on 0x0069, `None` when refused or
+/// rate-limited.
+async fn login_try(c: &mut impl Con, name: &str, pass: &str) -> Option<(u32, u32, u32)> {
+    c.send(|v| {
+        P0064 {
+            client_protocol_version: ClientVersion(999),
+            account_name: f24(name),
+            account_pass: f24(pass),
+            flags: 3,
+        }
+        .encode(v)
+    })
+    .await;
+    match tokio::time::timeout(Duration::from_secs(10), c.next_pkt()).await {
+        Ok(Some(p)) if p.id == 0x0069 => {
+            let p = P0069::decode(&p.bytes).unwrap();
+            Some((p.account_id.0, p.login_id1, p.login_id2))
+        }
+        Ok(Some(p)) if p.id == 0x0081 || p.id == 0x006a => None,
+        other => panic!("login: {other:?}"),
+    }
+}
+
+/// 0x0064 login over TCP; returns (account_id, login_id1, login_id2).
 async fn login(c: &mut Client, name: &str, pass: &str) -> (u32, u32, u32) {
     // the gate enforces conn_limit (5 s between logins per IP like
     // tmwa); retry past it when refused
     for _ in 0..4 {
-        c.send(|v| {
-            P0064 {
-                client_protocol_version: ClientVersion(999),
-                account_name: f24(name),
-                account_pass: f24(pass),
-                flags: 3,
-            }
-            .encode(v)
-        })
-        .await;
-        match tokio::time::timeout(Duration::from_secs(10), c.rd.next()).await {
-            Ok(Ok(Some(p))) if p.id == 0x0069 => {
-                let p = P0069::decode(&p.bytes).unwrap();
-                return (p.account_id.0, p.login_id1, p.login_id2);
-            }
-            Ok(Ok(Some(p))) if p.id == 0x0081 || p.id == 0x006a => {
-                // rate limited or refused; wait out the interval
-                drop(p);
-                tokio::time::sleep(Duration::from_secs(6)).await;
-                *c = Client::connect().await;
-            }
-            other => panic!("login: {other:?}"),
+        if let Some(t) = login_try(c, name, pass).await {
+            return t;
         }
+        tokio::time::sleep(Duration::from_secs(6)).await;
+        *c = Client::connect().await;
     }
     panic!("login never succeeded")
 }
 
 /// 0x0065 char connect; returns the char list.
-async fn char_connect(c: &mut Client, acct: u32, id1: u32, id2: u32) -> Vec<CharSelect> {
+async fn char_connect(c: &mut impl Con, acct: u32, id1: u32, id2: u32) -> Vec<CharSelect> {
     c.send(|v| {
         P0065 {
             account_id: AccountId(acct),
@@ -211,19 +257,19 @@ async fn char_connect(c: &mut Client, acct: u32, id1: u32, id2: u32) -> Vec<Char
 }
 
 /// 0x0066 select; waits for 0x0071. Returns map name + advertised addr.
-async fn char_select(c: &mut Client, slot: u8) -> P0071 {
+async fn char_select(c: &mut impl Con, slot: u8) -> P0071 {
     for _ in 0..10 {
         c.send(|v| P0066 { code: slot }.encode(v)).await;
         loop {
-            match tokio::time::timeout(Duration::from_secs(10), c.rd.next()).await {
-                Ok(Ok(Some(p))) if p.id == 0x0071 => {
+            match tokio::time::timeout(Duration::from_secs(10), c.next_pkt()).await {
+                Ok(Some(p)) if p.id == 0x0071 => {
                     return P0071::decode(&p.bytes).unwrap();
                 }
-                Ok(Ok(Some(p))) if p.id == 0x0081 => {
+                Ok(Some(p)) if p.id == 0x0081 => {
                     // no map server registered yet (0x0081): retry
                     break;
                 }
-                Ok(Ok(Some(_))) => continue,
+                Ok(Some(_)) => continue,
                 other => panic!("char_select: {other:?}"),
             }
         }
@@ -232,9 +278,9 @@ async fn char_select(c: &mut Client, slot: u8) -> P0071 {
     panic!("char_select never got 0x0071")
 }
 
-/// 0x0072 map connect through the relay; returns after the client
-/// sends CMSG_MAP_LOADED and the login burst has started.
-async fn map_connect(c: &mut Client, acct: u32, char_id: u32, id1: u32) {
+/// 0x0072 on the transport's current connection (WS clients keep
+/// using the gate; TCP tests connect straight to the map first).
+async fn map_enter(c: &mut impl Con, acct: u32, char_id: u32, id1: u32) {
     c.send(|v| {
         P0072 {
             account_id: AccountId(acct),
@@ -246,27 +292,52 @@ async fn map_connect(c: &mut Client, acct: u32, char_id: u32, id1: u32) {
         .encode(v)
     })
     .await;
-    // expect 0x8000 + a packet burst; wait for 0x0091 or 0x0073-ish.
-    // Just wait for map data: the first being/stat packet.
     c.wait_any(&[0x0073, 0x0091, 0x00b0, 0x01ee, 0x00b5]).await;
     // tell the server the map loaded
     c.send(|v| P007D::default().encode(v)).await;
 }
 
-impl Client {
-    async fn wait_any(&mut self, ids: &[u16]) -> Packet {
-        for _ in 0..400 {
-            let p = tokio::time::timeout(Duration::from_secs(10), self.rd.next())
-                .await
-                .expect("timeout")
-                .unwrap()
-                .expect("eof");
-            if ids.contains(&p.id) {
-                return p;
-            }
-        }
-        panic!("none of {ids:?} arrived");
+/// Direct TCP map connect: open a socket to the address a 0x0071
+/// (or 0x0092) advertised, send 0x0072, and wait for the first
+/// packet of the login burst; ends by sending CMSG_MAP_LOADED.
+async fn map_login(sel_ip: Ip4Address, sel_port: u16, acct: u32, char_id: u32, id1: u32) -> Client {
+    let mut c = Client::connect_addr((std::net::Ipv4Addr::from(sel_ip.0), sel_port).into()).await;
+    map_enter(&mut c, acct, char_id, id1).await;
+    c
+}
+
+/// Ensure account `user`/`pass` has a character (creating
+/// `charname` if the list is empty); returns (acct, id1, id2,
+/// char_id).
+async fn ensure_char(user: &str, pass: &str, charname: &str) -> (u32, u32, u32, u32) {
+    let mut c = Client::connect().await;
+    let (acct, id1, id2) = login_or_register(&mut c, user, pass).await;
+    drop(c);
+    let mut c = Client::connect().await;
+    let chars = char_connect(&mut c, acct, id1, id2).await;
+    if let Some(ch) = chars.first() {
+        return (acct, id1, id2, ch.char_id.0);
     }
+    c.send(|v| {
+        P0067 {
+            char_name: f24(charname),
+            stats: Stats6 {
+                str: 5,
+                agi: 5,
+                vit: 5,
+                int_: 5,
+                dex: 5,
+                luk: 5,
+            },
+            slot: 0,
+            hair_color: 0,
+            hair_style: 1,
+        }
+        .encode(v)
+    })
+    .await;
+    let p = P006D::decode(&c.wait(0x006d).await.bytes).unwrap();
+    (acct, id1, id2, p.char_select.char_id.0)
 }
 
 /// chat (0x008c): "msg" NUL-terminated.
@@ -307,6 +378,8 @@ struct E2e {
     db: PathBuf,
     gate: Option<Child>,
     map: Option<Child>,
+    /// Second map-server instance for the blue-green test.
+    map2: Option<Child>,
 }
 
 impl E2e {
@@ -328,6 +401,12 @@ impl E2e {
     }
     fn map_stderr(&self) -> PathBuf {
         self.rundir.join("map.stderr.log")
+    }
+    fn map2_stdout(&self) -> PathBuf {
+        self.rundir.join("map2.stdout.log")
+    }
+    fn map2_stderr(&self) -> PathBuf {
+        self.rundir.join("map2.stderr.log")
     }
     fn socket(&self) -> PathBuf {
         self.rundir.join("gate.sock")
@@ -370,6 +449,38 @@ impl E2e {
     }
     fn spawn_map_env(&mut self, extra_env: &[(&str, &str)]) {
         self.reap_map();
+        self.map = Some(self.spawn_map_cmd(
+            "e2e-tmwa-map.conf",
+            &self.map_stdout(),
+            &self.map_stderr(),
+            extra_env,
+        ));
+    }
+
+    /// Second map instance (conf written by `write_map_confs`).
+    fn spawn_map2(&mut self) {
+        self.reap_map2();
+        self.map2 = Some(self.spawn_map_cmd(
+            "e2e-tmwa-map2.conf",
+            &self.map2_stdout(),
+            &self.map2_stderr(),
+            &[],
+        ));
+    }
+    fn reap_map2(&mut self) {
+        if let Some(mut c) = self.map2.take() {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+    }
+
+    fn spawn_map_cmd(
+        &self,
+        conf: &str,
+        stdout: &Path,
+        stderr: &Path,
+        extra_env: &[(&str, &str)],
+    ) -> Child {
         let mut cmd = Command::new(env(
             "TMWA_E2E_MAPBIN",
             &format!(
@@ -381,10 +492,10 @@ impl E2e {
             cmd.env(k, v);
         }
         cmd.current_dir(&self.mapdir)
-            .arg(self.rundir.join("e2e-tmwa-map.conf"))
-            .stdout(append_log(&self.map_stdout()))
-            .stderr(append_log(&self.map_stderr()));
-        self.map = Some(cmd.spawn().expect("spawn tmwa-map"));
+            .arg(self.rundir.join(conf))
+            .stdout(append_log(stdout))
+            .stderr(append_log(stderr));
+        cmd.spawn().expect("spawn tmwa-map")
     }
 
     /// Signal the tracked map child and reap it.
@@ -439,19 +550,48 @@ impl E2e {
 
     /// Wait until the map-link admin reports a live map server.
     async fn wait_map_up(&self) {
+        self.wait_maps_up(1).await;
+    }
+
+    /// Wait until `n` map servers are registered on the link.
+    async fn wait_maps_up(&self, n: usize) {
         for _ in 0..80 {
             let st = self.admin_cmd(&["status"]);
-            if st.contains("\"id\"") {
+            let count = serde_json::from_str::<serde_json::Value>(&st)
+                .ok()
+                .and_then(|v| v.get("map_servers")?.as_array().map(|a| a.len()))
+                .unwrap_or(0);
+            if count >= n {
                 return;
             }
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
         panic!("map server never re-registered");
     }
+
+    /// Gate-side map slot whose registered client port is `port`.
+    async fn map_id_for_port(&self, port: u16) -> usize {
+        for _ in 0..30 {
+            let st = self.admin_cmd(&["status"]);
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&st) {
+                if let Some(ms) = v.get("map_servers").and_then(|m| m.as_array()) {
+                    for m in ms {
+                        let addr = m.get("addr").and_then(|a| a.as_str()).unwrap_or("");
+                        if addr.rsplit(':').next() == Some(&port.to_string()) {
+                            return m.get("id").and_then(|i| i.as_u64()).unwrap() as usize;
+                        }
+                    }
+                }
+            }
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+        panic!("no registered map on port {port}");
+    }
 }
 
 impl Drop for E2e {
     fn drop(&mut self) {
+        self.reap_map2();
         self.reap_map();
         self.kill_gate();
         // the rundir stays in $TMPDIR for post-mortem debugging
@@ -474,7 +614,11 @@ fn append_log(p: &Path) -> std::fs::File {
 /// order applies (later lines win, including over the map_local.conf
 /// import inside map_athena.conf), and all relative paths resolve
 /// against the spawn cwd (mapdir).
-fn write_map_confs(rundir: &Path, mapdir: &Path) {
+/// `suffix` distinguishes the instances: "" for the first map
+/// (files `e2e-map.conf` / `e2e-tmwa-map.conf`), "2" for the
+/// blue-green spare (`e2e-map2.conf` / `e2e-tmwa-map2.conf`, its own
+/// mapreg/gm/map logs and `port`).
+fn write_map_confs(rundir: &Path, mapdir: &Path, suffix: &str, port: u16) {
     let stock = std::fs::read_to_string(mapdir.join("conf/tmwa-map.conf"))
         .expect("read conf/tmwa-map.conf");
     let mut master = String::new();
@@ -487,7 +631,7 @@ fn write_map_confs(rundir: &Path, mapdir: &Path) {
             if !map_conf_done {
                 master.push_str(&format!(
                     "map_conf: {}\n",
-                    rundir.join("e2e-map.conf").display()
+                    rundir.join(format!("e2e-map{suffix}.conf")).display()
                 ));
                 map_conf_done = true;
             }
@@ -497,7 +641,7 @@ fn write_map_confs(rundir: &Path, mapdir: &Path) {
         master.push('\n');
     }
     assert!(map_conf_done, "conf/tmwa-map.conf has no map_conf line");
-    std::fs::write(rundir.join("e2e-tmwa-map.conf"), master).unwrap();
+    std::fs::write(rundir.join(format!("e2e-tmwa-map{suffix}.conf")), master).unwrap();
 
     let maplink = maplink_addr();
     let char_ip = if maplink.ip().is_unspecified() {
@@ -514,18 +658,17 @@ fn write_map_confs(rundir: &Path, mapdir: &Path) {
          char_ip: {char_ip}\n\
          char_port: {char_port}\n\
          map_ip: 127.0.0.1\n\
-         map_port: {map_port}\n\
+         map_port: {port}\n\
          trusted_proxy_ip: 127.0.0.1\n\
-         mapreg_txt: {rundir}/mapreg.txt\n\
-         gm_log: {rundir}/gm.log\n\
-         log_file: {rundir}/map.log\n",
+         mapreg_txt: {rundir}/mapreg{suffix}.txt\n\
+         gm_log: {rundir}/gm{suffix}.log\n\
+         log_file: {rundir}/map{suffix}.log\n",
         user = map_user(),
         pass = map_pass(),
         char_port = maplink.port(),
-        map_port = map_port(),
         rundir = rundir.display(),
     );
-    std::fs::write(rundir.join("e2e-map.conf"), conf).unwrap();
+    std::fs::write(rundir.join(format!("e2e-map{suffix}.conf")), conf).unwrap();
 }
 
 /// Import a fresh DB from the save fixtures, write all config into
@@ -614,7 +757,9 @@ fn fresh_gate() -> E2e {
         http = http_addr(),
     );
     std::fs::write(rundir.join("gate.toml"), &toml).unwrap();
-    write_map_confs(&rundir, &mapdir);
+    write_map_confs(&rundir, &mapdir, "", map_port());
+    // the blue-green spare: identical world, its own port + files
+    write_map_confs(&rundir, &mapdir, "2", map2_port());
 
     let mut fx = E2e {
         rundir,
@@ -622,6 +767,7 @@ fn fresh_gate() -> E2e {
         db,
         gate: None,
         map: None,
+        map2: None,
     };
     // the gate first so the map's connect succeeds on its first try;
     // the map takes tens of seconds to load its world before it
@@ -654,7 +800,7 @@ async fn e2e_all() {
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
 
-    // 1. login -> char list -> select -> in game -> relog via 0x00b2
+    // 1. login -> char list -> select -> direct map conn -> relog
     let mut c = Client::connect().await;
     let (acct, id1, id2) = login(&mut c, &user, &pass).await;
     assert!(acct >= 2000000, "account id {acct}");
@@ -667,11 +813,12 @@ async fn e2e_all() {
     let slot = chars[0].char_num;
     let sel = char_select(&mut c, slot).await;
     assert_eq!(sel.char_id.0, char_id);
-    assert_eq!(sel.port as u16, gate_addr().port());
+    // TCP clients connect straight to the map now: the 0x0071 must
+    // advertise the map's registered client port, not the gate's
+    assert_eq!(sel.port, map_port());
     drop(c);
 
-    let mut c = Client::connect().await;
-    map_connect(&mut c, acct, char_id, id1).await;
+    let mut c = map_login(sel.ip, sel.port, acct, char_id, id1).await;
     // say something and get the echo (0x008c -> 0x008d)
     let pkt = chat_pkt("gate e2e hello");
     c.wr.write_all(&pkt).await.unwrap();
@@ -690,10 +837,9 @@ async fn e2e_all() {
     let mut c = Client::connect().await;
     let chars = char_connect(&mut c, acct, id1, id2).await;
     assert_eq!(chars.len(), 1);
-    let _ = char_select(&mut c, slot).await;
+    let sel = char_select(&mut c, slot).await;
     drop(c);
-    let mut c = Client::connect().await;
-    map_connect(&mut c, acct, char_id, id1).await;
+    let mut c = map_login(sel.ip, sel.port, acct, char_id, id1).await;
     // inventory packet arrives in the post-0x007d burst
     let inv = P01EE::decode(&c.wait(0x01ee).await.bytes).unwrap();
     assert!(
@@ -776,10 +922,9 @@ async fn e2e_all() {
         let p = P006D::decode(&c2.wait(0x006d).await.bytes).unwrap();
         p.char_select.char_id.0
     };
-    let _ = char_select(&mut c2, 0).await;
+    let sel2 = char_select(&mut c2, 0).await;
     drop(c2);
-    let mut c2 = Client::connect().await;
-    map_connect(&mut c2, acct2, cid2, a1).await;
+    let mut c2 = map_login(sel2.ip, sel2.port, acct2, cid2, a1).await;
 
     // whisper: c (Spiketest) -> c2 (E2ehelper)
     c.wr.write_all(&whisper_pkt("E2ehelper", "hi helper"))
@@ -981,11 +1126,43 @@ async fn e2e_all() {
 }
 
 // ------------------------------------------------------------------
-// seamless-restart scenarios (phase 3)
+// crash/restart scenarios (direct-TCP topology)
 // ------------------------------------------------------------------
 
-/// `TMWA_E2E_RESTART` path exercises the hold/rejoin machinery:
-/// separate test so the baseline stays fast.
+/// Full client journey: login -> char list -> char select -> direct
+/// map connection. Returns the in-game map-side Client plus
+/// (account_id, char_id, login_id1) — what a 0x0072 needs.
+async fn full_login(u: &str, pw: &str) -> (Client, u32, u32, u32) {
+    let mut c = Client::connect().await;
+    let (a, i1, i2) = login(&mut c, u, pw).await;
+    drop(c);
+    let mut c = Client::connect().await;
+    let chars = char_connect(&mut c, a, i1, i2).await;
+    assert!(!chars.is_empty(), "no characters for {u}");
+    let sel = char_select(&mut c, chars[0].char_num).await;
+    drop(c);
+    let m = map_login(sel.ip, sel.port, a, chars[0].char_id.0, i1).await;
+    (m, a, chars[0].char_id.0, i1)
+}
+
+/// The map holds the TCP socket; its death must close it.
+async fn expect_closed(c: &mut Client, what: &str) {
+    let t0 = std::time::Instant::now();
+    while t0.elapsed() < Duration::from_secs(30) {
+        match tokio::time::timeout(Duration::from_secs(30), c.rd.next()).await {
+            Ok(Ok(None)) | Ok(Err(_)) => {
+                eprintln!("e2e: client closed in {:?}", t0.elapsed());
+                return;
+            }
+            Ok(Ok(Some(_))) => continue,
+            Err(_) => break,
+        }
+    }
+    panic!("client connection survived {what}");
+}
+
+/// TCP players hold a direct socket to the map server now: a map
+/// death closes them outright and a full relog lands back in game.
 #[tokio::test]
 #[allow(clippy::await_holding_lock)]
 async fn e2e_restart() {
@@ -999,16 +1176,7 @@ async fn e2e_restart() {
 
     // ---- scenario 1+2: map SIGTERM and SIGKILL restarts ----
     for (sig, name) in [("-TERM", "term"), ("-KILL", "kill")] {
-        let mut c = Client::connect().await;
-        let (acct, id1, id2) = login(&mut c, &user, &pass).await;
-        drop(c);
-        let mut c = Client::connect().await;
-        let chars = char_connect(&mut c, acct, id1, id2).await;
-        let slot = chars[0].char_num;
-        char_select(&mut c, slot).await;
-        drop(c);
-        let mut c = Client::connect().await;
-        map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
+        let (mut c, _a, _cid, _i1) = full_login(&user, &pass).await;
 
         // give an item right before the kill (SIGTERM must save it)
         c.wr.write_all(&chat_pkt("@item 535 3")).await.unwrap();
@@ -1016,42 +1184,18 @@ async fn e2e_restart() {
         let t_kill = std::time::Instant::now();
 
         fx.kill_map(sig);
-        // SIGTERM: the map's shutdown notice reaches the gate before
-        // the client sockets close, so the hold announcement must
-        // land almost at once. SIGKILL goes through the 3 s grace.
-        if sig == "-TERM" {
-            let t0 = std::time::Instant::now();
-            let mut announced = false;
-            while t0.elapsed() < Duration::from_secs(3) {
-                match tokio::time::timeout(Duration::from_millis(300), c.rd.next()).await {
-                    Ok(Ok(Some(p))) if p.id == 0x009a => {
-                        announced = true;
-                        break;
-                    }
-                    Ok(Ok(Some(_))) => continue,
-                    _ => break,
-                }
-            }
-            assert!(announced, "no hold announcement after map SIGTERM");
-            eprintln!("e2e: term hold announced in {}ms", t0.elapsed().as_millis());
-        }
-        // the map must come back before hold_timeout
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        expect_closed(&mut c, &format!("map {name}")).await;
+
         fx.spawn_map();
         fx.wait_map_up().await;
-        // rejoin: client sees 0x0091 (map-change) from the gate
-        let p = c.wait(0x0091).await;
-        let p91 = P0091::decode(&p.bytes).unwrap();
-        assert!(!p91.map_name.to_string_lossy().is_empty(), "empty map name");
-        eprintln!("e2e: rejoined at {}", p91.map_name.to_string_lossy());
         eprintln!(
-            "e2e: {name} restart rejoined ({}ms from kill)",
+            "e2e: map back after {name} ({}ms from kill)",
             t_kill.elapsed().as_millis()
         );
-        // client acks the map change, then the login burst lands;
-        // the 0x01ee inventory must still carry the candy for the
-        // SIGTERM case (the shutdown saved it)
-        c.send(|v| P007D::default().encode(v)).await;
+
+        // a full relog lands back in game; for SIGTERM the shutdown
+        // save must carry the candy into the inventory
+        let (mut c, _a, _cid, _i1) = full_login(&user, &pass).await;
         if sig == "-TERM" {
             let mut saved = false;
             for _ in 0..40 {
@@ -1072,46 +1216,14 @@ async fn e2e_restart() {
         } else {
             tokio::time::sleep(Duration::from_secs(3)).await;
         }
-
-        // walk works: one tile right of the rejoin position
-        'walk: for (x, y) in [(p91.x + 1, p91.y), (p91.x, p91.y)] {
-            c.send(|v| {
-                P0085 {
-                    pos: Position1 { x, y, dir: Dir(0) },
-                }
-                .encode(v)
-            })
-            .await;
-            for _ in 0..60 {
-                match tokio::time::timeout(Duration::from_secs(2), c.rd.next()).await {
-                    Ok(Ok(Some(p))) if p.id == 0x0087 => continue 'walk,
-                    Ok(Ok(Some(_))) => continue,
-                    Ok(Ok(None)) | Ok(Err(_)) => panic!("conn lost walking after {name}"),
-                    Err(_) => break,
-                }
-            }
-            panic!("no 0x0087 after {name} restart");
-        }
-        eprintln!("e2e: {name} restart walk OK");
+        eprintln!("e2e: {name} relog OK");
         drop(c);
     }
 
-    // ---- scenario 1b: warp then SIGTERM — the rejoin must use the
-    // newly saved map, not the stale login-time one ----
+    // ---- scenario 1b: warp then SIGTERM — the shutdown save must
+    // persist the new map, so the relog's 0x0071 names it ----
     {
-        let mut c = Client::connect().await;
-        let (acct, id1, id2) = login(&mut c, &user, &pass).await;
-        drop(c);
-        let mut c = Client::connect().await;
-        let chars = char_connect(&mut c, acct, id1, id2).await;
-        let slot = chars[0].char_num;
-        let sel = char_select(&mut c, slot).await;
-        let _ = sel; // 0x0071 contents don't matter; compare 0x0091s
-        drop(c);
-        let mut c = Client::connect().await;
-        map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
-
-        // warp to a different map; the shutdown save must persist it
+        let (mut c, _a, _cid, _i1) = full_login(&user, &pass).await;
         c.wr.write_all(&chat_pkt("@warp 029-2 22 24"))
             .await
             .unwrap();
@@ -1119,44 +1231,50 @@ async fn e2e_restart() {
         fx.kill_map("-TERM");
         fx.spawn_map();
         fx.wait_map_up().await;
-        let p = c.wait(0x0091).await;
-        let p91 = P0091::decode(&p.bytes).unwrap();
-        let nm = p91.map_name.to_string_lossy();
-        eprintln!("e2e: warp+term rejoin map = {nm}");
-        assert!(nm.contains("029-2"), "rejoin used stale map: {nm}");
-        drop(c);
-    }
 
-    // ---- scenario 3: drain --wait then restart ----
-    {
         let mut c = Client::connect().await;
         let (acct, id1, id2) = login(&mut c, &user, &pass).await;
         drop(c);
         let mut c = Client::connect().await;
         let chars = char_connect(&mut c, acct, id1, id2).await;
-        let slot = chars[0].char_num;
-        char_select(&mut c, slot).await;
+        let sel = char_select(&mut c, chars[0].char_num).await;
+        let nm = sel.map_name.to_string_lossy();
+        eprintln!("e2e: warp+term relog map = {nm}");
+        assert!(nm.contains("029-2"), "relog used stale map: {nm}");
         drop(c);
-        let mut c = Client::connect().await;
-        map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
+        let _c = map_login(sel.ip, sel.port, acct, chars[0].char_id.0, id1).await;
+    }
+
+    // ---- scenario 3: drain with no surviving instance ----
+    // Every map name is a straggler: players stay put, and the
+    // SIGTERM that follows saves them through the normal shutdown
+    // path.
+    {
+        let (mut c, _a, _cid, _i1) = full_login(&user, &pass).await;
         c.wr.write_all(&chat_pkt("@item 535 4")).await.unwrap();
         tokio::time::sleep(Duration::from_secs(1)).await;
 
-        let out = fx.admin_cmd(&["drain", "--wait"]);
-        assert!(out.contains(r#""unsaved":[]"#), "drain not clean: {out}");
-        eprintln!("e2e: drain saved all players");
+        let out = fx.admin_cmd(&["drain"]);
+        let reply: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(reply["ok"], true, "drain: {out}");
+        assert!(
+            reply["stragglers"]
+                .as_array()
+                .map(|a| !a.is_empty())
+                .unwrap_or(false),
+            "drain with no survivor must report stragglers: {out}"
+        );
 
         fx.kill_map("-TERM");
+        expect_closed(&mut c, "drained map term").await;
         tokio::time::sleep(Duration::from_secs(1)).await;
         fx.spawn_map();
         fx.wait_map_up().await;
-        c.wait(0x0091).await;
-        c.send(|v| P007D::default().encode(v)).await;
-        eprintln!("e2e: drain restart rejoined");
-        drop(c);
+        let (_c, _a, _cid, _i1) = full_login(&user, &pass).await;
+        eprintln!("e2e: drain+term relog OK");
     }
 
-    // ---- scenario 7: two clients held and rejoined, whisper ----
+    // ---- scenario 7: two clients relog after a restart, whisper ----
     {
         // ensure the helper account + char exist
         {
@@ -1188,80 +1306,31 @@ async fn e2e_restart() {
             }
             drop(h);
         }
-        async fn mk(u: &str, pw: &str) -> Client {
-            let mut c = Client::connect().await;
-            let (a, i1, i2) = login(&mut c, u, pw).await;
-            drop(c);
-            let mut c = Client::connect().await;
-            let chars = char_connect(&mut c, a, i1, i2).await;
-            let slot = chars[0].char_num;
-            char_select(&mut c, slot).await;
-            drop(c);
-            let mut c = Client::connect().await;
-            map_connect(&mut c, a, chars[0].char_id.0, i1).await;
-            c
-        }
-        let mut ca = mk(&user, &pass).await;
-        let mut cb = mk("e2ehelper", "testpass").await;
+        let (mut ca, _aa, _cida, _i1a) = full_login(&user, &pass).await;
+        let (mut cb, _ab, _cidb, _i1b) = full_login("e2ehelper", "testpass").await;
         fx.kill_map("-TERM");
+        expect_closed(&mut ca, "map term").await;
+        expect_closed(&mut cb, "map term").await;
         fx.spawn_map();
         fx.wait_map_up().await;
-        ca.wait(0x0091).await;
-        cb.wait(0x0091).await;
-        ca.send(|v| P007D::default().encode(v)).await;
-        cb.send(|v| P007D::default().encode(v)).await;
+        let (mut ca, _aa, _cida, _i1a) = full_login(&user, &pass).await;
+        let (mut cb, _ab, _cidb, _i1b) = full_login("e2ehelper", "testpass").await;
         ca.wr
             .write_all(&whisper_pkt("E2ehelper", "still here"))
             .await
             .unwrap();
         cb.wait(0x0097).await;
-        eprintln!("e2e: two-client rejoin + whisper OK");
+        eprintln!("e2e: two-client relog + whisper OK");
         drop(ca);
         drop(cb);
-    }
-
-    // ---- scenario 5: hold timeout (restart the gate with a short
-    // timeout, kill the map, verify the client gets closed) ----
-    {
-        fx.restart_gate_hold_timeout(8);
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        fx.wait_map_up().await;
-
-        let mut c = Client::connect().await;
-        let (acct, id1, id2) = login(&mut c, &user, &pass).await;
-        drop(c);
-        let mut c = Client::connect().await;
-        let chars = char_connect(&mut c, acct, id1, id2).await;
-        let slot = chars[0].char_num;
-        char_select(&mut c, slot).await;
-        drop(c);
-        let mut c = Client::connect().await;
-        map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
-
-        fx.kill_map("-KILL");
-        // no restart: the hold should expire in ~8s and close us
-        let t0 = std::time::Instant::now();
-        loop {
-            match tokio::time::timeout(Duration::from_secs(30), c.rd.next()).await {
-                Ok(Ok(None)) | Ok(Err(_)) => {
-                    eprintln!("e2e: hold closed client after {:?}", t0.elapsed());
-                    assert!(
-                        t0.elapsed() >= Duration::from_secs(6)
-                            && t0.elapsed() < Duration::from_secs(20)
-                    );
-                    break;
-                }
-                Ok(Ok(Some(_))) => continue,
-                Err(_) => panic!("hold never timed out"),
-            }
-        }
-        fx.spawn_map();
     }
     eprintln!("e2e: restart scenarios done");
 }
 
-/// NPC dialog open during restart: expects 0x00b6 before 0x0091.
-/// Also exercises the real-client-IP path (bind 127.0.0.2).
+/// NPC dialog open during a map restart, over the WS relay: expects
+/// 0x00b6 before 0x0091. Also exercises the real-client-IP path
+/// (ws conn bound to 127.0.0.2, forwarded in 0x3829) and the
+/// hold_timeout close.
 #[tokio::test]
 #[allow(clippy::await_holding_lock)]
 async fn e2e_restart_npc() {
@@ -1273,38 +1342,19 @@ async fn e2e_restart_npc() {
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
 
-    // connect from a different loopback IP; the map's log must show
+    // ws conn from a different loopback IP; the map's log must show
     // the forwarded client address (trusted_proxy_ip is set in
     // map_local.conf). All hops must come from the same address
     // because the auth table keys on it.
-    async fn conn2() -> Client {
-        let sock = tokio::net::TcpSocket::new_v4().unwrap();
-        sock.bind("127.0.0.2:0".parse().unwrap()).unwrap();
-        let s = sock.connect(gate_addr()).await.expect("connect 127.0.0.2");
-        s.set_nodelay(true).unwrap();
-        let (rd, wr) = s.into_split();
-        Client {
-            rd: PacketFramer::new(rd),
-            wr,
-        }
-    }
-    let mut c = conn2().await;
-    let (acct, id1, id2) = login(&mut c, &user, &pass).await;
-    drop(c);
-    let mut c = conn2().await;
-    let chars = char_connect(&mut c, acct, id1, id2).await;
-    let slot = chars[0].char_num;
-    char_select(&mut c, slot).await;
-    drop(c);
-    let mut c = conn2().await;
-    map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
+    let (mut c, _acct, _cid, _id1) =
+        ws_full_login_src(&user, &pass, Some("127.0.0.2".parse().unwrap())).await;
 
     // sanity: a normal chat echoes back (proves the map session is
     // live), then @npc warps us next to Sorfina
     // the map rate-limits client packets (~300ms min interval) —
     // pace our sends
     tokio::time::sleep(Duration::from_secs(3)).await;
-    c.wr.write_all(&chat_pkt("e2e probe")).await.unwrap();
+    c.send_pkt(chat_pkt("e2e probe")).await;
     let mut echoed = false;
     for _ in 0..40 {
         match tokio::time::timeout(Duration::from_secs(3), c.rd.next()).await {
@@ -1319,7 +1369,7 @@ async fn e2e_restart_npc() {
     }
     eprintln!("e2e: chat echo = {echoed}");
     tokio::time::sleep(Duration::from_millis(600)).await;
-    c.wr.write_all(&chat_pkt("@npc Sorfina")).await.unwrap();
+    c.send_pkt(chat_pkt("@npc Sorfina")).await;
     // dump everything the map answers (0x008e display messages tell
     // us why a command was rejected)
     for _ in 0..20 {
@@ -1426,34 +1476,25 @@ async fn e2e_restart_npc() {
 
     // ---- hold timeout ----
     // restart the gate with an 8s hold_timeout, kill the map, and
-    // don't restart it: the client must be closed
+    // don't restart it: the ws client must be closed
     {
         fx.restart_gate_hold_timeout(8);
         tokio::time::sleep(Duration::from_secs(1)).await;
         fx.wait_map_up().await;
 
-        let mut c = Client::connect().await;
-        let (acct, id1, id2) = login(&mut c, &user, &pass).await;
-        drop(c);
-        let mut c = Client::connect().await;
-        let chars = char_connect(&mut c, acct, id1, id2).await;
-        let slot = chars[0].char_num;
-        char_select(&mut c, slot).await;
-        drop(c);
-        let mut c = Client::connect().await;
-        map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
+        let (mut c, _a, _cid, _i1) = ws_full_login(&user, &pass).await;
 
         fx.kill_map("-KILL");
         let t0 = std::time::Instant::now();
         loop {
-            match tokio::time::timeout(Duration::from_secs(30), c.rd.next()).await {
-                Ok(Ok(None)) | Ok(Err(_)) => {
+            match tokio::time::timeout(Duration::from_secs(30), c.next_pkt()).await {
+                Ok(None) => {
                     let el = t0.elapsed();
-                    eprintln!("e2e: hold closed client after {el:?}");
+                    eprintln!("e2e: hold closed ws client after {el:?}");
                     assert!(el >= Duration::from_secs(6) && el < Duration::from_secs(25));
                     break;
                 }
-                Ok(Ok(Some(_))) => continue,
+                Ok(Some(_)) => continue,
                 Err(_) => panic!("hold never timed out"),
             }
         }
@@ -1523,13 +1564,45 @@ where
     }
 }
 
+impl Con for WsClient {
+    async fn send_pkt(&mut self, v: Vec<u8>) {
+        futures_util::SinkExt::send(
+            &mut self.wr,
+            tokio_tungstenite::tungstenite::Message::Binary(v.into()),
+        )
+        .await
+        .unwrap();
+    }
+
+    async fn next_pkt(&mut self) -> Option<Packet> {
+        self.rd.next().await.ok().flatten()
+    }
+}
+
 impl WsClient {
     async fn connect() -> WsClient {
+        Self::connect_src(None).await
+    }
+
+    /// `src` binds the ws TCP connection to a local address (the
+    /// gate forwards the peer IP in 0x3829).
+    async fn connect_src(src: Option<std::net::Ipv4Addr>) -> WsClient {
         let url = format!("ws://{}/tmwa", http_addr());
-        let (ws, _) =
+        let ws = if let Some(src) = src {
+            let sock = tokio::net::TcpSocket::new_v4().unwrap();
+            sock.bind((src, 0).into()).unwrap();
+            let s = sock.connect(http_addr()).await.expect("ws tcp connect");
+            let s = tokio_tungstenite::MaybeTlsStream::Plain(s);
+            tokio_tungstenite::client_async(tungstenite_url(&url), s)
+                .await
+                .expect("ws handshake")
+                .0
+        } else {
             tokio_tungstenite::connect_async_with_config(tungstenite_url(&url), None, false)
                 .await
-                .expect("ws connect");
+                .expect("ws connect")
+                .0
+        };
         let (wr, rd) = futures_util::StreamExt::split(ws);
         WsClient {
             rd: PacketFramer::new(WsRead {
@@ -1543,6 +1616,43 @@ impl WsClient {
     }
 }
 
+/// Full WS journey, one connection per role like the client:
+/// login -> char list + select, then a fresh ws conn carries the
+/// map stage (the gate relays it to the map server). `src` binds
+/// every role's TCP conn to that local address (the map sees it in
+/// the 0x3829 pre-auth). Returns the in-game ws client and
+/// (account_id, char_id, login_id1).
+async fn ws_full_login_src(
+    u: &str,
+    pw: &str,
+    src: Option<std::net::Ipv4Addr>,
+) -> (WsClient, u32, u32, u32) {
+    let mut c = WsClient::connect_src(src).await;
+    let (acct, id1, _id2) = 'l: {
+        for _ in 0..4 {
+            if let Some(t) = login_try(&mut c, u, pw).await {
+                break 'l t;
+            }
+            tokio::time::sleep(Duration::from_secs(6)).await;
+            c = WsClient::connect_src(src).await;
+        }
+        panic!("ws login never succeeded")
+    };
+    drop(c);
+    let mut c = WsClient::connect_src(src).await;
+    let chars = char_connect(&mut c, acct, id1, _id2).await;
+    assert!(!chars.is_empty(), "no characters for {u}");
+    let sel = char_select(&mut c, chars[0].char_num).await;
+    drop(c);
+    let mut c = WsClient::connect_src(src).await;
+    map_enter(&mut c, acct, sel.char_id.0, id1).await;
+    (c, acct, sel.char_id.0, id1)
+}
+
+async fn ws_full_login(u: &str, pw: &str) -> (WsClient, u32, u32, u32) {
+    ws_full_login_src(u, pw, None).await
+}
+
 impl<S> WsRead<S> {
     fn close_code(&self) -> Option<u16> {
         self.close_code
@@ -1553,105 +1663,8 @@ fn tungstenite_url(u: &str) -> tokio_tungstenite::tungstenite::http::Uri {
     u.parse().unwrap()
 }
 
-// The ws Client wrapper shares the same send/wait helpers; to keep
-// this small, do the login/char/map handshake by hand here.
-#[tokio::test]
-#[allow(clippy::await_holding_lock)]
-async fn e2e_ws() {
-    if std::env::var("TMWA_E2E").is_err() {
-        return;
-    }
-    let _g = e2e_lock();
-    let mut fx = fresh_gate();
-
-    use futures_util::SinkExt;
-    let mut c = WsClient::connect().await;
-
-    // login over WS
-    let mut v = Vec::new();
-    P0064 {
-        client_protocol_version: ClientVersion(999),
-        account_name: f24(&env("TMWA_E2E_USER", "spiketest")),
-        account_pass: f24(&env("TMWA_E2E_PASS", "spikepass")),
-        flags: 3,
-    }
-    .encode(&mut v);
-    c.wr.send(tokio_tungstenite::tungstenite::Message::Binary(v.into()))
-        .await
-        .unwrap();
-    let p = c.rd.next().await.unwrap().unwrap();
-    assert_eq!(p.id, 0x0069);
-    let p69 = P0069::decode(&p.bytes).unwrap();
-    // the login role is one-shot: the gate must close with a normal
-    // 1000 close frame, not a bare TCP-style drop (1005)
-    let code = {
-        // drain until the close frame; read the raw stream since
-        // the framer treats the close as plain EOF
-        for _ in 0..10 {
-            match tokio::time::timeout(
-                Duration::from_secs(5),
-                futures_util::StreamExt::next(&mut c.rd.reader_mut().s),
-            )
-            .await
-            {
-                Ok(Some(Ok(tokio_tungstenite::tungstenite::Message::Close(f)))) => {
-                    c.rd.reader_mut().close_code = f.map(|f| f.code.into());
-                    break;
-                }
-                Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
-                Ok(Some(Ok(_))) => continue,
-            }
-        }
-        c.rd.reader().close_code()
-    };
-    assert_eq!(code, Some(1000), "login ws close code {code:?}");
-    drop(c);
-
-    // char stage on a fresh WS connection
-    let mut c = WsClient::connect().await;
-    let mut v = Vec::new();
-    P0065 {
-        account_id: p69.account_id,
-        login_id1: p69.login_id1,
-        login_id2: p69.login_id2,
-        unused_client_protocol_version: 0,
-        sex: Sex(1),
-    }
-    .encode(&mut v);
-    c.wr.send(tokio_tungstenite::tungstenite::Message::Binary(v.into()))
-        .await
-        .unwrap();
-    let mut chars = Vec::new();
-    let _ = chars;
-    loop {
-        let p = c.rd.next().await.unwrap().unwrap();
-        if p.id == 0x006b {
-            let l = P006B::decode(&p.bytes).unwrap();
-            chars = l.repeat;
-            break;
-        }
-    }
-    let mut v = Vec::new();
-    P0066 { code: 0 }.encode(&mut v);
-    c.wr.send(tokio_tungstenite::tungstenite::Message::Binary(v.into()))
-        .await
-        .unwrap();
-    loop {
-        let p = c.rd.next().await.unwrap().unwrap();
-        if p.id == 0x0071 {
-            break;
-        }
-    }
-    // the char role ends by the client disconnecting; closing the
-    // ws client-side should still complete a normal 1000 handshake
-    let _ =
-        c.wr.send(tokio_tungstenite::tungstenite::Message::Close(Some(
-            tokio_tungstenite::tungstenite::protocol::CloseFrame {
-                code: tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Normal,
-                reason: "".into(),
-            },
-        )))
-        .await;
+/// A ws close handshake ends with this code (1000 = normal).
+async fn ws_close_code(c: &mut WsClient) -> Option<u16> {
     for _ in 0..10 {
         match tokio::time::timeout(
             Duration::from_secs(5),
@@ -1667,35 +1680,57 @@ async fn e2e_ws() {
             Ok(Some(Ok(_))) => continue,
         }
     }
-    assert_eq!(c.rd.reader().close_code(), Some(1000), "char ws close code");
+    c.rd.reader().close_code()
+}
+
+/// Login -> char -> map over WebSocket (the gate relays the map
+/// stage), close-code hygiene on the one-shot roles, then the
+/// hold/rejoin path on map restart.
+#[tokio::test]
+#[allow(clippy::await_holding_lock)]
+async fn e2e_ws() {
+    if std::env::var("TMWA_E2E").is_err() {
+        return;
+    }
+    let _g = e2e_lock();
+    let mut fx = fresh_gate();
+    let user = env("TMWA_E2E_USER", "spiketest");
+    let pass = env("TMWA_E2E_PASS", "spikepass");
+
+    use futures_util::SinkExt;
+    let mut c = WsClient::connect().await;
+
+    // login over WS
+    let p69 = login_try(&mut c, &user, &pass)
+        .await
+        .expect("ws login refused");
+    // the login role is one-shot: the gate must close with a normal
+    // 1000 close frame, not a bare TCP-style drop (1005)
+    let code = ws_close_code(&mut c).await;
+    assert_eq!(code, Some(1000), "login ws close code {code:?}");
+    drop(c);
+
+    // char stage on a fresh WS connection
+    let mut c = WsClient::connect().await;
+    let chars = char_connect(&mut c, p69.0, p69.1, p69.2).await;
+    let sel = char_select(&mut c, chars[0].char_num).await;
+    // the char role ends by the client disconnecting; closing the
+    // ws client-side should still complete a normal 1000 handshake
+    let _ =
+        c.wr.send(tokio_tungstenite::tungstenite::Message::Close(Some(
+            tokio_tungstenite::tungstenite::protocol::CloseFrame {
+                code: tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Normal,
+                reason: "".into(),
+            },
+        )))
+        .await;
+    let code = ws_close_code(&mut c).await;
+    assert_eq!(code, Some(1000), "char ws close code");
     drop(c);
 
     // map stage on a third WS connection
     let mut c = WsClient::connect().await;
-    let mut v = Vec::new();
-    P0072 {
-        account_id: p69.account_id,
-        char_id: chars[0].char_select.char_id,
-        login_id1: p69.login_id1,
-        client_tick: 999999,
-        sex: Sex(1),
-    }
-    .encode(&mut v);
-    c.wr.send(tokio_tungstenite::tungstenite::Message::Binary(v.into()))
-        .await
-        .unwrap();
-    let mut got_map = false;
-    for _ in 0..40 {
-        match tokio::time::timeout(Duration::from_secs(5), c.rd.next()).await {
-            Ok(Ok(Some(p))) if p.id == 0x0073 || p.id == 0x0091 => {
-                got_map = true;
-                break;
-            }
-            Ok(Ok(Some(_))) => continue,
-            _ => break,
-        }
-    }
-    assert!(got_map, "ws client never reached the map");
+    map_enter(&mut c, p69.0, sel.char_id.0, p69.1).await;
     eprintln!("e2e: ws login+char+map OK");
 
     // hold/rejoin over WS: kill the map, wait for the 0x0091
@@ -1802,17 +1837,17 @@ async fn e2e_map_full() {
     }
     eprintln!("e2e: map softlimit reached = {hit}");
 
-    // a client logging in through the gate is accepted-then-closed
-    // by the map: it must get 0x0081 code 1 and a close, no hold.
+    // a client connecting straight to a softlimit'd map is
+    // accepted-then-closed: EOF fast, no login reply, no hold.
     let mut c = Client::connect().await;
     let (acct, id1, id2) = login(&mut c, &user, &pass).await;
     drop(c);
     let mut c = Client::connect().await;
     let chars = char_connect(&mut c, acct, id1, id2).await;
     let slot = chars[0].char_num;
-    char_select(&mut c, slot).await;
+    let sel = char_select(&mut c, slot).await;
     drop(c);
-    let mut c = Client::connect().await;
+    let mut c = Client::connect_addr((std::net::Ipv4Addr::from(sel.ip.0), sel.port).into()).await;
     c.send(|v| {
         P0072 {
             account_id: AccountId(acct),
@@ -1825,31 +1860,25 @@ async fn e2e_map_full() {
     })
     .await;
     let t0 = std::time::Instant::now();
-    let mut got_0081 = false;
-    let mut got_hold = false;
+    let mut got_reply = false;
     let mut closed = false;
     // the map accepts new connections at its own tick rate; with the
     // fd table full of filler conns ours can sit in the listen
     // backlog for many seconds before being softlimit-closed
     while t0.elapsed() < Duration::from_secs(40) && !closed {
         match tokio::time::timeout(Duration::from_secs(40), c.rd.next()).await {
-            Ok(Ok(Some(p))) if p.id == 0x0081 => {
-                got_0081 = P0081::decode(&p.bytes).unwrap().error_code == 1;
-            }
-            Ok(Ok(Some(p))) if p.id == 0x009a => got_hold = true,
-            Ok(Ok(Some(_))) => continue,
+            Ok(Ok(Some(_))) => got_reply = true,
             Ok(Ok(None)) => closed = true,
             Ok(Err(_)) => closed = true,
             Err(_) => break,
         }
     }
     eprintln!(
-        "e2e: full-map login: 0081={got_0081} hold={got_hold} closed={closed} in {:?}",
+        "e2e: full-map login: reply={got_reply} closed={closed} in {:?}",
         t0.elapsed()
     );
-    assert!(got_0081, "no 0x0081 for the over-capacity login");
     assert!(closed, "over-capacity client not closed");
-    assert!(!got_hold, "over-capacity client was announced a hold");
+    assert!(!got_reply, "over-capacity client got a packet");
 
     // release the fd pressure; a fresh login must work again
     let _ = filler.kill();
@@ -1864,10 +1893,9 @@ async fn e2e_map_full() {
     drop(c);
     let mut c = Client::connect().await;
     let chars = char_connect(&mut c, acct, id1, _id2).await;
-    char_select(&mut c, slot).await;
+    let sel = char_select(&mut c, slot).await;
     drop(c);
-    let mut c = Client::connect().await;
-    map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
+    let mut c = map_login(sel.ip, sel.port, acct, chars[0].char_id.0, id1).await;
     eprintln!("e2e: login works again after releasing the fds");
 
     // ---- GM @kick: per-player disconnect on a live map ----
@@ -1901,15 +1929,14 @@ async fn e2e_map_full() {
         let p = P006D::decode(&c2.wait(0x006d).await.bytes).unwrap();
         p.char_select.char_id.0
     };
-    let _ = char_select(&mut c2, 0).await;
+    let sel2 = char_select(&mut c2, 0).await;
     drop(c2);
-    let mut c2 = Client::connect().await;
-    map_connect(&mut c2, acct2, cid2, a1).await;
+    let mut c2 = map_login(sel2.ip, sel2.port, acct2, cid2, a1).await;
     eprintln!("e2e: helper in game, kicking it");
 
     c.wr.write_all(&chat_pkt("@kick E2ehelper")).await.unwrap();
-    // the map's own kick path closes the upstream conn only via
-    // clif_setwaitclose (~5 s), then the gate's grace (~3 s)
+    // the map's own kick path closes the client conn via
+    // clif_setwaitclose (~5 s)
     let t0 = std::time::Instant::now();
     let mut closed = false;
     let mut got_hold = false;
@@ -1936,9 +1963,182 @@ async fn e2e_map_full() {
     drop(c2);
     let mut c2 = Client::connect().await;
     let chars2 = char_connect(&mut c2, acct2, a1, _a2).await;
-    let _ = char_select(&mut c2, chars2[0].char_num).await;
+    let sel2 = char_select(&mut c2, chars2[0].char_num).await;
     drop(c2);
-    let mut c2 = Client::connect().await;
-    map_connect(&mut c2, acct2, cid2, a1).await;
+    let _c2 = map_login(sel2.ip, sel2.port, acct2, cid2, a1).await;
     eprintln!("e2e: kicked player relogged fine");
+}
+
+// ------------------------------------------------------------------
+// blue-green map drain
+// ------------------------------------------------------------------
+
+/// Two map instances serve the same world; `admin drain <id>` moves
+/// every player to the survivor through the ordinary 0x2b05/0x2b06
+/// -> 0x0092 handoff. TCP clients reconnect to the address the
+/// 0x0092 names; a ws client reconnects to the gate and is relayed
+/// to the new server. New logins during the drain land on the
+/// survivor.
+#[tokio::test]
+#[allow(clippy::await_holding_lock)]
+async fn e2e_bluegreen() {
+    if std::env::var("TMWA_E2E").is_err() {
+        return;
+    }
+    let _e2e_guard = e2e_lock();
+    let mut fx = fresh_gate();
+    let user = env("TMWA_E2E_USER", "spiketest");
+    let pass = env("TMWA_E2E_PASS", "spikepass");
+
+    // two players land on map1: TCP direct + WS relay
+    let (mut c1, acct1, cid1, id11) = full_login(&user, &pass).await;
+    let (acct2, _a1, _a2, _cid2) = ensure_char("e2ehelper", "testpass", "E2ehelper").await;
+    let (mut cw, _wa, wcid, wid1) = ws_full_login("e2ehelper", "testpass").await;
+
+    // freshness probe: the candy must survive the transfer save
+    c1.wr.write_all(&chat_pkt("@item 535 9")).await.unwrap();
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    // bring up the spare; its 0x2afa makes it the last-registered
+    // server for every name
+    fx.spawn_map2();
+    fx.wait_maps_up(2).await;
+    let map1 = fx.map_id_for_port(map_port()).await;
+    eprintln!("e2e: draining map slot {map1}");
+
+    // a login issued while the drain unfolds must land on the
+    // spare: register the account first, create its character and
+    // pick it while the drain is running
+    let mut c3 = Client::connect().await;
+    let (acct3, b1, b2) = login_or_register(&mut c3, "e2enewbie", "newpass").await;
+    drop(c3);
+
+    let out = fx.admin_cmd(&["drain", &map1.to_string()]);
+    let reply: serde_json::Value = serde_json::from_str(&out).unwrap();
+    assert_eq!(reply["ok"], true, "drain: {out}");
+    assert!(
+        reply["stragglers"]
+            .as_array()
+            .map(|a| a.is_empty())
+            .unwrap_or(false),
+        "every map has a survivor: {out}"
+    );
+
+    // char creation + select during the drain must route to map2
+    let mut c3 = Client::connect().await;
+    let chars3 = char_connect(&mut c3, acct3, b1, b2).await;
+    let (cid3, slot3) = if let Some(ch) = chars3.first() {
+        (ch.char_id.0, ch.char_num)
+    } else {
+        c3.send(|v| {
+            P0067 {
+                char_name: f24("E2enewbie"),
+                stats: Stats6 {
+                    str: 5,
+                    agi: 5,
+                    vit: 5,
+                    int_: 5,
+                    dex: 5,
+                    luk: 5,
+                },
+                slot: 0,
+                hair_color: 0,
+                hair_style: 1,
+            }
+            .encode(v)
+        })
+        .await;
+        let p = P006D::decode(&c3.wait(0x006d).await.bytes).unwrap();
+        (p.char_select.char_id.0, 0)
+    };
+    let sel3 = char_select(&mut c3, slot3).await;
+    assert_eq!(
+        sel3.port,
+        map2_port(),
+        "select during drain routed to the drained server"
+    );
+    drop(c3);
+    let _c3 = map_login(sel3.ip, sel3.port, acct3, cid3, b1).await;
+    eprintln!("e2e: drain-time login landed on the spare");
+
+    // the TCP player gets a 0x0092 naming the spare
+    let p92 = 'h: {
+        for _ in 0..200 {
+            match tokio::time::timeout(Duration::from_secs(10), c1.rd.next()).await {
+                Ok(Ok(Some(p))) if p.id == 0x0092 => break 'h P0092::decode(&p.bytes).unwrap(),
+                Ok(Ok(Some(_))) => continue,
+                other => panic!("evacuation: {other:?}"),
+            }
+        }
+        panic!("no 0x0092 for the drained player");
+    };
+    assert_eq!(p92.port, map2_port(), "0x0092 must name the survivor");
+
+    // reconnect to the address the 0x0092 advertised (the map
+    // closes the old conn itself; drop is harmless either way)
+    drop(c1);
+    let mut c1 = map_login(p92.ip, p92.port, acct1, cid1, id11).await;
+
+    // the ws player got the same 0x0092 through the relay; it
+    // reconnects to the gate ws endpoint and sends 0x0072 again
+    let p92w = 'h: {
+        for _ in 0..200 {
+            match tokio::time::timeout(Duration::from_secs(10), cw.rd.next()).await {
+                Ok(Ok(Some(p))) if p.id == 0x0092 => break 'h P0092::decode(&p.bytes).unwrap(),
+                Ok(Ok(Some(_))) => continue,
+                other => panic!("ws evacuation: {other:?}"),
+            }
+        }
+        panic!("no 0x0092 for the drained ws player");
+    };
+    assert_eq!(p92w.port, map2_port());
+    drop(cw);
+    let mut cw = WsClient::connect().await;
+    map_enter(&mut cw, acct2, wcid, wid1).await;
+    eprintln!("e2e: ws player evacuated to map2");
+
+    // both survivors are in game on map2; the drained instance must
+    // report zero users
+    for _ in 0..60 {
+        let st = fx.admin_cmd(&["status"]);
+        let empty = serde_json::from_str::<serde_json::Value>(&st)
+            .ok()
+            .and_then(|v| {
+                v.get("map_servers")?.as_array().map(|a| {
+                    a.iter()
+                        .filter(|m| {
+                            m.get("addr")
+                                .and_then(|a| a.as_str())
+                                .map(|a| a.ends_with(&format!(":{}", map_port())))
+                                .unwrap_or(false)
+                        })
+                        .all(|m| m.get("users").and_then(|u| u.as_u64()) == Some(0))
+                        .then_some(true)
+                })
+            })
+            .unwrap_or(None)
+            .unwrap_or(false);
+        if empty {
+            break;
+        }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+    // the candy survived the transfer save on the TCP player
+    let mut saved = false;
+    for _ in 0..40 {
+        match tokio::time::timeout(Duration::from_secs(3), c1.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x01ee => {
+                if let Ok(inv) = P01EE::decode(&p.bytes) {
+                    saved = inv.repeat.iter().any(|r| r.name_id.0 == 535);
+                    if saved {
+                        break;
+                    }
+                }
+            }
+            Ok(Ok(Some(_))) => continue,
+            _ => break,
+        }
+    }
+    assert!(saved, "item lost across the evacuation");
+    eprintln!("e2e: blue-green drain done");
 }
