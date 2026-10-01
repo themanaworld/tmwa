@@ -153,6 +153,11 @@ static
 void epoll_write(Session *s, bool want)
 {
     int f = s->fd.uncast_dammit();
+    // sessions that never went through the fd table (e.g. stack
+    // sessions in tests) have no epoll state to update
+    if (f < 0 || static_cast<size_t>(f) >= session.size()
+            || session[f].get() != s)
+        return;
     assert (0 <= f && static_cast<size_t>(f) < epoll_out.size());
     if (!epoll_out[f] == !want)
         return;
@@ -310,7 +315,7 @@ void send_from_fifo(Session *s)
         {
             s->wdata_pos = 0;
         }
-        else
+        if (!s->wdata_size)
         {
             // queue drained; wait for more data before polling for writable
             epoll_write(s, false);
