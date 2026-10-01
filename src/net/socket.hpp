@@ -99,9 +99,9 @@ public:
     size_t max_rdata, max_wdata;
     /// How much is actually in the queue
     size_t rdata_size, wdata_size;
-    /// How much has already been read from the queue
-    /// Note that there is no need for a wdata_pos
-    size_t rdata_pos;
+    /// Index of the first unread (rdata) or unsent (wdata) byte
+    /// Pending wdata may wrap around the end of the buffer
+    size_t rdata_pos, wdata_pos;
 
     IP4Address client_ip;
 

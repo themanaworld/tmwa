@@ -69,7 +69,7 @@ Session::Session(SessionIO io, SessionParsers p)
 , rdata(), wdata()
 , max_rdata(), max_wdata()
 , rdata_size(), wdata_size()
-, rdata_pos()
+, rdata_pos(), wdata_pos()
 , client_ip()
 , func_recv()
 , func_send()
@@ -160,15 +160,19 @@ void recv_to_fifo(Session *s)
 static
 void send_from_fifo(Session *s)
 {
-    ssize_t len = s->fd.send(&s->wdata[0], s->wdata_size, MSG_NOSIGNAL);
+    // pending data starts at wdata_pos and may wrap around the end,
+    // so only the contiguous head run can be sent in one call
+    ssize_t len = s->fd.send(&s->wdata[s->wdata_pos],
+                        std::min(s->wdata_size, s->max_wdata - s->wdata_pos),
+                        MSG_NOSIGNAL);
 
     if (len > 0)
     {
+        s->wdata_pos += len;
         s->wdata_size -= len;
-        if (s->wdata_size)
+        if (s->wdata_pos >= s->max_wdata || !s->wdata_size)
         {
-            really_memmove(&s->wdata[0], &s->wdata[len],
-                     s->wdata_size);
+            s->wdata_pos = 0;
         }
         s->connected = 1;
         s->last_tick = TimeT::now();
@@ -400,7 +404,19 @@ void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size)
     }
     if (s->max_wdata != wfifo_size && s->wdata_size < wfifo_size)
     {
-        s->wdata.resize(wfifo_size);
+        dumb_ptr<uint8_t[]> nd;
+        nd.new_(wfifo_size);
+        if (s->wdata_size)
+        {
+            // pending data is a ring starting at wdata_pos, un-wrap it
+            size_t first = std::min(s->wdata_size,
+                    s->max_wdata - s->wdata_pos);
+            really_memcpy(&nd[0], &s->wdata[s->wdata_pos], first);
+            really_memcpy(&nd[first], &s->wdata[0], s->wdata_size - first);
+        }
+        s->wdata.delete_();
+        s->wdata = nd;
+        s->wdata_pos = 0;
         s->max_wdata = wfifo_size;
     }
 }

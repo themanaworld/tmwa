@@ -18,6 +18,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <algorithm>
+
 #include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 
@@ -57,11 +59,18 @@ bool packet_send(Session *s, const Byte *data, size_t sz)
     {
         return false;
     }
-    s->wdata_size += sz;
 
-    Byte *end = reinterpret_cast<Byte *>(&s->wdata[s->wdata_size + 0]);
-    Byte *start = end - sz;
-    std::copy(data, data + sz, start);
+    // pending data is a ring starting at wdata_pos,
+    // so the append may wrap around the end of the buffer
+    size_t tail = s->wdata_pos + s->wdata_size;
+    if (tail >= s->max_wdata)
+        tail -= s->max_wdata;
+    size_t first = std::min(sz, s->max_wdata - tail);
+    Byte *start = reinterpret_cast<Byte *>(&s->wdata[tail]);
+    std::copy(data, data + first, start);
+    std::copy(data + first, data + sz,
+            reinterpret_cast<Byte *>(&s->wdata[0]));
+    s->wdata_size += sz;
     return true;
 }
 
