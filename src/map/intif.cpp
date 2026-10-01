@@ -753,6 +753,16 @@ RecvResult intif_parse(Session *s, uint16_t packet_id)
             chrif_parse_preauth(s, fixed);
             break;
         }
+        case 0x382a:
+        {
+            Packet_Fixed<0x382a> fixed;
+            rv = recv_fpacket<0x382a, 2>(s, fixed);
+            if (rv != RecvResult::Complete)
+                return rv;
+
+            map_evacuate();
+            break;
+        }
         default:
             return RecvResult::Error;
     }

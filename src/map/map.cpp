@@ -844,6 +844,31 @@ void map_quit(dumb_ptr<map_session_data> sd)
 }
 
 /*==========================================
+ * 全プレイヤーを他鯖へ移す (drain)
+ *
+ * tmwa-gate `admin drain` sends 0x382a after re-announcing the
+ * drained maps via 0x2b04 (recorded in map_shadow_db for names we
+ * host ourselves). Players whose map nobody else serves are left;
+ * they are saved by the shutdown logout path (term_func) later.
+ *------------------------------------------
+ */
+void map_evacuate(void)
+{
+    for (io::FD i : iter_fds())
+    {
+        Session *s = get_session(i);
+        if (!s || s == char_session)
+            continue;
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(
+                static_cast<map_session_data *>(s->session_data.get()));
+        if (!sd || !sd->state.auth || sd->state.connect_new
+            || sd->state.waitingdisconnect)
+            continue;
+        pc_evacuate(sd);
+    }
+}
+
+/*==========================================
  * id番号のPCを探す。居なければNULL
  *------------------------------------------
  */
@@ -1104,6 +1129,31 @@ int map_mapname2ipport(MapName name, Borrowed<IP4Address> ip, Borrowed<int> port
             }).copy_or(-1);
 }
 
+/// Remote announcements (0x2b04) for maps this server also hosts:
+/// during a blue-green drain the gate re-announces the drained
+/// server's maps pointing at the surviving server, which lands here
+/// since maps_db keeps the local entry.
+static
+std::map<MapName, std::pair<IP4Address, int>> map_shadow_db;
+
+/*==========================================
+ * map名から他鯖ip,port変換, for handing a player over to another
+ * server hosting the map (drain/evacuate). A shadow announcement
+ * for a map we host ourselves wins over the plain remote table.
+ *------------------------------------------
+ */
+int map_otheripport(MapName name, Borrowed<IP4Address> ip, Borrowed<int> port)
+{
+    auto it = map_shadow_db.find(name);
+    if (it != map_shadow_db.end())
+    {
+        *ip = it->second.first;
+        *port = it->second.second;
+        return 0;
+    }
+    return map_mapname2ipport(name, ip, port);
+}
+
 /// Check compatibility of directions.
 /// Directions are compatible if they are at most 45° apart.
 ///
@@ -1214,10 +1264,18 @@ int map_setipport(MapName name, IP4Address ip, int port)
                 // local -> check data
                 if (ip != map_conf.map_ip || port != map_conf.map_port)
                 {
+                    // Another server claims a map we host. During a
+                    // blue-green drain (tmwa-gate re-announces the
+                    // drained maps with the surviving server's
+                    // address) this is normal: keep the address so
+                    // 0x382a can hand our players over.
                     PRINTF("from char server : %s -> %s:%d\n"_fmt,
                             name, ip, port);
+                    map_shadow_db[name] = std::make_pair(ip, port);
                     return 1;
                 }
+                // announced with our own address again
+                map_shadow_db.erase(name);
             }
             else
             {
@@ -1348,6 +1406,7 @@ void map_addmap(MapName mapname)
     if (mapname == "clear"_s)
     {
         maps_db.clear();
+        map_shadow_db.clear();
         return;
     }
 
@@ -1368,10 +1427,12 @@ void map_delmap(MapName mapname)
     if (mapname == "all"_s)
     {
         maps_db.clear();
+        map_shadow_db.clear();
         return;
     }
 
     maps_db.put(mapname, nullptr);
+    map_shadow_db.erase(mapname);
 }
 
 constexpr int LOGFILE_SECONDS_PER_CHUNK_SHIFT = 10;
@@ -1585,6 +1646,7 @@ void term_func(void)
     map_removenpc();
 
     maps_db.clear();
+    map_shadow_db.clear();
 
     do_final_script();
     do_final_itemdb();

@@ -2444,6 +2444,36 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 }
 
 /*==========================================
+ * Hand a player over to another map server: save, then ask the
+ * char server to ack the move (0x2b05 -> 0x2b06 -> client 0x0092).
+ * The caller resolved the target address already.
+ *------------------------------------------
+ */
+static
+int pc_changeserver(dumb_ptr<map_session_data> sd,
+        MapName mapname_, int x, int y, BeingRemoveWhy clrtype,
+        IP4Address ip, int port)
+{
+    skill_stop_dancing(sd, 1);
+    clif_clearchar(sd, clrtype);
+    map_delblock(sd);
+    // *cringe*
+    sd->mapname_ = mapname_;
+    sd->bl_x = x;
+    sd->bl_y = y;
+    sd->state.waitingdisconnect = 1;
+    pc_makesavestatus(sd);
+    //The storage close routines save the char data. [Skotlex]
+    if (!sd->state.storage_open)
+        chrif_save(sd);
+    else if (sd->state.storage_open)
+        storage_storage_quit(sd);
+
+    chrif_changemapserver(sd, mapname_, x, y, ip, port);
+    return 0;
+}
+
+/*==========================================
  * PCの位置設定
  * PC location setting
  *------------------------------------------
@@ -2482,25 +2512,8 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
             IP4Address ip;
             int port;
             if (map_mapname2ipport(mapname_, borrow(ip), borrow(port)) == 0)
-            {
-                skill_stop_dancing(sd, 1);
-                clif_clearchar(sd, clrtype);
-                map_delblock(sd);
-                // *cringe*
-                sd->mapname_ = mapname_;
-                sd->bl_x = x;
-                sd->bl_y = y;
-                sd->state.waitingdisconnect = 1;
-                pc_makesavestatus(sd);
-                //The storage close routines save the char data. [Skotlex]
-                if (!sd->state.storage_open)
-                    chrif_save(sd);
-                else if (sd->state.storage_open)
-                    storage_storage_quit(sd);
-
-                chrif_changemapserver(sd, mapname_, x, y, ip, port);
-                return 0;
-            }
+                return pc_changeserver(sd, mapname_, x, y, clrtype,
+                        ip, port);
         }
 #if 0
         clif_authfail_fd(sd->fd, 0);   // cancel
@@ -2549,6 +2562,43 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
 //  clif_spawnpc(sd);
 
     return 0;
+}
+
+/*==========================================
+ * Drain evacuate (0x382a): move this player to another server
+ * hosting their current map. Unlike pc_setpos this skips the
+ * local-map check entirely — the map name resolves here — so the
+ * cross-server branch is forced through the 0x2b04 shadow table
+ * (map_otheripport).
+ *------------------------------------------
+ */
+int pc_evacuate(dumb_ptr<map_session_data> sd)
+{
+    nullpo_retz(sd);
+
+    if (sd->trade_partner)      //取引を中断する | Suspend a transaction
+        trade_tradecancel(sd);
+    if (sd->state.storage_open)
+        storage_storage_quit(sd);  //倉庫を開いてるなら保存する | If you have a warehouse open, save it
+
+    if (sd->party_invite)   //パーティ勧誘を拒否する | Refuse to solicit a party
+        party_reply_invite(sd, sd->party_invite_account, 0);
+
+    skill_castcancel(sd, 0);  //詠唱中断 | The singing is interrupted
+    pc_stop_walking(sd, 0);    //歩行中断 | Walking interruption
+    pc_stopattack(sd);         //攻撃中断 | Attack Interruption
+
+    MapName mapname_ = sd->mapname_;
+    if (!mapname_)
+        return 1;
+
+    IP4Address ip;
+    int port;
+    if (map_otheripport(mapname_, borrow(ip), borrow(port)) != 0)
+        return 1;   // nobody else serves this map; leave the player
+
+    return pc_changeserver(sd, mapname_, sd->bl_x, sd->bl_y,
+            BeingRemoveWhy::WARPED, ip, port);
 }
 
 /*==========================================

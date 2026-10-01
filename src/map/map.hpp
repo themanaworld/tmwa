@@ -602,6 +602,8 @@ void map_foreachobject(std::function<void(dumb_ptr<block_list>)>,
         BL);
 //
 void map_quit(dumb_ptr<map_session_data>);
+// move every player to another server hosting their map (0x382a)
+void map_evacuate(void);
 // npc
 int map_addnpc(Borrowed<map_local>, dumb_ptr<npc_data>);
 
@@ -669,6 +671,9 @@ dumb_ptr<flooritem_data> map_id_is_item(BlockId id)
 
 Option<Borrowed<map_local>> map_mapname2mapid(MapName);
 int map_mapname2ipport(MapName, Borrowed<IP4Address>, Borrowed<int>);
+/// Resolve a map name to another server's address: the 0x2b04
+/// shadow table (remote announcements for maps we host) wins.
+int map_otheripport(MapName, Borrowed<IP4Address>, Borrowed<int>);
 int map_setipport(MapName name, IP4Address ip, int port);
 void map_addiddb(dumb_ptr<block_list>);
 void map_deliddb(dumb_ptr<block_list> bl);

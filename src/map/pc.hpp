@@ -92,6 +92,8 @@ IOff0 pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos);
 int pc_walktoxy(dumb_ptr<map_session_data>, int, int);
 int pc_stop_walking(dumb_ptr<map_session_data>, int);
 int pc_setpos(dumb_ptr<map_session_data>, MapName, int, int, BeingRemoveWhy);
+// Move a player to another server hosting their map (drain, 0x382a).
+int pc_evacuate(dumb_ptr<map_session_data>);
 void pc_setsavepoint(dumb_ptr<map_session_data>, MapName, int, int);
 
 ADDITEM pc_checkadditem(dumb_ptr<map_session_data>, ItemNameId, int);
