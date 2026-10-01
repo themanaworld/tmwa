@@ -81,6 +81,9 @@
 #include "storage.hpp"
 #include "trade.hpp"
 
+#include "../proto2/char-map.hpp"
+#include "../wire/packets.hpp"
+
 #include "../poison.hpp"
 
 
@@ -1540,6 +1543,12 @@ void term_func(void)
     // the saves out.
     if (char_session)
     {
+        // Tell the char server (tmwa-gate) first that the map is
+        // going away, so held clients aren't mistaken for players
+        // disconnected on their own.
+        Packet_Fixed<0x2b17> fixed_17;
+        fixed_17.magic_packet_id = 0x2b17;
+        send_fpacket<0x2b17, 2>(char_session, fixed_17);
         for (io::FD i : iter_fds())
         {
             Session *s = get_session(i);

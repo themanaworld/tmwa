@@ -5768,6 +5768,19 @@ def build_context():
             Live the single life again.
         ''',
     )
+    char_map.r(0x2b17, 'server shutdown',
+        fixed=[
+            at(0, u16, 'packet id'),
+        ],
+        fixed_size=2,
+        pre=[],
+        post=[],
+        desc='''
+            Map server is shutting down; sent by term_func before
+            the client teardown so tmwa-gate can tell a map
+            restart from a per-player disconnect.
+        ''',
+    )
     # 2bfa/2bfb are injected above
 
     # TOC_INTERMAP

@@ -197,7 +197,23 @@ void connect_client(Session *ls)
         perror("accept");
         return;
     }
-    if (fd.uncast_dammit() >= SOFT_LIMIT)
+    // TMWA_FD_SOFT_LIMIT is test-only: opening ~975 client
+    // connections before the 15 s auth timeout reaps them is not
+    // possible against a real map tick rate. Anything outside
+    // 1..=SOFT_LIMIT (including non-numeric garbage) is ignored, and
+    // raising it above SOFT_LIMIT would let fds reach FD_SETSIZE.
+    static const int soft_limit = []()
+    {
+        const char *v = getenv("TMWA_FD_SOFT_LIMIT");
+        if (v && *v)
+        {
+            int n = atoi(v);
+            if (n >= 1 && n <= static_cast<int>(SOFT_LIMIT))
+                return n;
+        }
+        return static_cast<int>(SOFT_LIMIT);
+    }();
+    if (fd.uncast_dammit() >= soft_limit)
     {
         FPRINTF(stderr, "softlimit reached, disconnecting : %d\n"_fmt, fd.uncast_dammit());
         fd.shutdown(SHUT_RDWR);

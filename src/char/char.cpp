@@ -2139,6 +2139,18 @@ void parse_frommap(Session *ms)
                 }
             }
 
+                // tmwa-gate-only notice; consume and ignore so the
+                // link stays up for the 0x2b01 saves that follow.
+            case 0x2b17:
+            {
+                Packet_Fixed<0x2b17> fixed;
+                rv = recv_fpacket<0x2b17, 2>(ms, fixed);
+                if (rv != RecvResult::Complete)
+                    break;
+                FPRINTF(stderr, "map server is shutting down\n"_fmt);
+                break;
+            }
+
                 // Map server is requesting a divorce
             case 0x2b16:
             {
