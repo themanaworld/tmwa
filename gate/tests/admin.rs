@@ -7,7 +7,6 @@
 //!   * `getcount` — a line "<server name> : <count>"
 #![allow(clippy::await_holding_lock)]
 
-use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 use tmwa_gate::db::Db;
@@ -43,8 +42,13 @@ fn test_state() -> std::sync::Arc<tmwa_gate::serve::state::State> {
         .output()
         .unwrap();
     assert!(out.status.success(), "import: {out:?}");
-    let cfg =
-        tmwa_gate::config::Config::load(&PathBuf::from("/home/bjorn/gate-run/gate.toml")).unwrap();
+    // config defaults, with every writable path inside the temp dir
+    let mut cfg = tmwa_gate::config::Config::default();
+    cfg.gate.db = db_path.clone();
+    cfg.gate.gm_account_file = dir.join("gm_account.txt");
+    cfg.gate.online_txt = dir.join("online.txt");
+    cfg.gate.online_html = dir.join("online.html");
+    cfg.gate.admin_socket = dir.join("gate.sock");
     let db = tmwa_gate::db::Db::open(&db_path).unwrap();
     std::sync::Arc::new(tmwa_gate::serve::state::State::new(
         cfg,

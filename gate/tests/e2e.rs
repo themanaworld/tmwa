@@ -3,8 +3,10 @@
 //! Disabled unless TMWA_E2E=1; connection details come from env:
 #![allow(clippy::field_reassign_with_default)]
 #![allow(clippy::collapsible_if)]
-//!   TMWA_E2E_ADDR   client port (default 127.0.0.1:16901)
-//!   TMWA_E2E_MAPLINK map-link port (default 127.0.0.1:6121)
+//!   TMWA_E2E_ADDR   client listen addr (default 127.0.0.1:16911)
+//!   TMWA_E2E_MAPLINK map-link listen addr (default 127.0.0.1:6131)
+//!   TMWA_E2E_HTTP   http/websocket listen addr (default 127.0.0.1:8081)
+//!   TMWA_E2E_MAPPORT  tmwa-map client port (default 5122)
 //!   TMWA_E2E_USER / TMWA_E2E_PASS  account (default spiketest/spikepass)
 //!   TMWA_E2E_MAPUSER/_MAPPASS    map-link auth (default s1/p1)
 //!   TMWA_E2E_SAVE_DIR save dir holding athena.txt/party.txt/...
@@ -12,19 +14,24 @@
 //!   TMWA_E2E_ACCOUNT_TXT  account.txt path
 //!                    (default ~/projects/tmw/serverdata/login/save)
 //!   TMWA_E2E_RUNDIR  gate runtime dir for the fresh DB/config/logs
-//!                    (default ~/gate-run)
+//!                    (default $TMPDIR/tmwa-gate-e2e-<pid>-<n>)
+//!   TMWA_E2E_MAPBIN  tmwa-map binary (default ~/tmw-test/prefix/bin)
+//!   TMWA_E2E_MAPDIR  tmwa-map working dir holding conf/, npc/, db/
+//!                    (default ~/projects/tmw/serverdata/world/map)
 //!
-//! The test imports a fresh DB from the save fixtures and
-//! (re)spawns `tmwa-gate serve` itself, so each run starts from a
-//! clean world regardless of what previous runs left behind.
+//! The tests run their own `tmwa-gate serve` + `tmwa-map` on ports
+//! distinct from the defaults, in a fresh rundir per test holding
+//! every writable file (config, DB, logs, socket, mapreg/gm log).
+//! Spawned processes are tracked by Child handle and killed on drop;
+//! nothing touches a stack started outside the test.
 
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command};
 use std::time::Duration;
 
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
-
-use std::process::Command;
 
 use tmwa_gate::db::Db;
 use tmwa_gate::net::framing::{Packet, PacketFramer};
@@ -33,6 +40,29 @@ use tmwa_gate::proto::*;
 
 fn env(k: &str, d: &str) -> String {
     std::env::var(k).unwrap_or_else(|_| d.into())
+}
+
+/// Client listen addr the gate binds and clients connect to.
+fn gate_addr() -> std::net::SocketAddr {
+    env("TMWA_E2E_ADDR", "127.0.0.1:16911").parse().unwrap()
+}
+/// Map-link listen addr: the gate binds it, tmwa-map connects to it.
+fn maplink_addr() -> std::net::SocketAddr {
+    env("TMWA_E2E_MAPLINK", "127.0.0.1:6131").parse().unwrap()
+}
+/// HTTP/WS listen addr of the gate.
+fn http_addr() -> std::net::SocketAddr {
+    env("TMWA_E2E_HTTP", "127.0.0.1:8081").parse().unwrap()
+}
+/// Client-facing port tmwa-map listens on and advertises in 0x2af8.
+fn map_port() -> u16 {
+    env("TMWA_E2E_MAPPORT", "5122").parse().unwrap()
+}
+fn map_user() -> String {
+    env("TMWA_E2E_MAPUSER", "s1").replace('\'', "")
+}
+fn map_pass() -> String {
+    env("TMWA_E2E_MAPPASS", "p1").replace('\'', "")
 }
 
 /// The e2e tests own the whole environment (DB file, gate, map)
@@ -49,7 +79,7 @@ struct Client {
 
 impl Client {
     async fn connect() -> Client {
-        let s = TcpStream::connect(env("TMWA_E2E_ADDR", "127.0.0.1:16901"))
+        let s = TcpStream::connect(gate_addr())
             .await
             .expect("connect client port");
         s.set_nodelay(true).unwrap();
@@ -268,12 +298,253 @@ fn whisper_pkt(name: &str, msg: &str) -> Vec<u8> {
     v
 }
 
-/// Import a fresh DB from the save fixtures and (re)start the gate.
-/// The running map server reconnects to the new gate on its own
-/// timer (char conf connect_retry ~ 15 s).
-fn fresh_gate() {
+/// Everything one e2e run owns: a rundir holding every writable
+/// file plus the spawned gate/map processes, tracked by handle and
+/// killed on drop (also on panic unwind).
+struct E2e {
+    rundir: PathBuf,
+    mapdir: PathBuf,
+    db: PathBuf,
+    gate: Option<Child>,
+    map: Option<Child>,
+}
+
+impl E2e {
+    fn gate_conf(&self) -> PathBuf {
+        self.rundir.join("gate.toml")
+    }
+    fn db_path(&self) -> PathBuf {
+        // TMWA_E2E_DB is an escape hatch; normally the rundir DB.
+        match std::env::var("TMWA_E2E_DB") {
+            Ok(p) => PathBuf::from(p),
+            Err(_) => self.db.clone(),
+        }
+    }
+    fn gate_log(&self) -> PathBuf {
+        self.rundir.join("gate.log")
+    }
+    fn map_stdout(&self) -> PathBuf {
+        self.rundir.join("map.stdout.log")
+    }
+    fn map_stderr(&self) -> PathBuf {
+        self.rundir.join("map.stderr.log")
+    }
+    fn socket(&self) -> PathBuf {
+        self.rundir.join("gate.sock")
+    }
+    /// pid of the tracked tmwa-map child, if it is running.
+    fn map_pid(&self) -> Option<u32> {
+        self.map.as_ref().map(|c| c.id())
+    }
+
+    /// Spawn `tmwa-gate serve` on the given rundir config.
+    fn spawn_gate(&mut self, conf: &str) {
+        self.kill_gate();
+        let log = std::fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(self.gate_log())
+            .unwrap();
+        let child = Command::new(env!("CARGO_BIN_EXE_tmwa-gate"))
+            .args(["serve", "--config"])
+            .arg(self.rundir.join(conf))
+            .env("RUST_LOG", "debug")
+            .stdout(log.try_clone().unwrap())
+            .stderr(log)
+            .spawn()
+            .expect("spawn tmwa-gate");
+        self.gate = Some(child);
+    }
+
+    fn kill_gate(&mut self) {
+        if let Some(mut c) = self.gate.take() {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+    }
+
+    /// Spawn tmwa-map with the rundir master conf as argv (cwd =
+    /// mapdir so the cwd-relative conf/, npc/, db/ paths resolve).
+    fn spawn_map(&mut self) {
+        self.spawn_map_env(&[]);
+    }
+    fn spawn_map_env(&mut self, extra_env: &[(&str, &str)]) {
+        self.reap_map();
+        let mut cmd = Command::new(env(
+            "TMWA_E2E_MAPBIN",
+            &format!(
+                "{}/tmw-test/prefix/bin/tmwa-map",
+                std::env::var("HOME").unwrap()
+            ),
+        ));
+        for (k, v) in extra_env {
+            cmd.env(k, v);
+        }
+        cmd.current_dir(&self.mapdir)
+            .arg(self.rundir.join("e2e-tmwa-map.conf"))
+            .stdout(append_log(&self.map_stdout()))
+            .stderr(append_log(&self.map_stderr()));
+        self.map = Some(cmd.spawn().expect("spawn tmwa-map"));
+    }
+
+    /// Signal the tracked map child and reap it.
+    fn kill_map(&mut self, sig: &str) {
+        if let Some(mut c) = self.map.take() {
+            let _ = Command::new("kill")
+                .arg(sig)
+                .arg(c.id().to_string())
+                .status();
+            let _ = c.wait();
+        }
+    }
+
+    /// Reap a map child that died on its own (no signal sent).
+    fn reap_map(&mut self) {
+        if let Some(mut c) = self.map.take() {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+    }
+
+    /// Restart the gate with `hold_timeout_secs = <secs>` injected
+    /// into a copy of gate.toml; the map reconnects on its own.
+    fn restart_gate_hold_timeout(&mut self, secs: u64) {
+        let toml = std::fs::read_to_string(self.gate_conf()).unwrap();
+        let toml = toml.replace("\n[map]", &format!("\nhold_timeout_secs = {secs}\n\n[map]"));
+        std::fs::write(self.rundir.join("gate-hold.toml"), &toml).unwrap();
+        self.spawn_gate("gate-hold.toml");
+    }
+
+    fn admin_cmd(&self, args: &[&str]) -> String {
+        let out = Command::new(env!("CARGO_BIN_EXE_tmwa-gate"))
+            .arg("admin")
+            .arg("--socket")
+            .arg(self.socket())
+            .args(args)
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).to_string()
+    }
+
+    /// Block until the map link reports a live map server.
+    fn wait_map_up_sync(&self) {
+        for _ in 0..150 {
+            if self.admin_cmd(&["status"]).contains("\"id\"") {
+                return;
+            }
+            std::thread::sleep(Duration::from_secs(1));
+        }
+        panic!("map server never registered");
+    }
+
+    /// Wait until the map-link admin reports a live map server.
+    async fn wait_map_up(&self) {
+        for _ in 0..80 {
+            let st = self.admin_cmd(&["status"]);
+            if st.contains("\"id\"") {
+                return;
+            }
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+        panic!("map server never re-registered");
+    }
+}
+
+impl Drop for E2e {
+    fn drop(&mut self) {
+        self.reap_map();
+        self.kill_gate();
+        // the rundir stays in $TMPDIR for post-mortem debugging
+        eprintln!("e2e: rundir was {}", self.rundir.display());
+    }
+}
+
+fn append_log(p: &Path) -> std::fs::File {
+    std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(p)
+        .unwrap()
+}
+
+/// Write the tmwa-map argv confs: a master conf mirroring
+/// conf/tmwa-map.conf but with `map_conf:` pointed at our rundir
+/// file, which imports conf/map_athena.conf and then overrides the
+/// link/identity keys and every writable path. Config assignment
+/// order applies (later lines win, including over the map_local.conf
+/// import inside map_athena.conf), and all relative paths resolve
+/// against the spawn cwd (mapdir).
+fn write_map_confs(rundir: &Path, mapdir: &Path) {
+    let stock = std::fs::read_to_string(mapdir.join("conf/tmwa-map.conf"))
+        .expect("read conf/tmwa-map.conf");
+    let mut master = String::new();
+    let mut map_conf_done = false;
+    for line in stock.lines() {
+        let t = line.trim_start();
+        if t.starts_with("map_conf:") && !t.starts_with("//") {
+            // first map_conf becomes ours; a second one would
+            // re-import map_athena.conf and double-load NPCs
+            if !map_conf_done {
+                master.push_str(&format!(
+                    "map_conf: {}\n",
+                    rundir.join("e2e-map.conf").display()
+                ));
+                map_conf_done = true;
+            }
+            continue;
+        }
+        master.push_str(line);
+        master.push('\n');
+    }
+    assert!(map_conf_done, "conf/tmwa-map.conf has no map_conf line");
+    std::fs::write(rundir.join("e2e-tmwa-map.conf"), master).unwrap();
+
+    let maplink = maplink_addr();
+    let char_ip = if maplink.ip().is_unspecified() {
+        std::net::Ipv4Addr::LOCALHOST.to_string()
+    } else {
+        maplink.ip().to_string()
+    };
+    let conf = format!(
+        "// e2e map conf: stock world config first (pulls in\n\
+         // conf/map_local.conf), then the e2e overrides win.\n\
+         import: conf/map_athena.conf\n\
+         userid: {user}\n\
+         passwd: {pass}\n\
+         char_ip: {char_ip}\n\
+         char_port: {char_port}\n\
+         map_ip: 127.0.0.1\n\
+         map_port: {map_port}\n\
+         trusted_proxy_ip: 127.0.0.1\n\
+         mapreg_txt: {rundir}/mapreg.txt\n\
+         gm_log: {rundir}/gm.log\n\
+         log_file: {rundir}/map.log\n",
+        user = map_user(),
+        pass = map_pass(),
+        char_port = maplink.port(),
+        map_port = map_port(),
+        rundir = rundir.display(),
+    );
+    std::fs::write(rundir.join("e2e-map.conf"), conf).unwrap();
+}
+
+/// Import a fresh DB from the save fixtures, write all config into
+/// a fresh rundir and spawn this test's own gate + map there.
+fn fresh_gate() -> E2e {
     let home = std::env::var("HOME").unwrap();
-    let rundir = env("TMWA_E2E_RUNDIR", &format!("{home}/gate-run"));
+    static RUN: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let rundir = match std::env::var("TMWA_E2E_RUNDIR") {
+        Ok(d) => PathBuf::from(d),
+        Err(_) => std::env::temp_dir().join(format!(
+            "tmwa-gate-e2e-{}-{}",
+            std::process::id(),
+            RUN.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        )),
+    };
+    let mapdir = PathBuf::from(env(
+        "TMWA_E2E_MAPDIR",
+        &format!("{home}/projects/tmw/serverdata/world/map"),
+    ));
     let account_txt = env(
         "TMWA_E2E_ACCOUNT_TXT",
         &format!("{home}/projects/tmw/serverdata/login/save/account.txt"),
@@ -282,16 +553,36 @@ fn fresh_gate() {
         "TMWA_E2E_SAVE_DIR",
         &format!("{home}/projects/tmw/serverdata/world/save"),
     );
-    let db = format!("{rundir}/gate.db");
+    // Only wipe a rundir the tests created before (or a fresh one):
+    // TMWA_E2E_RUNDIR=~/gate-run must not delete the live runtime dir.
+    let marker = rundir.join(".e2e-rundir");
+    if rundir.exists() && !marker.exists() {
+        let empty = std::fs::read_dir(&rundir)
+            .map(|mut d| d.next().is_none())
+            .unwrap_or(false);
+        assert!(
+            empty,
+            "TMWA_E2E_RUNDIR {} is not empty and has no .e2e-rundir marker; refusing to reuse it",
+            rundir.display()
+        );
+    }
+    let _ = std::fs::remove_dir_all(&rundir);
+    std::fs::create_dir_all(&rundir).unwrap();
+    std::fs::write(&marker, b"").unwrap();
+    let db = rundir.join("gate.db");
     let bin = env!("CARGO_BIN_EXE_tmwa-gate");
 
     // fresh DB (including WAL sidecars, or the new file replays
     // the old journal)
     let _ = std::fs::remove_file(&db);
-    let _ = std::fs::remove_file(format!("{db}-wal"));
-    let _ = std::fs::remove_file(format!("{db}-shm"));
+    let _ = std::fs::remove_file(format!("{}-wal", db.display()));
+    let _ = std::fs::remove_file(format!("{}-shm", db.display()));
     let out = Command::new(bin)
-        .args(["import", "--db", &db, "--save-dir", &save_dir])
+        .arg("import")
+        .arg("--db")
+        .arg(&db)
+        .arg("--save-dir")
+        .arg(&save_dir)
         .arg("--account-txt")
         .arg(&account_txt)
         .output()
@@ -299,116 +590,57 @@ fn fresh_gate() {
     eprintln!("import: {}", String::from_utf8_lossy(&out.stdout));
     assert!(out.status.success(), "import failed: {:?}", out);
 
-    // fresh config (gm file + online files from the run dir)
+    // GM levels for the fixture accounts (same dir as account.txt);
+    // fall back to granting the first imported account full GM.
+    let gm = Path::new(&account_txt)
+        .parent()
+        .unwrap()
+        .join("gm_account.txt");
+    let gm_txt = std::fs::read_to_string(&gm).unwrap_or_else(|_| "2000000 99\n".into());
+    std::fs::write(rundir.join("gm_account.txt"), gm_txt).unwrap();
+
+    // gate config: everything writable lives in the rundir, and the
+    // three listen ports differ from a live stack's defaults.
+    let addr = gate_addr();
+    let maplink = maplink_addr();
     let toml = format!(
-        "[gate]\nlisten = '0.0.0.0:16901'\npublic_ip = '127.0.0.1'\npublic_port = 16901\ndb = '{db}'\ngm_account_file = '{rundir}/gm_account.txt'\nonline_txt = '{rundir}/online.txt'\nonline_html = '{rundir}/online.html'\nadmin_socket = '{rundir}/gate.sock'\n\n[map]\nlisten = '127.0.0.1:6121'\nuserid = '{}'\npassword = '{}'\n\n[login]\nnew_account = true\n\n[char]\nserver_name = 'The Mana World'\nstart_point = '001-1.gat,32,23'\nchar_name_letters = [\"$ &\'()*+,-.\", \"0123456789\", \";<=>?\", \"ABCDEFGHIJKLMNOPRSTQUVWXYZ\", \"\\\\^_`\", \"abcdefghijklmnoprstquvwxyz\"]\n",
-        env("TMWA_E2E_MAPUSER", "s1").replace('\'', ""),
-        env("TMWA_E2E_MAPPASS", "p1").replace('\'', ""),
+        "[gate]\nlisten = '{addr}'\npublic_ip = '{ip}'\npublic_port = {port}\ndb = '{db}'\ngm_account_file = '{rundir}/gm_account.txt'\nonline_txt = '{rundir}/online.txt'\nonline_html = '{rundir}/online.html'\nadmin_socket = '{rundir}/gate.sock'\n\n[map]\nlisten = '{maplink}'\nuserid = '{muser}'\npassword = '{mpass}'\n\n[login]\nnew_account = true\n\n[char]\nserver_name = 'The Mana World'\nstart_point = '001-1.gat,32,23'\nchar_name_letters = [\"$ &\'()*+,-.\", \"0123456789\", \";<=>?\", \"ABCDEFGHIJKLMNOPRSTQUVWXYZ\", \"\\\\^_`\", \"abcdefghijklmnoprstquvwxyz\"]\n\n[http]\nlisten = '{http}'\nws_path = '/tmwa'\ncaptcha = false\n",
+        ip = addr.ip(),
+        port = addr.port(),
+        db = db.display(),
+        rundir = rundir.display(),
+        muser = map_user(),
+        mpass = map_pass(),
+        http = http_addr(),
     );
-    std::fs::write(format!("{rundir}/gate.toml"), &toml).unwrap();
+    std::fs::write(rundir.join("gate.toml"), &toml).unwrap();
+    write_map_confs(&rundir, &mapdir);
 
-    // (re)start the map too: it keeps in-memory state (parties,
-    // online set) that must match the fresh DB
-    #[allow(clippy::zombie_processes)]
-    let _ = Command::new("pkill").args(["-x", "tmwa-map"]).status();
-    spawn_map();
-    std::thread::sleep(Duration::from_secs(2));
+    let mut fx = E2e {
+        rundir,
+        mapdir,
+        db,
+        gate: None,
+        map: None,
+    };
+    // the gate first so the map's connect succeeds on its first try;
+    // the map takes tens of seconds to load its world before it
+    // even dials the link, so startup order is not load-bearing.
+    fx.spawn_gate("gate.toml");
+    fx.spawn_map();
+    eprintln!("e2e: rundir {}", fx.rundir.display());
 
-    // (re)start the gate on the fresh DB; stays running after the
-    // test so manual use continues
-    #[allow(clippy::zombie_processes)]
-    let _ = Command::new("pkill").args(["-x", "tmwa-gate"]).status();
-    std::thread::sleep(Duration::from_secs(1));
-    let log = std::fs::File::create(format!("{rundir}/gate.log")).unwrap();
-    #[allow(clippy::zombie_processes)]
-    let _child = Command::new(bin)
-        .args(["serve", "--config", &format!("{rundir}/gate.toml")])
-        .env("RUST_LOG", "debug")
-        .stdout(log.try_clone().unwrap())
-        .stderr(log)
-        .spawn()
-        .expect("spawn tmwa-gate");
-    drop(_child);
-
-    // wait for the client port, then for the map link to have a
-    // map registered (the running tmwa-map reconnects itself)
-    for _ in 0..50 {
-        if std::net::TcpStream::connect("127.0.0.1:16901").is_ok() {
+    // wait for the client port, then for the map to register:
+    // returning earlier races tests whose char stage has no
+    // no-map retry (e.g. the ws flow)
+    for _ in 0..100 {
+        if std::net::TcpStream::connect(addr).is_ok() {
             break;
         }
         std::thread::sleep(Duration::from_millis(200));
     }
-    std::thread::sleep(Duration::from_secs(1));
-}
-
-/// Spawn tmwa-map (detached).
-fn spawn_map() {
-    spawn_map_env(&[]);
-}
-fn spawn_map_env(extra_env: &[(&str, &str)]) {
-    let home = std::env::var("HOME").unwrap();
-    #[allow(clippy::zombie_processes)]
-    let mut cmd = Command::new(env(
-        "TMWA_E2E_MAPBIN",
-        &format!("{home}/tmw-test/prefix/bin/tmwa-map"),
-    ));
-    for (k, v) in extra_env {
-        cmd.env(k, v);
-    }
-    cmd.current_dir(env(
-        "TMWA_E2E_MAPDIR",
-        &format!("{home}/projects/tmw/serverdata/world/map"),
-    ))
-    .stdout(
-        std::fs::OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open("/tmp/e2e-map.log")
-            .unwrap(),
-    )
-    .stderr(
-        std::fs::OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open("/tmp/e2e-map.err")
-            .unwrap(),
-    );
-    #[allow(clippy::zombie_processes)]
-    let _child = cmd.spawn().expect("spawn tmwa-map");
-}
-
-fn kill_map(sig: &str) {
-    let _ = Command::new("pkill").args([sig, "-x", "tmwa-map"]).status();
-}
-
-async fn admin_cmd(args: &[&str]) -> String {
-    let rundir = env(
-        "TMWA_E2E_RUNDIR",
-        &format!("{}/gate-run", std::env::var("HOME").unwrap()),
-    );
-    let mut cmd: Vec<String> = vec![
-        "admin".into(),
-        "--socket".into(),
-        format!("{rundir}/gate.sock"),
-    ];
-    cmd.extend(args.iter().map(|s| s.to_string()));
-    let out = Command::new(env!("CARGO_BIN_EXE_tmwa-gate"))
-        .args(&cmd)
-        .output()
-        .unwrap();
-    String::from_utf8_lossy(&out.stdout).to_string()
-}
-
-/// Wait until the map-link admin reports a live map server.
-async fn wait_map_up() {
-    for _ in 0..80 {
-        let st = admin_cmd(&["status"]).await;
-        if st.contains("\"id\"") {
-            return;
-        }
-        tokio::time::sleep(Duration::from_secs(1)).await;
-    }
-    panic!("map server never re-registered");
+    fx.wait_map_up_sync();
+    fx
 }
 
 #[tokio::test]
@@ -418,7 +650,7 @@ async fn e2e_all() {
         return;
     }
     let _e2e_guard = e2e_lock();
-    fresh_gate();
+    let fx = fresh_gate();
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
 
@@ -435,13 +667,7 @@ async fn e2e_all() {
     let slot = chars[0].char_num;
     let sel = char_select(&mut c, slot).await;
     assert_eq!(sel.char_id.0, char_id);
-    assert_eq!(
-        sel.port as u16,
-        env("TMWA_E2E_ADDR", "")
-            .parse::<std::net::SocketAddr>()
-            .map(|a| a.port())
-            .unwrap_or(16901)
-    );
+    assert_eq!(sel.port as u16, gate_addr().port());
     drop(c);
 
     let mut c = Client::connect().await;
@@ -478,11 +704,7 @@ async fn e2e_all() {
 
     // 4. password rehash happened after the first login
     {
-        let dbp = env(
-            "TMWA_E2E_DB",
-            &format!("{}/gate-run/gate.db", std::env::var("HOME").unwrap()),
-        );
-        let db = Db::open(std::path::Path::new(&dbp)).unwrap();
+        let db = Db::open(&fx.db_path()).unwrap();
         let row = db.find_account_by_name(&user).unwrap().unwrap();
         assert_eq!(row.2, "argon2id", "expected rehash after login");
         eprintln!("e2e: password rehashed to argon2id");
@@ -650,14 +872,12 @@ async fn e2e_all() {
 
     // ## and # vars via the map link (acting as a second map server)
     {
-        let link = TcpStream::connect(env("TMWA_E2E_MAPLINK", "127.0.0.1:6121"))
-            .await
-            .unwrap();
+        let link = TcpStream::connect(maplink_addr()).await.unwrap();
         let (lrd, mut lwr) = link.into_split();
         let mut lfr = PacketFramer::new(lrd);
         let mut p = P2AF8::default();
-        p.account_name = f24(&env("TMWA_E2E_MAPUSER", "s1"));
-        p.account_pass = f24(&env("TMWA_E2E_MAPPASS", "p1"));
+        p.account_name = f24(&map_user());
+        p.account_pass = f24(&map_pass());
         p.ip = Ip4Address([127, 0, 0, 1]);
         p.port = 5999;
         let mut v = Vec::new();
@@ -723,11 +943,7 @@ async fn e2e_all() {
     }
     // verify vars reached the DB
     {
-        let dbp = env(
-            "TMWA_E2E_DB",
-            &format!("{}/gate-run/gate.db", std::env::var("HOME").unwrap()),
-        );
-        let db = Db::open(std::path::Path::new(&dbp)).unwrap();
+        let db = Db::open(&fx.db_path()).unwrap();
         let v2 = db.get_account_vars(acct as i64, 2).unwrap();
         assert!(v2.iter().any(|(n, v)| n == "##e2e_var" && *v == 4242));
         let v1 = db.get_account_vars(acct as i64, 1).unwrap();
@@ -738,7 +954,7 @@ async fn e2e_all() {
     // 7. online.txt should list two players (poll: the file is
     // refreshed from the map's periodic 0x2aff)
     {
-        let txt = format!("{}/gate-run/online.txt", std::env::var("HOME").unwrap());
+        let txt = fx.rundir.join("online.txt");
         let mut ok = false;
         for _ in 0..15 {
             if let Ok(t) = std::fs::read_to_string(&txt) {
@@ -777,7 +993,7 @@ async fn e2e_restart() {
         return;
     }
     let _e2e_guard = e2e_lock();
-    fresh_gate();
+    let mut fx = fresh_gate();
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
 
@@ -799,7 +1015,7 @@ async fn e2e_restart() {
         tokio::time::sleep(Duration::from_secs(1)).await;
         let t_kill = std::time::Instant::now();
 
-        kill_map(sig);
+        fx.kill_map(sig);
         // SIGTERM: the map's shutdown notice reaches the gate before
         // the client sockets close, so the hold announcement must
         // land almost at once. SIGKILL goes through the 3 s grace.
@@ -821,8 +1037,8 @@ async fn e2e_restart() {
         }
         // the map must come back before hold_timeout
         tokio::time::sleep(Duration::from_secs(2)).await;
-        spawn_map();
-        wait_map_up().await;
+        fx.spawn_map();
+        fx.wait_map_up().await;
         // rejoin: client sees 0x0091 (map-change) from the gate
         let p = c.wait(0x0091).await;
         let p91 = P0091::decode(&p.bytes).unwrap();
@@ -900,9 +1116,9 @@ async fn e2e_restart() {
             .await
             .unwrap();
         tokio::time::sleep(Duration::from_secs(3)).await;
-        kill_map("-TERM");
-        spawn_map();
-        wait_map_up().await;
+        fx.kill_map("-TERM");
+        fx.spawn_map();
+        fx.wait_map_up().await;
         let p = c.wait(0x0091).await;
         let p91 = P0091::decode(&p.bytes).unwrap();
         let nm = p91.map_name.to_string_lossy();
@@ -926,14 +1142,14 @@ async fn e2e_restart() {
         c.wr.write_all(&chat_pkt("@item 535 4")).await.unwrap();
         tokio::time::sleep(Duration::from_secs(1)).await;
 
-        let out = admin_cmd(&["drain", "--wait"]).await;
+        let out = fx.admin_cmd(&["drain", "--wait"]);
         assert!(out.contains(r#""unsaved":[]"#), "drain not clean: {out}");
         eprintln!("e2e: drain saved all players");
 
-        kill_map("-TERM");
+        fx.kill_map("-TERM");
         tokio::time::sleep(Duration::from_secs(1)).await;
-        spawn_map();
-        wait_map_up().await;
+        fx.spawn_map();
+        fx.wait_map_up().await;
         c.wait(0x0091).await;
         c.send(|v| P007D::default().encode(v)).await;
         eprintln!("e2e: drain restart rejoined");
@@ -987,9 +1203,9 @@ async fn e2e_restart() {
         }
         let mut ca = mk(&user, &pass).await;
         let mut cb = mk("e2ehelper", "testpass").await;
-        kill_map("-TERM");
-        spawn_map();
-        wait_map_up().await;
+        fx.kill_map("-TERM");
+        fx.spawn_map();
+        fx.wait_map_up().await;
         ca.wait(0x0091).await;
         cb.wait(0x0091).await;
         ca.send(|v| P007D::default().encode(v)).await;
@@ -1007,39 +1223,9 @@ async fn e2e_restart() {
     // ---- scenario 5: hold timeout (restart the gate with a short
     // timeout, kill the map, verify the client gets closed) ----
     {
-        let rundir = env(
-            "TMWA_E2E_RUNDIR",
-            &format!("{}/gate-run", std::env::var("HOME").unwrap()),
-        );
-        // copy the standard config but with an 8s hold timeout
-        // 8s hold timeout, inserted inside the [gate] section
-        let toml = std::fs::read_to_string(format!("{rundir}/gate.toml")).unwrap();
-        let toml = toml.replace("\n[map]", "\nhold_timeout_secs = 8\n\n[map]");
-        std::fs::write(format!("{rundir}/gate-hold.toml"), &toml).unwrap();
-        #[allow(clippy::zombie_processes)]
-        let _ = Command::new("pkill").args(["-x", "tmwa-gate"]).status();
-        std::thread::sleep(Duration::from_secs(1));
-        let bin = env!("CARGO_BIN_EXE_tmwa-gate");
-        #[allow(clippy::zombie_processes)]
-        let _ = Command::new(bin)
-            .args(["serve", "--config", &format!("{rundir}/gate-hold.toml")])
-            .stdout(
-                std::fs::OpenOptions::new()
-                    .append(true)
-                    .create(true)
-                    .open(format!("{rundir}/gate.log"))
-                    .unwrap(),
-            )
-            .stderr(
-                std::fs::OpenOptions::new()
-                    .append(true)
-                    .create(true)
-                    .open(format!("{rundir}/gate.log"))
-                    .unwrap(),
-            )
-            .spawn();
-        tokio::time::sleep(Duration::from_secs(2)).await;
-        wait_map_up().await;
+        fx.restart_gate_hold_timeout(8);
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        fx.wait_map_up().await;
 
         let mut c = Client::connect().await;
         let (acct, id1, id2) = login(&mut c, &user, &pass).await;
@@ -1052,7 +1238,7 @@ async fn e2e_restart() {
         let mut c = Client::connect().await;
         map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
 
-        kill_map("-KILL");
+        fx.kill_map("-KILL");
         // no restart: the hold should expire in ~8s and close us
         let t0 = std::time::Instant::now();
         loop {
@@ -1069,7 +1255,7 @@ async fn e2e_restart() {
                 Err(_) => panic!("hold never timed out"),
             }
         }
-        spawn_map();
+        fx.spawn_map();
     }
     eprintln!("e2e: restart scenarios done");
 }
@@ -1083,7 +1269,7 @@ async fn e2e_restart_npc() {
         return;
     }
     let _e2e_guard = e2e_lock();
-    fresh_gate();
+    let mut fx = fresh_gate();
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
 
@@ -1094,14 +1280,7 @@ async fn e2e_restart_npc() {
     async fn conn2() -> Client {
         let sock = tokio::net::TcpSocket::new_v4().unwrap();
         sock.bind("127.0.0.2:0".parse().unwrap()).unwrap();
-        let s = sock
-            .connect(
-                env("TMWA_E2E_ADDR", "127.0.0.1:16901")
-                    .parse::<std::net::SocketAddr>()
-                    .unwrap(),
-            )
-            .await
-            .expect("connect 127.0.0.2");
+        let s = sock.connect(gate_addr()).await.expect("connect 127.0.0.2");
         s.set_nodelay(true).unwrap();
         let (rd, wr) = s.into_split();
         Client {
@@ -1207,10 +1386,10 @@ async fn e2e_restart_npc() {
         eprintln!("e2e: npc dialog open (block {npc_id})");
     }
 
-    kill_map("-TERM");
+    fx.kill_map("-TERM");
     tokio::time::sleep(Duration::from_secs(2)).await;
-    spawn_map();
-    wait_map_up().await;
+    fx.spawn_map();
+    fx.wait_map_up().await;
     // during rejoin the gate must close the dialog (0x00b6) before
     // the 0x0091 map change
     let mut saw_b6 = false;
@@ -1238,7 +1417,7 @@ async fn e2e_restart_npc() {
 
     // the map must have logged the real client IP (127.0.0.2) in the
     // pre-auth line: trusted_proxy_ip lets the gate pass it through
-    let mlog = std::fs::read_to_string("/tmp/e2e-map.log").unwrap_or_default();
+    let mlog = std::fs::read_to_string(fx.map_stdout()).unwrap_or_default();
     assert!(
         mlog.contains("[127.0.0.2]"),
         "map never saw the real client IP"
@@ -1249,38 +1428,9 @@ async fn e2e_restart_npc() {
     // restart the gate with an 8s hold_timeout, kill the map, and
     // don't restart it: the client must be closed
     {
-        let rundir = env(
-            "TMWA_E2E_RUNDIR",
-            &format!("{}/gate-run", std::env::var("HOME").unwrap()),
-        );
-        // 8s hold timeout, inserted inside the [gate] section
-        let toml = std::fs::read_to_string(format!("{rundir}/gate.toml")).unwrap();
-        let toml = toml.replace("\n[map]", "\nhold_timeout_secs = 8\n\n[map]");
-        std::fs::write(format!("{rundir}/gate-hold.toml"), &toml).unwrap();
-        #[allow(clippy::zombie_processes)]
-        let _ = Command::new("pkill").args(["-x", "tmwa-gate"]).status();
-        std::thread::sleep(Duration::from_secs(1));
-        let bin = env!("CARGO_BIN_EXE_tmwa-gate");
-        #[allow(clippy::zombie_processes)]
-        let _ = Command::new(bin)
-            .args(["serve", "--config", &format!("{rundir}/gate-hold.toml")])
-            .stdout(
-                std::fs::OpenOptions::new()
-                    .append(true)
-                    .create(true)
-                    .open(format!("{rundir}/gate.log"))
-                    .unwrap(),
-            )
-            .stderr(
-                std::fs::OpenOptions::new()
-                    .append(true)
-                    .create(true)
-                    .open(format!("{rundir}/gate.log"))
-                    .unwrap(),
-            )
-            .spawn();
-        tokio::time::sleep(Duration::from_secs(2)).await;
-        wait_map_up().await;
+        fx.restart_gate_hold_timeout(8);
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        fx.wait_map_up().await;
 
         let mut c = Client::connect().await;
         let (acct, id1, id2) = login(&mut c, &user, &pass).await;
@@ -1293,7 +1443,7 @@ async fn e2e_restart_npc() {
         let mut c = Client::connect().await;
         map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
 
-        kill_map("-KILL");
+        fx.kill_map("-KILL");
         let t0 = std::time::Instant::now();
         loop {
             match tokio::time::timeout(Duration::from_secs(30), c.rd.next()).await {
@@ -1307,7 +1457,7 @@ async fn e2e_restart_npc() {
                 Err(_) => panic!("hold never timed out"),
             }
         }
-        spawn_map();
+        fx.spawn_map();
     }
     eprintln!("e2e: npc/hold-timeout done");
 }
@@ -1375,9 +1525,9 @@ where
 
 impl WsClient {
     async fn connect() -> WsClient {
-        let url = "ws://127.0.0.1:8080/tmwa";
+        let url = format!("ws://{}/tmwa", http_addr());
         let (ws, _) =
-            tokio_tungstenite::connect_async_with_config(tungstenite_url(url), None, false)
+            tokio_tungstenite::connect_async_with_config(tungstenite_url(&url), None, false)
                 .await
                 .expect("ws connect");
         let (wr, rd) = futures_util::StreamExt::split(ws);
@@ -1412,7 +1562,7 @@ async fn e2e_ws() {
         return;
     }
     let _g = e2e_lock();
-    fresh_gate();
+    let mut fx = fresh_gate();
 
     use futures_util::SinkExt;
     let mut c = WsClient::connect().await;
@@ -1549,9 +1699,9 @@ async fn e2e_ws() {
     eprintln!("e2e: ws login+char+map OK");
 
     // hold/rejoin over WS: kill the map, wait for the 0x0091
-    kill_map("-TERM");
-    spawn_map();
-    wait_map_up().await;
+    fx.kill_map("-TERM");
+    fx.spawn_map();
+    fx.wait_map_up().await;
     let mut rejoined = false;
     let mut idle = 0;
     for _ in 0..60 {
@@ -1585,7 +1735,7 @@ async fn e2e_map_full() {
         return;
     }
     let _e2e_guard = e2e_lock();
-    fresh_gate();
+    let mut fx = fresh_gate();
     let user = env("TMWA_E2E_USER", "spiketest");
     let pass = env("TMWA_E2E_PASS", "spikepass");
 
@@ -1595,17 +1745,16 @@ async fn e2e_map_full() {
     // faster than a single filler can open them. tmwa-map honours
     // TMWA_FD_SOFT_LIMIT instead; 150 is just past its own base fds,
     // and ~60 raw conns put every later accept over it.
-    kill_map("-TERM");
+    fx.kill_map("-TERM");
     tokio::time::sleep(Duration::from_secs(1)).await;
-    spawn_map_env(&[("TMWA_FD_SOFT_LIMIT", "150")]);
-    wait_map_up().await;
+    fx.spawn_map_env(&[("TMWA_FD_SOFT_LIMIT", "150")]);
+    fx.wait_map_up().await;
     let script = std::env::temp_dir().join(format!("fdfill-{}.py", std::process::id()));
     std::fs::write(
         &script,
-        "import socket, time, select\nss = []\ndone = False\nattempts = 0\nend = time.time() + 90\nwhile time.time() < end:\n    try:\n        s = socket.create_connection((\"127.0.0.1\", 5121))\n        ss.append(s)\n    except OSError:\n        pass\n    for dead in [x for x in ss[:] if x.fileno() >= 0 and select.select([x], [], [], 0)[0] and not x.recv(1, socket.MSG_PEEK)]:\n        ss.remove(dead)\n    attempts += 1\n    if not done and (len(ss) >= 140 or attempts >= 400):\n        print(len(ss), flush=True); done = True\n    time.sleep(0.02)\n",
+        format!("import socket, time, select\nss = []\ndone = False\nattempts = 0\nend = time.time() + 90\nwhile time.time() < end:\n    try:\n        s = socket.create_connection((\"127.0.0.1\", {port}))\n        ss.append(s)\n    except OSError:\n        pass\n    for dead in [x for x in ss[:] if x.fileno() >= 0 and select.select([x], [], [], 0)[0] and not x.recv(1, socket.MSG_PEEK)]:\n        ss.remove(dead)\n    attempts += 1\n    if not done and (len(ss) >= 140 or attempts >= 400):\n        print(len(ss), flush=True); done = True\n    time.sleep(0.02)\n", port = map_port()),
     )
     .unwrap();
-    #[allow(clippy::zombie_processes)]
     let mut filler = Command::new("sh")
         .arg("-c")
         .arg(format!("exec python3 {}", script.to_string_lossy()))
@@ -1627,27 +1776,13 @@ async fn e2e_map_full() {
     // conn sits in the backlog for tens of seconds. Once the count
     // is stable and past the soft limit, a new conn is accepted and
     // closed immediately.
-    let map_pid = || -> Option<u32> {
-        String::from_utf8_lossy(
-            &Command::new("pgrep")
-                .args(["-x", "tmwa-map"])
-                .output()
-                .ok()?
-                .stdout,
-        )
-        .lines()
-        .next()?
-        .trim()
-        .parse()
-        .ok()
-    };
     let map_fds = |pid: u32| -> usize {
         std::fs::read_dir(format!("/proc/{pid}/fd"))
             .map(|d| d.count())
             .unwrap_or(0)
     };
     let mut hit = false;
-    if let Some(pid) = map_pid() {
+    if let Some(pid) = fx.map_pid() {
         let mut last = 0usize;
         for _ in 0..120 {
             tokio::time::sleep(Duration::from_millis(500)).await;
@@ -1661,7 +1796,7 @@ async fn e2e_map_full() {
         eprintln!("e2e: map fd count stabilised at {last}");
     }
     if !hit {
-        hit = std::fs::read_to_string("/tmp/e2e-map.err")
+        hit = std::fs::read_to_string(fx.map_stderr())
             .map(|l| l.contains("softlimit reached"))
             .unwrap_or(false);
     }
@@ -1718,10 +1853,11 @@ async fn e2e_map_full() {
 
     // release the fd pressure; a fresh login must work again
     let _ = filler.kill();
-    kill_map("-TERM");
+    let _ = filler.wait();
+    fx.kill_map("-TERM");
     tokio::time::sleep(Duration::from_secs(1)).await;
-    spawn_map();
-    wait_map_up().await;
+    fx.spawn_map();
+    fx.wait_map_up().await;
     tokio::time::sleep(Duration::from_secs(2)).await;
     let mut c = Client::connect().await;
     let (acct, id1, _id2) = login(&mut c, &user, &pass).await;
