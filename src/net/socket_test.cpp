@@ -1,5 +1,5 @@
 #include "socket.hpp"
-//    socket_test.cpp - Testsuite for the network event system.
+//    socket_test.cpp - Testsuite for the socket layer.
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,6 +18,9 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <sys/resource.h>
+#include <sys/socket.h>
 
 #include <algorithm>
 #include <vector>
@@ -31,16 +34,129 @@
 
 namespace tmwa
 {
-// defined per-server, so the test provides its own
+// The real deleter is defined per-server; tests never set session_data.
 void SessionDeleter::operator()(SessionData *sd)
 {
     really_delete1 sd;
 }
 
 static
-void test_delete(Session *s)
+void test_delete(Session *)
 {
-    (void)s;
+}
+
+static
+size_t parsed_bytes;
+static
+Session *parsed_session;
+static
+void test_parse(Session *s)
+{
+    parsed_bytes += packet_avail(s);
+    parsed_session = s;
+    packet_discard(s, packet_avail(s));
+}
+
+/// Run send/recv and parse until the given session is accepted and has
+/// consumed all pending input, or too many iterations pass.
+static
+void pump(int rounds)
+{
+    for (int i = 0; i < rounds; i++)
+    {
+        do_sendrecv(100_ms);
+        do_parsepacket();
+    }
+}
+
+static
+int connect_to(Session *ls)
+{
+    struct sockaddr_in addr {};
+    socklen_t alen = sizeof(addr);
+    EXPECT_EQ(0, ::getsockname(ls->fd.uncast_dammit(),
+            reinterpret_cast<struct sockaddr *>(&addr), &alen));
+    int cfd = ::socket(AF_INET, SOCK_STREAM, 0);
+    EXPECT_EQ(0, ::connect(cfd,
+            reinterpret_cast<struct sockaddr *>(&addr), alen));
+    return cfd;
+}
+
+TEST(socket, accept_recv_send)
+{
+    parsed_bytes = 0;
+    parsed_session = nullptr;
+    Session *ls = make_listen_port(0,
+            SessionParsers{.func_parse= test_parse, .func_delete= test_delete});
+    ASSERT_NE(ls, nullptr);
+
+    int cfd = connect_to(ls);
+    ASSERT_GE(cfd, 0);
+    ASSERT_EQ(4, ::send(cfd, "ping", 4, 0));
+
+    // first pump accepts, second pumps the data through recv and parse
+    pump(4);
+    ASSERT_NE(parsed_session, nullptr);
+    EXPECT_EQ(4u, parsed_bytes);
+
+    // queue a reply and check it is flushed back over the wire
+    Byte reply[2] = {Byte{0x12}, Byte{0x34}};
+    ASSERT_TRUE(packet_send(parsed_session, reply, 2));
+    pump(4);
+    char buf[8];
+    ASSERT_EQ(2, ::recv(cfd, buf, sizeof(buf), 0));
+    EXPECT_EQ(buf[0], 0x12);
+    EXPECT_EQ(buf[1], 0x34);
+
+    // client close must set eof, and parsepacket must reap the session
+    int f = parsed_session->fd.uncast_dammit();
+    ::close(cfd);
+    pump(4);
+    EXPECT_EQ(nullptr, get_session(io::FD::cast_dammit(f)));
+
+    delete_session(ls);
+}
+
+TEST(socket, accept_above_fd_setsize)
+{
+    // skip if the hard fd limit is too low to place fds above FD_SETSIZE
+    struct rlimit rl;
+    ASSERT_EQ(0, getrlimit(RLIMIT_NOFILE, &rl));
+    if (rl.rlim_max != RLIM_INFINITY && rl.rlim_max < FD_SETSIZE + 100)
+        GTEST_SKIP() << "hard fd limit too low";
+
+    parsed_bytes = 0;
+    parsed_session = nullptr;
+    Session *ls = make_listen_port(0,
+            SessionParsers{.func_parse= test_parse, .func_delete= test_delete});
+    ASSERT_NE(ls, nullptr);
+
+    // push the accept()ed fd above the old FD_SETSIZE bound
+    std::vector<int> filler;
+    while (true)
+    {
+        int f = ::open("/dev/null", O_RDONLY);
+        if (f < 0)
+            break;
+        filler.push_back(f);
+        if (f >= FD_SETSIZE + 10)
+            break;
+    }
+    ASSERT_GE(filler.back(), FD_SETSIZE + 10);
+
+    int cfd = connect_to(ls);
+    ASSERT_GE(cfd, 0);
+    ASSERT_EQ(4, ::send(cfd, "ping", 4, 0));
+    pump(4);
+    ASSERT_NE(parsed_session, nullptr);
+    EXPECT_GT(parsed_session->fd.uncast_dammit(), FD_SETSIZE);
+    EXPECT_EQ(4u, parsed_bytes);
+
+    delete_session(parsed_session);
+    delete_session(ls);
+    for (int f : filler)
+        ::close(f);
+    ::close(cfd);
 }
 
 /// pretend each byte is part of a longer stream that must stay ordered

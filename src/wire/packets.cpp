@@ -71,6 +71,7 @@ bool packet_send(Session *s, const Byte *data, size_t sz)
     std::copy(data + first, data + sz,
             reinterpret_cast<Byte *>(&s->wdata[0]));
     s->wdata_size += sz;
+    session_want_write(s);
     return true;
 }
 

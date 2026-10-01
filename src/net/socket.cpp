@@ -22,13 +22,16 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <netinet/tcp.h>
+#include <sys/epoll.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
 
 #include <fcntl.h>
 
+#include <cstdint>
 #include <cstdlib>
 
-#include <array>
+#include <vector>
 
 #include "../compat/memory.hpp"
 
@@ -46,8 +49,6 @@
 namespace tmwa
 {
 static
-io::FD_Set readfds;
-static
 int fd_max;
 
 static
@@ -55,11 +56,132 @@ const uint32_t RFIFO_SIZE = 65536;
 static
 const uint32_t WFIFO_SIZE = 65536;
 
-DIAG_PUSH();
-DIAG_I(old_style_cast);
+/// Hard bound on the number of fds usable for sessions.
+/// The session table is sized per fd, so do not make this huge.
 static
-std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
-DIAG_POP();
+const int SESSION_FD_CAP = 1 << 16;
+/// Fds reserved below the process limit for non-session use
+/// (files, the epoll set itself), same idea as the old SOFT_LIMIT.
+static
+const int SESSION_FD_RESERVE = 50;
+
+/// The epoll set holding all session fds.
+/// All sessions are registered for EPOLLIN, plus EPOLLOUT while
+/// the session has data queued for sending.
+static
+int epoll_fd = -1;
+/// fds at or above this are too precious to give to clients;
+/// computed by socket_init() from RLIMIT_NOFILE.
+static
+int fd_soft_limit;
+
+/// session indexed by fd, sparse over all open fds
+static
+std::vector<std::unique_ptr<Session>> session;
+/// fds that currently have sessions, in no particular order
+static
+std::vector<int> live_fds;
+/// index into live_fds per fd, or -1
+static
+std::vector<int> live_pos;
+/// whether EPOLLOUT is currently registered, per fd
+static
+std::vector<char> epoll_out;
+
+/// One-time setup of the epoll set and the fd soft limit.
+static
+void socket_init()
+{
+    if (epoll_fd != -1)
+        return;
+
+    fd_soft_limit = FD_SETSIZE - SESSION_FD_RESERVE;
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+    {
+        // Raise the soft fd limit so the cap actually improves on the old
+        // FD_SETSIZE bound; never above what the hard limit allows.
+        rlim_t want = rl.rlim_max;
+        rlim_t need = static_cast<rlim_t>(SESSION_FD_CAP) + SESSION_FD_RESERVE;
+        if (want == RLIM_INFINITY || want > need)
+            want = need;
+        if (rl.rlim_cur < want)
+        {
+            rl.rlim_cur = want;
+            if (setrlimit(RLIMIT_NOFILE, &rl) != 0)
+                perror("setrlimit(RLIMIT_NOFILE)");
+        }
+        rlim_t cur = rl.rlim_cur;
+        if (cur > need)
+            cur = need;
+        fd_soft_limit = static_cast<int>(cur) - SESSION_FD_RESERVE;
+        if (fd_soft_limit < FD_SETSIZE - SESSION_FD_RESERVE)
+            fd_soft_limit = FD_SETSIZE - SESSION_FD_RESERVE;
+    }
+
+    epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+    if (epoll_fd == -1)
+    {
+        perror("epoll_create1");
+        exit(1);
+    }
+}
+
+static
+void epoll_add(io::FD fd)
+{
+    socket_init();
+    struct epoll_event ev {};
+    ev.events = EPOLLIN;
+    ev.data.fd = fd.uncast_dammit();
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, ev.data.fd, &ev))
+    {
+        perror("epoll_ctl(EPOLL_CTL_ADD)");
+        exit(1);
+    }
+}
+
+static
+void epoll_del(io::FD fd)
+{
+    // close() would remove it anyway; be explicit
+    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd.uncast_dammit(), nullptr);
+}
+
+/// Toggle EPOLLOUT interest for a session's fd.
+static
+void epoll_write(Session *s, bool want)
+{
+    int f = s->fd.uncast_dammit();
+    assert (0 <= f && static_cast<size_t>(f) < epoll_out.size());
+    if (!epoll_out[f] == !want)
+        return;
+    epoll_out[f] = want;
+    struct epoll_event ev {};
+    ev.events = EPOLLIN | (want ? EPOLLOUT : 0);
+    ev.data.fd = f;
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, f, &ev))
+    {
+        perror("epoll_ctl(EPOLL_CTL_MOD)");
+        exit(1);
+    }
+}
+
+/// Make room in the fd-indexed tables.
+static
+void session_table_grow(int f)
+{
+    if (static_cast<size_t>(f) < session.size())
+        return;
+    size_t n = session.size() * 2;
+    if (n < 1024)
+        n = 1024;
+    while (static_cast<size_t>(f) >= n)
+        n *= 2;
+    session.resize(n);
+    live_pos.resize(n, -1);
+    epoll_out.resize(n, 0);
+}
 
 Session::Session(SessionIO io, SessionParsers p)
 : created()
@@ -99,20 +221,34 @@ void Session::set_parsers(SessionParsers p)
 void set_session(io::FD fd, std::unique_ptr<Session> sess)
 {
     int f = fd.uncast_dammit();
-    assert (0 <= f && f < FD_SETSIZE);
+    assert (0 <= f);
+    session_table_grow(f);
+    assert (!session[f]);
+    live_pos[f] = live_fds.size();
+    live_fds.push_back(f);
     session[f] = std::move(sess);
 }
 Session *get_session(io::FD fd)
 {
     int f = fd.uncast_dammit();
-    if (0 <= f && f < FD_SETSIZE)
+    if (0 <= f && static_cast<size_t>(f) < session.size())
         return session[f].get();
     return nullptr;
 }
 void reset_session(io::FD fd)
 {
     int f = fd.uncast_dammit();
-    assert (0 <= f && f < FD_SETSIZE);
+    assert (0 <= f && static_cast<size_t>(f) < session.size());
+    int pos = live_pos[f];
+    if (pos >= 0)
+    {
+        int last = live_fds.back();
+        live_fds[pos] = last;
+        live_pos[last] = pos;
+        live_fds.pop_back();
+        live_pos[f] = -1;
+    }
+    epoll_out[f] = 0;
     session[f] = nullptr;
 }
 int get_fd_max() { return fd_max; }
@@ -174,6 +310,11 @@ void send_from_fifo(Session *s)
         {
             s->wdata_pos = 0;
         }
+        else
+        {
+            // queue drained; wait for more data before polling for writable
+            epoll_write(s, false);
+        }
         s->connected = 1;
         s->last_tick = TimeT::now();
     }
@@ -181,6 +322,13 @@ void send_from_fifo(Session *s)
     {
         s->set_eof();
     }
+}
+
+/// Called when data was queued in s->wdata; registers write interest.
+/// packet_send is the only place wdata grows.
+void session_want_write(Session *s)
+{
+    epoll_write(s, true);
 }
 
 static
@@ -201,7 +349,8 @@ void connect_client(Session *ls)
         perror("accept");
         return;
     }
-    if (fd.uncast_dammit() >= SOFT_LIMIT)
+    socket_init();
+    if (fd.uncast_dammit() >= fd_soft_limit)
     {
         FPRINTF(stderr, "softlimit reached, disconnecting : %d\n"_fmt, fd.uncast_dammit());
         fd.shutdown(SHUT_RDWR);
@@ -233,9 +382,9 @@ void connect_client(Session *ls)
     fd.setsockopt(IPPROTO_TCP, TCP_THIN_DUPACK, &yes, sizeof yes);
 #endif
 
-    readfds.set(fd);
-
     fd.fcntl(F_SETFL, O_NONBLOCK);
+
+    epoll_add(fd);
 
     set_session(fd, make_unique<Session>(
                 SessionIO{.func_recv= recv_to_fifo, .func_send= send_from_fifo},
@@ -296,7 +445,7 @@ Session *make_listen_port(uint16_t port, SessionParsers inferior)
         exit(1);
     }
 
-    readfds.set(fd);
+    epoll_add(fd);
 
     set_session(fd, make_unique<Session>(
                 SessionIO{.func_recv= connect_client, .func_send= nullptr},
@@ -346,11 +495,11 @@ Session *make_connection(IP4Address ip, uint16_t port, SessionParsers parsers)
     fd.fcntl(F_SETFL, O_NONBLOCK);
 
     /// Errors not caught - we must not block
-    /// Let the main select() loop detect when we know the state
+    /// Let the main epoll loop detect when we know the state
     fd.connect(reinterpret_cast<struct sockaddr *>(&server_address),
              sizeof(struct sockaddr_in));
 
-    readfds.set(fd);
+    epoll_add(fd);
 
     set_session(fd, make_unique<Session>(
                 SessionIO{.func_recv= recv_to_fifo, .func_send= send_from_fifo},
@@ -382,7 +531,7 @@ void delete_session(Session *s)
     // but this is cheap and good enough for the typical case
     if (fd.uncast_dammit() == fd_max - 1)
         fd_max--;
-    readfds.clr(fd);
+    epoll_del(fd);
     {
         s->rdata.delete_();
         s->wdata.delete_();
@@ -421,21 +570,15 @@ void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size)
     }
 }
 
+/// How many events are dispatched per epoll_wait call.
+/// Level-triggered sockets just report again next time if there are more.
+static
+const int EPOLL_MAX_EVENTS = 512;
+
 bool do_sendrecv(interval_t next_ms)
 {
-    bool any = false;
-    io::FD_Set rfd = readfds, wfd;
-    for (io::FD i : iter_fds())
-    {
-        Session *s = get_session(i);
-        if (s)
-        {
-            any = true;
-            if (s->wdata_size)
-                wfd.set(i);
-        }
-    }
-    if (!any)
+    socket_init();
+    if (live_fds.empty())
     {
         if (!has_timers())
         {
@@ -445,27 +588,26 @@ bool do_sendrecv(interval_t next_ms)
         }
         return true;
     }
-    struct timeval timeout;
-    {
-        std::chrono::seconds next_s = std::chrono::duration_cast<std::chrono::seconds>(next_ms);
-        std::chrono::microseconds next_us = next_ms - next_s;
-        timeout.tv_sec = next_s.count();
-        timeout.tv_usec = next_us.count();
-    }
-    if (io::FD_Set::select(fd_max, &rfd, &wfd, nullptr, &timeout) <= 0)
+    // epoll_wait takes a timeout in whole milliseconds
+    int64_t ms = next_ms.count();
+    int timeout = ms < 0 ? 0 : ms > INT32_MAX ? INT32_MAX : static_cast<int>(ms);
+    struct epoll_event events[EPOLL_MAX_EVENTS];
+    int n = epoll_wait(epoll_fd, events, EPOLL_MAX_EVENTS, timeout);
+    if (n <= 0)
         return true;
-    for (io::FD i : iter_fds())
+    for (int i = 0; i < n; i++)
     {
-        Session *s = get_session(i);
+        Session *s = get_session(io::FD::cast_dammit(events[i].data.fd));
         if (!s)
             continue;
-        if (wfd.isset(i) && s->flag.eof != 1)
+        uint32_t ev = events[i].events;
+        if ((ev & EPOLLOUT) && s->flag.eof != 1)
         {
             if (s->func_send)
                 //send_from_fifo(i);
                 s->func_send(s);
         }
-        if (rfd.isset(i) && s->flag.eof != 1)
+        if ((ev & (EPOLLIN | EPOLLHUP | EPOLLERR | EPOLLRDHUP)) && s->flag.eof != 1)
         {
             if (s->func_recv)
                 //recv_to_fifo(i);
@@ -478,9 +620,13 @@ bool do_sendrecv(interval_t next_ms)
 
 bool do_parsepacket(void)
 {
-    for (io::FD i : iter_fds())
+    // Iterating by index, since func_parse may delete sessions:
+    // live_fds can shrink under us, so entries are re-fetched each time.
+    // A session swapped into an already-visited slot is parsed next call.
+    for (size_t i = 0; i < live_fds.size(); i++)
     {
-        Session *s = get_session(i);
+        io::FD fd = io::FD::cast_dammit(live_fds[i]);
+        Session *s = get_session(fd);
         if (!s)
             continue;
         if (s->connected && s->flag.server != 1
@@ -505,7 +651,7 @@ bool do_parsepacket(void)
             s->func_parse(s);
             /// some func_parse may call delete_session
             // (that's kind of evil)
-            s = get_session(i);
+            s = get_session(fd);
             if (!s)
                 continue;
         }

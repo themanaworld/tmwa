@@ -22,8 +22,6 @@
 
 #include "fwd.hpp"
 
-#include <sys/select.h>
-
 #include <algorithm>
 #include <memory>
 
@@ -107,7 +105,7 @@ public:
 
 private:
     /// Send or recieve
-    /// Only called when select() indicates the socket is ready
+    /// Only called when epoll indicates the socket is ready
     /// If, after that, nothing is read, it sets eof
     // These could probably be hard-coded with a little work
     void (*func_recv)(Session *);
@@ -139,9 +137,6 @@ int convert_for_printf(Session *s)
 {
     return s->fd.uncast_dammit();
 }
-
-// save file descriptors for important stuff
-constexpr int SOFT_LIMIT = FD_SETSIZE - 50;
 
 // socket timeout to establish a full connection in seconds
 constexpr int CONNECT_TIMEOUT = 15;
@@ -177,6 +172,8 @@ Session *make_connection(IP4Address ip, uint16_t port, SessionParsers);
 void delete_session(Session *);
 /// Make a the internal queues bigger
 void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size);
+/// Notify the socket layer that data was queued in wdata
+void session_want_write(Session *s);
 /// Update all sockets that can be read/written from the queues
 bool do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
