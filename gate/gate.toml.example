@@ -4,7 +4,8 @@
 [gate]
 # The single client-facing listen address.
 listen = "0.0.0.0:6901"
-# Advertised to clients in 0x0069 (char select) and 0x0071 (map).
+# Advertised to clients in 0x0069 (char select). The 0x0071 map
+# reply carries the registered map server address instead.
 public_ip = "127.0.0.1"
 public_port = 6901
 # SQLite database.
@@ -20,6 +21,12 @@ online_html = "online.html"
 listen = "127.0.0.1:6121"
 userid = "s1"
 password = "p1"
+# NOTE: TCP clients connect to the map server directly now. The
+# `map_ip` / `map_port` the map registers with (0x2af8, from its
+# conf/tmwa-map.conf) must be reachable by players: it is sent to
+# clients verbatim in the 0x0071 char-select reply and in 0x0092
+# map transfers. WebSocket clients are unaffected (the gate still
+# relays their map stage).
 
 [login]
 new_account = true

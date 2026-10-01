@@ -1,39 +1,44 @@
 # tmwa-gate
 
 tmwa-gate is a Rust server that replaces `tmwa-login`, `tmwa-char`,
-`tmwa-admin` and the TMWA part of tmw-api. It is the only entry point for
-clients and it keeps them connected while `tmwa-map` restarts, so a map
-server restart no longer disconnects players.
+`tmwa-admin` and the TMWA part of tmw-api. It is the login and character
+server, the inter-server router, and the WebSocket transport. TCP
+clients connect to `tmwa-map` directly once their character is picked,
+so a map server can be replaced under them (blue-green) without the gate
+ever carrying the traffic itself.
 
-Status: design. Nothing here is implemented yet.
+Status: implemented. The parts that are not (multiple simultaneous map
+worlds, the HTTP API surface) say so below.
 
 ## Overview
 
 ```
-  Mana / ManaPlus / Manaverse (TCP)     Mana wasm build (WebSocket)
-                 \                         /
-                  \                       /   Caddy: TLS, /tmwa, /api/tmwa
-                   v                     v
-              +-------------------------------+
-              |           tmwa-gate           |
-              |  login + char screens         |
-              |  map traffic relay            |      tmwa-gate admin ...
-              |  char server for tmwa-map     | <--- (CLI over Unix socket)
-              |  HTTP: /api/tmwa, WebSocket   |
-              |  SQLite                       |
-              +---------------+---------------+
-                              | one TCP connection per player
-                              | + one inter-server connection
-                              v   per map server
-                     tmwa-map [tmwa-map ...]
+  Mana / ManaPlus / Manaverse (TCP)      Mana wasm build (WebSocket)
+       |                                        |
+       | login + char select                    | login + char + map
+       |                                        | (relay)
+       v                                        v
+  +-------------------------------------------------+
+  |                   tmwa-gate                     |
+  |  login + char screens          char server for  |   tmwa-gate admin ...
+  |  SQLite                        tmwa-map, HTTP:  | <- (CLI over Unix socket)
+  |                                /api/tmwa, WS    |
+  +--------+-------------------------+--------------+
+           |                         |
+           | 0x0071 advertises       | inter-server link
+           | the map's address       v
+           +--------------->  tmwa-map [tmwa-map ...]
+                (client opens a direct TCP connection)
 ```
 
-- Clients connect to the gate for everything: login, character select and
-  the game itself. The gate advertises its own address as char and map
-  server.
-- Map traffic is relayed per player over a separate upstream connection to
-  `tmwa-map`. On this path the gate only frames packets; it parses the few
-  it needs (see "Seamless map restart").
+- TCP clients connect to the gate for login and character select. On
+  select the gate's `0x0071` carries the registered address of the
+  `tmwa-map` instance that owns the map, and the client opens a direct
+  TCP connection to it. The gate never sees game traffic on this path.
+- WebSocket clients keep the old shape: browsers can't open raw TCP
+  sockets, so the gate relays the map stage per player over a separate
+  upstream connection to `tmwa-map`. On this path the gate only frames
+  packets; it parses the few it needs (see "Map restarts").
 - Towards `tmwa-map` the gate plays the char server role on the existing
   inter-server protocol (`0x2af8`...`0x3830`, defined in
   `tools/protocol.py`). `tmwa-map` does not know it is not talking to
@@ -42,20 +47,23 @@ Status: design. Nothing here is implemented yet.
 
 ## Client connections
 
-- **One TCP port** for login, char and map. The purpose of a connection
+- **One TCP port** for login and char. The purpose of a connection
   follows from its first packet: `0x0064` (login), `0x0065` (char),
-  `0x0072` (map), optionally preceded by `0x7530` (version). The addresses
-  the gate sends in `0x0069` and `0x0071` point back to this port.
+  optionally preceded by `0x7530` (version). A `0x0072` (map enter) on
+  this listener is a leftover of the old relay topology: the gate logs
+  once and closes.
 - **One WebSocket endpoint** (for example `wss://server.themanaworld.org/tmwa`)
   for the wasm client. Binary frames carry the same byte stream as TCP;
   frame boundaries are not significant. The `binary` subprotocol is
   accepted. The Mana client connects to the configured URL as is (it
-  currently appends `/<host>/<port>`, which is dropped).
+  currently appends `/<host>/<port>`, which is dropped). The map stage
+  is relayed (see above).
 - Limits: maximum connections, idle timeout for connections that have not
   logged in, per-IP login throttling.
 - **Real client IP:** taken from the socket, or from `X-Forwarded-For`
   when the WebSocket request comes from a trusted proxy (Caddy on
-  loopback). It is passed to `tmwa-map` in `0x3829` (see below).
+  loopback). It is passed to `tmwa-map` in `0x3829` (see below), which
+  the map trusts only from `trusted_proxy_ip`.
 
 ## Login and characters
 
@@ -76,38 +84,78 @@ login/char link (`parse_fromchar`, `parse_tologin`), which disappears.
   in the current format; `tmw-online-exporter` and the public player list
   on server.themanaworld.org read them.
 
-## Seamless map restart
+## Map restarts
 
 The gate owns map authentication: it pushes `0x3829` (pre-auth) to
 `tmwa-map` whenever it wants a player to be accepted, so it can log a
 player in again at any time without the client.
 
-1. **Drain.** Before a planned restart (`tmwa-gate admin drain`, or on
-   `tmwa-map` shutting down), the gate closes each player's upstream
-   connection. `tmwa-map` runs `map_quit` for each and sends the final
-   save (`0x2b01`). `tmwa-map` does not save players in `term_func`, so
-   without a drain up to one autosave interval (default 1 min) is lost.
-2. **Hold.** While `tmwa-map` is down, the gate keeps the client
-   connections, answers `0x007e` with `0x007f`, drops other input and
-   sends one `0x009a` announcement. The decision to hold happens only
-   when the map itself is going away: `tmwa-map` announces its
-   shutdown on the char link (`0x2b17`, sent by `term_func` before the
-   client teardown), and an older binary without it is caught by the
-   link dropping. A single player's upstream close while the map stays
-   up (`@kick`, over the fd softlimit, double login) is passed through
-   as a client close — preceded by `0x0081` code 1 ("No servers
-   available.") when the map never accepted the connection.
-3. **Reconnect.** When `tmwa-map` connects again (`0x2af8`, map list
-   `0x2afa`), the gate pushes `0x3829` for each held player and opens a new
-   upstream connection with `0x0072`, answering `0x2afc` with the stored
-   character (`0x2afd`).
-4. **Resync the client.** The gate drops the `0x8000` and `0x0073`
-   replies and sends the client `0x0091` (change map) to the same map and
-   position. The client clears all beings, reloads the map and sends
+What happens on a restart depends on the transport and on whether the
+restart is planned:
+
+- **TCP players** hold a direct socket to `tmwa-map`. If the map dies
+  they are disconnected, like today — but they land in-game again as
+  soon as they log back in, on whatever server their map is on.
+- **WebSocket players** are held and rejoined by the gate (the client
+  sees a `0x0091` to the same map), because a browser client has no
+  way to switch servers.
+- **A planned restart** is blue-green: a second `tmwa-map` instance is
+  started first, the old one is drained (`tmwa-gate admin drain`), and
+  every player is handed over through the ordinary cross-server move,
+  so nobody is disconnected at all.
+
+### Hold and rejoin (WebSocket)
+
+1. **Hold.** When the map link drops — or `tmwa-map` announces its
+   shutdown on the link (`0x2b17`, sent by `term_func`) — the gate keeps
+   the WebSocket connection, answers `0x007e` with `0x007f`, drops other
+   input and sends one `0x009a` announcement. A single player's upstream
+   close while the map stays up (`@kick`, over the fd softlimit, double
+   login) is passed through as a client close instead.
+2. **Reconnect.** When `tmwa-map` connects again (`0x2af8`, map list
+   `0x2afa`), the gate pushes `0x3829` for each held player and opens a
+   new upstream connection with `0x0072`, answering `0x2afc` with the
+   stored character (`0x2afd`).
+3. **Resync the client.** The gate drops the `0x8000` and `0x0073`
+   replies and sends the client `0x0091` (change map) to the saved map
+   and position. The client clears all beings, reloads the map and sends
    `0x007d`, which the gate forwards. The login burst `tmwa-map` sends
    after auth (stats, inventory, equipment, skills) is forwarded as is.
-5. Also sent to the client where needed: trade cancelled (`0x00ee`),
+4. Also sent to the client where needed: trade cancelled (`0x00ee`),
    storage closed (`0x00f8`).
+
+The hold has a bounded timeout (`hold_timeout` in the config): players
+on a map that never comes back are dropped.
+
+### Blue-green drain
+
+`tmwa-gate admin drain <id>` (or `drain` for all) evacuates a running
+`tmwa-map`:
+
+1. The slot is marked **draining**. New char selects skip it
+   (`map_for` prefers non-draining servers) and in-flight selects that
+   targeted it resolve as usual — their `0x3829` still goes out, and if
+   the map goes away before answering, the pending select completes
+   against whatever remains.
+2. The gate re-broadcasts `0x2b04` for every map name the target
+   serves, pointing at a surviving server that also serves the name.
+   The receiving maps record these as *shadow* announcements
+   (`map_shadow_db`): the map keeps its local entry, but
+   `map_otheripport` now resolves the name to the survivor. Names with
+   no survivor are reported as stragglers.
+3. The gate sends `0x382a` (evacuate) to the target. `tmwa-map` walks
+   its online players through `pc_evacuate`, which resolves the
+   player's current map through the shadow table and runs the ordinary
+   `pc_changeserver` path: save (`0x2b01`), `0x2b05` ask, gate answers
+   `0x2b06`, map sends the client `0x0092` naming the survivor.
+4. TCP clients open a direct connection to the survivor; WebSocket
+   clients reconnect to the gate, which re-auths them and relays them
+   onto the survivor. In both cases the character save is ordered:
+   the gate tracks the transfer (`0x2b05`) and the in-flight saves
+   (`0x2b01`) so a `0x2afc` on the new link waits briefly for the old
+   link's save to commit.
+5. `drain --wait` blocks until the target reports zero users on the
+   link or the link drops (bounded at 60 s).
 
 Lost across a restart, by nature: floor items, monster positions,
 temporary `@` variables, `addtimer` timers, open NPC dialogs, open trades.
@@ -121,44 +169,55 @@ sockets over to a new gate process is possible later, but not planned for
 the first version.
 
 A throwaway spike (a proxy in front of unmodified tmwa that logs in
-again upstream and splices the new map session) confirmed this with the
-Mana desktop client: after `0x0091` it reloads the map, drops the old
-monsters, takes the new inventory and equipment (sent after `0x007d`),
-and walking, chat and NPCs keep working, across repeated restarts with
-SIGTERM and SIGKILL. Findings to carry over:
+again upstream and splices the new map session) confirmed the resync
+with the Mana desktop client: after `0x0091` it reloads the map, drops
+the old monsters, takes the new inventory and equipment (sent after
+`0x007d`), and walking, chat and NPCs keep working, across repeated
+restarts with SIGTERM and SIGKILL. Findings to carry over:
 
 - An NPC dialog that is open during the restart stays open but can't be
   advanced, because the new session has no NPC state; it closes with its
-  close button, and the next NPC works. The gate should close it on
-  resync.
+  close button, and the next NPC works. The gate closes it on resync.
 - Every upstream step of a reconnect needs a timeout; a hung `tmwa-map`
   otherwise leaves players waiting forever.
 - `tmwa-map` took about 14 s to accept players again (about 60 s with a
   cold page cache).
 
-ManaPlus, Manaverse and the wasm build still need the same check.
-
 ## Multiple map servers
 
-Several `tmwa-map` processes can each serve a different set of maps, to
-use more than one CPU. Clients don't notice: they only ever talk to the
-gate.
+Several `tmwa-map` processes can serve the same world, or split it.
+Two ways this is used:
+
+- **Blue-green replacement:** a second instance loads the same maps;
+  `drain` hands the players over and the old one exits. This is how
+  `tmwa-map` restarts without disconnecting players.
+- **Sharding** (not production yet): each process serves a different
+  set of maps, to use more than one CPU.
+
+Routing:
 
 - Each `tmwa-map` connects to the gate and reports its maps (`0x2afa`).
-  The gate keeps a map to server table and sends each server the maps of
+  The gate keeps a map name to server table — the last registered
+  server wins for a duplicated name — and sends each server the maps of
   the others (`0x2b04`), so `tmwa-map`'s existing remote map handling
   works unchanged.
-- **Warping to a map on another server:** `tmwa-map` saves the character
-  (`0x2b01`) and asks for a server change (`0x2b05`); the gate answers as
-  the char server does (`0x2b06`), after which `tmwa-map` sends the client
-  `0x0092` (change map server). The gate intercepts `0x0092`, pushes
-  `0x3829` to the target server, opens a new upstream connection there
-  and resyncs the client with `0x0091` to the new map, the same way as
-  after a restart.
+- **Warping to a map on another server:** `tmwa-map` saves the
+  character (`0x2b01`) and asks for a server change (`0x2b05`); the
+  gate answers as the char server does (`0x2b06`), after which
+  `tmwa-map` sends the client `0x0092` (change map server). A TCP
+  client connects to the address `0x0092` names. A WebSocket client is
+  relayed: the gate intercepts `0x0092`, opens a new upstream
+  connection to the target server (re-pushing `0x3829` if the entry
+  was already consumed), and the client reconnects with `0x0072`
+  through the same WebSocket. If the target map's `0x0072` lands
+  before the pre-auth it is retried once with a fresh `0x3829`.
 - Whispers, party messages and GM broadcasts are routed between servers
-  by the gate, as `tmwa-char` does now (the inter-server packets were made
-  for this).
-- Restarting one map server only holds the players on its maps.
+  by the gate, as `tmwa-char` does now (the inter-server packets were
+  made for this).
+- A char select waits for every connected server's `0x3830` like
+  `tmwa-char` does (the map list can be rewritten between them), but
+  only for links the pre-auth actually reached; a congested or dead
+  link stops blocking the select instead of hanging it.
 
 The limits are in `tmwa-map` and serverdata, not in the gate. State that
 is global today becomes per process:
@@ -183,8 +242,20 @@ Small, and compatible with `tmwa-char` where possible:
 
 - `0x3829` carries the real client IP, and `clif_parse_WantToConnection`
   uses it instead of the socket address for the auth check, logging,
-  `@ip` and IP bans.
-- On SIGTERM, save all players (`0x2b01`) and flush before exiting.
+  `@ip` and IP bans, gated on `trusted_proxy_ip`.
+- `0x2b04` announcements for a map the server hosts itself used to be
+  an error; they now populate `map_shadow_db` so `map_otheripport`
+  resolves them for a drain. An announcement pointing back at the
+  server itself clears the shadow entry.
+- `0x382a` asks the server to evacuate: `map_evacuate` walks all
+  authenticated sessions and `pc_evacuate` hands each to the server the
+  shadow table names, through the ordinary `pc_changeserver` path
+  (shared with `pc_setpos`).
+- On SIGTERM, save all players (`0x2b01`) and flush before exiting, and
+  announce the shutdown (`0x2b17`) so the gate can hold WS players
+  immediately.
+- `TMWA_ALLOW_ROOT=1` lets the binary run as uid 0 for rootless test
+  deploys where the image happens to be root.
 - Optionally, a flag in `0x2afd` that exposes "reconnect" to scripts.
 
 ## Storage
@@ -237,7 +308,9 @@ command it reads commands from stdin, one per line, like `tmwa-admin`.
   instead of argv, so they don't show in `ps`.
 - Added: `find --id/--name/--email/--memo`, `chars --account/--name/--id`
   (level, exp, zeny, equipped items), `#` variables in `get`/`getall`,
-  `status` (map server state, online count), `online`, `kick`, `drain`.
+  `status` (map server state, per-server user counts, draining flag),
+  `online`, `kick`, `drain [<id>] [--wait]` (blue-green evacuation, see
+  "Map restarts").
 
 ## HTTP API
 
