@@ -79,7 +79,7 @@ impl tokio::io::AsyncRead for WsRead {
 /// makes the task send a normal Close(1000) frame so the client sees
 /// a clean disconnect rather than 1005.
 struct WsWrite {
-    tx: tokio::sync::mpsc::UnboundedSender<Vec<u8>>,
+    tx: tokio::sync::mpsc::Sender<Vec<u8>>,
 }
 
 impl tokio::io::AsyncWrite for WsWrite {
@@ -88,11 +88,13 @@ impl tokio::io::AsyncWrite for WsWrite {
         _cx: &mut std::task::Context<'_>,
         buf: &[u8],
     ) -> std::task::Poll<std::io::Result<usize>> {
-        match self.tx.send(buf.to_vec()) {
+        // bounded: a client that stops reading shouldn't grow the
+        // queue forever — a full queue closes the connection
+        match self.tx.try_send(buf.to_vec()) {
             Ok(()) => std::task::Poll::Ready(Ok(buf.len())),
             Err(_) => std::task::Poll::Ready(Err(std::io::Error::new(
                 std::io::ErrorKind::BrokenPipe,
-                "ws writer gone",
+                "ws writer full or gone",
             ))),
         }
     }
@@ -189,9 +191,10 @@ pub async fn handle_ws(
         .on_upgrade(move |sock| async move {
             let _guard = ConnGuard::new(hs.st.clone());
             let (mut sink, stream) = futures_util::StreamExt::split(sock);
-            let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
+            let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(128);
             // writer task: binary frames, then a clean Close(1000)
             // when the channel ends (session over)
+            let mut rx = rx;
             tokio::spawn(async move {
                 while let Some(buf) = rx.recv().await {
                     if sink.send(Message::Binary(buf.into())).await.is_err() {

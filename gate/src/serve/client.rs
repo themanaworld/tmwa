@@ -79,7 +79,9 @@ where
             Ok(Ok(Some(p))) => p,
             Ok(Ok(None)) | Err(_) => break, // eof / timeout
             Ok(Err(e)) => {
-                tracing::warn!(
+                // routine disconnects (tcp rst, ws reset without a
+                // close handshake) — not worth a warn
+                tracing::debug!(
                     "client {}: frame error {e}",
                     Ipv4Addr::from(ip.to_le_bytes())
                 );
@@ -529,7 +531,7 @@ async fn char_session<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + 
                 break;
             }
             Ok(Err(e)) => {
-                tracing::warn!(account_id, "char: frame error {e}");
+                tracing::debug!(account_id, "char: frame error {e}");
                 break;
             }
             Err(_) => break,
@@ -1247,7 +1249,7 @@ async fn upstream_rejoin(
             .lock()
             .unwrap()
             .remove(&(account_id, char_id));
-        tracing::warn!(char_id, "rejoin: no 0x3830 from map {map_id}");
+        tracing::debug!(char_id, "rejoin: no 0x3830 from map {map_id}");
         return None;
     }
 
@@ -1299,7 +1301,7 @@ async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Sen
     loop {
         let now = Instant::now();
         if now >= deadline {
-            tracing::info!(char_id, "hold timed out; closing client");
+            tracing::warn!(char_id, "hold timed out; closing client");
             return None;
         }
         // a map that serves the player's map, or the old map id once
@@ -1380,7 +1382,7 @@ async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin +
                     }
                     Ok(None) => return FwdEnd::ClientGone,
                     Err(e) => {
-                        tracing::warn!("relay: client frame error {e}");
+                        tracing::debug!("relay: client frame error {e}");
                         return FwdEnd::ClientGone;
                     }
                 }

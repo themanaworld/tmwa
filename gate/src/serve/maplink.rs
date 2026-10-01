@@ -70,7 +70,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                 p.code = 0;
                 send_bytes(&tx, enc(move |v| p.encode(v)));
                 let id = st.map_register(tx.clone(), u32::from_le_bytes(fixed.ip.0), fixed.port);
-                tracing::warn!(
+                tracing::info!(
                     "maplink: map server {id} registered from {ip} \
                      (client port {}:{})",
                     Ipv4Addr::from(fixed.ip.0),

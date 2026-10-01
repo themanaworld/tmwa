@@ -88,6 +88,15 @@ fn err_text(text: impl Into<String>) -> Value {
 }
 
 /// Look up an account id by name (blocking; call via spawn_blocking).
+fn acct_id_by_id(conn: &rusqlite::Connection, id: i64) -> Option<i64> {
+    conn.query_row(
+        "SELECT id FROM accounts WHERE id=?1",
+        rusqlite::params![id],
+        |r| r.get(0),
+    )
+    .ok()
+}
+
 fn acct_id_by_name(conn: &rusqlite::Connection, name: &str) -> Option<i64> {
     conn.query_row("SELECT id FROM accounts WHERE name=?1", [name], |r| {
         r.get(0)
@@ -918,7 +927,10 @@ async fn check_cmd(st: &Arc<State>, args: &[String], password_stdin: Option<Stri
 }
 
 async fn create(st: &Arc<State>, args: &[String], password_stdin: Option<String>) -> Value {
-    // create <name> <email> <password>
+    // create <name> <email> <password>; the tmwa-admin form
+    // `create <name> <M|F|N> <email> <password>` is also accepted
+    // (the sex letter is ignored)
+    let args = strip_sex_arg(args);
     let pw = password_stdin.or_else(|| args.get(2).cloned());
     if args.len() < 2 || pw.is_none() {
         return err_text("usage: create <name> <email> <password>");
@@ -946,12 +958,25 @@ async fn create(st: &Arc<State>, args: &[String], password_stdin: Option<String>
     .await
 }
 
+/// tmwa-admin puts a sex letter between the name and the rest in
+/// `create`/`add`; drop it so both the old (`<name> M ...`) and the
+/// new argument lists work.
+fn strip_sex_arg(args: &[String]) -> Vec<String> {
+    let mut v = args.to_vec();
+    if v.len() >= 3 && v[1].len() == 1 && "mfn".contains(v[1].to_ascii_lowercase().as_str()) {
+        v.remove(1);
+    }
+    v
+}
+
 async fn add_cmd(st: &Arc<State>, args: &[String], password_stdin: Option<String>) -> Value {
-    // add <name> <sex> <password> — sex is ignored (no account sex);
-    // default email a@a.com like tmwa's add.
-    let pw = password_stdin.or_else(|| args.get(2).cloned());
-    if args.len() < 2 || pw.is_none() {
-        return err_text("usage: add <name> <sex> <password>");
+    // add <name> <password>; tmwa-admin's `add <name> <sex>
+    // <password>` is accepted too (sex ignored). Default email
+    // a@a.com like tmwa's add.
+    let args = strip_sex_arg(args);
+    let pw = password_stdin.or_else(|| args.get(1).cloned());
+    if args.is_empty() || pw.is_none() {
+        return err_text("usage: add <name> <password>");
     }
     create(st, &[args[0].clone(), "a@a.com".to_string()], pw).await
 }
@@ -1031,16 +1056,13 @@ fn reload_gm(st: &Arc<State>) -> usize {
     n
 }
 
-fn kami(st: &Arc<State>, cmd: &str, args: &[String]) -> Value {
+fn kami(st: &Arc<State>, _cmd: &str, args: &[String]) -> Value {
     let msg = args.join(" ");
     if msg.is_empty() {
         return err_text("usage: kami|kamib <message>");
     }
-    // kami: yellow broadcast; kamib: blue (flag bit 0x01 in tmwa)
-    let flag: u16 = if cmd == "kamib" { 1 } else { 0 };
-    // the map applies flag 0 to both colours; kamib/kami differ
-    // only in how tmwa logged them
-    let _ = flag;
+    // kami/kamib share the same broadcast packet in tmwa; the two
+    // names only differed in the admin log line
     let mut p = crate::proto::P3800::default();
     p.repeat = msg.bytes().map(|c| P3800Repeat { c }).collect();
     st.map_broadcast(&enc(move |v| p.encode(v)));
@@ -1059,9 +1081,19 @@ async fn getall(st: &Arc<State>, args: &[String], scope: i64) -> Value {
         .iter()
         .position(|a| a == "--scope")
         .and_then(|i| args.get(i + 1))
-        .and_then(|s| s.parse::<i64>().ok())
+        .and_then(|s| match s.as_str() {
+            "all" => Some(0),
+            _ => s.parse::<i64>().ok(),
+        })
         .unwrap_or(scope);
     run_db(st, move |c| {
+        if acct_id_by_id(c, id).is_none() {
+            return err_text(format!(
+                "Unable to find the account [id: {id}]. Account doesn't exist.\n"
+            ));
+        }
+        // mirror ladmin's 0x7957 reply text
+        let mut vars = Vec::new();
         let mut out = String::new();
         let scopes: Vec<i64> = if scope == 0 { vec![1, 2] } else { vec![scope] };
         for sc in scopes {
@@ -1077,13 +1109,15 @@ async fn getall(st: &Arc<State>, args: &[String], scope: i64) -> Value {
                 .collect();
             for (n, v) in rows {
                 let prefix = if sc == 2 { "##" } else { "#" };
-                out += &format!("{prefix}{n},{v} ");
+                let full = format!("{prefix}{n}");
+                out += &format!("Variable {full} == `{v}`\n");
+                vars.push(serde_json::json!({"name": full, "value": v}));
             }
         }
-        if out.is_empty() {
-            out = "(none)".to_string();
-        }
-        ok_text(format!("{out}\n"))
+        out = format!("Variables {} of 16 used.\n{out}", vars.len());
+        let mut v = ok_text(out);
+        v["vars"] = serde_json::json!(vars);
+        v
     })
     .await
 }
@@ -1109,8 +1143,8 @@ async fn getaccreg(st: &Arc<State>, args: &[String]) -> Value {
             )
             .ok();
         match v {
-            Some(v) => ok_text(format!("{name}={v}\n")),
-            None => ok_text(format!("{name} is not set.\n")),
+            Some(v) => ok_text(format!("Variable {name} == `{v}`\n")),
+            None => ok_text("Variable not found.\n".to_string()),
         }
     })
     .await
@@ -1132,15 +1166,23 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
             2
         };
         let n = namec.trim_start_matches('#').to_string();
+        let existed: bool = c
+            .query_row(
+                "SELECT 1 FROM account_vars WHERE account_id=?1 AND scope=?2 AND name=?3",
+                rusqlite::params![id, scope, n],
+                |_| Ok(true),
+            )
+            .unwrap_or(false);
         c.execute(
             "INSERT INTO account_vars (account_id,scope,name,value) VALUES (?1,?2,?3,?4) \
              ON CONFLICT(account_id,scope,name) DO UPDATE SET value=excluded.value",
             rusqlite::params![id, scope, n, value],
         )
         .unwrap();
-        n
+        (n, existed)
     })
     .await;
+    let (r, _existed) = r;
     // notify the map if the player is online (## -> 0x2b11, # -> 0x3804)
     let scope2 = if name.starts_with('#') && !name.starts_with("##") {
         1
@@ -1167,7 +1209,11 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
             stc.map_send(mid, enc(move |v| p.encode(v)));
         }
     }
-    ok_text(format!("Set {name} to {value}.\n"))
+    if _existed {
+        ok_text("Variable changed.\n".to_string())
+    } else {
+        ok_text("New Variable created.\n".to_string())
+    }
 }
 
 async fn delaccreg(st: &Arc<State>, args: &[String]) -> Value {
@@ -1183,18 +1229,23 @@ async fn delaccreg(st: &Arc<State>, args: &[String]) -> Value {
             2
         };
         let n = name.trim_start_matches('#');
-        c.execute(
-            "DELETE FROM account_vars WHERE account_id=?1 AND scope=?2 AND name=?3",
-            rusqlite::params![id, scope, n],
-        )
-        .unwrap();
-        ok_text(format!("Deleted {name}.\n"))
+        let rows = c
+            .execute(
+                "DELETE FROM account_vars WHERE account_id=?1 AND scope=?2 AND name=?3",
+                rusqlite::params![id, scope, n],
+            )
+            .unwrap();
+        if rows > 0 {
+            ok_text("Variable deleted.\n".to_string())
+        } else {
+            ok_text("Variable not found.\n".to_string())
+        }
     })
     .await
 }
 
 async fn find(st: &Arc<State>, args: &[String]) -> Value {
-    // find --id|--name|--email|--memo <v>
+    // find --id|--name|--email|--memo <v> — exact matches
     let field = args
         .iter()
         .find(|a| a.starts_with("--"))
@@ -1215,16 +1266,13 @@ async fn find(st: &Arc<State>, args: &[String]) -> Value {
     run_db(st, move |c| {
         let sql = format!(
             "SELECT id,name,state,email,last_login,login_count,last_ip,memo \
-             FROM accounts WHERE CAST({col} AS TEXT) LIKE ?1 LIMIT 50"
+             FROM accounts WHERE {col} = ?1 LIMIT 50"
         );
         let mut q = c.prepare(&sql).unwrap();
-        let like = if col == "id" || col == "name" {
-            val.clone()
-        } else {
-            format!("%{val}%")
-        };
-        let rows: Vec<String> = q
-            .query_map([like], |r| {
+        let mut rows = Vec::new();
+        let mut lines = Vec::new();
+        let res = q
+            .query_map([val.clone()], |r| {
                 let id: i64 = r.get(0)?;
                 let name: String = r.get(1)?;
                 let state: i64 = r.get(2)?;
@@ -1233,21 +1281,40 @@ async fn find(st: &Arc<State>, args: &[String]) -> Value {
                 let cnt: i64 = r.get::<_, Option<i64>>(5)?.unwrap_or(0);
                 let ip: String = r.get::<_, Option<String>>(6)?.unwrap_or_default();
                 let memo: String = r.get::<_, String>(7).unwrap_or_default();
-                let last_s = chrono::DateTime::from_timestamp(last / 1000, 0)
-                    .map(|t| t.format("%Y/%m/%d %H:%M:%S").to_string())
-                    .unwrap_or_default();
-                Ok(format!(
-                    "{id:10} {name:<24} st={state} email={email} last={last_s} logins={cnt} ip={ip} memo={memo}"
-                ))
+                Ok(serde_json::json!({
+                    "id": id, "name": name, "state": state,
+                    "email": email, "last_login": last,
+                    "login_count": cnt, "last_ip": ip, "memo": memo,
+                }))
             })
-            .unwrap()
-            .flatten()
-            .collect();
-        if rows.is_empty() {
+            .unwrap();
+        for r in res.flatten() {
+            let last_s = chrono::DateTime::from_timestamp(
+                r["last_login"].as_i64().unwrap_or(0) / 1000,
+                0,
+            )
+            .map(|t| t.format("%Y/%m/%d %H:%M:%S").to_string())
+            .unwrap_or_default();
+            lines.push(format!(
+                "{id:10} {name:<24} st={state} email={email} last={last} logins={cnt} ip={ip} memo={memo}",
+                id = r["id"].as_i64().unwrap_or(0),
+                name = r["name"].as_str().unwrap_or(""),
+                state = r["state"].as_i64().unwrap_or(0),
+                email = r["email"].as_str().unwrap_or(""),
+                last = last_s,
+                cnt = r["login_count"].as_i64().unwrap_or(0),
+                ip = r["last_ip"].as_str().unwrap_or(""),
+                memo = r["memo"].as_str().unwrap_or(""),
+            ));
+            rows.push(r);
+        }
+        let mut v = if lines.is_empty() {
             ok_text("No account found.\n".to_string())
         } else {
-            ok_text(rows.join("\n") + "\n")
-        }
+            ok_text(lines.join("\n") + "\n")
+        };
+        v["accounts"] = serde_json::json!(rows);
+        v
     })
     .await
 }
@@ -1269,11 +1336,13 @@ async fn chars_cmd(st: &Arc<State>, args: &[String]) -> Value {
             "--name" | "--id" | "" => "SELECT c.id,c.account_id,c.name,c.slot,c.base_level,c.base_exp,c.zeny,c.last_map FROM characters c WHERE c.name=?1 OR c.id=CAST(?1 AS INT)",
             _ => return err_text("chars: unknown option"),
         };
-        let mut q = c.prepare(sql).unwrap();
-        let rows: Vec<String> = q
+        let sql = format!("{sql} ORDER BY c.id");
+        let mut q = c.prepare(&sql).unwrap();
+        let mut rows = Vec::new();
+        let mut lines = Vec::new();
+        let res = q
             .query_map([val.clone()], |r| {
-                Ok(format!(
-                    "{} {} {:<24} slot={} lvl={} exp={} zeny={} map={}",
+                Ok((
                     r.get::<_, i64>(0)?,
                     r.get::<_, i64>(1)?,
                     r.get::<_, String>(2)?,
@@ -1284,14 +1353,35 @@ async fn chars_cmd(st: &Arc<State>, args: &[String]) -> Value {
                     r.get::<_, String>(7)?,
                 ))
             })
-            .unwrap()
-            .flatten()
-            .collect();
-        if rows.is_empty() {
+            .unwrap();
+        for r in res.flatten() {
+            let (id, account_id, name, slot, lvl, exp, zeny, map) = r;
+            // equipped item ids: inventory entries with a nonzero
+            // equip field, in slot order
+            let mut iq = c
+                .prepare("SELECT item_id FROM character_items WHERE char_id=?1 AND equip!=0 ORDER BY idx")
+                .unwrap();
+            let equipped: Vec<i64> = iq
+                .query_map(rusqlite::params![id], |r| r.get(0))
+                .unwrap()
+                .flatten()
+                .collect();
+            lines.push(format!(
+                "{id} {account_id} {name:<24} slot={slot} lvl={lvl} exp={exp} zeny={zeny} map={map}"
+            ));
+            rows.push(serde_json::json!({
+                "id": id, "account_id": account_id, "name": name,
+                "slot": slot, "base_level": lvl, "base_exp": exp,
+                "zeny": zeny, "map": map, "equipped": equipped,
+            }));
+        }
+        let mut v = if lines.is_empty() {
             ok_text("No character found.\n".to_string())
         } else {
-            ok_text(rows.join("\n") + "\n")
-        }
+            ok_text(lines.join("\n") + "\n")
+        };
+        v["chars"] = serde_json::json!(rows);
+        v
     })
     .await
 }

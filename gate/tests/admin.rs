@@ -77,7 +77,26 @@ async fn admin_mirror_lake() {
     let v = cmd(&st, "search", &["nosuchuser"]).await;
     assert!(text(&v).contains("No account found"), "{v}");
 
-    // create emits "[id: N]"
+    // create emits "[id: N]"; tmwa-admin's sex form is accepted
+    // (mirror-lake sends `create <name> M <email> <pass>`)
+    let v = cmd(&st, "create", &["~vaultuser", "M", "~v@e.st", "pw123"]).await;
+    let t = text(&v);
+    assert!(t.contains("[id: "), "{t}");
+    let vid: i64 = t
+        .split("[id: ")
+        .nth(1)
+        .unwrap()
+        .trim()
+        .replace("].", "")
+        .trim_end_matches(']')
+        .parse()
+        .unwrap();
+    // and the email must be the real one, not the sex letter
+    let v = cmd(&st, "find", &["--email", "~v@e.st"]).await;
+    assert!(v["accounts"].as_array().unwrap().len() == 1, "{v}");
+    let v = cmd(&st, "delete", &["~vaultuser"]).await;
+    assert!(text(&v).contains("DELETED"), "{v}");
+
     let v = cmd(&st, "create", &["newacc", "n@e.st", "pw123"]).await;
     let t = text(&v);
     assert!(t.contains("[id: "), "{t}");
@@ -106,13 +125,40 @@ async fn admin_mirror_lake() {
         .parse::<i64>()
         .unwrap();
 
-    // set / ga / del round trip
+    // set / ga / del round trip — ladmin's reply texts, parsed the
+    // way mirror-lake's tmwa.py does it (EXPORT_FLUSHVAULT, :821)
     let v = cmd(&st, "set", &[&id.to_string(), "##VAULT", "7"]).await;
-    assert!(v["ok"].as_bool().unwrap(), "{v}");
+    assert_eq!(text(&v).trim(), "New Variable created.", "{v}");
+    let v = cmd(&st, "set", &[&id.to_string(), "##VAULT", "8"]).await;
+    assert_eq!(text(&v).trim(), "Variable changed.", "{v}");
     let v = cmd(&st, "ga", &[&id.to_string()]).await;
-    assert!(text(&v).contains("##VAULT,7"), "{v}");
+    let t = text(&v);
+    assert!(t.lines().next().unwrap().contains("Variables"), "{t}");
+    let mut found = vec![];
+    for v in t.lines() {
+        if v.contains("used.") {
+            continue;
+        }
+        let parts: Vec<&str> = v.split(" == ").collect();
+        assert_eq!(parts.len(), 2, "{v}");
+        let name = parts[0].replace("Variable ", "");
+        let val = parts[1].replace("`", "");
+        found.push((name, val));
+    }
+    assert_eq!(found, vec![("##VAULT".to_string(), "8".to_string())]);
+    // structured vars for the JSON callers
+    assert_eq!(
+        v["vars"],
+        serde_json::json!([{"name": "##VAULT", "value": 8}])
+    );
+    let v = cmd(&st, "get", &[&id.to_string(), "##VAULT"]).await;
+    assert_eq!(text(&v).trim(), "Variable ##VAULT == `8`", "{v}");
+    let v = cmd(&st, "get", &[&id.to_string(), "##NONE"]).await;
+    assert_eq!(text(&v).trim(), "Variable not found.", "{v}");
     let v = cmd(&st, "del", &[&id.to_string(), "##VAULT"]).await;
-    assert!(v["ok"].as_bool().unwrap());
+    assert_eq!(text(&v).trim(), "Variable deleted.", "{v}");
+    let v = cmd(&st, "del", &[&id.to_string(), "##VAULT"]).await;
+    assert_eq!(text(&v).trim(), "Variable not found.", "{v}");
     let v = cmd(&st, "ga", &[&id.to_string()]).await;
     assert!(!text(&v).contains("##VAULT"), "{v}");
 
@@ -155,6 +201,23 @@ async fn admin_mirror_lake() {
     assert!(text(&v).contains("newacc"), "{v}");
     let v = cmd(&st, "delete", &["newacc"]).await;
     assert!(text(&v).contains("DELETED"), "{v}");
+
+    // `add` accepts tmwa-admin's `add <name> <sex> <password>`
+    let v = cmd(&st, "add", &["addedone", "F", "pw"]).await;
+    assert!(text(&v).contains("[id: "), "{v}");
+    let v = cmd(&st, "add", &["addedtwo", "pw"]).await;
+    assert!(text(&v).contains("[id: "), "{v}");
+
+    // structured find/chars shapes
+    let v = cmd(&st, "find", &["--name", "addedone"]).await;
+    let accts = v["accounts"].as_array().unwrap();
+    assert_eq!(accts.len(), 1, "{v}");
+    assert_eq!(accts[0]["name"], "addedone", "{v}");
+    assert_eq!(accts[0]["email"], "a@a.com", "add's default email: {v}");
+    let v = cmd(&st, "chars", &["--account", "addedone"]).await;
+    assert!(v["chars"].is_array(), "{v}");
+
+    let _ = vid;
 
     // sequential ids via the shared create path: admin create and
     // the in-game path (Db::create_account) must both consume
