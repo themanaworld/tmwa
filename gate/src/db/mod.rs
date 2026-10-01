@@ -222,21 +222,21 @@ impl Db {
 
     /// True when the accounts table is empty (fresh DB).
     pub fn is_empty(&self) -> Result<bool> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         let n: i64 = conn.query_row("SELECT count(*) FROM accounts", [], |r| r.get(0))?;
         Ok(n == 0)
     }
 
     /// Meta key as i64, e.g. next_account_id.
     pub fn meta(&self, key: &str) -> Result<Option<i64>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         Ok(conn
             .query_row("SELECT value FROM meta WHERE key=?1", [key], |r| r.get(0))
             .optional()?)
     }
 
     pub fn set_meta(&self, key: &str, value: i64) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         conn.execute(
             "INSERT INTO meta(key,value) VALUES(?1,?2)
              ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -254,7 +254,7 @@ impl Db {
         name: &str,
         value: i64,
     ) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         conn.execute(
             "INSERT INTO account_vars(account_id,scope,name,value)
              VALUES(?1,?2,?3,?4)
@@ -267,7 +267,7 @@ impl Db {
 
     /// All vars for an account/scope, name order.
     pub fn get_account_vars(&self, account_id: i64, scope: i64) -> Result<Vec<(String, i64)>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         let mut st = conn.prepare(
             "SELECT name,value FROM account_vars
              WHERE account_id=?1 AND scope=?2 ORDER BY name",
@@ -335,7 +335,7 @@ impl Db {
 
     /// Account id by exact name.
     pub fn account_id_by_name(&self, name: &str) -> Result<Option<i64>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         Ok(conn
             .query_row("SELECT id FROM accounts WHERE name=?1", [name], |r| {
                 r.get(0)
@@ -345,7 +345,7 @@ impl Db {
 
     /// Full account row for the login path.
     pub fn account_auth_row(&self, name: &str) -> Result<Option<LoginRow>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         Ok(conn
             .query_row(
                 "SELECT id,password_hash,password_scheme,legacy_salt,
@@ -373,7 +373,7 @@ impl Db {
     /// Record a successful login (stamp + ip + count).
     /// Returns the previous last_login (ms) for the 0x0069 field.
     pub fn record_login(&self, account_id: i64, now_ms: i64, ip: &str) -> Result<Option<i64>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         let prev: Option<i64> = conn
             .query_row(
                 "SELECT last_login FROM accounts WHERE id=?1",
@@ -398,7 +398,7 @@ impl Db {
         scheme: &str,
         salt: Option<&str>,
     ) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         conn.execute(
             "UPDATE accounts SET password_hash=?2, password_scheme=?3,
              legacy_salt=?4 WHERE id=?1",
@@ -408,7 +408,7 @@ impl Db {
     }
 
     pub fn account_email(&self, account_id: i64) -> Result<Option<String>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         Ok(conn
             .query_row(
                 "SELECT email FROM accounts WHERE id=?1",
@@ -420,7 +420,7 @@ impl Db {
     }
 
     pub fn set_email(&self, account_id: i64, email: Option<&str>) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         conn.execute(
             "UPDATE accounts SET email=?2 WHERE id=?1",
             params![account_id, email],
@@ -429,7 +429,7 @@ impl Db {
     }
 
     pub fn set_account_state(&self, account_id: i64, state: i64) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         conn.execute(
             "UPDATE accounts SET state=?2 WHERE id=?1",
             params![account_id, state],
@@ -439,7 +439,7 @@ impl Db {
 
     /// ban_until (unix seconds) or unblock when 0.
     pub fn set_account_ban(&self, account_id: i64, ban_until: i64) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         conn.execute(
             "UPDATE accounts SET ban_until=?2 WHERE id=?1",
             params![account_id, ban_until],
@@ -449,7 +449,7 @@ impl Db {
 
     /// Char id by exact name.
     pub fn char_id_by_name(&self, name: &str) -> Result<Option<i64>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         Ok(conn
             .query_row("SELECT id FROM characters WHERE name=?1", [name], |r| {
                 r.get(0)
@@ -459,7 +459,7 @@ impl Db {
 
     /// Char ids of one account.
     pub fn char_ids_of_account(&self, account_id: i64) -> Result<Vec<i64>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         let mut st = conn.prepare("SELECT id FROM characters WHERE account_id=?1 ORDER BY slot")?;
         Ok(st
             .query_map([account_id], |r| r.get(0))?
@@ -467,14 +467,14 @@ impl Db {
     }
 
     pub fn delete_character(&self, char_id: i64) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         conn.execute("DELETE FROM characters WHERE id=?1", [char_id])?;
         Ok(())
     }
 
     /// Clear partner_id both directions (0x2b16 divorce).
     pub fn divorce(&self, char_id: i64) -> Result<Option<i64>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         let partner: Option<i64> = conn
             .query_row(
                 "SELECT partner_id FROM characters WHERE id=?1",
@@ -496,7 +496,7 @@ impl Db {
 
     /// Storage items for an account, slot order.
     pub fn load_storage(&self, account_id: i64) -> Result<Vec<(i64, i64, i64, i64)>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         let mut st = conn.prepare(
             "SELECT idx,item_id,amount,equip FROM storage_items
              WHERE account_id=?1 ORDER BY idx",
@@ -511,7 +511,7 @@ impl Db {
     /// Replace a whole storage (0x3011 semantics): items are
     /// (item_id, amount, equip) in slot order.
     pub fn save_storage(&self, account_id: i64, items: &[(i64, i64, i64)]) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         conn.execute(
             "DELETE FROM storage_items WHERE account_id=?1",
             [account_id],
@@ -526,12 +526,19 @@ impl Db {
         Ok(())
     }
 
+    /// Lock the connection. A panic while it was held (e.g. in an admin
+    /// request) must not take down every later save, and SQLite rolls
+    /// back any open transaction, so a poisoned lock is still usable.
+    fn lock(&self) -> std::sync::MutexGuard<'_, Connection> {
+        self.conn.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     /// Run `f` with the connection under the lock.
     pub fn with_conn<R>(
         &self,
         f: impl FnOnce(&mut Connection) -> rusqlite::Result<R>,
     ) -> Result<R> {
-        let mut conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let mut conn = self.lock();
         f(&mut conn).map_err(DbError::from)
     }
 
@@ -581,7 +588,7 @@ impl Db {
 
     /// Fetch account row fields needed for auth.
     pub fn find_account_by_name(&self, name: &str) -> Result<Option<AuthRow>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         Ok(conn
             .query_row(
                 "SELECT id,password_hash,password_scheme,legacy_salt
@@ -613,7 +620,7 @@ impl Db {
 
     /// Character keys for one account, slot order.
     pub fn list_characters(&self, account_id: i64) -> Result<Vec<CharKey>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.lock();
         let mut st =
             conn.prepare("SELECT id,name,slot FROM characters WHERE account_id=?1 ORDER BY slot")?;
         let rows = st

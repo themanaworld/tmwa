@@ -44,7 +44,7 @@ pub async fn run(st: Arc<State>) -> std::io::Result<()> {
     }
 }
 
-async fn handle(st: Arc<State>, sock: tokio::net::UnixStream) {
+pub async fn handle(st: Arc<State>, sock: tokio::net::UnixStream) {
     let (rd, mut wr) = sock.into_split();
     let mut lines = BufReader::new(rd).lines();
     while let Ok(Some(line)) = lines.next_line().await {
@@ -68,7 +68,17 @@ async fn handle(st: Arc<State>, sock: tokio::net::UnixStream) {
                     .get("password")
                     .and_then(|p| p.as_str())
                     .map(|p| p.to_string());
-                dispatch(&st, &cmd, args, password).await
+                // Each command runs in its own task so a panic
+                // kills the request, not the connection.
+                let stc = st.clone();
+                match tokio::spawn(async move { dispatch(&stc, &cmd, args, password).await }).await
+                {
+                    Ok(v) => v,
+                    Err(e) => {
+                        tracing::error!("admin request panicked: {e}");
+                        json!({"ok": false, "error": "internal error (see gate log)"})
+                    }
+                }
             }
             Err(_) => json!({"ok": false, "error": "bad json"}),
         };
@@ -183,6 +193,8 @@ pub async fn dispatch(
     password_stdin: Option<String>,
 ) -> Value {
     match cmd {
+        #[cfg(debug_assertions)]
+        "__panic" => panic!("test panic"),
         "status" => status(st),
         "online" => online(st),
         "kick" => kick_cmd(st, &args).await,
@@ -382,21 +394,10 @@ where
     R: Send + 'static,
 {
     let db = st.db.clone();
-    // a panic in the closure must not drop the admin connection
-    // silently — callers hang waiting for a reply otherwise
-    let out = tokio::task::spawn_blocking(move || {
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| db.with_conn(|c| Ok(f(c)))))
-    })
-    .await
-    .expect("db task")
-    .expect("db");
-    match out {
-        Ok(v) => v,
-        Err(e) => {
-            tracing::error!("admin db handler panicked: {e:?}");
-            panic!("admin db handler panicked");
-        }
-    }
+    tokio::task::spawn_blocking(move || db.with_conn(|c| Ok(f(c))))
+        .await
+        .expect("db task")
+        .expect("db")
 }
 
 async fn who(st: &Arc<State>, args: &[String]) -> Value {

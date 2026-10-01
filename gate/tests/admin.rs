@@ -15,7 +15,12 @@ use tmwa_gate::db::Db;
 static LOCK: Mutex<()> = Mutex::new(());
 
 fn test_state() -> std::sync::Arc<tmwa_gate::serve::state::State> {
-    let dir = std::env::temp_dir().join(format!("admintest-{}", std::process::id()));
+    static N: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let dir = std::env::temp_dir().join(format!(
+        "admintest-{}-{}",
+        std::process::id(),
+        N.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let db_path = dir.join("gate.db");
@@ -372,4 +377,34 @@ fn admin_stdin_survives_errors() {
         lines.iter().all(|l| l.contains("have a connection")),
         "{stdout:?}"
     );
+}
+
+/// A panicking command must not kill the connection: the reply is
+/// an error JSON and the next request on the same socket works.
+#[tokio::test]
+async fn admin_connection_survives_panic() {
+    let st = test_state();
+    let (a, b) = tokio::net::UnixStream::pair().unwrap();
+    tokio::spawn(tmwa_gate::serve::admin::handle(st, a));
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+    let (rd, mut wr) = b.into_split();
+    let mut lines = BufReader::new(rd).lines();
+    wr.write_all(br#"{"cmd":"__panic","args":[]}"#)
+        .await
+        .unwrap();
+    wr.write_all(b"\n").await.unwrap();
+    let r1: serde_json::Value =
+        serde_json::from_str(&lines.next_line().await.unwrap().unwrap()).unwrap();
+    assert_eq!(r1["ok"], serde_json::json!(false));
+    assert!(
+        r1["error"].as_str().unwrap().contains("internal error"),
+        "{r1}"
+    );
+    wr.write_all(br#"{"cmd":"version","args":[]}"#)
+        .await
+        .unwrap();
+    wr.write_all(b"\n").await.unwrap();
+    let r2: serde_json::Value =
+        serde_json::from_str(&lines.next_line().await.unwrap().unwrap()).unwrap();
+    assert_eq!(r2["ok"], serde_json::json!(true), "{r2}");
 }
