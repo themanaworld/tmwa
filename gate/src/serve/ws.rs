@@ -217,6 +217,8 @@ pub async fn handle_ws(
                 },
                 w: WsWrite { tx },
             };
-            super::client::run(hs.st.clone(), io, ip).await;
+            // browsers can't open raw TCP sockets: WS clients keep
+            // the gate-as-relay map stage
+            super::client::run(hs.st.clone(), io, ip, true).await;
         })
 }

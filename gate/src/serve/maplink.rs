@@ -18,7 +18,7 @@ use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
 use super::is_gm;
-use super::state::{State, enc, send_bytes};
+use super::state::{State, enc, send_must};
 use crate::net::framing::PacketFramer;
 use crate::proto::types::{FixedStr, GmLevel, Ip4Address};
 use crate::proto::*;
@@ -63,12 +63,12 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                     || pass != st.cfg.map.password.as_str()
                 {
                     p.code = 3;
-                    send_bytes(&tx, enc(move |v| p.encode(v)));
+                    send_must(&tx, enc(move |v| p.encode(v)), usize::MAX).await;
                     tracing::warn!("maplink: bad map auth from {ip}");
                     break 'auth false;
                 }
                 p.code = 0;
-                send_bytes(&tx, enc(move |v| p.encode(v)));
+                send_must(&tx, enc(move |v| p.encode(v)), usize::MAX).await;
                 let id = st.map_register(tx.clone(), u32::from_le_bytes(fixed.ip.0), fixed.port);
                 tracing::info!(
                     "maplink: map server {id} registered from {ip} \
@@ -78,17 +78,18 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                 );
                 map_id = Some(id);
                 // 0x2b15 GM list on connect
-                let gm = st.gm.lock().unwrap();
-                let repeat: Vec<P2B15Repeat> = gm
-                    .iter()
-                    .map(|(&aid, &lv)| P2B15Repeat {
-                        account_id: AccountId(aid),
-                        gm_level: GmLevel(lv),
-                    })
-                    .collect();
-                drop(gm);
-                let p15 = P2B15 { repeat };
-                send_bytes(&tx, enc(move |v| p15.encode(v)));
+                let p15 = {
+                    let gm = st.gm.lock().unwrap();
+                    let repeat: Vec<P2B15Repeat> = gm
+                        .iter()
+                        .map(|(&aid, &lv)| P2B15Repeat {
+                            account_id: AccountId(aid),
+                            gm_level: GmLevel(lv),
+                        })
+                        .collect();
+                    P2B15 { repeat }
+                };
+                send_must(&tx, enc(move |v| p15.encode(v)), id).await;
                 break 'auth true;
             }
             Ok(Some(pkt)) => {
@@ -185,7 +186,7 @@ async fn handle(
             }
             tracing::info!(map_id, maps = maps.len(), "map list received");
             let p = P2AFB::default();
-            send_bytes(tx, enc(move |v| p.encode(v)));
+            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
             // 0x2b04: tell the others about this server; tell this
             // server about the others.
             let (ip, port) = st.map_addr(map_id).unwrap_or((0, 0));
@@ -226,7 +227,20 @@ async fn handle(
                         map_name: FixedStr::<16>::try_from_str(m).unwrap_or_default(),
                     })
                     .collect();
-                send_bytes(tx, enc(|v| head.encode(v)));
+                send_must(tx, enc(|v| head.encode(v)), map_id).await;
+            }
+            // Pre-auth: every player online elsewhere gets a 0x3829
+            // on this new map, so it can accept transfers and
+            // (re)logins without waiting for the gate. Replies
+            // (0x3830) for unknown pending selects are ignored.
+            for e in st.online_auths() {
+                let mut p = P3829::default();
+                p.account_id = AccountId(e.account_id);
+                p.char_id = CharId(e.char_id);
+                p.login_id1 = e.login_id1;
+                p.login_id2 = e.login_id2;
+                p.ip = ip4(e.ip);
+                send_must(tx, enc(move |v| p.encode(v)), map_id).await;
             }
             Ok(())
         }
@@ -234,6 +248,24 @@ async fn handle(
             let Ok(fixed) = P2AFC::decode(bytes) else {
                 return Err(());
             };
+            // A map-to-map transfer is in flight for this char: the
+            // source link's pre-0x2b05 save may still be committing.
+            // Any in-flight save for this char is waited out
+            // (bounded) so this link's answer carries the fresh
+            // CharData; an unmarked quit-save racing a relog is the
+            // same hazard.
+            let marked = st.transfer_take(fixed.account_id.0, fixed.char_id.0);
+            if !st
+                .wait_saves(fixed.char_id.0, std::time::Duration::from_secs(2))
+                .await
+            {
+                tracing::warn!(
+                    map_id,
+                    char_id = fixed.char_id.0,
+                    transfer = marked,
+                    "0x2afc raced a queued save; answering with current data"
+                );
+            }
             // tmwa compares afi.ip to the ip the map reports; through
             // the relay that's the gate's upstream source address,
             // recorded at relay time. Fall back to the client ip.
@@ -252,7 +284,7 @@ async fn handle(
                 );
                 let mut p = P2AFE::default();
                 p.account_id = fixed.account_id;
-                send_bytes(tx, enc(move |v| p.encode(v)));
+                send_must(tx, enc(move |v| p.encode(v)), map_id).await;
                 return Ok(());
             };
             // load CharKey + CharData (full, incl. account_reg* + vars)
@@ -264,7 +296,7 @@ async fn handle(
             let Ok(Ok((key, cd))) = res else {
                 let mut p = P2AFE::default();
                 p.account_id = fixed.account_id;
-                send_bytes(tx, enc(move |v| p.encode(v)));
+                send_must(tx, enc(move |v| p.encode(v)), map_id).await;
                 return Ok(());
             };
             // update cache
@@ -276,13 +308,23 @@ async fn handle(
                     online_map: Some(map_id),
                 },
             );
+            // remember the auth material so a map registering later
+            // can be pre-authed for this player
+            st.set_online_auth(super::state::OnlineAuth {
+                account_id: e.account_id,
+                char_id: e.char_id,
+                login_id1: e.login_id1,
+                login_id2: e.login_id2,
+                ip: e.ip,
+                server: map_id,
+            });
             let mut p = P2AFD::default();
             p.account_id = fixed.account_id;
             p.login_id2 = e.login_id2;
             p.client_protocol_version = ClientVersion(e.client_version);
             p.char_key = key;
             p.char_data = cd;
-            send_bytes(tx, enc(move |v| p.encode(v)));
+            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
             tracing::info!(map_id, char_id = cid, "authenticated char for map");
             Ok(())
         }
@@ -291,17 +333,11 @@ async fn handle(
                 return Err(());
             };
             let chars: Vec<u32> = p.repeat.iter().map(|r| r.char_id.0).collect();
-            on_user_list(st, map_id, p.users, chars);
+            on_user_list(st, map_id, p.users, chars.clone());
+            st.reconcile_online_auth(map_id, &chars);
             Ok(())
         }
         0x2b01 => {
-            // a drain waiter may be listening
-            {
-                let Ok(p) = P2B01::decode(bytes) else {
-                    return Err(());
-                };
-                st.drain_pending.lock().unwrap().remove(&p.char_id.0);
-            }
             let Ok(p) = P2B01::decode(bytes) else {
                 return Err(());
             };
@@ -314,11 +350,15 @@ async fn handle(
                     c.data = p.char_data;
                 }
             }
+            // track the write so a transferring char's 0x2afc on
+            // another link can wait for it
+            st.save_begin(p.char_id.0);
             let st2 = st.clone();
             let _ = tokio::task::spawn_blocking(move || {
                 st2.db.save_character(&p.char_key, &p.char_data)
             })
             .await;
+            st.save_done(p.char_id.0);
             Ok(())
         }
         0x2b02 => {
@@ -352,19 +392,30 @@ async fn handle(
                 online.retain(|_, v| *v != map_id);
             }
             st.online_notify.notify_one();
+            st.drop_account_online_auth(fixed.account_id.0);
             let mut p = P2B03::default();
             p.account_id = fixed.account_id;
             p.unknown = 0;
-            send_bytes(tx, enc(move |v| p.encode(v)));
+            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
             Ok(())
         }
         0x2b05 => {
             let Ok(fixed) = P2B05::decode(bytes) else {
                 return Err(());
             };
-            // map-to-map move: create a map-stage entry so the target
-            // map server's 0x2afc can match (multi-map splice of the
-            // client connection is a later phase).
+            // map-to-map move: the source just sent 0x2b01 on this
+            // link and the client now heads to another server. Mark
+            // the transfer so that link's 0x2afc waits for the save,
+            // and create a map-stage entry so it can match.
+            st.transfer_mark(fixed.account_id.0, fixed.char_id.0);
+            st.set_online_auth(super::state::OnlineAuth {
+                account_id: fixed.account_id.0,
+                char_id: fixed.char_id.0,
+                login_id1: fixed.login_id1,
+                login_id2: fixed.login_id2,
+                ip: u32::from_le_bytes(fixed.client_ip.0),
+                server: map_id,
+            });
             let ok = st
                 .load_char(fixed.char_id.0)
                 .await
@@ -394,7 +445,7 @@ async fn handle(
             p.y = fixed.y;
             p.map_ip = fixed.map_ip;
             p.map_port = fixed.map_port;
-            send_bytes(tx, enc(move |v| p.encode(v)));
+            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
             Ok(())
         }
         0x2b0c => {
@@ -424,7 +475,7 @@ async fn handle(
             let Ok(fixed) = P2B0E::decode(bytes) else {
                 return Err(());
             };
-            handle_named_op(st, tx, fixed).await
+            handle_named_op(st, tx, map_id, fixed).await
         }
         0x2b10 => {
             let Ok(p) = P2B10::decode(bytes) else {
@@ -515,33 +566,8 @@ async fn handle(
                 let _ = notify.send(());
                 return Ok(());
             }
-            let send71 = {
-                let mut pend = st.pending_sel.lock().unwrap();
-                if let Some(ps) = pend.get_mut(&key) {
-                    if ps.login_id1 == fixed.login_id1 && ps.login_id2 == fixed.login_id2 {
-                        ps.seen += 1;
-                        if ps.seen >= ps.needed {
-                            Some(pend.remove(&key).unwrap())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            };
-            if let Some(ps) = send71 {
-                let mut p = P0071::default();
-                p.char_id = CharId(ps.char_id);
-                p.map_name = FixedStr::<16>::try_from_str(&ps.map_name).unwrap_or_default();
-                p.ip = {
-                    let ip: Ipv4Addr = st.cfg.gate.public_ip.parse().unwrap_or(Ipv4Addr::LOCALHOST);
-                    Ip4Address(u32::from_le_bytes(ip.octets()).to_le_bytes())
-                };
-                p.port = st.cfg.gate.public_port;
-                send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
+            if let Some(ps) = st.sel_waiting_done(key, map_id, fixed.login_id1, fixed.login_id2) {
+                st.send_pending_sel(ps);
             }
             Ok(())
         }
@@ -587,7 +613,7 @@ async fn handle(
                     let mut p2 = P3802::default();
                     p2.sender_char_name = FixedStr::<24>::try_from_str(&from).unwrap_or_default();
                     p2.flag = 1;
-                    send_bytes(tx, enc(move |v| p2.encode(v)));
+                    send_must(tx, enc(move |v| p2.encode(v)), map_id).await;
                 }
             }
             Ok(())
@@ -705,7 +731,7 @@ async fn handle(
                     value: *v as u32,
                 })
                 .collect();
-            send_bytes(tx, enc(move |v| p.encode(v)));
+            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
             Ok(())
         }
         0x3010 => {
@@ -737,7 +763,7 @@ async fn handle(
             let mut p = P3810::default();
             p.account_id = fixed.account_id;
             p.storage = storage;
-            send_bytes(tx, enc(move |v| p.encode(v)));
+            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
             Ok(())
         }
         0x3011 => {
@@ -759,15 +785,15 @@ async fn handle(
             let mut ack = P3811::default();
             ack.account_id = p.account_id;
             ack.unknown = 0;
-            send_bytes(tx, enc(move |v| ack.encode(v)));
+            send_must(tx, enc(move |v| ack.encode(v)), map_id).await;
             Ok(())
         }
 
         // ---- parties ----
-        0x3020 => party_create(st, tx, bytes).await,
-        0x3021 => party_info(st, tx, bytes).await,
-        0x3022 => party_add(st, tx, bytes).await,
-        0x3023 => party_option(st, tx, bytes).await,
+        0x3020 => party_create(st, tx, map_id, bytes).await,
+        0x3021 => party_info(st, tx, map_id, bytes).await,
+        0x3022 => party_add(st, tx, map_id, bytes).await,
+        0x3023 => party_option(st, tx, map_id, bytes).await,
         0x3024 => party_leave(st, bytes).await,
         0x3025 => party_map_change(st, tx, bytes).await,
         0x3026 => party_leader(st, bytes).await,
@@ -788,7 +814,12 @@ fn ip4(v: u32) -> Ip4Address {
 /// 0x2b0e named-char ops: block(1)/ban(2)/unblock(3)/unban(4) against
 /// a character found by name; operation 5 (changesex) fails since
 /// accounts have no sex anymore.
-async fn handle_named_op(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, fixed: P2B0E) -> HResult {
+async fn handle_named_op(
+    st: &Arc<State>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    map_id: usize,
+    fixed: P2B0E,
+) -> HResult {
     let acc = fixed.account_id.0;
     let cname = fixed.char_name.to_string_lossy();
     let op = fixed.operation;
@@ -848,7 +879,7 @@ async fn handle_named_op(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, fixed: P2B
     }
     // reply only when a player asked (acc != 0)
     if acc != 0 {
-        send_bytes(tx, enc(move |v| reply.encode(v)));
+        send_must(tx, enc(move |v| reply.encode(v)), map_id).await;
     }
     Ok(())
 }
@@ -970,13 +1001,20 @@ fn party_check_empty(st: &std::sync::Arc<State>, party_id: u32) -> bool {
     true
 }
 
-fn party_info_to(st: &State, tx: Option<&mpsc::Sender<Vec<u8>>>, party_id: u32) {
+async fn party_info_to(
+    st: &State,
+    tx: Option<&mpsc::Sender<Vec<u8>>>,
+    map_id: usize,
+    party_id: u32,
+) {
     if let Some(p) = party_get(st, party_id) {
         let mut h = P3821::default();
         h.party_id = PartyId(party_id);
         h.option = Some(P3821Option { party_most: p });
         match tx {
-            Some(t) => send_bytes(t, enc(move |v| h.encode(v))),
+            Some(t) => {
+                send_must(t, enc(move |v| h.encode(v)), map_id).await;
+            }
             None => {
                 st.map_broadcast(&enc(move |v| h.encode(v)));
             }
@@ -985,11 +1023,16 @@ fn party_info_to(st: &State, tx: Option<&mpsc::Sender<Vec<u8>>>, party_id: u32) 
         let mut h = P3821::default();
         h.party_id = PartyId(party_id);
         h.option = None;
-        send_bytes(t, enc(move |v| h.encode(v)));
+        send_must(t, enc(move |v| h.encode(v)), map_id).await;
     }
 }
 
-async fn party_create(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) -> HResult {
+async fn party_create(
+    st: &Arc<State>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    map_id: usize,
+    bytes: &[u8],
+) -> HResult {
     let Ok(fixed) = P3020::decode(bytes) else {
         return Err(());
     };
@@ -1000,10 +1043,10 @@ async fn party_create(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8])
         p.error = error;
         p.party_id = PartyId(pid);
         p.party_name = FixedStr::<24>::try_from_str(&pname).unwrap_or_default();
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        enc(move |v| p.encode(v))
     };
     if name.is_empty() || !name.bytes().all(|b| (32..=126).contains(&b)) {
-        reply(1, 0, "error".into());
+        send_must(tx, reply(1, 0, "error".into()), map_id).await;
         return Ok(());
     }
     // name collision
@@ -1014,7 +1057,7 @@ async fn party_create(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8])
         .values()
         .any(|p| p.name.to_string_lossy() == name)
     {
-        reply(1, 0, "error".into());
+        send_must(tx, reply(1, 0, "error".into()), map_id).await;
         return Ok(());
     }
     // tmwa's party_newid starts at 0 and is pre-incremented: the
@@ -1040,20 +1083,30 @@ async fn party_create(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8])
         .db
         .blocking(move |db| db.set_meta("next_party_id", pid as i64))
         .await;
-    reply(0, pid, name);
-    party_info_to(st, Some(tx), pid);
+    send_must(tx, reply(0, pid, name), map_id).await;
+    party_info_to(st, Some(tx), map_id, pid).await;
     Ok(())
 }
 
-async fn party_info(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) -> HResult {
+async fn party_info(
+    st: &Arc<State>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    map_id: usize,
+    bytes: &[u8],
+) -> HResult {
     let Ok(fixed) = P3021::decode(bytes) else {
         return Err(());
     };
-    party_info_to(st, Some(tx), fixed.party_id.0);
+    party_info_to(st, Some(tx), map_id, fixed.party_id.0).await;
     Ok(())
 }
 
-async fn party_add(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) -> HResult {
+async fn party_add(
+    st: &Arc<State>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    map_id: usize,
+    bytes: &[u8],
+) -> HResult {
     let Ok(fixed) = P3022::decode(bytes) else {
         return Err(());
     };
@@ -1063,12 +1116,12 @@ async fn party_add(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) ->
         p.party_id = fixed.party_id;
         p.account_id = fixed.account_id;
         p.flag = flag;
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        enc(move |v| p.encode(v))
     };
     let mut p = match party_get(st, pid) {
         Some(p) => p,
         None => {
-            reply(1);
+            send_must(tx, reply(1), map_id).await;
             return Ok(());
         }
     };
@@ -1082,7 +1135,7 @@ async fn party_add(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) ->
                 online: 1,
                 lv: fixed.level as i32,
             };
-            reply(0);
+            send_must(tx, reply(0), map_id).await;
             let mut flag = 0u8;
             if p.exp > 0 && !party_check_exp_share(st, &p) {
                 p.exp = 0;
@@ -1100,15 +1153,20 @@ async fn party_add(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) ->
             party_put(st, pid, p);
             // broadcast AFTER the update, or the member table the
             // maps learn is missing the new member
-            party_info_to(st, None, pid);
+            party_info_to(st, None, map_id, pid).await;
             return Ok(());
         }
     }
-    reply(1);
+    send_must(tx, reply(1), map_id).await;
     Ok(())
 }
 
-async fn party_option(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) -> HResult {
+async fn party_option(
+    st: &Arc<State>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    map_id: usize,
+    bytes: &[u8],
+) -> HResult {
     let Ok(fixed) = P3023::decode(bytes) else {
         return Err(());
     };
@@ -1133,7 +1191,7 @@ async fn party_option(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8])
     if flag == 0 {
         st.map_broadcast(&enc(move |v| o.encode(v)));
     } else {
-        send_bytes(tx, enc(move |v| o.encode(v)));
+        send_must(tx, enc(move |v| o.encode(v)), map_id).await;
     }
     party_put(st, pid, p);
     Ok(())
@@ -1143,11 +1201,11 @@ async fn party_leave(st: &Arc<State>, bytes: &[u8]) -> HResult {
     let Ok(fixed) = P3024::decode(bytes) else {
         return Err(());
     };
-    party_leave_do(st, fixed.party_id.0, fixed.account_id.0);
+    party_leave_do(st, fixed.party_id.0, fixed.account_id.0).await;
     Ok(())
 }
 
-pub(crate) fn party_leave_do(st: &Arc<State>, pid: u32, account_id: u32) {
+pub(crate) async fn party_leave_do(st: &Arc<State>, pid: u32, account_id: u32) {
     let mut p = match party_get(st, pid) {
         Some(p) => p,
         None => return,
@@ -1165,7 +1223,7 @@ pub(crate) fn party_leave_do(st: &Arc<State>, pid: u32, account_id: u32) {
         p.member[i] = PartyMember::default();
         party_put(st, pid, p);
         if !party_check_empty(st, pid) {
-            party_info_to(st, None, pid);
+            party_info_to(st, None, usize::MAX, pid).await;
         }
         return;
     }
@@ -1280,7 +1338,7 @@ async fn party_check(st: &Arc<State>, bytes: &[u8]) -> HResult {
         }
     }
     for p in to_clean {
-        party_leave_do(st, p, account_id);
+        party_leave_do(st, p, account_id).await;
     }
     Ok(())
 }

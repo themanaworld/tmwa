@@ -63,7 +63,10 @@ fn spawn_writer<W: tokio::io::AsyncWrite + Unpin + Send + 'static>(
     (tx, h)
 }
 
-pub async fn run<S>(st: Arc<State>, sock: S, ip4: Ipv4Addr)
+/// `allow_relay`: only the WebSocket transport relays map traffic;
+/// a TCP client that sends 0x0072 to the gate is a leftover of the
+/// old topology (or an honest mistake) — log once and drop it.
+pub async fn run<S>(st: Arc<State>, sock: S, ip4: Ipv4Addr, allow_relay: bool)
 where
     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
 {
@@ -109,6 +112,20 @@ where
                 break;
             }
             0x0072 => {
+                if !allow_relay {
+                    // TCP clients connect to the map server named in
+                    // 0x0071 directly; only the WS transport relays.
+                    static WARNED: std::sync::atomic::AtomicBool =
+                        std::sync::atomic::AtomicBool::new(false);
+                    if !WARNED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                        tracing::warn!(
+                            "client {}: 0x0072 on the TCP listener; \
+                             map-stage relay is WS-only now, closing",
+                            Ipv4Addr::from(ip.to_le_bytes())
+                        );
+                    }
+                    break;
+                }
                 relay(st.clone(), tx, wh, fr, ip, pkt.bytes).await;
                 return;
             }
@@ -755,6 +772,14 @@ async fn handle_char_select(
         send_bytes(tx, enc(move |v| p.encode(v)));
         return false;
     };
+    // a saturated map link can't answer auth requests in time:
+    // refuse the select rather than queue behind it
+    if st.map_congested(map_id) {
+        let mut p = P0081::default();
+        p.error_code = 1;
+        send_bytes(tx, enc(move |v| p.encode(v)));
+        return false;
+    }
     if let Some(m) = rewrite {
         cd.last_point.map_ = FixedStr::<16>::try_from_str(&m).unwrap_or_default();
         // update cache so the later load in 0x2afc sees the rewrite
@@ -778,9 +803,30 @@ async fn handle_char_select(
         created: Instant::now(),
     });
 
-    let needed = st.map_count();
+    // 0x3829 to all map servers; ip = the real client IP. The map
+    // trusts it because its map_conf lists us as trusted_proxy_ip.
+    // The pending select is registered BEFORE the packets go out:
+    // a fast map can ack (0x3830) before send_must returns, and a
+    // map unregistered mid-select must still resolve the entry.
+    let mut p = P3829::default();
+    p.account_id = AccountId(sd.account_id);
+    p.char_id = ck.char_id;
+    p.login_id1 = sd.login_id1;
+    p.login_id2 = sd.login_id2;
+    p.ip = ip4(ip);
+    let Some(ttx) = st.map_tx(map_id) else {
+        let mut e = P0081::default();
+        e.error_code = 1;
+        send_bytes(tx, enc(move |v| e.encode(v)));
+        return false;
+    };
+    let key = (sd.account_id, ck.char_id.0);
+    let senders = st.map_senders();
+    let mut waiting: std::collections::HashSet<usize> =
+        senders.iter().map(|(mid, _)| *mid).collect();
+    waiting.insert(map_id);
     st.pending_sel.lock().unwrap().insert(
-        (sd.account_id, ck.char_id.0),
+        key,
         PendingSel {
             client_tx: tx.clone(),
             account_id: sd.account_id,
@@ -788,20 +834,36 @@ async fn handle_char_select(
             login_id1: sd.login_id1,
             login_id2: sd.login_id2,
             map_name: cd.last_point.map_.to_string_lossy(),
-            needed,
-            seen: 0,
+            map_id,
+            waiting,
         },
     );
-
-    // 0x3829 to all map servers; ip = the real client IP. The map
-    // trusts it because its map_conf lists us as trusted_proxy_ip.
-    let mut p = P3829::default();
-    p.account_id = AccountId(sd.account_id);
-    p.char_id = ck.char_id;
-    p.login_id1 = sd.login_id1;
-    p.login_id2 = sd.login_id2;
-    p.ip = ip4(ip);
-    st.map_broadcast(&enc(move |v| p.encode(v)));
+    // a map that unregistered between map_for and this insert left
+    // the entry orphaned (its cleanup already ran): re-check and
+    // resolve it like a missing 0x3830.
+    if st.map_tx(map_id).is_none()
+        && let Some(ps) = st.sel_waiting_done(key, map_id, sd.login_id1, sd.login_id2)
+    {
+        st.send_pending_sel(ps);
+    }
+    for (mid, mtx) in &senders {
+        if *mid == map_id {
+            continue; // the target goes through send_must below
+        }
+        if mtx.try_send(enc(|v| p.encode(v))).is_err() {
+            tracing::warn!("map {mid}: dropped select pre-auth (link congested)");
+            if let Some(ps) = st.sel_waiting_done(key, *mid, sd.login_id1, sd.login_id2) {
+                st.send_pending_sel(ps);
+            }
+        }
+    }
+    if !super::state::send_must(&ttx, enc(|v| p.encode(v)), map_id).await
+        && let Some(ps) = st.sel_waiting_done(key, map_id, sd.login_id1, sd.login_id2)
+    {
+        // the target never got the pre-auth; it will authenticate
+        // the client through 0x2afc instead, so still answer 0x0071
+        st.send_pending_sel(ps);
+    }
     true
 }
 
@@ -1079,7 +1141,7 @@ pub(crate) async fn delete_character(st: &Arc<State>, cid: u32) {
     if let Some(r) = rec.as_ref() {
         let pid = r.data.party_id.0;
         if pid != 0 {
-            super::maplink::party_leave_do(st, pid, r.key.account_id.0);
+            super::maplink::party_leave_do(st, pid, r.key.account_id.0).await;
         }
         let cid64 = cid as i64;
         let _ = st.db.blocking(move |db| db.divorce(cid64)).await;
@@ -1104,8 +1166,6 @@ enum FwdEnd {
     UpstreamGone,
     /// The drain signal fired: hold unconditionally.
     Hold,
-    /// Something we can't hold for (0x0092 multi-map request).
-    Fatal,
 }
 
 /// Track client-UI state from an S->C packet (open NPC dialog, trade,
@@ -1276,33 +1336,24 @@ enum Rejoin {
     MapFull,
 }
 
-/// Rejoin a map server: push a fresh stage-3 auth, send 0x3829, wait
-/// for 0x3830, then run the client-auth prelude (0x0072 -> 0x8000 ->
-/// 0x0073).
-async fn upstream_rejoin(
+/// Push a fresh stage-3 auth entry and 0x3829 to `map_id`, then wait
+/// (bounded) for its 0x3830. Shared by the hold-rejoin and the
+/// 0x0092-handoff fresh-auth retry.
+async fn push_reauth(
     st: &Arc<State>,
     rec: &std::sync::Mutex<PlayerSession>,
     map_id: usize,
-) -> Rejoin {
-    let (account_id, char_id, login_id1, login_id2, sex, client_ip) = {
+) -> bool {
+    let (account_id, char_id, login_id1, login_id2, client_ip) = {
         let r = rec.lock().unwrap();
         (
             r.account_id,
             r.char_id,
             r.login_id1,
             r.login_id2,
-            r.sex,
             r.client_ip,
         )
     };
-    // refresh the map name from the saved CharData: this is exactly
-    // where the map server will place the player after a shutdown
-    // save, and it must be what we send in the client's 0x0091.
-    if let Some(row) = st.load_char(char_id).await {
-        let m = row.data.last_point.map_.to_string_lossy();
-        let mut r = rec.lock().unwrap();
-        r.map_name = m;
-    }
     st.push_auth(AuthEntry {
         account_id,
         char_id,
@@ -1321,7 +1372,10 @@ async fn upstream_rejoin(
     p29.login_id1 = login_id1;
     p29.login_id2 = login_id2;
     p29.ip = ip4(client_ip);
-    st.map_send(map_id, enc(move |v| p29.encode(v)));
+    let Some(mtx) = st.map_tx(map_id) else {
+        return false;
+    };
+    super::state::send_must(&mtx, enc(move |v| p29.encode(v)), map_id).await;
 
     let (rtx, rrx) = tokio::sync::oneshot::channel::<()>();
     st.rejoin_notify
@@ -1337,6 +1391,54 @@ async fn upstream_rejoin(
             .unwrap()
             .remove(&(account_id, char_id));
         tracing::debug!(char_id, "rejoin: no 0x3830 from map {map_id}");
+        return false;
+    }
+    true
+}
+
+/// Fresh-auth retry for a 0x0092 handoff reconnect that reached the
+/// target map before our 0x3829 did: the client already sent its
+/// 0x0072, so reopen the upstream and replay it.
+async fn transfer_reopen(
+    st: &Arc<State>,
+    rec: &std::sync::Mutex<PlayerSession>,
+    map_id: usize,
+    pkt72: Vec<u8>,
+) -> Option<(
+    tokio::net::tcp::OwnedReadHalf,
+    tokio::net::tcp::OwnedWriteHalf,
+)> {
+    if !push_reauth(st, rec, map_id).await {
+        return None;
+    }
+    let (account_id, char_id, login_id1) = {
+        let r = rec.lock().unwrap();
+        (r.account_id, r.char_id, r.login_id1)
+    };
+    upstream_open(st, map_id, pkt72, account_id, char_id, login_id1).await
+}
+
+/// Rejoin a map server: push a fresh stage-3 auth, send 0x3829, wait
+/// for 0x3830, then run the client-auth prelude (0x0072 -> 0x8000 ->
+/// 0x0073).
+async fn upstream_rejoin(
+    st: &Arc<State>,
+    rec: &std::sync::Mutex<PlayerSession>,
+    map_id: usize,
+) -> Rejoin {
+    let (account_id, char_id, login_id1, sex) = {
+        let r = rec.lock().unwrap();
+        (r.account_id, r.char_id, r.login_id1, r.sex)
+    };
+    // refresh the map name from the saved CharData: this is exactly
+    // where the map server will place the player after a shutdown
+    // save, and it must be what we send in the client's 0x0091.
+    if let Some(row) = st.load_char(char_id).await {
+        let m = row.data.last_point.map_.to_string_lossy();
+        let mut r = rec.lock().unwrap();
+        r.map_name = m;
+    }
+    if !push_reauth(st, rec, map_id).await {
         return Rejoin::Retry;
     }
 
@@ -1491,10 +1593,12 @@ async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin +
                 match p {
                     Ok(Some(p)) => {
                         if p.id == 0x0092 {
-                            tracing::warn!(
-                                "relay: map requests map change; multi-map splicing not implemented; closing"
-                            );
-                            return FwdEnd::Fatal;
+                            // drain evacuate / cross-server warp:
+                            // the client reconnects to the same WS
+                            // endpoint and sends 0x0072 again. Hand
+                            // it the packet and keep relaying until
+                            // either side closes.
+                            rec.lock().unwrap().transferring = true;
                         }
                         track_sc(rec, p.id, &p.bytes);
                         if tx.send(p.bytes).await.is_err() {
@@ -1549,18 +1653,11 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
             })
             .map(|e| (e.map_id, e.login_id2))
     };
-    let Some((map_id, login_id2)) = found else {
+    let Some((entry_map_id, login_id2)) = found else {
         tracing::warn!(
             "relay: no map auth for account {} char {} from {ip:#x}",
             fixed.account_id.0,
             fixed.char_id.0
-        );
-        return;
-    };
-    let Some(map_id) = map_id else {
-        tracing::warn!(
-            "relay: auth entry has no map for account {}",
-            fixed.account_id.0
         );
         return;
     };
@@ -1570,6 +1667,28 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         .await
         .map(|r| r.data.last_point.map_.to_string_lossy())
         .unwrap_or_default();
+
+    // A 0x2b05 handoff entry carries the map the source resolved;
+    // the saved last_point is the authoritative target after the
+    // transfer save. An entry with no map id, or one pointing at a
+    // draining/gone server, resolves through the saved map name
+    // (map_for prefers non-draining servers).
+    let resolved = match entry_map_id {
+        Some(mid) if !st.map_gone(mid) && !st.map_draining(mid) => Some(mid),
+        _ => st.map_for(&map_name).0,
+    };
+    let Some(map_id) = resolved else {
+        tracing::warn!(
+            "relay: no map serves {} for account {}",
+            map_name,
+            fixed.account_id.0
+        );
+        return;
+    };
+    // this 0x0072 follows a 0x0092 handoff: the target map may not
+    // have our 0x3829 yet, so an early upstream close gets one
+    // fresh-auth retry
+    let from_transfer = entry_map_id.is_none() || entry_map_id != Some(map_id);
     let hold_signal = std::sync::Arc::new(tokio::sync::Notify::new());
     let rec = std::sync::Arc::new(std::sync::Mutex::new(PlayerSession {
         account_id: fixed.account_id.0,
@@ -1588,6 +1707,7 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         storage_open: false,
         quitting: false,
         saw_0073: false,
+        transferring: false,
         kicked: false,
         held: false,
         hold_signal: Some(hold_signal.clone()),
@@ -1601,10 +1721,13 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
     let mut cur_map_id = map_id;
     let pkt72 = first;
     let mut first_iter = true;
+    // a 0x0092-handoff reconnect gets one fresh-auth retry when the
+    // target map closed it unanswered
+    let mut retried_transfer = false;
 
     'life: loop {
         // ---- open upstream ----
-        let (urd, uwr) = if first_iter {
+        let (mut urd, mut uwr) = if first_iter {
             first_iter = false;
             match upstream_open(
                 &st,
@@ -1743,15 +1866,42 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         };
 
         // ---- forward ----
-        let end = forward_phase(&st, &rec, &mut fr, &tx, uwr, urd, &hold_signal).await;
+        let mut end;
+        loop {
+            end = forward_phase(&st, &rec, &mut fr, &tx, uwr, urd, &hold_signal).await;
+            // the 0x0072 for a 0x0092 handoff can reach the target
+            // map before our 0x3829 did; the map then closed the
+            // upstream unanswered. Push a fresh auth and replay the
+            // 0x0072 once before giving up on the player.
+            if matches!(end, FwdEnd::UpstreamGone)
+                && !rec.lock().unwrap().saw_0073
+                && from_transfer
+                && !retried_transfer
+            {
+                retried_transfer = true;
+                if let Some((urd2, uwr2)) =
+                    transfer_reopen(&st, &rec, cur_map_id, pkt72.clone()).await
+                {
+                    urd = urd2;
+                    uwr = uwr2;
+                    continue;
+                }
+            }
+            break;
+        }
         // The drain signal asks for a hold even while the map is
         // still up; a bare upstream EOF goes through the decision.
         let want_hold = match end {
-            FwdEnd::ClientGone | FwdEnd::Fatal => break 'life,
+            FwdEnd::ClientGone => break 'life,
             FwdEnd::Hold => true,
             FwdEnd::UpstreamGone => {
-                if rec.lock().unwrap().kicked {
-                    break 'life;
+                {
+                    let r = rec.lock().unwrap();
+                    // a kicked player and a client that got its
+                    // 0x0092 both just end here
+                    if r.kicked || r.transferring {
+                        break 'life;
+                    }
                 }
                 match resolve_upstream_eof(&st, &rec, cur_map_id, &mut fr, &tx).await {
                     UpGone::Hold => true,
@@ -1827,6 +1977,7 @@ mod tests {
             storage_open: false,
             quitting: false,
             saw_0073: false,
+            transferring: false,
             held: false,
             hold_signal: None,
             kicked: false,

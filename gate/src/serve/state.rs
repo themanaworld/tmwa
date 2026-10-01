@@ -73,6 +73,9 @@ pub struct PlayerSession {
     /// accepted the player, so a later close is a per-player kick,
     /// not a refusal.
     pub saw_0073: bool,
+    /// The map sent a 0x0092 handoff: the client reconnects with a
+    /// fresh 0x0072, so this session ends without hold.
+    pub transferring: bool,
     /// Upstream gone; waiting for the map to come back.
     pub held: bool,
     /// Set by `drain` to force the relay into hold mode.
@@ -103,11 +106,29 @@ pub struct MapHandle {
     pub shutting_down: bool,
 }
 
+/// A map-link writer queue below this many free slots counts as
+/// congested: new char-selects and map joins aimed at it are
+/// refused instead of queueing behind a saturated link.
+const MAP_TX_LOW_WATER: usize = 64;
+
 impl MapHandle {
-    pub fn send(&self, bytes: Vec<u8>) {
-        if let Err(e) = self.tx.try_send(bytes) {
-            tracing::warn!("map {id}: queue full/dropped: {e}", id = self.id);
+    /// Non-critical send (broadcasts, notifications): dropped with a
+    /// warning when the writer queue is full. Returns whether the
+    /// packet was queued.
+    pub fn send(&self, bytes: Vec<u8>) -> bool {
+        match self.tx.try_send(bytes) {
+            Ok(()) => true,
+            Err(e) => {
+                tracing::warn!("map {id}: queue full/dropped: {e}", id = self.id);
+                false
+            }
         }
+    }
+
+    /// The link is congested when its writer backlog is deep: shed
+    /// new work (char-selects, joins) rather than add to it.
+    pub fn congested(&self) -> bool {
+        self.tx.capacity() < MAP_TX_LOW_WATER
     }
 }
 
@@ -119,10 +140,30 @@ pub struct PendingSel {
     pub login_id1: u32,
     pub login_id2: u32,
     pub map_name: String,
-    /// Number of map servers that must 0x3830 before the client is
-    /// told (tmwa counts all connected map servers).
-    pub needed: usize,
-    pub seen: usize,
+    /// Map server slot the player will connect to (carries the
+    /// advertised address into the 0x0071 reply).
+    pub map_id: usize,
+    /// Map server slots that still owe a 0x3830 (tmwa waits for all
+    /// connected map servers). A congested link that dropped the
+    /// 0x3829 is not in here, so a saturating server can't stall
+    /// the select.
+    pub waiting: std::collections::HashSet<usize>,
+}
+
+/// What the gate must remember about an online player to pre-auth
+/// (0x3829) them on a map server that registers late.
+#[derive(Clone)]
+pub struct OnlineAuth {
+    pub account_id: u32,
+    pub char_id: u32,
+    pub login_id1: u32,
+    pub login_id2: u32,
+    /// Real client IP, as seen by the gate at the stage that
+    /// created the entry.
+    pub ip: u32,
+    /// Map slot the player is on; mid-transfer this is the source
+    /// until the destination's 0x2afc or 0x2aff corrects it.
+    pub server: usize,
 }
 
 /// A cached character (mirrors tmwa's in-memory char_db).
@@ -141,6 +182,20 @@ pub struct State {
     pub auth: Mutex<HashMap<u32, AuthEntry>>,
     /// (account_id, char_id) of clients waiting on 0x3830.
     pub pending_sel: Mutex<HashMap<(u32, u32), PendingSel>>,
+    /// char_id -> auth material of each online player, so a map
+    /// server that registers late can accept transfers and logins
+    /// immediately (gate pushes 0x3829 right after 0x2afa).
+    pub online_auth: Mutex<HashMap<u32, OnlineAuth>>,
+    /// (account_id, char_id) mid map-to-map transfer: the source map
+    /// sent 0x2b01 right before the 0x2b05 that set the mark. A
+    /// 0x2afc arriving on another link for a marked char waits for
+    /// in-flight saves to commit first (bounded).
+    pub transfer_pending: Mutex<HashMap<(u32, u32), Instant>>,
+    /// char_id -> number of 0x2b01 saves received but not yet
+    /// committed to the database.
+    pub saves_in_flight: Mutex<HashMap<u32, u32>>,
+    /// Fired whenever an in-flight save commits.
+    pub save_notify: tokio::sync::Notify,
     /// Map server slots; None = free.
     pub map_servers: Mutex<Vec<Option<MapHandle>>>,
     /// char_id -> map server slot (online in game).
@@ -167,8 +222,6 @@ pub struct State {
     /// (account, char) -> oneshot fired when the map answers 0x3830
     /// for a rejoin.
     pub rejoin_notify: Mutex<HashMap<(u32, u32), tokio::sync::oneshot::Sender<()>>>,
-    /// char ids whose 0x2b01 a `drain --wait` is still waiting on.
-    pub drain_pending: Mutex<std::collections::HashSet<u32>>,
     /// TCP+WS client connections currently open.
     pub conn_count: AtomicU64,
 }
@@ -181,6 +234,10 @@ impl State {
             db,
             auth: Mutex::new(HashMap::new()),
             pending_sel: Mutex::new(HashMap::new()),
+            online_auth: Mutex::new(HashMap::new()),
+            transfer_pending: Mutex::new(HashMap::new()),
+            saves_in_flight: Mutex::new(HashMap::new()),
+            save_notify: tokio::sync::Notify::new(),
             map_servers: Mutex::new(Vec::new()),
             online: Mutex::new(HashMap::new()),
             chars: Mutex::new(HashMap::new()),
@@ -195,7 +252,6 @@ impl State {
             online_notify: tokio::sync::Notify::new(),
             player_sessions: Mutex::new(HashMap::new()),
             rejoin_notify: Mutex::new(HashMap::new()),
-            drain_pending: Mutex::new(std::collections::HashSet::new()),
         }
     }
 
@@ -279,6 +335,120 @@ impl State {
         })
     }
 
+    // ---- transfer / save ordering ----
+
+    /// 0x2b05 named this char: a map-to-map transfer started, and the
+    /// source link's save may still be committing when the target
+    /// link's 0x2afc arrives.
+    pub fn transfer_mark(&self, account_id: u32, char_id: u32) {
+        let mut tp = self.transfer_pending.lock().unwrap();
+        let now = Instant::now();
+        tp.retain(|_, t| now.duration_since(*t) < Duration::from_secs(60));
+        tp.insert((account_id, char_id), now);
+    }
+
+    /// Take the transfer mark for a char (0x2afc uses it to decide
+    /// whether to wait on in-flight saves).
+    pub fn transfer_take(&self, account_id: u32, char_id: u32) -> bool {
+        self.transfer_pending
+            .lock()
+            .unwrap()
+            .remove(&(account_id, char_id))
+            .is_some()
+    }
+
+    /// A 0x2b01 for this char was received; the DB write is queued.
+    pub fn save_begin(&self, char_id: u32) {
+        *self
+            .saves_in_flight
+            .lock()
+            .unwrap()
+            .entry(char_id)
+            .or_insert(0) += 1;
+    }
+
+    /// The queued save for this char committed (or failed).
+    pub fn save_done(&self, char_id: u32) {
+        let mut s = self.saves_in_flight.lock().unwrap();
+        if let Some(n) = s.get_mut(&char_id) {
+            *n -= 1;
+            if *n == 0 {
+                s.remove(&char_id);
+            }
+        }
+        drop(s);
+        self.save_notify.notify_waiters();
+    }
+
+    /// Wait until no 0x2b01 save for `char_id` is in flight.
+    /// Returns false on timeout.
+    pub async fn wait_saves(&self, char_id: u32, dur: Duration) -> bool {
+        let deadline = Instant::now() + dur;
+        loop {
+            // register the waiter before checking the count, so a
+            // commit landing in between can't be missed
+            let notified = self.save_notify.notified();
+            tokio::pin!(notified);
+            notified.as_mut().enable();
+            if self
+                .saves_in_flight
+                .lock()
+                .unwrap()
+                .get(&char_id)
+                .copied()
+                .unwrap_or(0)
+                == 0
+            {
+                return true;
+            }
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                return false;
+            }
+            if tokio::time::timeout(left, notified).await.is_err() {
+                return false;
+            }
+        }
+    }
+
+    // ---- online auth (pre-auth for late-registered maps) ----
+
+    /// Remember auth material for a player going in game, so a map
+    /// server registering later can be pre-authed (0x3829) for
+    /// transfers/logins.
+    pub fn set_online_auth(&self, e: OnlineAuth) {
+        self.online_auth.lock().unwrap().insert(e.char_id, e);
+    }
+
+    /// Forget auth material for an account's chars (0x2b02).
+    pub fn drop_account_online_auth(&self, account_id: u32) {
+        self.online_auth
+            .lock()
+            .unwrap()
+            .retain(|_, e| e.account_id != account_id);
+    }
+
+    /// A fresh copy of every online player's auth material (for
+    /// pushing 0x3829 to a late-registered map).
+    pub fn online_auths(&self) -> Vec<OnlineAuth> {
+        self.online_auth.lock().unwrap().values().cloned().collect()
+    }
+
+    /// Reconcile the online-auth table with a map's 0x2aff user
+    /// list: entries this map reported keep/get its slot; entries
+    /// it owns but no longer lists are dropped (the player left).
+    pub fn reconcile_online_auth(&self, map_id: usize, chars: &[u32]) {
+        let listed: std::collections::HashSet<u32> = chars.iter().copied().collect();
+        self.online_auth.lock().unwrap().retain(|cid, e| {
+            if listed.contains(cid) {
+                e.server = map_id;
+                true
+            } else {
+                e.server != map_id
+            }
+        });
+    }
+
     /// Consume a stage-2 entry (0x0065 char connect / 0x2b02 stage).
     pub fn take_char_auth(
         &self,
@@ -328,13 +498,88 @@ impl State {
     }
 
     pub fn map_unregister(&self, id: usize) {
-        let mut ms = self.map_servers.lock().unwrap();
-        if let Some(slot) = ms.get_mut(id) {
-            *slot = None;
+        {
+            let mut ms = self.map_servers.lock().unwrap();
+            if let Some(slot) = ms.get_mut(id) {
+                *slot = None;
+            }
         }
-        // drop online marks for that map
+        // drop online marks + pre-auth material for that map
         self.online.lock().unwrap().retain(|_, v| *v != id);
+        self.online_auth
+            .lock()
+            .unwrap()
+            .retain(|_, e| e.server != id);
         self.online_notify.notify_waiters();
+        // resolve char-selects that were waiting on this link's
+        // 0x3830 (or that it was the target of)
+        let mut done = Vec::new();
+        {
+            let mut pend = self.pending_sel.lock().unwrap();
+            for ps in pend.values_mut() {
+                ps.waiting.remove(&id);
+            }
+            let keys: Vec<(u32, u32)> = pend
+                .iter()
+                .filter(|(_, ps)| ps.map_id == id || ps.waiting.is_empty())
+                .map(|(k, _)| *k)
+                .collect();
+            for k in keys {
+                if let Some(ps) = pend.remove(&k) {
+                    done.push(ps);
+                }
+            }
+        }
+        for ps in done {
+            self.send_pending_sel(ps);
+        }
+    }
+
+    /// Remove `mid` from a pending select's waiting set (its 0x3830
+    /// arrived, or its link went away mid-select). When nothing
+    /// else is awaited the entry is popped and returned so the
+    /// caller can `send_pending_sel` it.
+    pub(crate) fn sel_waiting_done(
+        &self,
+        key: (u32, u32),
+        mid: usize,
+        login_id1: u32,
+        login_id2: u32,
+    ) -> Option<PendingSel> {
+        let mut pend = self.pending_sel.lock().unwrap();
+        let ps = pend.get_mut(&key)?;
+        if ps.login_id1 != login_id1 || ps.login_id2 != login_id2 {
+            return None;
+        }
+        ps.waiting.remove(&mid);
+        if ps.waiting.is_empty() {
+            pend.remove(&key)
+        } else {
+            None
+        }
+    }
+
+    /// Complete a char-select: 0x0071 with the target map server's
+    /// registered address, or 0x0081 if it is gone.
+    pub(crate) fn send_pending_sel(&self, ps: PendingSel) {
+        use crate::proto::types::{FixedStr, Ip4Address};
+        use crate::proto::{CharId, P0071, P0081};
+        let addr = self.map_addr(ps.map_id);
+        match addr {
+            Some((ip, port)) => {
+                let mut p = P0071::default();
+                p.char_id = CharId(ps.char_id);
+                p.map_name = FixedStr::<16>::try_from_str(&ps.map_name).unwrap_or_default();
+                p.ip = Ip4Address(ip.to_le_bytes());
+                p.port = port;
+                send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
+            }
+            None => {
+                let mut p = P0081::default();
+                p.error_code = 1;
+                send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
+            }
+        }
     }
 
     /// Send to every connected map server; returns count.
@@ -352,11 +597,50 @@ impl State {
     pub fn map_send(&self, id: usize, bytes: Vec<u8>) -> bool {
         let ms = self.map_servers.lock().unwrap();
         if let Some(Some(h)) = ms.get(id) {
-            h.send(bytes);
-            true
+            h.send(bytes)
         } else {
             false
         }
+    }
+
+    /// The writer queue of map `id`'s link is nearly full.
+    pub fn map_congested(&self, id: usize) -> bool {
+        let ms = self.map_servers.lock().unwrap();
+        matches!(ms.get(id), Some(Some(h)) if h.congested())
+    }
+
+    /// Whether map `id` exists and is marked draining.
+    pub fn map_draining(&self, id: usize) -> bool {
+        let ms = self.map_servers.lock().unwrap();
+        matches!(ms.get(id), Some(Some(h)) if h.draining)
+    }
+
+    /// (slot, sender) pairs for every connected map server.
+    pub fn map_senders(&self) -> Vec<(usize, mpsc::Sender<Vec<u8>>)> {
+        let ms = self.map_servers.lock().unwrap();
+        ms.iter()
+            .enumerate()
+            .filter_map(|(i, s)| s.as_ref().map(|h| (i, h.tx.clone())))
+            .collect()
+    }
+
+    /// The sender for map `id`'s link, for must-not-drop replies.
+    pub fn map_tx(&self, id: usize) -> Option<mpsc::Sender<Vec<u8>>> {
+        let ms = self.map_servers.lock().unwrap();
+        ms.get(id).and_then(|s| s.as_ref().map(|h| h.tx.clone()))
+    }
+
+    /// Map slot -> (registered client address, served maps, draining,
+    /// user count) for all connected servers.
+    pub fn map_infos(&self) -> Vec<(usize, u32, u16, Vec<String>, bool, u16)> {
+        let ms = self.map_servers.lock().unwrap();
+        ms.iter()
+            .enumerate()
+            .filter_map(|(i, s)| {
+                s.as_ref()
+                    .map(|h| (i, h.ip, h.port, h.maps.clone(), h.draining, h.users))
+            })
+            .collect()
     }
 
     /// Map server slot that serves `map`, or the first slot with maps.
@@ -499,6 +783,26 @@ impl State {
             },
         );
         Some(rec)
+    }
+}
+
+/// Send raw bytes to a map link's writer task when the reply must
+/// not be dropped (auth answers, request results, saves). A full
+/// queue gets a bounded wait; only a wedged link loses the reply.
+/// Returns false when the bytes were not queued.
+pub async fn send_must(tx: &mpsc::Sender<Vec<u8>>, v: Vec<u8>, map_id: usize) -> bool {
+    use tokio::sync::mpsc::error::TrySendError;
+    match tx.try_send(v) {
+        Ok(()) => true,
+        Err(TrySendError::Full(v)) | Err(TrySendError::Closed(v)) => {
+            match tokio::time::timeout(Duration::from_secs(5), tx.send(v)).await {
+                Ok(Ok(())) => true,
+                _ => {
+                    tracing::warn!("map {map_id}: dropping critical reply, link wedged");
+                    false
+                }
+            }
+        }
     }
 }
 

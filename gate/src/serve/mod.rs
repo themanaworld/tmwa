@@ -160,7 +160,9 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
                     {
                         tracing::info!("client {peer} -> pseudo-ipv4 {ip4}");
                     }
-                    client::run(st.clone(), sock, ip4).await;
+                    // TCP clients connect to the map server named in
+                    // 0x0071 directly; only the WS transport relays.
+                    client::run(st.clone(), sock, ip4, false).await;
                     st.conn_dec();
                 });
             }
