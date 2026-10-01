@@ -1,9 +1,9 @@
 //! `tmwa-gate serve --config gate.toml`
 //!
 //! Option names and defaults mirror tmwa's login_conf / char_conf /
-//! inter_conf (tools/config.py); options that no longer apply
-//! (login<->char link, LAN splitting, ladmin, file paths replaced by
-//! the DB, account sex) are dropped.
+//! inter_conf / char_lan_conf (tools/config.py); options that no
+//! longer apply (login<->char link, login-side LAN splitting,
+//! ladmin, file paths replaced by the DB, account sex) are dropped.
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -20,6 +20,7 @@ pub struct Config {
     pub char_: CharConf,
     pub inter: InterConf,
     pub map: MapConf,
+    pub lan: LanConf,
 }
 
 fn default_listen() -> String {
@@ -226,6 +227,33 @@ impl Default for InterConf {
     fn default() -> Self {
         InterConf {
             party_share_level: 10,
+        }
+    }
+}
+
+/// Port of tmwa's lan_support.conf (char_lan_conf): clients whose
+/// IP is covered by `lan_subnet` count as LAN clients and are sent
+/// `lan_map_ip` in the 0x0071 reply instead of the map server's
+/// advertised address (the port still comes from the map's
+/// registration).
+#[derive(Debug, Deserialize)]
+#[serde(default)]
+pub struct LanConf {
+    /// Hosts this mask covers are LAN clients. tmwa IP4Mask syntax:
+    /// "a.b.c.d" (/32), "a.b.c.d/n", "a.b.c.d/e.f.g.h", or the
+    /// "a." / "a.b." / "a.b.c." trailing-dot shorthand.
+    pub lan_subnet: crate::net::Ip4Mask,
+    /// Map address sent to LAN clients in the 0x0071 reply.
+    pub lan_map_ip: std::net::Ipv4Addr,
+}
+
+impl Default for LanConf {
+    fn default() -> Self {
+        LanConf {
+            // tmwa: IP4Mask(IP4_LOCALHOST, IP4_BROADCAST) — a /32
+            // covering only 127.0.0.1.
+            lan_subnet: "127.0.0.1".parse().unwrap(),
+            lan_map_ip: std::net::Ipv4Addr::LOCALHOST,
         }
     }
 }

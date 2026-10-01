@@ -44,6 +44,110 @@ pub fn rate_ip(ip: IpAddr) -> Ipv4Addr {
     }
 }
 
+/// IPv4 network mask, mirroring tmwa's `IP4Mask`
+/// (src/net/ip.cpp `impl_extract`). Accepted forms:
+///
+/// - `a.b.c.d` — /32, covers only that host
+/// - `a.` / `a.b.` / `a.b.c.` — trailing-dot shorthand for /8, /16, /24
+/// - `a.b.c.d/e.f.g.h` — dotted netmask
+/// - `a.b.c.d/n` — CIDR prefix length (0..=32)
+///
+/// The address is masked on construction, so `10.9.9.9/8` covers
+/// all of 10.0.0.0/8 like tmwa does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Ip4Mask {
+    addr: Ipv4Addr,
+    mask: Ipv4Addr,
+}
+
+impl Ip4Mask {
+    pub fn new(addr: Ipv4Addr, mask: Ipv4Addr) -> Ip4Mask {
+        Ip4Mask {
+            addr: Ipv4Addr::from(addr.to_bits() & mask.to_bits()),
+            mask,
+        }
+    }
+
+    /// True when `ip` falls inside this mask.
+    pub fn covers(&self, ip: Ipv4Addr) -> bool {
+        ip.to_bits() & self.mask.to_bits() == self.addr.to_bits()
+    }
+
+    pub fn addr(&self) -> Ipv4Addr {
+        self.addr
+    }
+
+    pub fn mask(&self) -> Ipv4Addr {
+        self.mask
+    }
+}
+
+fn mask_from_bits(bits: u32) -> Ipv4Addr {
+    debug_assert!(bits <= 32);
+    Ipv4Addr::from(u32::MAX.checked_shl(32 - bits).unwrap_or(0))
+}
+
+/// Why an `Ip4Mask` string failed to parse.
+#[derive(Debug)]
+pub struct Ip4MaskError;
+
+impl std::fmt::Display for Ip4MaskError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str("invalid IPv4 subnet mask")
+    }
+}
+impl std::error::Error for Ip4MaskError {}
+
+impl std::str::FromStr for Ip4Mask {
+    type Err = Ip4MaskError;
+
+    fn from_str(s: &str) -> Result<Ip4Mask, Ip4MaskError> {
+        if let Some((l, r)) = s.split_once('/') {
+            if r.is_empty() {
+                return Err(Ip4MaskError);
+            }
+            let a: Ipv4Addr = l.parse().map_err(|_| Ip4MaskError)?;
+            // dotted netmask, else CIDR prefix length
+            if let Ok(m) = r.parse::<Ipv4Addr>() {
+                return Ok(Ip4Mask::new(a, m));
+            }
+            let bits: u32 = r.parse().map_err(|_| Ip4MaskError)?;
+            if bits > 32 {
+                return Err(Ip4MaskError);
+            }
+            return Ok(Ip4Mask::new(a, mask_from_bits(bits)));
+        }
+        if let Ok(a) = s.parse::<Ipv4Addr>() {
+            // bare host: /32
+            return Ok(Ip4Mask::new(a, Ipv4Addr::from(u32::MAX)));
+        }
+        // trailing-dot shorthand: "a." / "a.b." / "a.b.c." / "a.b.c.d."
+        if let Some(prefix) = s.strip_suffix('.') {
+            let parts: Vec<&str> = prefix.split('.').collect();
+            let bits = match parts.len() {
+                1 => 8,
+                2 => 16,
+                3 => 24,
+                4 => 32,
+                _ => return Err(Ip4MaskError),
+            };
+            let mut octets = [0u8; 4];
+            for (o, p) in octets.iter_mut().zip(parts) {
+                *o = p.parse().map_err(|_| Ip4MaskError)?;
+            }
+            return Ok(Ip4Mask::new(Ipv4Addr::from(octets), mask_from_bits(bits)));
+        }
+        Err(Ip4MaskError)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Ip4Mask {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Ip4Mask, D::Error> {
+        let s = <String as serde::Deserialize>::deserialize(d)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}
+
 /// Resolve the client IP for a request: when the peer is a trusted
 /// proxy, walk X-Forwarded-For from the right past trusted proxies
 /// and take the first untrusted entry. Never the leftmost — clients
@@ -107,6 +211,47 @@ mod tests {
         assert!(a.octets()[0] >= 240);
         // stable across calls
         assert_eq!(a, map_ip(v6("2001:db8:1::9")));
+    }
+
+    fn mask(s: &str) -> Ip4Mask {
+        s.parse().unwrap()
+    }
+
+    #[test]
+    fn ip4mask_forms() {
+        // bare host -> /32
+        let m = mask("127.0.0.1");
+        assert!(m.covers(Ipv4Addr::new(127, 0, 0, 1)));
+        assert!(!m.covers(Ipv4Addr::new(127, 0, 0, 2)));
+
+        // CIDR prefix
+        let m = mask("10.0.0.0/8");
+        assert_eq!(m.mask(), Ipv4Addr::new(255, 0, 0, 0));
+        assert!(m.covers(Ipv4Addr::new(10, 1, 2, 3)));
+        assert!(!m.covers(Ipv4Addr::new(1, 2, 3, 4)));
+
+        // dotted netmask
+        let m = mask("192.168.1.0/255.255.255.0");
+        assert!(m.covers(Ipv4Addr::new(192, 168, 1, 10)));
+        assert!(!m.covers(Ipv4Addr::new(192, 168, 2, 10)));
+
+        // trailing-dot shorthand
+        assert_eq!(mask("10.").mask(), Ipv4Addr::new(255, 0, 0, 0));
+        assert_eq!(mask("192.168.").mask(), Ipv4Addr::new(255, 255, 0, 0));
+        assert_eq!(mask("192.168.1.").mask(), Ipv4Addr::new(255, 255, 255, 0));
+        assert_eq!(mask("127.0.0.1.").mask(), Ipv4Addr::new(255, 255, 255, 255));
+
+        // the address is masked on construction, like tmwa
+        assert_eq!(mask("10.9.9.9/8").addr(), Ipv4Addr::new(10, 0, 0, 0));
+        assert!(mask("10.9.9.9/8").covers(Ipv4Addr::new(10, 1, 2, 3)));
+
+        // /0 covers everything
+        assert!(mask("0.0.0.0/0").covers(Ipv4Addr::new(1, 2, 3, 4)));
+
+        // invalid forms
+        for s in ["", "bogus", "1.2.3.4/", "1.2.3.4/33", "1.2.3.4/bogus", "."] {
+            assert!(s.parse::<Ip4Mask>().is_err(), "{s}");
+        }
     }
 
     #[test]

@@ -39,6 +39,14 @@ pub enum ServeError {
 }
 
 pub async fn run(cfg: Config) -> Result<(), ServeError> {
+    // tmwa's lan_check is fatal here; the gate only warns.
+    if !cfg.lan.lan_subnet.covers(cfg.lan.lan_map_ip) {
+        tracing::warn!(
+            "lan: lan_map_ip {} is outside lan_subnet; LAN clients \
+             are sent an address they may not reach",
+            cfg.lan.lan_map_ip
+        );
+    }
     let db = std::sync::Arc::new(Db::open(&cfg.gate.db)?);
     let st = Arc::new(State::new(cfg, db));
     {

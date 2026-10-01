@@ -139,6 +139,9 @@ pub struct PendingSel {
     pub char_id: u32,
     pub login_id1: u32,
     pub login_id2: u32,
+    /// Real client IP; decides whether the 0x0071 reply carries the
+    /// map's advertised address or the LAN override (lan_subnet).
+    pub client_ip: u32,
     pub map_name: String,
     /// Map server slot the player will connect to (carries the
     /// advertised address into the 0x0071 reply).
@@ -567,10 +570,20 @@ impl State {
         let addr = self.map_addr(ps.map_id);
         match addr {
             Some((ip, port)) => {
+                // tmwa lan_support.conf (char.cpp lan_ip_check): a
+                // client inside lan_subnet is pointed at lan_map_ip
+                // instead of the map's advertised address; the
+                // registered port stays.
+                let client = std::net::Ipv4Addr::from(ps.client_ip.to_le_bytes());
+                let ip = if self.cfg.lan.lan_subnet.covers(client) {
+                    self.cfg.lan.lan_map_ip
+                } else {
+                    std::net::Ipv4Addr::from(ip.to_le_bytes())
+                };
                 let mut p = P0071::default();
                 p.char_id = CharId(ps.char_id);
                 p.map_name = FixedStr::<16>::try_from_str(&ps.map_name).unwrap_or_default();
-                p.ip = Ip4Address(ip.to_le_bytes());
+                p.ip = Ip4Address(ip.octets());
                 p.port = port;
                 send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
             }
@@ -816,4 +829,75 @@ pub fn enc(f: impl FnOnce(&mut Vec<u8>)) -> Vec<u8> {
     let mut v = Vec::new();
     f(&mut v);
     v
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use std::net::Ipv4Addr;
+    use std::sync::Arc;
+
+    fn test_state(lan_subnet: &str, lan_map_ip: Ipv4Addr) -> State {
+        let mut cfg = Config::default();
+        cfg.lan.lan_subnet = lan_subnet.parse().unwrap();
+        cfg.lan.lan_map_ip = lan_map_ip;
+        State::new(cfg, Arc::new(crate::db::Db::open_memory().unwrap()))
+    }
+
+    /// Drive one char-select completion; the receiver carries the
+    /// 0x0071/0x0081 bytes the client would get.
+    fn pending_sel(st: &State, map_id: usize, client_ip: [u8; 4]) -> mpsc::Receiver<Vec<u8>> {
+        let (tx, rx) = mpsc::channel(8);
+        st.send_pending_sel(PendingSel {
+            client_tx: tx,
+            account_id: 1,
+            char_id: 100,
+            login_id1: 1,
+            login_id2: 2,
+            client_ip: u32::from_le_bytes(client_ip),
+            map_name: "001-1.gat".into(),
+            map_id,
+            waiting: std::collections::HashSet::new(),
+        });
+        rx
+    }
+
+    #[test]
+    fn send_pending_sel_lan_override() {
+        use crate::proto::P0071;
+        let st = test_state("10.0.0.0/8", Ipv4Addr::new(192, 168, 1, 10));
+        // a map advertising a WAN address
+        let (mtx, _mrx) = mpsc::channel(8);
+        let map_id = st.map_register(mtx, u32::from_le_bytes([203, 0, 113, 7]), 5121);
+
+        // LAN client: gets lan_map_ip, keeps the map's port
+        let mut rx = pending_sel(&st, map_id, [10, 1, 2, 3]);
+        let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(p.ip.0, [192, 168, 1, 10]);
+        assert_eq!(p.port, 5121);
+
+        // WAN client: gets the advertised address
+        let mut rx = pending_sel(&st, map_id, [1, 2, 3, 4]);
+        let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(p.ip.0, [203, 0, 113, 7]);
+        assert_eq!(p.port, 5121);
+    }
+
+    #[test]
+    fn send_pending_sel_default_subnet() {
+        use crate::proto::P0071;
+        // default lan_subnet covers only 127.0.0.1
+        let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        let (mtx, _mrx) = mpsc::channel(8);
+        let map_id = st.map_register(mtx, u32::from_le_bytes([203, 0, 113, 7]), 5121);
+
+        let mut rx = pending_sel(&st, map_id, [127, 0, 0, 1]);
+        let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(p.ip.0, [127, 0, 0, 1]);
+
+        let mut rx = pending_sel(&st, map_id, [203, 0, 113, 9]);
+        let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(p.ip.0, [203, 0, 113, 7]);
+    }
 }

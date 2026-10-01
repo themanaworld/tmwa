@@ -833,6 +833,7 @@ async fn handle_char_select(
             char_id: ck.char_id.0,
             login_id1: sd.login_id1,
             login_id2: sd.login_id2,
+            client_ip: ip,
             map_name: cd.last_point.map_.to_string_lossy(),
             map_id,
             waiting,

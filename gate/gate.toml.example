@@ -25,8 +25,9 @@ password = "p1"
 # `map_ip` / `map_port` the map registers with (0x2af8, from its
 # conf/tmwa-map.conf) must be reachable by players: it is sent to
 # clients verbatim in the 0x0071 char-select reply and in 0x0092
-# map transfers. WebSocket clients are unaffected (the gate still
-# relays their map stage).
+# map transfers, unless the client is covered by [lan] lan_subnet
+# below. WebSocket clients are unaffected (the gate still relays
+# their map stage).
 
 [login]
 new_account = true
@@ -60,6 +61,15 @@ char_slots = 9
 
 [inter]
 party_share_level = 10
+
+[lan]
+# lan_support.conf semantics: a client whose IP is covered by
+# lan_subnet is sent lan_map_ip in the 0x0071 reply instead of the
+# map's advertised address; the registered port is kept. tmwa
+# IP4Mask syntax: "a.b.c.d" (/32), "a.b.c.d/n", "a.b.c.d/e.f.g.h",
+# or the "a.b." trailing-dot shorthand.
+lan_subnet = "127.0.0.1"
+lan_map_ip = "127.0.0.1"
 
 # Seamless map restart:
 # hold_timeout_secs = 180
