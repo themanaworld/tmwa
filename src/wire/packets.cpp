@@ -21,6 +21,8 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 
+#include "../mmo/consts.hpp"
+
 #include "../poison.hpp"
 
 
@@ -50,7 +52,23 @@ bool packet_send(Session *s, const Byte *data, size_t sz)
 {
     if (s->wdata_size + sz > s->max_wdata)
     {
-        realloc_fifo(s, s->max_rdata, s->max_wdata << 1);
+        // Growth is capped; a peer this far behind is not coming back.
+        // Server links get a higher cap than normal clients.
+        const size_t limit = (s->max_rdata >= FIFOSIZE_SERVERLINK)
+                ? WFIFO_MAX_SERVERLINK : WFIFO_MAX;
+        if (s->wdata_size + sz > limit)
+        {
+            PRINTF("socket: %d wdata limit of %zu bytes reached, disconnecting.\n"_fmt,
+                    s, limit);
+            s->set_eof();
+            return false;
+        }
+        size_t new_size = s->max_wdata << 1;
+        if (new_size < s->wdata_size + sz)
+            new_size = s->wdata_size + sz;
+        if (new_size > limit)
+            new_size = limit;
+        realloc_fifo(s, s->max_rdata, new_size);
         PRINTF("socket: %d wdata expanded to %zu bytes.\n"_fmt, s, s->max_wdata);
     }
     if (!s->max_wdata || !s->wdata)
