@@ -27,6 +27,7 @@
 
 #include <csignal>
 #include <cstdlib>
+#include <cstring>
 
 #include <tmwa/shared.hpp>
 
@@ -110,6 +111,11 @@ void sig_proc(int)
 static
 void check_caps()
 {
+    // TMWA_ALLOW_ROOT=1 is for rootless test deploys (e.g. Docker)
+    // where the image happens to run as uid 0.
+    const char *allow_root = getenv("TMWA_ALLOW_ROOT");
+    if (allow_root && !strcmp(allow_root, "1"))
+        return;
     if (geteuid() == 0)
     {
         puts("Please don't run as root!");
