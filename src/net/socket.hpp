@@ -87,6 +87,7 @@ private:
 public:
     void set_eof() { flag.eof = 1; }
     void set_server() { flag.server = 1; }
+    bool is_eof() const { return flag.eof == 1; }
 
     /// Currently used by clif_setwaitclose
     Timer timed_close;

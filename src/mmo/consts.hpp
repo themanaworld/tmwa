@@ -32,6 +32,12 @@ namespace tmwa
 {
 constexpr int FIFOSIZE_SERVERLINK = 256 * 1024;
 
+// Hard limits on a session's outbound queue, applied by packet_send.
+// Server links (sessions raised to FIFOSIZE_SERVERLINK) get a higher
+// cap, since they can queue several MiB in bursts like a full save.
+constexpr size_t WFIFO_MAX = 2 * 1024 * 1024;
+constexpr size_t WFIFO_MAX_SERVERLINK = 32 * 1024 * 1024;
+
 constexpr int MAX_MAP_PER_SERVER = 512;
 constexpr int MAX_INVENTORY = 100;
 constexpr int MAX_AMOUNT = 30000;
