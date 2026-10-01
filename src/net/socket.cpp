@@ -301,6 +301,12 @@ void recv_to_fifo(Session *s)
 static
 void send_from_fifo(Session *s)
 {
+    if (!s->wdata_size)
+    {
+        // stale EPOLLOUT event: nothing queued, drop write interest
+        epoll_write(s, false);
+        return;
+    }
     // pending data starts at wdata_pos and may wrap around the end,
     // so only the contiguous head run can be sent in one call
     ssize_t len = s->fd.send(&s->wdata[s->wdata_pos],
