@@ -382,10 +382,21 @@ where
     R: Send + 'static,
 {
     let db = st.db.clone();
-    tokio::task::spawn_blocking(move || db.with_conn(|c| Ok(f(c))))
-        .await
-        .expect("db task")
-        .expect("db")
+    // a panic in the closure must not drop the admin connection
+    // silently — callers hang waiting for a reply otherwise
+    let out = tokio::task::spawn_blocking(move || {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| db.with_conn(|c| Ok(f(c)))))
+    })
+    .await
+    .expect("db task")
+    .expect("db");
+    match out {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::error!("admin db handler panicked: {e:?}");
+            panic!("admin db handler panicked");
+        }
+    }
 }
 
 async fn who(st: &Arc<State>, args: &[String]) -> Value {
@@ -946,9 +957,13 @@ async fn create(st: &Arc<State>, args: &[String], password_stdin: Option<String>
             return err_text(format!("Account [{name}] already exists."));
         }
         match crate::db::Db::create_account(c, &name, &h, &email) {
-            Ok(id) => ok_text(format!(
-                "Account [{name}] is successfully created [id: {id}].\n"
-            )),
+            Ok(id) => {
+                let mut v = ok_text(format!(
+                    "Account [{name}] is successfully created [id: {id}].\n"
+                ));
+                v["id"] = serde_json::json!(id);
+                v
+            }
             Err(crate::db::DbError::NameTaken) => {
                 err_text(format!("Account [{name}] already exists."))
             }
@@ -1129,6 +1144,11 @@ async fn getaccreg(st: &Arc<State>, args: &[String]) -> Value {
     let id: i64 = args[0].parse().unwrap_or(-1);
     let name = args[1].clone();
     run_db(st, move |c| {
+        if acct_id_by_id(c, id).is_none() {
+            return err_text(format!(
+                "Unable to find the account [id: {id}]. Account doesn't exist.\n"
+            ));
+        }
         let scope: i64 = if name.starts_with('#') && !name.starts_with("##") {
             1
         } else {
@@ -1160,6 +1180,15 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
     let stc = st.clone();
     let namec = name.clone();
     let r = run_db(st, move |c| {
+        if acct_id_by_id(c, id).is_none() {
+            return (
+                String::new(),
+                false,
+                Some(format!(
+                    "Unable to find the account [id: {id}]. Account doesn't exist.\n"
+                )),
+            );
+        }
         let scope: i64 = if namec.starts_with('#') && !namec.starts_with("##") {
             1
         } else {
@@ -1179,10 +1208,13 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
             rusqlite::params![id, scope, n, value],
         )
         .unwrap();
-        (n, existed)
+        (n, existed, None)
     })
     .await;
-    let (r, _existed) = r;
+    let (r, _existed, missing) = r;
+    if let Some(m) = missing {
+        return err_text(m);
+    }
     // notify the map if the player is online (## -> 0x2b11, # -> 0x3804)
     let scope2 = if name.starts_with('#') && !name.starts_with("##") {
         1
@@ -1223,6 +1255,11 @@ async fn delaccreg(st: &Arc<State>, args: &[String]) -> Value {
     let id: i64 = args[0].parse().unwrap_or(-1);
     let name = args[1].clone();
     run_db(st, move |c| {
+        if acct_id_by_id(c, id).is_none() {
+            return err_text(format!(
+                "Unable to find the account [id: {id}]. Account doesn't exist.\n"
+            ));
+        }
         let scope: i64 = if name.starts_with('#') && !name.starts_with("##") {
             1
         } else {

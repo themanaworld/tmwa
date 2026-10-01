@@ -345,3 +345,31 @@ async fn admin_mirror_lake() {
     let v = cmd(&st, "help", &[]).await;
     assert!(v["ok"].as_bool().unwrap());
 }
+
+/// Stdin mode must not die on socket errors: two commands against a
+/// bogus socket print two error lines and the process exits cleanly
+/// at EOF.
+#[test]
+fn admin_stdin_survives_errors() {
+    use std::io::Write;
+    let mut p = std::process::Command::new(env!("CARGO_BIN_EXE_tmwa-gate"))
+        .args(["admin", "--socket", "/nonexistent/gate.sock"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    p.stdin
+        .as_mut()
+        .unwrap()
+        .write_all(b"status\nstatus\n")
+        .unwrap();
+    let out = p.wait_with_output().unwrap();
+    assert!(out.status.success(), "{:?}", out.status);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines.len(), 2, "{stdout:?}");
+    assert!(
+        lines.iter().all(|l| l.contains("have a connection")),
+        "{stdout:?}"
+    );
+}

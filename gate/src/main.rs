@@ -21,6 +21,18 @@ fn parse_admin_args(args: &[String]) -> (String, Vec<String>, Option<String>) {
     (cmd, rest.into_iter().skip(1).collect(), pw)
 }
 
+/// print!-equivalent that fails instead of panicking on a broken
+/// pipe, so stdin mode can't die mid-way through output.
+fn writeln_line(s: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut o = std::io::stdout().lock();
+    o.write_all(s.as_bytes())?;
+    if !s.ends_with('\n') {
+        o.write_all(b"\n")?;
+    }
+    o.flush()
+}
+
 /// Send one JSON line to the admin socket and print the reply.
 async fn admin_cli(sock: &std::path::Path, args: &[String], json: bool) -> std::io::Result<()> {
     // stdin mode: one command per line, tmwa-admin style
@@ -41,18 +53,32 @@ async fn admin_cli(sock: &std::path::Path, args: &[String], json: bool) -> std::
             }
             let (cmd, cargs, pw) = parse_admin_args(&parts);
             if matches!(cmd.as_str(), "quit" | "exit" | "end" | "q") {
-                println!("Bye.");
+                let _ = writeln_line("Bye.");
                 break;
             }
-            let reply = admin_request(sock, &cmd, &cargs, pw).await?;
-            if json {
-                println!("{reply}");
+            // stdin mode never dies on a socket error: print an
+            // error line (worded like tmwa-admin's login-server
+            // connect failure) and continue with the next command
+            let reply = match admin_request(sock, &cmd, &cargs, pw).await {
+                Ok(r) => r,
+                Err(e) => {
+                    let _ = writeln_line(&format!(
+                        "Impossible to have a connection with the gateway [{e}]"
+                    ));
+                    continue;
+                }
+            };
+            let out = if json {
+                format!("{reply}")
             } else if let Some(t) = reply.get("text").and_then(|t| t.as_str()) {
-                print!("{t}");
+                t.to_string()
             } else if let Some(e) = reply.get("error").and_then(|t| t.as_str()) {
-                println!("{e}");
+                format!("{e}\n")
             } else {
-                println!("{reply}");
+                format!("{reply}")
+            };
+            if writeln_line(&out).is_err() {
+                return Ok(()); // stdout pipe closed: exit quietly
             }
         }
         return Ok(());
