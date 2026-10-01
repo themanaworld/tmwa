@@ -14,10 +14,12 @@ use tokio::net::UnixListener;
 
 use serde_json::{Value, json};
 
-use crate::proto::types::{FixedStr, GmLevel};
-use crate::proto::{AccountId, P2B11Repeat, P2B15Repeat, P3800Repeat, P3804Repeat};
+use crate::proto::types::{FixedStr, GmLevel, Ip4Address};
+use crate::proto::{
+    AccountId, P2B04, P2B04Repeat, P2B11Repeat, P2B15Repeat, P382A, P3800Repeat, P3804Repeat,
+};
 
-use super::state::{State, enc};
+use super::state::{State, enc, send_must};
 
 /// Start the admin listener; returns when the listener errors.
 pub async fn run(st: Arc<State>) -> std::io::Result<()> {
@@ -200,7 +202,11 @@ pub async fn dispatch(
         "kick" => kick_cmd(st, &args).await,
         "drain" => {
             let wait = args.iter().any(|a| a == "--wait");
-            drain(st, wait).await
+            let which = args
+                .iter()
+                .find(|a| !a.starts_with('-'))
+                .and_then(|a| a.parse::<usize>().ok());
+            drain(st, wait, which).await
         }
         "find" => find(st, &args).await,
         "chars" => chars_cmd(st, &args).await,
@@ -255,6 +261,7 @@ fn status(st: &Arc<State>) -> Value {
                         h.ip.to_le_bytes()[0], h.ip.to_le_bytes()[1],
                         h.ip.to_le_bytes()[2], h.ip.to_le_bytes()[3], h.port),
                     "maps": h.maps.len(),
+                    "users": h.users,
                     "draining": h.draining,
                 })
             })
@@ -331,52 +338,116 @@ async fn kick_cmd(st: &Arc<State>, args: &[String]) -> Value {
     }
 }
 
-/// Drain: close every relayed player's upstream (map_quit -> 0x2b01)
-/// and mark the map links draining so no new players are sent.
-/// With `wait`, returns after every drained char's 0x2b01 arrived or
-/// 15 s.
-async fn drain(st: &Arc<State>, wait: bool) -> Value {
-    let mut pending = std::collections::HashSet::new();
-    {
-        let mut ms = st.map_servers.lock().unwrap();
-        for h in ms.iter_mut().flatten() {
-            h.draining = true;
+/// Drain a map server (blue-green evacuation).
+///
+/// Marks the server draining (no new logins/warps are sent to it),
+/// then re-broadcasts 0x2b04 for every map name it serves: each
+/// name that another non-draining server also serves is announced
+/// with *that* server's address (map_setipport is last-write-wins,
+/// so a single announcement pointing at the survivor is enough).
+/// Names with no survivor keep pointing at the drained server, which
+/// also clears any shadow entry it had; those players stay and are
+/// saved by the shutdown logout path when the server finally stops.
+///
+/// Each drained server then gets a 0x382a evacuate request, which
+/// walks its players through the ordinary cross-server warp
+/// (0x2b05/0x2b06 -> client 0x0092) onto the surviving instance.
+///
+/// With `wait`, returns once the drained servers report zero users
+/// (or their links drop), 60 s at most.
+async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
+    let targets: Vec<usize> = match which {
+        Some(id) => {
+            let exists = {
+                let ms = st.map_servers.lock().unwrap();
+                matches!(ms.get(id), Some(Some(_)))
+            };
+            if !exists {
+                return err_text(format!("no map server {id} connected"));
+            }
+            vec![id]
         }
+        None => st.map_infos().iter().map(|(id, ..)| *id).collect(),
+    };
+    for id in &targets {
+        st.map_set_draining(*id, true);
     }
-    let sessions: Vec<Arc<std::sync::Mutex<super::state::PlayerSession>>> = st
-        .player_sessions
-        .lock()
-        .unwrap()
-        .values()
-        .cloned()
-        .collect();
-    for rec in &sessions {
-        let mut r = rec.lock().unwrap();
-        if !r.held {
-            r.held = true;
-            r.held_since = Some(Instant::now());
-            pending.insert(r.char_id);
+    let mut stragglers: Vec<String> = Vec::new();
+    for id in &targets {
+        let (self_addr, maps) = {
+            let ms = st.map_servers.lock().unwrap();
+            match ms.get(*id).and_then(|s| s.as_ref()) {
+                Some(h) => ((h.ip, h.port), h.maps.clone()),
+                None => continue,
+            }
+        };
+        let mut kept = 0;
+        for name in &maps {
+            // a non-draining server that also serves this name wins
+            // the name outright (the announcement below overwrites
+            // every server's remote/shadow entry)
+            let winner = {
+                let ms = st.map_servers.lock().unwrap();
+                ms.iter().enumerate().find_map(|(i, s)| {
+                    s.as_ref().and_then(|h| {
+                        (!h.draining && !targets.contains(&i) && h.maps.iter().any(|m| m == name))
+                            .then_some((h.ip, h.port))
+                    })
+                })
+            };
+            let (ip, port) = match winner {
+                Some(w) => w,
+                None => {
+                    stragglers.push(name.clone());
+                    kept += 1;
+                    self_addr
+                }
+            };
+            let mut head = P2B04::default();
+            head.ip = Ip4Address(ip.to_le_bytes());
+            head.port = port;
+            head.repeat = vec![P2B04Repeat {
+                map_name: FixedStr::<16>::try_from_str(name).unwrap_or_default(),
+            }];
+            st.map_broadcast(&enc(move |v| head.encode(v)));
         }
-        if let Some(sig) = &r.hold_signal {
-            sig.notify_one();
+        // the 0x2b04 updates above must land on the link before the
+        // evacuate request: same channel, strictly ordered
+        if let Some(tx) = st.map_tx(*id) {
+            send_must(&tx, enc(|v| P382A::default().encode(v)), *id).await;
         }
+        tracing::info!(
+            "map {id}: draining ({} maps handed over, {kept} with no survivor)",
+            maps.len() - kept,
+        );
     }
-    if !pending.is_empty() {
-        st.drain_pending.lock().unwrap().extend(&pending);
-    }
+    let reply = |emptied: Option<bool>| {
+        json!({
+            "ok": true,
+            "draining": targets,
+            "stragglers": stragglers,
+            "emptied": emptied,
+        })
+    };
     if !wait {
-        return json!({"ok": true, "draining": pending.len()});
+        return reply(None);
     }
-    let deadline = Instant::now() + Duration::from_secs(15);
+    let deadline = Instant::now() + Duration::from_secs(60);
     loop {
-        let left: Vec<u32> = st.drain_pending.lock().unwrap().iter().copied().collect();
-        if left.is_empty() {
-            return json!({"ok": true, "unsaved": []});
+        let left = {
+            let ms = st.map_servers.lock().unwrap();
+            targets
+                .iter()
+                .filter(|id| matches!(ms.get(**id), Some(Some(h)) if h.users > 0))
+                .count()
+        };
+        if left == 0 {
+            return reply(Some(true));
         }
         if Instant::now() >= deadline {
-            return json!({"ok": true, "unsaved": left});
+            return reply(Some(false));
         }
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        let _ = tokio::time::timeout(Duration::from_millis(200), st.online_notify.notified()).await;
     }
 }
 
