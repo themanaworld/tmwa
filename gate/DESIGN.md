@@ -89,7 +89,14 @@ player in again at any time without the client.
    without a drain up to one autosave interval (default 1 min) is lost.
 2. **Hold.** While `tmwa-map` is down, the gate keeps the client
    connections, answers `0x007e` with `0x007f`, drops other input and
-   sends one `0x009a` announcement.
+   sends one `0x009a` announcement. The decision to hold happens only
+   when the map itself is going away: `tmwa-map` announces its
+   shutdown on the char link (`0x2b17`, sent by `term_func` before the
+   client teardown), and an older binary without it is caught by the
+   link dropping. A single player's upstream close while the map stays
+   up (`@kick`, over the fd softlimit, double login) is passed through
+   as a client close — preceded by `0x0081` code 1 ("No servers
+   available.") when the map never accepted the connection.
 3. **Reconnect.** When `tmwa-map` connects again (`0x2af8`, map list
    `0x2afa`), the gate pushes `0x3829` for each held player and opens a new
    upstream connection with `0x0072`, answering `0x2afc` with the stored

@@ -89,6 +89,39 @@ impl Client {
     }
 }
 
+/// Login, registering `<name>_M` if the account doesn't exist yet.
+async fn login_or_register(c: &mut Client, name: &str, pass: &str) -> (u32, u32, u32) {
+    for _ in 0..4 {
+        c.send(|v| {
+            P0064 {
+                client_protocol_version: ClientVersion(999),
+                account_name: f24(name),
+                account_pass: f24(pass),
+                flags: 3,
+            }
+            .encode(v)
+        })
+        .await;
+        match tokio::time::timeout(Duration::from_secs(10), c.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x0069 => {
+                let p = P0069::decode(&p.bytes).unwrap();
+                return (p.account_id.0, p.login_id1, p.login_id2);
+            }
+            Ok(Ok(Some(p))) if p.id == 0x006a => {
+                let e = P006A::decode(&p.bytes).unwrap();
+                if e.error_code == 0 {
+                    let mut c3 = Client::connect().await;
+                    return login(&mut c3, &format!("{name}_M"), pass).await;
+                }
+            }
+            _ => {}
+        }
+        tokio::time::sleep(Duration::from_secs(6)).await;
+        *c = Client::connect().await;
+    }
+    panic!("helper login failed")
+}
+
 fn f24(s: &str) -> FixedStr<24> {
     FixedStr::<24>::try_from_str(s).unwrap()
 }
@@ -310,13 +343,19 @@ fn fresh_gate() {
 
 /// Spawn tmwa-map (detached).
 fn spawn_map() {
+    spawn_map_env(&[]);
+}
+fn spawn_map_env(extra_env: &[(&str, &str)]) {
     let home = std::env::var("HOME").unwrap();
     #[allow(clippy::zombie_processes)]
-    let _ = Command::new(env(
+    let mut cmd = Command::new(env(
         "TMWA_E2E_MAPBIN",
         &format!("{home}/tmw-test/prefix/bin/tmwa-map"),
-    ))
-    .current_dir(env(
+    ));
+    for (k, v) in extra_env {
+        cmd.env(k, v);
+    }
+    cmd.current_dir(env(
         "TMWA_E2E_MAPDIR",
         &format!("{home}/projects/tmw/serverdata/world/map"),
     ))
@@ -333,8 +372,9 @@ fn spawn_map() {
             .create(true)
             .open("/tmp/e2e-map.err")
             .unwrap(),
-    )
-    .spawn();
+    );
+    #[allow(clippy::zombie_processes)]
+    let _child = cmd.spawn().expect("spawn tmwa-map");
 }
 
 fn kill_map(sig: &str) {
@@ -760,8 +800,26 @@ async fn e2e_restart() {
         let t_kill = std::time::Instant::now();
 
         kill_map(sig);
-        // client should get the hold announcement (or silence while
-        // held); the map must come back before hold_timeout
+        // SIGTERM: the map's shutdown notice reaches the gate before
+        // the client sockets close, so the hold announcement must
+        // land almost at once. SIGKILL goes through the 3 s grace.
+        if sig == "-TERM" {
+            let t0 = std::time::Instant::now();
+            let mut announced = false;
+            while t0.elapsed() < Duration::from_secs(3) {
+                match tokio::time::timeout(Duration::from_millis(300), c.rd.next()).await {
+                    Ok(Ok(Some(p))) if p.id == 0x009a => {
+                        announced = true;
+                        break;
+                    }
+                    Ok(Ok(Some(_))) => continue,
+                    _ => break,
+                }
+            }
+            assert!(announced, "no hold announcement after map SIGTERM");
+            eprintln!("e2e: term hold announced in {}ms", t0.elapsed().as_millis());
+        }
+        // the map must come back before hold_timeout
         tokio::time::sleep(Duration::from_secs(2)).await;
         spawn_map();
         wait_map_up().await;
@@ -1514,4 +1572,237 @@ async fn e2e_ws() {
     }
     assert!(rejoined, "ws client never rejoined");
     eprintln!("e2e: ws hold+rejoin OK");
+}
+
+/// tmwa-map over its fd softlimit must not put clients on hold:
+/// the player gets 0x0081 code 1 and a close, fast. A GM @kick on
+/// a live map behaves the same (minus the 0x0081: the map already
+/// accepted the player and sent its own goodbye).
+#[tokio::test]
+#[allow(clippy::await_holding_lock)]
+async fn e2e_map_full() {
+    if std::env::var("TMWA_E2E").is_err() {
+        return;
+    }
+    let _e2e_guard = e2e_lock();
+    fresh_gate();
+    let user = env("TMWA_E2E_USER", "spiketest");
+    let pass = env("TMWA_E2E_PASS", "spikepass");
+
+    // ---- softlimit: fill the map's fd table ----
+    // The real SOFT_LIMIT (fd >= FD_SETSIZE-50 = 974) is unreachable
+    // in a test: the map's ~15 s auth timeout reaps raw connections
+    // faster than a single filler can open them. tmwa-map honours
+    // TMWA_FD_SOFT_LIMIT instead; 150 is just past its own base fds,
+    // and ~60 raw conns put every later accept over it.
+    kill_map("-TERM");
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    spawn_map_env(&[("TMWA_FD_SOFT_LIMIT", "150")]);
+    wait_map_up().await;
+    let script = std::env::temp_dir().join(format!("fdfill-{}.py", std::process::id()));
+    std::fs::write(
+        &script,
+        "import socket, time, select\nss = []\ndone = False\nattempts = 0\nend = time.time() + 90\nwhile time.time() < end:\n    try:\n        s = socket.create_connection((\"127.0.0.1\", 5121))\n        ss.append(s)\n    except OSError:\n        pass\n    for dead in [x for x in ss[:] if x.fileno() >= 0 and select.select([x], [], [], 0)[0] and not x.recv(1, socket.MSG_PEEK)]:\n        ss.remove(dead)\n    attempts += 1\n    if not done and (len(ss) >= 140 or attempts >= 400):\n        print(len(ss), flush=True); done = True\n    time.sleep(0.02)\n",
+    )
+    .unwrap();
+    #[allow(clippy::zombie_processes)]
+    let mut filler = Command::new("sh")
+        .arg("-c")
+        .arg(format!("exec python3 {}", script.to_string_lossy()))
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .expect("fd filler");
+
+    let mut line = String::new();
+    use std::io::BufRead;
+    std::io::BufReader::new(filler.stdout.take().unwrap())
+        .read_line(&mut line)
+        .unwrap();
+    let n: usize = line.trim().parse().unwrap_or(0);
+    eprintln!("e2e: fd filler opened {n} conns");
+    assert!(n >= 100, "filler only opened {n}");
+    // Wait until the map's fd count stops climbing: its accept queue
+    // is only a handful deep, so the 170 conns drain through it in
+    // bursts. If we log in while it is still draining, our upstream
+    // conn sits in the backlog for tens of seconds. Once the count
+    // is stable and past the soft limit, a new conn is accepted and
+    // closed immediately.
+    let map_pid = || -> Option<u32> {
+        String::from_utf8_lossy(
+            &Command::new("pgrep")
+                .args(["-x", "tmwa-map"])
+                .output()
+                .ok()?
+                .stdout,
+        )
+        .lines()
+        .next()?
+        .trim()
+        .parse()
+        .ok()
+    };
+    let map_fds = |pid: u32| -> usize {
+        std::fs::read_dir(format!("/proc/{pid}/fd"))
+            .map(|d| d.count())
+            .unwrap_or(0)
+    };
+    let mut hit = false;
+    if let Some(pid) = map_pid() {
+        let mut last = 0usize;
+        for _ in 0..120 {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            let cur = map_fds(pid);
+            if cur == last && cur >= 130 {
+                hit = true;
+                break;
+            }
+            last = cur;
+        }
+        eprintln!("e2e: map fd count stabilised at {last}");
+    }
+    if !hit {
+        hit = std::fs::read_to_string("/tmp/e2e-map.err")
+            .map(|l| l.contains("softlimit reached"))
+            .unwrap_or(false);
+    }
+    eprintln!("e2e: map softlimit reached = {hit}");
+
+    // a client logging in through the gate is accepted-then-closed
+    // by the map: it must get 0x0081 code 1 and a close, no hold.
+    let mut c = Client::connect().await;
+    let (acct, id1, id2) = login(&mut c, &user, &pass).await;
+    drop(c);
+    let mut c = Client::connect().await;
+    let chars = char_connect(&mut c, acct, id1, id2).await;
+    let slot = chars[0].char_num;
+    char_select(&mut c, slot).await;
+    drop(c);
+    let mut c = Client::connect().await;
+    c.send(|v| {
+        P0072 {
+            account_id: AccountId(acct),
+            char_id: CharId(chars[0].char_id.0),
+            login_id1: id1,
+            client_tick: 999999,
+            sex: Sex(1),
+        }
+        .encode(v)
+    })
+    .await;
+    let t0 = std::time::Instant::now();
+    let mut got_0081 = false;
+    let mut got_hold = false;
+    let mut closed = false;
+    // the map accepts new connections at its own tick rate; with the
+    // fd table full of filler conns ours can sit in the listen
+    // backlog for many seconds before being softlimit-closed
+    while t0.elapsed() < Duration::from_secs(40) && !closed {
+        match tokio::time::timeout(Duration::from_secs(40), c.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x0081 => {
+                got_0081 = P0081::decode(&p.bytes).unwrap().error_code == 1;
+            }
+            Ok(Ok(Some(p))) if p.id == 0x009a => got_hold = true,
+            Ok(Ok(Some(_))) => continue,
+            Ok(Ok(None)) => closed = true,
+            Ok(Err(_)) => closed = true,
+            Err(_) => break,
+        }
+    }
+    eprintln!(
+        "e2e: full-map login: 0081={got_0081} hold={got_hold} closed={closed} in {:?}",
+        t0.elapsed()
+    );
+    assert!(got_0081, "no 0x0081 for the over-capacity login");
+    assert!(closed, "over-capacity client not closed");
+    assert!(!got_hold, "over-capacity client was announced a hold");
+
+    // release the fd pressure; a fresh login must work again
+    let _ = filler.kill();
+    kill_map("-TERM");
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    spawn_map();
+    wait_map_up().await;
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    let mut c = Client::connect().await;
+    let (acct, id1, _id2) = login(&mut c, &user, &pass).await;
+    drop(c);
+    let mut c = Client::connect().await;
+    let chars = char_connect(&mut c, acct, id1, _id2).await;
+    char_select(&mut c, slot).await;
+    drop(c);
+    let mut c = Client::connect().await;
+    map_connect(&mut c, acct, chars[0].char_id.0, id1).await;
+    eprintln!("e2e: login works again after releasing the fds");
+
+    // ---- GM @kick: per-player disconnect on a live map ----
+    // log a second player in and kick it from the GM client.
+    let mut c2 = Client::connect().await;
+    let (acct2, a1, _a2) = login_or_register(&mut c2, "e2ehelper", "testpass").await;
+    drop(c2);
+    let mut c2 = Client::connect().await;
+    let chars2 = char_connect(&mut c2, acct2, a1, _a2).await;
+    let cid2 = if let Some(ch) = chars2.first() {
+        ch.char_id.0
+    } else {
+        c2.send(|v| {
+            P0067 {
+                char_name: f24("E2ehelper"),
+                stats: Stats6 {
+                    str: 5,
+                    agi: 5,
+                    vit: 5,
+                    int_: 5,
+                    dex: 5,
+                    luk: 5,
+                },
+                slot: 0,
+                hair_color: 0,
+                hair_style: 1,
+            }
+            .encode(v)
+        })
+        .await;
+        let p = P006D::decode(&c2.wait(0x006d).await.bytes).unwrap();
+        p.char_select.char_id.0
+    };
+    let _ = char_select(&mut c2, 0).await;
+    drop(c2);
+    let mut c2 = Client::connect().await;
+    map_connect(&mut c2, acct2, cid2, a1).await;
+    eprintln!("e2e: helper in game, kicking it");
+
+    c.wr.write_all(&chat_pkt("@kick E2ehelper")).await.unwrap();
+    // the map's own kick path closes the upstream conn only via
+    // clif_setwaitclose (~5 s), then the gate's grace (~3 s)
+    let t0 = std::time::Instant::now();
+    let mut closed = false;
+    let mut got_hold = false;
+    while t0.elapsed() < Duration::from_secs(12) && !closed {
+        match tokio::time::timeout(Duration::from_secs(12), c2.rd.next()).await {
+            Ok(Ok(Some(p))) if p.id == 0x009a => got_hold = true,
+            Ok(Ok(Some(_))) => continue,
+            Ok(Ok(None)) | Ok(Err(_)) => closed = true,
+            Err(_) => break,
+        }
+    }
+    eprintln!(
+        "e2e: @kick: closed={closed} hold={got_hold} in {:?}",
+        t0.elapsed()
+    );
+    assert!(closed, "kicked client was not closed");
+    assert!(!got_hold, "kicked client was announced a hold");
+
+    // the kick still went through map_quit -> 0x2b01, so a relog
+    // lands in-game immediately
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    let mut c2 = Client::connect().await;
+    let (acct2, a1, _a2) = login_or_register(&mut c2, "e2ehelper", "testpass").await;
+    drop(c2);
+    let mut c2 = Client::connect().await;
+    let chars2 = char_connect(&mut c2, acct2, a1, _a2).await;
+    let _ = char_select(&mut c2, chars2[0].char_num).await;
+    drop(c2);
+    let mut c2 = Client::connect().await;
+    map_connect(&mut c2, acct2, cid2, a1).await;
+    eprintln!("e2e: kicked player relogged fine");
 }

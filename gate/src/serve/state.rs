@@ -69,6 +69,10 @@ pub struct PlayerSession {
     /// Client asked to quit (0x00b2): an upstream close is then a
     /// normal logout, not a crash.
     pub quitting: bool,
+    /// The map sent 0x0073 on the current upstream connection: it
+    /// accepted the player, so a later close is a per-player kick,
+    /// not a refusal.
+    pub saw_0073: bool,
     /// Upstream gone; waiting for the map to come back.
     pub held: bool,
     /// Set by `drain` to force the relay into hold mode.
@@ -94,6 +98,9 @@ pub struct MapHandle {
     pub users: u16,
     /// Marked by `drain`: no new players are sent here.
     pub draining: bool,
+    /// Set when the map sent 0x2b17 (term_func): the link will drop
+    /// shortly and every player on it needs holding.
+    pub shutting_down: bool,
 }
 
 impl MapHandle {
@@ -301,6 +308,7 @@ impl State {
                     maps: vec![],
                     users: 0,
                     draining: false,
+                    shutting_down: false,
                 });
                 return id;
             }
@@ -314,6 +322,7 @@ impl State {
             maps: vec![],
             users: 0,
             draining: false,
+            shutting_down: false,
         }));
         id
     }
@@ -381,6 +390,22 @@ impl State {
     pub fn map_addr(&self, id: usize) -> Option<(u32, u16)> {
         let ms = self.map_servers.lock().unwrap();
         ms.get(id).and_then(|s| s.as_ref().map(|h| (h.ip, h.port)))
+    }
+
+    /// The map link is down or the map announced shutdown: players
+    /// on it need holding, not per-player disconnects.
+    pub fn map_gone(&self, id: usize) -> bool {
+        let ms = self.map_servers.lock().unwrap();
+        match ms.get(id) {
+            Some(Some(h)) => h.shutting_down,
+            _ => true,
+        }
+    }
+    pub fn map_set_shutting_down(&self, id: usize) {
+        let mut ms = self.map_servers.lock().unwrap();
+        if let Some(Some(h)) = ms.get_mut(id) {
+            h.shutting_down = true;
+        }
     }
 
     // ---- characters / online ----

@@ -1099,8 +1099,11 @@ enum FwdEnd {
     /// Client socket closed, or a normal logout/char-select that the
     /// map confirmed by closing.
     ClientGone,
-    /// Upstream closed (map crash/restart or drain).
+    /// Upstream closed; whether to hold or drop is decided by
+    /// `resolve_upstream_eof`.
     UpstreamGone,
+    /// The drain signal fired: hold unconditionally.
+    Hold,
     /// Something we can't hold for (0x0092 multi-map request).
     Fatal,
 }
@@ -1124,6 +1127,7 @@ fn track_sc(rec: &std::sync::Mutex<PlayerSession>, id: u16, bytes: &[u8]) {
         0x00ee | 0x00f0 => r.trade_open = false,
         0x00f2 | 0x01f0 | 0x00a6 => r.storage_open = true,
         0x00f8 => r.storage_open = false,
+        0x0073 => r.saw_0073 = true,
         0x007f if bytes.len() >= 6 => {
             r.server_tick = u32::from_le_bytes(bytes[2..6].try_into().unwrap());
             r.server_tick_at = Instant::now();
@@ -1139,6 +1143,78 @@ fn announce(tx: &mpsc::Sender<Vec<u8>>, msg: &str) {
     bytes.push(0);
     p.repeat = bytes.iter().map(|&c| P009ARepeat { c }).collect();
     send_bytes(tx, enc(move |v| p.encode(v)));
+}
+
+/// What an upstream EOF resolves to once the map-link state is known.
+enum UpGone {
+    /// The map itself is going away: hold the client.
+    Hold,
+    /// A per-player disconnect (kick, double login, softlimit): the
+    /// client is closed; if the map never accepted it (no 0x0073)
+    /// it first gets 0x0081 code 1 ("No servers available.").
+    Close,
+    /// The client left while we were looking at the link.
+    ClientGone,
+}
+
+/// How long to watch the map link after an upstream EOF before
+/// calling it a per-player disconnect.
+const UPSTREAM_GONE_GRACE: Duration = Duration::from_secs(3);
+
+/// Upstream closed while the session wasn't quitting, kicked, or
+/// drained. If the map link is down or the map announced shutdown
+/// (0x2b17) this is a map restart: hold. Otherwise give the link up
+/// to UPSTREAM_GONE_GRACE to drop or announce (SIGKILL drops the
+/// kernel sockets together), still serving the client meanwhile.
+/// Nothing is announced until hold is decided.
+async fn resolve_upstream_eof<
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+>(
+    st: &Arc<State>,
+    rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
+    map_id: usize,
+    fr: &mut PacketFramer<Rd<S>>,
+    tx: &mpsc::Sender<Vec<u8>>,
+) -> UpGone {
+    if st.map_gone(map_id) {
+        return UpGone::Hold;
+    }
+    let deadline = Instant::now() + UPSTREAM_GONE_GRACE;
+    loop {
+        let left = deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            break;
+        }
+        let wait = left.min(Duration::from_millis(200));
+        match tokio::time::timeout(wait, fr.next()).await {
+            Ok(Ok(Some(p))) => {
+                if p.id == 0x007e {
+                    let (tick, at) = {
+                        let r = rec.lock().unwrap();
+                        (r.server_tick, r.server_tick_at)
+                    };
+                    let mut rep = P007F::default();
+                    rep.tick = TickT(tick + at.elapsed().as_millis() as u32);
+                    send_bytes(tx, enc(move |v| rep.encode(v)));
+                }
+                // other held input is dropped
+            }
+            Ok(Ok(None)) | Ok(Err(_)) => return UpGone::ClientGone,
+            Err(_) => {}
+        }
+        if st.map_gone(map_id) {
+            return UpGone::Hold;
+        }
+    }
+    // link still up and no notice: this disconnect concerned this
+    // player alone. If the map never accepted it, tell the client
+    // why; otherwise it already got whatever the map sent.
+    if !rec.lock().unwrap().saw_0073 {
+        let mut p = P0081::default();
+        p.error_code = 1;
+        send_bytes(tx, enc(move |v| p.encode(v)));
+    }
+    UpGone::Close
 }
 
 /// Connect upstream and run the client-auth prelude: connect to the
@@ -1185,18 +1261,29 @@ async fn upstream_open(
     Some(up.into_split())
 }
 
+/// How one rejoin attempt ended.
+enum Rejoin {
+    /// Upstream open and the map sent 0x0073.
+    Joined(
+        tokio::net::tcp::OwnedReadHalf,
+        tokio::net::tcp::OwnedWriteHalf,
+        P0073,
+    ),
+    /// The map isn't back yet; keep retrying until the deadline.
+    Retry,
+    /// The link is up, no shutdown notice, and the map closed the
+    /// 0x0072 connection before 0x0073: the map is back but full.
+    MapFull,
+}
+
 /// Rejoin a map server: push a fresh stage-3 auth, send 0x3829, wait
 /// for 0x3830, then run the client-auth prelude (0x0072 -> 0x8000 ->
-/// 0x0073). Returns the upstream halves and the 0x0073 position.
+/// 0x0073).
 async fn upstream_rejoin(
     st: &Arc<State>,
     rec: &std::sync::Mutex<PlayerSession>,
     map_id: usize,
-) -> Option<(
-    tokio::net::tcp::OwnedReadHalf,
-    tokio::net::tcp::OwnedWriteHalf,
-    P0073,
-)> {
+) -> Rejoin {
     let (account_id, char_id, login_id1, login_id2, sex, client_ip) = {
         let r = rec.lock().unwrap();
         (
@@ -1250,7 +1337,7 @@ async fn upstream_rejoin(
             .unwrap()
             .remove(&(account_id, char_id));
         tracing::debug!(char_id, "rejoin: no 0x3830 from map {map_id}");
-        return None;
+        return Rejoin::Retry;
     }
 
     let mut pkt72 = Vec::new();
@@ -1262,11 +1349,16 @@ async fn upstream_rejoin(
         sex: Sex(sex),
     }
     .encode(&mut pkt72);
-    let (mut urd, uwr) = upstream_open(st, map_id, pkt72, account_id, char_id, login_id1).await?;
+    let Some((mut urd, uwr)) =
+        upstream_open(st, map_id, pkt72, account_id, char_id, login_id1).await
+    else {
+        return Rejoin::Retry;
+    };
     // swallow the 0x8000 magic and the 0x0073 login reply; the client
     // gets our 0x0091 instead
     let mut ufr = PacketFramer::new(&mut urd);
     let mut p73: Option<P0073> = None;
+    let mut upstream_eof = false;
     for _ in 0..4 {
         match tokio::time::timeout(Duration::from_secs(5), ufr.next()).await {
             Ok(Ok(Some(p))) if p.id == 0x8000 => continue,
@@ -1275,11 +1367,19 @@ async fn upstream_rejoin(
                 break;
             }
             Ok(Ok(Some(_))) => continue,
-            _ => break,
+            Ok(Ok(None)) | Ok(Err(_)) => {
+                upstream_eof = true;
+                break;
+            }
+            Err(_) => break,
         }
     }
     drop(ufr);
-    p73.map(|p73| (urd, uwr, p73))
+    match p73 {
+        Some(p73) => Rejoin::Joined(urd, uwr, p73),
+        None if upstream_eof && !st.map_gone(map_id) => Rejoin::MapFull,
+        None => Rejoin::Retry,
+    }
 }
 
 /// Held session: keep the client alive, answer pings, wait for a map
@@ -1416,9 +1516,9 @@ async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin +
             }
             _ = hold_signal.notified() => {
                 // drain: close upstream so tmwa-map runs map_quit
-                // (which sends its 0x2b01 save), then stop
+                // (which sends its 0x2b01 save), then hold
                 let _ = up.shutdown().await;
-                return FwdEnd::UpstreamGone;
+                return FwdEnd::Hold;
             }
         }
     }
@@ -1487,6 +1587,7 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         trade_open: false,
         storage_open: false,
         quitting: false,
+        saw_0073: false,
         kicked: false,
         held: false,
         hold_signal: Some(hold_signal.clone()),
@@ -1549,11 +1650,22 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
                     tokio::select! {
                         out = &mut att => {
                             match out {
-                                Ok(Some(v)) => {
-                                    joined = Some(v);
+                                Ok(Rejoin::Joined(v0, v1, v2)) => {
+                                    joined = Some((v0, v1, v2));
                                     break 'attempt;
                                 }
-                                Ok(None) => break 'attempt,
+                                Ok(Rejoin::Retry) => break 'attempt,
+                                Ok(Rejoin::MapFull) => {
+                                    // map is back but refused us
+                                    // before 0x0073 (full / limit):
+                                    // tell the client, stop holding
+                                    let mut p = P0081::default();
+                                    p.error_code = 1;
+                                    send_bytes(&tx, enc(move |v| {
+                                        p.encode(v)
+                                    }));
+                                    break 'life;
+                                }
                                 Err(_) => break 'attempt,
                             }
                         }
@@ -1593,6 +1705,7 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
             }
             match joined {
                 Some((urd, uwr, p73)) => {
+                    rec.lock().unwrap().saw_0073 = true;
                     // client-side session cleanup before the 0x0091:
                     // close an open NPC dialog / trade / storage
                     let (npc, trade, storage) = {
@@ -1631,26 +1744,35 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
 
         // ---- forward ----
         let end = forward_phase(&st, &rec, &mut fr, &tx, uwr, urd, &hold_signal).await;
-        match end {
+        // The drain signal asks for a hold even while the map is
+        // still up; a bare upstream EOF goes through the decision.
+        let want_hold = match end {
             FwdEnd::ClientGone | FwdEnd::Fatal => break 'life,
+            FwdEnd::Hold => true,
             FwdEnd::UpstreamGone => {
                 if rec.lock().unwrap().kicked {
                     break 'life;
                 }
-                // hold: client stays, announce once, wait for rejoin
-                {
-                    let mut r = rec.lock().unwrap();
-                    r.held = true;
-                    r.held_since = Some(Instant::now());
+                match resolve_upstream_eof(&st, &rec, cur_map_id, &mut fr, &tx).await {
+                    UpGone::Hold => true,
+                    UpGone::Close | UpGone::ClientGone => break 'life,
                 }
-                announce(&tx, &st.cfg.gate.hold_message.clone());
-                match hold_wait(&st, &rec, &mut fr, &tx).await {
-                    Some(m) => {
-                        cur_map_id = m;
-                        continue 'life;
-                    }
-                    None => break 'life,
+            }
+        };
+        if want_hold {
+            // hold: client stays, announce once, wait for rejoin
+            {
+                let mut r = rec.lock().unwrap();
+                r.held = true;
+                r.held_since = Some(Instant::now());
+            }
+            announce(&tx, &st.cfg.gate.hold_message.clone());
+            match hold_wait(&st, &rec, &mut fr, &tx).await {
+                Some(m) => {
+                    cur_map_id = m;
+                    continue 'life;
                 }
+                None => break 'life,
             }
         }
     }
@@ -1664,4 +1786,135 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
     drop(tx);
     let _ = wh.await;
     let _ = pkt72;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_state() -> Arc<State> {
+        let dir = std::env::temp_dir().join(format!(
+            "upgone-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = Db::open(&dir.join("gate.db")).unwrap();
+        Arc::new(State::new(
+            crate::config::Config::default(),
+            std::sync::Arc::new(db),
+        ))
+    }
+
+    fn test_rec() -> std::sync::Arc<std::sync::Mutex<PlayerSession>> {
+        std::sync::Arc::new(std::sync::Mutex::new(PlayerSession {
+            account_id: 1,
+            char_id: 2,
+            sex: 0,
+            login_id1: 3,
+            login_id2: 4,
+            client_ip: 0,
+            server_tick: 0,
+            server_tick_at: Instant::now(),
+            map_id: 0,
+            map_name: String::new(),
+            map_name_stale: false,
+            npc_id: 0,
+            trade_open: false,
+            storage_open: false,
+            quitting: false,
+            saw_0073: false,
+            held: false,
+            hold_signal: None,
+            kicked: false,
+            held_since: None,
+        }))
+    }
+
+    fn test_conn() -> (
+        PacketFramer<Rd<tokio::io::DuplexStream>>,
+        tokio::io::DuplexStream,
+        mpsc::Receiver<Vec<u8>>,
+    ) {
+        let (a, b) = tokio::io::duplex(1024);
+        let (rd, _wr) = tokio::io::split(a);
+        let (tx, rx) = mpsc::channel(8);
+        let _ = tx;
+        (PacketFramer::new(rd), b, rx)
+    }
+
+    /// A dead/absent link holds immediately.
+    #[tokio::test]
+    async fn upstream_eof_holds_when_map_gone() {
+        let st = test_state();
+        let rec = test_rec();
+        let (mut fr, _peer, _rx) = test_conn();
+        let (tx, _rx) = mpsc::channel(8);
+        match resolve_upstream_eof(&st, &rec, 0, &mut fr, &tx).await {
+            UpGone::Hold => {}
+            _ => panic!("absent link must hold"),
+        }
+    }
+
+    /// A live link with no shutdown notice after the grace window
+    /// is a per-player disconnect (and the client hears 0x0081 when
+    /// the map never accepted it).
+    #[tokio::test]
+    async fn upstream_eof_closes_when_map_alive() {
+        let st = test_state();
+        let (tx, mut wrx) = mpsc::channel(8);
+        let mid = st.map_register(tx.clone(), 0, 0);
+        let rec = test_rec();
+        let (mut fr, _peer, _rx) = test_conn();
+        let t0 = Instant::now();
+        let r = resolve_upstream_eof(&st, &rec, mid, &mut fr, &tx).await;
+        match r {
+            UpGone::Close => {}
+            _ => panic!("live link without notice must close"),
+        }
+        assert!(t0.elapsed() >= UPSTREAM_GONE_GRACE);
+        let msg = wrx.recv().await.unwrap();
+        assert_eq!(u16::from_le_bytes([msg[0], msg[1]]), 0x0081);
+        assert_eq!(msg[2], 1);
+    }
+
+    /// A live link but a shutdown notice arrives during the grace
+    /// window: hold.
+    #[tokio::test]
+    async fn upstream_eof_holds_on_notice() {
+        let st = test_state();
+        let (tx, _rx) = mpsc::channel(8);
+        let mid = st.map_register(tx.clone(), 0, 0);
+        let rec = test_rec();
+        let (mut fr, _peer, _rx) = test_conn();
+        let st2 = st.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            st2.map_set_shutting_down(mid);
+        });
+        let t0 = Instant::now();
+        match resolve_upstream_eof(&st, &rec, mid, &mut fr, &tx).await {
+            UpGone::Hold => {}
+            _ => panic!("notice during grace must hold"),
+        }
+        assert!(t0.elapsed() < UPSTREAM_GONE_GRACE);
+    }
+
+    /// Client EOF during the grace window ends the session.
+    #[tokio::test]
+    async fn upstream_eof_client_gone() {
+        let st = test_state();
+        let (tx, _rx) = mpsc::channel(8);
+        let mid = st.map_register(tx.clone(), 0, 0);
+        let rec = test_rec();
+        let (mut fr, peer, _rx) = test_conn();
+        drop(peer); // client closed
+        match resolve_upstream_eof(&st, &rec, mid, &mut fr, &tx).await {
+            UpGone::ClientGone => {}
+            _ => panic!("client EOF must win"),
+        }
+    }
 }

@@ -498,6 +498,13 @@ async fn handle(
             st.map_broadcast(&enc(move |v| p.encode(v)));
             Ok(())
         }
+        0x2b17 => {
+            // tmwa-map is in term_func: the link will drop shortly
+            // and every player on it needs holding.
+            st.map_set_shutting_down(map_id);
+            tracing::info!(map_id, "map announced shutdown");
+            Ok(())
+        }
         0x3830 => {
             let Ok(fixed) = P3830::decode(bytes) else {
                 return Err(());
