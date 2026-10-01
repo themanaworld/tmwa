@@ -599,11 +599,37 @@ pub fn run(
     let mut sum = ImportSummary::default();
     let mut skipped = Vec::new();
 
-    let read = |p: &Path| -> Result<String, ImportError> {
-        fs::read_to_string(p).map_err(|err| ImportError::Io {
+    // Real save files accumulate non-UTF-8 bytes (e.g. a party name
+    // truncated in the middle of a multi-byte character); bad lines
+    // are skipped with a warning instead of failing the import.
+    let read_lines = |p: &Path, skipped: &mut Vec<String>| -> Result<Vec<String>, ImportError> {
+        let bytes = fs::read(p).map_err(|err| ImportError::Io {
             path: p.to_path_buf(),
             err,
-        })
+        })?;
+        let name = p
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("?")
+            .to_string();
+        let mut out = Vec::new();
+        let mut raw_lines: Vec<&[u8]> = bytes.split(|&b| b == b'\n').collect();
+        // str::lines() doesn't yield a trailing empty element
+        if raw_lines.last().is_some_and(|l| l.is_empty()) {
+            raw_lines.pop();
+        }
+        for (i, raw) in raw_lines.iter().enumerate() {
+            match String::from_utf8(raw.to_vec()) {
+                Ok(mut l) => {
+                    if l.ends_with('\r') {
+                        l.pop();
+                    }
+                    out.push(l);
+                }
+                Err(_) => skipped.push(format!("{name}:{} (invalid utf-8)", i + 1)),
+            }
+        }
+        Ok(out)
     };
 
     // ---- accounts ----
@@ -611,7 +637,10 @@ pub fn run(
     let mut account_sex: std::collections::HashMap<i64, u8> = std::collections::HashMap::new();
     let mut next_account_id = 0i64;
     let mut seen = (HashSet::new(), HashSet::new());
-    for (i, line) in read(&files.account_txt())?.lines().enumerate() {
+    for (i, line) in read_lines(&files.account_txt(), &mut skipped)?
+        .iter()
+        .enumerate()
+    {
         if is_comment(line) {
             continue;
         }
@@ -633,7 +662,10 @@ pub fn run(
     let mut chars = Vec::new();
     let mut next_char_id = 0i64;
     let mut seen = (HashSet::new(), HashSet::new());
-    for (i, line) in read(&files.athena_txt())?.lines().enumerate() {
+    for (i, line) in read_lines(&files.athena_txt(), &mut skipped)?
+        .iter()
+        .enumerate()
+    {
         if is_comment(line) {
             continue;
         }
@@ -659,7 +691,10 @@ pub fn run(
     // ---- parties ----
     let mut parties = Vec::new();
     let mut next_party_id = 0i64;
-    for (i, line) in read(&files.party_txt())?.lines().enumerate() {
+    for (i, line) in read_lines(&files.party_txt(), &mut skipped)?
+        .iter()
+        .enumerate()
+    {
         if is_comment(line) {
             continue;
         }
@@ -678,7 +713,10 @@ pub fn run(
 
     // ---- storage ----
     let mut storage = Vec::new();
-    for (i, line) in read(&files.storage_txt())?.lines().enumerate() {
+    for (i, line) in read_lines(&files.storage_txt(), &mut skipped)?
+        .iter()
+        .enumerate()
+    {
         if is_comment(line) {
             continue;
         }
@@ -690,7 +728,10 @@ pub fn run(
 
     // ---- accreg ----
     let mut accreg = Vec::new();
-    for (i, line) in read(&files.accreg_txt())?.lines().enumerate() {
+    for (i, line) in read_lines(&files.accreg_txt(), &mut skipped)?
+        .iter()
+        .enumerate()
+    {
         if is_comment(line) {
             continue;
         }
@@ -698,6 +739,36 @@ pub fn run(
             Some(a) => accreg.push(a),
             None => skipped.push(format!("accreg.txt:{}", i + 1)),
         }
+    }
+
+    // Orphans: real saves can reference accounts that are not in
+    // account.txt anymore (the row was deleted upstream, or the
+    // files fell out of sync). The account_vars / characters foreign
+    // keys would fail the whole import; warn and drop them instead.
+    {
+        let known: HashSet<i64> = accounts.iter().map(|a| a.id).collect();
+        accreg.retain(|a| {
+            if known.contains(&a.account_id) {
+                true
+            } else {
+                skipped.push(format!(
+                    "accreg.txt: account {} has no account row",
+                    a.account_id
+                ));
+                false
+            }
+        });
+        chars.retain(|c| {
+            if known.contains(&c.account_id) {
+                true
+            } else {
+                skipped.push(format!(
+                    "athena.txt: char {} belongs to missing account {}",
+                    c.id, c.account_id
+                ));
+                false
+            }
+        });
     }
 
     // ---- hash passwords in parallel ----

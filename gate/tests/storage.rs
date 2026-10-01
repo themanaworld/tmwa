@@ -575,3 +575,66 @@ fn garbage_password_import() {
         .unwrap();
     assert_eq!(memo, "!");
 }
+
+/// Real save files pick up non-UTF-8 bytes (a name truncated inside
+/// a multi-byte char) and rows for long-gone accounts: both are
+/// skipped with a warning instead of failing the import.
+#[test]
+fn import_skips_bad_utf8_and_orphan_vars() {
+    let d = fixtures_dir();
+    // a line that is not valid UTF-8 (truncated multibyte char)
+    use std::io::Write;
+    std::fs::OpenOptions::new()
+        .append(true)
+        .open(d.path().join("party.txt"))
+        .unwrap()
+        .write_all(b"300\tBroken\xff\xfeParty\t1,1\t2000000,1\tAlice\t\n")
+        .unwrap();
+    // accreg + char rows for an account that doesn't exist
+    std::fs::write(d.path().join("accreg.txt"), "9999999\t#var3,33\n").unwrap();
+    std::fs::OpenOptions::new()
+        .append(true)
+        .open(d.path().join("athena.txt"))
+        .unwrap()
+        .write_all(
+            b"150009\t9999999,2\tOrphan\t1,5,1\t1,2,3\t100,100,50,50\t1,1,1,1,1,1\t0,0\t0,0,0\t0,0,0\t0,0,0\t0,0,0\t0,0,0,0,0\t001-1,10,20\t001-1,10,20,0\tS\t \t\t \t \n",
+        )
+        .unwrap();
+
+    let files = ImportFiles {
+        save_dir: d.path().to_path_buf(),
+        account_txt: None,
+        athena_txt: None,
+        party_txt: None,
+        storage_txt: None,
+        accreg_txt: None,
+    };
+    let db = Db::open_memory().unwrap();
+    let sum = import::run(&files, &db, |_| {}).unwrap();
+    // the two fixture skips plus: the utf-8 party line, the orphan
+    // accreg row and the orphan character
+    assert_eq!(sum.skipped.len(), 5, "skipped: {:?}", sum.skipped);
+    assert!(sum.skipped.iter().any(|s| s.contains("invalid utf-8")));
+    assert!(sum.skipped.iter().any(|s| s.contains("9999999")));
+    // the orphan's char and vars must not have landed
+    let n: i64 = db
+        .with_conn(|conn| {
+            conn.query_row(
+                "SELECT COUNT(*) FROM characters WHERE name='Orphan'",
+                [],
+                |r| r.get(0),
+            )
+        })
+        .unwrap();
+    assert_eq!(n, 0);
+    let v: i64 = db
+        .with_conn(|conn| {
+            conn.query_row(
+                "SELECT COUNT(*) FROM account_vars WHERE name='#var3'",
+                [],
+                |r| r.get(0),
+            )
+        })
+        .unwrap();
+    assert_eq!(v, 0);
+}
