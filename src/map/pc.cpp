@@ -3542,7 +3542,10 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     else
         MAP_LOG_PC(sd, "INJURED-BY null FOR %d"_fmt, damage);
 
-    pc_stop_walking(sd, 3);
+    // With the damage delay disabled, stopping the walk only desyncs
+    // clients that ignore the position correction.
+    if (battle_config.player_damage_delay)
+        pc_stop_walking(sd, 3);
     //演奏/ダンスの中断 | Performance/Dance Interruptions
     if (damage > sd->status.max_hp >> 2)
         skill_stop_dancing(sd, 0);
