@@ -98,7 +98,7 @@ namespace tmwa
         extern BlockId skill_area_temp_id;
         extern int skill_area_temp_hp;
 
-        extern std::array<AuthFifoEntry, 256> auth_fifo;
+        extern std::array<AuthFifoEntry, 4096> auth_fifo;
         extern AuthFifoEntry *auth_fifo_iter;
     } // namespace map
 } // namespace tmwa

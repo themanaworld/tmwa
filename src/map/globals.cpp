@@ -51,7 +51,11 @@ namespace tmwa
         Map<ItemNameId, item_data> item_db;
         Map<QuestId, quest_data> quest_db;
 
-        std::array<AuthFifoEntry, 256> auth_fifo;
+        // The gate pre-auths every online player when the map
+        // registers (0x3829 burst), plus one per in-flight transfer;
+        // the classic 256-entry ring silently evicted entries under
+        // that load, rejecting clients as "not auth account".
+        std::array<AuthFifoEntry, 4096> auth_fifo;
         decltype(auth_fifo)::iterator auth_fifo_iter = auth_fifo.begin();
 
         DMap<BlockId, dumb_ptr<block_list>> id_db;

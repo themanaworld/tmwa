@@ -26,6 +26,7 @@
 
 #include <fcntl.h>
 
+#include <cerrno>
 #include <cstdlib>
 
 #include <array>
@@ -128,6 +129,10 @@ void RFIFOFLUSH(Session *s)
     really_memmove(&s->rdata[0], &s->rdata[s->rdata_pos], s->rdata_size - s->rdata_pos);
     s->rdata_size -= s->rdata_pos;
     s->rdata_pos = 0;
+    // recv_to_fifo unsets the fd when the fifo is full; re-arm it
+    // once parsing freed space.
+    if (s->rdata_size < s->max_rdata)
+        readfds.set(s->fd);
 }
 
 /// how much room there is to read more data
@@ -142,6 +147,14 @@ size_t RFIFOSPACE(Session *s)
 static
 void recv_to_fifo(Session *s)
 {
+    // A full fifo means parse is behind; a zero-length read()
+    // returns 0, which must not be mistaken for EOF. Stop polling
+    // the fd until RFIFOFLUSH makes room again.
+    if (RFIFOSPACE(s) == 0)
+    {
+        readfds.clr(s->fd);
+        return;
+    }
     ssize_t len = s->fd.read(&s->rdata[s->rdata_size],
                         RFIFOSPACE(s));
 
@@ -150,6 +163,10 @@ void recv_to_fifo(Session *s)
         s->rdata_size += len;
         s->connected = 1;
         s->last_tick = TimeT::now();
+    }
+    else if (len < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+    {
+        // nonblocking fd raced select(): not an EOF
     }
     else
     {
@@ -172,6 +189,12 @@ void send_from_fifo(Session *s)
         }
         s->connected = 1;
         s->last_tick = TimeT::now();
+    }
+    else if (len < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+    {
+        // nonblocking fd raced select(): not an EOF; the fd stays
+        // in the write set while wdata_size > 0, so this retries
+        // on the next loop.
     }
     else
     {
