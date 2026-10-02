@@ -50,10 +50,17 @@ fn test_state() -> std::sync::Arc<tmwa_gate::serve::state::State> {
     cfg.gate.online_html = dir.join("online.html");
     cfg.gate.admin_socket = dir.join("gate.sock");
     let db = tmwa_gate::db::Db::open(&db_path).unwrap();
-    std::sync::Arc::new(tmwa_gate::serve::state::State::new(
+    let st = std::sync::Arc::new(tmwa_gate::serve::state::State::new(
         cfg,
         std::sync::Arc::new(db),
-    ))
+    ));
+    // maplink DB work goes through the serialized writer; run it
+    // so queued jobs (party deletes etc.) actually commit.
+    let st2 = st.clone();
+    tokio::spawn(async move {
+        tmwa_gate::serve::state::db_writer(st2).await;
+    });
+    st
 }
 
 async fn cmd(
@@ -324,6 +331,8 @@ async fn admin_mirror_lake() {
     tmwa_gate::serve::maplink::load_parties(&st);
     let v = cmd(&st, "delete", &["partytest"]).await;
     assert!(text(&v).contains("DELETED"), "{v}");
+    // party cleanup is queued on the DB writer now; wait for it
+    let _ = st.db_barrier().await;
     let left: i64 = st
         .db
         .blocking(move |db| {

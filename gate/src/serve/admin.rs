@@ -354,7 +354,11 @@ async fn kick_cmd(st: &Arc<State>, args: &[String]) -> Value {
 /// (0x2b05/0x2b06 -> client 0x0092) onto the surviving instance.
 ///
 /// With `wait`, returns once the drained servers report zero users
-/// (or their links drop), 60 s at most.
+/// (or their links drop), 60 s at most. The reply then counts how
+/// many of the players that were on the drained servers actually
+/// landed elsewhere (`arrived` is confirmed by the destination
+/// link's 0x2afc), how many are still there, and how many left
+/// without landing (logged out or failed).
 async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
     let targets: Vec<usize> = match which {
         Some(id) => {
@@ -370,6 +374,7 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
         None => st.map_infos().iter().map(|(id, ..)| *id).collect(),
     };
     for id in &targets {
+        st.drain_track_begin(*id, st.online_on(*id));
         st.map_set_draining(*id, true);
     }
     let mut stragglers: Vec<String> = Vec::new();
@@ -414,26 +419,56 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
         // the 0x2b04 updates above must land on the link before the
         // evacuate request: same channel, strictly ordered
         if let Some(tx) = st.map_tx(*id) {
-            send_must(&tx, enc(|v| P382A::default().encode(v)), *id).await;
+            send_must(st, *id, &tx, enc(|v| P382A::default().encode(v))).await;
         }
         tracing::info!(
             "map {id}: draining ({} maps handed over, {kept} with no survivor)",
             maps.len() - kept,
         );
     }
-    let reply = |emptied: Option<bool>| {
+    // Evacuee accounting: `expected` is the set that was online on
+    // the drained server when the drain began; `arrived` is how many
+    // of those have since authenticated on a different server;
+    // `still` are still on it; the rest left (logged out or failed
+    // to land). A high `departed` count with emptied==true is the
+    // "lost everyone" case the raw user count can't show.
+    let collect = |st: &Arc<State>| {
+        let (mut expected, mut arrived, mut still) = (0usize, 0usize, 0usize);
+        for id in &targets {
+            if let Some(t) = st.drain_track_end(*id) {
+                expected += t.expected.len();
+                arrived += t.arrived.len();
+                let on = st.online_on(*id);
+                still += t.expected.intersection(&on).count();
+            }
+        }
         json!({
+            "evacuees": expected,
+            "arrived": arrived,
+            "still_on_source": still,
+            "departed": expected.saturating_sub(arrived + still),
+        })
+    };
+    let reply = |emptied: Option<bool>, st: &Arc<State>| {
+        let mut v = json!({
             "ok": true,
             "draining": targets,
             "stragglers": stragglers,
             "emptied": emptied,
-        })
+        });
+        if emptied.is_some() {
+            v.as_object_mut()
+                .unwrap()
+                .extend(collect(st).as_object().unwrap().clone());
+        }
+        v
     };
     if !wait {
-        return reply(None);
+        return reply(None, st);
     }
     let deadline = Instant::now() + Duration::from_secs(60);
-    loop {
+    // phase 1: the drained servers report zero users (or drop)
+    let emptied = loop {
         let left = {
             let ms = st.map_servers.lock().unwrap();
             targets
@@ -442,13 +477,46 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
                 .count()
         };
         if left == 0 {
-            return reply(Some(true));
+            break true;
         }
         if Instant::now() >= deadline {
-            return reply(Some(false));
+            break false;
         }
         let _ = tokio::time::timeout(Duration::from_millis(200), st.online_notify.notified()).await;
+    };
+    // phase 2: let in-flight handoffs land or fail so `arrived`
+    // isn't undercounted (a reconnect + 0x2afc is sub-second).
+    // `unresolved` = evacuees still online somewhere but without a
+    // confirmed landing — quit-and-relogin during the drain, or a
+    // handoff still in flight. Bounded at 5 s.
+    if emptied {
+        let grace_end = Instant::now() + Duration::from_millis(1500);
+        let settle_end = Instant::now() + Duration::from_secs(5);
+        loop {
+            let unresolved = {
+                let d = st.drains.lock().unwrap();
+                let on = st.online.lock().unwrap();
+                targets
+                    .iter()
+                    .flat_map(|id| d.get(id))
+                    .map(|t| {
+                        t.expected
+                            .iter()
+                            .filter(|c| on.contains_key(*c))
+                            .count()
+                            .saturating_sub(t.arrived.len())
+                    })
+                    .sum::<usize>()
+            };
+            let now = Instant::now();
+            if (unresolved == 0 && now >= grace_end) || now >= settle_end {
+                break;
+            }
+            let _ =
+                tokio::time::timeout(Duration::from_millis(300), st.online_notify.notified()).await;
+        }
     }
+    reply(Some(emptied), st)
 }
 
 fn getcount(st: &Arc<State>) -> Value {

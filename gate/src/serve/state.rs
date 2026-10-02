@@ -6,7 +6,7 @@
 
 //! Shared runtime state for `tmwa-gate serve`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
 use crate::config::Config;
-use crate::proto::PartyMost;
+use crate::proto::{CharData, CharKey, PartyMost};
 
 /// delflag values mirroring tmwa's auth_fifo semantics:
 /// 2 = login->char stage pending, 3 = char->map stage pending,
@@ -104,12 +104,16 @@ pub struct MapHandle {
     /// Set when the map sent 0x2b17 (term_func): the link will drop
     /// shortly and every player on it needs holding.
     pub shutting_down: bool,
+    /// Fired when a critical reply could not be queued: the link is
+    /// wedged beyond recovery and its session is asked to die so
+    /// the map reconnects with a clean slate.
+    pub kill: std::sync::Arc<tokio::sync::Notify>,
 }
 
 /// A map-link writer queue below this many free slots counts as
 /// congested: new char-selects and map joins aimed at it are
 /// refused instead of queueing behind a saturated link.
-const MAP_TX_LOW_WATER: usize = 64;
+const MAP_TX_LOW_WATER: usize = 256;
 
 impl MapHandle {
     /// Non-critical send (broadcasts, notifications): dropped with a
@@ -177,6 +181,76 @@ pub struct CharRecord {
     pub online_map: Option<usize>,
 }
 
+// ---- serialized DB writer ----
+
+/// Where a queued DB op's reply packet goes once the batch commits.
+pub enum LinkReply {
+    None,
+    /// send_must to this map server's link.
+    Map(usize),
+    /// map_broadcast to all map servers.
+    Broadcast,
+}
+
+/// What a queued DB op produced inside the batch transaction.
+pub struct DbOpResult {
+    pub reply: LinkReply,
+    /// Encoded reply packet; sent only after the batch commits.
+    pub bytes: Vec<u8>,
+    /// Post-commit bookkeeping (cache updates, oneshot results).
+    /// Runs only when the batch committed; on rollback it is
+    /// dropped, releasing any captured oneshot sender so the
+    /// requester observes failure.
+    pub after: Option<Box<dyn FnOnce() + Send>>,
+}
+
+impl DbOpResult {
+    /// No reply, no post-commit action.
+    pub fn none() -> DbOpResult {
+        DbOpResult {
+            reply: LinkReply::None,
+            bytes: Vec::new(),
+            after: None,
+        }
+    }
+
+    /// `bytes` to `map_id` after commit.
+    pub fn reply(map_id: usize, bytes: Vec<u8>) -> DbOpResult {
+        DbOpResult {
+            reply: LinkReply::Map(map_id),
+            bytes,
+            after: None,
+        }
+    }
+}
+
+/// One unit of work for the serialized DB writer. Every map-link
+/// packet that touches SQLite goes through this queue so a slow
+/// database cannot stall the per-link read loop; consecutive jobs
+/// are committed in one transaction.
+pub enum DbJob {
+    /// 0x2b01 character save.
+    SaveChar {
+        char_id: u32,
+        key: Box<CharKey>,
+        data: Box<CharData>,
+    },
+    /// Serialized op; runs inside the batch transaction on the
+    /// shared `&Connection` (a `Transaction` derefs to it), so
+    /// multi-statement jobs are atomic with the rest of the batch.
+    /// Must not open a nested transaction.
+    Op(Box<dyn FnOnce(&rusqlite::Connection) -> DbOpResult + Send>),
+}
+
+/// Arrival bookkeeping for a `drain` in flight.
+pub struct DrainTrack {
+    /// Chars online on the drained server when the drain began.
+    pub expected: HashSet<u32>,
+    /// Of those, the ones that have since authenticated (0x2afc) on
+    /// a different map server.
+    pub arrived: HashSet<u32>,
+}
+
 pub struct State {
     pub cfg: Config,
     pub db: std::sync::Arc<crate::db::Db>,
@@ -227,11 +301,18 @@ pub struct State {
     pub rejoin_notify: Mutex<HashMap<(u32, u32), tokio::sync::oneshot::Sender<()>>>,
     /// TCP+WS client connections currently open.
     pub conn_count: AtomicU64,
+    /// FIFO queue feeding the serialized DB writer (`db_writer`).
+    pub db_jobs: mpsc::UnboundedSender<DbJob>,
+    /// Receiver half of `db_jobs`; taken once by `db_writer`.
+    db_jobs_rx: Mutex<Option<mpsc::UnboundedReceiver<DbJob>>>,
+    /// map slot -> arrival tracking while a `drain` is in flight.
+    pub drains: Mutex<HashMap<usize, DrainTrack>>,
 }
 
 impl State {
     pub fn new(cfg: Config, db: std::sync::Arc<crate::db::Db>) -> State {
         let next_party_id = db.meta("next_party_id").ok().flatten().unwrap_or(0) as u64;
+        let (db_jobs, db_jobs_rx) = mpsc::unbounded_channel();
         State {
             cfg,
             db,
@@ -255,6 +336,9 @@ impl State {
             online_notify: tokio::sync::Notify::new(),
             player_sessions: Mutex::new(HashMap::new()),
             rejoin_notify: Mutex::new(HashMap::new()),
+            db_jobs,
+            db_jobs_rx: Mutex::new(Some(db_jobs_rx)),
+            drains: Mutex::new(HashMap::new()),
         }
     }
 
@@ -467,37 +551,61 @@ impl State {
 
     // ---- map servers ----
 
-    /// Allocate a map server slot; returns the slot index.
-    pub fn map_register(&self, tx: mpsc::Sender<Vec<u8>>, ip: u32, port: u16) -> usize {
-        let mut ms = self.map_servers.lock().unwrap();
-        for (i, slot) in ms.iter_mut().enumerate() {
-            if slot.is_none() {
-                let id = i;
-                *slot = Some(MapHandle {
-                    id,
-                    tx,
-                    ip,
-                    port,
-                    maps: vec![],
-                    users: 0,
-                    draining: false,
-                    shutting_down: false,
-                });
-                return id;
-            }
-        }
-        let id = ms.len();
-        ms.push(Some(MapHandle {
-            id,
-            tx,
+    /// Allocate a map server slot; returns (slot index, kill
+    /// notify). `kill` fires when the link must die.
+    pub fn map_register(
+        &self,
+        tx: mpsc::Sender<Vec<u8>>,
+        ip: u32,
+        port: u16,
+    ) -> (usize, std::sync::Arc<tokio::sync::Notify>) {
+        let kill = std::sync::Arc::new(tokio::sync::Notify::new());
+        let new = || MapHandle {
+            id: 0,
+            tx: tx.clone(),
             ip,
             port,
             maps: vec![],
             users: 0,
             draining: false,
             shutting_down: false,
-        }));
-        id
+            kill: kill.clone(),
+        };
+        let mut ms = self.map_servers.lock().unwrap();
+        for (i, slot) in ms.iter_mut().enumerate() {
+            if slot.is_none() {
+                let mut h = new();
+                h.id = i;
+                *slot = Some(h);
+                return (i, kill);
+            }
+        }
+        let id = ms.len();
+        let mut h = new();
+        h.id = id;
+        ms.push(Some(h));
+        (id, kill)
+    }
+
+    /// The link is wedged beyond recovery (a critical reply could
+    /// not be queued): ask its session to die so the map
+    /// reconnects with a clean slate. The player side is handled
+    /// the same as a link drop.
+    pub fn map_kill(&self, id: usize) {
+        let ms = self.map_servers.lock().unwrap();
+        if let Some(Some(h)) = ms.get(id) {
+            h.kill.notify_one();
+        }
+    }
+
+    /// Map slot registered with client address (ip, port), for
+    /// resolving the destination server a 0x2b05 names.
+    pub fn map_by_addr(&self, ip: u32, port: u16) -> Option<usize> {
+        let ms = self.map_servers.lock().unwrap();
+        ms.iter().enumerate().find_map(|(i, s)| {
+            s.as_ref()
+                .and_then(|h| (h.ip == ip && h.port == port).then_some(i))
+        })
     }
 
     pub fn map_unregister(&self, id: usize) {
@@ -656,6 +764,97 @@ impl State {
             .collect()
     }
 
+    // ---- serialized DB writer ----
+
+    /// Queue a 0x2b01 character save. Marks the char as having an
+    /// in-flight save BEFORE enqueueing, so a 0x2afc on another
+    /// link can wait for it (`wait_saves`).
+    pub fn queue_save(&self, char_id: u32, key: CharKey, data: CharData) {
+        self.save_begin(char_id);
+        let job = DbJob::SaveChar {
+            char_id,
+            key: Box::new(key),
+            data: Box::new(data),
+        };
+        if self.db_jobs.send(job).is_err() {
+            // writer gone (shutdown/tests): unblock waiters
+            self.save_done(char_id);
+        }
+    }
+
+    /// Queue a serialized DB op. `f` runs inside the writer's batch
+    /// transaction; the reply it produces is sent only after the
+    /// batch commits.
+    pub fn queue_db_op(
+        &self,
+        f: impl FnOnce(&rusqlite::Connection) -> DbOpResult + Send + 'static,
+    ) {
+        if self.db_jobs.send(DbJob::Op(Box::new(f))).is_err() {
+            tracing::warn!("db job queue closed; op dropped");
+        }
+    }
+
+    /// Take the receiver half of the job queue. Called once by
+    /// `serve::run` to start `db_writer`.
+    pub fn take_db_jobs_rx(&self) -> Option<mpsc::UnboundedReceiver<DbJob>> {
+        self.db_jobs_rx.lock().unwrap().take()
+    }
+
+    /// A oneshot that fires after every job queued so far has
+    /// committed (or the writer is gone). Lets tests observe the
+    /// queue draining.
+    pub fn db_barrier(&self) -> tokio::sync::oneshot::Receiver<()> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.queue_db_op(move |_| DbOpResult {
+            reply: LinkReply::None,
+            bytes: Vec::new(),
+            after: Some(Box::new(move || {
+                let _ = tx.send(());
+            })),
+        });
+        rx
+    }
+
+    // ---- drain tracking ----
+
+    /// Chars currently recorded as online on map server `id`.
+    pub fn online_on(&self, id: usize) -> HashSet<u32> {
+        self.online
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|(c, m)| (*m == id).then_some(*c))
+            .collect()
+    }
+
+    /// Begin tracking evacuee arrivals for a drain of `id`.
+    pub fn drain_track_begin(&self, id: usize, expected: HashSet<u32>) {
+        self.drains.lock().unwrap().insert(
+            id,
+            DrainTrack {
+                expected,
+                arrived: HashSet::new(),
+            },
+        );
+    }
+
+    /// A transfer-marked char authenticated on map `to`: count it
+    /// as an arrival for every drain that expected it elsewhere.
+    pub fn drain_track_arrive(&self, to: usize, char_id: u32) {
+        let mut d = self.drains.lock().unwrap();
+        for (target, t) in d.iter_mut() {
+            if *target != to && t.expected.contains(&char_id) {
+                t.arrived.insert(char_id);
+            }
+        }
+    }
+
+    /// End tracking for `id`; returns (expected, arrived, the
+    /// expected set) so the caller can count who is still there.
+    pub fn drain_track_end(&self, id: usize) -> Option<DrainTrack> {
+        self.drains.lock().unwrap().remove(&id)
+    }
+
     /// Map server slot that serves `map`, or the first slot with maps.
     /// On fallback, `rewritten` is set to the server's first map.
     pub fn map_for(&self, map: &str) -> (Option<usize>, Option<String>) {
@@ -801,22 +1000,142 @@ impl State {
 
 /// Send raw bytes to a map link's writer task when the reply must
 /// not be dropped (auth answers, request results, saves). A full
-/// queue gets a bounded wait; only a wedged link loses the reply.
+/// queue gets a bounded wait; a link that stays wedged is killed,
+/// since dropping the reply would leave the map waiting on an
+/// answer that never comes (map-side auth stalls for minutes).
 /// Returns false when the bytes were not queued.
-pub async fn send_must(tx: &mpsc::Sender<Vec<u8>>, v: Vec<u8>, map_id: usize) -> bool {
+pub async fn send_must(st: &State, map_id: usize, tx: &mpsc::Sender<Vec<u8>>, v: Vec<u8>) -> bool {
     use tokio::sync::mpsc::error::TrySendError;
     match tx.try_send(v) {
         Ok(()) => true,
         Err(TrySendError::Full(v)) | Err(TrySendError::Closed(v)) => {
-            match tokio::time::timeout(Duration::from_secs(5), tx.send(v)).await {
+            match tokio::time::timeout(Duration::from_secs(10), tx.send(v)).await {
                 Ok(Ok(())) => true,
                 _ => {
-                    tracing::warn!("map {map_id}: dropping critical reply, link wedged");
+                    tracing::warn!("map {map_id}: link wedged on a critical reply, dropping link");
+                    st.map_kill(map_id);
                     false
                 }
             }
         }
     }
+}
+
+/// The serialized DB writer: drains `db_jobs` in FIFO order, one
+/// task, so the per-link read loops never wait on SQLite. Each
+/// drain batch commits in a single transaction — under a save
+/// burst this is the difference between ~150 commits/s and one
+/// commit per batch.
+pub async fn db_writer(st: std::sync::Arc<State>) {
+    let Some(mut rx) = st.take_db_jobs_rx() else {
+        tracing::warn!("db_writer: job queue already taken");
+        return;
+    };
+    const BATCH: usize = 512;
+    while let Some(first) = rx.recv().await {
+        let mut jobs = Vec::with_capacity(64);
+        jobs.push(first);
+        while jobs.len() < BATCH {
+            match rx.try_recv() {
+                Ok(j) => jobs.push(j),
+                Err(_) => break,
+            }
+        }
+        // char ids owed a save_done no matter how the batch ends
+        let save_ids: Vec<u32> = jobs
+            .iter()
+            .filter_map(|j| match j {
+                DbJob::SaveChar { char_id, .. } => Some(*char_id),
+                _ => None,
+            })
+            .collect();
+        let njobs = jobs.len();
+        let db = st.db.clone();
+        let (committed, posts) =
+            match tokio::task::spawn_blocking(move || apply_db_jobs(&db, jobs)).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!("db_writer: batch of {njobs} panicked: {e}");
+                    (false, Vec::new())
+                }
+            };
+        if !committed {
+            tracing::error!("db_writer: batch of {njobs} failed to commit, jobs dropped");
+        }
+        for cid in save_ids {
+            st.save_done(cid);
+        }
+        if !committed {
+            continue;
+        }
+        for post in posts {
+            match post.reply {
+                LinkReply::Map(mid) => {
+                    if let Some(tx) = st.map_tx(mid) {
+                        send_must(&st, mid, &tx, post.bytes).await;
+                    }
+                }
+                LinkReply::Broadcast => {
+                    st.map_broadcast(&post.bytes);
+                }
+                LinkReply::None => {}
+            }
+            if let Some(after) = post.after {
+                after();
+            }
+        }
+    }
+}
+
+/// What a committed op leaves for the async side.
+struct PostCommit {
+    reply: LinkReply,
+    bytes: Vec<u8>,
+    after: Option<Box<dyn FnOnce() + Send>>,
+}
+
+/// Apply one drained batch of jobs inside a single transaction.
+/// A panicking or failing job is logged and skipped (a statement
+/// error does not poison the transaction); the batch only fails
+/// when the commit itself does.
+fn apply_db_jobs(db: &crate::db::Db, jobs: Vec<DbJob>) -> (bool, Vec<PostCommit>) {
+    let mut posts = Vec::new();
+    let committed = db
+        .with_conn(|conn| {
+            let tx = conn.transaction()?;
+            for job in jobs {
+                match job {
+                    DbJob::SaveChar { char_id, key, data } => {
+                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            crate::db::save_character_tx(&tx, &key, &data)
+                        }));
+                        match r {
+                            Ok(Ok(())) => {}
+                            Ok(Err(e)) => {
+                                tracing::warn!("db_writer: save_character {char_id}: {e}")
+                            }
+                            Err(_) => {
+                                tracing::warn!("db_writer: save_character {char_id} panicked")
+                            }
+                        }
+                    }
+                    DbJob::Op(f) => {
+                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(&tx)));
+                        match r {
+                            Ok(res) => posts.push(PostCommit {
+                                reply: res.reply,
+                                bytes: res.bytes,
+                                after: res.after,
+                            }),
+                            Err(_) => tracing::warn!("db_writer: op panicked"),
+                        }
+                    }
+                }
+            }
+            tx.commit()
+        })
+        .is_ok();
+    (committed, posts)
 }
 
 /// Send raw bytes to a client session's writer task.
@@ -869,7 +1188,7 @@ mod tests {
         let st = test_state("10.0.0.0/8", Ipv4Addr::new(192, 168, 1, 10));
         // a map advertising a WAN address
         let (mtx, _mrx) = mpsc::channel(8);
-        let map_id = st.map_register(mtx, u32::from_le_bytes([203, 0, 113, 7]), 5121);
+        let (map_id, _kill) = st.map_register(mtx, u32::from_le_bytes([203, 0, 113, 7]), 5121);
 
         // LAN client: gets lan_map_ip, keeps the map's port
         let mut rx = pending_sel(&st, map_id, [10, 1, 2, 3]);
@@ -885,12 +1204,30 @@ mod tests {
     }
 
     #[test]
+    fn drain_track_counts_only_other_servers() {
+        let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        st.drain_track_begin(0, [7, 8, 9].into_iter().collect());
+        // 7 and 8 land on server 1; 8 again on server 2 (a second
+        // arrival must not double count... one char, one arrival)
+        st.drain_track_arrive(1, 7);
+        st.drain_track_arrive(1, 8);
+        st.drain_track_arrive(2, 8);
+        // a landing back on the drained server doesn't count
+        st.drain_track_arrive(0, 9);
+        // nor does an unexpected char
+        st.drain_track_arrive(1, 999);
+        let t = st.drain_track_end(0).unwrap();
+        assert_eq!(t.expected.len(), 3);
+        assert_eq!(t.arrived.len(), 2);
+    }
+
+    #[test]
     fn send_pending_sel_default_subnet() {
         use crate::proto::P0071;
         // default lan_subnet covers only 127.0.0.1
         let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
         let (mtx, _mrx) = mpsc::channel(8);
-        let map_id = st.map_register(mtx, u32::from_le_bytes([203, 0, 113, 7]), 5121);
+        let (map_id, _kill) = st.map_register(mtx, u32::from_le_bytes([203, 0, 113, 7]), 5121);
 
         let mut rx = pending_sel(&st, map_id, [127, 0, 0, 1]);
         let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();

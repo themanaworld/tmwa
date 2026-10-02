@@ -32,7 +32,7 @@ type Fr = PacketFramer<tokio::net::tcp::OwnedReadHalf>;
 pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
     let _ip32 = u32::from_le_bytes(ip.octets());
     let (rd, wr) = sock.into_split();
-    let (tx, mut rx) = mpsc::channel::<Vec<u8>>(512);
+    let (tx, mut rx) = mpsc::channel::<Vec<u8>>(2048);
     // writer task
     let wh = tokio::spawn(async move {
         let mut w = wr;
@@ -47,6 +47,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
 
     let mut fr = PacketFramer::new(rd);
     let mut map_id: Option<usize> = None;
+    let mut map_kill_notify: Option<std::sync::Arc<tokio::sync::Notify>> = None;
 
     // ---- 0x2af8 login ----
     let authed = 'auth: {
@@ -63,13 +64,14 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                     || pass != st.cfg.map.password.as_str()
                 {
                     p.code = 3;
-                    send_must(&tx, enc(move |v| p.encode(v)), usize::MAX).await;
+                    send_must(&st, usize::MAX, &tx, enc(move |v| p.encode(v))).await;
                     tracing::warn!("maplink: bad map auth from {ip}");
                     break 'auth false;
                 }
                 p.code = 0;
-                send_must(&tx, enc(move |v| p.encode(v)), usize::MAX).await;
-                let id = st.map_register(tx.clone(), u32::from_le_bytes(fixed.ip.0), fixed.port);
+                send_must(&st, usize::MAX, &tx, enc(move |v| p.encode(v))).await;
+                let (id, kill) =
+                    st.map_register(tx.clone(), u32::from_le_bytes(fixed.ip.0), fixed.port);
                 tracing::info!(
                     "maplink: map server {id} registered from {ip} \
                      (client port {}:{})",
@@ -89,7 +91,8 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                         .collect();
                     P2B15 { repeat }
                 };
-                send_must(&tx, enc(move |v| p15.encode(v)), id).await;
+                send_must(&st, id, &tx, enc(move |v| p15.encode(v))).await;
+                map_kill_notify = Some(kill);
                 break 'auth true;
             }
             Ok(Some(pkt)) => {
@@ -106,12 +109,23 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
         return;
     }
     let map_id = map_id.unwrap();
+    let kill = map_kill_notify.unwrap();
 
     // ---- main loop ----
+    // `handle` never waits on SQLite (map-link DB work goes through
+    // the `db_jobs` writer or a spawned task), so the socket drains
+    // at wire speed; the only stalls left are a genuinely wedged
+    // writer queue or a map that stopped reading.
     loop {
-        let pkt = match fr.next().await {
-            Ok(Some(p)) => p,
-            _ => break,
+        let pkt = tokio::select! {
+            p = fr.next() => match p {
+                Ok(Some(p)) => p,
+                _ => break,
+            },
+            _ = kill.notified() => {
+                tracing::warn!(map_id, "map link killed: wedged on critical reply");
+                break;
+            }
         };
         let r = handle(&st, &tx, map_id, pkt.id, &pkt.bytes).await;
         if r.is_err() {
@@ -186,7 +200,7 @@ async fn handle(
             }
             tracing::info!(map_id, maps = maps.len(), "map list received");
             let p = P2AFB::default();
-            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
+            send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
             // 0x2b04: tell the others about this server; tell this
             // server about the others.
             let (ip, port) = st.map_addr(map_id).unwrap_or((0, 0));
@@ -227,7 +241,7 @@ async fn handle(
                         map_name: FixedStr::<16>::try_from_str(m).unwrap_or_default(),
                     })
                     .collect();
-                send_must(tx, enc(|v| head.encode(v)), map_id).await;
+                send_must(st, map_id, tx, enc(|v| head.encode(v))).await;
             }
             // Pre-auth: every player online elsewhere gets a 0x3829
             // on this new map, so it can accept transfers and
@@ -240,7 +254,7 @@ async fn handle(
                 p.login_id1 = e.login_id1;
                 p.login_id2 = e.login_id2;
                 p.ip = ip4(e.ip);
-                send_must(tx, enc(move |v| p.encode(v)), map_id).await;
+                send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
             }
             Ok(())
         }
@@ -248,84 +262,13 @@ async fn handle(
             let Ok(fixed) = P2AFC::decode(bytes) else {
                 return Err(());
             };
-            // A map-to-map transfer is in flight for this char: the
-            // source link's pre-0x2b05 save may still be committing.
-            // Any in-flight save for this char is waited out
-            // (bounded) so this link's answer carries the fresh
-            // CharData; an unmarked quit-save racing a relog is the
-            // same hazard.
-            let marked = st.transfer_take(fixed.account_id.0, fixed.char_id.0);
-            if !st
-                .wait_saves(fixed.char_id.0, std::time::Duration::from_secs(2))
-                .await
-            {
-                tracing::warn!(
-                    map_id,
-                    char_id = fixed.char_id.0,
-                    transfer = marked,
-                    "0x2afc raced a queued save; answering with current data"
-                );
-            }
-            // tmwa compares afi.ip to the ip the map reports; through
-            // the relay that's the gate's upstream source address,
-            // recorded at relay time. Fall back to the client ip.
-            let entry = st.take_map_auth(
-                fixed.account_id.0,
-                fixed.char_id.0,
-                fixed.login_id1,
-                fixed.login_id2,
-                u32::from_le_bytes(fixed.ip.0),
-            );
-            let Some(e) = entry else {
-                tracing::warn!(
-                    "maplink: REJECTED 0x2afc account {} char {}",
-                    fixed.account_id.0,
-                    fixed.char_id.0
-                );
-                let mut p = P2AFE::default();
-                p.account_id = fixed.account_id;
-                send_must(tx, enc(move |v| p.encode(v)), map_id).await;
-                return Ok(());
-            };
-            // load CharKey + CharData (full, incl. account_reg* + vars)
-            let cid = e.char_id;
-            let res = {
-                let st2 = st.clone();
-                tokio::task::spawn_blocking(move || st2.db.load_character(cid as i64)).await
-            };
-            let Ok(Ok((key, cd))) = res else {
-                let mut p = P2AFE::default();
-                p.account_id = fixed.account_id;
-                send_must(tx, enc(move |v| p.encode(v)), map_id).await;
-                return Ok(());
-            };
-            // update cache
-            st.chars.lock().unwrap().insert(
-                cid,
-                super::state::CharRecord {
-                    key,
-                    data: cd,
-                    online_map: Some(map_id),
-                },
-            );
-            // remember the auth material so a map registering later
-            // can be pre-authed for this player
-            st.set_online_auth(super::state::OnlineAuth {
-                account_id: e.account_id,
-                char_id: e.char_id,
-                login_id1: e.login_id1,
-                login_id2: e.login_id2,
-                ip: e.ip,
-                server: map_id,
+            // waits on in-flight saves and reads the DB: keep the
+            // read loop hot by finishing in a task.
+            let st = st.clone();
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                handle_auth_request(&st, &tx, map_id, fixed).await;
             });
-            let mut p = P2AFD::default();
-            p.account_id = fixed.account_id;
-            p.login_id2 = e.login_id2;
-            p.client_protocol_version = ClientVersion(e.client_version);
-            p.char_key = key;
-            p.char_data = cd;
-            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
-            tracing::info!(map_id, char_id = cid, "authenticated char for map");
             Ok(())
         }
         0x2aff => {
@@ -342,7 +285,9 @@ async fn handle(
                 return Err(());
             };
             // update cache + persist (0x2b01 does not touch
-            // account vars; see save_character)
+            // account vars; see save_character). The write goes to
+            // the serialized DB writer, which batches consecutive
+            // saves into one transaction.
             {
                 let mut chars = st.chars.lock().unwrap();
                 if let Some(c) = chars.get_mut(&p.char_id.0) {
@@ -350,15 +295,9 @@ async fn handle(
                     c.data = p.char_data;
                 }
             }
-            // track the write so a transferring char's 0x2afc on
-            // another link can wait for it
-            st.save_begin(p.char_id.0);
-            let st2 = st.clone();
-            let _ = tokio::task::spawn_blocking(move || {
-                st2.db.save_character(&p.char_key, &p.char_data)
-            })
-            .await;
-            st.save_done(p.char_id.0);
+            // marks the write in-flight so a transferring char's
+            // 0x2afc on another link can wait for it
+            st.queue_save(p.char_id.0, p.char_key, p.char_data);
             Ok(())
         }
         0x2b02 => {
@@ -396,7 +335,7 @@ async fn handle(
             let mut p = P2B03::default();
             p.account_id = fixed.account_id;
             p.unknown = 0;
-            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
+            send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
             Ok(())
         }
         0x2b05 => {
@@ -434,6 +373,40 @@ async fn handle(
                     delflag: 3,
                     created: std::time::Instant::now(),
                 });
+                // make sure the destination map holds a fresh
+                // pre-auth entry: the one it got at registration
+                // may have been evicted (bounded auth_fifo) or
+                // never sent. Without it the client's 0x0072 is
+                // rejected as "not auth account". Spawned: a wedged
+                // destination link must not stall this reader, and
+                // the client takes longer to reconnect than this
+                // push takes anyway; a miss falls back to 0x2afc.
+                let dest_ip = u32::from_le_bytes(fixed.map_ip.0);
+                match st.map_by_addr(dest_ip, fixed.map_port) {
+                    Some(dest) => {
+                        let st2 = st.clone();
+                        tokio::spawn(async move {
+                            let Some(dtx) = st2.map_tx(dest) else {
+                                return;
+                            };
+                            let mut p29 = P3829::default();
+                            p29.account_id = fixed.account_id;
+                            p29.char_id = fixed.char_id;
+                            p29.login_id1 = fixed.login_id1;
+                            p29.login_id2 = fixed.login_id2;
+                            p29.ip = fixed.client_ip;
+                            send_must(&st2, dest, &dtx, enc(move |v| p29.encode(v))).await;
+                        });
+                    }
+                    None => {
+                        tracing::warn!(
+                            map_id,
+                            "0x2b05 names unknown destination {}:{}",
+                            Ipv4Addr::from(fixed.map_ip.0),
+                            fixed.map_port
+                        );
+                    }
+                }
             }
             let mut p = P2B06::default();
             p.account_id = fixed.account_id;
@@ -445,7 +418,7 @@ async fn handle(
             p.y = fixed.y;
             p.map_ip = fixed.map_ip;
             p.map_port = fixed.map_port;
-            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
+            send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
             Ok(())
         }
         0x2b0c => {
@@ -455,27 +428,34 @@ async fn handle(
             let old = fixed.old_email.to_string_lossy();
             let new = fixed.new_email.to_string_lossy();
             let aid = fixed.account_id.0 as i64;
-            let old2 = old.clone();
-            let cur = st
-                .db
-                .blocking(move |db| db.account_email(aid))
-                .await
-                .ok()
-                .flatten()
-                .unwrap_or_default();
-            if cur == old2 {
-                let _ = st
-                    .db
-                    .blocking(move |db| db.set_email(aid, Some(&new)))
-                    .await;
-            }
+            st.queue_db_op(move |conn| {
+                let cur: Option<String> = conn
+                    .query_row("SELECT email FROM accounts WHERE id=?1", [aid], |r| {
+                        r.get::<_, Option<String>>(0)
+                    })
+                    .ok()
+                    .flatten();
+                if cur.unwrap_or_default() == old {
+                    let _ = conn.execute(
+                        "UPDATE accounts SET email=?2 WHERE id=?1",
+                        rusqlite::params![aid, new],
+                    );
+                }
+                super::state::DbOpResult::none()
+            });
             Ok(())
         }
         0x2b0e => {
             let Ok(fixed) = P2B0E::decode(bytes) else {
                 return Err(());
             };
-            handle_named_op(st, tx, map_id, fixed).await
+            // char name lookup may hit SQLite
+            let st = st.clone();
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                let _ = handle_named_op(&st, &tx, map_id, fixed).await;
+            });
+            Ok(())
         }
         0x2b10 => {
             let Ok(p) = P2B10::decode(bytes) else {
@@ -503,20 +483,15 @@ async fn handle(
                     }
                 }
             }
-            let st2 = st.clone();
-            let _ = tokio::task::spawn_blocking(move || {
+            st.queue_db_op(move |conn| {
                 // tmwa replaces the whole scope with the incoming list
-                let _ = st2.db.with_conn(|conn| {
-                    conn.execute(
-                        "DELETE FROM account_vars WHERE account_id=?1 AND scope=2",
-                        [aid as i64],
-                    )
-                });
-                for (n, v) in regs {
-                    let _ = st2.db.set_account_var(aid as i64, 2, &n, v);
-                }
-            })
-            .await;
+                let _ = conn.execute(
+                    "DELETE FROM account_vars WHERE account_id=?1 AND scope=2",
+                    [aid as i64],
+                );
+                let _ = crate::db::set_account_vars(conn, aid as i64, 2, &regs);
+                super::state::DbOpResult::none()
+            });
             Ok(())
         }
         0x2b16 => {
@@ -524,29 +499,29 @@ async fn handle(
                 return Err(());
             };
             let cid = fixed.char_id.0;
-            let partner = {
-                let st2 = st.clone();
-                tokio::task::spawn_blocking(move || st2.db.divorce(cid as i64))
-                    .await
+            let st2 = st.clone();
+            st.queue_db_op(move |conn| {
+                let partner = crate::db::divorce_conn(conn, cid as i64)
                     .ok()
-                    .and_then(|r| r.ok())
                     .flatten()
-            };
-            {
-                let mut chars = st.chars.lock().unwrap();
-                if let Some(c) = chars.get_mut(&cid) {
-                    c.data.partner_id = CharId(0);
+                    .unwrap_or(0);
+                let mut p = P2B12::default();
+                p.char_id = fixed.char_id;
+                p.partner_id = CharId(partner as u32);
+                super::state::DbOpResult {
+                    reply: super::state::LinkReply::Broadcast,
+                    bytes: enc(move |v| p.encode(v)),
+                    after: Some(Box::new(move || {
+                        let mut chars = st2.chars.lock().unwrap();
+                        if let Some(c) = chars.get_mut(&cid) {
+                            c.data.partner_id = CharId(0);
+                        }
+                        if let Some(c) = chars.get_mut(&(partner as u32)) {
+                            c.data.partner_id = CharId(0);
+                        }
+                    })),
                 }
-                if let Some(pid) = partner {
-                    if let Some(c) = chars.get_mut(&(pid as u32)) {
-                        c.data.partner_id = CharId(0);
-                    }
-                }
-            }
-            let mut p = P2B12::default();
-            p.char_id = fixed.char_id;
-            p.partner_id = CharId(partner.unwrap_or(0) as u32);
-            st.map_broadcast(&enc(move |v| p.encode(v)));
+            });
             Ok(())
         }
         0x2b17 => {
@@ -588,34 +563,41 @@ async fn handle(
             let Ok(p) = P3001::decode(bytes) else {
                 return Err(());
             };
-            let from = p.from_char_name.to_string_lossy();
-            let mut to = p.to_char_name.to_string_lossy();
-            let target = st.char_by_name(&to).await;
-            let target_map = target.and_then(|cid| st.online.lock().unwrap().get(&cid).copied());
-            match (target, target_map) {
-                (Some(cid), Some(tmid)) if from != to => {
-                    // rewrite to canonical name
-                    let cname = {
-                        let chars = st.chars.lock().unwrap();
-                        chars.get(&cid).map(|c| c.key.name.to_string_lossy())
-                    };
-                    if let Some(n) = cname {
-                        to = n;
+            // char_by_name can hit SQLite on a cache miss
+            let st = st.clone();
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                let from = p.from_char_name.to_string_lossy();
+                let mut to = p.to_char_name.to_string_lossy();
+                let target = st.char_by_name(&to).await;
+                let target_map =
+                    target.and_then(|cid| st.online.lock().unwrap().get(&cid).copied());
+                match (target, target_map) {
+                    (Some(cid), Some(tmid)) if from != to => {
+                        // rewrite to canonical name
+                        let cname = {
+                            let chars = st.chars.lock().unwrap();
+                            chars.get(&cid).map(|c| c.key.name.to_string_lossy())
+                        };
+                        if let Some(n) = cname {
+                            to = n;
+                        }
+                        let mut h = P3801::default();
+                        h.whisper_id = CharId(cid);
+                        h.src_char_name = FixedStr::<24>::try_from_str(&from).unwrap_or_default();
+                        h.dst_char_name = FixedStr::<24>::try_from_str(&to).unwrap_or_default();
+                        h.repeat = p.repeat.iter().map(|r| P3801Repeat { c: r.c }).collect();
+                        st.map_send(tmid, enc(move |v| h.encode(v)));
                     }
-                    let mut h = P3801::default();
-                    h.whisper_id = CharId(cid);
-                    h.src_char_name = FixedStr::<24>::try_from_str(&from).unwrap_or_default();
-                    h.dst_char_name = FixedStr::<24>::try_from_str(&to).unwrap_or_default();
-                    h.repeat = p.repeat.iter().map(|r| P3801Repeat { c: r.c }).collect();
-                    st.map_send(tmid, enc(move |v| h.encode(v)));
+                    _ => {
+                        let mut p2 = P3802::default();
+                        p2.sender_char_name =
+                            FixedStr::<24>::try_from_str(&from).unwrap_or_default();
+                        p2.flag = 1;
+                        send_must(&st, map_id, &tx, enc(move |v| p2.encode(v))).await;
+                    }
                 }
-                _ => {
-                    let mut p2 = P3802::default();
-                    p2.sender_char_name = FixedStr::<24>::try_from_str(&from).unwrap_or_default();
-                    p2.flag = 1;
-                    send_must(tx, enc(move |v| p2.encode(v)), map_id).await;
-                }
-            }
+            });
             Ok(())
         }
         0x3002 => {
@@ -676,19 +658,14 @@ async fn handle(
                 }
             }
             let regs2 = regs.clone();
-            let st2 = st.clone();
-            let _ = tokio::task::spawn_blocking(move || {
-                let _ = st2.db.with_conn(|conn| {
-                    conn.execute(
-                        "DELETE FROM account_vars WHERE account_id=?1 AND scope=1",
-                        [aid as i64],
-                    )
-                });
-                for (n, v) in regs2 {
-                    let _ = st2.db.set_account_var(aid as i64, 1, &n, v);
-                }
-            })
-            .await;
+            st.queue_db_op(move |conn| {
+                let _ = conn.execute(
+                    "DELETE FROM account_vars WHERE account_id=?1 AND scope=1",
+                    [aid as i64],
+                );
+                let _ = crate::db::set_account_vars(conn, aid as i64, 1, &regs2);
+                super::state::DbOpResult::none()
+            });
             // 0x3804 to all OTHER map servers
             let mut h = P3804::default();
             h.account_id = p.account_id;
@@ -712,62 +689,59 @@ async fn handle(
             Ok(())
         }
         0x3005 => {
-            // accreg request -> 0x3804 to requester
+            // accreg request -> 0x3804 to requester after commit
             let Ok(fixed) = P3005::decode(bytes) else {
                 return Err(());
             };
             let aid = fixed.account_id.0 as i64;
-            let vars = st
-                .db
-                .blocking(move |db| db.get_account_vars(aid, 1))
-                .await
-                .unwrap_or_default();
-            let mut p = P3804::default();
-            p.account_id = fixed.account_id;
-            p.repeat = vars
-                .iter()
-                .map(|(n, v)| P3804Repeat {
-                    name: FixedStr::<32>::try_from_str(n).unwrap_or_default(),
-                    value: *v as u32,
-                })
-                .collect();
-            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
+            st.queue_db_op(move |conn| {
+                let vars = crate::db::get_account_vars_conn(conn, aid, 1).unwrap_or_default();
+                let mut p = P3804::default();
+                p.account_id = fixed.account_id;
+                p.repeat = vars
+                    .iter()
+                    .map(|(n, v)| P3804Repeat {
+                        name: FixedStr::<32>::try_from_str(n).unwrap_or_default(),
+                        value: *v as u32,
+                    })
+                    .collect();
+                super::state::DbOpResult::reply(map_id, enc(move |v| p.encode(v)))
+            });
             Ok(())
         }
         0x3010 => {
-            // storage load -> 0x3810
+            // storage load -> 0x3810 after commit; going through the
+            // DB queue keeps it ordered behind a queued 0x3011 save
+            // for the same account.
             let Ok(fixed) = P3010::decode(bytes) else {
                 return Err(());
             };
             let aid = fixed.account_id.0 as i64;
-            let st2 = st.clone();
-            let items = tokio::task::spawn_blocking(move || st2.db.load_storage(aid))
-                .await
-                .ok()
-                .and_then(|r| r.ok())
-                .unwrap_or_default();
-            let mut storage = Storage::default();
-            storage.account_id = fixed.account_id;
-            let mut n = 0;
-            for (_, item_id, amount, equip) in items {
-                if n < storage.storage_.len() {
-                    storage.storage_[n] = Item {
-                        nameid: ItemNameId(item_id as u32),
-                        amount: amount as i16,
-                        equip: Epos(equip as u16),
-                    };
-                    n += 1;
+            st.queue_db_op(move |conn| {
+                let items = crate::db::load_storage_conn(conn, aid).unwrap_or_default();
+                let mut storage = Storage::default();
+                storage.account_id = fixed.account_id;
+                let mut n = 0;
+                for (_, item_id, amount, equip) in items {
+                    if n < storage.storage_.len() {
+                        storage.storage_[n] = Item {
+                            nameid: ItemNameId(item_id as u32),
+                            amount: amount as i16,
+                            equip: Epos(equip as u16),
+                        };
+                        n += 1;
+                    }
                 }
-            }
-            storage.storage_amount = n as i16;
-            let mut p = P3810::default();
-            p.account_id = fixed.account_id;
-            p.storage = storage;
-            send_must(tx, enc(move |v| p.encode(v)), map_id).await;
+                storage.storage_amount = n as i16;
+                let mut p = P3810::default();
+                p.account_id = fixed.account_id;
+                p.storage = storage;
+                super::state::DbOpResult::reply(map_id, enc(move |v| p.encode(v)))
+            });
             Ok(())
         }
         0x3011 => {
-            // storage save -> DB + 0x3811 ack
+            // storage save -> DB + 0x3811 ack after commit
             let Ok(p) = P3011::decode(bytes) else {
                 return Err(());
             };
@@ -780,12 +754,13 @@ async fn handle(
                 .filter(|it| it.nameid.0 != 0 && it.amount != 0)
                 .map(|it| (it.nameid.0 as i64, it.amount as i64, it.equip.0 as i64))
                 .collect();
-            let st2 = st.clone();
-            let _ = tokio::task::spawn_blocking(move || st2.db.save_storage(aid, &items)).await;
-            let mut ack = P3811::default();
-            ack.account_id = p.account_id;
-            ack.unknown = 0;
-            send_must(tx, enc(move |v| ack.encode(v)), map_id).await;
+            st.queue_db_op(move |conn| {
+                let _ = crate::db::save_storage_conn(conn, aid, &items);
+                let mut ack = P3811::default();
+                ack.account_id = p.account_id;
+                ack.unknown = 0;
+                super::state::DbOpResult::reply(map_id, enc(move |v| ack.encode(v)))
+            });
             Ok(())
         }
 
@@ -809,6 +784,102 @@ async fn handle(
 
 fn ip4(v: u32) -> Ip4Address {
     Ip4Address(v.to_le_bytes())
+}
+
+/// 0x2afc auth request: waits out in-flight saves for the char, then
+/// answers with the CharData. Runs as its own task so the link's
+/// read loop is never blocked by SQLite.
+async fn handle_auth_request(
+    st: &Arc<State>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    map_id: usize,
+    fixed: P2AFC,
+) {
+    // A map-to-map transfer is in flight for this char: the
+    // source link's pre-0x2b05 save may still be committing.
+    // Any in-flight save for this char is waited out
+    // (bounded) so this link's answer carries the fresh
+    // CharData; an unmarked quit-save racing a relog is the
+    // same hazard.
+    let marked = st.transfer_take(fixed.account_id.0, fixed.char_id.0);
+    if !st
+        .wait_saves(fixed.char_id.0, std::time::Duration::from_secs(2))
+        .await
+    {
+        tracing::warn!(
+            map_id,
+            char_id = fixed.char_id.0,
+            transfer = marked,
+            "0x2afc raced a queued save; answering with current data"
+        );
+    }
+    // tmwa compares afi.ip to the ip the map reports; through
+    // the relay that's the gate's upstream source address,
+    // recorded at relay time. Fall back to the client ip.
+    let entry = st.take_map_auth(
+        fixed.account_id.0,
+        fixed.char_id.0,
+        fixed.login_id1,
+        fixed.login_id2,
+        u32::from_le_bytes(fixed.ip.0),
+    );
+    let Some(e) = entry else {
+        tracing::warn!(
+            "maplink: REJECTED 0x2afc account {} char {}",
+            fixed.account_id.0,
+            fixed.char_id.0
+        );
+        let mut p = P2AFE::default();
+        p.account_id = fixed.account_id;
+        send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+        return;
+    };
+    // load CharKey + CharData (full, incl. account_reg* + vars)
+    let cid = e.char_id;
+    let res = {
+        let st2 = st.clone();
+        tokio::task::spawn_blocking(move || st2.db.load_character(cid as i64)).await
+    };
+    let Ok(Ok((key, cd))) = res else {
+        let mut p = P2AFE::default();
+        p.account_id = fixed.account_id;
+        send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+        return;
+    };
+    // update cache
+    st.chars.lock().unwrap().insert(
+        cid,
+        super::state::CharRecord {
+            key,
+            data: cd,
+            online_map: Some(map_id),
+        },
+    );
+    // the char is (about to be) online on this map
+    st.online.lock().unwrap().insert(cid, map_id);
+    st.online_notify.notify_one();
+    // a transfer that landed: count it for any drain in flight
+    if marked {
+        st.drain_track_arrive(map_id, cid);
+    }
+    // remember the auth material so a map registering later
+    // can be pre-authed for this player
+    st.set_online_auth(super::state::OnlineAuth {
+        account_id: e.account_id,
+        char_id: e.char_id,
+        login_id1: e.login_id1,
+        login_id2: e.login_id2,
+        ip: e.ip,
+        server: map_id,
+    });
+    let mut p = P2AFD::default();
+    p.account_id = fixed.account_id;
+    p.login_id2 = e.login_id2;
+    p.client_protocol_version = ClientVersion(e.client_version);
+    p.char_key = key;
+    p.char_data = cd;
+    send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+    tracing::info!(map_id, char_id = cid, "authenticated char for map");
 }
 
 /// 0x2b0e named-char ops: block(1)/ban(2)/unblock(3)/unban(4) against
@@ -879,7 +950,7 @@ async fn handle_named_op(
     }
     // reply only when a player asked (acc != 0)
     if acc != 0 {
-        send_must(tx, enc(move |v| reply.encode(v)), map_id).await;
+        send_must(st, map_id, tx, enc(move |v| reply.encode(v))).await;
     }
     Ok(())
 }
@@ -918,10 +989,10 @@ fn party_put(st: &std::sync::Arc<State>, party_id: u32, p: PartyMost) {
 
 fn party_del(st: &std::sync::Arc<State>, party_id: u32) {
     st.parties.lock().unwrap().remove(&party_id);
-    let db = st.db.clone();
-    drop(tokio::task::spawn_blocking(move || {
-        db.with_conn(|conn| conn.execute("DELETE FROM parties WHERE id=?1", [party_id as i64]))
-    }));
+    st.queue_db_op(move |conn| {
+        let _ = conn.execute("DELETE FROM parties WHERE id=?1", [party_id as i64]);
+        super::state::DbOpResult::none()
+    });
 }
 
 fn persist_party(st: &std::sync::Arc<State>, party_id: u32) {
@@ -942,30 +1013,27 @@ fn persist_party(st: &std::sync::Arc<State>, party_id: u32) {
             )
         })
         .collect();
-    let db = st.db.clone();
-    drop(tokio::task::spawn_blocking(move || {
-        db.with_conn(|conn| {
-            let tx = conn.transaction()?;
-            tx.execute(
-                "INSERT INTO parties(id,name,exp_share,item_share) VALUES(?1,?2,?3,?4)
+    let (exp, item) = (p.exp as i64, p.item as i64);
+    st.queue_db_op(move |conn| {
+        let _ = conn.execute(
+            "INSERT INTO parties(id,name,exp_share,item_share) VALUES(?1,?2,?3,?4)
              ON CONFLICT(id) DO UPDATE SET name=excluded.name,
              exp_share=excluded.exp_share,item_share=excluded.item_share",
-                rusqlite::params![party_id as i64, name, p.exp as i64, p.item as i64],
-            )?;
-            tx.execute(
-                "DELETE FROM party_members WHERE party_id=?1",
-                [party_id as i64],
-            )?;
-            for (a, n, l) in members {
-                tx.execute(
-                    "INSERT INTO party_members(party_id,account_id,char_name,leader)
+            rusqlite::params![party_id as i64, name, exp, item],
+        );
+        let _ = conn.execute(
+            "DELETE FROM party_members WHERE party_id=?1",
+            [party_id as i64],
+        );
+        for (a, n, l) in &members {
+            let _ = conn.execute(
+                "INSERT INTO party_members(party_id,account_id,char_name,leader)
                  VALUES(?1,?2,?3,?4)",
-                    rusqlite::params![party_id as i64, a, n, l],
-                )?;
-            }
-            tx.commit()
-        })
-    }));
+                rusqlite::params![party_id as i64, a, n, l],
+            );
+        }
+        super::state::DbOpResult::none()
+    });
 }
 
 /// party_check_exp_share: exp share legal when online levels are
@@ -1013,7 +1081,7 @@ async fn party_info_to(
         h.option = Some(P3821Option { party_most: p });
         match tx {
             Some(t) => {
-                send_must(t, enc(move |v| h.encode(v)), map_id).await;
+                send_must(st, map_id, t, enc(move |v| h.encode(v))).await;
             }
             None => {
                 st.map_broadcast(&enc(move |v| h.encode(v)));
@@ -1023,7 +1091,7 @@ async fn party_info_to(
         let mut h = P3821::default();
         h.party_id = PartyId(party_id);
         h.option = None;
-        send_must(t, enc(move |v| h.encode(v)), map_id).await;
+        send_must(st, map_id, t, enc(move |v| h.encode(v))).await;
     }
 }
 
@@ -1046,7 +1114,7 @@ async fn party_create(
         enc(move |v| p.encode(v))
     };
     if name.is_empty() || !name.bytes().all(|b| (32..=126).contains(&b)) {
-        send_must(tx, reply(1, 0, "error".into()), map_id).await;
+        send_must(st, map_id, tx, reply(1, 0, "error".into())).await;
         return Ok(());
     }
     // name collision
@@ -1057,7 +1125,7 @@ async fn party_create(
         .values()
         .any(|p| p.name.to_string_lossy() == name)
     {
-        send_must(tx, reply(1, 0, "error".into()), map_id).await;
+        send_must(st, map_id, tx, reply(1, 0, "error".into())).await;
         return Ok(());
     }
     // tmwa's party_newid starts at 0 and is pre-incremented: the
@@ -1079,11 +1147,15 @@ async fn party_create(
         lv: fixed.level as i32,
     };
     party_put(st, pid, p);
-    let _ = st
-        .db
-        .blocking(move |db| db.set_meta("next_party_id", pid as i64))
-        .await;
-    send_must(tx, reply(0, pid, name), map_id).await;
+    st.queue_db_op(move |conn| {
+        let _ = conn.execute(
+            "INSERT INTO meta(key,value) VALUES('next_party_id',?1)
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [pid as i64],
+        );
+        super::state::DbOpResult::none()
+    });
+    send_must(st, map_id, tx, reply(0, pid, name)).await;
     party_info_to(st, Some(tx), map_id, pid).await;
     Ok(())
 }
@@ -1121,7 +1193,7 @@ async fn party_add(
     let mut p = match party_get(st, pid) {
         Some(p) => p,
         None => {
-            send_must(tx, reply(1), map_id).await;
+            send_must(st, map_id, tx, reply(1)).await;
             return Ok(());
         }
     };
@@ -1135,7 +1207,7 @@ async fn party_add(
                 online: 1,
                 lv: fixed.level as i32,
             };
-            send_must(tx, reply(0), map_id).await;
+            send_must(st, map_id, tx, reply(0)).await;
             let mut flag = 0u8;
             if p.exp > 0 && !party_check_exp_share(st, &p) {
                 p.exp = 0;
@@ -1157,7 +1229,7 @@ async fn party_add(
             return Ok(());
         }
     }
-    send_must(tx, reply(1), map_id).await;
+    send_must(st, map_id, tx, reply(1)).await;
     Ok(())
 }
 
@@ -1191,7 +1263,7 @@ async fn party_option(
     if flag == 0 {
         st.map_broadcast(&enc(move |v| o.encode(v)));
     } else {
-        send_must(tx, enc(move |v| o.encode(v)), map_id).await;
+        send_must(st, map_id, tx, enc(move |v| o.encode(v))).await;
     }
     party_put(st, pid, p);
     Ok(())

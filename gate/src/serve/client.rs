@@ -858,7 +858,7 @@ async fn handle_char_select(
             }
         }
     }
-    if !super::state::send_must(&ttx, enc(|v| p.encode(v)), map_id).await
+    if !super::state::send_must(st, map_id, &ttx, enc(|v| p.encode(v))).await
         && let Some(ps) = st.sel_waiting_done(key, map_id, sd.login_id1, sd.login_id2)
     {
         // the target never got the pre-auth; it will authenticate
@@ -1376,7 +1376,7 @@ async fn push_reauth(
     let Some(mtx) = st.map_tx(map_id) else {
         return false;
     };
-    super::state::send_must(&mtx, enc(move |v| p29.encode(v)), map_id).await;
+    super::state::send_must(st, map_id, &mtx, enc(move |v| p29.encode(v))).await;
 
     let (rtx, rrx) = tokio::sync::oneshot::channel::<()>();
     st.rejoin_notify
@@ -2018,7 +2018,7 @@ mod tests {
     async fn upstream_eof_closes_when_map_alive() {
         let st = test_state();
         let (tx, mut wrx) = mpsc::channel(8);
-        let mid = st.map_register(tx.clone(), 0, 0);
+        let (mid, _kill) = st.map_register(tx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, _peer, _rx) = test_conn();
         let t0 = Instant::now();
@@ -2039,7 +2039,7 @@ mod tests {
     async fn upstream_eof_holds_on_notice() {
         let st = test_state();
         let (tx, _rx) = mpsc::channel(8);
-        let mid = st.map_register(tx.clone(), 0, 0);
+        let (mid, _kill) = st.map_register(tx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, _peer, _rx) = test_conn();
         let st2 = st.clone();
@@ -2060,7 +2060,7 @@ mod tests {
     async fn upstream_eof_client_gone() {
         let st = test_state();
         let (tx, _rx) = mpsc::channel(8);
-        let mid = st.map_register(tx.clone(), 0, 0);
+        let (mid, _kill) = st.map_register(tx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, peer, _rx) = test_conn();
         drop(peer); // client closed

@@ -56,6 +56,14 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
             .expect("load_parties panicked");
     }
 
+    // serialized DB writer for the map link (state.rs)
+    {
+        let st = st.clone();
+        tokio::spawn(async move {
+            state::db_writer(st).await;
+        });
+    }
+
     // load GM levels once at startup, then watch the file
     reload_gm(&st);
     {

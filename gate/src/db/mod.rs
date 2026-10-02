@@ -475,55 +475,20 @@ impl Db {
     /// Clear partner_id both directions (0x2b16 divorce).
     pub fn divorce(&self, char_id: i64) -> Result<Option<i64>> {
         let conn = self.lock();
-        let partner: Option<i64> = conn
-            .query_row(
-                "SELECT partner_id FROM characters WHERE id=?1",
-                [char_id],
-                |r| r.get(0),
-            )
-            .optional()?;
-        if let Some(pid) = partner {
-            #[allow(clippy::collapsible_if)]
-            if pid != 0 {
-                conn.execute(
-                    "UPDATE characters SET partner_id=0 WHERE id IN (?1,?2)",
-                    params![char_id, pid],
-                )?;
-            }
-        }
-        Ok(partner.filter(|p| *p != 0))
+        divorce_conn(&conn, char_id)
     }
 
     /// Storage items for an account, slot order.
     pub fn load_storage(&self, account_id: i64) -> Result<Vec<(i64, i64, i64, i64)>> {
         let conn = self.lock();
-        let mut st = conn.prepare(
-            "SELECT idx,item_id,amount,equip FROM storage_items
-             WHERE account_id=?1 ORDER BY idx",
-        )?;
-        Ok(st
-            .query_map([account_id], |r| {
-                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
-            })?
-            .collect::<rusqlite::Result<Vec<_>>>()?)
+        load_storage_conn(&conn, account_id)
     }
 
     /// Replace a whole storage (0x3011 semantics): items are
     /// (item_id, amount, equip) in slot order.
     pub fn save_storage(&self, account_id: i64, items: &[(i64, i64, i64)]) -> Result<()> {
         let conn = self.lock();
-        conn.execute(
-            "DELETE FROM storage_items WHERE account_id=?1",
-            [account_id],
-        )?;
-        let mut st = conn.prepare(
-            "INSERT INTO storage_items(account_id,idx,item_id,amount,equip)
-             VALUES(?1,?2,?3,?4,?5)",
-        )?;
-        for (idx, item) in items.iter().enumerate() {
-            st.execute(params![account_id, idx as i64, item.0, item.1, item.2])?;
-        }
-        Ok(())
+        save_storage_conn(&conn, account_id, items)
     }
 
     /// Lock the connection. A panic while it was held (e.g. in an admin
@@ -645,6 +610,106 @@ impl Db {
 
 fn fixed_str<const N: usize>(s: &str) -> Result<FixedStr<N>> {
     FixedStr::try_from_str(s).map_err(|_| DbError::StrTooLong)
+}
+
+// ---- conn-level variants ----
+//
+// The maplink DB writer runs jobs inside one shared batch
+// transaction; these take `&Connection` so they can be composed
+// there. Callers must not open a nested transaction on it.
+
+/// Storage items for an account, slot order.
+pub(crate) fn load_storage_conn(
+    conn: &Connection,
+    account_id: i64,
+) -> Result<Vec<(i64, i64, i64, i64)>> {
+    let mut st = conn.prepare(
+        "SELECT idx,item_id,amount,equip FROM storage_items
+         WHERE account_id=?1 ORDER BY idx",
+    )?;
+    Ok(st
+        .query_map([account_id], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// Replace a whole storage (0x3011 semantics): items are
+/// (item_id, amount, equip) in slot order.
+pub(crate) fn save_storage_conn(
+    conn: &Connection,
+    account_id: i64,
+    items: &[(i64, i64, i64)],
+) -> Result<()> {
+    conn.execute(
+        "DELETE FROM storage_items WHERE account_id=?1",
+        [account_id],
+    )?;
+    let mut st = conn.prepare(
+        "INSERT INTO storage_items(account_id,idx,item_id,amount,equip)
+         VALUES(?1,?2,?3,?4,?5)",
+    )?;
+    for (idx, item) in items.iter().enumerate() {
+        st.execute(params![account_id, idx as i64, item.0, item.1, item.2])?;
+    }
+    Ok(())
+}
+
+/// All vars for an account/scope, name order.
+pub(crate) fn get_account_vars_conn(
+    conn: &Connection,
+    account_id: i64,
+    scope: i64,
+) -> Result<Vec<(String, i64)>> {
+    let mut st = conn.prepare(
+        "SELECT name,value FROM account_vars
+         WHERE account_id=?1 AND scope=?2 ORDER BY name",
+    )?;
+    Ok(st
+        .query_map(params![account_id, scope], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// Insert-or-update each (name, value) pair in `vars` at `scope`.
+/// Does not delete other names — callers that want the tmwa
+/// "replace the whole scope" semantics DELETE first.
+pub(crate) fn set_account_vars(
+    conn: &Connection,
+    account_id: i64,
+    scope: i64,
+    vars: &[(String, i64)],
+) -> Result<()> {
+    let mut st = conn.prepare(
+        "INSERT INTO account_vars(account_id,scope,name,value)
+         VALUES(?1,?2,?3,?4)
+         ON CONFLICT(account_id,scope,name) DO UPDATE SET
+         value=excluded.value",
+    )?;
+    for (name, value) in vars {
+        st.execute(params![account_id, scope, name, value])?;
+    }
+    Ok(())
+}
+
+/// Clear partner_id both directions (0x2b16 divorce); returns the
+/// former partner's char id.
+pub(crate) fn divorce_conn(conn: &Connection, char_id: i64) -> Result<Option<i64>> {
+    let partner: Option<i64> = conn
+        .query_row(
+            "SELECT partner_id FROM characters WHERE id=?1",
+            [char_id],
+            |r| r.get(0),
+        )
+        .optional()?;
+    if let Some(pid) = partner
+        && pid != 0
+    {
+        conn.execute(
+            "UPDATE characters SET partner_id=0 WHERE id IN (?1,?2)",
+            params![char_id, pid],
+        )?;
+    }
+    Ok(partner.filter(|p| *p != 0))
 }
 
 fn load_character_conn(
@@ -835,7 +900,11 @@ fn load_character_conn(
     Ok((key, cd))
 }
 
-fn save_character_tx(tx: &Transaction<'_>, key: &CharKey, cd: &CharData) -> rusqlite::Result<()> {
+pub(crate) fn save_character_tx(
+    tx: &Transaction<'_>,
+    key: &CharKey,
+    cd: &CharData,
+) -> rusqlite::Result<()> {
     let char_id = key.char_id.0 as i64;
     tx.execute(
         "INSERT INTO characters(

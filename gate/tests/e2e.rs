@@ -2013,16 +2013,47 @@ async fn e2e_bluegreen() {
     let (acct3, b1, b2) = login_or_register(&mut c3, "e2enewbie", "newpass").await;
     drop(c3);
 
-    let out = fx.admin_cmd(&["drain", &map1.to_string()]);
-    let reply: serde_json::Value = serde_json::from_str(&out).unwrap();
-    assert_eq!(reply["ok"], true, "drain: {out}");
-    assert!(
-        reply["stragglers"]
-            .as_array()
-            .map(|a| a.is_empty())
-            .unwrap_or(false),
-        "every map has a survivor: {out}"
-    );
+    // --wait returns once the source reports zero users — which
+    // needs the clients to actually move, so run the admin command
+    // off-thread and keep driving the protocol here.
+    let sock = fx.socket();
+    let drain_h = std::thread::spawn(move || {
+        let out = Command::new(env!("CARGO_BIN_EXE_tmwa-gate"))
+            .arg("admin")
+            .arg("--socket")
+            .arg(sock)
+            .args(["drain", &map1.to_string(), "--wait"])
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).to_string()
+    });
+
+    // the drain runs off-thread; wait until the flag is visible so
+    // the select below really is "during the drain"
+    for _ in 0..100 {
+        let st = fx.admin_cmd(&["status"]);
+        let marked = serde_json::from_str::<serde_json::Value>(&st)
+            .ok()
+            .and_then(|v| {
+                v.get("map_servers")?.as_array().map(|a| {
+                    a.iter()
+                        .filter(|m| {
+                            m.get("addr")
+                                .and_then(|a| a.as_str())
+                                .map(|a| a.ends_with(&format!(":{}", map_port())))
+                                .unwrap_or(false)
+                        })
+                        .all(|m| m.get("draining").and_then(|d| d.as_bool()) == Some(true))
+                        .then_some(true)
+                })
+            })
+            .unwrap_or(None)
+            .unwrap_or(false);
+        if marked {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
 
     // char creation + select during the drain must route to map2
     let mut c3 = Client::connect().await;
@@ -2097,32 +2128,31 @@ async fn e2e_bluegreen() {
     map_enter(&mut cw, acct2, wcid, wid1).await;
     eprintln!("e2e: ws player evacuated to map2");
 
-    // both survivors are in game on map2; the drained instance must
-    // report zero users
-    for _ in 0..60 {
-        let st = fx.admin_cmd(&["status"]);
-        let empty = serde_json::from_str::<serde_json::Value>(&st)
-            .ok()
-            .and_then(|v| {
-                v.get("map_servers")?.as_array().map(|a| {
-                    a.iter()
-                        .filter(|m| {
-                            m.get("addr")
-                                .and_then(|a| a.as_str())
-                                .map(|a| a.ends_with(&format!(":{}", map_port())))
-                                .unwrap_or(false)
-                        })
-                        .all(|m| m.get("users").and_then(|u| u.as_u64()) == Some(0))
-                        .then_some(true)
-                })
-            })
-            .unwrap_or(None)
-            .unwrap_or(false);
-        if empty {
-            break;
-        }
-        tokio::time::sleep(Duration::from_secs(1)).await;
-    }
+    // the drain --wait reply: the source reported zero users and
+    // every evacuee's landing was confirmed by a destination 0x2afc
+    let out = drain_h.join().unwrap();
+    let reply: serde_json::Value = serde_json::from_str(&out).unwrap();
+    assert_eq!(reply["ok"], true, "drain: {out}");
+    assert!(
+        reply["stragglers"]
+            .as_array()
+            .map(|a| a.is_empty())
+            .unwrap_or(false),
+        "every map has a survivor: {out}"
+    );
+    assert_eq!(reply["emptied"], true, "drain --wait: {out}");
+    let evac = reply["evacuees"].as_u64().unwrap_or(0);
+    let arrived = reply["arrived"].as_u64().unwrap_or(0);
+    let still = reply["still_on_source"].as_u64().unwrap_or(0);
+    let departed = reply["departed"].as_u64().unwrap_or(0);
+    assert_eq!(evac, 2, "two players were on the drained map: {out}");
+    assert_eq!(
+        arrived + still + departed,
+        evac,
+        "evacuee accounting must be complete: {out}"
+    );
+    assert_eq!(still, 0, "emptied but players still on source: {out}");
+    assert_eq!(arrived, 2, "both evacuees landed on the spare: {out}");
     // the candy survived the transfer save on the TCP player
     let mut saved = false;
     for _ in 0..40 {

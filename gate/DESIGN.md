@@ -155,7 +155,15 @@ on a map that never comes back are dropped.
    (`0x2b01`) so a `0x2afc` on the new link waits briefly for the old
    link's save to commit.
 5. `drain --wait` blocks until the target reports zero users on the
-   link or the link drops (bounded at 60 s).
+   link or the link drops (bounded at 60 s), then waits up to ~5 s
+   more for in-flight handoffs to resolve. The reply counts the
+   players that were on the target when the drain began
+   (`evacuees`), how many of those then authenticated on another
+   server (`arrived`, confirmed by the destination link's `0x2afc`),
+   how many are still there (`still_on_source`), and the rest
+   (`departed` — logged out or failed to land). `emptied` only
+   means the source is empty; a large `departed` means the evacuees
+   did not land.
 
 Lost across a restart, by nature: floor items, monster positions,
 temporary `@` variables, `addtimer` timers, open NPC dialogs, open trades.
@@ -282,6 +290,20 @@ every 15 s), `reloadgm` rereads it, and `gm` rewrites it like
 A one-time importer (`tmwa-gate import`) reads the tmwa flat files:
 `account.txt`, `athena.txt`, `party.txt`, `storage.txt`, `accreg.txt`.
 Rollback means going back to the pre-import files.
+
+**The map link never waits on SQLite.** The per-link reader is a hot
+loop — every `0x2b01`/`0x3010`/`0x2afc` that waited inline on a
+blocking DB call capped the link at roughly 1/latency packets per
+second, which under a few hundred players backs the map's send buffer
+up until the link flaps. Writes and mixed read/write work go to a
+single serialized job queue instead: a `db_writer` task drains up to
+512 jobs into one batch transaction and emits the queued replies
+(storage answers, `0x3811` acks) only after the commit. Pure reads
+(`0x2afc` auth, `0x2b0e` name ops, whisper targets) run on spawned
+tasks. A critical reply that still cannot be queued within 10 s —
+the link's writer queue wedged — kills the link (`map_kill`) rather
+than silently dropping a `0x2afd` the map side will wait minutes
+for; the map reconnects cleanly.
 
 ## Passwords
 
