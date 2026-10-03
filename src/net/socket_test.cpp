@@ -27,6 +27,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../mmo/consts.hpp"
+
 #include "../wire/packets.hpp"
 
 #include "../poison.hpp"
@@ -50,10 +52,13 @@ size_t parsed_bytes;
 static
 Session *parsed_session;
 static
+std::vector<Session *> parse_order;
+static
 void test_parse(Session *s)
 {
     parsed_bytes += packet_avail(s);
     parsed_session = s;
+    parse_order.push_back(s);
     packet_discard(s, packet_avail(s));
 }
 
@@ -274,5 +279,81 @@ TEST(socket, wdata_ring)
     delete_session(s);
     peer.close();
     lfd.close();
+}
+
+TEST(socket, server_link_priority)
+{
+    parsed_bytes = 0;
+    parsed_session = nullptr;
+    parse_order.clear();
+    Session *ls = make_listen_port(0,
+            SessionParsers{.func_parse= test_parse, .func_delete= test_delete});
+    ASSERT_NE(ls, nullptr);
+
+    // accept the client first so it sits ahead of the link in live_fds
+    int cfd_client = connect_to(ls);
+    ASSERT_GE(cfd_client, 0);
+    ASSERT_EQ(2, ::send(cfd_client, "cc", 2, 0));
+    pump(4);
+    Session *client_s = parsed_session;
+    ASSERT_NE(client_s, nullptr);
+
+    int cfd_link = connect_to(ls);
+    ASSERT_GE(cfd_link, 0);
+    ASSERT_EQ(2, ::send(cfd_link, "ll", 2, 0));
+    pump(4);
+    Session *link_s = parsed_session;
+    ASSERT_NE(link_s, nullptr);
+    ASSERT_NE(link_s, client_s);
+    // same convention as the servers: an authenticated server peer
+    // gets its fifos raised, which is what marks it as a link
+    realloc_fifo(link_s, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
+
+    // with nothing congested the link parses before the older client
+    parse_order.clear();
+    ASSERT_EQ(1, ::send(cfd_client, "c", 1, 0));
+    ASSERT_EQ(1, ::send(cfd_link, "l", 1, 0));
+    pump(4);
+    ASSERT_EQ(2u, parse_order.size());
+    EXPECT_EQ(link_s, parse_order[0]);
+    EXPECT_EQ(client_s, parse_order[1]);
+
+    // push the link's outbound queue well past the throttle depth,
+    // leaving enough margin that the kernel send buffer absorbing a
+    // few MiB cannot drop it back below; the peer does not read, so
+    // it stays deep across the pumps below
+    std::vector<Byte> chunk(65536, Byte{0x5a});
+    while (link_s->wdata_size <= WFIFO_MAX_SERVERLINK / 2)
+        ASSERT_TRUE(packet_send(link_s, chunk.data(), chunk.size()));
+
+    // while the link is deep the client is neither read nor parsed,
+    // even though input is waiting on it
+    parse_order.clear();
+    ASSERT_EQ(4, ::send(cfd_client, "zzzz", 4, 0));
+    pump(4);
+    EXPECT_TRUE(parse_order.empty());
+    EXPECT_EQ(0u, client_s->rdata_size);
+
+    // once the peer drains the link, the client gets serviced again
+    ASSERT_EQ(0, fcntl(cfd_link, F_SETFL, O_NONBLOCK));
+    uint8_t buf[65536];
+    for (int i = 0; i < 1000 && link_s->wdata_size; i++)
+    {
+        ASSERT_TRUE(do_sendrecv(0_ms));
+        while (::recv(cfd_link, buf, sizeof(buf), 0) > 0)
+            ;
+        // give the kernel a moment to ack what the peer just read
+        usleep(1000);
+    }
+    EXPECT_EQ(0u, link_s->wdata_size);
+    pump(4);
+    ASSERT_FALSE(parse_order.empty());
+    EXPECT_EQ(client_s, parse_order.back());
+
+    delete_session(client_s);
+    delete_session(link_s);
+    delete_session(ls);
+    ::close(cfd_client);
+    ::close(cfd_link);
 }
 } // namespace tmwa

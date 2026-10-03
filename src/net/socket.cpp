@@ -37,6 +37,8 @@
 
 #include "../io/cxxstdio.hpp"
 
+#include "../mmo/consts.hpp"
+
 #include "../proto2/map-user.hpp"
 
 #include "../wire/packets.hpp"
@@ -581,6 +583,35 @@ void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size)
     }
 }
 
+/// Server links are the sessions whose fifos were raised to
+/// FIFOSIZE_SERVERLINK once the peer authenticated, matching the rule
+/// packet_send uses for the wdata cap. flag.server is not set on
+/// accepted links, so the fifo size is the reliable test. Listeners
+/// have no fifo and sort with the clients.
+static
+bool is_server_link(Session *s)
+{
+    return s->max_rdata >= FIFOSIZE_SERVERLINK;
+}
+
+/// Outbound queue depth at which a link counts as congested: past
+/// this it is heading for the hard cap, while still cheap to drain.
+static
+const size_t LINK_THROTTLE_WDATA = WFIFO_MAX_SERVERLINK / 8;
+
+/// Whether any link session still holds a deep outbound queue.
+static
+bool server_link_congested()
+{
+    for (int f : live_fds)
+    {
+        Session *s = get_session(io::FD::cast_dammit(f));
+        if (s && is_server_link(s) && s->wdata_size > LINK_THROTTLE_WDATA)
+            return true;
+    }
+    return false;
+}
+
 /// How many events are dispatched per epoll_wait call.
 /// Level-triggered sockets just report again next time if there are more.
 static
@@ -606,24 +637,39 @@ bool do_sendrecv(interval_t next_ms)
     int n = epoll_wait(epoll_fd, events, EPOLL_MAX_EVENTS, timeout);
     if (n <= 0)
         return true;
-    for (int i = 0; i < n; i++)
+    // Two passes over the batch: server links are serviced before the
+    // bulk client sessions, in both directions. The map<->char link
+    // shares this loop with every client, and starving it lets its
+    // wdata hit the cap and kills a healthy link.
+    for (int pass = 0; pass < 2; pass++)
     {
-        Session *s = get_session(io::FD::cast_dammit(events[i].data.fd));
-        if (!s)
-            continue;
-        uint32_t ev = events[i].events;
-        if ((ev & EPOLLOUT) && s->flag.eof != 1)
+        bool want_links = pass == 0;
+        // The backlog is checked only after the links were serviced
+        // this pass. While one is still deep, no new client input is
+        // ingested, so production falls below drain and the queue
+        // clears; queued client output keeps flushing either way.
+        bool want_recv = want_links || !server_link_congested();
+        for (int i = 0; i < n; i++)
         {
-            if (s->func_send)
-                //send_from_fifo(i);
-                s->func_send(s);
-        }
-        if ((ev & (EPOLLIN | EPOLLHUP | EPOLLERR | EPOLLRDHUP)) && s->flag.eof != 1)
-        {
-            if (s->func_recv)
-                //recv_to_fifo(i);
-                //or connect_client(i);
-                s->func_recv(s);
+            Session *s = get_session(io::FD::cast_dammit(events[i].data.fd));
+            if (!s || is_server_link(s) != want_links)
+                continue;
+            uint32_t ev = events[i].events;
+            if ((ev & EPOLLOUT) && s->flag.eof != 1)
+            {
+                if (s->func_send)
+                    //send_from_fifo(i);
+                    s->func_send(s);
+            }
+            if (want_recv
+                    && (ev & (EPOLLIN | EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+                    && s->flag.eof != 1)
+            {
+                if (s->func_recv)
+                    //recv_to_fifo(i);
+                    //or connect_client(i);
+                    s->func_recv(s);
+            }
         }
     }
     return true;
@@ -634,45 +680,55 @@ bool do_parsepacket(void)
     // Iterating by index, since func_parse may delete sessions:
     // live_fds can shrink under us, so entries are re-fetched each time.
     // A session swapped into an already-visited slot is parsed next call.
-    for (size_t i = 0; i < live_fds.size(); i++)
+    // Server links are parsed before client sessions, matching
+    // do_sendrecv. While a link's outbound queue is still deep after
+    // its pass, client func_parse is skipped for this pass; the
+    // timeout/eof bookkeeping and fifo reclaim still run for clients,
+    // so dead sessions do not pile up behind the congestion.
+    for (int pass = 0; pass < 2; pass++)
     {
-        io::FD fd = io::FD::cast_dammit(live_fds[i]);
-        Session *s = get_session(fd);
-        if (!s)
-            continue;
-        if (s->connected && s->flag.server != 1
-            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->last_tick) > STALL_TIMEOUT / 2)
+        bool want_links = pass == 0;
+        bool allow_parse = want_links || !server_link_congested();
+        for (size_t i = 0; i < live_fds.size(); i++)
         {
-            // send a keepalive packet
-            Packet_Fixed<0x007f> fixed_7f;
-            fixed_7f.tick = gettick();
-            send_fpacket<0x007f, 6>(s, fixed_7f);
-            // if this fails it will auto-eof
-        }
-        if ((!s->connected
-            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->created) > CONNECT_TIMEOUT) ||
-            (s->connected && s->flag.server != 1
-            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->last_tick) > STALL_TIMEOUT))
-        {
-            PRINTF("Session #%d timed out\n"_fmt, s);
-            s->set_eof();
-        }
-        if (s->rdata_size && s->flag.eof != 1 && s->func_parse)
-        {
-            s->func_parse(s);
-            /// some func_parse may call delete_session
-            // (that's kind of evil)
-            s = get_session(fd);
-            if (!s)
+            io::FD fd = io::FD::cast_dammit(live_fds[i]);
+            Session *s = get_session(fd);
+            if (!s || is_server_link(s) != want_links)
                 continue;
+            if (s->connected && s->flag.server != 1
+            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->last_tick) > STALL_TIMEOUT / 2)
+            {
+                // send a keepalive packet
+                Packet_Fixed<0x007f> fixed_7f;
+                fixed_7f.tick = gettick();
+                send_fpacket<0x007f, 6>(s, fixed_7f);
+                // if this fails it will auto-eof
+            }
+            if ((!s->connected
+                && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->created) > CONNECT_TIMEOUT) ||
+                (s->connected && s->flag.server != 1
+                && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->last_tick) > STALL_TIMEOUT))
+            {
+                PRINTF("Session #%d timed out\n"_fmt, s);
+                s->set_eof();
+            }
+            if (allow_parse && s->rdata_size && s->flag.eof != 1 && s->func_parse)
+            {
+                s->func_parse(s);
+                /// some func_parse may call delete_session
+                // (that's kind of evil)
+                s = get_session(fd);
+                if (!s)
+                    continue;
+            }
+            if (s->flag.eof == 1)
+            {
+                delete_session(s);
+                continue;
+            }
+            /// Reclaim buffer space for what was read
+            RFIFOFLUSH(s);
         }
-        if (s->flag.eof == 1)
-        {
-            delete_session(s);
-            continue;
-        }
-        /// Reclaim buffer space for what was read
-        RFIFOFLUSH(s);
     }
     return true;
 }
