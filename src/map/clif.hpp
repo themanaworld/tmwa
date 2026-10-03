@@ -41,7 +41,7 @@ namespace tmwa
 namespace map
 {
 int clif_countusers(void);
-void clif_setwaitclose(Session *);
+void clif_setwaitclose(Session *, interval_t);
 
 int clif_authok(dumb_ptr<map_session_data>);
 int clif_authfail_fd(Session *, int);

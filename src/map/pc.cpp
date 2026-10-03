@@ -2444,6 +2444,7 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 }
 
 /*==========================================
+(map: bound waitingdisconnect sessions with timed_close)
  * PCの位置設定
  * PC location setting
  *------------------------------------------
@@ -2491,6 +2492,11 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
                 sd->bl_x = x;
                 sd->bl_y = y;
                 sd->state.waitingdisconnect = 1;
+                // Clients normally disconnect within a second of 0x0092. If the
+                // client (or the char-server ack) stalls, timed_close still frees
+                // the session via the usual eof/delete path, so a stuck transfer
+                // cannot pin the map's user count or block a drain --wait.
+                clif_setwaitclose(sd->sess, 10_s);
                 pc_makesavestatus(sd);
                 //The storage close routines save the char data. [Skotlex]
                 if (!sd->state.storage_open)

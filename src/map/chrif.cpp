@@ -724,7 +724,7 @@ int chrif_accountdeletion(Session *, const Packet_Fixed<0x2b13>& fixed)
             sd->login_id1++;    // change identify, because if player come back in char within the 5 seconds, he can change its characters
             clif_displaymessage(sd->sess,
                                  "Your account has been deleted. You will now be disconnected..."_s);
-            clif_setwaitclose(sd->sess); // forced to disconnect for the change
+            clif_setwaitclose(sd->sess, 5_s); // forced to disconnect for the change
         }
     }
     else
@@ -813,7 +813,7 @@ int chrif_accountban(Session *, const Packet_Fixed<0x2b14>& fixed)
                 AString tmpstr = STRPRINTF("Your account has been banished until %s"_fmt, buffer);
                 clif_displaymessage(sd->sess, tmpstr);
             }
-            clif_setwaitclose(sd->sess); // forced to disconnect for the change
+            clif_setwaitclose(sd->sess, 5_s); // forced to disconnect for the change
         }
     }
     else

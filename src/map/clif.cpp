@@ -499,7 +499,7 @@ int clif_authfail_fd(Session *s, int type)
     fixed_81.error_code = type;
     send_fpacket<0x0081, 3>(s, fixed_81);
 
-    clif_setwaitclose(s);
+    clif_setwaitclose(s, 5_s);
 
     return 0;
 }
@@ -1217,9 +1217,11 @@ void clif_waitclose(TimerData *, tick_t, Session *s)
  *
  *------------------------------------------
  */
-void clif_setwaitclose(Session *s)
+void clif_setwaitclose(Session *s, interval_t timeout)
 {
-    s->timed_close = Timer(gettick() + 5_s,
+    if (!s)
+        return;
+    s->timed_close = Timer(gettick() + timeout,
             std::bind(clif_waitclose, ph::_1, ph::_2,
                 s)
     );
@@ -3903,7 +3905,7 @@ void clif_do_quit_game(Session *s, dumb_ptr<map_session_data> sd)
     if (!battle_config.prevent_logout
         || tick >= sd->canlog_tick + 10_s)
     {
-        clif_setwaitclose(s);
+        clif_setwaitclose(s, 5_s);
         fixed_18b.okay = 0;
     }
     else

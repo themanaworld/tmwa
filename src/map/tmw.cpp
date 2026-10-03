@@ -140,7 +140,7 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, std::chrono::hou
     HumanTimeDiff ban_len {};
     ban_len.hour = length.count();
     chrif_char_ask_name(AccountId(), sd->status_key.name, 2, ban_len);
-    clif_setwaitclose(sd->sess);
+    clif_setwaitclose(sd->sess, 5_s);
 }
 
 // Returns true if more than 50% of input message is caps or punctuation
