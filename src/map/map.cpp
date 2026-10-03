@@ -846,36 +846,10 @@ void map_quit(dumb_ptr<map_session_data> sd)
  */
 dumb_ptr<map_session_data> map_id2sd(BlockId id)
 {
-    // This is bogus.
-    // However, there might be differences for de-auth'ed accounts.
-// remove search from db, because:
-// 1 - all players, npc, items and mob are in this db (to search, it's not speed, and search in session is more sure)
-// 2 - DB seems not always correct. Sometimes, when a player disconnects, its id (account value) is not removed and structure
-//     point to a memory area that is not more a session_data and value are incorrect (or out of available memory) -> crash
-// replaced by searching in all session.
-// by searching in session, we are sure that fd, session, and account exist.
-/*
-        dumb_ptr<block_list> bl;
-
-        bl=numdb_search(id_db,id);
-        if (bl && bl->bl_type==BL::PC)
-                return (struct map_session_data*)bl;
-        return nullptr;
-*/
-    for (io::FD i : iter_fds())
-    {
-        Session *s = get_session(i);
-        if (!s)
-            continue;
-        if (s->session_data)
-        {
-            map_session_data *sd = static_cast<map_session_data *>(s->session_data.get());
-            if (sd->bl_id == id)
-                return dumb_ptr<map_session_data>(sd);
-        }
-    }
-
-    return nullptr;
+    // id_db is populated by map_addiddb before auth and cleared by
+    // map_deliddb/map_quit before the session_data is freed, so the
+    // indexed lookup sees exactly the live player sessions.
+    return map_id_is_player(id);
 }
 
 /*==========================================
@@ -969,21 +943,9 @@ dumb_ptr<map_session_data> map_get_prev_session(dumb_ptr<map_session_data> d)
  */
 dumb_ptr<map_session_data> map_nick2sd(CharName nick)
 {
-    for (io::FD i : iter_fds())
-    {
-        Session *s = get_session(i);
-        if (!s)
-            continue;
-        map_session_data *pl_sd = static_cast<map_session_data *>(s->session_data.get());
-        if (pl_sd && pl_sd->state.auth)
-        {
-            {
-                if (pl_sd->status_key.name == nick)
-                    return dumb_ptr<map_session_data>(pl_sd);
-            }
-        }
-    }
-    return nullptr;
+    // nick_db holds exactly the authed players: it is filled by
+    // map_addnickdb in pc_authok and cleared in map_quit.
+    return nick_db.get(nick);
 }
 
 /*==========================================

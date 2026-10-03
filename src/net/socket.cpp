@@ -238,8 +238,8 @@ void connect_client(Session *ls)
                 ls->for_inferior));
     Session *s = get_session(fd);
     s->fd = fd;
-    s->rdata.new_(RFIFO_SIZE);
-    s->wdata.new_(WFIFO_SIZE);
+    s->rdata.new_uninitialized(RFIFO_SIZE);
+    s->wdata.new_uninitialized(WFIFO_SIZE);
     s->max_rdata = RFIFO_SIZE;
     s->max_wdata = WFIFO_SIZE;
     s->client_ip = IP4Address(client_address.sin_addr);
@@ -353,8 +353,8 @@ Session *make_connection(IP4Address ip, uint16_t port, SessionParsers parsers)
                 parsers));
     Session *s = get_session(fd);
     s->fd = fd;
-    s->rdata.new_(RFIFO_SIZE);
-    s->wdata.new_(WFIFO_SIZE);
+    s->rdata.new_uninitialized(RFIFO_SIZE);
+    s->wdata.new_uninitialized(WFIFO_SIZE);
 
     s->max_rdata = RFIFO_SIZE;
     s->max_wdata = WFIFO_SIZE;

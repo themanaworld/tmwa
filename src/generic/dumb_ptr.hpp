@@ -127,6 +127,14 @@ public:
         impl = new T[z]();
         sz = z;
     }
+    // Allocate without zero-filling. Only safe when every byte is
+    // written before it is read, like the session fifos whose
+    // bounds are tracked by rdata_size/wdata_size.
+    void new_uninitialized(size_t z)
+    {
+        impl = new T[z];
+        sz = z;
+    }
     static
     dumb_ptr<T[]> make(size_t z)
     {

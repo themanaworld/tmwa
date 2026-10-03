@@ -985,7 +985,8 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->packet_flood_reset_due = tick_t();
     sd->packet_flood_in = 0;
 
-    pc_calcstatus(sd, (int)CalcStatusKind::INITIAL_CALC);
+    // stats were already fully recalculated above; nothing since
+    // then has touched anything pc_calcstatus consumes
 
     if(sd->bl_m->mask > 0)
         clif_send_mask(sd, sd->bl_m->mask);

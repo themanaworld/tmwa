@@ -172,18 +172,8 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
         return -1;
 
     IP4Address s_ip;
-    for (io::FD i : iter_fds())
-    {
-        Session *s = get_session(i);
-        if (!s)
-            continue;
-        if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
-        {
-            assert (s == sd->sess);
-            s_ip = s->client_ip;
-            break;
-        }
-    }
+    if (sd->sess)
+        s_ip = sd->sess->client_ip;
 
     Packet_Fixed<0x2b05> fixed_05;
     fixed_05.account_id = block_to_account(sd->bl_id);
@@ -279,27 +269,16 @@ int chrif_authreq(dumb_ptr<map_session_data> sd)
 {
     nullpo_retr(-1, sd);
 
-    if (!sd || !char_session || !sd->bl_id || !sd->login_id1)
+    if (!sd || !char_session || !sd->bl_id || !sd->login_id1 || !sd->sess)
         return -1;
 
-    for (io::FD i : iter_fds())
-    {
-        Session *s = get_session(i);
-        if (!s)
-            continue;
-        if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
-        {
-            assert (s == sd->sess);
-            Packet_Fixed<0x2afc> fixed_fc;
-            fixed_fc.account_id = block_to_account(sd->bl_id);
-            fixed_fc.char_id = sd->char_id_;
-            fixed_fc.login_id1 = sd->login_id1;
-            fixed_fc.login_id2 = sd->login_id2;
-            fixed_fc.ip = s->client_ip;
-            send_fpacket<0x2afc, 22>(char_session, fixed_fc);
-            break;
-        }
-    }
+    Packet_Fixed<0x2afc> fixed_fc;
+    fixed_fc.account_id = block_to_account(sd->bl_id);
+    fixed_fc.char_id = sd->char_id_;
+    fixed_fc.login_id1 = sd->login_id1;
+    fixed_fc.login_id2 = sd->login_id2;
+    fixed_fc.ip = sd->sess->client_ip;
+    send_fpacket<0x2afc, 22>(char_session, fixed_fc);
 
     return 0;
 }
@@ -316,18 +295,8 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
         return -1;
 
     IP4Address s_ip;
-    for (io::FD i : iter_fds())
-    {
-        Session *s = get_session(i);
-        if (!s)
-            continue;
-        if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
-        {
-            assert (s == sd->sess);
-            s_ip = s->client_ip;
-            break;
-        }
-    }
+    if (sd->sess)
+        s_ip = sd->sess->client_ip;
 
     Packet_Fixed<0x2b02> fixed_02;
     fixed_02.account_id = block_to_account(sd->bl_id);
