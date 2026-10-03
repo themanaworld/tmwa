@@ -6172,11 +6172,11 @@ void clif_parse(Session *s)
             }
         }
 
-        if (!chrif_isconnect())
-        {
-            s->set_eof();
-            return;
-        }
+        // Deliberately no chrif_isconnect() check here: gameplay is
+        // map-local, and link-bound sends already drop quietly while
+        // char_session is down. Kicking every client that sent a packet
+        // during a char-server outage turned a brief flap into a mass
+        // logout (and save) storm on the link.
 
         if (sd && sd->state.auth == 1 && sd->state.waitingdisconnect == 1)
         {

@@ -23,6 +23,8 @@
 #include "../compat/fun.hpp"
 #include "../compat/nullpo.hpp"
 
+#include "../generic/random.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
@@ -267,6 +269,27 @@ int chrif_sendmapack(Session *, Packet_Fixed<0x2afb> fixed)
     }
 
     chrif_state = 2;
+
+    // Re-push auth requests for clients whose login was in flight when
+    // the link dropped: their 0x2afc (or the 0x2afd reply) died with the
+    // old session. Without this they hang in "connecting" until the
+    // stall timeout, and a retry trips the double-connection kick.
+    int reauth = 0;
+    for (io::FD i : iter_fds())
+    {
+        Session *cs = get_session(i);
+        if (!cs)
+            continue;
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(
+                static_cast<map_session_data *>(cs->session_data.get()));
+        if (sd && !sd->state.auth && sd->login_id1)
+        {
+            chrif_authreq(sd);
+            reauth++;
+        }
+    }
+    if (reauth)
+        PRINTF("chrif: re-sent %d pending auth request(s)\n"_fmt, reauth);
 
     return 0;
 }
@@ -845,6 +868,7 @@ void chrif_delete(Session *s)
     PRINTF("map-server can't connect to char-server (connection #%d).\n"_fmt,
             s);
     char_session = nullptr;
+    chrif_state = 0;
 }
 
 /*==========================================
@@ -1050,7 +1074,7 @@ void chrif_parse(Session *s)
 static
 void send_users_tochar(TimerData *, tick_t)
 {
-    if (!char_session)
+    if (!char_session || !chrif_isconnect())
         return;
 
     Packet_Head<0x2aff> head_ff;
@@ -1083,18 +1107,26 @@ void send_users_tochar(TimerData *, tick_t)
 static
 void check_connect_char_server(TimerData *, tick_t)
 {
+    interval_t retry = 10_s;
     if (!char_session)
     {
         PRINTF("Attempting to connect to char-server...\n"_fmt);
         chrif_state = 0;
         char_session = make_connection(map_conf.char_ip, map_conf.char_port,
                 SessionParsers{.func_parse= chrif_parse, .func_delete= chrif_delete});
-        if (!char_session)
-            return;
-        realloc_fifo(char_session, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
+        if (char_session)
+        {
+            realloc_fifo(char_session, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
 
-        chrif_connect(char_session);
+            chrif_connect(char_session);
+        }
+        // Jitter retries so multiple map servers do not reconnect in
+        // lockstep after a char-server outage.
+        retry = interval_t(random_::in(5000, 15000));
     }
+    Timer(gettick() + retry,
+            check_connect_char_server
+    ).detach();
 }
 
 /*==========================================
@@ -1104,8 +1136,7 @@ void check_connect_char_server(TimerData *, tick_t)
 void do_init_chrif(void)
 {
     Timer(gettick() + 1_s,
-            check_connect_char_server,
-            10_s
+            check_connect_char_server
     ).detach();
     Timer(gettick() + 1_s,
             send_users_tochar,
