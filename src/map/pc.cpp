@@ -2444,6 +2444,7 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 }
 
 /*==========================================
+(map: coalesce 0x2b01 char saves on a 5 s per-char interval)
  * PCの位置設定
  * PC location setting
  *------------------------------------------
@@ -2494,7 +2495,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
                 pc_makesavestatus(sd);
                 //The storage close routines save the char data. [Skotlex]
                 if (!sd->state.storage_open)
-                    chrif_save(sd);
+                    chrif_save_forced(sd);
                 else if (sd->state.storage_open)
                     storage_storage_quit(sd);
 
@@ -4062,7 +4063,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                             pc_unequipitem(sd, j, CalcStatus::LATER);
                     }
                     pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
-                    chrif_save(sd);
+                    chrif_save_forced(sd);
                     clif_fixpcpos(sd);
                 }
             }

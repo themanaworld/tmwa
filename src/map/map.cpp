@@ -827,7 +827,15 @@ void map_quit(dumb_ptr<map_session_data> sd)
 
     //The storage closing routines will save the char if needed. [Skotlex]
     if (!sd->state.storage_open)
-        chrif_save(sd);
+    {
+        // After a changemapserver handoff the save already went out and
+        // incoming packets are discarded, so this teardown save would
+        // carry identical data; let the coalescing drop it.
+        if (sd->state.waitingdisconnect)
+            chrif_save(sd);
+        else
+            chrif_save_forced(sd);
+    }
     else if (sd->state.storage_open)
         storage_storage_quit(sd);
 

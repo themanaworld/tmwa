@@ -68,11 +68,20 @@ int chrif_isconnect(void)
     return chrif_state == 2;
 }
 
+/// Minimum interval between 0x2b01 wire saves for one character on
+/// the opportunistic path (chrif_save). Saves that must persist now
+/// (logout, map-server transfer, shutdown) use chrif_save_forced and
+/// are never skipped. Under client churn, unchanged characters were
+/// being saved several times a second each, which is what flooded the
+/// char-server link during load testing.
+constexpr interval_t CHRI_SAVE_MIN_INTERVAL = 5_s;
+
 /*==========================================
- *
+ * Unconditional 0x2b01 save. Always sends, and records the time so
+ * nearby opportunistic saves are coalesced away.
  *------------------------------------------
  */
-int chrif_save(dumb_ptr<map_session_data> sd)
+int chrif_save_forced(dumb_ptr<map_session_data> sd)
 {
     nullpo_retr(-1, sd);
 
@@ -87,12 +96,33 @@ int chrif_save(dumb_ptr<map_session_data> sd)
     payload_01.char_key = sd->status_key;
     payload_01.char_data = sd->status;
     send_ppacket<0x2b01>(char_session, payload_01);
+    sd->last_save_tick = gettick();
 
     //For data sync
     if (sd->state.storage_open)
         storage_storage_save(sd->status_key.account_id, 0);
 
     return 0;
+}
+
+/*==========================================
+ * Opportunistic save: drop the wire packet when this character was
+ * already saved less than CHRI_SAVE_MIN_INTERVAL ago. A dirty open
+ * storage is still flushed, since it travels on its own packet.
+ *------------------------------------------
+ */
+int chrif_save(dumb_ptr<map_session_data> sd)
+{
+    nullpo_retr(-1, sd);
+
+    if (gettick() < sd->last_save_tick + CHRI_SAVE_MIN_INTERVAL)
+    {
+        //For data sync
+        if (char_session && sd->state.storage_open)
+            storage_storage_save(sd->status_key.account_id, 0);
+        return 0;
+    }
+    return chrif_save_forced(sd);
 }
 
 /*==========================================
@@ -589,7 +619,7 @@ void chrif_changedsex(Session *, const Packet_Fixed<0x2b0d>& fixed)
             }
             pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
             // save character
-            chrif_save(sd);
+            chrif_save_forced(sd);
             sd->login_id1++;    // change identify, because if player come back in char within the 5 seconds, he can change its characters
             // do same modify in login-server for the account, but no in char-server (it ask again login_id1 to login, and don't remember it)
             clif_fixpcpos(sd); // use clif_set0078_main_1d8 to send new sex to the client

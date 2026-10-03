@@ -242,6 +242,9 @@ struct map_session_data : block_list, SessionData
     tick_t canact_tick;
     tick_t canmove_tick;
     tick_t canlog_tick;
+    // When the last 0x2b01 wire save for this char went out; used by
+    // chrif_save to coalesce saves. Forced saves update it too.
+    tick_t last_save_tick;
     interval_t hp_sub, sp_sub;
     interval_t inchealhptick, inchealsptick;
 

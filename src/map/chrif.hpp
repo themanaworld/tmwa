@@ -31,6 +31,7 @@ int chrif_isconnect(void);
 
 int chrif_authreq(dumb_ptr<map_session_data>);
 int chrif_save(dumb_ptr<map_session_data>);
+int chrif_save_forced(dumb_ptr<map_session_data>);
 int chrif_charselectreq(dumb_ptr<map_session_data>);
 
 int chrif_changemapserver(dumb_ptr<map_session_data> sd,

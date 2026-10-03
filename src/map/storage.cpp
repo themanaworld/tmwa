@@ -275,7 +275,9 @@ int storage_storage_quit(dumb_ptr<map_session_data> sd)
 
     P<Storage> stor = TRY_UNWRAP(account2storage2(sd->status_key.account_id), return 0);
     {
-        chrif_save(sd);        //Invokes the storage saving as well.
+        // Called from logout, warp and map-server transfer paths, where
+        // the save must always reach the char server.
+        chrif_save_forced(sd);        //Invokes the storage saving as well.
         stor->storage_status = 0;
         sd->state.storage_open = 0;
     }

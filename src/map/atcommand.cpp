@@ -1155,7 +1155,7 @@ ATCE atcommand_save(Session *s, dumb_ptr<map_session_data> sd,
 {
     pc_setsavepoint(sd, sd->mapname_, sd->bl_x, sd->bl_y);
     pc_makesavestatus(sd);
-    chrif_save(sd);
+    chrif_save_forced(sd);
     clif_displaymessage(s, "Character data respawn point saved."_s);
 
     return ATCE::OKAY;
