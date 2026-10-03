@@ -814,7 +814,7 @@ async fn handle_char_select(
     p.login_id1 = sd.login_id1;
     p.login_id2 = sd.login_id2;
     p.ip = ip4(ip);
-    let Some(ttx) = st.map_tx(map_id) else {
+    let Some(ttx) = st.map_prio_tx(map_id) else {
         let mut e = P0081::default();
         e.error_code = 1;
         send_bytes(tx, enc(move |v| e.encode(v)));
@@ -842,7 +842,7 @@ async fn handle_char_select(
     // a map that unregistered between map_for and this insert left
     // the entry orphaned (its cleanup already ran): re-check and
     // resolve it like a missing 0x3830.
-    if st.map_tx(map_id).is_none()
+    if st.map_prio_tx(map_id).is_none()
         && let Some(ps) = st.sel_waiting_done(key, map_id, sd.login_id1, sd.login_id2)
     {
         st.send_pending_sel(ps);
@@ -1373,7 +1373,7 @@ async fn push_reauth(
     p29.login_id1 = login_id1;
     p29.login_id2 = login_id2;
     p29.ip = ip4(client_ip);
-    let Some(mtx) = st.map_tx(map_id) else {
+    let Some(mtx) = st.map_prio_tx(map_id) else {
         return false;
     };
     super::state::send_must(st, map_id, &mtx, enc(move |v| p29.encode(v))).await;
@@ -2018,7 +2018,7 @@ mod tests {
     async fn upstream_eof_closes_when_map_alive() {
         let st = test_state();
         let (tx, mut wrx) = mpsc::channel(8);
-        let (mid, _kill) = st.map_register(tx.clone(), 0, 0);
+        let (mid, _kill) = st.map_register(tx.clone(), tx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, _peer, _rx) = test_conn();
         let t0 = Instant::now();
@@ -2039,7 +2039,7 @@ mod tests {
     async fn upstream_eof_holds_on_notice() {
         let st = test_state();
         let (tx, _rx) = mpsc::channel(8);
-        let (mid, _kill) = st.map_register(tx.clone(), 0, 0);
+        let (mid, _kill) = st.map_register(tx.clone(), tx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, _peer, _rx) = test_conn();
         let st2 = st.clone();
@@ -2060,7 +2060,7 @@ mod tests {
     async fn upstream_eof_client_gone() {
         let st = test_state();
         let (tx, _rx) = mpsc::channel(8);
-        let (mid, _kill) = st.map_register(tx.clone(), 0, 0);
+        let (mid, _kill) = st.map_register(tx.clone(), tx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, peer, _rx) = test_conn();
         drop(peer); // client closed

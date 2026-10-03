@@ -263,6 +263,12 @@ fn status(st: &Arc<State>) -> Value {
                     "maps": h.maps.len(),
                     "users": h.users,
                     "draining": h.draining,
+                    // writer-queue backlog, bulk and critical
+                    "out_queue": h.tx.max_capacity().saturating_sub(h.tx.capacity()),
+                    "out_queue_prio": h
+                        .tx_prio
+                        .max_capacity()
+                        .saturating_sub(h.tx_prio.capacity()),
                 })
             })
             .collect()
@@ -274,6 +280,8 @@ fn status(st: &Arc<State>) -> Value {
         "map_servers": maps,
         "players_online": st.count_users(),
         "players_held": held,
+        "db_queue": st.db_jobs_depth.load(std::sync::atomic::Ordering::Relaxed),
+        "db_dropped": st.db_dropped.load(std::sync::atomic::Ordering::Relaxed),
     })
 }
 
@@ -414,11 +422,17 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
             head.repeat = vec![P2B04Repeat {
                 map_name: FixedStr::<16>::try_from_str(name).unwrap_or_default(),
             }];
-            st.map_broadcast(&enc(move |v| head.encode(v)));
+            let bytes = enc(move |v| head.encode(v));
+            st.map_broadcast_except(*id, &bytes);
+            // the drained server's own copies go on its priority
+            // queue so they strictly precede the 0x382a below: it
+            // builds the shadow table the evacuation resolves
+            // through
+            if let Some(tx) = st.map_prio_tx(*id) {
+                send_must(st, *id, &tx, bytes).await;
+            }
         }
-        // the 0x2b04 updates above must land on the link before the
-        // evacuate request: same channel, strictly ordered
-        if let Some(tx) = st.map_tx(*id) {
+        if let Some(tx) = st.map_prio_tx(*id) {
             send_must(st, *id, &tx, enc(|v| P382A::default().encode(v))).await;
         }
         tracing::info!(

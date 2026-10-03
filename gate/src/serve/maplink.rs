@@ -32,12 +32,22 @@ type Fr = PacketFramer<tokio::net::tcp::OwnedReadHalf>;
 pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
     let _ip32 = u32::from_le_bytes(ip.octets());
     let (rd, wr) = sock.into_split();
+    // two writer queues sharing one socket writer: `rx` is bulk
+    // (broadcasts, floods), `rx_prio` is critical replies and is
+    // always drained first — a bulk backlog can never starve an
+    // answer the map is blocked on.
     let (tx, mut rx) = mpsc::channel::<Vec<u8>>(2048);
+    let (tx_prio, mut rx_prio) = mpsc::channel::<Vec<u8>>(2048);
     // writer task
     let wh = tokio::spawn(async move {
         let mut w = wr;
         use tokio::io::AsyncWriteExt;
-        while let Some(buf) = rx.recv().await {
+        loop {
+            let buf = tokio::select! {
+                biased;
+                b = rx_prio.recv() => match b { Some(b) => b, None => break },
+                b = rx.recv() => match b { Some(b) => b, None => break },
+            };
             if w.write_all(&buf).await.is_err() {
                 break;
             }
@@ -64,14 +74,18 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                     || pass != st.cfg.map.password.as_str()
                 {
                     p.code = 3;
-                    send_must(&st, usize::MAX, &tx, enc(move |v| p.encode(v))).await;
+                    send_must(&st, usize::MAX, &tx_prio, enc(move |v| p.encode(v))).await;
                     tracing::warn!("maplink: bad map auth from {ip}");
                     break 'auth false;
                 }
                 p.code = 0;
-                send_must(&st, usize::MAX, &tx, enc(move |v| p.encode(v))).await;
-                let (id, kill) =
-                    st.map_register(tx.clone(), u32::from_le_bytes(fixed.ip.0), fixed.port);
+                send_must(&st, usize::MAX, &tx_prio, enc(move |v| p.encode(v))).await;
+                let (id, kill) = st.map_register(
+                    tx.clone(),
+                    tx_prio.clone(),
+                    u32::from_le_bytes(fixed.ip.0),
+                    fixed.port,
+                );
                 tracing::info!(
                     "maplink: map server {id} registered from {ip} \
                      (client port {}:{})",
@@ -91,7 +105,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                         .collect();
                     P2B15 { repeat }
                 };
-                send_must(&st, id, &tx, enc(move |v| p15.encode(v))).await;
+                send_must(&st, id, &tx_prio, enc(move |v| p15.encode(v))).await;
                 map_kill_notify = Some(kill);
                 break 'auth true;
             }
@@ -127,7 +141,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                 break;
             }
         };
-        let r = handle(&st, &tx, map_id, pkt.id, &pkt.bytes).await;
+        let r = handle(&st, &tx_prio, map_id, pkt.id, &pkt.bytes).await;
         if r.is_err() {
             tracing::warn!("maplink: error handling 0x{:04x} from map {map_id}", pkt.id);
             break;
@@ -386,7 +400,7 @@ async fn handle(
                     Some(dest) => {
                         let st2 = st.clone();
                         tokio::spawn(async move {
-                            let Some(dtx) = st2.map_tx(dest) else {
+                            let Some(dtx) = st2.map_prio_tx(dest) else {
                                 return;
                             };
                             let mut p29 = P3829::default();
@@ -689,12 +703,14 @@ async fn handle(
             Ok(())
         }
         0x3005 => {
-            // accreg request -> 0x3804 to requester after commit
+            // accreg request -> 0x3804 to requester after commit;
+            // deduped: the map re-requests on reply timeout and each
+            // re-request was a full accreg reply
             let Ok(fixed) = P3005::decode(bytes) else {
                 return Err(());
             };
             let aid = fixed.account_id.0 as i64;
-            st.queue_db_op(move |conn| {
+            st.queue_dedup_op(DEDUP_ACCREG, aid, move |conn| {
                 let vars = crate::db::get_account_vars_conn(conn, aid, 1).unwrap_or_default();
                 let mut p = P3804::default();
                 p.account_id = fixed.account_id;
@@ -717,7 +733,7 @@ async fn handle(
                 return Err(());
             };
             let aid = fixed.account_id.0 as i64;
-            st.queue_db_op(move |conn| {
+            st.queue_dedup_op(DEDUP_STORAGE, aid, move |conn| {
                 let items = crate::db::load_storage_conn(conn, aid).unwrap_or_default();
                 let mut storage = Storage::default();
                 storage.account_id = fixed.account_id;
@@ -785,6 +801,11 @@ async fn handle(
 fn ip4(v: u32) -> Ip4Address {
     Ip4Address(v.to_le_bytes())
 }
+
+/// `queue_dedup_op` kind for 0x3010 storage requests.
+const DEDUP_STORAGE: u8 = 1;
+/// `queue_dedup_op` kind for 0x3005 accreg requests.
+const DEDUP_ACCREG: u8 = 2;
 
 /// 0x2afc auth request: waits out in-flight saves for the char, then
 /// answers with the CharData. Runs as its own task so the link's

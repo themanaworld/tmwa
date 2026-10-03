@@ -89,8 +89,13 @@ pub struct PlayerSession {
 /// One connected tmwa-map session.
 pub struct MapHandle {
     pub id: usize,
-    /// Packet sender into the map session writer task.
+    /// Bulk queue into the map session writer task: broadcasts,
+    /// notifications, pre-auth floods. Dropped-first under load.
     pub tx: mpsc::Sender<Vec<u8>>,
+    /// Critical queue, drained before `tx`: request replies the map
+    /// is blocked waiting on (0x2afd/0x3810/0x2b06/0x382a/...).
+    /// `send_must` targets this so bulk floods can't starve answers.
+    pub tx_prio: mpsc::Sender<Vec<u8>>,
     /// Address advertised in the 0x2af8 login packet (client port of
     /// the map server, where the gate's relay connects).
     pub ip: u32,
@@ -114,6 +119,10 @@ pub struct MapHandle {
 /// congested: new char-selects and map joins aimed at it are
 /// refused instead of queueing behind a saturated link.
 const MAP_TX_LOW_WATER: usize = 256;
+
+/// Cap on queued map-link DB jobs. Beyond it the queue drops new
+/// jobs rather than become an unbounded memory backlog.
+const DB_JOBS_LIMIT: usize = 65536;
 
 impl MapHandle {
     /// Non-critical send (broadcasts, notifications): dropped with a
@@ -305,6 +314,18 @@ pub struct State {
     pub db_jobs: mpsc::UnboundedSender<DbJob>,
     /// Receiver half of `db_jobs`; taken once by `db_writer`.
     db_jobs_rx: Mutex<Option<mpsc::UnboundedReceiver<DbJob>>>,
+    /// Jobs queued but not yet applied (the channel is unbounded;
+    /// this counts them so `status` can see the backlog and
+    /// `queue_*` can cap it).
+    pub db_jobs_depth: std::sync::atomic::AtomicUsize,
+    /// Jobs refused because the queue was over `DB_JOBS_LIMIT` or a
+    /// request was already pending (deduped reads).
+    pub db_dropped: std::sync::atomic::AtomicU64,
+    /// Coalescible requests in flight: (kind, account_id). A second
+    /// identical request while one is queued is dropped — the
+    /// reply is computed at apply time anyway, so it always
+    /// carries the newest committed state.
+    pending_db_req: std::sync::Arc<Mutex<std::collections::HashSet<(u8, i64)>>>,
     /// map slot -> arrival tracking while a `drain` is in flight.
     pub drains: Mutex<HashMap<usize, DrainTrack>>,
 }
@@ -338,6 +359,9 @@ impl State {
             rejoin_notify: Mutex::new(HashMap::new()),
             db_jobs,
             db_jobs_rx: Mutex::new(Some(db_jobs_rx)),
+            db_jobs_depth: std::sync::atomic::AtomicUsize::new(0),
+            db_dropped: std::sync::atomic::AtomicU64::new(0),
+            pending_db_req: std::sync::Arc::new(Mutex::new(std::collections::HashSet::new())),
             drains: Mutex::new(HashMap::new()),
         }
     }
@@ -552,10 +576,13 @@ impl State {
     // ---- map servers ----
 
     /// Allocate a map server slot; returns (slot index, kill
-    /// notify). `kill` fires when the link must die.
+    /// notify). `kill` fires when the link must die. `tx` is the
+    /// bulk queue, `tx_prio` the critical queue (both into the same
+    /// socket writer, which drains prio first).
     pub fn map_register(
         &self,
         tx: mpsc::Sender<Vec<u8>>,
+        tx_prio: mpsc::Sender<Vec<u8>>,
         ip: u32,
         port: u16,
     ) -> (usize, std::sync::Arc<tokio::sync::Notify>) {
@@ -563,6 +590,7 @@ impl State {
         let new = || MapHandle {
             id: 0,
             tx: tx.clone(),
+            tx_prio: tx_prio.clone(),
             ip,
             port,
             maps: vec![],
@@ -596,6 +624,15 @@ impl State {
         if let Some(Some(h)) = ms.get(id) {
             h.kill.notify_one();
         }
+    }
+
+    /// The critical-reply queue for map `id` (0x2afd/0x3810/0x382a
+    /// and friends). `send_must` and request replies go here.
+    pub fn map_prio_tx(&self, id: usize) -> Option<mpsc::Sender<Vec<u8>>> {
+        let ms = self.map_servers.lock().unwrap();
+        ms.get(id)
+            .and_then(|s| s.as_ref())
+            .map(|h| h.tx_prio.clone())
     }
 
     /// Map slot registered with client address (ip, port), for
@@ -705,11 +742,23 @@ impl State {
 
     /// Send to every connected map server; returns count.
     pub fn map_broadcast(&self, bytes: &[u8]) -> usize {
+        self.map_broadcast_except(usize::MAX, bytes)
+    }
+
+    /// Send to every connected map server except `skip` (which may
+    /// need the same bytes on its priority queue instead — ordering
+    /// vs a following send_must).
+    pub fn map_broadcast_except(&self, skip: usize, bytes: &[u8]) -> usize {
         let ms = self.map_servers.lock().unwrap();
         let mut n = 0;
-        for slot in ms.iter().flatten() {
-            slot.send(bytes.to_vec());
-            n += 1;
+        for (i, slot) in ms.iter().enumerate() {
+            if i == skip {
+                continue;
+            }
+            if let Some(h) = slot {
+                h.send(bytes.to_vec());
+                n += 1;
+            }
         }
         n
     }
@@ -776,8 +825,8 @@ impl State {
             key: Box::new(key),
             data: Box::new(data),
         };
-        if self.db_jobs.send(job).is_err() {
-            // writer gone (shutdown/tests): unblock waiters
+        if !self.push_db_job(job) {
+            // dropped or writer gone: unblock waiters
             self.save_done(char_id);
         }
     }
@@ -789,9 +838,71 @@ impl State {
         &self,
         f: impl FnOnce(&rusqlite::Connection) -> DbOpResult + Send + 'static,
     ) {
-        if self.db_jobs.send(DbJob::Op(Box::new(f))).is_err() {
-            tracing::warn!("db job queue closed; op dropped");
+        self.push_db_job(DbJob::Op(Box::new(f)));
+    }
+
+    /// Queue an idempotent read-reply op, coalescing duplicates:
+    /// a second request for the same (kind, account) while one is
+    /// still queued is dropped — the reply is computed at apply
+    /// time, so it carries the newest committed state anyway. The
+    /// flag clears when the job runs. Used for 0x3010/0x3005,
+    /// which the map re-requests on reply timeout — under
+    /// congestion each re-request was one more full storage reply.
+    pub fn queue_dedup_op(
+        &self,
+        kind: u8,
+        account_id: i64,
+        f: impl FnOnce(&rusqlite::Connection) -> DbOpResult + Send + 'static,
+    ) {
+        {
+            let mut p = self.pending_db_req.lock().unwrap();
+            if !p.insert((kind, account_id)) {
+                self.db_dropped
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                return;
+            }
         }
+        let pending = self.pending_db_req.clone();
+        let job = DbJob::Op(Box::new(move |conn| {
+            pending.lock().unwrap().remove(&(kind, account_id));
+            f(conn)
+        }));
+        if !self.push_db_job(job) {
+            self.pending_db_req
+                .lock()
+                .unwrap()
+                .remove(&(kind, account_id));
+        }
+    }
+
+    /// Enqueue a job, capped at `DB_JOBS_LIMIT` queued. Over the
+    /// limit the job is dropped and counted: the alternative is an
+    /// unbounded memory backlog, which is what the round-2 load
+    /// test measured at ~20 GB. A dropped save is retried by the
+    /// map's next autosave; a dropped request is re-requested.
+    /// Returns false when the job was not queued.
+    fn push_db_job(&self, job: DbJob) -> bool {
+        let depth = self
+            .db_jobs_depth
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if depth >= DB_JOBS_LIMIT {
+            self.db_jobs_depth
+                .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+            let drops = self
+                .db_dropped
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                + 1;
+            if drops.is_power_of_two() || drops == 1 {
+                tracing::warn!("db job queue over {DB_JOBS_LIMIT}, dropping ({drops} total)");
+            }
+            return false;
+        }
+        if self.db_jobs.send(job).is_err() {
+            self.db_jobs_depth
+                .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+            return false;
+        }
+        true
     }
 
     /// Take the receiver half of the job queue. Called once by
@@ -998,18 +1109,18 @@ impl State {
     }
 }
 
-/// Send raw bytes to a map link's writer task when the reply must
-/// not be dropped (auth answers, request results, saves). A full
-/// queue gets a bounded wait; a link that stays wedged is killed,
-/// since dropping the reply would leave the map waiting on an
-/// answer that never comes (map-side auth stalls for minutes).
-/// Returns false when the bytes were not queued.
+/// Send raw bytes to a map link's *priority* writer queue when the
+/// reply must not be dropped (auth answers, request results, save
+/// acks). A full queue gets a bounded wait; a link that stays
+/// wedged is killed, since dropping the reply would leave the map
+/// waiting on an answer that never comes (map-side auth stalls for
+/// minutes). Returns false when the bytes were not queued.
 pub async fn send_must(st: &State, map_id: usize, tx: &mpsc::Sender<Vec<u8>>, v: Vec<u8>) -> bool {
     use tokio::sync::mpsc::error::TrySendError;
     match tx.try_send(v) {
         Ok(()) => true,
         Err(TrySendError::Full(v)) | Err(TrySendError::Closed(v)) => {
-            match tokio::time::timeout(Duration::from_secs(10), tx.send(v)).await {
+            match tokio::time::timeout(Duration::from_secs(30), tx.send(v)).await {
                 Ok(Ok(())) => true,
                 _ => {
                     tracing::warn!("map {map_id}: link wedged on a critical reply, dropping link");
@@ -1041,6 +1152,7 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
                 Err(_) => break,
             }
         }
+        let depth = jobs.len();
         // char ids owed a save_done no matter how the batch ends
         let save_ids: Vec<u32> = jobs
             .iter()
@@ -1050,6 +1162,8 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
             })
             .collect();
         let njobs = jobs.len();
+        st.db_jobs_depth
+            .fetch_sub(depth, std::sync::atomic::Ordering::Relaxed);
         let db = st.db.clone();
         let (committed, posts) =
             match tokio::task::spawn_blocking(move || apply_db_jobs(&db, jobs)).await {
@@ -1071,7 +1185,7 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
         for post in posts {
             match post.reply {
                 LinkReply::Map(mid) => {
-                    if let Some(tx) = st.map_tx(mid) {
+                    if let Some(tx) = st.map_prio_tx(mid) {
                         send_must(&st, mid, &tx, post.bytes).await;
                     }
                 }
@@ -1097,15 +1211,26 @@ struct PostCommit {
 /// Apply one drained batch of jobs inside a single transaction.
 /// A panicking or failing job is logged and skipped (a statement
 /// error does not poison the transaction); the batch only fails
-/// when the commit itself does.
+/// when the commit itself does. Within a batch only the LAST save
+/// for a char is applied — earlier 0x2b01s are superseded.
 fn apply_db_jobs(db: &crate::db::Db, jobs: Vec<DbJob>) -> (bool, Vec<PostCommit>) {
+    // last batch index of a save for each char id
+    let mut last_save: HashMap<u32, usize> = HashMap::new();
+    for (i, job) in jobs.iter().enumerate() {
+        if let DbJob::SaveChar { char_id, .. } = job {
+            last_save.insert(*char_id, i);
+        }
+    }
     let mut posts = Vec::new();
     let committed = db
         .with_conn(|conn| {
             let tx = conn.transaction()?;
-            for job in jobs {
+            for (i, job) in jobs.into_iter().enumerate() {
                 match job {
                     DbJob::SaveChar { char_id, key, data } => {
+                        if last_save.get(&char_id) != Some(&i) {
+                            continue;
+                        }
                         let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                             crate::db::save_character_tx(&tx, &key, &data)
                         }));
@@ -1188,7 +1313,8 @@ mod tests {
         let st = test_state("10.0.0.0/8", Ipv4Addr::new(192, 168, 1, 10));
         // a map advertising a WAN address
         let (mtx, _mrx) = mpsc::channel(8);
-        let (map_id, _kill) = st.map_register(mtx, u32::from_le_bytes([203, 0, 113, 7]), 5121);
+        let (map_id, _kill) =
+            st.map_register(mtx.clone(), mtx.clone(), u32::from_le_bytes([203, 0, 113, 7]), 5121);
 
         // LAN client: gets lan_map_ip, keeps the map's port
         let mut rx = pending_sel(&st, map_id, [10, 1, 2, 3]);
@@ -1227,7 +1353,8 @@ mod tests {
         // default lan_subnet covers only 127.0.0.1
         let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
         let (mtx, _mrx) = mpsc::channel(8);
-        let (map_id, _kill) = st.map_register(mtx, u32::from_le_bytes([203, 0, 113, 7]), 5121);
+        let (map_id, _kill) =
+            st.map_register(mtx.clone(), mtx.clone(), u32::from_le_bytes([203, 0, 113, 7]), 5121);
 
         let mut rx = pending_sel(&st, map_id, [127, 0, 0, 1]);
         let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();

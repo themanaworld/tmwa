@@ -300,10 +300,31 @@ single serialized job queue instead: a `db_writer` task drains up to
 512 jobs into one batch transaction and emits the queued replies
 (storage answers, `0x3811` acks) only after the commit. Pure reads
 (`0x2afc` auth, `0x2b0e` name ops, whisper targets) run on spawned
-tasks. A critical reply that still cannot be queued within 10 s —
-the link's writer queue wedged — kills the link (`map_kill`) rather
-than silently dropping a `0x2afd` the map side will wait minutes
-for; the map reconnects cleanly.
+tasks.
+
+The queue is capped (`DB_JOBS_LIMIT`, 64k jobs): past it new jobs are
+dropped and counted (`status`'s `db_dropped`) rather than become an
+unbounded memory backlog — a dropped save is retried by the map's
+next autosave. Duplicate in-flight read requests are coalesced per
+account (`0x3010` storage, `0x3005` accreg): the map re-requests on
+reply timeout, and under congestion each re-request was one more
+full storage reply the already-busy map had to parse. Within one
+batch only the last save per char runs.
+
+**Two writer queues per link.** Broadcasts, notifications and
+pre-auth floods go on the bulk queue (dropped first under load);
+request replies the map is blocked on (`0x2afd`, `0x2b06`, `0x3810`,
+`0x3811`, `0x382a`, select-time `0x3829`s) go on the prio queue,
+which the socket writer drains first — a bulk backlog can no longer
+starve an auth answer. `send_must` gives a wedged prio queue 30 s,
+then kills the link (`map_kill`): the map reconnects cleanly instead
+of waiting minutes on an answer that never comes.
+
+**mimalloc, not glibc malloc.** The job-queue backlog is a large
+transient (~1 GB per ~120k queued saves); glibc's per-thread arenas
+never return it — load testing measured ~20 GB of permanently
+retained anonymous RSS. mimalloc hands freed memory back to the OS
+(measured: ~960 MB peak, ~27 MB after drain).
 
 ## Passwords
 
