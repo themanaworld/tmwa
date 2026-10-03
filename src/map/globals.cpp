@@ -98,6 +98,7 @@ namespace tmwa
         int last_save_fd;
         bool save_flag;
         Map<AccountId, Storage> storage_db;
+        Map<AccountId, tick_t> storage_load_pending;
 
         Map<RString, str_data_t> str_datam;
         str_data_t LABEL_NEXTLINE_;

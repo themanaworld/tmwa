@@ -404,6 +404,8 @@ int intif_parse_LoadStorage(Session *, const Packet_Payload<0x3810>& payload)
 {
     dumb_ptr<map_session_data> sd;
 
+    storage_load_pending.erase(payload.account_id);
+
     sd = map_id2sd(account_to_block(payload.account_id));
     if (sd == nullptr)
     {

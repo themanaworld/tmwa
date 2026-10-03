@@ -845,6 +845,10 @@ void chrif_delete(Session *s)
     PRINTF("map-server can't connect to char-server (connection #%d).\n"_fmt,
             s);
     char_session = nullptr;
+    // Storage load requests still in flight died with the link;
+    // drop the pending marks so the next open on each account
+    // re-requests instead of waiting out the resend interval.
+    storage_load_pending.clear();
 }
 
 /*==========================================

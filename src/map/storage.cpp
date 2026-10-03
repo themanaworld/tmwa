@@ -25,6 +25,7 @@
 #include "../generic/db.hpp"
 
 #include "../mmo/ids.hpp"
+#include "../net/timer.hpp"
 #include "../high/mmo.hpp"
 
 #include "chrif.hpp"
@@ -45,6 +46,7 @@ namespace map
 void do_final_storage(void)
 {
     storage_db.clear();
+    storage_load_pending.clear();
 }
 
 Borrowed<Storage> account2storage(AccountId account_id)
@@ -64,7 +66,16 @@ static
 void storage_delete(AccountId account_id)
 {
     storage_db.erase(account_id);
+    storage_load_pending.erase(account_id);
 }
+
+/// Resend interval for 0x3010 storage-load requests. The Storage
+/// entry only appears when the 0x3810 reply lands, so without a
+/// pending mark every storage_storageopen call while a request is
+/// outstanding (or after its reply was dropped, or died with the
+/// old char link) sends another request. A stale mark expires so a
+/// lost reply is retried on the next open attempt.
+constexpr interval_t STORAGE_LOAD_RESEND = 5_s;
 
 /*==========================================
  * カプラ倉庫を開く
@@ -79,7 +90,15 @@ int storage_storageopen(dumb_ptr<map_session_data> sd)
 
     P<Storage> stor = TRY_UNWRAP(storage_db.search(sd->status_key.account_id),
     {                           //Request storage.
-        intif_request_storage(sd->status_key.account_id);
+        tick_t now = gettick();
+        tick_t *sent = as_raw_pointer(
+                storage_load_pending.search(sd->status_key.account_id));
+        if (!sent || now >= *sent + STORAGE_LOAD_RESEND)
+        {
+            intif_request_storage(sd->status_key.account_id);
+            if (char_session)
+                storage_load_pending.insert(sd->status_key.account_id, now);
+        }
         return 1;
     });
 

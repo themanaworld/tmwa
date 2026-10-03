@@ -79,6 +79,7 @@ namespace tmwa
         extern int last_save_fd;
         extern bool save_flag;
         extern Map<AccountId, Storage> storage_db;
+        extern Map<AccountId, tick_t> storage_load_pending;
         extern Map<RString, str_data_t> str_datam;
         extern str_data_t LABEL_NEXTLINE_;
         extern Map<ScriptLabel, int> scriptlabel_db;
