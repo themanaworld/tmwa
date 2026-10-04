@@ -2444,7 +2444,6 @@ int pc_useitem(dumb_ptr<map_session_data> sd, IOff0 n)
 }
 
 /*==========================================
-(map: bound waitingdisconnect sessions with timed_close)
  * PCの位置設定
  * PC location setting
  *------------------------------------------
@@ -2455,6 +2454,11 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
     MapName mapname_;
 
     nullpo_retz(sd);
+
+    // While a map-server handoff is queued the player is already
+    // gone; warping again would just emit a duplicate save and 0x2b05.
+    if (sd->state.waitingdisconnect)
+        return 1;
 
     if (sd->trade_partner)      //取引を中断する | Suspend a transaction
         trade_tradecancel(sd);
