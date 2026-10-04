@@ -4053,6 +4053,14 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                 }
                 else if (sd)
                 {
+                    if (sd->status.sex == sex)
+                    {
+                        // Scripts use "set Sex, Sex" purely to trigger a
+                        // fixpos; skip the unequip/recalc/save but still
+                        // send it.
+                        clif_fixpcpos(sd);
+                        break;
+                    }
                     sd->sex = sd->status.sex = sex;
                     for (IOff0 j : IOff0::iter())
                     {
