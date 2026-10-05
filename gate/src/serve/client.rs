@@ -23,6 +23,7 @@ use tokio::sync::mpsc;
 use super::state::{
     AuthEntry, DELFLAG_CHAR, DELFLAG_MAP, PendingSel, State, enc, send_bytes,
 };
+use super::state::PlayerSession;
 use crate::db::Db;
 use crate::net::framing::PacketFramer;
 use crate::proto::types::{FixedStr, Ip4Address, TickT};
@@ -32,7 +33,9 @@ const VERSION_2_UPDATEHOST: u8 = 1;
 const MIN_CLIENT_VERSION: u32 = 6;
 const DEFAULT_WALK_SPEED: u16 = 150;
 
-/// The gate's own "server version" (crate version + LOGIN flag).
+/// The gate's own "server version" for 0x7531: fixed at 0.1.0;
+/// `flags` carries the role bits (LOGIN here, CHAR|INTER on the
+/// char screen).
 fn gate_version(flags: u8) -> Version {
     Version {
         major: 0,
@@ -160,17 +163,12 @@ fn stamp_seconds(secs: u64) -> FixedStr<20> {
 // login (0x0064)
 // ------------------------------------------------------------------
 
-/// Returns true when the connection stays usable (always; failures
-/// reply and return true too — tmwa keeps the socket until the client
-/// leaves or 90 s).
-async fn handle_login(
-    st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
-    pkt: &[u8],
-    ip: u32,
-) -> Option<()> {
+/// 0x0064 login: verify (or register) the account, push the stage-2
+/// auth entry and answer with 0x0069 or an error packet. The caller
+/// closes the socket either way.
+async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], ip: u32) {
     let Ok(fixed) = P0064::decode(pkt) else {
-        return None;
+        return;
     };
     let name0 = fixed.account_name.to_string_lossy();
     let pass0 = fixed.account_pass.to_string_lossy();
@@ -183,7 +181,7 @@ async fn handle_login(
             p.error_code = 0x03;
             enc(move |v| p.encode(v))
         });
-        return Some(());
+        return;
     }
     // flood protection
     if st.cfg.login.conn_limit_enable {
@@ -195,7 +193,7 @@ async fn handle_login(
                 let mut p = P0081::default();
                 p.error_code = 2;
                 send_bytes(tx, enc(move |v| p.encode(v)));
-                return Some(());
+                return;
             }
         }
         rl.insert(ip, Instant::now());
@@ -240,8 +238,8 @@ async fn handle_login(
                 a.ban_until,
             );
             if new_sex != 0 {
-                send_6a(st, tx, 9, 0, None); // account already exists
-                return Some(());
+                send_6a(tx, 9, 0, None); // account already exists
+                return;
             }
             // password verify (argon2 in spawn_blocking)
             let (hash, scheme, salt, pass) =
@@ -255,8 +253,8 @@ async fn handle_login(
                 _ => crate::auth::password::Verify::Fail,
             };
             if v == crate::auth::password::Verify::Fail {
-                send_6a(st, tx, 1, 0, None); // incorrect password
-                return Some(());
+                send_6a(tx, 1, 0, None); // incorrect password
+                return;
             }
             if state != 0 {
                 // packet 0x006a value + 1
@@ -264,8 +262,8 @@ async fn handle_login(
                     1..=8 | 100 => (state - 1) as u16,
                     _ => 99,
                 };
-                send_6a(st, tx, code, ban, errmsg.clone());
-                return Some(());
+                send_6a(tx, code, ban, errmsg.clone());
+                return;
             }
             let now = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -273,8 +271,8 @@ async fn handle_login(
                 .as_secs();
             if ban != 0 {
                 if ban as u64 > now {
-                    send_6a(st, tx, 6, ban, errmsg.clone());
-                    return Some(());
+                    send_6a(tx, 6, ban, errmsg.clone());
+                    return;
                 }
                 let _ = db.blocking(move |db| db.set_account_ban(id, 0)).await;
             }
@@ -296,8 +294,8 @@ async fn handle_login(
         }
         None => {
             if new_sex == 0 {
-                send_6a(st, tx, 0, 0, None); // unregistered
-                return Some(());
+                send_6a(tx, 0, 0, None); // unregistered
+                return;
             }
             let pass = pass0.clone();
             let h = tokio::task::spawn_blocking(move || {
@@ -305,8 +303,8 @@ async fn handle_login(
             })
             .await;
             let Ok(Ok(hash)) = h else {
-                send_6a(st, tx, 3, 0, None);
-                return Some(());
+                send_6a(tx, 3, 0, None);
+                return;
             };
             let name2 = name.clone();
             let id = st
@@ -323,8 +321,8 @@ async fn handle_login(
                 Ok(i) => account_id = i as u32,
                 Err(e) => {
                     tracing::warn!("create account: {e}");
-                    send_6a(st, tx, 3, 0, None);
-                    return Some(());
+                    send_6a(tx, 3, 0, None);
+                    return;
                 }
             }
         }
@@ -332,24 +330,24 @@ async fn handle_login(
 
     // client too old
     if fixed.client_protocol_version.0 < MIN_CLIENT_VERSION {
-        send_6a(st, tx, 5, 0, None);
-        return Some(());
+        send_6a(tx, 5, 0, None);
+        return;
     }
     // min GM level
     if crate::serve::is_gm(st, account_id) < st.cfg.login.min_level_to_connect {
         let mut p = P0081::default();
         p.error_code = 1;
         send_bytes(tx, enc(move |v| p.encode(v)));
-        return Some(());
+        return;
     }
 
     let Some(login_id1) = State::random_u32() else {
         tracing::error!("getrandom failed; refusing login");
-        return Some(());
+        return;
     };
     let Some(login_id2) = State::random_u32() else {
         tracing::error!("getrandom failed; refusing login");
-        return Some(());
+        return;
     };
     let now_ms = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -407,18 +405,11 @@ async fn handle_login(
     };
     head.repeat = vec![rep];
     send_bytes(tx, enc(move |v| head.encode(v)));
-    Some(())
 }
 
 /// 0x006a account login error; for code 6 the message is the ban
 /// timestamp or the account's error_message.
-fn send_6a(
-    st: &State,
-    tx: &mpsc::Sender<Vec<u8>>,
-    code: u16,
-    ban_until: i64,
-    errmsg: Option<String>,
-) {
+fn send_6a(tx: &mpsc::Sender<Vec<u8>>, code: u16, ban_until: i64, errmsg: Option<String>) {
     let mut p = P006A::default();
     p.error_code = code as u8;
     if code == 6 {
@@ -428,7 +419,6 @@ fn send_6a(
             p.error_message = FixedStr::<20>::from_str_truncate(&m);
         }
     }
-    let _ = st; // message already resolved by caller
     send_bytes(tx, enc(move |v| p.encode(v)));
 }
 
@@ -565,10 +555,7 @@ async fn char_session<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + 
                 handle_change_pass(&st, tx, &sd, &pkt.bytes).await;
             }
             0x0066 => {
-                if handle_char_select(&st, tx, &sd, ip, &pkt.bytes).await {
-                    // 0x0071 was sent (or is pending); keep serving
-                    // until the client disconnects
-                }
+                handle_char_select(&st, tx, &sd, ip, &pkt.bytes).await;
             }
             0x0067 => {
                 handle_char_create(&st, tx, &sd, &pkt.bytes).await;
@@ -737,16 +724,18 @@ async fn handle_change_pass(
     send_bytes(tx, enc(move |v| p.encode(v)));
 }
 
-/// 0x0066: select -> 0x3829 to the map(s) -> 0x0071 on 0x3830.
+/// 0x0066 select: 0x3829 to the map(s), then 0x0071 on 0x3830.
+/// The 0x0071 may go out later via `pending_sel`; either way the
+/// session keeps serving until the client disconnects.
 async fn handle_char_select(
     st: &Arc<State>,
     tx: &mpsc::Sender<Vec<u8>>,
     sd: &CharSd,
     ip: u32,
     bytes: &[u8],
-) -> bool {
+) {
     let Ok(fixed) = P0066::decode(bytes) else {
-        return false;
+        return;
     };
     let slot = fixed.code;
     // find the char in account+slot
@@ -764,7 +753,7 @@ async fn handle_char_select(
         }
     }
     let Some((ck, mut cd)) = found else {
-        return false;
+        return;
     };
 
     // pick map server: one holding last_point.map, else first with
@@ -774,7 +763,7 @@ async fn handle_char_select(
         let mut p = P0081::default();
         p.error_code = 1; // server closed
         send_bytes(tx, enc(move |v| p.encode(v)));
-        return false;
+        return;
     };
     // a saturated map link can't answer auth requests in time:
     // refuse the select rather than queue behind it
@@ -782,7 +771,7 @@ async fn handle_char_select(
         let mut p = P0081::default();
         p.error_code = 1;
         send_bytes(tx, enc(move |v| p.encode(v)));
-        return false;
+        return;
     }
     if let Some(m) = rewrite {
         cd.last_point.map_ = FixedStr::<16>::from_str_truncate(&m);
@@ -822,7 +811,7 @@ async fn handle_char_select(
         let mut e = P0081::default();
         e.error_code = 1;
         send_bytes(tx, enc(move |v| e.encode(v)));
-        return false;
+        return;
     };
     let key = (sd.account_id, ck.char_id.0);
     let senders = st.map_senders();
@@ -869,7 +858,6 @@ async fn handle_char_select(
         // the client through 0x2afc instead, so still answer 0x0071
         st.send_pending_sel(ps);
     }
-    true
 }
 
 async fn handle_char_create(
@@ -1128,12 +1116,6 @@ async fn handle_char_delete(
     }
 }
 
-// ------------------------------------------------------------------
-// map relay (0x0072): client <-> upstream splice with hold/rejoin
-// ------------------------------------------------------------------
-
-use super::state::PlayerSession;
-
 /// Delete one character, mirroring tmwa's char_delete: leave its
 /// party (0x3824 broadcast), divorce if married, delete the row and
 /// the in-memory copies. Callers delete the account row separately.
@@ -1161,6 +1143,10 @@ pub(crate) async fn delete_character(st: &Arc<State>, cid: u32) {
         st.char_names.lock().unwrap().remove(&name);
     }
 }
+
+// ------------------------------------------------------------------
+// map relay (0x0072): client and upstream splice with hold/rejoin
+// ------------------------------------------------------------------
 
 /// How a forwarding session ended.
 enum FwdEnd {
@@ -1214,6 +1200,18 @@ fn announce(tx: &mpsc::Sender<Vec<u8>>, msg: &str) {
     send_bytes(tx, enc(move |v| p.encode(v)));
 }
 
+/// Answer a client 0x007e ping with 0x007f, carrying the last server
+/// tick plus the time elapsed since we saw it.
+fn answer_tick(rec: &std::sync::Mutex<PlayerSession>, tx: &mpsc::Sender<Vec<u8>>) {
+    let (tick, at) = {
+        let r = rec.lock().unwrap();
+        (r.server_tick, r.server_tick_at)
+    };
+    let mut rep = P007F::default();
+    rep.tick = TickT(tick + at.elapsed().as_millis() as u32);
+    send_bytes(tx, enc(move |v| rep.encode(v)));
+}
+
 /// What an upstream EOF resolves to once the map-link state is known.
 enum UpGone {
     /// The map itself is going away: hold the client.
@@ -1240,7 +1238,7 @@ async fn resolve_upstream_eof<
     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
 >(
     st: &Arc<State>,
-    rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
+    rec: &std::sync::Mutex<PlayerSession>,
     map_id: usize,
     fr: &mut PacketFramer<Rd<S>>,
     tx: &mpsc::Sender<Vec<u8>>,
@@ -1258,13 +1256,7 @@ async fn resolve_upstream_eof<
         match tokio::time::timeout(wait, fr.next()).await {
             Ok(Ok(Some(p))) => {
                 if p.id == 0x007e {
-                    let (tick, at) = {
-                        let r = rec.lock().unwrap();
-                        (r.server_tick, r.server_tick_at)
-                    };
-                    let mut rep = P007F::default();
-                    rep.tick = TickT(tick + at.elapsed().as_millis() as u32);
-                    send_bytes(tx, enc(move |v| rep.encode(v)));
+                    answer_tick(rec, tx);
                 }
                 // other held input is dropped
             }
@@ -1480,6 +1472,8 @@ async fn upstream_rejoin(
     let mut ufr = PacketFramer::new(&mut urd);
     let mut p73: Option<P0073> = None;
     let mut upstream_eof = false;
+    // bounded in count and time: expect 0x8000, maybe a stray packet
+    // or two, then 0x0073; a map that never answers hits the timeout
     for _ in 0..4 {
         match tokio::time::timeout(Duration::from_secs(5), ufr.next()).await {
             Ok(Ok(Some(p))) if p.id == 0x8000 => continue,
@@ -1509,7 +1503,7 @@ async fn upstream_rejoin(
 /// the client is gone / hold timed out.
 async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
     st: &Arc<State>,
-    rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
+    rec: &std::sync::Mutex<PlayerSession>,
     fr: &mut PacketFramer<Rd<S>>,
     tx: &mpsc::Sender<Vec<u8>>,
 ) -> Option<usize> {
@@ -1563,13 +1557,7 @@ async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Sen
         match tokio::time::timeout(wait, fr.next()).await {
             Ok(Ok(Some(p))) => {
                 if p.id == 0x007e {
-                    let (tick, at) = {
-                        let r = rec.lock().unwrap();
-                        (r.server_tick, r.server_tick_at)
-                    };
-                    let mut rep = P007F::default();
-                    rep.tick = TickT(tick + at.elapsed().as_millis() as u32);
-                    send_bytes(tx, enc(move |v| rep.encode(v)));
+                    answer_tick(rec, tx);
                 }
                 // all other packets are dropped while held
             }
@@ -1583,7 +1571,7 @@ async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Sen
 /// drain asks us to hold. Returns how it ended.
 async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
     _st: &Arc<State>,
-    rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
+    rec: &std::sync::Mutex<PlayerSession>,
     fr: &mut PacketFramer<Rd<S>>,
     tx: &mpsc::Sender<Vec<u8>>,
     mut up: tokio::net::tcp::OwnedWriteHalf,
@@ -1657,6 +1645,125 @@ async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin +
     }
 }
 
+/// Rejoin loop after a hold: retry `upstream_rejoin` on `map_id`
+/// until the hold deadline, still serving the held client meanwhile
+/// (pings answered, a client close or kick ends the session). On
+/// success the client-side leftovers (open NPC dialog, trade,
+/// storage) are closed and the new position is announced with
+/// 0x0091. Returns the new upstream halves, or None when the
+/// session is over: kick, client gone, map full, or timed out.
+async fn rejoin_until<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
+    st: &Arc<State>,
+    rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
+    fr: &mut PacketFramer<Rd<S>>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    map_id: usize,
+) -> Option<(
+    tokio::net::tcp::OwnedReadHalf,
+    tokio::net::tcp::OwnedWriteHalf,
+)> {
+    let deadline = {
+        let r = rec.lock().unwrap();
+        r.held_since.unwrap_or_else(Instant::now)
+            + Duration::from_secs(st.cfg.gate.hold_timeout_secs)
+    };
+    let mut joined = None;
+    'retry: while Instant::now() < deadline {
+        if rec.lock().unwrap().kicked {
+            return None;
+        }
+        // the attempt blocks on map-link round-trips; run it
+        // in a task so the held client is still served
+        // (pings answered, quit noticed).
+        let st2 = st.clone();
+        let rec2 = rec.clone();
+        let mut att = tokio::spawn(async move { upstream_rejoin(&st2, &rec2, map_id).await });
+        'attempt: loop {
+            tokio::select! {
+                out = &mut att => {
+                    match out {
+                        Ok(Rejoin::Joined(v0, v1, v2)) => {
+                            joined = Some((v0, v1, v2));
+                            break 'attempt;
+                        }
+                        Ok(Rejoin::Retry) => break 'attempt,
+                        Ok(Rejoin::MapFull) => {
+                            // map is back but refused us
+                            // before 0x0073 (full / limit):
+                            // tell the client, stop holding
+                            let mut p = P0081::default();
+                            p.error_code = 1;
+                            send_bytes(tx, enc(move |v| {
+                                p.encode(v)
+                            }));
+                            return None;
+                        }
+                        Err(_) => break 'attempt,
+                    }
+                }
+                p = fr.next() => {
+                    match p {
+                        Ok(Some(p)) if p.id == 0x007e => {
+                            answer_tick(rec, tx);
+                        }
+                        Ok(Some(_)) => {} // drop held input
+                        _ => {
+                            att.abort();
+                            return None;
+                        }
+                    }
+                }
+                _ = tokio::time::sleep_until(
+                    tokio::time::Instant::from_std(deadline),
+                ) => {
+                    att.abort();
+                    break 'attempt;
+                }
+            }
+            if Instant::now() >= deadline {
+                break 'attempt;
+            }
+        }
+        if joined.is_some() || Instant::now() >= deadline {
+            break 'retry;
+        }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+    let (urd, uwr, p73) = joined?;
+    rec.lock().unwrap().saw_0073 = true;
+    // client-side session cleanup before the 0x0091:
+    // close an open NPC dialog / trade / storage
+    let (npc, trade, storage) = {
+        let mut r = rec.lock().unwrap();
+        r.held = false;
+        r.map_id = map_id;
+        (r.npc_id, r.trade_open, r.storage_open)
+    };
+    if npc != 0 {
+        let mut p = P00B6::default();
+        p.block_id = BlockId(npc);
+        send_bytes(tx, enc(move |v| p.encode(v)));
+    }
+    if trade {
+        send_bytes(tx, enc(|v| P00EE::default().encode(v)));
+    }
+    if storage {
+        send_bytes(tx, enc(|v| P00F8::default().encode(v)));
+    }
+    let mut p91 = P0091::default();
+    p91.map_name = FixedStr::<16>::try_from_str(&rec.lock().unwrap().map_name)
+        .unwrap_or_default();
+    p91.x = p73.pos.x;
+    p91.y = p73.pos.y;
+    send_bytes(tx, enc(move |v| p91.encode(v)));
+    {
+        let mut r = rec.lock().unwrap();
+        r.server_tick = p73.tick.0;
+        r.server_tick_at = Instant::now();
+    }
+    Some((urd, uwr))
+}
+
 async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
     st: Arc<State>,
     tx: mpsc::Sender<Vec<u8>>,
@@ -1669,13 +1776,12 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         tracing::warn!("relay: bad 0x0072 from {ip:#x}");
         return;
     };
-    // match the char->map auth entry
+    // match the char-to-map auth entry (keyed by account_id)
     let found = {
         let a = st.auth.lock().unwrap();
-        a.values()
-            .find(|e| {
+        a.get(&fixed.account_id.0)
+            .filter(|e| {
                 e.delflag == DELFLAG_MAP
-                    && e.account_id == fixed.account_id.0
                     && e.char_id == fixed.char_id.0
                     && e.login_id1 == fixed.login_id1
                     && e.ip == ip
@@ -1783,117 +1889,12 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
                 }
             }
         } else {
-            // rejoin: fresh auth + 0x3829 + 0x3830 + 0x0072 -> 0x0073
-            let deadline = {
-                let r = rec.lock().unwrap();
-                r.held_since.unwrap_or_else(Instant::now)
-                    + Duration::from_secs(st.cfg.gate.hold_timeout_secs)
+            // rejoin: fresh auth, then the 0x3829/0x3830 and
+            // 0x0072/0x0073 handshakes
+            let Some(v) = rejoin_until(&st, &rec, &mut fr, &tx, cur_map_id).await else {
+                break 'life;
             };
-            let mut joined = None;
-            'retry: while Instant::now() < deadline {
-                if rec.lock().unwrap().kicked {
-                    break 'life;
-                }
-                // the attempt blocks on map-link round-trips; run it
-                // in a task so the held client is still served
-                // (pings answered, quit noticed).
-                let st2 = st.clone();
-                let rec2 = rec.clone();
-                let mid = cur_map_id;
-                let mut att = tokio::spawn(async move { upstream_rejoin(&st2, &rec2, mid).await });
-                'attempt: loop {
-                    tokio::select! {
-                        out = &mut att => {
-                            match out {
-                                Ok(Rejoin::Joined(v0, v1, v2)) => {
-                                    joined = Some((v0, v1, v2));
-                                    break 'attempt;
-                                }
-                                Ok(Rejoin::Retry) => break 'attempt,
-                                Ok(Rejoin::MapFull) => {
-                                    // map is back but refused us
-                                    // before 0x0073 (full / limit):
-                                    // tell the client, stop holding
-                                    let mut p = P0081::default();
-                                    p.error_code = 1;
-                                    send_bytes(&tx, enc(move |v| {
-                                        p.encode(v)
-                                    }));
-                                    break 'life;
-                                }
-                                Err(_) => break 'attempt,
-                            }
-                        }
-                        p = fr.next() => {
-                            match p {
-                                Ok(Some(p)) if p.id == 0x007e => {
-                                    let (tick, at) = {
-                                        let r = rec.lock().unwrap();
-                                        (r.server_tick, r.server_tick_at)
-                                    };
-                                    let mut rep = P007F::default();
-                                    rep.tick = TickT(tick + at.elapsed().as_millis() as u32);
-                                    send_bytes(&tx, enc(move |v| rep.encode(v)));
-                                }
-                                Ok(Some(_)) => {} // drop held input
-                                _ => {
-                                    att.abort();
-                                    break 'life;
-                                }
-                            }
-                        }
-                        _ = tokio::time::sleep_until(
-                            tokio::time::Instant::from_std(deadline),
-                        ) => {
-                            att.abort();
-                            break 'attempt;
-                        }
-                    }
-                    if Instant::now() >= deadline {
-                        break 'attempt;
-                    }
-                }
-                if joined.is_some() || Instant::now() >= deadline {
-                    break 'retry;
-                }
-                tokio::time::sleep(Duration::from_secs(1)).await;
-            }
-            match joined {
-                Some((urd, uwr, p73)) => {
-                    rec.lock().unwrap().saw_0073 = true;
-                    // client-side session cleanup before the 0x0091:
-                    // close an open NPC dialog / trade / storage
-                    let (npc, trade, storage) = {
-                        let mut r = rec.lock().unwrap();
-                        r.held = false;
-                        r.map_id = cur_map_id;
-                        (r.npc_id, r.trade_open, r.storage_open)
-                    };
-                    if npc != 0 {
-                        let mut p = P00B6::default();
-                        p.block_id = BlockId(npc);
-                        send_bytes(&tx, enc(move |v| p.encode(v)));
-                    }
-                    if trade {
-                        send_bytes(&tx, enc(|v| P00EE::default().encode(v)));
-                    }
-                    if storage {
-                        send_bytes(&tx, enc(|v| P00F8::default().encode(v)));
-                    }
-                    let mut p91 = P0091::default();
-                    p91.map_name = FixedStr::<16>::from_str_truncate(&rec.lock().unwrap().map_name);
-                    p91.x = p73.pos.x;
-                    p91.y = p73.pos.y;
-                    send_bytes(&tx, enc(move |v| p91.encode(v)));
-                    {
-                        let mut r = rec.lock().unwrap();
-                        r.server_tick = p73.tick.0;
-                        r.server_tick_at = Instant::now();
-                    }
-                    (urd, uwr)
-                }
-                None => break 'life,
-            }
+            v
         };
 
         // ---- forward ----
@@ -1966,7 +1967,6 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         .remove(&(fixed.account_id.0, fixed.char_id.0));
     drop(tx);
     let _ = wh.await;
-    let _ = pkt72;
 }
 
 #[cfg(test)]

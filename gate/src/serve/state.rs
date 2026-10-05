@@ -5,6 +5,11 @@
 #![allow(clippy::field_reassign_with_default)]
 
 //! Shared runtime state for `tmwa-gate serve`.
+//!
+//! The state/wire boundary is not strict: `send_pending_sel` builds
+//! the client's 0x0071/0x0081 here because the pending-select
+//! plumbing lives on `State`, while `client.rs` fills `pending_sel`
+//! entries directly.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;

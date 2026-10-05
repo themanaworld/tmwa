@@ -33,9 +33,14 @@ static RE_EMAIL: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(||
         )
         .unwrap()
 });
-#[cfg(test)]
 static RE_CODE: std::sync::LazyLock<regex::Regex> =
     std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9-_]{6,128}$").unwrap());
+static RE_EMAIL_OPT: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(
+        r"^(|(?:[a-zA-Z0-9.$&+=_~-]{1,34}@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,35}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,34}[a-zA-Z0-9])?){0,9}))$",
+    )
+    .unwrap()
+});
 static RE_TOKEN: std::sync::LazyLock<regex::Regex> =
     std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9-_]{20,4000}$").unwrap());
 
