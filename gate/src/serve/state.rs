@@ -619,9 +619,18 @@ impl State {
     /// not be queued): ask its session to die so the map
     /// reconnects with a clean slate. The player side is handled
     /// the same as a link drop.
-    pub fn map_kill(&self, id: usize) {
+    ///
+    /// `tx` pins the target to a link, not a slot: the kill fires
+    /// only while `id` still holds the link whose writer queue
+    /// failed. Slots are reused on re-register, so a `send_must`
+    /// that armed its wait on a dead link (or runs late from a
+    /// dead link's spawned task) must not kill the fresh link
+    /// that took its place.
+    pub fn map_kill(&self, id: usize, tx: &mpsc::Sender<Vec<u8>>) {
         let ms = self.map_servers.lock().unwrap();
-        if let Some(Some(h)) = ms.get(id) {
+        if let Some(Some(h)) = ms.get(id)
+            && (h.tx_prio.same_channel(tx) || h.tx.same_channel(tx))
+        {
             h.kill.notify_one();
         }
     }
@@ -1114,7 +1123,10 @@ impl State {
 /// acks). A full queue gets a bounded wait; a link that stays
 /// wedged is killed, since dropping the reply would leave the map
 /// waiting on an answer that never comes (map-side auth stalls for
-/// minutes). Returns false when the bytes were not queued.
+/// minutes). The kill only lands if `map_id`'s slot still holds
+/// the link `tx` belongs to (`map_kill` checks channel identity),
+/// so a stale wait can't kill a fresh link that reused the slot.
+/// Returns false when the bytes were not queued.
 pub async fn send_must(st: &State, map_id: usize, tx: &mpsc::Sender<Vec<u8>>, v: Vec<u8>) -> bool {
     use tokio::sync::mpsc::error::TrySendError;
     match tx.try_send(v) {
@@ -1124,7 +1136,7 @@ pub async fn send_must(st: &State, map_id: usize, tx: &mpsc::Sender<Vec<u8>>, v:
                 Ok(Ok(())) => true,
                 _ => {
                     tracing::warn!("map {map_id}: link wedged on a critical reply, dropping link");
-                    st.map_kill(map_id);
+                    st.map_kill(map_id, tx);
                     false
                 }
             }
@@ -1363,5 +1375,41 @@ mod tests {
         let mut rx = pending_sel(&st, map_id, [203, 0, 113, 9]);
         let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
         assert_eq!(p.ip.0, [203, 0, 113, 7]);
+    }
+
+    /// A `send_must` that fails on a dead link's channel must not
+    /// kill the fresh link that reused its slot.
+    #[tokio::test]
+    async fn send_must_stale_tx_does_not_kill_new_link() {
+        let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        // link A holds slot 0, then dies and unregisters
+        let (txa, rxa) = mpsc::channel(4);
+        let (ida, _ka) = st.map_register(txa.clone(), txa.clone(), 0, 0);
+        st.map_unregister(ida);
+        drop(rxa);
+        // a fresh link re-registers into the same slot
+        let (txb, _rxb) = mpsc::channel(4);
+        let (idb, killb) = st.map_register(txb.clone(), txb.clone(), 0, 0);
+        assert_eq!(ida, idb);
+        // A's stale prio sender fails instantly (channel closed);
+        // the kill aimed at A's slot must not land on B.
+        assert!(!send_must(&st, ida, &txa, vec![1, 2, 3]).await);
+        let fired = tokio::time::timeout(Duration::from_millis(50), killb.notified()).await;
+        assert!(fired.is_err());
+    }
+
+    /// While the slot still holds the failing link, the kill fires.
+    #[tokio::test]
+    async fn send_must_kills_owning_link() {
+        let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        let (txa, rxa) = mpsc::channel(4);
+        let (id, kill) = st.map_register(txa.clone(), txa.clone(), 0, 0);
+        // the link's writer went away but its session has not
+        // unregistered yet: the slot still holds its handle
+        drop(rxa);
+        assert!(!send_must(&st, id, &txa, vec![1]).await);
+        tokio::time::timeout(Duration::from_secs(1), kill.notified())
+            .await
+            .unwrap();
     }
 }
