@@ -66,31 +66,6 @@ pub fn md5_saltcrypt(password: &[u8], salt: &[u8]) -> String {
     s
 }
 
-/// tmwa's `pass_ok`: recompute `MD5_saltcrypt(password, salt)` from the
-/// stored `!salt$hash` string and compare.
-pub fn verify_legacy(password: &[u8], stored: &str) -> bool {
-    let Some(salt) = legacy_salt(stored) else {
-        return false;
-    };
-    let Ok(candidate) = md5_saltcrypt_strict(password, salt.as_bytes()) else {
-        return false;
-    };
-    // pass_ok compares the whole stored string; the truncated
-    // recompute only matches when `stored` is exactly the truncated
-    // form.
-    candidate == stored
-}
-
-/// md5_saltcrypt that returns None when the salt would make the
-/// result start with something other than '!' (non-matching stored
-/// strings can never compare equal anyway).
-fn md5_saltcrypt_strict(password: &[u8], salt: &[u8]) -> Result<String, ()> {
-    if salt.is_empty() {
-        return Err(());
-    }
-    Ok(md5_saltcrypt(password, salt))
-}
-
 /// The salt of a stored `!salt$hash` legacy string, matching tmwa's
 /// `pass_ok` exactly: the first character is skipped whatever it is,
 /// and the salt is everything after it up to the first '$' or the end

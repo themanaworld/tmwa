@@ -851,8 +851,11 @@ async fn e2e_all() {
     // 4. password rehash happened after the first login
     {
         let db = Db::open(&fx.db_path()).unwrap();
-        let row = db.find_account_by_name(&user).unwrap().unwrap();
-        assert_eq!(row.2, "argon2id", "expected rehash after login");
+        let row = db.account_auth_row(&user).unwrap().unwrap();
+        assert_eq!(
+            row.password_scheme, "argon2id",
+            "expected rehash after login"
+        );
         eprintln!("e2e: password rehashed to argon2id");
     }
 
@@ -1089,9 +1092,13 @@ async fn e2e_all() {
     // verify vars reached the DB
     {
         let db = Db::open(&fx.db_path()).unwrap();
-        let v2 = db.get_account_vars(acct as i64, 2).unwrap();
+        let v2 = db
+            .with_conn(|c| tmwa_gate::db::get_account_vars_conn(c, acct as i64, 2))
+            .unwrap();
         assert!(v2.iter().any(|(n, v)| n == "##e2e_var" && *v == 4242));
-        let v1 = db.get_account_vars(acct as i64, 1).unwrap();
+        let v1 = db
+            .with_conn(|c| tmwa_gate::db::get_account_vars_conn(c, acct as i64, 1))
+            .unwrap();
         assert!(v1.iter().any(|(n, v)| n == "#e2e" && *v == 77));
         eprintln!("e2e: ##/# vars + storage OK");
     }

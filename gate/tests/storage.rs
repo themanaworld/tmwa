@@ -3,9 +3,21 @@
 
 use std::fmt::Write as _;
 use tmwa_gate::auth::password::*;
-use tmwa_gate::db::Db;
+use tmwa_gate::db::{self, Db};
 use tmwa_gate::import::{self, ImportFiles};
 use tmwa_gate::proto::*;
+
+/// tmwa's `pass_ok`: recompute `MD5_saltcrypt(password, salt)` from the
+/// stored `!salt$hash` string and compare.
+fn verify_legacy(password: &[u8], stored: &str) -> bool {
+    let Some(salt) = legacy_salt(stored) else {
+        return false;
+    };
+    if salt.is_empty() {
+        return false;
+    }
+    md5_saltcrypt(password, salt.as_bytes()) == stored
+}
 
 fn fixtures_dir() -> tempfile::TempDir {
     let d = tempfile::tempdir().unwrap();
@@ -257,14 +269,21 @@ fn character_load_save() {
     cd3.hp = 999;
     cd3.inventory[7].nameid = ItemNameId(7049);
     cd3.inventory[7].amount = 3;
-    db.save_character(&key, &cd3).unwrap();
+    db.with_conn(|c| {
+        let tx = c.transaction()?;
+        db::save_character_conn(&tx, &key, &cd3)?;
+        tx.commit()
+    })
+    .unwrap();
     let (_, cd4) = db.load_character(150000).unwrap();
     assert_eq!(cd4.hp, 999);
     assert_eq!(cd4.inventory[7].nameid, ItemNameId(7049));
     assert_eq!(cd4.inventory[0].nameid, ItemNameId(522));
 
     // list
-    let list = db.list_characters(2000000).unwrap();
+    let list = db
+        .with_conn(|c| db::list_characters_conn(c, 2000000))
+        .unwrap();
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].char_id, CharId(150000));
 }
@@ -500,12 +519,19 @@ fn save_character_keeps_account_vars() {
     let db = import_to(&files);
     let (key, mut cd) = db.load_character(150000).unwrap();
     // an admin / 0x2b10 path sets a newer ## var
-    db.set_account_var(2000000, 2, "##foo", 99).unwrap();
+    db.with_conn(|c| db::set_account_vars(c, 2000000, 2, &[("##foo".to_string(), 99)]))
+        .unwrap();
     // stale CharData save (still has the imported ##foo=7 snapshot)
     cd.hp = 500;
-    db.save_character(&key, &cd).unwrap();
+    db.with_conn(|c| {
+        let tx = c.transaction()?;
+        db::save_character_conn(&tx, &key, &cd)?;
+        tx.commit()
+    })
+    .unwrap();
     assert_eq!(
-        db.get_account_vars(2000000, 2).unwrap(),
+        db.with_conn(|c| db::get_account_vars_conn(c, 2000000, 2))
+            .unwrap(),
         vec![("##bar".to_string(), -3), ("##foo".to_string(), 99)]
     );
 }

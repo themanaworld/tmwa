@@ -235,7 +235,7 @@ async fn handle(
                 head.repeat = maps
                     .iter()
                     .map(|m| P2B04Repeat {
-                        map_name: FixedStr::<16>::try_from_str(m).unwrap_or_default(),
+                        map_name: FixedStr::<16>::from_str_truncate(m),
                     })
                     .collect();
                 for (oid, ..) in &others {
@@ -252,7 +252,7 @@ async fn handle(
                 head.repeat = omaps
                     .iter()
                     .map(|m| P2B04Repeat {
-                        map_name: FixedStr::<16>::try_from_str(m).unwrap_or_default(),
+                        map_name: FixedStr::<16>::from_str_truncate(m),
                     })
                     .collect();
                 send_must(st, map_id, tx, enc(|v| head.encode(v))).await;
@@ -303,7 +303,7 @@ async fn handle(
                 return Err(());
             };
             // update cache + persist (0x2b01 does not touch
-            // account vars; see save_character). The write goes to
+            // account vars; see save_character_conn). The write goes to
             // the serialized DB writer, which batches consecutive
             // saves into one transaction.
             {
@@ -385,17 +385,9 @@ async fn handle(
             let new = fixed.new_email.to_string_lossy();
             let aid = fixed.account_id.0 as i64;
             st.queue_db_op(move |conn| {
-                let cur: Option<String> = conn
-                    .query_row("SELECT email FROM accounts WHERE id=?1", [aid], |r| {
-                        r.get::<_, Option<String>>(0)
-                    })
-                    .ok()
-                    .flatten();
+                let cur = crate::db::account_email_conn(conn, aid).unwrap_or_default();
                 if cur.unwrap_or_default() == old {
-                    let _ = conn.execute(
-                        "UPDATE accounts SET email=?2 WHERE id=?1",
-                        rusqlite::params![aid, new],
-                    );
+                    let _ = crate::db::set_email_conn(conn, aid, Some(&new));
                 }
                 super::state::DbOpResult::none()
             });
@@ -432,7 +424,7 @@ async fn handle(
                         c.data.account_reg2_num = regs.len().min(ACCOUNT_REG2_NUM) as i32;
                         for (i, (n, v)) in regs.iter().enumerate().take(ACCOUNT_REG2_NUM) {
                             c.data.account_reg2[i] = GlobalReg {
-                                str: FixedStr::<32>::try_from_str(n).unwrap_or_default(),
+                                str: FixedStr::<32>::from_str_truncate(n),
                                 value: *v as i32,
                             };
                         }
@@ -540,15 +532,14 @@ async fn handle(
                         }
                         let mut h = P3801::default();
                         h.whisper_id = CharId(cid);
-                        h.src_char_name = FixedStr::<24>::try_from_str(&from).unwrap_or_default();
-                        h.dst_char_name = FixedStr::<24>::try_from_str(&to).unwrap_or_default();
+                        h.src_char_name = FixedStr::<24>::from_str_truncate(&from);
+                        h.dst_char_name = FixedStr::<24>::from_str_truncate(&to);
                         h.repeat = p.repeat.iter().map(|r| P3801Repeat { c: r.c }).collect();
                         st.map_send(tmid, enc(move |v| h.encode(v)));
                     }
                     _ => {
                         let mut p2 = P3802::default();
-                        p2.sender_char_name =
-                            FixedStr::<24>::try_from_str(&from).unwrap_or_default();
+                        p2.sender_char_name = FixedStr::<24>::from_str_truncate(&from);
                         p2.flag = 1;
                         send_must(&st, map_id, &tx, enc(move |v| p2.encode(v))).await;
                     }
@@ -570,7 +561,7 @@ async fn handle(
                 };
                 if let Some(n) = name {
                     let mut p = P3802::default();
-                    p.sender_char_name = FixedStr::<24>::try_from_str(&n).unwrap_or_default();
+                    p.sender_char_name = FixedStr::<24>::from_str_truncate(&n);
                     p.flag = fixed.flag;
                     st.map_send(smap, enc(move |v| p.encode(v)));
                 }
@@ -606,7 +597,7 @@ async fn handle(
                         c.data.account_reg_num = regs.len().min(ACCOUNT_REG_NUM) as i32;
                         for (i, (n, v)) in regs.iter().enumerate().take(ACCOUNT_REG_NUM) {
                             c.data.account_reg[i] = GlobalReg {
-                                str: FixedStr::<32>::try_from_str(n).unwrap_or_default(),
+                                str: FixedStr::<32>::from_str_truncate(n),
                                 value: *v as i32,
                             };
                         }
@@ -628,7 +619,7 @@ async fn handle(
             h.repeat = regs
                 .iter()
                 .map(|(n, v)| P3804Repeat {
-                    name: FixedStr::<32>::try_from_str(n).unwrap_or_default(),
+                    name: FixedStr::<32>::from_str_truncate(n),
                     value: *v as u32,
                 })
                 .collect();
@@ -659,7 +650,7 @@ async fn handle(
                 p.repeat = vars
                     .iter()
                     .map(|(n, v)| P3804Repeat {
-                        name: FixedStr::<32>::try_from_str(n).unwrap_or_default(),
+                        name: FixedStr::<32>::from_str_truncate(n),
                         value: *v as u32,
                     })
                     .collect();
@@ -1141,23 +1132,7 @@ fn persist_party(st: &std::sync::Arc<State>, party_id: u32) {
         .collect();
     let (exp, item) = (p.exp as i64, p.item as i64);
     st.queue_db_op(move |conn| {
-        let _ = conn.execute(
-            "INSERT INTO parties(id,name,exp_share,item_share) VALUES(?1,?2,?3,?4)
-             ON CONFLICT(id) DO UPDATE SET name=excluded.name,
-             exp_share=excluded.exp_share,item_share=excluded.item_share",
-            rusqlite::params![party_id as i64, name, exp, item],
-        );
-        let _ = conn.execute(
-            "DELETE FROM party_members WHERE party_id=?1",
-            [party_id as i64],
-        );
-        for (a, n, l) in &members {
-            let _ = conn.execute(
-                "INSERT INTO party_members(party_id,account_id,char_name,leader)
-                 VALUES(?1,?2,?3,?4)",
-                rusqlite::params![party_id as i64, a, n, l],
-            );
-        }
+        let _ = crate::db::upsert_party_conn(conn, party_id as i64, &name, exp, item, &members);
         super::state::DbOpResult::none()
     });
 }
@@ -1236,7 +1211,7 @@ async fn party_create(
         p.account_id = fixed.account_id;
         p.error = error;
         p.party_id = PartyId(pid);
-        p.party_name = FixedStr::<24>::try_from_str(&pname).unwrap_or_default();
+        p.party_name = FixedStr::<24>::from_str_truncate(&pname);
         enc(move |v| p.encode(v))
     };
     if name.is_empty() || !name.bytes().all(|b| (32..=126).contains(&b)) {
@@ -1261,7 +1236,7 @@ async fn party_create(
         .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as u32
         + 1;
     let mut p = PartyMost::default();
-    p.name = FixedStr::<24>::try_from_str(&name).unwrap_or_default();
+    p.name = FixedStr::<24>::from_str_truncate(&name);
     p.exp = 0;
     p.item = 0;
     p.member[0] = PartyMember {
@@ -1274,11 +1249,7 @@ async fn party_create(
     };
     party_put(st, pid, p);
     st.queue_db_op(move |conn| {
-        let _ = conn.execute(
-            "INSERT INTO meta(key,value) VALUES('next_party_id',?1)
-             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-            [pid as i64],
-        );
+        let _ = crate::db::set_meta_conn(conn, "next_party_id", pid as i64);
         super::state::DbOpResult::none()
     });
     send_must(st, map_id, tx, reply(0, pid, name)).await;
@@ -1564,13 +1535,13 @@ pub fn load_parties(st: &State) {
     let mut parties = st.parties.lock().unwrap();
     for (id, name, exp, item, members) in rows {
         let mut p = PartyMost::default();
-        p.name = FixedStr::<24>::try_from_str(&name).unwrap_or_default();
+        p.name = FixedStr::<24>::from_str_truncate(&name);
         p.exp = exp as i32;
         p.item = item as i32;
         for (i, (a, n, l)) in members.iter().enumerate().take(MAX_PARTY) {
             p.member[i] = PartyMember {
                 account_id: AccountId(*a as u32),
-                name: FixedStr::<24>::try_from_str(n).unwrap_or_default(),
+                name: FixedStr::<24>::from_str_truncate(n),
                 map: FixedStr::<16>::default(),
                 leader: *l as i32,
                 online: 0,

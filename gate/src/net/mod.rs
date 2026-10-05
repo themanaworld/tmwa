@@ -31,19 +31,6 @@ pub fn map_ip(ip: IpAddr) -> Ipv4Addr {
     }
 }
 
-/// The IPv4 used for HTTP rate limiting and XFF checks. IPv6 peers
-/// are keyed by their /64 (privacy-extension-safe), represented in
-/// the same 240/4 space.
-pub fn rate_ip(ip: IpAddr) -> Ipv4Addr {
-    match ip {
-        IpAddr::V4(v) => v,
-        IpAddr::V6(v6) => match v6.to_ipv4_mapped().or_else(|| v6.to_ipv4()) {
-            Some(v4) => v4,
-            None => map_ip(ip),
-        },
-    }
-}
-
 /// IPv4 network mask, mirroring tmwa's `IP4Mask`
 /// (src/net/ip.cpp `impl_extract`). Accepted forms:
 ///

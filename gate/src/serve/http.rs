@@ -657,7 +657,8 @@ mod tests {
 
     fn test_state() -> (Arc<HttpState>, Arc<State>) {
         let db = Arc::new(crate::db::Db::open_memory().unwrap());
-        db.set_meta("next_account_id", 2000000).unwrap();
+        db.with_conn(|c| crate::db::set_meta_conn(c, "next_account_id", 2000000))
+            .unwrap();
         let st = Arc::new(State::new(Config::default(), db));
         (Arc::new(HttpState::new(st.clone())), st)
     }

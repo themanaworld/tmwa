@@ -54,11 +54,18 @@ impl<T: Wire, const N: usize> Wire for [T; N] {
         if buf.len() < Self::LEN {
             return Err(DecodeError::Short);
         }
-        let mut v: Vec<T> = Vec::with_capacity(N);
-        for i in 0..N {
-            v.push(T::wire_decode(&buf[i * T::LEN..(i + 1) * T::LEN])?);
+        // array::from_fn cannot return early, so stash the first
+        // failure and decode the rest into Nones.
+        let mut err = None;
+        let a: [Option<T>; N] = core::array::from_fn(|i| {
+            T::wire_decode(&buf[i * T::LEN..(i + 1) * T::LEN])
+                .map_err(|e| err = Some(e))
+                .ok()
+        });
+        match err {
+            Some(e) => Err(e),
+            None => Ok(a.map(|x| x.expect("decoded element"))),
         }
-        Ok(v.try_into().ok().expect("array length"))
     }
 }
 
@@ -91,6 +98,16 @@ impl<const N: usize> FixedStr<N> {
         let mut a = [0u8; N];
         a[..s.len()].copy_from_slice(s.as_bytes());
         Ok(Self(a))
+    }
+
+    /// Build from a string, truncating to `N - 1` bytes like the
+    /// `strncpy`-style copies the C++ code does everywhere. May cut a
+    /// multi-byte character mid-sequence, as upstream does.
+    pub fn from_str_truncate(s: &str) -> Self {
+        let n = s.len().min(N.saturating_sub(1));
+        let mut a = [0u8; N];
+        a[..n].copy_from_slice(&s.as_bytes()[..n]);
+        Self(a)
     }
 }
 

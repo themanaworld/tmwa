@@ -7664,10 +7664,6 @@ def _rust_inner(rust):
 class _RustEmit(_RustGen):
     '''Emits the full generated Rust file.'''
 
-    def channel_name(self, ch):
-        s = '%s_%s' % (ch.server, ch.client)
-        return ''.join(w.title() for w in s.split('_'))
-
     def struct_name(self, st):
         if st.id is not None:
             # Packet_Fixed<0x0064> -> P0064, Packet_Repeat<0x0069> ->
@@ -7824,15 +7820,8 @@ class _RustEmit(_RustGen):
                 f.write('    pub repeat: Vec<%s>,\n' % rep)
         f.write('}\n\n')
 
-        channel = self.channel_name(ch)
-        # direction is not stored per-packet in python; use call conv below
         f.write('impl %s {\n' % name)
         f.write('    pub const ID: u16 = 0x%04x;\n' % p.id)
-        f.write('    pub const CHANNEL: Channel = Channel::%s;\n' % channel)
-        d = ch.dirs.get(p.id, 'unknown')
-        if d == 'unknown':
-            d = 'ToServer'
-        f.write('    pub const DIR: Direction = Direction::%s;\n' % d)
         f.write('    pub const WIRE_LEN: usize = %d;\n\n'
                 % self.struct_wire_size(st))
 
@@ -7961,21 +7950,6 @@ class _RustEmit(_RustGen):
         f.write('    /// at `offset` holds total_length - skew.\n')
         f.write('    Variable { offset: usize, skew: usize, wide: bool },\n')
         f.write('}\n\n')
-        f.write('/// Which channel a packet travels on.\n')
-        chans = []
-        for ch, p in metas:
-            n = self.channel_name(ch)
-            if n not in chans:
-                chans.append(n)
-        f.write('#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n')
-        f.write('pub enum Channel {\n')
-        for n in chans:
-            f.write('    %s,\n' % n)
-        f.write('}\n\n')
-        f.write('/// Direction on the channel: ToServer means client to\n')
-        f.write('/// server, FromServer means server to client.\n')
-        f.write('#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n')
-        f.write('pub enum Direction { ToServer, FromServer }\n\n')
         f.write('pub fn packet_len(id: u16) -> Option<PacketLen> {\n')
         f.write('    match id {\n')
         for ch, p in metas:
@@ -7987,15 +7961,6 @@ class _RustEmit(_RustGen):
                 f.write('        0x%04x => Some(PacketLen::Variable '
                         '{ offset: %d, skew: %d, wide: %s }),\n'
                         % (p.id, k[1], k[2], 'true' if k[3] else 'false'))
-        f.write('        _ => None,\n    }\n}\n\n')
-        f.write('pub fn packet_meta(id: u16) -> Option<(Channel, Direction)> '
-                '{\n    match id {\n')
-        for ch, p in metas:
-            d = ch.dirs.get(p.id, 'ToServer')
-            if d == 'unknown':
-                d = 'ToServer'
-            f.write('        0x%04x => Some((Channel::%s, Direction::%s)),\n'
-                    % (p.id, self.channel_name(ch), d))
         f.write('        _ => None,\n    }\n}\n\n')
         f.write('pub const ALL_PACKET_IDS: &[u16] = &[\n')
         for ch, p in metas:
