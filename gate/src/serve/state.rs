@@ -225,6 +225,18 @@ impl MapHandle {
     pub fn congested(&self) -> bool {
         self.tx.capacity() < MAP_TX_LOW_WATER
     }
+
+    /// Packets queued but not yet written on the bulk channel.
+    pub fn backlog(&self) -> usize {
+        self.tx.max_capacity().saturating_sub(self.tx.capacity())
+    }
+
+    /// Same, for the critical channel.
+    pub fn backlog_prio(&self) -> usize {
+        self.tx_prio
+            .max_capacity()
+            .saturating_sub(self.tx_prio.capacity())
+    }
 }
 
 /// A client's char-stage session waiting on 0x3830.

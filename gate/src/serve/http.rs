@@ -14,12 +14,12 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use axum::Json;
-use axum::body::Body;
-use axum::extract::{ConnectInfo, Request, State as AxState};
+use axum::body::{Body, Bytes};
+use axum::extract::{ConnectInfo, DefaultBodyLimit, Request, State as AxState};
 use axum::http::{HeaderMap, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{any, get};
+use axum::routing::{get, post};
 
 use serde_json::{Value, json};
 
@@ -139,11 +139,15 @@ fn api_error(status: StatusCode, error: &str) -> Response {
 }
 
 /// POST create: validate, reject duplicates, store argon2id, mail.
+///
+/// The body is buffered raw and parsed by hand (not via the Json
+/// extractor): tmw-api accepts any content type, and a malformed
+/// body is a chargeable offence (5 min cooldown), not a rejection.
 async fn create_account(
     AxState(hs): AxState<Arc<HttpState>>,
     ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
     headers: HeaderMap,
-    body: Result<Json<Value>, serde_json::Error>,
+    body: Bytes,
 ) -> Response {
     let ip = crate::net::forwarded_for(
         peer.ip(),
@@ -162,40 +166,27 @@ async fn create_account(
     let st = &hs.st;
     let cooldown = |ms: u64| hs.rate.lock().unwrap().cooldown(route, ip, ms);
 
-    let Ok(Json(b)) = body else {
+    let Ok(b) = serde_json::from_slice::<Value>(&body) else {
         cooldown(300_000);
         return api_error(StatusCode::BAD_REQUEST, "malformed request");
     };
     let get = |k: &str| b.get(k).and_then(|v| v.as_str()).unwrap_or("");
     let (user, pass, email) = (get("username"), get("password"), get("email"));
-    let user_ok = regex::Regex::new(r"^[a-zA-Z0-9]{4,23}$")
-        .unwrap()
-        .is_match(user);
-    let pass_ok = regex::Regex::new(r"^[a-zA-Z0-9]{4,23}$")
-        .unwrap()
-        .is_match(pass);
-    let email_re = regex::Regex::new(
-        r"^$|^(?:[a-zA-Z0-9.$&+=_~-]{1,34}@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,35}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,34}[a-zA-Z0-9])?){0,9})$",
-    )
-    .unwrap();
-    let email_ok = email_re.is_match(email) && email.len() < 40;
-    if !(user_ok && pass_ok && email_ok) {
+    let ok = RE_USER.is_match(user)
+        && RE_USER.is_match(pass)
+        && RE_EMAIL_OPT.is_match(email)
+        && email.len() < 40;
+    if !ok {
         cooldown(300_000);
         return api_error(StatusCode::BAD_REQUEST, "malformed request");
     }
 
     let (user, pass, email) = (user.to_string(), pass.to_string(), email.to_string());
     let uname = user.clone();
-    let exists = super::admin::run_db(st, move |c| {
-        c.query_row(
-            "SELECT COUNT(*) FROM accounts WHERE name=?1",
-            [&uname],
-            |r| r.get::<_, i64>(0),
-        )
-        .unwrap_or(0)
-            > 0
-    })
-    .await;
+    let exists = st
+        .db
+        .blocking(move |db| db.account_id_by_name(&uname).unwrap_or(None).is_some())
+        .await;
     if exists {
         cooldown(2_000);
         return api_error(StatusCode::CONFLICT, "already exists");
@@ -214,10 +205,10 @@ async fn create_account(
     // bumped inside the insert transaction. MAX(id)+1 would diverge
     // from the counter and wedge every create on the PK.
     let uname = user.clone();
-    let created = super::admin::run_db(st, move |c| {
-        crate::db::Db::create_account(c, &uname, &h, &email2)
-    })
-    .await;
+    let created = st
+        .db
+        .blocking_conn(move |c| crate::db::Db::create_account(c, &uname, &h, &email2))
+        .await;
     match created {
         Ok(_id) => {}
         // raced another create of the same name
@@ -252,7 +243,7 @@ async fn reset_password(
     AxState(hs): AxState<Arc<HttpState>>,
     ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
     headers: HeaderMap,
-    body: Result<Json<Value>, serde_json::Error>,
+    body: Bytes,
 ) -> Response {
     let ip = crate::net::forwarded_for(
         peer.ip(),
@@ -271,7 +262,7 @@ async fn reset_password(
     let st = &hs.st;
     let cooldown = |ms: u64| hs.rate.lock().unwrap().cooldown(route, ip, ms);
 
-    let Ok(Json(b)) = body else {
+    let Ok(b) = serde_json::from_slice::<Value>(&body) else {
         cooldown(300_000);
         return api_error(StatusCode::BAD_REQUEST, "malformed request");
     };
@@ -286,20 +277,14 @@ async fn reset_password(
             return api_error(StatusCode::BAD_REQUEST, "malformed request");
         }
         let em = email.clone();
-        let accounts: Vec<(i64, String, String)> = super::admin::run_db(st, move |c| {
+        let accounts: Vec<(i64, String)> = st.db.blocking_conn(move |c| {
             let mut q = c
-                .prepare("SELECT id,name,email FROM accounts WHERE email=?1")
+                .prepare("SELECT id,name FROM accounts WHERE email=?1")
                 .unwrap();
-            q.query_map([&em], |r| {
-                Ok((
-                    r.get::<_, i64>(0)?,
-                    r.get::<_, String>(1)?,
-                    r.get::<_, Option<String>>(2)?.unwrap_or_default(),
-                ))
-            })
-            .unwrap()
-            .flatten()
-            .collect()
+            q.query_map([&em], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))
+                .unwrap()
+                .flatten()
+                .collect()
         })
         .await;
         if accounts.is_empty() {
@@ -308,7 +293,7 @@ async fn reset_password(
         }
         // one pending reset per email: any account row for it
         let em2 = email.clone();
-        let pending: bool = super::admin::run_db(st, move |c| {
+        let pending: bool = st.db.blocking_conn(move |c| {
             c.query_row(
                 "SELECT COUNT(*) FROM password_resets r JOIN accounts a ON a.id=r.account_id                  WHERE a.email=?1 AND r.expires_at > strftime('%s','now')*1000",
                 [&em2],
@@ -333,7 +318,7 @@ async fn reset_password(
         let code2 = code.clone();
         let exp = chrono::Utc::now().timestamp_millis() + 3_600_000;
         let acct_ids: Vec<i64> = accounts.iter().map(|a| a.0).collect();
-        super::admin::run_db(st, move |c| {
+        st.db.blocking_conn(move |c| {
             for aid in &acct_ids {
                 c.execute(
                     "INSERT INTO password_resets (code,account_id,expires_at) VALUES (?1,?2,?3)",
@@ -368,38 +353,29 @@ async fn reset_password(
     }
 
     // stage 2: username + password + code
-    let code_ok = regex::Regex::new(r"^[a-zA-Z0-9-_]{6,128}$")
-        .unwrap()
-        .is_match(&code);
-    if !(RE_USER.is_match(&user)
-        && regex::Regex::new(r"^[a-zA-Z0-9]{4,23}$")
-            .unwrap()
-            .is_match(&pass)
-        && code_ok)
-    {
+    if !(RE_USER.is_match(&user) && RE_USER.is_match(&pass) && RE_CODE.is_match(&code)) {
         cooldown(300_000);
         return api_error(StatusCode::BAD_REQUEST, "malformed request");
     }
     let code2 = code.clone();
-    let rows: Vec<(i64, i64, String)> =
-        super::admin::run_db(st, move |c| {
-            let mut q = c
-                .prepare(
-                    "SELECT r.account_id, r.expires_at, COALESCE(a.email,'')                      FROM password_resets r JOIN accounts a ON a.id=r.account_id                      WHERE r.code=?1",
-                )
-                .unwrap();
-            q.query_map([&code2], |r| {
-                Ok((
-                    r.get::<_, i64>(0)?,
-                    r.get::<_, i64>(1)?,
-                    r.get::<_, String>(2)?,
-                ))
-            })
-            .unwrap()
-            .flatten()
-            .collect()
+    let rows: Vec<(i64, i64, String)> = st.db.blocking_conn(move |c| {
+        let mut q = c
+            .prepare(
+                "SELECT r.account_id, r.expires_at, COALESCE(a.email,'')                      FROM password_resets r JOIN accounts a ON a.id=r.account_id                      WHERE r.code=?1",
+            )
+            .unwrap();
+        q.query_map([&code2], |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, i64>(1)?,
+                r.get::<_, String>(2)?,
+            ))
         })
-        .await;
+        .unwrap()
+        .flatten()
+        .collect()
+    })
+    .await;
     let Some((_aid0, exp, r_email)) = rows.first().cloned() else {
         cooldown(300_000);
         return api_error(StatusCode::REQUEST_TIMEOUT, "request expired");
@@ -407,7 +383,7 @@ async fn reset_password(
     if exp < chrono::Utc::now().timestamp_millis() {
         cooldown(300_000);
         let code3 = code.clone();
-        super::admin::run_db(st, move |c| {
+        st.db.blocking_conn(move |c| {
             let _ = c.execute("DELETE FROM password_resets WHERE code=?1", [&code3]);
         })
         .await;
@@ -415,24 +391,14 @@ async fn reset_password(
     }
     // the account must be one of the code's accounts
     let u = user.clone();
-    let acct_ids2: Vec<i64> = rows.iter().map(|r| r.0).collect();
-    let found: Option<i64> = super::admin::run_db(st, move |c| {
-        acct_ids2
-            .iter()
-            .find(|id| {
-                c.query_row("SELECT name FROM accounts WHERE id=?1", [*id], |r| {
-                    r.get::<_, String>(0)
-                })
-                .map(|n| n == u)
-                .unwrap_or(false)
-            })
-            .copied()
-    })
-    .await;
-    let Some(acct_id) = found else {
+    let named_id: Option<i64> = st
+        .db
+        .blocking(move |db| db.account_id_by_name(&u).unwrap_or(None))
+        .await;
+    let Some(acct_id) = named_id.filter(|id| rows.iter().any(|r| r.0 == *id)) else {
         cooldown(300_000);
         let code3 = code.clone();
-        super::admin::run_db(st, move |c| {
+        st.db.blocking_conn(move |c| {
             let _ = c.execute("DELETE FROM password_resets WHERE code=?1", [&code3]);
         })
         .await;
@@ -441,13 +407,9 @@ async fn reset_password(
     let Ok(h) = crate::auth::password::hash_argon2id(pass.as_bytes()) else {
         return api_error(StatusCode::INTERNAL_SERVER_ERROR, "hashing failed");
     };
-    super::admin::run_db(st, move |c| {
-        c.execute(
-            "UPDATE accounts SET password_hash=?1, password_scheme='argon2id', legacy_salt=NULL WHERE id=?2",
-            rusqlite::params![h, acct_id],
-        )
-        .unwrap();
-        let _ = c.execute("DELETE FROM password_resets WHERE code=?1", [&code]);
+    st.db.blocking(move |db| {
+        let _ = db.set_password(acct_id, &h, "argon2id", None);
+        let _ = db.with_conn(|c| c.execute("DELETE FROM password_resets WHERE code=?1", [&code]));
     })
     .await;
     cooldown(299_000);
@@ -469,7 +431,7 @@ pub(crate) async fn prune(st: &Arc<State>) {
     let now_ms = chrono::Utc::now().timestamp_millis();
     // (RateState lives in HttpState which isn't reachable from here;
     // prune the DB side here and bound the maps inside the handlers.)
-    super::admin::run_db(st, move |c| {
+    st.db.blocking_conn(move |c| {
         let n = c
             .execute(
                 "DELETE FROM password_resets WHERE expires_at < ?1",
@@ -606,34 +568,21 @@ async fn captcha(
 pub fn router(hs: Arc<HttpState>) -> axum::Router {
     let base = hs.st.cfg.http.base.clone();
     let account = axum::Router::new()
-        .route(&format!("{base}/account"), any(account_dispatch))
-        .route_layer(axum::middleware::from_fn_with_state(hs.clone(), captcha));
+        .route(
+            &format!("{base}/account"),
+            post(create_account).put(reset_password),
+        )
+        // same 1 MB cap the old manual to_bytes used; other methods
+        // get tmw-api's 404, not axum's 405
+        .route_layer(DefaultBodyLimit::max(1 << 20))
+        .route_layer(axum::middleware::from_fn_with_state(hs.clone(), captcha))
+        .method_not_allowed_fallback(|| async { jserr(StatusCode::NOT_FOUND, "not found") });
     axum::Router::new()
         .route(&format!("{base}/server"), get(server))
         .merge(account)
         .route(&hs.st.cfg.http.ws_path, get(super::ws::handle_ws))
         .fallback(|| async { jserr(StatusCode::NOT_FOUND, "not found") })
         .with_state(hs)
-}
-
-async fn account_dispatch(
-    hs: AxState<Arc<HttpState>>,
-    peer: ConnectInfo<std::net::SocketAddr>,
-    headers: HeaderMap,
-    req: Request<Body>,
-) -> Response {
-    let m = req.method().clone();
-    let (_parts, body) = req.into_parts();
-    let body = axum::body::to_bytes(body, 1 << 20)
-        .await
-        .unwrap_or_default();
-    let json = serde_json::from_slice::<Value>(&body).map(Json);
-    match m.as_str() {
-        "POST" => create_account(hs, peer, headers, json).await,
-        "PUT" => reset_password(hs, peer, headers, json).await,
-        _ => jserr(StatusCode::NOT_FOUND, "not found"),
-    }
-    .into_response()
 }
 
 /// Run the HTTP listener; installs the WS handler route too.
@@ -662,10 +611,10 @@ mod tests {
         (Arc::new(HttpState::new(st.clone())), st)
     }
 
-    fn acct_body(user: &str, pass: &str, email: &str) -> Result<Json<Value>, serde_json::Error> {
-        Ok(Json(
-            json!({"username": user, "password": pass, "email": email}),
-        ))
+    fn acct_body(user: &str, pass: &str, email: &str) -> Bytes {
+        serde_json::to_vec(&json!({"username": user, "password": pass, "email": email}))
+            .unwrap()
+            .into()
     }
 
     /// Account creation must draw from the next_account_id meta

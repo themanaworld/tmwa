@@ -188,6 +188,47 @@ impl Db {
             .await
             .expect("blocking db task panicked")
     }
+
+    /// Run `f` on a blocking thread with the locked `&mut
+    /// Connection`, for the admin/http paths that compose several
+    /// ad-hoc statements in one section.
+    pub async fn blocking_conn<F, R>(self: &std::sync::Arc<Self>, f: F) -> R
+    where
+        F: FnOnce(&mut Connection) -> R + Send + 'static,
+        R: Send + 'static,
+    {
+        let db = std::sync::Arc::clone(self);
+        tokio::task::spawn_blocking(move || f(&mut db.lock()))
+            .await
+            .expect("blocking db task panicked")
+    }
+}
+
+/// Account id by exact name (`&Connection` variant so admin
+/// commands can compose it inside one locked section).
+pub(crate) fn account_id_by_name_conn(
+    conn: &Connection,
+    name: &str,
+) -> rusqlite::Result<Option<i64>> {
+    conn.query_row("SELECT id FROM accounts WHERE name=?1", [name], |r| r.get(0))
+        .optional()
+}
+
+/// Account name by id.
+pub(crate) fn account_name_by_id_conn(
+    conn: &Connection,
+    id: i64,
+) -> rusqlite::Result<Option<String>> {
+    conn.query_row("SELECT name FROM accounts WHERE id=?1", [id], |r| r.get(0))
+        .optional()
+}
+
+/// An account with this id exists.
+pub(crate) fn account_exists_conn(conn: &Connection, id: i64) -> rusqlite::Result<bool> {
+    Ok(conn
+        .query_row("SELECT 1 FROM accounts WHERE id=?1", [id], |_| Ok(()))
+        .optional()?
+        .is_some())
 }
 
 impl Db {
@@ -336,11 +377,19 @@ impl Db {
     /// Account id by exact name.
     pub fn account_id_by_name(&self, name: &str) -> Result<Option<i64>> {
         let conn = self.lock();
-        Ok(conn
-            .query_row("SELECT id FROM accounts WHERE name=?1", [name], |r| {
-                r.get(0)
-            })
-            .optional()?)
+        Ok(account_id_by_name_conn(&conn, name)?)
+    }
+
+    /// Account name by id.
+    pub fn account_name_by_id(&self, id: i64) -> Result<Option<String>> {
+        let conn = self.lock();
+        Ok(account_name_by_id_conn(&conn, id)?)
+    }
+
+    /// An account with this id exists.
+    pub fn account_exists(&self, id: i64) -> Result<bool> {
+        let conn = self.lock();
+        Ok(account_exists_conn(&conn, id)?)
     }
 
     /// Full account row for the login path.
@@ -428,6 +477,15 @@ impl Db {
         Ok(())
     }
 
+    pub fn set_memo(&self, account_id: i64, memo: &str) -> Result<()> {
+        let conn = self.lock();
+        conn.execute(
+            "UPDATE accounts SET memo=?2 WHERE id=?1",
+            params![account_id, memo],
+        )?;
+        Ok(())
+    }
+
     pub fn set_account_state(&self, account_id: i64, state: i64) -> Result<()> {
         let conn = self.lock();
         conn.execute(
@@ -435,6 +493,34 @@ impl Db {
             params![account_id, state],
         )?;
         Ok(())
+    }
+
+    /// Set state and the login error message together (the admin
+    /// `state` command carries an optional error_message for state 7).
+    pub fn set_account_state_msg(
+        &self,
+        account_id: i64,
+        state: i64,
+        error_message: &str,
+    ) -> Result<()> {
+        let conn = self.lock();
+        conn.execute(
+            "UPDATE accounts SET state=?2, error_message=?3 WHERE id=?1",
+            params![account_id, state, error_message],
+        )?;
+        Ok(())
+    }
+
+    /// Current ban_until (unix seconds), if the account exists.
+    pub fn account_ban_until(&self, account_id: i64) -> Result<Option<i64>> {
+        let conn = self.lock();
+        Ok(conn
+            .query_row(
+                "SELECT ban_until FROM accounts WHERE id=?1",
+                [account_id],
+                |r| r.get(0),
+            )
+            .optional()?)
     }
 
     /// ban_until (unix seconds) or unblock when 0.
