@@ -187,17 +187,29 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
     }
 }
 
-/// Load gm_account.txt ("id level" per line, `//` comments) and swap
-/// it in atomically; skipped when the mtime is unchanged.
-pub fn reload_gm(st: &State) {
+/// Push the current `st.gm` map to every connected map server
+/// (0x2b15).
+pub fn send_gm_list(st: &State) {
+    let gm = st.gm.lock().unwrap();
+    let repeat: Vec<crate::proto::P2B15Repeat> = gm
+        .iter()
+        .map(|(&id, &lv)| crate::proto::P2B15Repeat {
+            account_id: crate::proto::AccountId(id),
+            gm_level: crate::proto::types::GmLevel(lv),
+        })
+        .collect();
+    drop(gm);
+    let p = crate::proto::P2B15 { repeat };
+    st.map_broadcast(&state::enc(|v| p.encode(v)));
+}
+
+/// Parse gm_account.txt ("id level" per line, `//` comments), swap
+/// it in atomically and push it to the map servers. Returns the GM
+/// count. Unlike `reload_gm` this always re-reads the file; the
+/// admin `reloadgm` command uses it.
+pub fn load_gm_file(st: &State) -> usize {
     let path = &st.cfg.gate.gm_account_file;
     let mtime = std::fs::metadata(path).and_then(|m| m.modified()).ok();
-    {
-        let cur = st.gm_mtime.lock().unwrap();
-        if *cur == mtime && cur.is_some() {
-            return;
-        }
-    }
     let mut map = std::collections::HashMap::new();
     match std::fs::read_to_string(path) {
         Ok(text) => {
@@ -222,19 +234,25 @@ pub fn reload_gm(st: &State) {
             tracing::warn!("gate: cannot read {}: {e}", path.display());
         }
     }
+    let n = map.len();
     *st.gm.lock().unwrap() = map;
     *st.gm_mtime.lock().unwrap() = mtime;
-    // push the new list to connected map servers (0x2b15)
-    let gm = st.gm.lock().unwrap();
-    let repeat: Vec<crate::proto::P2B15Repeat> = gm
-        .iter()
-        .map(|(&id, &lv)| crate::proto::P2B15Repeat {
-            account_id: crate::proto::AccountId(id),
-            gm_level: crate::proto::types::GmLevel(lv),
-        })
-        .collect();
-    let p = crate::proto::P2B15 { repeat };
-    st.map_broadcast(&state::enc(|v| p.encode(v)));
+    send_gm_list(st);
+    n
+}
+
+/// Reload gm_account.txt when its mtime changed (startup + periodic
+/// check); the admin command calls `load_gm_file` directly instead.
+pub fn reload_gm(st: &State) {
+    let path = &st.cfg.gate.gm_account_file;
+    let mtime = std::fs::metadata(path).and_then(|m| m.modified()).ok();
+    {
+        let cur = st.gm_mtime.lock().unwrap();
+        if *cur == mtime && cur.is_some() {
+            return;
+        }
+    }
+    load_gm_file(st);
 }
 
 pub fn is_gm(st: &State, account_id: u32) -> u32 {

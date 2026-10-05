@@ -14,10 +14,8 @@ use tokio::net::UnixListener;
 
 use serde_json::{Value, json};
 
-use crate::proto::types::{FixedStr, GmLevel, Ip4Address};
-use crate::proto::{
-    AccountId, P2B04, P2B04Repeat, P2B11Repeat, P2B15Repeat, P382A, P3800Repeat, P3804Repeat,
-};
+use crate::proto::types::{FixedStr, Ip4Address};
+use crate::proto::{AccountId, P2B04, P2B04Repeat, P2B11Repeat, P382A, P3800Repeat, P3804Repeat};
 
 use super::state::{State, enc, send_must};
 
@@ -99,16 +97,7 @@ fn err_text(text: impl Into<String>) -> Value {
     json!({"ok": false, "error": text.into()})
 }
 
-/// Look up an account id by name (blocking; call via spawn_blocking).
-fn acct_id_by_id(conn: &rusqlite::Connection, id: i64) -> Option<i64> {
-    conn.query_row(
-        "SELECT id FROM accounts WHERE id=?1",
-        rusqlite::params![id],
-        |r| r.get(0),
-    )
-    .ok()
-}
-
+/// Account id by exact name, inside a locked conn section.
 fn acct_id_by_name(conn: &rusqlite::Connection, name: &str) -> Option<i64> {
     crate::db::account_id_by_name_conn(conn, name)
         .ok()
@@ -116,6 +105,26 @@ fn acct_id_by_name(conn: &rusqlite::Connection, name: &str) -> Option<i64> {
 }
 fn acct_name_by_id(conn: &rusqlite::Connection, id: i64) -> Option<String> {
     crate::db::account_name_by_id_conn(conn, id).ok().flatten()
+}
+
+fn acct_exists(conn: &rusqlite::Connection, id: i64) -> bool {
+    crate::db::account_exists_conn(conn, id).unwrap_or(false)
+}
+
+/// Flag each session kicked and wake any hold signal; returns the
+/// kicked char ids (so callers can drop `online` entries, which are
+/// keyed by char_id).
+fn kick_sessions(recs: &[Arc<std::sync::Mutex<super::state::PlayerSession>>]) -> Vec<u32> {
+    let mut gone = Vec::with_capacity(recs.len());
+    for rec in recs {
+        let mut r = rec.lock().unwrap();
+        r.kicked = true;
+        if let Some(sig) = &r.hold_signal {
+            sig.notify_one();
+        }
+        gone.push(r.char_id);
+    }
+    gone
 }
 
 /// Kick (disconnect) a player: with a char id, match exactly that
@@ -140,11 +149,7 @@ fn kick_player(st: &Arc<State>, account_id: u32, char_id: u32) {
             .cloned()
     };
     if let Some(rec) = rec {
-        let mut r = rec.lock().unwrap();
-        r.kicked = true;
-        if let Some(sig) = &r.hold_signal {
-            sig.notify_one();
-        }
+        kick_sessions(&[rec]);
     }
 }
 
@@ -162,28 +167,6 @@ fn state_label(state: i64) -> &'static str {
         100 => "This ID has been totally erased",
         _ => "No MSG",
     }
-}
-
-/// Format one account row the way ladmin's list/search prints it.
-fn list_line(r: &rusqlite::Row) -> rusqlite::Result<String> {
-    let id: i64 = r.get(0)?;
-    let name: String = r.get(1)?;
-    let gm: i64 = r.get(2)?;
-    let count: i64 = r.get(3)?;
-    let state: i64 = r.get(4)?;
-    let gm_s = if gm > 0 {
-        format!("{gm:2} ")
-    } else {
-        "   ".to_string()
-    };
-    Ok(format!(
-        "{:10} {}{:<24} {:6} {}\n",
-        id,
-        gm_s,
-        name,
-        count,
-        state_label(state)
-    ) + "\n")
 }
 
 pub async fn dispatch(
@@ -231,7 +214,7 @@ pub async fn dispatch(
         "add" => add_cmd(st, &args, password_stdin).await,
         "gm" => gm_cmd(st, &args).await,
         "reloadgm" | "reloadGM" => {
-            let n = reload_gm(st);
+            let n = super::load_gm_file(st);
             ok_text(format!("  {n} GM account(s) loaded.\n"))
         }
         "kami" | "kamib" => kami(st, cmd, &args),
@@ -241,7 +224,6 @@ pub async fn dispatch(
         "delaccreg2" | "del" | "d" => delaccreg(st, &args).await,
         "version" => ok_text(format!("tmwa-gate {}\n", env!("CARGO_PKG_VERSION"))),
         "help" | "?" => help(),
-        "quit" | "exit" | "end" | "q" => ok_text("Bye.\n"),
         "" => err_text("no command"),
         _ => err_text(format!("Unknown command [{cmd}].")),
     }
@@ -262,11 +244,8 @@ fn status(st: &Arc<State>) -> Value {
                     "users": h.users,
                     "draining": h.draining,
                     // writer-queue backlog, bulk and critical
-                    "out_queue": h.tx.max_capacity().saturating_sub(h.tx.capacity()),
-                    "out_queue_prio": h
-                        .tx_prio
-                        .max_capacity()
-                        .saturating_sub(h.tx_prio.capacity()),
+                    "out_queue": h.backlog(),
+                    "out_queue_prio": h.backlog_prio(),
                 })
             })
             .collect()
@@ -321,29 +300,12 @@ async fn kick_cmd(st: &Arc<State>, args: &[String]) -> Value {
     let Some(name) = args.first() else {
         return err_text("usage: kick <char name>");
     };
-    let db = st.db.clone();
-    let name2 = name.clone();
-    let name = name.clone();
-    let ids = tokio::task::spawn_blocking(move || {
-        db.with_conn(|c| {
-            Ok(c.query_row(
-                "SELECT id, account_id FROM characters WHERE name=?1",
-                [&name],
-                |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?)),
-            )
-            .ok())
-        })
-    })
-    .await
-    .unwrap()
-    .unwrap_or(None);
-    let _ = name;
-    match ids {
-        Some((cid, acct)) => {
-            kick_player(st, acct as u32, cid as u32);
-            ok_text(format!("Character [{name2}] kicked.\n"))
+    match st.char_by_name(name).await {
+        Some(cid) => {
+            kick_player(st, 0, cid);
+            ok_text(format!("Character [{name}] kicked.\n"))
         }
-        None => err_text(format!("Character [{name2}] not found.")),
+        None => err_text(format!("Character [{name}] not found.")),
     }
 }
 
@@ -369,18 +331,18 @@ async fn kick_cmd(st: &Arc<State>, args: &[String]) -> Value {
 /// link's 0x2afc), how many are still there, and how many left
 /// without landing (logged out or failed).
 async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
+    // One snapshot drives the whole drain: the map set can't
+    // meaningfully change mid-reply anyway (new registrations go
+    // through `drain`/`undebug` paths of their own).
+    let infos = st.map_infos();
     let targets: Vec<usize> = match which {
         Some(id) => {
-            let exists = {
-                let ms = st.map_servers.lock().unwrap();
-                matches!(ms.get(id), Some(Some(_)))
-            };
-            if !exists {
+            if !infos.iter().any(|(i, ..)| *i == id) {
                 return err_text(format!("no map server {id} connected"));
             }
             vec![id]
         }
-        None => st.map_infos().iter().map(|(id, ..)| *id).collect(),
+        None => infos.iter().map(|(id, ..)| *id).collect(),
     };
     for id in &targets {
         st.drain_track_begin(*id, st.online_on(*id));
@@ -388,27 +350,20 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
     }
     let mut stragglers: Vec<String> = Vec::new();
     for id in &targets {
-        let (self_addr, maps) = {
-            let ms = st.map_servers.lock().unwrap();
-            match ms.get(*id).and_then(|s| s.as_ref()) {
-                Some(h) => ((h.ip, h.port), h.maps.clone()),
-                None => continue,
-            }
+        let Some((_, self_ip, self_port, maps, _, _)) = infos.iter().find(|(i, ..)| i == id)
+        else {
+            continue;
         };
+        let self_addr = (*self_ip, *self_port);
         let mut kept = 0;
-        for name in &maps {
+        for name in maps {
             // a non-draining server that also serves this name wins
             // the name outright (the announcement below overwrites
             // every server's remote/shadow entry)
-            let winner = {
-                let ms = st.map_servers.lock().unwrap();
-                ms.iter().enumerate().find_map(|(i, s)| {
-                    s.as_ref().and_then(|h| {
-                        (!h.draining && !targets.contains(&i) && h.maps.iter().any(|m| m == name))
-                            .then_some((h.ip, h.port))
-                    })
-                })
-            };
+            let winner = infos.iter().find_map(|(i, ip, port, hmaps, draining, _)| {
+                (!*draining && !targets.contains(i) && hmaps.iter().any(|m| m == name))
+                    .then_some((*ip, *port))
+            });
             let (ip, port) = match winner {
                 Some(w) => w,
                 None => {
@@ -542,24 +497,12 @@ fn getcount(st: &Arc<State>) -> Value {
     ))
 }
 
-pub async fn run_db<F, R>(st: &Arc<State>, f: F) -> R
-where
-    F: FnOnce(&mut rusqlite::Connection) -> R + Send + 'static,
-    R: Send + 'static,
-{
-    let db = st.db.clone();
-    tokio::task::spawn_blocking(move || db.with_conn(|c| Ok(f(c))))
-        .await
-        .expect("db task")
-        .expect("db")
-}
-
 async fn who(st: &Arc<State>, args: &[String]) -> Value {
     let Some(v) = args.first() else {
         return err_text("usage: who <account id|name>");
     };
     let v = v.clone();
-    run_db(st, move |c| {
+    st.db.blocking_conn(move |c| {
         let id: i64 = if let Ok(id) = v.parse::<i64>() {
             id
         } else if let Some(id) = acct_id_by_name(c, &v) {
@@ -619,7 +562,7 @@ async fn id_cmd(st: &Arc<State>, args: &[String]) -> Value {
         return err_text("usage: id <account name>");
     };
     let v = v.clone();
-    run_db(st, move |c| match acct_id_by_name(c, &v) {
+    st.db.blocking_conn(move |c| match acct_id_by_name(c, &v) {
         Some(id) => ok_text(format!("{id}\n")),
         None => err_text(format!("Account [{v}] not found.")),
     })
@@ -634,7 +577,7 @@ async fn name_cmd(st: &Arc<State>, args: &[String]) -> Value {
         Ok(id) => id,
         Err(_) => return err_text("usage: name <account id>"),
     };
-    run_db(st, move |c| match acct_name_by_id(c, id) {
+    st.db.blocking_conn(move |c| match acct_name_by_id(c, id) {
         Some(n) => ok_text(format!("{n}\n")),
         None => err_text(format!("Account id [{id}] not found.")),
     })
@@ -662,89 +605,125 @@ async fn list_cmd(st: &Arc<State>, cmd: &str, args: &[String]) -> Value {
     let is_regex = args.iter().any(|a| a == "-r");
     let cmd = cmd.to_string();
     let gm_map = st.gm.lock().unwrap().clone();
-    run_db(st, move |c| {
+    st.db.blocking_conn(move |c| {
         let mut q = c
             .prepare(
                 "SELECT a.id,a.name,a.login_count,a.state \
                  FROM accounts a WHERE a.id>=?1 AND a.id<=?2 ORDER BY a.id LIMIT 2000",
             )
             .unwrap();
-        let rows: Vec<String> = q
+        // (id, name, gm level, login count, state)
+        let rows: Vec<(i64, String, i64, i64, i64)> = q
             .query_map([start, end], |r| {
                 let id: i64 = r.get(0)?;
                 let name: String = r.get(1)?;
                 let count: i64 = r.get(2)?;
                 let state: i64 = r.get(3)?;
                 let gm = *gm_map.get(&(id as u32)).unwrap_or(&0) as i64;
-                let gm_s = if gm > 0 {
-                    format!("{gm:2} ")
-                } else {
-                    "   ".to_string()
-                };
-                Ok(format!(
-                    "{:10} {}{:<24} {:6} {}\n",
-                    id,
-                    gm_s,
-                    name,
-                    count,
-                    state_label(state)
-                ))
+                Ok((id, name, gm, count, state))
             })
             .unwrap()
             .flatten()
             .collect();
-        let rows: Vec<String> = rows
-            .into_iter()
-            .filter(|l| match cmd.as_str() {
-                "listban" => !l.contains("Account OK"),
-                "listgm" => {
-                    // gm flag renders as a number column
-                    l.split_whitespace().nth(1) != Some("") && {
-                        let mut it = l.split_whitespace();
-                        it.next();
-                        it.next().and_then(|s| s.parse::<i64>().ok()).is_some()
-                    }
-                }
-                "listok" => l.contains("Account OK"),
+        // search filters on the name; -r treats the expression as a
+        // regex (an invalid pattern falls back to a substring match)
+        let re = if is_regex && !filter.is_empty() {
+            regex::Regex::new(&filter).ok()
+        } else {
+            None
+        };
+        let needle = filter.to_lowercase();
+        let mut out = String::new();
+        let mut n = 0;
+        for (id, name, gm, count, state) in &rows {
+            let keep = match cmd.as_str() {
+                "listban" => *state != 0,
+                "listgm" => *gm > 0,
+                "listok" => *state == 0,
                 "search" => {
                     if filter.is_empty() {
                         true
-                    } else if is_regex {
-                        // SQLite has no regex; port a small subset by
-                        // using LIKE on the stripped pattern
-                        l.to_lowercase().contains(&filter.to_lowercase())
+                    } else if let Some(re) = &re {
+                        re.is_match(name)
                     } else {
-                        l.to_lowercase().contains(&filter.to_lowercase())
+                        name.to_lowercase().contains(&needle)
                     }
                 }
                 _ => true,
-            })
-            .collect();
-        if rows.is_empty() {
+            };
+            if !keep {
+                continue;
+            }
+            n += 1;
+            let gm_s = if *gm > 0 {
+                format!("{gm:2} ")
+            } else {
+                "   ".to_string()
+            };
+            out += &format!(
+                "{:10} {}{:<24} {:6} {}\n",
+                id,
+                gm_s,
+                name,
+                count,
+                state_label(*state)
+            );
+        }
+        if n == 0 {
             return ok_text("No account found.\n".to_string());
         }
-        let mut out = rows.concat();
-        out += &format!("{} account(s) found.\n", rows.len());
+        out += &format!("{n} account(s) found.\n");
         ok_text(out)
     })
     .await
+}
+
+/// The shared shape of the account-mutation commands: resolve the
+/// name, run `update` on the account row, optionally kick the
+/// account's sessions, print `Account [name][id: N] <tail>`.
+async fn mutate_account(
+    st: &Arc<State>,
+    name: &str,
+    kick: bool,
+    update: impl FnOnce(&crate::db::Db, i64) -> crate::db::Result<()> + Send + 'static,
+    tail: String,
+) -> Value {
+    let name = name.to_string();
+    let namec = name.clone();
+    let r = st
+        .db
+        .blocking(move |db| -> crate::db::Result<Option<i64>> {
+            let Some(id) = db.account_id_by_name(&namec)? else {
+                return Ok(None);
+            };
+            update(db, id)?;
+            Ok(Some(id))
+        })
+        .await;
+    match r {
+        Ok(Some(id)) => {
+            if kick {
+                kick_account(st, id as u32);
+            }
+            ok_text(format!("Account [{name}][id: {id}] {tail}\n"))
+        }
+        Ok(None) => err_text(format!("Account [{name}] not found.")),
+        Err(e) => err_text(format!("db: {e}")),
+    }
 }
 
 async fn memo(st: &Arc<State>, args: &[String]) -> Value {
     if args.len() < 2 {
         return err_text("usage: memo <account name> <memo>");
     }
-    let name = args[0].clone();
     let memo = args[1..].join(" ");
-    run_db(st, move |c| match acct_id_by_name(c, &name) {
-        Some(id) => {
-            crate::db::set_memo_conn(c, id, &memo).unwrap();
-            ok_text(format!(
-                "Account [{name}][id: {id}] memo successfully changed.\n"
-            ))
-        }
-        None => err_text(format!("Account [{name}] not found.")),
-    })
+    mutate_account(
+        st,
+        &args[0],
+        false,
+        move |db, id| db.set_memo(id, &memo),
+        "memo successfully changed.".to_string(),
+    )
     .await
 }
 
@@ -752,17 +731,14 @@ async fn email(st: &Arc<State>, args: &[String]) -> Value {
     if args.len() < 2 {
         return err_text("usage: email <account name> <email>");
     }
-    let name = args[0].clone();
     let email = args[1].clone();
-    run_db(st, move |c| match acct_id_by_name(c, &name) {
-        Some(id) => {
-            crate::db::set_email_conn(c, id, Some(&email)).unwrap();
-            ok_text(format!(
-                "Account [{name}][id: {id}] e-mail successfully changed.\n"
-            ))
-        }
-        None => err_text(format!("Account [{name}] not found.")),
-    })
+    mutate_account(
+        st,
+        &args[0],
+        false,
+        move |db, id| db.set_email(id, Some(&email)),
+        "e-mail successfully changed.".to_string(),
+    )
     .await
 }
 
@@ -770,29 +746,14 @@ async fn state_cmd(st: &Arc<State>, args: &[String], state: i64, verb: &str) -> 
     let Some(name) = args.first() else {
         return err_text(format!("usage: {verb} <account name>"));
     };
-    let name = name.clone();
-    let verb = verb.to_string();
-    let stc = st.clone();
-    let namec = name.clone();
-    let r = run_db(st, move |c| match acct_id_by_name(c, &namec) {
-        Some(id) => {
-            crate::db::set_account_state_conn(c, id, state).unwrap();
-            Ok((id, namec.clone()))
-        }
-        None => Err(namec.clone()),
-    })
-    .await;
-    match r {
-        Ok((id, name)) => {
-            if state != 0 {
-                kick_account(&stc, id as u32);
-            }
-            ok_text(format!(
-                "Account [{name}][id: {id}] successfully {verb}ed.\n"
-            ))
-        }
-        Err(name) => err_text(format!("Account [{name}] not found.")),
-    }
+    mutate_account(
+        st,
+        name,
+        state != 0,
+        move |db, id| db.set_account_state(id, state),
+        format!("successfully {verb}ed."),
+    )
+    .await
 }
 
 /// Kick every session of an account (in game or char screen).
@@ -805,23 +766,12 @@ fn kick_account(st: &Arc<State>, account_id: u32) {
         .filter(|r| r.lock().unwrap().account_id == account_id)
         .cloned()
         .collect();
-    let mut gone = Vec::new();
-    for rec in recs {
-        let mut r = rec.lock().unwrap();
-        r.kicked = true;
-        if let Some(sig) = &r.hold_signal {
-            sig.notify_one();
-        }
-        gone.push(r.char_id);
-        drop(r);
-    }
-    // `online` is keyed by char_id, not account_id: collect the char
-    // ids above and drop those entries so maps stop seeing the player
-    {
-        let mut online = st.online.lock().unwrap();
-        for cid in gone {
-            online.remove(&cid);
-        }
+    // `online` is keyed by char_id, not account_id: drop the kicked
+    // chars' entries so maps stop seeing the player
+    let gone = kick_sessions(&recs);
+    let mut online = st.online.lock().unwrap();
+    for cid in gone {
+        online.remove(&cid);
     }
 }
 
@@ -829,37 +779,19 @@ async fn state_set(st: &Arc<State>, args: &[String]) -> Value {
     if args.len() < 2 {
         return err_text("usage: state <account name> <new_state> [error_message_#7]");
     }
-    let name = args[0].clone();
     let new_state: i64 = match args[1].parse() {
         Ok(v) => v,
         Err(_) => return err_text("bad state"),
     };
     let emsg = args.get(2).cloned().unwrap_or_default();
-    let stc = st.clone();
-    let namec = name.clone();
-    let r = run_db(st, move |c| match acct_id_by_name(c, &namec) {
-        Some(id) => {
-            c.execute(
-                "UPDATE accounts SET state=?1, error_message=?2 WHERE id=?3",
-                rusqlite::params![new_state, emsg, id],
-            )
-            .unwrap();
-            Ok((id, namec.clone()))
-        }
-        None => Err(()),
-    })
-    .await;
-    match r {
-        Ok((id, name)) => {
-            if new_state != 0 {
-                kick_account(&stc, id as u32);
-            }
-            ok_text(format!(
-                "Account [{name}][id: {id}] state successfully changed.\n"
-            ))
-        }
-        Err(()) => err_text(format!("Account [{name}] not found.")),
-    }
+    mutate_account(
+        st,
+        &args[0],
+        new_state != 0,
+        move |db, id| db.set_account_state_msg(id, new_state, &emsg),
+        "state successfully changed.".to_string(),
+    )
+    .await
 }
 
 fn parse_ban_date(s: &str) -> Option<i64> {
@@ -904,26 +836,14 @@ async fn banset(st: &Arc<State>, args: &[String]) -> Value {
 }
 
 async fn set_ban(st: &Arc<State>, name: &str, ts: i64) -> Value {
-    let name = name.to_string();
-    let stc = st.clone();
-    let namec = name.clone();
-    let r = run_db(st, move |c| match acct_id_by_name(c, &namec) {
-        Some(id) => {
-            crate::db::set_account_ban_conn(c, id, ts).unwrap();
-            Ok((id, namec.clone()))
-        }
-        None => Err(namec.clone()),
-    })
-    .await;
-    match r {
-        Ok((id, name)) => {
-            kick_account(&stc, id as u32);
-            ok_text(format!(
-                "Account [{name}][id: {id}] banishment successfully changed.\n"
-            ))
-        }
-        Err(name) => err_text(format!("Account [{name}] not found.")),
-    }
+    mutate_account(
+        st,
+        name,
+        true,
+        move |db, id| db.set_account_ban(id, ts),
+        "banishment successfully changed.".to_string(),
+    )
+    .await
 }
 
 async fn banadd(st: &Arc<State>, args: &[String]) -> Value {
@@ -953,21 +873,17 @@ async fn banadd(st: &Arc<State>, args: &[String]) -> Value {
     if !matched {
         return err_text("bad modifier");
     }
-    run_db(st, move |c| match acct_id_by_name(c, &name) {
-        Some(id) => {
-            let cur: i64 = c
-                .query_row("SELECT ban_until FROM accounts WHERE id=?1", [id], |r| {
-                    r.get(0)
-                })
-                .unwrap_or(0);
+    mutate_account(
+        st,
+        &name,
+        false,
+        move |db, id| {
+            let cur = db.account_ban_until(id)?.unwrap_or(0);
             let new = std::cmp::max(0, if cur > 0 { cur + delta } else { now + delta });
-            crate::db::set_account_ban_conn(c, id, new).unwrap();
-            ok_text(format!(
-                "Account [{name}][id: {id}] banishment successfully changed.\n"
-            ))
-        }
-        None => err_text(format!("Account [{name}] not found.")),
-    })
+            db.set_account_ban(id, new)
+        },
+        "banishment successfully changed.".to_string(),
+    )
     .await
 }
 
@@ -984,12 +900,8 @@ async fn delete(st: &Arc<State>, args: &[String]) -> Value {
     };
     let name = name.clone();
     let namec = name.clone();
-    let r = run_db(st, move |c| match acct_id_by_name(c, &namec) {
-        Some(id) => Ok(id),
-        None => Err(()),
-    })
-    .await;
-    let Ok(id) = r else {
+    let r = st.db.blocking_conn(move |c| acct_id_by_name(c, &namec)).await;
+    let Some(id) = r else {
         return err_text(format!("Account [{name}] not found."));
     };
     // kick first and let the map's final 0x2b01 land before the rows
@@ -1010,14 +922,17 @@ async fn delete(st: &Arc<State>, args: &[String]) -> Value {
     }
     // delete each character through the same routine the char screen
     // uses (party leave, divorce)
-    let cids: Vec<i64> = run_db(st, move |c| {
-        crate::db::char_ids_of_account_conn(c, id).unwrap()
+    let cids: Vec<i64> = st.db.blocking_conn(move |c| {
+        let mut q = c
+            .prepare("SELECT id FROM characters WHERE account_id=?1")
+            .unwrap();
+        q.query_map([id], |r| r.get(0)).unwrap().flatten().collect()
     })
     .await;
     for cid in cids {
         super::client::delete_character(st, cid as u32).await;
     }
-    run_db(st, move |c| {
+    st.db.blocking_conn(move |c| {
         c.execute("DELETE FROM accounts WHERE id=?1", [id]).unwrap();
     })
     .await;
@@ -1032,17 +947,17 @@ async fn password_cmd(st: &Arc<State>, args: &[String], password_stdin: Option<S
     let Some(newp) = newp else {
         return err_text("usage: password <account name> <new password>");
     };
-    run_db(st, move |c| match acct_id_by_name(c, &name) {
-        Some(id) => {
-            let h = crate::auth::password::hash_argon2id(newp.as_bytes()).unwrap_or_default();
-            crate::db::set_password_conn(c, id, &h, crate::auth::password::Scheme::Argon2id, None)
-                .unwrap();
-            ok_text(format!(
-                "Account [{name}][id: {id}] password successfully changed.\n"
-            ))
-        }
-        None => err_text(format!("Account [{name}] not found.")),
-    })
+    mutate_account(
+        st,
+        &name,
+        false,
+        move |db, id| {
+            let h = crate::auth::password::hash_argon2id(newp.as_bytes())
+                .map_err(|e| crate::db::DbError::Msg(e.to_string()))?;
+            db.set_password(id, &h, crate::auth::password::Scheme::Argon2id, None)
+        },
+        "password successfully changed.".to_string(),
+    )
     .await
 }
 
@@ -1052,7 +967,7 @@ async fn check_cmd(st: &Arc<State>, args: &[String], password_stdin: Option<Stri
     let Some(pw) = pw else {
         return err_text("usage: check <account name> <password>");
     };
-    run_db(st, move |c| match acct_id_by_name(c, &name) {
+    st.db.blocking_conn(move |c| match acct_id_by_name(c, &name) {
         Some(id) => {
             let (h, scheme, salt) = crate::db::password_row_conn(c, id).unwrap().unwrap();
             match crate::auth::password::verify(&scheme, &h, salt.as_deref(), pw.as_bytes()) {
@@ -1085,7 +1000,7 @@ async fn create(st: &Arc<State>, args: &[String], password_stdin: Option<String>
     let Ok(h) = crate::auth::password::hash_argon2id(pw.as_bytes()) else {
         return err_text("hashing failed");
     };
-    run_db(st, move |c| {
+    st.db.blocking_conn(move |c| {
         if acct_id_by_name(c, &name).is_some() {
             return err_text(format!("Account [{name}] already exists."));
         }
@@ -1136,13 +1051,9 @@ async fn gm_cmd(st: &Arc<State>, args: &[String]) -> Value {
     let name = args[0].clone();
     let level: u32 = args.get(1).and_then(|a| a.parse().ok()).unwrap_or(0);
     let namec = name.clone();
-    let r = run_db(st, move |c| match acct_id_by_name(c, &namec) {
-        Some(id) => Ok(id),
-        None => Err(namec.clone()),
-    })
-    .await;
+    let r = st.db.blocking_conn(move |c| acct_id_by_name(c, &namec)).await;
     match r {
-        Ok(id) => {
+        Some(id) => {
             {
                 let mut gm = st.gm.lock().unwrap();
                 if level > 0 {
@@ -1152,12 +1063,12 @@ async fn gm_cmd(st: &Arc<State>, args: &[String]) -> Value {
                 }
             }
             write_gm_file(st);
-            send_gm_list(st);
+            super::send_gm_list(st);
             ok_text(format!(
                 "Account [{name}][id: {id}] GM level successfully changed.\n"
             ))
         }
-        Err(name) => err_text(format!("Account [{name}] not found.")),
+        None => err_text(format!("Account [{name}] not found.")),
     }
 }
 
@@ -1169,39 +1080,6 @@ fn write_gm_file(st: &Arc<State>) {
     }
     let path = &st.cfg.gate.gm_account_file;
     let _ = std::fs::write(path, txt);
-}
-
-fn send_gm_list(st: &Arc<State>) {
-    let gm = st.gm.lock().unwrap().clone();
-    let mut p = crate::proto::P2B15::default();
-    p.repeat = gm
-        .iter()
-        .map(|(id, lv)| P2B15Repeat {
-            account_id: AccountId(*id),
-            gm_level: GmLevel(*lv),
-        })
-        .collect();
-    st.map_broadcast(&enc(move |v| p.encode(v)));
-}
-
-fn reload_gm(st: &Arc<State>) -> usize {
-    let path = st.cfg.gate.gm_account_file.clone();
-    let mut gm = st.gm.lock().unwrap();
-    gm.clear();
-    if let Ok(txt) = std::fs::read_to_string(path) {
-        for line in txt.lines() {
-            let mut it = line.split_whitespace();
-            if let (Some(a), Some(b)) = (it.next(), it.next()) {
-                if let (Ok(id), Ok(lv)) = (a.parse::<u32>(), b.parse::<u32>()) {
-                    gm.insert(id, lv);
-                }
-            }
-        }
-    }
-    let n = gm.len();
-    drop(gm);
-    send_gm_list(st);
-    n
 }
 
 fn kami(st: &Arc<State>, _cmd: &str, args: &[String]) -> Value {
@@ -1234,8 +1112,8 @@ async fn getall(st: &Arc<State>, args: &[String], scope: i64) -> Value {
             _ => s.parse::<i64>().ok(),
         })
         .unwrap_or(scope);
-    run_db(st, move |c| {
-        if acct_id_by_id(c, id).is_none() {
+    st.db.blocking_conn(move |c| {
+        if !acct_exists(c, id) {
             return err_text(format!(
                 "Unable to find the account [id: {id}]. Account doesn't exist.\n"
             ));
@@ -1267,8 +1145,8 @@ async fn getaccreg(st: &Arc<State>, args: &[String]) -> Value {
     }
     let id: i64 = args[0].parse().unwrap_or(-1);
     let name = args[1].clone();
-    run_db(st, move |c| {
-        if acct_id_by_id(c, id).is_none() {
+    st.db.blocking_conn(move |c| {
+        if !acct_exists(c, id) {
             return err_text(format!(
                 "Unable to find the account [id: {id}]. Account doesn't exist.\n"
             ));
@@ -1303,8 +1181,8 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
     let value: i64 = args[2].parse().unwrap_or(0);
     let stc = st.clone();
     let namec = name.clone();
-    let r = run_db(st, move |c| {
-        if acct_id_by_id(c, id).is_none() {
+    let r = st.db.blocking_conn(move |c| {
+        if !acct_exists(c, id) {
             return (
                 String::new(),
                 false,
@@ -1373,8 +1251,8 @@ async fn delaccreg(st: &Arc<State>, args: &[String]) -> Value {
     }
     let id: i64 = args[0].parse().unwrap_or(-1);
     let name = args[1].clone();
-    run_db(st, move |c| {
-        if acct_id_by_id(c, id).is_none() {
+    st.db.blocking_conn(move |c| {
+        if !acct_exists(c, id) {
             return err_text(format!(
                 "Unable to find the account [id: {id}]. Account doesn't exist.\n"
             ));
@@ -1419,57 +1297,50 @@ async fn find(st: &Arc<State>, args: &[String]) -> Value {
         "memo" => "memo",
         _ => return err_text("find: unknown field"),
     };
-    run_db(st, move |c| {
+    st.db.blocking_conn(move |c| {
         let sql = format!(
             "SELECT id,name,state,email,last_login,login_count,last_ip,memo \
              FROM accounts WHERE {col} = ?1 LIMIT 50"
         );
         let mut q = c.prepare(&sql).unwrap();
-        let mut rows = Vec::new();
-        let mut lines = Vec::new();
-        let res = q
+        // (id, name, state, email, last_login ms, login_count, last_ip, memo)
+        let rows: Vec<_> = q
             .query_map([val.clone()], |r| {
-                let id: i64 = r.get(0)?;
-                let name: String = r.get(1)?;
-                let state: i64 = r.get(2)?;
-                let email: String = r.get::<_, Option<String>>(3)?.unwrap_or_default();
-                let last: i64 = r.get::<_, Option<i64>>(4)?.unwrap_or(0);
-                let cnt: i64 = r.get::<_, Option<i64>>(5)?.unwrap_or(0);
-                let ip: String = r.get::<_, Option<String>>(6)?.unwrap_or_default();
-                let memo: String = r.get::<_, String>(7).unwrap_or_default();
-                Ok(serde_json::json!({
-                    "id": id, "name": name, "state": state,
-                    "email": email, "last_login": last,
-                    "login_count": cnt, "last_ip": ip, "memo": memo,
-                }))
+                Ok((
+                    r.get::<_, i64>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, i64>(2)?,
+                    r.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                    r.get::<_, Option<i64>>(4)?.unwrap_or(0),
+                    r.get::<_, Option<i64>>(5)?.unwrap_or(0),
+                    r.get::<_, Option<String>>(6)?.unwrap_or_default(),
+                    r.get::<_, String>(7).unwrap_or_default(),
+                ))
             })
-            .unwrap();
-        for r in res.flatten() {
-            let last_s = chrono::DateTime::from_timestamp(
-                r["last_login"].as_i64().unwrap_or(0) / 1000,
-                0,
-            )
-            .map(|t| t.format("%Y/%m/%d %H:%M:%S").to_string())
-            .unwrap_or_default();
+            .unwrap()
+            .flatten()
+            .collect();
+        let mut lines = Vec::new();
+        let mut accounts = Vec::new();
+        for (id, name, state, email, last, cnt, ip, memo) in &rows {
+            let last_s = chrono::DateTime::from_timestamp(last / 1000, 0)
+                .map(|t| t.format("%Y/%m/%d %H:%M:%S").to_string())
+                .unwrap_or_default();
             lines.push(format!(
-                "{id:10} {name:<24} st={state} email={email} last={last} logins={cnt} ip={ip} memo={memo}",
-                id = r["id"].as_i64().unwrap_or(0),
-                name = r["name"].as_str().unwrap_or(""),
-                state = r["state"].as_i64().unwrap_or(0),
-                email = r["email"].as_str().unwrap_or(""),
-                last = last_s,
-                cnt = r["login_count"].as_i64().unwrap_or(0),
-                ip = r["last_ip"].as_str().unwrap_or(""),
-                memo = r["memo"].as_str().unwrap_or(""),
+                "{id:10} {name:<24} st={state} email={email} last={last_s} logins={cnt} ip={ip} memo={memo}"
             ));
-            rows.push(r);
+            accounts.push(serde_json::json!({
+                "id": id, "name": name, "state": state,
+                "email": email, "last_login": last,
+                "login_count": cnt, "last_ip": ip, "memo": memo,
+            }));
         }
         let mut v = if lines.is_empty() {
             ok_text("No account found.\n".to_string())
         } else {
             ok_text(lines.join("\n") + "\n")
         };
-        v["accounts"] = serde_json::json!(rows);
+        v["accounts"] = serde_json::json!(accounts);
         v
     })
     .await
@@ -1486,7 +1357,7 @@ async fn chars_cmd(st: &Arc<State>, args: &[String]) -> Value {
         .find(|a| !a.starts_with("--"))
         .cloned()
         .unwrap_or_default();
-    run_db(st, move |c| {
+    st.db.blocking_conn(move |c| {
         let sql = match flag.as_str() {
             "--account" => "SELECT c.id,c.account_id,c.name,c.slot,c.base_level,c.base_exp,c.zeny,c.last_map FROM characters c JOIN accounts a ON a.id=c.account_id WHERE a.name=?1 OR a.id=CAST(?1 AS INT)",
             "--name" | "--id" | "" => "SELECT c.id,c.account_id,c.name,c.slot,c.base_level,c.base_exp,c.zeny,c.last_map FROM characters c WHERE c.name=?1 OR c.id=CAST(?1 AS INT)",
