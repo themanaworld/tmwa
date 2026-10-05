@@ -166,28 +166,6 @@ fn state_label(state: i64) -> &'static str {
     }
 }
 
-/// Format one account row the way ladmin's list/search prints it.
-fn list_line(r: &rusqlite::Row) -> rusqlite::Result<String> {
-    let id: i64 = r.get(0)?;
-    let name: String = r.get(1)?;
-    let gm: i64 = r.get(2)?;
-    let count: i64 = r.get(3)?;
-    let state: i64 = r.get(4)?;
-    let gm_s = if gm > 0 {
-        format!("{gm:2} ")
-    } else {
-        "   ".to_string()
-    };
-    Ok(format!(
-        "{:10} {}{:<24} {:6} {}\n",
-        id,
-        gm_s,
-        name,
-        count,
-        state_label(state)
-    ) + "\n")
-}
-
 pub async fn dispatch(
     st: &Arc<State>,
     cmd: &str,

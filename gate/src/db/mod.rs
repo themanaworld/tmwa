@@ -608,10 +608,6 @@ impl Db {
     }
 }
 
-fn fixed_str<const N: usize>(s: &str) -> Result<FixedStr<N>> {
-    FixedStr::try_from_str(s).map_err(|_| DbError::StrTooLong)
-}
-
 // ---- conn-level variants ----
 //
 // The maplink DB writer runs jobs inside one shared batch
