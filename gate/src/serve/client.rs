@@ -16,12 +16,13 @@ use std::time::{Duration, Instant};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 
-/// Client-side halves, generic over the transport (TCP or WS).
+/// Client-side read half, generic over the transport (TCP or WS).
 type Rd<S> = tokio::io::ReadHalf<S>;
-type Wr<S> = tokio::io::WriteHalf<S>;
 use tokio::sync::mpsc;
 
-use super::state::{AuthEntry, PendingSel, State, enc, send_bytes};
+use super::state::{
+    AuthEntry, DELFLAG_CHAR, DELFLAG_MAP, PendingSel, State, enc, send_bytes,
+};
 use crate::db::Db;
 use crate::net::framing::PacketFramer;
 use crate::proto::types::{FixedStr, Ip4Address, TickT};
@@ -373,7 +374,7 @@ async fn handle_login(
         client_version: fixed.client_protocol_version.0,
         map_id: None,
         upstream_ip: None,
-        delflag: 2,
+        delflag: DELFLAG_CHAR,
         created: Instant::now(),
     });
 
@@ -802,7 +803,7 @@ async fn handle_char_select(
         client_version: sd.client_version,
         map_id: Some(map_id),
         upstream_ip: None,
-        delflag: 3,
+        delflag: DELFLAG_MAP,
         created: Instant::now(),
     });
 
@@ -1054,11 +1055,7 @@ async fn handle_char_create(
     };
     st.chars.lock().unwrap().insert(
         cid,
-        super::state::CharRecord {
-            key,
-            data: cd,
-            online_map: None,
-        },
+        super::state::CharRecord { key, data: cd },
     );
     st.char_names.lock().unwrap().insert(name, cid);
 
@@ -1375,7 +1372,7 @@ async fn push_reauth(
         client_version: 0,
         map_id: Some(map_id),
         upstream_ip: None,
-        delflag: 3,
+        delflag: DELFLAG_MAP,
         created: Instant::now(),
     });
     let mut p29 = P3829::default();
@@ -1677,7 +1674,7 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         let a = st.auth.lock().unwrap();
         a.values()
             .find(|e| {
-                e.delflag == 3
+                e.delflag == DELFLAG_MAP
                     && e.account_id == fixed.account_id.0
                     && e.char_id == fixed.char_id.0
                     && e.login_id1 == fixed.login_id1
