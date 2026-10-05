@@ -757,11 +757,13 @@ async fn handle(
             Ok(())
         }
         0x3011 => {
-            // storage save -> DB + 0x3811 ack after commit
+            // storage save: DB write + 0x3811 ack after commit. A
+            // drop at the queue cap keeps the newest payload per
+            // account for replay, so a final save-on-close is not
+            // lost.
             let Ok(p) = P3011::decode(bytes) else {
                 return Err(());
             };
-            let aid = p.account_id.0 as i64;
             let items: Vec<(i64, i64, i64)> = p
                 .storage
                 .storage_
@@ -770,13 +772,7 @@ async fn handle(
                 .filter(|it| it.nameid.0 != 0 && it.amount != 0)
                 .map(|it| (it.nameid.0 as i64, it.amount as i64, it.equip.0 as i64))
                 .collect();
-            st.queue_db_op(move |conn| {
-                let _ = crate::db::save_storage_conn(conn, aid, &items);
-                let mut ack = P3811::default();
-                ack.account_id = p.account_id;
-                ack.unknown = 0;
-                super::state::DbOpResult::reply(map_id, enc(move |v| ack.encode(v)))
-            });
+            st.queue_storage_save(map_id, p.account_id, items);
             Ok(())
         }
 
@@ -824,7 +820,11 @@ async fn handle_auth_request(
     // same hazard.
     let marked = st.transfer_take(fixed.account_id.0, fixed.char_id.0);
     if !st
-        .wait_saves(fixed.char_id.0, std::time::Duration::from_secs(2))
+        .wait_saves(
+            fixed.char_id.0,
+            fixed.account_id.0 as i64,
+            std::time::Duration::from_secs(2),
+        )
         .await
     {
         tracing::warn!(

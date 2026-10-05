@@ -282,6 +282,9 @@ fn status(st: &Arc<State>) -> Value {
         "players_held": held,
         "db_queue": st.db_jobs_depth.load(std::sync::atomic::Ordering::Relaxed),
         "db_dropped": st.db_dropped.load(std::sync::atomic::Ordering::Relaxed),
+        // chars/accounts owed a replay of a dropped write
+        "db_dirty": st.save_dirty.lock().unwrap().len()
+            + st.storage_dirty.lock().unwrap().len(),
     })
 }
 
