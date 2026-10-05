@@ -829,8 +829,8 @@ fn kick_account(st: &Arc<State>, account_id: u32) {
         gone.push(r.char_id);
         drop(r);
     }
-    // remove from the online set so maps stop seeing the player;
-    // it is keyed by char id, not account id
+    // `online` is keyed by char_id, not account_id: collect the char
+    // ids above and drop those entries so maps stop seeing the player
     {
         let mut online = st.online.lock().unwrap();
         for cid in gone {
@@ -1625,4 +1625,69 @@ fn help() -> Value {
          version                     -- Gate version\n \
          quit/exit/end/q             -- End stdin session\n",
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use std::sync::Mutex;
+
+    fn test_state() -> Arc<State> {
+        Arc::new(State::new(
+            Config::default(),
+            Arc::new(crate::db::Db::open_memory().unwrap()),
+        ))
+    }
+
+    fn session(account_id: u32, char_id: u32) -> Arc<Mutex<crate::serve::state::PlayerSession>> {
+        Arc::new(Mutex::new(crate::serve::state::PlayerSession {
+            account_id,
+            char_id,
+            sex: 0,
+            login_id1: 0,
+            login_id2: 0,
+            client_ip: 0,
+            server_tick: 0,
+            server_tick_at: Instant::now(),
+            map_id: 0,
+            map_name: String::new(),
+            map_name_stale: false,
+            npc_id: 0,
+            trade_open: false,
+            storage_open: false,
+            quitting: false,
+            saw_0073: false,
+            transferring: false,
+            held: false,
+            hold_signal: None,
+            kicked: false,
+            held_since: None,
+        }))
+    }
+
+    /// `online` is keyed by char_id: kicking an account must drop
+    /// its chars' entries, and a char_id equal to some account_id
+    /// must never remove an unrelated session's entry.
+    #[test]
+    fn kick_account_removes_char_entries() {
+        let st = test_state();
+        let kicked = session(100, 2000007);
+        // unrelated session whose char_id equals account 100
+        let other = session(55, 100);
+        {
+            let mut ps = st.player_sessions.lock().unwrap();
+            ps.insert(2000007, kicked.clone());
+            ps.insert(100, other.clone());
+            let mut on = st.online.lock().unwrap();
+            on.insert(2000007, 0);
+            on.insert(100, 0);
+        }
+        kick_account(&st, 100);
+        assert!(kicked.lock().unwrap().kicked);
+        assert!(!other.lock().unwrap().kicked);
+        let on = st.online.lock().unwrap();
+        assert!(!on.contains_key(&2000007));
+        assert!(on.contains_key(&100));
+    }
 }
