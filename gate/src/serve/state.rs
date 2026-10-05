@@ -124,6 +124,16 @@ const MAP_TX_LOW_WATER: usize = 256;
 /// jobs rather than become an unbounded memory backlog.
 const DB_JOBS_LIMIT: usize = 65536;
 
+/// Queue depth below which `db_writer` re-queues writes that were
+/// dropped at the cap: the burst has drained, so the memory for
+/// them is affordable again.
+const DB_JOBS_REPLAY_LOW: usize = 8192;
+
+/// Cap on the sets of chars/accounts owed a write replay (distinct
+/// identities, not jobs). Far past any real player count; it exists
+/// so a pathological flood cannot grow even the marks without bound.
+const SAVE_DIRTY_LIMIT: usize = 16384;
+
 impl MapHandle {
     /// Non-critical send (broadcasts, notifications): dropped with a
     /// warning when the writer queue is full. Returns whether the
@@ -199,6 +209,38 @@ pub enum LinkReply {
     Map(usize),
     /// map_broadcast to all map servers.
     Broadcast,
+}
+
+/// Outcome of `push_db_job`: why a job did or did not get queued.
+enum JobPush {
+    /// The job is in the queue.
+    Queued,
+    /// The queue was over `db_jobs_limit`; the job was dropped and
+    /// counted in `db_dropped`.
+    Full,
+    /// The writer task is gone; the job was dropped.
+    Closed,
+}
+
+/// Kept payload of a dropped 0x3011 storage save: the requesting
+/// map's slot plus the newest (item_id, amount, equip) list.
+type DirtyStorage = (usize, Vec<(i64, i64, i64)>);
+
+/// The 0x3011 job: replace the account's storage inside the batch
+/// transaction, ack 0x3811 to the requesting map after commit.
+fn storage_save_op(
+    map_id: usize,
+    account_id: crate::proto::AccountId,
+    items: Vec<(i64, i64, i64)>,
+) -> DbJob {
+    let aid = account_id.0 as i64;
+    DbJob::Op(Box::new(move |conn| {
+        let _ = crate::db::save_storage_conn(conn, aid, &items);
+        let mut ack = crate::proto::P3811::default();
+        ack.account_id = account_id;
+        ack.unknown = 0;
+        DbOpResult::reply(map_id, enc(move |v| ack.encode(v)))
+    }))
 }
 
 /// What a queued DB op produced inside the batch transaction.
@@ -282,6 +324,17 @@ pub struct State {
     pub saves_in_flight: Mutex<HashMap<u32, u32>>,
     /// Fired whenever an in-flight save commits.
     pub save_notify: tokio::sync::Notify,
+    /// char_id whose newest cached CharData is not known to be in
+    /// SQLite: its 0x2b01 was dropped at `db_jobs_limit` or lost in
+    /// a failed batch. `db_writer` re-queues the save from `chars`
+    /// once the backlog drains below `DB_JOBS_REPLAY_LOW`; a fresh
+    /// 0x2b01 that gets queued meanwhile supersedes the mark.
+    pub save_dirty: Mutex<HashSet<u32>>,
+    /// account_id to (map slot, newest items) of a 0x3011 storage
+    /// save dropped at `db_jobs_limit`. The payload is kept because
+    /// storage contents are not otherwise cached in the gate.
+    /// Replayed like `save_dirty`.
+    pub storage_dirty: Mutex<HashMap<i64, DirtyStorage>>,
     /// Map server slots; None = free.
     pub map_servers: Mutex<Vec<Option<MapHandle>>>,
     /// char_id -> map server slot (online in game).
@@ -318,7 +371,10 @@ pub struct State {
     /// this counts them so `status` can see the backlog and
     /// `queue_*` can cap it).
     pub db_jobs_depth: std::sync::atomic::AtomicUsize,
-    /// Jobs refused because the queue was over `DB_JOBS_LIMIT` or a
+    /// Effective cap on `db_jobs_depth`; a field so tests can run
+    /// the drop/replay paths without queueing 64k jobs.
+    db_jobs_limit: usize,
+    /// Jobs refused because the queue was over `db_jobs_limit` or a
     /// request was already pending (deduped reads).
     pub db_dropped: std::sync::atomic::AtomicU64,
     /// Coalescible requests in flight: (kind, account_id). A second
@@ -343,6 +399,8 @@ impl State {
             transfer_pending: Mutex::new(HashMap::new()),
             saves_in_flight: Mutex::new(HashMap::new()),
             save_notify: tokio::sync::Notify::new(),
+            save_dirty: Mutex::new(HashSet::new()),
+            storage_dirty: Mutex::new(HashMap::new()),
             map_servers: Mutex::new(Vec::new()),
             online: Mutex::new(HashMap::new()),
             chars: Mutex::new(HashMap::new()),
@@ -360,6 +418,7 @@ impl State {
             db_jobs,
             db_jobs_rx: Mutex::new(Some(db_jobs_rx)),
             db_jobs_depth: std::sync::atomic::AtomicUsize::new(0),
+            db_jobs_limit: DB_JOBS_LIMIT,
             db_dropped: std::sync::atomic::AtomicU64::new(0),
             pending_db_req: std::sync::Arc::new(Mutex::new(std::collections::HashSet::new())),
             drains: Mutex::new(HashMap::new()),
@@ -491,9 +550,10 @@ impl State {
         self.save_notify.notify_waiters();
     }
 
-    /// Wait until no 0x2b01 save for `char_id` is in flight.
-    /// Returns false on timeout.
-    pub async fn wait_saves(&self, char_id: u32, dur: Duration) -> bool {
+    /// Wait until no 0x2b01 save for `char_id` is in flight and no
+    /// dropped write for the char (or its account's storage) is
+    /// still owed a replay. Returns false on timeout.
+    pub async fn wait_saves(&self, char_id: u32, account_id: i64, dur: Duration) -> bool {
         let deadline = Instant::now() + dur;
         loop {
             // register the waiter before checking the count, so a
@@ -501,16 +561,21 @@ impl State {
             let notified = self.save_notify.notified();
             tokio::pin!(notified);
             notified.as_mut().enable();
-            if self
-                .saves_in_flight
-                .lock()
-                .unwrap()
-                .get(&char_id)
-                .copied()
-                .unwrap_or(0)
-                == 0
+            // read all three under one section, in this order: a
+            // pending write moves between the in-flight count and
+            // the dirty sets (drop marks before save_done, replay
+            // counts before unmarking), so they must be observed
+            // together or a write could slip between the checks
             {
-                return true;
+                let s = self.saves_in_flight.lock().unwrap();
+                let d = self.save_dirty.lock().unwrap();
+                let sd = self.storage_dirty.lock().unwrap();
+                if s.get(&char_id).copied().unwrap_or(0) == 0
+                    && !d.contains(&char_id)
+                    && !sd.contains_key(&account_id)
+                {
+                    return true;
+                }
             }
             let left = deadline.saturating_duration_since(Instant::now());
             if left.is_zero() {
@@ -825,9 +890,72 @@ impl State {
             key: Box::new(key),
             data: Box::new(data),
         };
-        if !self.push_db_job(job) {
-            // dropped or writer gone: unblock waiters
-            self.save_done(char_id);
+        match self.push_db_job(job) {
+            JobPush::Queued => {
+                // a queued save carries the newest known state and
+                // will commit: it supersedes an earlier drop for
+                // this char. Clearing only after save_begin keeps
+                // `wait_saves` covered by the in-flight count.
+                self.save_dirty.lock().unwrap().remove(&char_id);
+            }
+            JobPush::Full => {
+                // mark before save_done: pending state stays covered
+                // (in-flight count or dirty mark) the whole time a
+                // `wait_saves` caller might look. The newest state
+                // is in `chars` already; `db_writer` re-queues it
+                // once the backlog drains.
+                self.mark_save_dirty(char_id);
+                self.save_done(char_id);
+            }
+            JobPush::Closed => {
+                // writer gone: no replay will come
+                self.save_done(char_id);
+            }
+        }
+    }
+
+    /// Record that `char_id`'s newest cached CharData is not in
+    /// SQLite: its save was dropped at the queue cap (or lost to a
+    /// failed batch). `db_writer` replays it from `chars` once the
+    /// backlog drains.
+    fn mark_save_dirty(&self, char_id: u32) {
+        let mut d = self.save_dirty.lock().unwrap();
+        if d.len() < SAVE_DIRTY_LIMIT || d.contains(&char_id) {
+            d.insert(char_id);
+        }
+    }
+
+    /// Queue a 0x3011 storage save plus the 0x3811 ack for the
+    /// requesting map. Over `db_jobs_limit` the newest payload is
+    /// kept per account in `storage_dirty` and replayed once the
+    /// backlog drains: a dropped storage save is a silent item
+    /// loss, and the map only re-sends on the next autosave (or
+    /// never, once the storage is closed).
+    pub fn queue_storage_save(
+        &self,
+        map_id: usize,
+        account_id: crate::proto::AccountId,
+        items: Vec<(i64, i64, i64)>,
+    ) {
+        let aid = account_id.0 as i64;
+        // the lock spans the push so the mark/unmark decision is
+        // atomic with the enqueue: a marked payload is always the
+        // newest one that is not queued
+        let mut d = self.storage_dirty.lock().unwrap();
+        match self.push_db_job(storage_save_op(map_id, account_id, items.clone())) {
+            JobPush::Queued => {
+                // a queued save carries the newest payload and will
+                // commit: it supersedes an earlier drop
+                d.remove(&aid);
+                drop(d);
+                self.save_notify.notify_waiters();
+            }
+            JobPush::Full => {
+                if d.len() < SAVE_DIRTY_LIMIT || d.contains_key(&aid) {
+                    d.insert(aid, (map_id, items));
+                }
+            }
+            JobPush::Closed => {}
         }
     }
 
@@ -867,7 +995,7 @@ impl State {
             pending.lock().unwrap().remove(&(kind, account_id));
             f(conn)
         }));
-        if !self.push_db_job(job) {
+        if !matches!(self.push_db_job(job), JobPush::Queued) {
             self.pending_db_req
                 .lock()
                 .unwrap()
@@ -875,17 +1003,18 @@ impl State {
         }
     }
 
-    /// Enqueue a job, capped at `DB_JOBS_LIMIT` queued. Over the
+    /// Enqueue a job, capped at `db_jobs_limit` queued. Over the
     /// limit the job is dropped and counted: the alternative is an
     /// unbounded memory backlog, which is what the round-2 load
-    /// test measured at ~20 GB. A dropped save is retried by the
-    /// map's next autosave; a dropped request is re-requested.
-    /// Returns false when the job was not queued.
-    fn push_db_job(&self, job: DbJob) -> bool {
+    /// test measured at ~20 GB. Dropped saves are marked dirty and
+    /// re-emitted by `replay_dropped` once the backlog drains; a
+    /// dropped request is re-requested by the map on reply timeout.
+    fn push_db_job(&self, job: DbJob) -> JobPush {
+        let limit = self.db_jobs_limit;
         let depth = self
             .db_jobs_depth
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        if depth >= DB_JOBS_LIMIT {
+        if depth >= limit {
             self.db_jobs_depth
                 .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
             let drops = self
@@ -893,16 +1022,104 @@ impl State {
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
                 + 1;
             if drops.is_power_of_two() || drops == 1 {
-                tracing::warn!("db job queue over {DB_JOBS_LIMIT}, dropping ({drops} total)");
+                tracing::warn!("db job queue over {limit}, dropping ({drops} total)");
             }
-            return false;
+            return JobPush::Full;
         }
         if self.db_jobs.send(job).is_err() {
             self.db_jobs_depth
                 .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
-            return false;
+            return JobPush::Closed;
         }
-        true
+        JobPush::Queued
+    }
+
+    /// Re-queue writes that were dropped at `db_jobs_limit`, at most
+    /// `DB_JOBS_REPLAY_LOW - depth` jobs per pass. Runs on
+    /// `db_writer` before each batch. Char saves replay the live
+    /// `chars` cache, so they always carry the newest received
+    /// state; storage saves replay the payload kept at drop time.
+    fn replay_dropped(&self) {
+        let depth = self
+            .db_jobs_depth
+            .load(std::sync::atomic::Ordering::Relaxed);
+        if depth >= DB_JOBS_REPLAY_LOW {
+            return;
+        }
+        let room = DB_JOBS_REPLAY_LOW - depth;
+        let chars: Vec<u32> = {
+            let d = self.save_dirty.lock().unwrap();
+            d.iter().copied().take(room).collect()
+        };
+        let accounts: Vec<i64> = {
+            let d = self.storage_dirty.lock().unwrap();
+            d.keys().copied().take(room).collect()
+        };
+        if chars.is_empty() && accounts.is_empty() {
+            return;
+        }
+        let mut n = 0usize;
+        for cid in chars {
+            let cur = self
+                .chars
+                .lock()
+                .unwrap()
+                .get(&cid)
+                .map(|c| (c.key, c.data));
+            let Some((key, data)) = cur else {
+                // the char record is gone (deleted) or was never
+                // cached: there is no newer state left to write
+                self.save_dirty.lock().unwrap().remove(&cid);
+                tracing::warn!(
+                    "db_writer: dropped save for char {cid} has no cached state"
+                );
+                continue;
+            };
+            // count the replay in-flight before dropping the dirty
+            // mark, so a `wait_saves` caller never observes a false
+            // all-committed in between
+            self.save_begin(cid);
+            self.save_dirty.lock().unwrap().remove(&cid);
+            let job = DbJob::SaveChar {
+                char_id: cid,
+                key: Box::new(key),
+                data: Box::new(data),
+            };
+            match self.push_db_job(job) {
+                JobPush::Queued => n += 1,
+                _ => {
+                    // refilled past the limit (or writer gone):
+                    // keep the mark for the next pass
+                    self.mark_save_dirty(cid);
+                    self.save_done(cid);
+                }
+            }
+        }
+        for aid in accounts {
+            let mut d = self.storage_dirty.lock().unwrap();
+            let Some((mid, items)) = d.get(&aid).cloned() else {
+                continue;
+            };
+            // the lock spans the push: a queued replay clears its
+            // mark atomically, a failed one keeps it for next time
+            if matches!(
+                self.push_db_job(storage_save_op(
+                    mid,
+                    crate::proto::AccountId(aid as u32),
+                    items
+                )),
+                JobPush::Queued
+            ) {
+                d.remove(&aid);
+                n += 1;
+            }
+        }
+        if n > 0 {
+            tracing::info!("db_writer: re-queued {n} dropped saves");
+        }
+        // wake `wait_saves` callers: marks may have cleared without
+        // a commit (uncached char) or moved to the in-flight count
+        self.save_notify.notify_waiters();
     }
 
     /// Take the receiver half of the job queue. Called once by
@@ -1143,7 +1360,14 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
         return;
     };
     const BATCH: usize = 512;
-    while let Some(first) = rx.recv().await {
+    loop {
+        // backlog drained low: re-emit the writes that were dropped
+        // at the cap. Bounded by `DB_JOBS_REPLAY_LOW` so the memory
+        // cap still holds through the recovery.
+        st.replay_dropped();
+        let Some(first) = rx.recv().await else {
+            break;
+        };
         let mut jobs = Vec::with_capacity(64);
         jobs.push(first);
         while jobs.len() < BATCH {
@@ -1175,12 +1399,26 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
             };
         if !committed {
             tracing::error!("db_writer: batch of {njobs} failed to commit, jobs dropped");
+            // the char saves in this batch never landed: mark them
+            // dirty BEFORE the in-flight counts drop, so they are
+            // rewritten once the database works again
+            {
+                let mut d = st.save_dirty.lock().unwrap();
+                for cid in &save_ids {
+                    if d.len() < SAVE_DIRTY_LIMIT || d.contains(cid) {
+                        d.insert(*cid);
+                    }
+                }
+            }
+            for cid in save_ids {
+                st.save_done(cid);
+            }
+            // a wedged database would otherwise spin replays
+            tokio::time::sleep(Duration::from_millis(200)).await;
+            continue;
         }
         for cid in save_ids {
             st.save_done(cid);
-        }
-        if !committed {
-            continue;
         }
         for post in posts {
             match post.reply {
@@ -1345,6 +1583,147 @@ mod tests {
         let t = st.drain_track_end(0).unwrap();
         assert_eq!(t.expected.len(), 3);
         assert_eq!(t.arrived.len(), 2);
+    }
+
+    /// One character row (and its account) for the save-replay
+    /// tests: the writer's save is an upsert but `account_id` is a
+    /// FK, so the account must exist.
+    fn seed_char(db: &crate::db::Db, account_id: i64, char_id: i64) {
+        db.with_conn(|conn| {
+            conn.execute(
+                "INSERT INTO accounts(id,name,password_hash,password_scheme,created_at)
+                 VALUES(?1,'acct','x','argon2id',0)",
+                [account_id],
+            )?;
+            conn.execute(
+                "INSERT INTO characters(id,account_id,slot,name,sex,species,
+                     base_level,job_level,base_exp,job_exp,zeny,hp,max_hp,sp,max_sp,
+                     attr_str,attr_agi,attr_vit,attr_int,attr_dex,attr_luk,
+                     status_point,skill_point,option_,karma,manner,party_id,
+                     hair,hair_color,clothes_color,weapon,shield,
+                     head_top,head_mid,head_bottom,
+                     last_map,last_x,last_y,save_map,save_x,save_y,partner_id)
+                 VALUES(?1,?2,0,'char',0,0,1,1,0,0,0,1,1,0,0,
+                        1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        'map',0,0,'map',0,0,0)",
+                rusqlite::params![char_id, account_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+    }
+
+    fn char_key(char_id: u32, account_id: u32) -> CharKey {
+        CharKey {
+            char_id: crate::proto::CharId(char_id),
+            account_id: crate::proto::AccountId(account_id),
+            name: crate::proto::types::FixedStr::<24>::try_from_str("char").unwrap(),
+            char_num: 0,
+        }
+    }
+
+    /// Queue depth and owed-write marks all settled. Polls so the
+    /// test does not depend on batch boundaries.
+    async fn writes_settled(st: &State) -> bool {
+        for _ in 0..2000 {
+            let pending = st.db_jobs_depth.load(Ordering::Relaxed) != 0
+                || !st.saves_in_flight.lock().unwrap().is_empty()
+                || !st.save_dirty.lock().unwrap().is_empty()
+                || !st.storage_dirty.lock().unwrap().is_empty();
+            if !pending {
+                return true;
+            }
+            tokio::time::sleep(Duration::from_millis(1)).await;
+        }
+        false
+    }
+
+    #[tokio::test]
+    async fn dropped_char_save_replays_newest_state() {
+        let mut st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        st.db_jobs_limit = 4;
+        seed_char(&st.db, 1, 100);
+        let key = char_key(100, 1);
+        let mut data = CharData::default();
+        data.zeny = 1;
+        st.chars.lock().unwrap().insert(
+            100,
+            CharRecord {
+                key,
+                data,
+                online_map: None,
+            },
+        );
+        // six saves for one char; the queue only takes four
+        for zeny in 1..=6 {
+            data.zeny = zeny;
+            // the 0x2b01 handler refreshes the cache before queueing
+            st.chars.lock().unwrap().get_mut(&100).unwrap().data = data;
+            st.queue_save(100, key, data);
+        }
+        assert_eq!(st.db_dropped.load(Ordering::Relaxed), 2);
+        assert!(st.save_dirty.lock().unwrap().contains(&100));
+
+        // headroom again, then the writer drains and replays
+        st.db_jobs_limit = 64;
+        let st = Arc::new(st);
+        let st2 = st.clone();
+        tokio::spawn(async move { db_writer(st2).await });
+        assert!(writes_settled(&st).await);
+
+        let (_, cd) = st.db.load_character(100).unwrap();
+        assert_eq!(cd.zeny, 6, "replay must write the newest cached state");
+        assert!(st.save_dirty.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn dropped_storage_save_replays_kept_payload() {
+        let mut st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        st.db_jobs_limit = 2;
+        // two filler ops occupy the queue; the storage save is dropped
+        st.queue_db_op(|_| DbOpResult::none());
+        st.queue_db_op(|_| DbOpResult::none());
+        st.queue_storage_save(0, crate::proto::AccountId(1), vec![(501, 3, 0)]);
+        assert_eq!(st.db_dropped.load(Ordering::Relaxed), 1);
+        assert!(st.storage_dirty.lock().unwrap().contains_key(&1));
+
+        st.db_jobs_limit = 64;
+        let st = Arc::new(st);
+        let st2 = st.clone();
+        tokio::spawn(async move { db_writer(st2).await });
+        assert!(writes_settled(&st).await);
+        assert_eq!(st.db.load_storage(1).unwrap(), vec![(0, 501, 3, 0)]);
+    }
+
+    #[tokio::test]
+    async fn wait_saves_covers_dirty_marks() {
+        let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        st.mark_save_dirty(9);
+        assert!(!st.wait_saves(9, 1, Duration::from_millis(20)).await);
+        st.storage_dirty
+            .lock()
+            .unwrap()
+            .insert(1, (0, vec![(7, 1, 0)]));
+        st.save_dirty.lock().unwrap().remove(&9);
+        // the account's storage mark still blocks the transfer wait
+        assert!(!st.wait_saves(9, 1, Duration::from_millis(20)).await);
+        st.storage_dirty.lock().unwrap().remove(&1);
+        assert!(st.wait_saves(9, 1, Duration::from_millis(20)).await);
+    }
+
+    #[test]
+    fn queued_save_supersedes_dropped_one() {
+        let mut st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        st.db_jobs_limit = 1;
+        let key = char_key(7, 1);
+        let data = CharData::default();
+        st.queue_save(7, key, data);
+        st.queue_save(7, key, data);
+        assert!(st.save_dirty.lock().unwrap().contains(&7));
+        st.db_jobs_limit = 64;
+        st.queue_save(7, key, data);
+        assert!(!st.save_dirty.lock().unwrap().contains(&7));
+        assert_eq!(st.saves_in_flight.lock().unwrap()[&7], 2);
     }
 
     #[test]

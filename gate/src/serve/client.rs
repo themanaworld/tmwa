@@ -1152,6 +1152,11 @@ pub(crate) async fn delete_character(st: &Arc<State>, cid: u32) {
         .blocking(move |db| db.delete_character(cid as i64))
         .await;
     st.chars.lock().unwrap().remove(&cid);
+    // owed-save marks must not resurrect the deleted rows
+    st.save_dirty.lock().unwrap().remove(&cid);
+    if let Some(a) = rec.as_ref().map(|r| r.key.account_id.0) {
+        st.storage_dirty.lock().unwrap().remove(&(a as i64));
+    }
     if let Some(name) = rec.map(|r| r.key.name.to_string_lossy()) {
         st.char_names.lock().unwrap().remove(&name);
     }
