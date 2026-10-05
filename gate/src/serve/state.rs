@@ -16,9 +16,17 @@ use tokio::sync::mpsc;
 use crate::config::Config;
 use crate::proto::{CharData, CharKey, PartyMost};
 
-/// delflag values mirroring tmwa's auth_fifo semantics:
-/// 2 = login->char stage pending, 3 = char->map stage pending,
-/// 1 = consumed, 0 = consumed (map-to-map).
+/// `AuthEntry::delflag` (the name mirrors tmwa's auth_fifo flag):
+/// login stage done, waiting on the char stage (0x0065 connect or
+/// 0x2b02's return to char select).
+pub const DELFLAG_CHAR: u8 = 2;
+/// `AuthEntry::delflag`: char stage done, waiting on a map
+/// server's 0x2afc.
+pub const DELFLAG_MAP: u8 = 3;
+
+/// A pending login handoff. Unlike tmwa's auth_fifo, entries are
+/// removed (not flagged) on consume; a stale entry expires after
+/// AUTH_TTL.
 pub struct AuthEntry {
     pub account_id: u32,
     pub char_id: u32,
@@ -34,11 +42,18 @@ pub struct AuthEntry {
     /// local address tmwa-map sees for this client (and reports back
     /// in 0x2afc).
     pub upstream_ip: Option<u32>,
+    /// Stage the entry waits on (`DELFLAG_*`).
     pub delflag: u8,
     pub created: Instant,
 }
 
 const AUTH_TTL: Duration = Duration::from_secs(300);
+
+/// Drop expired entries from the auth table; runs before each
+/// mutation/lookup so stale handoffs cannot pile up.
+fn prune_auth(a: &mut HashMap<u32, AuthEntry>, now: Instant) {
+    a.retain(|_, e| now.duration_since(e.created) < AUTH_TTL);
+}
 
 /// Reply state of a served map-auth reservation: Pending until the
 /// first 0x2afc finishes building its answer, then Ready with the
@@ -76,6 +91,11 @@ pub struct ServedAuth {
 /// longer than a map link's reconnect-and-repush cycle.
 const SERVED_TTL: Duration = Duration::from_secs(60);
 
+/// Drop expired reservations from the served-auth table.
+fn prune_served(s: &mut HashMap<u32, ServedAuth>, now: Instant) {
+    s.retain(|_, r| now.duration_since(r.served) < SERVED_TTL);
+}
+
 /// The credential tuple a 0x2afc request carries: what a pending
 /// stage-3 entry is matched on and what a served reservation
 /// re-matches.
@@ -95,7 +115,7 @@ impl MapAuthReq {
     /// `served_map_auth`: strict match except `login_id2`, where a
     /// request of 0 is a wildcard.
     fn matches(&self, e: &AuthEntry) -> bool {
-        e.delflag == 3
+        e.delflag == DELFLAG_MAP
             && e.account_id == self.account_id
             && e.char_id == self.char_id
             && e.login_id1 == self.login_id1
@@ -192,6 +212,12 @@ pub struct MapHandle {
 /// refused instead of queueing behind a saturated link.
 const MAP_TX_LOW_WATER: usize = 256;
 
+/// Map-slot sentinel for "no owning link": pre-registration
+/// replies (before `map_register` hands out a slot) and broadcast
+/// paths pass it to `send_must`/`map_broadcast_except`, where it
+/// matches nothing (`map_kill` keys on a real slot).
+pub const NO_MAP: usize = usize::MAX;
+
 /// Cap on queued map-link DB jobs. Beyond it the queue drops new
 /// jobs rather than become an unbounded memory backlog.
 const DB_JOBS_LIMIT: usize = 65536;
@@ -268,8 +294,6 @@ pub struct OnlineAuth {
 pub struct CharRecord {
     pub key: crate::proto::CharKey,
     pub data: crate::proto::CharData,
-    /// Map server the character is online on (from 0x2aff), or None.
-    pub online_map: Option<usize>,
 }
 
 // ---- serialized DB writer ----
@@ -442,7 +466,9 @@ pub struct State {
     /// TCP+WS client connections currently open.
     pub conn_count: AtomicU64,
     /// FIFO queue feeding the serialized DB writer (`db_writer`).
-    pub db_jobs: mpsc::UnboundedSender<DbJob>,
+    /// Private so every enqueue goes through `push_db_job`, which
+    /// keeps `db_jobs_depth` (and the drop cap) accurate.
+    db_jobs: mpsc::UnboundedSender<DbJob>,
     /// Receiver half of `db_jobs`; taken once by `db_writer`.
     db_jobs_rx: Mutex<Option<mpsc::UnboundedReceiver<DbJob>>>,
     /// Jobs queued but not yet applied (the channel is unbounded;
@@ -522,12 +548,11 @@ impl State {
 
     pub fn push_auth(&self, e: AuthEntry) {
         let mut a = self.auth.lock().unwrap();
-        let now = Instant::now();
-        a.retain(|_, x| x.delflag != 1 && now.duration_since(x.created) < AUTH_TTL);
+        prune_auth(&mut a, Instant::now());
         a.insert(e.account_id, e);
     }
 
-    /// Take a pending auth entry (marks it consumed). `stage` is the
+    /// Remove and return a pending auth entry. `stage` is the
     /// expected delflag.
     pub fn take_auth<F: FnMut(&AuthEntry) -> bool>(
         &self,
@@ -535,24 +560,12 @@ impl State {
         mut pred: F,
     ) -> Option<AuthEntry> {
         let mut a = self.auth.lock().unwrap();
-        let now = Instant::now();
-        a.retain(|_, x| now.duration_since(x.created) < AUTH_TTL);
+        prune_auth(&mut a, Instant::now());
         let key = a
             .iter()
             .find(|(_, e)| e.delflag == stage && pred(e))
             .map(|(k, _)| *k)?;
-        let mut e = a.remove(&key)?;
-        e.delflag = 1;
-        Some(e)
-    }
-
-    /// Find without consuming (relay uses the same entry for the
-    /// upcoming 0x2afc).
-    pub fn find_auth<F: FnMut(&AuthEntry) -> bool>(&self, stage: u8, mut pred: F) -> bool {
-        let mut a = self.auth.lock().unwrap();
-        let now = Instant::now();
-        a.retain(|_, x| now.duration_since(x.created) < AUTH_TTL);
-        a.values().any(|e| e.delflag == stage && pred(e))
+        a.remove(&key)
     }
 
     /// Mark upstream_ip on a matching entry (relay learned the
@@ -560,7 +573,7 @@ impl State {
     pub fn set_auth_upstream_ip(&self, account_id: u32, char_id: u32, login_id1: u32, ip: u32) {
         let mut a = self.auth.lock().unwrap();
         if let Some(e) = a.get_mut(&account_id) {
-            if e.delflag == 3 && e.char_id == char_id && e.login_id1 == login_id1 {
+            if e.delflag == DELFLAG_MAP && e.char_id == char_id && e.login_id1 == login_id1 {
                 e.upstream_ip = Some(ip);
             }
         }
@@ -582,13 +595,12 @@ impl State {
     ) -> Option<(AuthEntry, tokio::sync::watch::Sender<ServedReply>)> {
         let mut a = self.auth.lock().unwrap();
         let now = Instant::now();
-        a.retain(|_, x| now.duration_since(x.created) < AUTH_TTL);
+        prune_auth(&mut a, now);
         let key = a.iter().find(|(_, e)| req.matches(e)).map(|(k, _)| *k)?;
-        let mut e = a.remove(&key)?;
-        e.delflag = 1;
+        let e = a.remove(&key)?;
         let (tx, _rx) = tokio::sync::watch::channel(ServedReply::Pending);
         let mut s = self.served_auth.lock().unwrap();
-        s.retain(|_, r| now.duration_since(r.served) < SERVED_TTL);
+        prune_served(&mut s, now);
         s.insert(
             req.account_id,
             ServedAuth {
@@ -622,8 +634,7 @@ impl State {
         map_port: u16,
     ) -> Option<(tokio::sync::watch::Receiver<ServedReply>, OnlineAuth)> {
         let mut s = self.served_auth.lock().unwrap();
-        let now = Instant::now();
-        s.retain(|_, r| now.duration_since(r.served) < SERVED_TTL);
+        prune_served(&mut s, Instant::now());
         let r = s.get(&req.account_id)?;
         if req.matches_served(r) && r.map_ip == map_ip && r.map_port == map_port {
             let auth = OnlineAuth {
@@ -949,27 +960,24 @@ impl State {
         }
     }
 
-    /// Send to every connected map server; returns count.
-    pub fn map_broadcast(&self, bytes: &[u8]) -> usize {
-        self.map_broadcast_except(usize::MAX, bytes)
+    /// Send to every connected map server.
+    pub fn map_broadcast(&self, bytes: &[u8]) {
+        self.map_broadcast_except(NO_MAP, bytes)
     }
 
     /// Send to every connected map server except `skip` (which may
-    /// need the same bytes on its priority queue instead — ordering
+    /// need the same bytes on its priority queue instead: ordering
     /// vs a following send_must).
-    pub fn map_broadcast_except(&self, skip: usize, bytes: &[u8]) -> usize {
+    pub fn map_broadcast_except(&self, skip: usize, bytes: &[u8]) {
         let ms = self.map_servers.lock().unwrap();
-        let mut n = 0;
         for (i, slot) in ms.iter().enumerate() {
             if i == skip {
                 continue;
             }
             if let Some(h) = slot {
                 h.send(bytes.to_vec());
-                n += 1;
             }
         }
-        n
     }
 
     /// Send to one map server by slot.
@@ -1001,12 +1009,6 @@ impl State {
             .enumerate()
             .filter_map(|(i, s)| s.as_ref().map(|h| (i, h.tx.clone())))
             .collect()
-    }
-
-    /// The sender for map `id`'s link, for must-not-drop replies.
-    pub fn map_tx(&self, id: usize) -> Option<mpsc::Sender<Vec<u8>>> {
-        let ms = self.map_servers.lock().unwrap();
-        ms.get(id).and_then(|s| s.as_ref().map(|h| h.tx.clone()))
     }
 
     /// Map slot -> (registered client address, served maps, draining,
@@ -1443,7 +1445,6 @@ impl State {
             return Some(CharRecord {
                 key: c.key,
                 data: c.data,
-                online_map: c.online_map,
             });
         }
         let (key, mut data) = self
@@ -1453,19 +1454,8 @@ impl State {
             .ok()?;
         self.fix_party_id(&key, &mut data);
         let mut chars = self.chars.lock().unwrap();
-        let rec = CharRecord {
-            key,
-            data,
-            online_map: None,
-        };
-        chars.insert(
-            char_id,
-            CharRecord {
-                key: rec.key,
-                data: rec.data,
-                online_map: None,
-            },
-        );
+        let rec = CharRecord { key, data };
+        chars.insert(char_id, CharRecord { key, data });
         Some(rec)
     }
 }
@@ -1523,7 +1513,7 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
                 Err(_) => break,
             }
         }
-        let depth = jobs.len();
+        let njobs = jobs.len();
         // char ids owed a save_done no matter how the batch ends
         let save_ids: Vec<u32> = jobs
             .iter()
@@ -1532,9 +1522,8 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
                 _ => None,
             })
             .collect();
-        let njobs = jobs.len();
         st.db_jobs_depth
-            .fetch_sub(depth, std::sync::atomic::Ordering::Relaxed);
+            .fetch_sub(njobs, std::sync::atomic::Ordering::Relaxed);
         let db = st.db.clone();
         let (committed, posts) =
             match tokio::task::spawn_blocking(move || apply_db_jobs(&db, jobs)).await {
@@ -1549,13 +1538,8 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
             // the char saves in this batch never landed: mark them
             // dirty BEFORE the in-flight counts drop, so they are
             // rewritten once the database works again
-            {
-                let mut d = st.save_dirty.lock().unwrap();
-                for cid in &save_ids {
-                    if d.len() < SAVE_DIRTY_LIMIT || d.contains(cid) {
-                        d.insert(*cid);
-                    }
-                }
+            for cid in &save_ids {
+                st.mark_save_dirty(*cid);
             }
             for cid in save_ids {
                 st.save_done(cid);
@@ -1586,19 +1570,12 @@ pub async fn db_writer(st: std::sync::Arc<State>) {
     }
 }
 
-/// What a committed op leaves for the async side.
-struct PostCommit {
-    reply: LinkReply,
-    bytes: Vec<u8>,
-    after: Option<Box<dyn FnOnce() + Send>>,
-}
-
 /// Apply one drained batch of jobs inside a single transaction.
 /// A panicking or failing job is logged and skipped (a statement
 /// error does not poison the transaction); the batch only fails
 /// when the commit itself does. Within a batch only the LAST save
 /// for a char is applied — earlier 0x2b01s are superseded.
-fn apply_db_jobs(db: &crate::db::Db, jobs: Vec<DbJob>) -> (bool, Vec<PostCommit>) {
+fn apply_db_jobs(db: &crate::db::Db, jobs: Vec<DbJob>) -> (bool, Vec<DbOpResult>) {
     // last batch index of a save for each char id
     let mut last_save: HashMap<u32, usize> = HashMap::new();
     for (i, job) in jobs.iter().enumerate() {
@@ -1632,11 +1609,7 @@ fn apply_db_jobs(db: &crate::db::Db, jobs: Vec<DbJob>) -> (bool, Vec<PostCommit>
                     DbJob::Op(f) => {
                         let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(&tx)));
                         match r {
-                            Ok(res) => posts.push(PostCommit {
-                                reply: res.reply,
-                                bytes: res.bytes,
-                                after: res.after,
-                            }),
+                            Ok(res) => posts.push(res),
                             Err(_) => tracing::warn!("db_writer: op panicked"),
                         }
                     }
@@ -1793,14 +1766,10 @@ mod tests {
         let key = char_key(100, 1);
         let mut data = CharData::default();
         data.zeny = 1;
-        st.chars.lock().unwrap().insert(
-            100,
-            CharRecord {
-                key,
-                data,
-                online_map: None,
-            },
-        );
+        st.chars
+            .lock()
+            .unwrap()
+            .insert(100, CharRecord { key, data });
         // six saves for one char; the queue only takes four
         for zeny in 1..=6 {
             data.zeny = zeny;
@@ -1944,7 +1913,7 @@ mod tests {
             client_version: 0,
             map_id: None,
             upstream_ip: None,
-            delflag: 3,
+            delflag: DELFLAG_MAP,
             created: Instant::now(),
         });
     }

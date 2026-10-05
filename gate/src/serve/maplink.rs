@@ -18,7 +18,7 @@ use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
 use super::is_gm;
-use super::state::{State, enc, send_must};
+use super::state::{DELFLAG_CHAR, DELFLAG_MAP, NO_MAP, State, enc, send_must};
 use crate::net::framing::PacketFramer;
 use crate::proto::types::{FixedStr, GmLevel, Ip4Address};
 use crate::proto::*;
@@ -26,11 +26,11 @@ use crate::proto::*;
 const MAX_PARTY: usize = 120;
 const ACCOUNT_REG2_NUM: usize = 16;
 const ACCOUNT_REG_NUM: usize = 16;
-
-type Fr = PacketFramer<tokio::net::tcp::OwnedReadHalf>;
+/// tmwa sizes its map-server table at 32 (char.cpp
+/// MAX_MAP_SERVERS); a 33rd registration is refused.
+const MAX_MAP_SERVERS: usize = 32;
 
 pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
-    let _ip32 = u32::from_le_bytes(ip.octets());
     let (rd, wr) = sock.into_split();
     // two writer queues sharing one socket writer: `rx` is bulk
     // (broadcasts, floods), `rx_prio` is critical replies and is
@@ -69,17 +69,17 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                 let user = fixed.account_name.to_string_lossy();
                 let pass = fixed.account_pass.to_string_lossy();
                 let mut p = P2AF9::default();
-                if st.map_count() >= 32
+                if st.map_count() >= MAX_MAP_SERVERS
                     || user != st.cfg.map.userid.as_str()
                     || pass != st.cfg.map.password.as_str()
                 {
                     p.code = 3;
-                    send_must(&st, usize::MAX, &tx_prio, enc(move |v| p.encode(v))).await;
+                    send_must(&st, NO_MAP, &tx_prio, enc(move |v| p.encode(v))).await;
                     tracing::warn!("maplink: bad map auth from {ip}");
                     break 'auth false;
                 }
                 p.code = 0;
-                send_must(&st, usize::MAX, &tx_prio, enc(move |v| p.encode(v))).await;
+                send_must(&st, NO_MAP, &tx_prio, enc(move |v| p.encode(v))).await;
                 let (id, kill) = st.map_register(
                     tx.clone(),
                     tx_prio.clone(),
@@ -156,11 +156,11 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
 
 /// Update the online set from a 0x2aff list (port of char.cpp
 /// parse_frommap 0x2aff).
-fn on_user_list(st: &Arc<State>, map_id: usize, head_users: u16, chars: Vec<u32>) {
+fn on_user_list(st: &Arc<State>, map_id: usize, head_users: u16, chars: &[u32]) {
     {
         let mut online = st.online.lock().unwrap();
         online.retain(|_, v| *v != map_id);
-        for cid in chars {
+        for &cid in chars {
             online.insert(cid, map_id);
         }
     }
@@ -170,14 +170,6 @@ fn on_user_list(st: &Arc<State>, map_id: usize, head_users: u16, chars: Vec<u32>
             h.users = head_users;
         }
     }
-    // keep the char cache's online_map in sync
-    let online = st.online.lock().unwrap();
-    let mut chars = st.chars.lock().unwrap();
-    for c in chars.values_mut() {
-        c.online_map = online.get(&c.key.char_id.0).copied();
-    }
-    drop(chars);
-    drop(online);
     st.online_notify.notify_one();
     // 0x2b00 user count to all map servers
     let users = st.count_users() as u32;
@@ -294,7 +286,7 @@ async fn handle(
                 return Err(());
             };
             let chars: Vec<u32> = p.repeat.iter().map(|r| r.char_id.0).collect();
-            on_user_list(st, map_id, p.users, chars.clone());
+            on_user_list(st, map_id, p.users, &chars);
             st.reconcile_online_auth(map_id, &chars);
             Ok(())
         }
@@ -332,20 +324,18 @@ async fn handle(
                 client_version: fixed.client_protocol_version.0,
                 map_id: None,
                 upstream_ip: None,
-                delflag: 2,
+                delflag: DELFLAG_CHAR,
                 created: std::time::Instant::now(),
             });
             // the char is no longer online on that map
-            let mut cids = Vec::new();
-            {
-                let mut chars = st.chars.lock().unwrap();
-                for c in chars.values_mut() {
-                    if c.key.account_id.0 == fixed.account_id.0 {
-                        c.online_map = None;
-                        cids.push(c.key.char_id.0);
-                    }
-                }
-            }
+            let cids: Vec<u32> = {
+                let chars = st.chars.lock().unwrap();
+                chars
+                    .values()
+                    .filter(|c| c.key.account_id.0 == fixed.account_id.0)
+                    .map(|c| c.key.char_id.0)
+                    .collect()
+            };
             {
                 // drop only the departing account's marks; every
                 // other player on this map stays online
@@ -823,11 +813,6 @@ async fn handle_auth_request(
     };
     let key = rec.key;
     let cd = rec.data;
-    // the record is cached now; mark the map without overwriting
-    // fields a racing 0x2b01 may have updated
-    if let Some(c) = st.chars.lock().unwrap().get_mut(&cid) {
-        c.online_map = Some(map_id);
-    }
     // the char is (about to be) online on this map
     st.online.lock().unwrap().insert(cid, map_id);
     st.online_notify.notify_one();
@@ -891,7 +876,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, map_id: us
             client_version: 0,
             map_id: None,
             upstream_ip: None,
-            delflag: 3,
+            delflag: DELFLAG_MAP,
             created: std::time::Instant::now(),
         });
         // make sure the destination map holds a fresh
@@ -986,9 +971,6 @@ async fn reserve_map_auth(
     let cid = fixed.char_id.0;
     st.online.lock().unwrap().insert(cid, map_id);
     st.online_notify.notify_one();
-    if let Some(c) = st.chars.lock().unwrap().get_mut(&cid) {
-        c.online_map = Some(map_id);
-    }
     st.set_online_auth(auth);
     send_must(st, map_id, tx, bytes).await;
     tracing::info!(map_id, char_id = cid, "re-served auth for map");
@@ -1423,7 +1405,7 @@ pub(crate) async fn party_leave_do(st: &Arc<State>, pid: u32, account_id: u32) {
         p.member[i] = PartyMember::default();
         party_put(st, pid, p);
         if !party_check_empty(st, pid) {
-            party_info_to(st, None, usize::MAX, pid).await;
+            party_info_to(st, None, NO_MAP, pid).await;
         }
         return;
     }
@@ -1619,7 +1601,6 @@ mod tests {
             crate::serve::state::CharRecord {
                 key,
                 data: CharData::default(),
-                online_map: None,
             },
         );
     }
@@ -1646,8 +1627,6 @@ mod tests {
             let mut online = st.online.lock().unwrap();
             online.insert(100, 3);
             online.insert(200, 3);
-            st.chars.lock().unwrap().get_mut(&100).unwrap().online_map = Some(3);
-            st.chars.lock().unwrap().get_mut(&200).unwrap().online_map = Some(3);
         }
         let (tx, mut rx) = mpsc::channel(8);
         let mut p = P2B02::default();
@@ -1663,11 +1642,6 @@ mod tests {
             assert!(!online.contains_key(&100));
             assert_eq!(online.get(&200), Some(&3));
         }
-        assert_eq!(
-            st.chars.lock().unwrap()[&100].online_map,
-            None,
-            "departing char loses its mark"
-        );
         let r = P2B03::decode(&rx.recv().await.unwrap()).unwrap();
         assert_eq!(r.account_id.0, 1);
     }
@@ -1815,7 +1789,12 @@ mod tests {
         let a = P3829::decode(&dprx.recv().await.unwrap()).unwrap();
         assert_eq!(a.char_id.0, 100);
         // a stage-3 entry exists for the destination's 0x2afc
-        assert!(st.find_auth(3, |e| e.account_id == 1 && e.char_id == 100));
+        assert!(st
+            .auth
+            .lock()
+            .unwrap()
+            .values()
+            .any(|e| e.delflag == DELFLAG_MAP && e.account_id == 1 && e.char_id == 100));
     }
 
     /// 0x2afc serves a cached char without touching SQLite.
@@ -1833,7 +1812,7 @@ mod tests {
             client_version: 0,
             map_id: None,
             upstream_ip: None,
-            delflag: 3,
+            delflag: DELFLAG_MAP,
             created: std::time::Instant::now(),
         });
         let (tx, mut rx) = mpsc::channel(8);
@@ -1847,11 +1826,6 @@ mod tests {
         let p = P2AFD::decode(&rx.recv().await.unwrap()).unwrap();
         assert_eq!(p.char_data.zeny, 777);
         assert_eq!(st.online.lock().unwrap()[&100], 2);
-        assert_eq!(
-            st.chars.lock().unwrap()[&100].online_map,
-            Some(2),
-            "served char is marked online on the requesting map"
-        );
     }
 
     /// A 0x2afc that misses the cache goes through load_char, which
@@ -1894,7 +1868,7 @@ mod tests {
             client_version: 0,
             map_id: None,
             upstream_ip: None,
-            delflag: 3,
+            delflag: DELFLAG_MAP,
             created: std::time::Instant::now(),
         });
         let (tx, mut rx) = mpsc::channel(8);
