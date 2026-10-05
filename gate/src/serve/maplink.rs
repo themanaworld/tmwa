@@ -277,11 +277,15 @@ async fn handle(
                 return Err(());
             };
             // waits on in-flight saves and reads the DB: keep the
-            // read loop hot by finishing in a task.
+            // read loop hot by finishing in a task. The link's
+            // registered client address is captured here: the slot
+            // may be gone by the time the spawned task runs, and
+            // the auth reservation keys on it.
             let st = st.clone();
             let tx = tx.clone();
+            let (map_ip, map_port) = st.map_addr(map_id).unwrap_or((0, 0));
             tokio::spawn(async move {
-                handle_auth_request(&st, &tx, map_id, fixed).await;
+                handle_auth_request(&st, &tx, map_id, map_ip, map_port, fixed).await;
             });
             Ok(())
         }
@@ -805,11 +809,15 @@ const DEDUP_ACCREG: u8 = 2;
 
 /// 0x2afc auth request: waits out in-flight saves for the char, then
 /// answers with the CharData. Runs as its own task so the link's
-/// read loop is never blocked by SQLite.
+/// read loop is never blocked by SQLite. `map_ip`/`map_port` are
+/// the requesting link's registered client address: a flap-repeat
+/// is only re-served to the same server.
 async fn handle_auth_request(
     st: &Arc<State>,
     tx: &mpsc::Sender<Vec<u8>>,
     map_id: usize,
+    map_ip: u32,
+    map_port: u16,
     fixed: P2AFC,
 ) {
     // A map-to-map transfer is in flight for this char: the
@@ -837,14 +845,22 @@ async fn handle_auth_request(
     // tmwa compares afi.ip to the ip the map reports; through
     // the relay that's the gate's upstream source address,
     // recorded at relay time. Fall back to the client ip.
-    let entry = st.take_map_auth(
-        fixed.account_id.0,
-        fixed.char_id.0,
-        fixed.login_id1,
-        fixed.login_id2,
-        u32::from_le_bytes(fixed.ip.0),
-    );
-    let Some(e) = entry else {
+    let req = super::state::MapAuthReq {
+        account_id: fixed.account_id.0,
+        char_id: fixed.char_id.0,
+        login_id1: fixed.login_id1,
+        login_id2: fixed.login_id2,
+        ip: u32::from_le_bytes(fixed.ip.0),
+    };
+    let entry = st.take_map_auth(req, map_ip, map_port);
+    let Some((e, reserve)) = entry else {
+        // No pending entry: the map re-pushes pending 0x2afc
+        // requests when the link flaps, so this may repeat a
+        // request whose 0x2afd never arrived. Re-serving to the
+        // same server is safe; anything else is a real reject.
+        if reserve_map_auth(st, tx, map_id, map_ip, map_port, &fixed).await {
+            return;
+        }
         tracing::warn!(
             "maplink: REJECTED 0x2afc account {} char {}",
             fixed.account_id.0,
@@ -862,6 +878,7 @@ async fn handle_auth_request(
         tokio::task::spawn_blocking(move || st2.db.load_character(cid as i64)).await
     };
     let Ok(Ok((key, cd))) = res else {
+        reserve.send_replace(super::state::ServedReply::Failed);
         let mut p = P2AFE::default();
         p.account_id = fixed.account_id;
         send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
@@ -899,8 +916,66 @@ async fn handle_auth_request(
     p.client_protocol_version = ClientVersion(e.client_version);
     p.char_key = key;
     p.char_data = cd;
-    send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+    let bytes = enc(move |v| p.encode(v));
+    // resolve the reservation before the send: if the link dies
+    // with this reply in flight, the map's re-pushed 0x2afc gets
+    // the same answer instead of a reject.
+    reserve.send_replace(super::state::ServedReply::Ready(bytes.clone()));
+    send_must(st, map_id, tx, bytes).await;
     tracing::info!(map_id, char_id = cid, "authenticated char for map");
+}
+
+/// Repeated 0x2afc with no pending entry: if the request was
+/// already answered on a link that flapped, wait (bounded) for the
+/// original serve's reply and send the same bytes to the same
+/// server. Returns false when there is no matching reservation or
+/// it resolved to failure; the caller then sends a 0x2afe.
+async fn reserve_map_auth(
+    st: &Arc<State>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    map_id: usize,
+    map_ip: u32,
+    map_port: u16,
+    fixed: &P2AFC,
+) -> bool {
+    let req = super::state::MapAuthReq {
+        account_id: fixed.account_id.0,
+        char_id: fixed.char_id.0,
+        login_id1: fixed.login_id1,
+        login_id2: fixed.login_id2,
+        ip: u32::from_le_bytes(fixed.ip.0),
+    };
+    let Some((mut rx, auth)) = st.served_map_auth(req, map_id, map_ip, map_port) else {
+        return false;
+    };
+    // the Ref borrows the channel and is not Send: scope it so it
+    // is gone before the send_must await below
+    let bytes = {
+        let resolved = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            rx.wait_for(|r| !matches!(r, super::state::ServedReply::Pending)),
+        )
+        .await;
+        match resolved {
+            Ok(Ok(r)) => match &*r {
+                super::state::ServedReply::Ready(b) => b.clone(),
+                _ => return false,
+            },
+            _ => return false,
+        }
+    };
+    // the char is on this (new) link now: refresh the online
+    // bookkeeping the dead link's unregister dropped
+    let cid = fixed.char_id.0;
+    st.online.lock().unwrap().insert(cid, map_id);
+    st.online_notify.notify_one();
+    if let Some(c) = st.chars.lock().unwrap().get_mut(&cid) {
+        c.online_map = Some(map_id);
+    }
+    st.set_online_auth(auth);
+    send_must(st, map_id, tx, bytes).await;
+    tracing::info!(map_id, char_id = cid, "re-served auth for map");
+    true
 }
 
 /// 0x2b0e named-char ops: block(1)/ban(2)/unblock(3)/unban(4) against
