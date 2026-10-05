@@ -320,6 +320,16 @@ starve an auth answer. `send_must` gives a wedged prio queue 30 s,
 then kills the link (`map_kill`): the map reconnects cleanly instead
 of waiting minutes on an answer that never comes.
 
+**Auth answers survive a flap.** Serving `0x2afd` consumes the staged
+auth entry, so a `0x2afc` repeated after a link flap (the map re-pushes
+pending requests on reconnect, since a reply lost with the old socket
+used to burn the entry and kick the player with `0x2afe`) used to be a
+spurious reject. The take therefore also opens a 60 s reservation
+holding the exact `0x2afd` bytes; a repeat on the same registered map
+address is re-served verbatim, or waits (bounded) for an in-flight
+first serve to resolve. Re-requests from a different map address or
+with different credentials still reject.
+
 **mimalloc, not glibc malloc.** The job-queue backlog is a large
 transient (~1 GB per ~120k queued saves); glibc's per-thread arenas
 never return it — load testing measured ~20 GB of permanently

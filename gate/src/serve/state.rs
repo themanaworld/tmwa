@@ -40,6 +40,78 @@ pub struct AuthEntry {
 
 const AUTH_TTL: Duration = Duration::from_secs(300);
 
+/// Reply state of a served map-auth reservation: Pending until the
+/// first 0x2afc finishes building its answer, then Ready with the
+/// exact 0x2afd bytes or Failed when the serve aborted (repeats
+/// just re-reject).
+#[derive(Clone)]
+pub enum ServedReply {
+    Pending,
+    Ready(Vec<u8>),
+    Failed,
+}
+
+/// A 0x2afc the gate answered (or is answering) with 0x2afd, kept
+/// briefly because the map re-pushes the request when the link
+/// flaps and the original answer may never have arrived. Matched
+/// like a stage-3 `AuthEntry`; re-served only to the map server
+/// (registered client address) the answer went to, so a different
+/// server cannot claim the login.
+pub struct ServedAuth {
+    pub account_id: u32,
+    pub char_id: u32,
+    pub login_id1: u32,
+    pub login_id2: u32,
+    pub ip: u32,
+    pub upstream_ip: Option<u32>,
+    /// Registered client address of the map link the reply went to.
+    pub map_ip: u32,
+    pub map_port: u16,
+    /// Resolves the reservation for waiting repeats.
+    pub reply: tokio::sync::watch::Sender<ServedReply>,
+    pub served: Instant,
+}
+
+/// Grace window for re-serving an answered 0x2afc: comfortably
+/// longer than a map link's reconnect-and-repush cycle.
+const SERVED_TTL: Duration = Duration::from_secs(60);
+
+/// The credential tuple a 0x2afc request carries: what a pending
+/// stage-3 entry is matched on and what a served reservation
+/// re-matches.
+#[derive(Clone, Copy)]
+pub struct MapAuthReq {
+    pub account_id: u32,
+    pub char_id: u32,
+    pub login_id1: u32,
+    pub login_id2: u32,
+    /// The client address the map reports (the relay's upstream
+    /// source address when set).
+    pub ip: u32,
+}
+
+impl MapAuthReq {
+    /// The tuple check shared by `take_map_auth` and
+    /// `served_map_auth`: strict match except `login_id2`, where a
+    /// request of 0 is a wildcard.
+    fn matches(&self, e: &AuthEntry) -> bool {
+        e.delflag == 3
+            && e.account_id == self.account_id
+            && e.char_id == self.char_id
+            && e.login_id1 == self.login_id1
+            && (e.login_id2 == self.login_id2 || self.login_id2 == 0)
+            && (e.upstream_ip.unwrap_or(e.ip) == self.ip || e.ip == self.ip)
+    }
+
+    /// Same check against a served reservation (no delflag).
+    fn matches_served(&self, r: &ServedAuth) -> bool {
+        r.char_id == self.char_id
+            && r.login_id1 == self.login_id1
+            && (r.login_id2 == self.login_id2 || self.login_id2 == 0)
+            && (r.upstream_ip.unwrap_or(r.ip) == self.ip || r.ip == self.ip)
+    }
+}
+
 /// A client connection being relayed to a map server. The relay
 /// keeps this record so a crashed/restarting map can be held and
 /// rejoined without dropping the client.
@@ -266,6 +338,12 @@ pub struct State {
     /// account_id -> pending auth entry (a new login replaces the
     /// account's previous entry; entries expire after AUTH_TTL).
     pub auth: Mutex<HashMap<u32, AuthEntry>>,
+    /// Keyed by account_id: a 0x2afc already answered (or being
+    /// answered) with 0x2afd. The map re-pushes pending auth
+    /// requests when the link flaps; the reservation lets the
+    /// repeat get the same reply instead of a 0x2afe. Expires
+    /// after SERVED_TTL.
+    pub served_auth: Mutex<HashMap<u32, ServedAuth>>,
     /// (account_id, char_id) of clients waiting on 0x3830.
     pub pending_sel: Mutex<HashMap<(u32, u32), PendingSel>>,
     /// char_id -> auth material of each online player, so a map
@@ -338,6 +416,7 @@ impl State {
             cfg,
             db,
             auth: Mutex::new(HashMap::new()),
+            served_auth: Mutex::new(HashMap::new()),
             pending_sel: Mutex::new(HashMap::new()),
             online_auth: Mutex::new(HashMap::new()),
             transfer_pending: Mutex::new(HashMap::new()),
@@ -428,22 +507,78 @@ impl State {
         }
     }
 
-    /// Consume a stage-3 entry (0x2afc).
+    /// Consume a stage-3 entry (0x2afc) and open a re-serve
+    /// reservation keyed on the serving map's registered client
+    /// address (`map_ip`/`map_port`). The returned sender resolves
+    /// the reservation: `ServedReply::Ready` with the 0x2afd bytes
+    /// on success, `ServedReply::Failed` when the serve aborts. The
+    /// pending take and the reservation happen while the auth lock
+    /// is held, so a flap-repeated request can never observe a
+    /// missing entry between the two.
     pub fn take_map_auth(
         &self,
-        account_id: u32,
-        char_id: u32,
-        login_id1: u32,
-        login_id2: u32,
-        ip: u32,
-    ) -> Option<AuthEntry> {
-        self.take_auth(3, |e| {
-            e.account_id == account_id
-                && e.char_id == char_id
-                && e.login_id1 == login_id1
-                && (e.login_id2 == login_id2 || login_id2 == 0)
-                && (e.upstream_ip.unwrap_or(e.ip) == ip || e.ip == ip)
-        })
+        req: MapAuthReq,
+        map_ip: u32,
+        map_port: u16,
+    ) -> Option<(AuthEntry, tokio::sync::watch::Sender<ServedReply>)> {
+        let mut a = self.auth.lock().unwrap();
+        let now = Instant::now();
+        a.retain(|_, x| now.duration_since(x.created) < AUTH_TTL);
+        let key = a.iter().find(|(_, e)| req.matches(e)).map(|(k, _)| *k)?;
+        let mut e = a.remove(&key)?;
+        e.delflag = 1;
+        let (tx, _rx) = tokio::sync::watch::channel(ServedReply::Pending);
+        let mut s = self.served_auth.lock().unwrap();
+        s.retain(|_, r| now.duration_since(r.served) < SERVED_TTL);
+        s.insert(
+            req.account_id,
+            ServedAuth {
+                account_id: req.account_id,
+                char_id: req.char_id,
+                login_id1: req.login_id1,
+                login_id2: req.login_id2,
+                ip: e.ip,
+                upstream_ip: e.upstream_ip,
+                map_ip,
+                map_port,
+                reply: tx.clone(),
+                served: now,
+            },
+        );
+        Some((e, tx))
+    }
+
+    /// Match a recently served auth (a repeated 0x2afc after a
+    /// link flap). Same tuple check as `take_map_auth`, plus the
+    /// requester's registered client address must be the map the
+    /// reply went to. On a hit, returns a receiver that resolves
+    /// to the served reply (Pending means the first request is
+    /// still building its answer) and the auth material to refresh
+    /// online-auth bookkeeping with (`server` set to `map_id`).
+    pub fn served_map_auth(
+        &self,
+        req: MapAuthReq,
+        map_id: usize,
+        map_ip: u32,
+        map_port: u16,
+    ) -> Option<(tokio::sync::watch::Receiver<ServedReply>, OnlineAuth)> {
+        let mut s = self.served_auth.lock().unwrap();
+        let now = Instant::now();
+        s.retain(|_, r| now.duration_since(r.served) < SERVED_TTL);
+        let r = s.get(&req.account_id)?;
+        if req.matches_served(r) && r.map_ip == map_ip && r.map_port == map_port {
+            let auth = OnlineAuth {
+                account_id: r.account_id,
+                char_id: r.char_id,
+                login_id1: r.login_id1,
+                login_id2: r.login_id2,
+                ip: r.ip,
+                server: map_id,
+            };
+            Some((r.reply.subscribe(), auth))
+        } else {
+            None
+        }
     }
 
     // ---- transfer / save ordering ----
@@ -1363,5 +1498,104 @@ mod tests {
         let mut rx = pending_sel(&st, map_id, [203, 0, 113, 9]);
         let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
         assert_eq!(p.ip.0, [203, 0, 113, 7]);
+    }
+
+    fn push_stage3(
+        st: &State,
+        account_id: u32,
+        char_id: u32,
+        login_id1: u32,
+        login_id2: u32,
+        client_ip: [u8; 4],
+    ) {
+        st.push_auth(AuthEntry {
+            account_id,
+            char_id,
+            login_id1,
+            login_id2,
+            ip: u32::from_le_bytes(client_ip),
+            client_version: 0,
+            map_id: None,
+            upstream_ip: None,
+            delflag: 3,
+            created: Instant::now(),
+        });
+    }
+
+    fn auth_req(account_id: u32, char_id: u32, login_id1: u32, login_id2: u32) -> MapAuthReq {
+        MapAuthReq {
+            account_id,
+            char_id,
+            login_id1,
+            login_id2,
+            ip: u32::from_le_bytes([1, 2, 3, 4]),
+        }
+    }
+
+    #[test]
+    fn take_map_auth_reserves_for_same_server() {
+        let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        let mip = u32::from_le_bytes([203, 0, 113, 7]);
+        push_stage3(&st, 10, 100, 111, 222, [1, 2, 3, 4]);
+        let req = auth_req(10, 100, 111, 222);
+        let (e, tx) = st.take_map_auth(req, mip, 5121).unwrap();
+        assert_eq!(e.char_id, 100);
+        // the pending entry is consumed
+        assert!(st.take_map_auth(req, mip, 5121).is_none());
+        // a repeat matches only on the served map's address
+        assert!(st.served_map_auth(req, 1, mip, 5121).is_some());
+        assert!(st.served_map_auth(req, 1, mip, 5122).is_none());
+        let other_ip = u32::from_le_bytes([203, 0, 113, 9]);
+        assert!(st.served_map_auth(req, 1, other_ip, 5121).is_none());
+        // login_id2 0 is a wildcard, like the pending match
+        assert!(
+            st.served_map_auth(auth_req(10, 100, 111, 0), 1, mip, 5121)
+                .is_some()
+        );
+        // wrong credentials never match
+        assert!(
+            st.served_map_auth(auth_req(10, 100, 999, 222), 1, mip, 5121)
+                .is_none()
+        );
+        assert!(
+            st.served_map_auth(auth_req(10, 101, 111, 222), 1, mip, 5121)
+                .is_none()
+        );
+        // resolving the reservation hands out the exact reply and
+        // the auth material for bookkeeping
+        let (rx, auth) = st.served_map_auth(req, 1, mip, 5121).unwrap();
+        assert_eq!(auth.server, 1);
+        assert_eq!(auth.login_id2, 222);
+        tx.send_replace(ServedReply::Ready(b"reply".to_vec()));
+        assert!(matches!(&*rx.borrow(), ServedReply::Ready(b) if b.as_slice() == b"reply"));
+    }
+
+    #[tokio::test]
+    async fn served_map_auth_pending_resolves() {
+        let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        let mip = u32::from_le_bytes([203, 0, 113, 7]);
+        push_stage3(&st, 11, 100, 111, 222, [1, 2, 3, 4]);
+        let req = auth_req(11, 100, 111, 222);
+        let (_e, tx) = st.take_map_auth(req, mip, 5121).unwrap();
+        // subscribed while the first serve is still building
+        let (mut rx, _auth) = st.served_map_auth(req, 2, mip, 5121).unwrap();
+        tx.send_replace(ServedReply::Ready(b"r".to_vec()));
+        let r = rx
+            .wait_for(|v| !matches!(v, ServedReply::Pending))
+            .await
+            .unwrap();
+        assert!(matches!(&*r, ServedReply::Ready(b) if b.as_slice() == b"r"));
+        drop(r);
+        // a Failed resolution wakes waiters to reject
+        push_stage3(&st, 12, 100, 111, 222, [1, 2, 3, 4]);
+        let req = auth_req(12, 100, 111, 222);
+        let (_e, tx) = st.take_map_auth(req, mip, 5121).unwrap();
+        let (mut rx, _auth) = st.served_map_auth(req, 2, mip, 5121).unwrap();
+        tx.send_replace(ServedReply::Failed);
+        let r = rx
+            .wait_for(|v| !matches!(v, ServedReply::Pending))
+            .await
+            .unwrap();
+        assert!(matches!(&*r, ServedReply::Failed));
     }
 }
