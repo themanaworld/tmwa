@@ -336,17 +336,25 @@ async fn handle(
                 created: std::time::Instant::now(),
             });
             // the char is no longer online on that map
+            let mut cids = Vec::new();
             {
                 let mut chars = st.chars.lock().unwrap();
                 for c in chars.values_mut() {
                     if c.key.account_id.0 == fixed.account_id.0 {
                         c.online_map = None;
+                        cids.push(c.key.char_id.0);
                     }
                 }
             }
             {
+                // drop only the departing account's marks; every
+                // other player on this map stays online
                 let mut online = st.online.lock().unwrap();
-                online.retain(|_, v| *v != map_id);
+                for cid in cids {
+                    if online.get(&cid) == Some(&map_id) {
+                        online.remove(&cid);
+                    }
+                }
             }
             st.online_notify.notify_one();
             st.drop_account_online_auth(fixed.account_id.0);
@@ -360,83 +368,13 @@ async fn handle(
             let Ok(fixed) = P2B05::decode(bytes) else {
                 return Err(());
             };
-            // map-to-map move: the source just sent 0x2b01 on this
-            // link and the client now heads to another server. Mark
-            // the transfer so that link's 0x2afc waits for the save,
-            // and create a map-stage entry so it can match.
-            st.transfer_mark(fixed.account_id.0, fixed.char_id.0);
-            st.set_online_auth(super::state::OnlineAuth {
-                account_id: fixed.account_id.0,
-                char_id: fixed.char_id.0,
-                login_id1: fixed.login_id1,
-                login_id2: fixed.login_id2,
-                ip: u32::from_le_bytes(fixed.client_ip.0),
-                server: map_id,
+            // `load_char` can hit SQLite on a cache miss: keep the
+            // read loop hot by finishing in a task, like 0x2afc.
+            let st = st.clone();
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                handle_map_move(&st, &tx, map_id, fixed).await;
             });
-            let ok = st
-                .load_char(fixed.char_id.0)
-                .await
-                .map(|r| r.key.account_id.0 == fixed.account_id.0)
-                .unwrap_or(false);
-            if ok {
-                st.push_auth(super::state::AuthEntry {
-                    account_id: fixed.account_id.0,
-                    char_id: fixed.char_id.0,
-                    login_id1: fixed.login_id1,
-                    login_id2: fixed.login_id2,
-                    ip: u32::from_le_bytes(fixed.client_ip.0),
-                    client_version: 0,
-                    map_id: None,
-                    upstream_ip: None,
-                    delflag: 3,
-                    created: std::time::Instant::now(),
-                });
-                // make sure the destination map holds a fresh
-                // pre-auth entry: the one it got at registration
-                // may have been evicted (bounded auth_fifo) or
-                // never sent. Without it the client's 0x0072 is
-                // rejected as "not auth account". Spawned: a wedged
-                // destination link must not stall this reader, and
-                // the client takes longer to reconnect than this
-                // push takes anyway; a miss falls back to 0x2afc.
-                let dest_ip = u32::from_le_bytes(fixed.map_ip.0);
-                match st.map_by_addr(dest_ip, fixed.map_port) {
-                    Some(dest) => {
-                        let st2 = st.clone();
-                        tokio::spawn(async move {
-                            let Some(dtx) = st2.map_prio_tx(dest) else {
-                                return;
-                            };
-                            let mut p29 = P3829::default();
-                            p29.account_id = fixed.account_id;
-                            p29.char_id = fixed.char_id;
-                            p29.login_id1 = fixed.login_id1;
-                            p29.login_id2 = fixed.login_id2;
-                            p29.ip = fixed.client_ip;
-                            send_must(&st2, dest, &dtx, enc(move |v| p29.encode(v))).await;
-                        });
-                    }
-                    None => {
-                        tracing::warn!(
-                            map_id,
-                            "0x2b05 names unknown destination {}:{}",
-                            Ipv4Addr::from(fixed.map_ip.0),
-                            fixed.map_port
-                        );
-                    }
-                }
-            }
-            let mut p = P2B06::default();
-            p.account_id = fixed.account_id;
-            p.error = if ok { 0 } else { 1 };
-            p.unknown = 0;
-            p.char_id = fixed.char_id;
-            p.map_name = fixed.map_name;
-            p.x = fixed.x;
-            p.y = fixed.y;
-            p.map_ip = fixed.map_ip;
-            p.map_port = fixed.map_port;
-            send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
             Ok(())
         }
         0x2b0c => {
@@ -872,27 +810,24 @@ async fn handle_auth_request(
         return;
     };
     // load CharKey + CharData (full, incl. account_reg* + vars)
+    // through the cache: `chars` was updated when the 0x2b01
+    // arrived, so a hit is at least as fresh as SQLite, and a miss
+    // goes through load_char's fix_party_id like every other read.
     let cid = e.char_id;
-    let res = {
-        let st2 = st.clone();
-        tokio::task::spawn_blocking(move || st2.db.load_character(cid as i64)).await
-    };
-    let Ok(Ok((key, cd))) = res else {
+    let Some(rec) = st.load_char(cid).await else {
         reserve.send_replace(super::state::ServedReply::Failed);
         let mut p = P2AFE::default();
         p.account_id = fixed.account_id;
         send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
         return;
     };
-    // update cache
-    st.chars.lock().unwrap().insert(
-        cid,
-        super::state::CharRecord {
-            key,
-            data: cd,
-            online_map: Some(map_id),
-        },
-    );
+    let key = rec.key;
+    let cd = rec.data;
+    // the record is cached now; mark the map without overwriting
+    // fields a racing 0x2b01 may have updated
+    if let Some(c) = st.chars.lock().unwrap().get_mut(&cid) {
+        c.online_map = Some(map_id);
+    }
     // the char is (about to be) online on this map
     st.online.lock().unwrap().insert(cid, map_id);
     st.online_notify.notify_one();
@@ -923,6 +858,88 @@ async fn handle_auth_request(
     reserve.send_replace(super::state::ServedReply::Ready(bytes.clone()));
     send_must(st, map_id, tx, bytes).await;
     tracing::info!(map_id, char_id = cid, "authenticated char for map");
+}
+
+/// 0x2b05 map-to-map move: the source just sent 0x2b01 on this
+/// link and the client now heads to another server. Runs as its
+/// own task so the link's read loop never waits on SQLite (the
+/// `load_char` below can miss the cache).
+async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, map_id: usize, fixed: P2B05) {
+    // mark the transfer so the destination link's 0x2afc waits for
+    // the save, and create a map-stage entry so it can match.
+    st.transfer_mark(fixed.account_id.0, fixed.char_id.0);
+    st.set_online_auth(super::state::OnlineAuth {
+        account_id: fixed.account_id.0,
+        char_id: fixed.char_id.0,
+        login_id1: fixed.login_id1,
+        login_id2: fixed.login_id2,
+        ip: u32::from_le_bytes(fixed.client_ip.0),
+        server: map_id,
+    });
+    let ok = st
+        .load_char(fixed.char_id.0)
+        .await
+        .map(|r| r.key.account_id.0 == fixed.account_id.0)
+        .unwrap_or(false);
+    if ok {
+        st.push_auth(super::state::AuthEntry {
+            account_id: fixed.account_id.0,
+            char_id: fixed.char_id.0,
+            login_id1: fixed.login_id1,
+            login_id2: fixed.login_id2,
+            ip: u32::from_le_bytes(fixed.client_ip.0),
+            client_version: 0,
+            map_id: None,
+            upstream_ip: None,
+            delflag: 3,
+            created: std::time::Instant::now(),
+        });
+        // make sure the destination map holds a fresh
+        // pre-auth entry: the one it got at registration
+        // may have been evicted (bounded auth_fifo) or
+        // never sent. Without it the client's 0x0072 is
+        // rejected as "not auth account". Spawned: a wedged
+        // destination link must not stall this reader, and
+        // the client takes longer to reconnect than this
+        // push takes anyway; a miss falls back to 0x2afc.
+        let dest_ip = u32::from_le_bytes(fixed.map_ip.0);
+        match st.map_by_addr(dest_ip, fixed.map_port) {
+            Some(dest) => {
+                let st2 = st.clone();
+                tokio::spawn(async move {
+                    let Some(dtx) = st2.map_prio_tx(dest) else {
+                        return;
+                    };
+                    let mut p29 = P3829::default();
+                    p29.account_id = fixed.account_id;
+                    p29.char_id = fixed.char_id;
+                    p29.login_id1 = fixed.login_id1;
+                    p29.login_id2 = fixed.login_id2;
+                    p29.ip = fixed.client_ip;
+                    send_must(&st2, dest, &dtx, enc(move |v| p29.encode(v))).await;
+                });
+            }
+            None => {
+                tracing::warn!(
+                    map_id,
+                    "0x2b05 names unknown destination {}:{}",
+                    Ipv4Addr::from(fixed.map_ip.0),
+                    fixed.map_port
+                );
+            }
+        }
+    }
+    let mut p = P2B06::default();
+    p.account_id = fixed.account_id;
+    p.error = if ok { 0 } else { 1 };
+    p.unknown = 0;
+    p.char_id = fixed.char_id;
+    p.map_name = fixed.map_name;
+    p.x = fixed.x;
+    p.y = fixed.y;
+    p.map_ip = fixed.map_ip;
+    p.map_port = fixed.map_port;
+    send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
 }
 
 /// Repeated 0x2afc with no pending entry: if the request was
@@ -999,50 +1016,63 @@ async fn handle_named_op(
             reply.char_name = fixed.char_name;
             reply.error = 1;
         }
-        Some(cid) => {
-            let rec = st.load_char(cid).await;
-            let target_acc = rec.as_ref().map(|r| r.key.account_id.0).unwrap_or(0);
-            reply.char_name = rec.as_ref().map(|r| r.key.name).unwrap_or(fixed.char_name);
-            // gm-level check: requester must outrank the target
-            // (account_id 0 = server-internal, always allowed)
-            let requester_gm = if acc == 0 { u32::MAX } else { is_gm(st, acc) };
-            let target_gm = is_gm(st, target_acc);
-            if requester_gm <= target_gm && acc != 0 {
-                reply.error = 2;
-            } else {
-                reply.error = 0;
-                let aid = target_acc as i64;
-                match op {
-                    1 => {
-                        let _ = st.db.blocking(move |db| db.set_account_state(aid, 5)).await;
-                        kick_online(st, target_acc, 5, 0);
-                    }
-                    2 => {
-                        // ban_add is a HumanTimeDiff added to now
-                        let until = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_secs() as i64
-                            + htd_seconds(&fixed.ban_add);
-                        let _ = st
-                            .db
-                            .blocking(move |db| db.set_account_ban(aid, until))
-                            .await;
-                        kick_online(st, target_acc, 1, until);
-                    }
-                    3 => {
-                        let _ = st.db.blocking(move |db| db.set_account_state(aid, 0)).await;
-                    }
-                    4 => {
-                        let _ = st.db.blocking(move |db| db.set_account_ban(aid, 0)).await;
-                    }
-                    _ => {
-                        // changesex etc: no account sex anymore
-                        reply.error = 1;
+        Some(cid) => match st.load_char(cid).await {
+            // the name resolved but the record cannot be loaded:
+            // report failure rather than run the op on a bogus
+            // account 0
+            None => {
+                reply.char_name = fixed.char_name;
+                reply.error = 1;
+            }
+            Some(rec) => {
+                let target_acc = rec.key.account_id.0;
+                reply.char_name = rec.key.name;
+                // gm-level check: requester must outrank the target
+                // (account_id 0 = server-internal, always allowed)
+                let requester_gm = if acc == 0 { u32::MAX } else { is_gm(st, acc) };
+                let target_gm = is_gm(st, target_acc);
+                if requester_gm <= target_gm && acc != 0 {
+                    reply.error = 2;
+                } else {
+                    reply.error = 0;
+                    let aid = target_acc as i64;
+                    match op {
+                        1 => {
+                            let _ = st.db.blocking(move |db| db.set_account_state(aid, 5)).await;
+                            // upstream: the login-server's 0x2731 for a
+                            // state change carries ban_not_status=0 with
+                            // the new state in status_or_ban_until; the
+                            // map only shows "blocked by the GM Team"
+                            // from that branch (chrif_accountban)
+                            kick_online(st, target_acc, 0, 5);
+                        }
+                        2 => {
+                            // ban_add is a HumanTimeDiff added to now
+                            let until = std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_secs() as i64
+                                + htd_seconds(&fixed.ban_add);
+                            let _ = st
+                                .db
+                                .blocking(move |db| db.set_account_ban(aid, until))
+                                .await;
+                            kick_online(st, target_acc, 1, until);
+                        }
+                        3 => {
+                            let _ = st.db.blocking(move |db| db.set_account_state(aid, 0)).await;
+                        }
+                        4 => {
+                            let _ = st.db.blocking(move |db| db.set_account_ban(aid, 0)).await;
+                        }
+                        _ => {
+                            // changesex etc: no account sex anymore
+                            reply.error = 1;
+                        }
                     }
                 }
             }
-        }
+        },
     }
     // reply only when a player asked (acc != 0)
     if acc != 0 {
@@ -1304,24 +1334,26 @@ async fn party_add(
                 lv: fixed.level as i32,
             };
             send_must(st, map_id, tx, reply(0)).await;
-            let mut flag = 0u8;
+            // upstream sends the updated member table (0x3821)
+            // before any forced option change below
+            // (mapif_party_info then mapif_party_optionchanged);
+            // store first since the broadcast reads the table
+            party_put(st, pid, p);
+            party_info_to(st, None, map_id, pid).await;
             if p.exp > 0 && !party_check_exp_share(st, &p) {
                 p.exp = 0;
-                flag = 0x01;
-            }
-            if flag != 0 {
                 let mut o = P3823::default();
                 o.party_id = fixed.party_id;
                 o.account_id = AccountId(0);
                 o.exp = p.exp as u16;
                 o.item = p.item as u16;
-                o.flag = flag;
+                // upstream passes flag=0 here
+                // (mapif_party_optionchanged(..., 0)): the map
+                // applies exp only when !(flag & 0x01)
+                o.flag = 0;
                 st.map_broadcast(&enc(move |v| o.encode(v)));
+                party_put(st, pid, p);
             }
-            party_put(st, pid, p);
-            // broadcast AFTER the update, or the member table the
-            // maps learn is missing the new member
-            party_info_to(st, None, map_id, pid).await;
             return Ok(());
         }
     }
@@ -1421,18 +1453,17 @@ async fn party_map_change(st: &Arc<State>, _tx: &mpsc::Sender<Vec<u8>>, bytes: &
         n.online = m.online as u8;
         n.level = m.lv as u16;
         st.map_broadcast(&enc(move |v| n.encode(v)));
-        let mut flag = 0u8;
         if p.exp > 0 && !party_check_exp_share(st, &p) {
             p.exp = 0;
-            flag = 1;
-        }
-        if flag != 0 {
             let mut o = P3823::default();
             o.party_id = PartyId(pid);
             o.account_id = AccountId(0);
             o.exp = p.exp as u16;
             o.item = p.item as u16;
-            o.flag = flag;
+            // upstream passes flag=0 here
+            // (mapif_party_optionchanged(..., 0)): the map applies
+            // exp only when !(flag & 0x01)
+            o.flag = 0;
             st.map_broadcast(&enc(move |v| o.encode(v)));
         }
         party_put(st, pid, p);
@@ -1547,5 +1578,334 @@ pub fn load_parties(st: &State) {
             };
         }
         parties.insert(id as u32, p);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::proto::types::TimeT;
+
+    fn test_state() -> Arc<State> {
+        Arc::new(State::new(
+            crate::config::Config::default(),
+            std::sync::Arc::new(crate::db::Db::open_memory().unwrap()),
+        ))
+    }
+
+    /// Register a map link; returns (slot, bulk rx, prio rx).
+    fn reg_map(st: &State) -> (usize, mpsc::Receiver<Vec<u8>>, mpsc::Receiver<Vec<u8>>) {
+        let (tx, rx) = mpsc::channel(16);
+        let (ptx, prx) = mpsc::channel(16);
+        let (id, _kill) = st.map_register(tx, ptx, u32::from_le_bytes([10, 0, 0, 1]), 5121);
+        (id, rx, prx)
+    }
+
+    /// Put a char in the cache (and the name index), like a
+    /// processed 0x2b01/0x2afc would have.
+    fn cache_char(st: &State, char_id: u32, account_id: u32, name: &str) {
+        let key = CharKey {
+            char_id: CharId(char_id),
+            account_id: AccountId(account_id),
+            name: FixedStr::<24>::try_from_str(name).unwrap(),
+            char_num: 0,
+        };
+        st.char_names
+            .lock()
+            .unwrap()
+            .insert(name.to_string(), char_id);
+        st.chars.lock().unwrap().insert(
+            char_id,
+            crate::serve::state::CharRecord {
+                key,
+                data: CharData::default(),
+                online_map: None,
+            },
+        );
+    }
+
+    fn member(account_id: u32, name: &str, online: i32, lv: i32) -> PartyMember {
+        PartyMember {
+            account_id: AccountId(account_id),
+            name: FixedStr::<24>::try_from_str(name).unwrap(),
+            map: FixedStr::<16>::try_from_str("001-1.gat").unwrap(),
+            leader: 0,
+            online,
+            lv,
+        }
+    }
+
+    /// 0x2b02 (back to char select) must clear only the departing
+    /// account's online marks, not every player on the map.
+    #[tokio::test]
+    async fn char_select_drops_only_departing_chars() {
+        let st = test_state();
+        cache_char(&st, 100, 1, "alice");
+        cache_char(&st, 200, 2, "bob");
+        {
+            let mut online = st.online.lock().unwrap();
+            online.insert(100, 3);
+            online.insert(200, 3);
+            st.chars.lock().unwrap().get_mut(&100).unwrap().online_map = Some(3);
+            st.chars.lock().unwrap().get_mut(&200).unwrap().online_map = Some(3);
+        }
+        let (tx, mut rx) = mpsc::channel(8);
+        let mut p = P2B02::default();
+        p.account_id = AccountId(1);
+        p.login_id1 = 11;
+        p.login_id2 = 22;
+        p.ip = Ip4Address([1, 2, 3, 4]);
+        handle(&st, &tx, 3, 0x2b02, &enc(|v| p.encode(v)))
+            .await
+            .unwrap();
+        {
+            let online = st.online.lock().unwrap();
+            assert!(!online.contains_key(&100));
+            assert_eq!(online.get(&200), Some(&3));
+        }
+        assert_eq!(
+            st.chars.lock().unwrap()[&100].online_map,
+            None,
+            "departing char loses its mark"
+        );
+        let r = P2B03::decode(&rx.recv().await.unwrap()).unwrap();
+        assert_eq!(r.account_id.0, 1);
+    }
+
+    /// 0x2b0e op 1 (block) broadcasts 0x2b14 with ban_not_status=0
+    /// and the state code in status_or_ban_until, like the
+    /// login-server's 0x2731 upstream.
+    #[tokio::test]
+    async fn named_op_block_broadcasts_state_code() {
+        let st = test_state();
+        cache_char(&st, 55, 7, "victim");
+        st.gm.lock().unwrap().insert(99, 50);
+        let (map_id, mut mrx, _prx) = reg_map(&st);
+        let (rtx, mut rrx) = mpsc::channel(8);
+        let mut p = P2B0E::default();
+        p.account_id = AccountId(99);
+        p.char_name = FixedStr::<24>::try_from_str("victim").unwrap();
+        p.operation = 1;
+        handle_named_op(&st, &rtx, map_id, p).await.unwrap();
+        let r = P2B0F::decode(&rrx.recv().await.unwrap()).unwrap();
+        assert_eq!(r.error, 0);
+        let b = P2B14::decode(&mrx.recv().await.unwrap()).unwrap();
+        assert_eq!(b.account_id.0, 7);
+        assert_eq!(b.ban_not_status, 0);
+        assert_eq!(b.status_or_ban_until, TimeT(5));
+    }
+
+    /// A named op on a name that resolves to an unloadable record
+    /// must fail (error=1), not run against account 0.
+    #[tokio::test]
+    async fn named_op_missing_record_is_error() {
+        let st = test_state();
+        // name known, record nowhere: not in cache, not in the DB
+        st.char_names
+            .lock()
+            .unwrap()
+            .insert("ghost".to_string(), 55);
+        st.gm.lock().unwrap().insert(99, 50);
+        let (map_id, mut mrx, _prx) = reg_map(&st);
+        let (rtx, mut rrx) = mpsc::channel(8);
+        let mut p = P2B0E::default();
+        p.account_id = AccountId(99);
+        p.char_name = FixedStr::<24>::try_from_str("ghost").unwrap();
+        p.operation = 1;
+        handle_named_op(&st, &rtx, map_id, p).await.unwrap();
+        let r = P2B0F::decode(&rrx.recv().await.unwrap()).unwrap();
+        assert_eq!(r.error, 1);
+        assert_eq!(r.char_name.to_string_lossy(), "ghost");
+        // and no kick broadcast went out for a phantom account
+        assert!(mrx.try_recv().is_err());
+    }
+
+    /// 0x3022 add-member that forces exp share off broadcasts the
+    /// new member table (0x3821) first, then a flag=0 0x3823 so the
+    /// other maps apply exp=0 too (upstream int_party.cpp order and
+    /// flag value).
+    #[tokio::test]
+    async fn party_add_exp_forced_off_broadcasts_flag0() {
+        let st = test_state();
+        let mut pm = PartyMost::default();
+        pm.name = FixedStr::<24>::try_from_str("party").unwrap();
+        pm.exp = 1;
+        pm.member[0] = member(1, "leader", 1, 20);
+        st.parties.lock().unwrap().insert(5, pm);
+        let (map_id, mut mrx, mut prx) = reg_map(&st);
+        let tx = st.map_prio_tx(map_id).unwrap();
+        let mut p = P3022::default();
+        p.party_id = PartyId(5);
+        p.account_id = AccountId(2);
+        p.char_name = FixedStr::<24>::try_from_str("newbie").unwrap();
+        p.map_name = FixedStr::<16>::try_from_str("001-1.gat").unwrap();
+        p.level = 99; // spread 79 > party_share_level 10
+        party_add(&st, &tx, map_id, &enc(|v| p.encode(v)))
+            .await
+            .unwrap();
+        let r = P3822::decode(&prx.recv().await.unwrap()).unwrap();
+        assert_eq!(r.flag, 0);
+        let i = P3821::decode(&mrx.recv().await.unwrap()).unwrap();
+        assert_eq!(i.party_id.0, 5);
+        let pm2 = i.option.unwrap().party_most;
+        assert_eq!(pm2.member[1].account_id.0, 2);
+        let o = P3823::decode(&mrx.recv().await.unwrap()).unwrap();
+        assert_eq!(o.flag, 0);
+        assert_eq!(o.exp, 0);
+        assert_eq!(st.parties.lock().unwrap()[&5].exp, 0);
+    }
+
+    /// 0x3025 map change that forces exp share off likewise sends
+    /// flag=0 so remote maps apply the new value.
+    #[tokio::test]
+    async fn party_map_change_exp_forced_off_broadcasts_flag0() {
+        let st = test_state();
+        let mut pm = PartyMost::default();
+        pm.name = FixedStr::<24>::try_from_str("party").unwrap();
+        pm.exp = 1;
+        pm.member[0] = member(1, "mover", 1, 20);
+        pm.member[1] = member(2, "stayer", 1, 20);
+        st.parties.lock().unwrap().insert(5, pm);
+        let (_map_id, mut mrx, _prx) = reg_map(&st);
+        let (tx, _rx) = mpsc::channel(8);
+        let mut p = P3025::default();
+        p.party_id = PartyId(5);
+        p.account_id = AccountId(1);
+        p.map_name = FixedStr::<16>::try_from_str("002-1.gat").unwrap();
+        p.online = 1;
+        p.level = 99; // spread 79 > party_share_level 10
+        party_map_change(&st, &tx, &enc(|v| p.encode(v)))
+            .await
+            .unwrap();
+        let n = P3825::decode(&mrx.recv().await.unwrap()).unwrap();
+        assert_eq!(n.level, 99);
+        let o = P3823::decode(&mrx.recv().await.unwrap()).unwrap();
+        assert_eq!(o.flag, 0);
+        assert_eq!(o.exp, 0);
+        assert_eq!(st.parties.lock().unwrap()[&5].exp, 0);
+    }
+
+    /// 0x2b05 runs in its own task; the 0x2b06 reply still arrives
+    /// and the destination map gets a fresh pre-auth.
+    #[tokio::test]
+    async fn map_move_answers_and_preauths_destination() {
+        let st = test_state();
+        cache_char(&st, 100, 1, "mover");
+        let (_dest_id, _drx, mut dprx) = {
+            let (tx, rx) = mpsc::channel(16);
+            let (ptx, prx) = mpsc::channel(16);
+            let (id, _kill) = st.map_register(tx, ptx, u32::from_le_bytes([10, 0, 0, 2]), 6121);
+            (id, rx, prx)
+        };
+        let (stx, mut srx) = mpsc::channel(8);
+        let mut p = P2B05::default();
+        p.account_id = AccountId(1);
+        p.char_id = CharId(100);
+        p.login_id1 = 11;
+        p.login_id2 = 22;
+        p.map_name = FixedStr::<16>::try_from_str("002-1.gat").unwrap();
+        p.map_ip = Ip4Address([10, 0, 0, 2]);
+        p.map_port = 6121;
+        p.client_ip = Ip4Address([1, 2, 3, 4]);
+        handle(&st, &stx, 0, 0x2b05, &enc(|v| p.encode(v)))
+            .await
+            .unwrap();
+        let r = P2B06::decode(&srx.recv().await.unwrap()).unwrap();
+        assert_eq!(r.error, 0);
+        let a = P3829::decode(&dprx.recv().await.unwrap()).unwrap();
+        assert_eq!(a.char_id.0, 100);
+        // a stage-3 entry exists for the destination's 0x2afc
+        assert!(st.find_auth(3, |e| e.account_id == 1 && e.char_id == 100));
+    }
+
+    /// 0x2afc serves a cached char without touching SQLite.
+    #[tokio::test]
+    async fn auth_request_serves_cached_char() {
+        let st = test_state();
+        cache_char(&st, 100, 1, "mover");
+        st.chars.lock().unwrap().get_mut(&100).unwrap().data.zeny = 777;
+        st.push_auth(crate::serve::state::AuthEntry {
+            account_id: 1,
+            char_id: 100,
+            login_id1: 11,
+            login_id2: 22,
+            ip: u32::from_le_bytes([1, 2, 3, 4]),
+            client_version: 0,
+            map_id: None,
+            upstream_ip: None,
+            delflag: 3,
+            created: std::time::Instant::now(),
+        });
+        let (tx, mut rx) = mpsc::channel(8);
+        let mut f = P2AFC::default();
+        f.account_id = AccountId(1);
+        f.char_id = CharId(100);
+        f.login_id1 = 11;
+        f.login_id2 = 22;
+        f.ip = Ip4Address([1, 2, 3, 4]);
+        handle_auth_request(&st, &tx, 2, u32::from_le_bytes([10, 0, 0, 1]), 5121, f).await;
+        let p = P2AFD::decode(&rx.recv().await.unwrap()).unwrap();
+        assert_eq!(p.char_data.zeny, 777);
+        assert_eq!(st.online.lock().unwrap()[&100], 2);
+        assert_eq!(
+            st.chars.lock().unwrap()[&100].online_map,
+            Some(2),
+            "served char is marked online on the requesting map"
+        );
+    }
+
+    /// A 0x2afc that misses the cache goes through load_char, which
+    /// applies fix_party_id to the served CharData.
+    #[tokio::test]
+    async fn auth_request_fixes_party_id_on_db_load() {
+        let st = test_state();
+        st.db
+            .with_conn(|conn| {
+                conn.execute(
+                    "INSERT INTO accounts(id,name,password_hash,password_scheme,created_at)
+                     VALUES(?1,'acct','x','argon2id',0)",
+                    [1],
+                )?;
+                conn.execute(
+                    "INSERT INTO characters(id,account_id,slot,name,sex,species,
+                         base_level,job_level,base_exp,job_exp,zeny,hp,max_hp,sp,max_sp,
+                         attr_str,attr_agi,attr_vit,attr_int,attr_dex,attr_luk,
+                         status_point,skill_point,option_,karma,manner,party_id,
+                         hair,hair_color,clothes_color,weapon,shield,
+                         head_top,head_mid,head_bottom,
+                         last_map,last_x,last_y,save_map,save_x,save_y,partner_id)
+                     VALUES(?1,?2,0,'mover',0,0,1,1,0,0,0,1,1,0,0,
+                            1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                            'map',0,0,'map',0,0,0)",
+                    rusqlite::params![100, 1],
+                )?;
+                Ok(())
+            })
+            .unwrap();
+        let mut pm = PartyMost::default();
+        pm.member[0] = member(1, "mover", 1, 20);
+        st.parties.lock().unwrap().insert(3, pm);
+        st.push_auth(crate::serve::state::AuthEntry {
+            account_id: 1,
+            char_id: 100,
+            login_id1: 11,
+            login_id2: 22,
+            ip: u32::from_le_bytes([1, 2, 3, 4]),
+            client_version: 0,
+            map_id: None,
+            upstream_ip: None,
+            delflag: 3,
+            created: std::time::Instant::now(),
+        });
+        let (tx, mut rx) = mpsc::channel(8);
+        let mut f = P2AFC::default();
+        f.account_id = AccountId(1);
+        f.char_id = CharId(100);
+        f.login_id1 = 11;
+        f.login_id2 = 22;
+        f.ip = Ip4Address([1, 2, 3, 4]);
+        handle_auth_request(&st, &tx, 2, u32::from_le_bytes([10, 0, 0, 1]), 5121, f).await;
+        let p = P2AFD::decode(&rx.recv().await.unwrap()).unwrap();
+        assert_eq!(p.char_data.party_id.0, 3);
     }
 }
