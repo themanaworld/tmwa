@@ -318,7 +318,10 @@ request replies the map is blocked on (`0x2afd`, `0x2b06`, `0x3810`,
 which the socket writer drains first — a bulk backlog can no longer
 starve an auth answer. `send_must` gives a wedged prio queue 30 s,
 then kills the link (`map_kill`): the map reconnects cleanly instead
-of waiting minutes on an answer that never comes.
+of waiting minutes on an answer that never comes. The kill is pinned
+to the failed writer channel, not the slot, so a wait that armed on
+a dead link cannot kill a fresh link that re-registered into the
+same slot while the wait was still running.
 
 **mimalloc, not glibc malloc.** The job-queue backlog is a large
 transient (~1 GB per ~120k queued saves); glibc's per-thread arenas
