@@ -9,10 +9,14 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::auth::password;
+use crate::auth::password::{self, Scheme};
 use crate::db::Db;
+use crate::proto::types::FixedStr;
+use crate::proto::{
+    AccountId, CharData, CharId, CharKey, Epos, GlobalReg, Item, ItemLook, ItemNameId, Opt0,
+    PartyId, Point, Sex, SkillFlags, SkillValue, Species,
+};
 
 /// Where each input file lives; all default to `<save_dir>/<name>.txt`.
 #[derive(Debug, Clone)]
@@ -71,27 +75,7 @@ fn is_comment(line: &str) -> bool {
     line.starts_with("//")
 }
 
-fn parse_i64(s: &str) -> Option<i64> {
-    s.trim().parse().ok()
-}
-
-fn parse_u32(s: &str) -> Option<u32> {
-    s.trim().parse().ok()
-}
-
-fn parse_i32(s: &str) -> Option<i32> {
-    s.trim().parse().ok()
-}
-
-fn parse_i16(s: &str) -> Option<i16> {
-    s.trim().parse().ok()
-}
-
-fn parse_u16(s: &str) -> Option<u16> {
-    s.trim().parse().ok()
-}
-
-fn parse_u8(s: &str) -> Option<u8> {
+fn parse<T: std::str::FromStr>(s: &str) -> Option<T> {
     s.trim().parse().ok()
 }
 
@@ -101,26 +85,8 @@ fn parse_lastlogin(s: &str) -> Option<i64> {
     if s == "-" {
         return None;
     }
-    let (date, time) = s.split_once(' ')?;
-    let mut d = date.split('-');
-    let y: i64 = parse_i64(d.next()?)?;
-    let mo: i64 = parse_i64(d.next()?)?;
-    let day: i64 = parse_i64(d.next()?)?;
-    let (hms, ms) = time.split_once('.')?;
-    let mut t = hms.split(':');
-    let h: i64 = parse_i64(t.next()?)?;
-    let mi: i64 = parse_i64(t.next()?)?;
-    let sec: i64 = parse_i64(t.next()?)?;
-    let ms = parse_i64(ms.get(..3)?)?;
-    // days-from-civil (Howard Hinnant)
-    let y = if mo <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let mp = (mo + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + day - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    let days = era * 146097 + doe - 719468;
-    Some(days * 86_400_000 + h * 3_600_000 + mi * 60_000 + sec * 1000 + ms)
+    let t = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S%.3f").ok()?;
+    Some(t.and_utc().timestamp_millis())
 }
 
 /// An account's trailing space-separated `name,value` register list.
@@ -136,7 +102,7 @@ fn parse_vars(s: &str, max: usize) -> Result<Vec<(String, i32)>, ()> {
         let Some((name, val)) = tok.split_once(',') else {
             return Err(());
         };
-        let Some(value) = parse_i32(val) else {
+        let Some(value) = parse::<i32>(val) else {
             return Err(());
         };
         vars.push((name.to_string(), value));
@@ -155,9 +121,9 @@ fn parse_item(tok: &str) -> Option<(u32, i16, u16)> {
     if parts.len() != 11 && parts.len() != 12 {
         return None;
     }
-    let nameid = parse_u32(parts[1])?;
-    let amount = parse_i16(parts[2])?;
-    let equip = parse_u16(parts[3])?;
+    let nameid = parse::<u32>(parts[1])?;
+    let amount = parse::<i16>(parts[2])?;
+    let equip = parse::<u16>(parts[3])?;
     Some((nameid, amount, equip))
 }
 
@@ -194,10 +160,10 @@ fn parse_skills(s: &str, max_skill: usize) -> Result<Vec<(usize, u16, u16)>, ()>
         let Some((id_s, lv_s)) = tok.split_once(',') else {
             return Err(());
         };
-        let Some(id) = parse_u32(id_s) else {
+        let Some(id) = parse::<u32>(id_s) else {
             return Err(());
         };
-        let Some(fl) = parse_u32(lv_s) else {
+        let Some(fl) = parse::<u32>(lv_s) else {
             return Err(());
         };
         if id as usize >= max_skill {
@@ -315,6 +281,93 @@ struct ParsedChar {
     vars: Vec<(String, i32)>,
 }
 
+impl ParsedChar {
+    /// Build the generated wire types, so the DB write goes through
+    /// `db::save_character_conn` like a live 0x2b01 save.
+    fn to_proto(&self) -> (CharKey, CharData) {
+        let key = CharKey {
+            name: FixedStr::<24>::from_str_truncate(&self.name),
+            account_id: AccountId(self.account_id as u32),
+            char_id: CharId(self.id as u32),
+            char_num: self.slot as u8,
+        };
+        let mut cd = CharData {
+            sex: Sex(self.sex),
+            species: Species(self.species),
+            base_level: self.base_level,
+            job_level: self.job_level,
+            base_exp: self.base_exp,
+            job_exp: self.job_exp,
+            zeny: self.zeny,
+            hp: self.hp,
+            max_hp: self.max_hp,
+            sp: self.sp,
+            max_sp: self.max_sp,
+            attrs: self.attrs,
+            status_point: self.status_point,
+            skill_point: self.skill_point,
+            option: Opt0(self.option),
+            karma: self.karma,
+            manner: self.manner,
+            party_id: PartyId(self.party_id),
+            hair: self.hair,
+            hair_color: self.hair_color,
+            clothes_color: self.clothes_color,
+            weapon: ItemLook(self.weapon),
+            shield: ItemNameId(self.shield),
+            head_top: ItemNameId(self.head_top),
+            head_mid: ItemNameId(self.head_mid),
+            head_bottom: ItemNameId(self.head_bottom),
+            last_point: Point {
+                map_: FixedStr::<16>::from_str_truncate(&self.last_map),
+                x: self.last_x,
+                y: self.last_y,
+            },
+            save_point: Point {
+                map_: FixedStr::<16>::from_str_truncate(&self.save_map),
+                x: self.save_x,
+                y: self.save_y,
+            },
+            partner_id: CharId(self.partner_id),
+            ..Default::default()
+        };
+        for (slot, &(nameid, amount, equip)) in self.items.iter().enumerate() {
+            if slot < cd.inventory.len() {
+                cd.inventory[slot] = Item {
+                    nameid: ItemNameId(nameid),
+                    amount,
+                    equip: Epos(equip),
+                };
+            }
+        }
+        for &(id, lv, flags) in &self.skills {
+            if id < cd.skill.len() {
+                cd.skill[id] = SkillValue {
+                    lv,
+                    flags: SkillFlags(flags),
+                };
+            }
+        }
+        // character_vars is keyed on (char_id, name): keep the first
+        // occurrence of a duplicated name
+        let mut seen = HashSet::new();
+        for (name, value) in &self.vars {
+            if !seen.insert(name) {
+                continue;
+            }
+            let i = cd.global_reg_num as usize;
+            if i < cd.global_reg.len() {
+                cd.global_reg[i] = GlobalReg {
+                    str: FixedStr::<32>::from_str_truncate(name),
+                    value: *value,
+                };
+                cd.global_reg_num += 1;
+            }
+        }
+        (key, cd)
+    }
+}
+
 fn csv(f: &str, n: usize) -> Option<Vec<&str>> {
     let v: Vec<&str> = f.split(',').collect();
     if v.len() == n { Some(v) } else { None }
@@ -325,19 +378,19 @@ fn parse_account(line: &str, seen: &mut (HashSet<i64>, HashSet<String>)) -> Opti
     if f.len() < 14 {
         return None;
     }
-    let id = parse_i64(f[0])?;
+    let id = parse::<i64>(f[0])?;
     let name = f[1].to_string();
     let pass_raw = f[2].to_string();
     let last_login = parse_lastlogin(f[3]);
     let sex = sex_char(f.get(4).copied())?;
-    let login_count = parse_i64(f[5])?;
-    let state = parse_i64(f[6])?;
+    let login_count = parse::<i64>(f[5])?;
+    let state = parse::<i64>(f[6])?;
     let email = f[7].to_string();
     let error_message = f[8].to_string();
-    let _conn_until = parse_i64(f[9]);
+    let _conn_until = parse::<i64>(f[9]);
     let ip = f[10].to_string();
     let memo = f[11].to_string();
-    let ban_until = parse_i64(f[12])?;
+    let ban_until = parse::<i64>(f[12])?;
     let reg2 = parse_vars(f.get(13).copied().unwrap_or(""), ACCOUNT_REG2_NUM).ok()?;
     // tmwa: duplicate ids/names are skipped
     if !seen.0.insert(id) {
@@ -381,62 +434,76 @@ fn parse_account(line: &str, seen: &mut (HashSet<i64>, HashSet<String>)) -> Opti
     })
 }
 
-fn parse_char(line: &str, seen: &mut (HashSet<i64>, HashSet<String>)) -> Option<ParsedChar> {
+fn parse_char(
+    line: &str,
+    seen: &mut (HashSet<i64>, HashSet<String>, HashSet<(i64, i64)>),
+) -> Option<ParsedChar> {
     let f: Vec<&str> = line.split('\t').collect();
     if f.len() < 16 {
         return None;
     }
-    let id = parse_i64(f[0])?;
+    let id = parse::<i64>(f[0])?;
     let acct = csv(f[1], 2)?;
-    let account_id = parse_i64(acct[0])?;
-    let slot = parse_i64(acct[1])?;
+    let account_id = parse::<i64>(acct[0])?;
+    let slot = parse::<i64>(acct[1])?;
     let name = f[2].to_string();
     let spc = csv(f[3], 3)?;
-    let (species, base_level, job_level) =
-        (parse_u16(spc[0])?, parse_u8(spc[1])?, parse_u8(spc[2])?);
+    let (species, base_level, job_level) = (
+        parse::<u16>(spc[0])?,
+        parse::<u8>(spc[1])?,
+        parse::<u8>(spc[2])?,
+    );
     let exp = csv(f[4], 3)?;
-    let (base_exp, job_exp, zeny) = (parse_i32(exp[0])?, parse_i32(exp[1])?, parse_i32(exp[2])?);
+    let (base_exp, job_exp, zeny) = (
+        parse::<i32>(exp[0])?,
+        parse::<i32>(exp[1])?,
+        parse::<i32>(exp[2])?,
+    );
     let hpv = csv(f[5], 4)?;
     let (hp, max_hp, sp, max_sp) = (
-        parse_i32(hpv[0])?,
-        parse_i32(hpv[1])?,
-        parse_i32(hpv[2])?,
-        parse_i32(hpv[3])?,
+        parse::<i32>(hpv[0])?,
+        parse::<i32>(hpv[1])?,
+        parse::<i32>(hpv[2])?,
+        parse::<i32>(hpv[3])?,
     );
     let at = csv(f[6], 6)?;
     let mut attrs = [0i16; 6];
     for i in 0..6 {
-        attrs[i] = parse_i16(at[i])?;
+        attrs[i] = parse::<i16>(at[i])?;
     }
     let pts = csv(f[7], 2)?;
-    let (status_point, skill_point) = (parse_i16(pts[0])?, parse_i16(pts[1])?);
+    let (status_point, skill_point) = (parse::<i16>(pts[0])?, parse::<i16>(pts[1])?);
     let okm = csv(f[8], 3)?;
-    let (option, karma, manner) = (parse_u16(okm[0])?, parse_i16(okm[1])?, parse_i16(okm[2])?);
+    let (option, karma, manner) = (
+        parse::<u16>(okm[0])?,
+        parse::<i16>(okm[1])?,
+        parse::<i16>(okm[2])?,
+    );
     let pgp = csv(f[9], 3)?;
-    let party_id = parse_u32(pgp[0])?;
+    let party_id = parse::<u32>(pgp[0])?;
     let look = csv(f[10], 3)?;
     let hair_style = look[0];
-    let (hair_color, clothes_color) = (parse_i16(look[1])?, parse_i16(look[2])?);
+    let (hair_color, clothes_color) = (parse::<i16>(look[1])?, parse::<i16>(look[2])?);
     let eq = csv(f[11], 5)?;
     let (weapon, shield, head_top, head_mid, head_bottom) = (
-        parse_u16(eq[0])?,
-        parse_u32(eq[1])?,
-        parse_u32(eq[2])?,
-        parse_u32(eq[3])?,
-        parse_u32(eq[4])?,
+        parse::<u16>(eq[0])?,
+        parse::<u32>(eq[1])?,
+        parse::<u32>(eq[2])?,
+        parse::<u32>(eq[3])?,
+        parse::<u32>(eq[4])?,
     );
     let last = csv(f[12], 3)?;
     let (last_map, last_x, last_y) = (
         last[0].to_string(),
-        parse_i16(last[1])?,
-        parse_i16(last[2])?,
+        parse::<i16>(last[1])?,
+        parse::<i16>(last[2])?,
     );
     let save = csv(f[13], 4)?;
     let (save_map, save_x, save_y, partner_id) = (
         save[0].to_string(),
-        parse_i16(save[1])?,
-        parse_i16(save[2])?,
-        parse_u32(save[3])?,
+        parse::<i16>(save[1])?,
+        parse::<i16>(save[2])?,
+        parse::<u32>(save[3])?,
     );
     let sex = sex_char(f.get(14).copied());
     let items = parse_items(f.get(15).copied().unwrap_or(""), MAX_INVENTORY).ok()?;
@@ -448,7 +515,7 @@ fn parse_char(line: &str, seen: &mut (HashSet<i64>, HashSet<String>)) -> Option<
     let hair = if hair_style == "-1" {
         0
     } else {
-        parse_i16(hair_style)?
+        parse::<i16>(hair_style)?
     };
     // tmwa: WISP_SERVER_NAME is refused; ours is "_Server_"? use wisp
     if name == "#wisp#" {
@@ -459,6 +526,13 @@ fn parse_char(line: &str, seen: &mut (HashSet<i64>, HashSet<String>)) -> Option<
     }
     if !seen.1.insert(name.clone()) {
         seen.0.remove(&id);
+        return None;
+    }
+    // the UNIQUE(account_id, slot) column pair: a second char on the
+    // same slot is malformed; drop it like the dup id/name cases
+    if !seen.2.insert((account_id, slot)) {
+        seen.0.remove(&id);
+        seen.1.remove(&name);
         return None;
     }
     Some(ParsedChar {
@@ -515,11 +589,12 @@ struct ParsedParty {
 
 fn parse_party(line: &str) -> Option<ParsedParty> {
     let mut bits = line.split('\t');
-    let id = parse_i64(bits.next()?)?;
+    let id = parse::<i64>(bits.next()?)?;
     let name = bits.next()?.to_string();
     let eic = csv(bits.next()?, 2)?;
-    let (exp, item) = (parse_i32(eic[0])?, parse_i32(eic[1])?);
+    let (exp, item) = (parse::<i32>(eic[0])?, parse::<i32>(eic[1])?);
     let mut members = Vec::new();
+    let mut member_accts = HashSet::new();
     while let Some(a) = bits.next() {
         // trailing tab produces an empty tail field; treat as end
         if a.is_empty() {
@@ -527,9 +602,11 @@ fn parse_party(line: &str) -> Option<ParsedParty> {
         }
         let b = bits.next()?;
         let al = csv(a, 2)?;
-        let account_id = parse_i64(al[0])?;
-        let leader = parse_i64(al[1])?;
-        if account_id != 0 {
+        let account_id = parse::<i64>(al[0])?;
+        let leader = parse::<i64>(al[1])?;
+        // party_members is keyed on (party_id, account_id); a dup
+        // member in the file keeps the first occurrence
+        if account_id != 0 && member_accts.insert(account_id) {
             members.push((account_id, b.to_string(), leader));
         }
         if members.len() >= MAX_PARTY {
@@ -553,11 +630,11 @@ struct ParsedStorage {
 fn parse_storage(line: &str) -> Option<ParsedStorage> {
     let f: Vec<&str> = line.split('\t').collect();
     let head = csv(f[0], 2)?;
-    let account_id = parse_i64(head[0])?;
+    let account_id = parse::<i64>(head[0])?;
     if account_id == 0 {
         return None;
     }
-    let _amount = parse_i64(head[1])?;
+    let _amount = parse::<i64>(head[1])?;
     let items = parse_items(f.get(1).copied().unwrap_or(""), MAX_STORAGE).ok()?;
     Some(ParsedStorage { account_id, items })
 }
@@ -569,7 +646,7 @@ struct ParsedAccreg {
 
 fn parse_accreg(line: &str) -> Option<ParsedAccreg> {
     let f: Vec<&str> = line.split('\t').collect();
-    let account_id = parse_i64(f[0])?;
+    let account_id = parse::<i64>(f[0])?;
     if account_id == 0 {
         return None;
     }
@@ -581,7 +658,7 @@ fn parse_accreg(line: &str) -> Option<ParsedAccreg> {
 fn newid_line(line: &str) -> Option<i64> {
     let f: Vec<&str> = line.split('\t').collect();
     if f.len() == 2 && f[1] == "%newid%" {
-        parse_i64(f[0])
+        parse::<i64>(f[0])
     } else {
         None
     }
@@ -661,7 +738,7 @@ pub fn run(
     // ---- characters ----
     let mut chars = Vec::new();
     let mut next_char_id = 0i64;
-    let mut seen = (HashSet::new(), HashSet::new());
+    let mut seen = (HashSet::new(), HashSet::new(), HashSet::new());
     for (i, line) in read_lines(&files.athena_txt(), &mut skipped)?
         .iter()
         .enumerate()
@@ -689,8 +766,11 @@ pub fn run(
     }
 
     // ---- parties ----
+    // One line per party; a repeated id or name would hit the PK or
+    // the UNIQUE(name) column, so the second line is skipped.
     let mut parties = Vec::new();
     let mut next_party_id = 0i64;
+    let mut seen_parties = (HashSet::new(), HashSet::new());
     for (i, line) in read_lines(&files.party_txt(), &mut skipped)?
         .iter()
         .enumerate()
@@ -704,6 +784,10 @@ pub fn run(
         }
         match parse_party(line) {
             Some(p) => {
+                if !seen_parties.0.insert(p.id) || !seen_parties.1.insert(p.name.clone()) {
+                    skipped.push(format!("party.txt:{} (duplicate id or name)", i + 1));
+                    continue;
+                }
                 next_party_id = next_party_id.max(p.id);
                 parties.push(p);
             }
@@ -712,7 +796,11 @@ pub fn run(
     }
 
     // ---- storage ----
+    // One line per account; a second line for the same account is
+    // skipped (the PK on (account_id, idx) would otherwise abort the
+    // whole transaction).
     let mut storage = Vec::new();
+    let mut seen_storage = HashSet::new();
     for (i, line) in read_lines(&files.storage_txt(), &mut skipped)?
         .iter()
         .enumerate()
@@ -721,13 +809,21 @@ pub fn run(
             continue;
         }
         match parse_storage(line) {
-            Some(s) => storage.push(s),
+            Some(s) => {
+                if !seen_storage.insert(s.account_id) {
+                    skipped.push(format!("storage.txt:{} (duplicate account)", i + 1));
+                    continue;
+                }
+                storage.push(s);
+            }
             None => skipped.push(format!("storage.txt:{}", i + 1)),
         }
     }
 
     // ---- accreg ----
+    // One line per account, same as storage.txt.
     let mut accreg = Vec::new();
+    let mut seen_accreg = HashSet::new();
     for (i, line) in read_lines(&files.accreg_txt(), &mut skipped)?
         .iter()
         .enumerate()
@@ -736,7 +832,13 @@ pub fn run(
             continue;
         }
         match parse_accreg(line) {
-            Some(a) => accreg.push(a),
+            Some(a) => {
+                if !seen_accreg.insert(a.account_id) {
+                    skipped.push(format!("accreg.txt:{} (duplicate account)", i + 1));
+                    continue;
+                }
+                accreg.push(a);
+            }
             None => skipped.push(format!("accreg.txt:{}", i + 1)),
         }
     }
@@ -774,41 +876,46 @@ pub fn run(
     // ---- hash passwords in parallel ----
     progress(&format!("hashing {} passwords...", accounts.len()));
     let t0 = std::time::Instant::now();
-    let index = AtomicUsize::new(0);
-    type HashOut = Option<(String, &'static str, Option<String>)>;
-    let results: Vec<std::sync::Mutex<HashOut>> = (0..accounts.len())
-        .map(|_| std::sync::Mutex::new(None))
-        .collect();
+    type HashOut = (String, Scheme, Option<String>);
     let threads = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4)
-        .min(16);
-    std::thread::scope(|s| {
-        for _ in 0..threads {
-            s.spawn(|| {
-                loop {
-                    let i = index.fetch_add(1, Ordering::Relaxed);
-                    if i >= accounts.len() {
-                        break;
-                    }
-                    let a = &accounts[i];
-                    // tmwa (login.cpp impl_extract): plaintext iff the
-                    // pass does not start with '!' AND the memo starts
-                    // with '-'; anything else is wrapped like a legacy
-                    // entry (and never verifies if it isn't one).
-                    let r = if !a.pass_raw.starts_with('!') && a.memo.starts_with('-') {
-                        let h = password::hash_argon2id(a.pass_raw.as_bytes())
-                            .expect("argon2 hash failed");
-                        (h, "argon2id", None)
-                    } else {
-                        let salt = password::legacy_salt(&a.pass_raw).unwrap_or("").to_string();
-                        let h = password::wrap_legacy(&a.pass_raw).expect("argon2 wrap failed");
-                        (h, "argon2id-md5", Some(salt))
-                    };
-                    *results[i].lock().unwrap() = Some(r);
-                }
-            });
-        }
+        .min(16)
+        .min(accounts.len().max(1));
+    let chunk = accounts.len().div_ceil(threads).max(1);
+    let results: Vec<HashOut> = std::thread::scope(|s| {
+        let handles: Vec<_> = accounts
+            .chunks(chunk)
+            .map(|group| {
+                s.spawn(move || {
+                    group
+                        .iter()
+                        .map(|a| {
+                            // tmwa (login.cpp impl_extract): plaintext
+                            // iff the pass does not start with '!' AND
+                            // the memo starts with '-'; anything else is
+                            // wrapped like a legacy entry (and never
+                            // verifies if it isn't one).
+                            if !a.pass_raw.starts_with('!') && a.memo.starts_with('-') {
+                                let h = password::hash_argon2id(a.pass_raw.as_bytes())
+                                    .expect("argon2 hash failed");
+                                (h, Scheme::Argon2id, None)
+                            } else {
+                                let salt =
+                                    password::legacy_salt(&a.pass_raw).unwrap_or("").to_string();
+                                let h =
+                                    password::wrap_legacy(&a.pass_raw).expect("argon2 wrap failed");
+                                (h, Scheme::Argon2idMd5, Some(salt))
+                            }
+                        })
+                        .collect::<Vec<HashOut>>()
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .flat_map(|h| h.join().expect("hash thread panicked"))
+            .collect()
     });
     sum.password_seconds = t0.elapsed().as_secs_f64();
     progress(&format!(
@@ -821,15 +928,14 @@ pub fn run(
     progress("writing database...");
     db.with_conn(|conn| {
         let tx = conn.transaction()?;
-        for (i, a) in accounts.iter().enumerate() {
-            let (hash, scheme, salt) = results[i].lock().unwrap().take().unwrap();
+        for (a, (hash, scheme, salt)) in accounts.iter().zip(results.iter()) {
             let email = if a.email == DEFAULT_EMAIL {
                 None
             } else {
                 Some(a.email.as_str())
             };
             // plaintext migrations store '!' in memo like tmwa does
-            let memo = if scheme == "argon2id" && a.memo.starts_with('-') {
+            let memo = if *scheme == Scheme::Argon2id && a.memo.starts_with('-') {
                 "!"
             } else {
                 &a.memo
@@ -838,8 +944,8 @@ pub fn run(
                 &tx,
                 a.id,
                 &a.name,
-                &hash,
-                scheme,
+                hash,
+                *scheme,
                 salt.as_deref(),
                 email,
                 a.state,
@@ -851,161 +957,47 @@ pub fn run(
                 a.ip.as_deref(),
                 0,
             )?;
-            for (name, value) in &a.reg2 {
-                tx.execute(
-                    "INSERT INTO account_vars(account_id,scope,name,value)
-                     VALUES(?1,2,?2,?3)",
-                    rusqlite::params![a.id, name, value],
-                )?;
-            }
+            let vars: Vec<(String, i64)> =
+                a.reg2.iter().map(|(n, v)| (n.clone(), *v as i64)).collect();
+            crate::db::set_account_vars(&tx, a.id, 2, &vars)?;
             sum.accounts += 1;
         }
         for c in &chars {
-            write_char(&tx, c)?;
+            let (key, data) = c.to_proto();
+            crate::db::save_character_conn(&tx, &key, &data)?;
             sum.characters += 1;
         }
         for p in &parties {
-            tx.execute(
-                "INSERT INTO parties(id,name,exp_share,item_share)
-                 VALUES(?1,?2,?3,?4)",
-                rusqlite::params![p.id, p.name, p.exp, p.item],
+            crate::db::upsert_party_conn(
+                &tx,
+                p.id,
+                &p.name,
+                p.exp as i64,
+                p.item as i64,
+                &p.members,
             )?;
-            for (acct, name, leader) in &p.members {
-                tx.execute(
-                    "INSERT INTO party_members(party_id,account_id,char_name,leader)
-                     VALUES(?1,?2,?3,?4)",
-                    rusqlite::params![p.id, acct, name, leader],
-                )?;
-            }
             sum.parties += 1;
         }
         for s in &storage {
-            for (idx, (item_id, amount, equip)) in s.items.iter().enumerate() {
-                tx.execute(
-                    "INSERT INTO storage_items(account_id,idx,item_id,amount,equip)
-                     VALUES(?1,?2,?3,?4,?5)",
-                    rusqlite::params![s.account_id, idx as i64, item_id, amount, equip],
-                )?;
-            }
-            if !s.items.is_empty() {
-                sum.storage_entries += s.items.len();
-            }
+            let items: Vec<(i64, i64, i64)> = s
+                .items
+                .iter()
+                .map(|&(id, n, e)| (id as i64, n as i64, e as i64))
+                .collect();
+            crate::db::save_storage_conn(&tx, s.account_id, &items)?;
+            sum.storage_entries += s.items.len();
         }
         for a in &accreg {
-            for (name, value) in &a.vars {
-                tx.execute(
-                    "INSERT INTO account_vars(account_id,scope,name,value)
-                     VALUES(?1,1,?2,?3)",
-                    rusqlite::params![a.account_id, name, value],
-                )?;
-            }
+            let vars: Vec<(String, i64)> =
+                a.vars.iter().map(|(n, v)| (n.clone(), *v as i64)).collect();
+            crate::db::set_account_vars(&tx, a.account_id, 1, &vars)?;
             sum.vars += a.vars.len();
         }
-        tx.execute(
-            "INSERT INTO meta(key,value) VALUES('next_account_id',?1)",
-            [next_account_id],
-        )?;
-        tx.execute(
-            "INSERT INTO meta(key,value) VALUES('next_char_id',?1)",
-            [next_char_id],
-        )?;
-        tx.execute(
-            "INSERT INTO meta(key,value) VALUES('next_party_id',?1)",
-            [next_party_id],
-        )?;
+        crate::db::set_meta_conn(&tx, "next_account_id", next_account_id)?;
+        crate::db::set_meta_conn(&tx, "next_char_id", next_char_id)?;
+        crate::db::set_meta_conn(&tx, "next_party_id", next_party_id)?;
         tx.commit()
     })?;
     sum.skipped = skipped;
     Ok(sum)
-}
-
-fn write_char(tx: &rusqlite::Transaction<'_>, c: &ParsedChar) -> rusqlite::Result<()> {
-    tx.execute(
-        "INSERT INTO characters(
-             id,account_id,slot,name,sex,species,base_level,job_level,
-             base_exp,job_exp,zeny,hp,max_hp,sp,max_sp,
-             attr_str,attr_agi,attr_vit,attr_int,attr_dex,attr_luk,
-             status_point,skill_point,option_,karma,manner,party_id,
-             hair,hair_color,clothes_color,weapon,shield,
-             head_top,head_mid,head_bottom,
-             last_map,last_x,last_y,save_map,save_x,save_y,partner_id)
-         VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,
-                ?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,
-                ?28,?29,?30,?31,?32,?33,?34,?35,?36,?37,?38,?39,?40,?41,?42)",
-        rusqlite::params![
-            c.id,
-            c.account_id,
-            c.slot,
-            c.name,
-            c.sex as i64,
-            c.species as i64,
-            c.base_level as i64,
-            c.job_level as i64,
-            c.base_exp,
-            c.job_exp,
-            c.zeny,
-            c.hp,
-            c.max_hp,
-            c.sp,
-            c.max_sp,
-            c.attrs[0] as i64,
-            c.attrs[1] as i64,
-            c.attrs[2] as i64,
-            c.attrs[3] as i64,
-            c.attrs[4] as i64,
-            c.attrs[5] as i64,
-            c.status_point as i64,
-            c.skill_point as i64,
-            c.option as i64,
-            c.karma as i64,
-            c.manner as i64,
-            c.party_id as i64,
-            c.hair as i64,
-            c.hair_color as i64,
-            c.clothes_color as i64,
-            c.weapon as i64,
-            c.shield as i64,
-            c.head_top as i64,
-            c.head_mid as i64,
-            c.head_bottom as i64,
-            c.last_map,
-            c.last_x as i64,
-            c.last_y as i64,
-            c.save_map,
-            c.save_x as i64,
-            c.save_y as i64,
-            c.partner_id as i64,
-        ],
-    )?;
-    {
-        let mut st = tx.prepare(
-            "INSERT INTO character_items(char_id,idx,item_id,amount,equip)
-             VALUES(?1,?2,?3,?4,?5)",
-        )?;
-        for (idx, (item_id, amount, equip)) in c.items.iter().enumerate() {
-            st.execute(rusqlite::params![c.id, idx as i64, item_id, amount, equip])?;
-        }
-    }
-    {
-        let mut st = tx.prepare(
-            "INSERT INTO character_skills(char_id,skill_id,level,flags)
-             VALUES(?1,?2,?3,?4)",
-        )?;
-        for (id, lv, flags) in &c.skills {
-            st.execute(rusqlite::params![
-                c.id,
-                *id as i64,
-                *lv as i64,
-                *flags as i64
-            ])?;
-        }
-    }
-    {
-        let mut st =
-            tx.prepare("INSERT INTO character_vars(char_id,name,value) VALUES(?1,?2,?3)")?;
-        for (name, value) in &c.vars {
-            st.execute(rusqlite::params![c.id, name, value])?;
-        }
-    }
-    Ok(())
 }

@@ -936,7 +936,7 @@ impl State {
                 };
                 let mut p = P0071::default();
                 p.char_id = CharId(ps.char_id);
-                p.map_name = FixedStr::<16>::try_from_str(&ps.map_name).unwrap_or_default();
+                p.map_name = FixedStr::<16>::from_str_truncate(&ps.map_name);
                 p.ip = Ip4Address(ip.octets());
                 p.port = port;
                 send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
@@ -1214,9 +1214,7 @@ impl State {
                 // the char record is gone (deleted) or was never
                 // cached: there is no newer state left to write
                 self.save_dirty.lock().unwrap().remove(&cid);
-                tracing::warn!(
-                    "db_writer: dropped save for char {cid} has no cached state"
-                );
+                tracing::warn!("db_writer: dropped save for char {cid} has no cached state");
                 continue;
             };
             // count the replay in-flight before dropping the dirty
@@ -1617,7 +1615,7 @@ fn apply_db_jobs(db: &crate::db::Db, jobs: Vec<DbJob>) -> (bool, Vec<PostCommit>
                             continue;
                         }
                         let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                            crate::db::save_character_tx(&tx, &key, &data)
+                            crate::db::save_character_conn(&tx, &key, &data)
                         }));
                         match r {
                             Ok(Ok(())) => {}
@@ -1698,8 +1696,12 @@ mod tests {
         let st = test_state("10.0.0.0/8", Ipv4Addr::new(192, 168, 1, 10));
         // a map advertising a WAN address
         let (mtx, _mrx) = mpsc::channel(8);
-        let (map_id, _kill) =
-            st.map_register(mtx.clone(), mtx.clone(), u32::from_le_bytes([203, 0, 113, 7]), 5121);
+        let (map_id, _kill) = st.map_register(
+            mtx.clone(),
+            mtx.clone(),
+            u32::from_le_bytes([203, 0, 113, 7]),
+            5121,
+        );
 
         // LAN client: gets lan_map_ip, keeps the map's port
         let mut rx = pending_sel(&st, map_id, [10, 1, 2, 3]);
@@ -1839,7 +1841,11 @@ mod tests {
         let st2 = st.clone();
         tokio::spawn(async move { db_writer(st2).await });
         assert!(writes_settled(&st).await);
-        assert_eq!(st.db.load_storage(1).unwrap(), vec![(0, 501, 3, 0)]);
+        let items = st
+            .db
+            .with_conn(|conn| crate::db::load_storage_conn(conn, 1))
+            .unwrap();
+        assert_eq!(items, vec![(0, 501, 3, 0)]);
     }
 
     #[tokio::test]
@@ -1879,8 +1885,12 @@ mod tests {
         // default lan_subnet covers only 127.0.0.1
         let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
         let (mtx, _mrx) = mpsc::channel(8);
-        let (map_id, _kill) =
-            st.map_register(mtx.clone(), mtx.clone(), u32::from_le_bytes([203, 0, 113, 7]), 5121);
+        let (map_id, _kill) = st.map_register(
+            mtx.clone(),
+            mtx.clone(),
+            u32::from_le_bytes([203, 0, 113, 7]),
+            5121,
+        );
 
         let mut rx = pending_sel(&st, map_id, [127, 0, 0, 1]);
         let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();

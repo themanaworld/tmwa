@@ -49,12 +49,6 @@ impl<R: AsyncRead + Unpin> PacketFramer<R> {
         &mut self.reader
     }
 
-    /// Buffered bytes not yet consumed (for tests).
-    #[allow(dead_code)]
-    pub fn buffered(&self) -> usize {
-        self.buf.len()
-    }
-
     /// Returns the next complete packet, or `Ok(None)` on a clean EOF
     /// with nothing buffered.
     pub async fn next(&mut self) -> Result<Option<Packet>, FrameError> {

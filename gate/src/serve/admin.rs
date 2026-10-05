@@ -110,14 +110,12 @@ fn acct_id_by_id(conn: &rusqlite::Connection, id: i64) -> Option<i64> {
 }
 
 fn acct_id_by_name(conn: &rusqlite::Connection, name: &str) -> Option<i64> {
-    conn.query_row("SELECT id FROM accounts WHERE name=?1", [name], |r| {
-        r.get(0)
-    })
-    .ok()
+    crate::db::account_id_by_name_conn(conn, name)
+        .ok()
+        .flatten()
 }
 fn acct_name_by_id(conn: &rusqlite::Connection, id: i64) -> Option<String> {
-    conn.query_row("SELECT name FROM accounts WHERE id=?1", [id], |r| r.get(0))
-        .ok()
+    crate::db::account_name_by_id_conn(conn, id).ok().flatten()
 }
 
 /// Kick (disconnect) a player: with a char id, match exactly that
@@ -423,7 +421,7 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
             head.ip = Ip4Address(ip.to_le_bytes());
             head.port = port;
             head.repeat = vec![P2B04Repeat {
-                map_name: FixedStr::<16>::try_from_str(name).unwrap_or_default(),
+                map_name: FixedStr::<16>::from_str_truncate(name),
             }];
             let bytes = enc(move |v| head.encode(v));
             st.map_broadcast_except(*id, &bytes);
@@ -740,11 +738,7 @@ async fn memo(st: &Arc<State>, args: &[String]) -> Value {
     let memo = args[1..].join(" ");
     run_db(st, move |c| match acct_id_by_name(c, &name) {
         Some(id) => {
-            c.execute(
-                "UPDATE accounts SET memo=?1 WHERE id=?2",
-                [&memo as &dyn rusqlite::ToSql, &id],
-            )
-            .unwrap();
+            crate::db::set_memo_conn(c, id, &memo).unwrap();
             ok_text(format!(
                 "Account [{name}][id: {id}] memo successfully changed.\n"
             ))
@@ -762,11 +756,7 @@ async fn email(st: &Arc<State>, args: &[String]) -> Value {
     let email = args[1].clone();
     run_db(st, move |c| match acct_id_by_name(c, &name) {
         Some(id) => {
-            c.execute(
-                "UPDATE accounts SET email=?1 WHERE id=?2",
-                [&email as &dyn rusqlite::ToSql, &id],
-            )
-            .unwrap();
+            crate::db::set_email_conn(c, id, Some(&email)).unwrap();
             ok_text(format!(
                 "Account [{name}][id: {id}] e-mail successfully changed.\n"
             ))
@@ -786,11 +776,7 @@ async fn state_cmd(st: &Arc<State>, args: &[String], state: i64, verb: &str) -> 
     let namec = name.clone();
     let r = run_db(st, move |c| match acct_id_by_name(c, &namec) {
         Some(id) => {
-            c.execute(
-                "UPDATE accounts SET state=?1 WHERE id=?2",
-                [&state as &dyn rusqlite::ToSql, &id],
-            )
-            .unwrap();
+            crate::db::set_account_state_conn(c, id, state).unwrap();
             Ok((id, namec.clone()))
         }
         None => Err(namec.clone()),
@@ -923,11 +909,7 @@ async fn set_ban(st: &Arc<State>, name: &str, ts: i64) -> Value {
     let namec = name.clone();
     let r = run_db(st, move |c| match acct_id_by_name(c, &namec) {
         Some(id) => {
-            c.execute(
-                "UPDATE accounts SET ban_until=?1 WHERE id=?2",
-                rusqlite::params![ts, id],
-            )
-            .unwrap();
+            crate::db::set_account_ban_conn(c, id, ts).unwrap();
             Ok((id, namec.clone()))
         }
         None => Err(namec.clone()),
@@ -979,11 +961,7 @@ async fn banadd(st: &Arc<State>, args: &[String]) -> Value {
                 })
                 .unwrap_or(0);
             let new = std::cmp::max(0, if cur > 0 { cur + delta } else { now + delta });
-            c.execute(
-                "UPDATE accounts SET ban_until=?1 WHERE id=?2",
-                rusqlite::params![new, id],
-            )
-            .unwrap();
+            crate::db::set_account_ban_conn(c, id, new).unwrap();
             ok_text(format!(
                 "Account [{name}][id: {id}] banishment successfully changed.\n"
             ))
@@ -1033,10 +1011,7 @@ async fn delete(st: &Arc<State>, args: &[String]) -> Value {
     // delete each character through the same routine the char screen
     // uses (party leave, divorce)
     let cids: Vec<i64> = run_db(st, move |c| {
-        let mut q = c
-            .prepare("SELECT id FROM characters WHERE account_id=?1")
-            .unwrap();
-        q.query_map([id], |r| r.get(0)).unwrap().flatten().collect()
+        crate::db::char_ids_of_account_conn(c, id).unwrap()
     })
     .await;
     for cid in cids {
@@ -1060,12 +1035,11 @@ async fn password_cmd(st: &Arc<State>, args: &[String], password_stdin: Option<S
     run_db(st, move |c| match acct_id_by_name(c, &name) {
         Some(id) => {
             let h = crate::auth::password::hash_argon2id(newp.as_bytes()).unwrap_or_default();
-            c.execute(
-                "UPDATE accounts SET password_hash=?1, password_scheme='argon2id', legacy_salt=NULL WHERE id=?2",
-                rusqlite::params![h, id],
-            )
-            .unwrap();
-            ok_text(format!("Account [{name}][id: {id}] password successfully changed.\n"))
+            crate::db::set_password_conn(c, id, &h, crate::auth::password::Scheme::Argon2id, None)
+                .unwrap();
+            ok_text(format!(
+                "Account [{name}][id: {id}] password successfully changed.\n"
+            ))
         }
         None => err_text(format!("Account [{name}] not found.")),
     })
@@ -1080,13 +1054,7 @@ async fn check_cmd(st: &Arc<State>, args: &[String], password_stdin: Option<Stri
     };
     run_db(st, move |c| match acct_id_by_name(c, &name) {
         Some(id) => {
-            let (h, scheme, salt): (String, String, Option<String>) = c
-                .query_row(
-                    "SELECT password_hash, password_scheme, legacy_salt FROM accounts WHERE id=?1",
-                    [id],
-                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-                )
-                .unwrap();
+            let (h, scheme, salt) = crate::db::password_row_conn(c, id).unwrap().unwrap();
             match crate::auth::password::verify(&scheme, &h, salt.as_deref(), pw.as_bytes()) {
                 Ok(crate::auth::password::Verify::Ok)
                 | Ok(crate::auth::password::Verify::OkNeedsRehash) => ok_text(format!(
@@ -1277,16 +1245,7 @@ async fn getall(st: &Arc<State>, args: &[String], scope: i64) -> Value {
         let mut out = String::new();
         let scopes: Vec<i64> = if scope == 0 { vec![1, 2] } else { vec![scope] };
         for sc in scopes {
-            let mut q = c
-                .prepare("SELECT name,value FROM account_vars WHERE account_id=?1 AND scope=?2 ORDER BY name")
-                .unwrap();
-            let rows: Vec<(String, i64)> = q
-                .query_map(rusqlite::params![id, sc], |r| {
-                    Ok((r.get(0)?, r.get(1)?))
-                })
-                .unwrap()
-                .flatten()
-                .collect();
+            let rows = crate::db::get_account_vars_conn(c, id, sc).unwrap();
             for (n, v) in rows {
                 let prefix = if sc == 2 { "##" } else { "#" };
                 let full = format!("{prefix}{n}");
@@ -1367,12 +1326,7 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
                 |_| Ok(true),
             )
             .unwrap_or(false);
-        c.execute(
-            "INSERT INTO account_vars (account_id,scope,name,value) VALUES (?1,?2,?3,?4) \
-             ON CONFLICT(account_id,scope,name) DO UPDATE SET value=excluded.value",
-            rusqlite::params![id, scope, n, value],
-        )
-        .unwrap();
+        crate::db::set_account_vars(c, id, scope, &[(n.clone(), value)]).unwrap();
         (n, existed, None)
     })
     .await;
@@ -1387,7 +1341,7 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
         2
     };
     if let Some(&mid) = stc.online.lock().unwrap().get(&(id as u32)) {
-        let n = FixedStr::<32>::try_from_str(&r).unwrap_or_default();
+        let n = FixedStr::<32>::from_str_truncate(&r);
         if scope2 == 2 {
             let mut p = crate::proto::P2B11::default();
             p.account_id = AccountId(id as u32);

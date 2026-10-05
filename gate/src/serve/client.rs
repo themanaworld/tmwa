@@ -152,7 +152,7 @@ fn pub_ip(st: &State) -> Ip4Address {
 }
 
 fn stamp_seconds(secs: u64) -> FixedStr<20> {
-    FixedStr::<20>::try_from_str(&super::format_time(secs)).unwrap_or_default()
+    FixedStr::<20>::from_str_truncate(&super::format_time(secs))
 }
 
 // ------------------------------------------------------------------
@@ -285,7 +285,9 @@ async fn handle_login(
                 .await;
                 if let Ok(Ok(h)) = h {
                     let _ = db
-                        .blocking(move |db| db.set_password(id, &h, "argon2id", None))
+                        .blocking(move |db| {
+                            db.set_password(id, &h, crate::auth::password::Scheme::Argon2id, None)
+                        })
                         .await;
                 }
             }
@@ -390,14 +392,14 @@ async fn handle_login(
     head.login_id2 = login_id2;
     head.last_login_string = match prev {
         Some(ms) => stamp_millis(ms),
-        None => FixedStr::<24>::try_from_str("-").unwrap_or_default(),
+        None => FixedStr::<24>::from_str_truncate("-"),
     };
     head.sex = Sex(2); // UNSPECIFIED
     let users = st.count_users() as u16;
     let rep = P0069Repeat {
         ip: pub_ip(st),
         port: st.cfg.gate.public_port,
-        server_name: FixedStr::<20>::try_from_str(&st.cfg.char_.server_name).unwrap_or_default(),
+        server_name: FixedStr::<20>::from_str_truncate(&st.cfg.char_.server_name),
         users,
         maintenance: 0,
         is_new: 0,
@@ -422,7 +424,7 @@ fn send_6a(
         if ban_until != 0 {
             p.error_message = stamp_seconds(ban_until as u64);
         } else if let Some(m) = errmsg {
-            p.error_message = FixedStr::<20>::try_from_str(&m).unwrap_or_default();
+            p.error_message = FixedStr::<20>::from_str_truncate(&m);
         }
     }
     let _ = st; // message already resolved by caller
@@ -432,8 +434,7 @@ fn send_6a(
 fn stamp_millis(ms: i64) -> FixedStr<24> {
     let secs = ms / 1000;
     let frac = ms % 1000;
-    FixedStr::<24>::try_from_str(&format!("{}.{frac:03}", super::format_time(secs as u64)))
-        .unwrap_or_default()
+    FixedStr::<24>::from_str_truncate(&format!("{}.{frac:03}", super::format_time(secs as u64)))
 }
 
 /// tmwa check_ip: allow/deny lists + order (deny_allow / allow_deny).
@@ -696,20 +697,9 @@ async fn handle_change_pass(
     let aid = sd.account_id as i64;
     let db = &st.db;
     let row = db
-        .with_conn(|conn| {
-            conn.query_row(
-                "SELECT password_hash,password_scheme,legacy_salt FROM accounts WHERE id=?1",
-                [aid],
-                |r| {
-                    Ok((
-                        r.get::<usize, String>(0)?,
-                        r.get::<usize, String>(1)?,
-                        r.get::<usize, Option<String>>(2)?,
-                    ))
-                },
-            )
-        })
-        .ok();
+        .with_conn(|conn| crate::db::password_row_conn(conn, aid))
+        .ok()
+        .flatten();
     let Some((hash, scheme, salt)) = row else {
         return;
     };
@@ -731,7 +721,9 @@ async fn handle_change_pass(
         .await
         {
             if db
-                .blocking(move |db| db.set_password(aid, &h, "argon2id", None))
+                .blocking(move |db| {
+                    db.set_password(aid, &h, crate::auth::password::Scheme::Argon2id, None)
+                })
                 .await
                 .is_ok()
             {
@@ -792,7 +784,7 @@ async fn handle_char_select(
         return false;
     }
     if let Some(m) = rewrite {
-        cd.last_point.map_ = FixedStr::<16>::try_from_str(&m).unwrap_or_default();
+        cd.last_point.map_ = FixedStr::<16>::from_str_truncate(&m);
         // update cache so the later load in 0x2afc sees the rewrite
         let mut chars = st.chars.lock().unwrap();
         if let Some(c) = chars.get_mut(&ck.char_id.0) {
@@ -988,7 +980,7 @@ async fn handle_char_create(
     cd.weapon = ItemLook(0); // W_FIST
     let (map, x, y) = st.cfg.start_point();
     cd.last_point = Point {
-        map_: FixedStr::<16>::try_from_str(&map).unwrap_or_default(),
+        map_: FixedStr::<16>::from_str_truncate(&map),
         x,
         y,
     };
@@ -1055,7 +1047,7 @@ async fn handle_char_create(
     };
 
     let key = CharKey {
-        name: FixedStr::<24>::try_from_str(&name).unwrap_or_default(),
+        name: FixedStr::<24>::from_str_truncate(&name),
         account_id: AccountId(sd.account_id),
         char_id: CharId(cid),
         char_num: slot,
@@ -1892,8 +1884,7 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
                         send_bytes(&tx, enc(|v| P00F8::default().encode(v)));
                     }
                     let mut p91 = P0091::default();
-                    p91.map_name = FixedStr::<16>::try_from_str(&rec.lock().unwrap().map_name)
-                        .unwrap_or_default();
+                    p91.map_name = FixedStr::<16>::from_str_truncate(&rec.lock().unwrap().map_name);
                     p91.x = p73.pos.x;
                     p91.y = p73.pos.y;
                     send_bytes(&tx, enc(move |v| p91.encode(v)));

@@ -6,8 +6,9 @@
 use std::path::Path;
 use std::sync::Mutex;
 
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
+use crate::auth::password::Scheme;
 use crate::proto::types::FixedStr;
 use crate::proto::{
     CharData, CharKey, Epos, GlobalReg, Item, ItemNameId, Sex, SkillFlags, SkillValue,
@@ -144,17 +145,11 @@ pub enum DbError {
     Sqlite(#[from] rusqlite::Error),
     #[error("{0}")]
     Msg(String),
-    #[error("string too long")]
-    StrTooLong,
     #[error("account name taken")]
     NameTaken,
 }
 
 pub type Result<T> = std::result::Result<T, DbError>;
-
-/// Account auth fields: (id, password_hash, password_scheme,
-/// legacy_salt).
-pub type AuthRow = (i64, String, String, Option<String>);
 
 /// The accounts row the login path needs.
 pub struct LoginRow {
@@ -235,53 +230,11 @@ impl Db {
             .optional()?)
     }
 
-    pub fn set_meta(&self, key: &str, value: i64) -> Result<()> {
-        let conn = self.lock();
-        conn.execute(
-            "INSERT INTO meta(key,value) VALUES(?1,?2)
-             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-            params![key, value],
-        )?;
-        Ok(())
-    }
-
-    /// Set one account var (# scope 1 / ## scope 2); used by the
-    /// 0x3004 and 0x2b10 handlers and admin commands.
-    pub fn set_account_var(
-        &self,
-        account_id: i64,
-        scope: i64,
-        name: &str,
-        value: i64,
-    ) -> Result<()> {
-        let conn = self.lock();
-        conn.execute(
-            "INSERT INTO account_vars(account_id,scope,name,value)
-             VALUES(?1,?2,?3,?4)
-             ON CONFLICT(account_id,scope,name) DO UPDATE SET
-             value=excluded.value",
-            params![account_id, scope, name, value],
-        )?;
-        Ok(())
-    }
-
-    /// All vars for an account/scope, name order.
-    pub fn get_account_vars(&self, account_id: i64, scope: i64) -> Result<Vec<(String, i64)>> {
-        let conn = self.lock();
-        let mut st = conn.prepare(
-            "SELECT name,value FROM account_vars
-             WHERE account_id=?1 AND scope=?2 ORDER BY name",
-        )?;
-        Ok(st
-            .query_map(params![account_id, scope], |r| Ok((r.get(0)?, r.get(1)?)))?
-            .collect::<rusqlite::Result<Vec<_>>>()?)
-    }
-
     /// Allocate an id from meta (next_account_id/next_char_id/...),
     /// bumping the counter inside the caller's transaction.
-    pub fn alloc_meta_id(tx: &Transaction<'_>, key: &str) -> rusqlite::Result<i64> {
-        let id: i64 = tx.query_row("SELECT value FROM meta WHERE key=?1", [key], |r| r.get(0))?;
-        tx.execute(
+    pub fn alloc_meta_id(conn: &Connection, key: &str) -> rusqlite::Result<i64> {
+        let id: i64 = conn.query_row("SELECT value FROM meta WHERE key=?1", [key], |r| r.get(0))?;
+        conn.execute(
             "UPDATE meta SET value=?1 WHERE key=?2",
             params![id + 1, key],
         )?;
@@ -317,7 +270,7 @@ impl Db {
             id,
             name,
             password_hash,
-            "argon2id",
+            Scheme::Argon2id,
             None,
             Some(email),
             0,
@@ -331,16 +284,6 @@ impl Db {
         )?;
         tx.commit()?;
         Ok(id)
-    }
-
-    /// Account id by exact name.
-    pub fn account_id_by_name(&self, name: &str) -> Result<Option<i64>> {
-        let conn = self.lock();
-        Ok(conn
-            .query_row("SELECT id FROM accounts WHERE name=?1", [name], |r| {
-                r.get(0)
-            })
-            .optional()?)
     }
 
     /// Full account row for the login path.
@@ -395,56 +338,22 @@ impl Db {
         &self,
         account_id: i64,
         hash: &str,
-        scheme: &str,
+        scheme: Scheme,
         salt: Option<&str>,
     ) -> Result<()> {
         let conn = self.lock();
-        conn.execute(
-            "UPDATE accounts SET password_hash=?2, password_scheme=?3,
-             legacy_salt=?4 WHERE id=?1",
-            params![account_id, hash, scheme, salt],
-        )?;
-        Ok(())
-    }
-
-    pub fn account_email(&self, account_id: i64) -> Result<Option<String>> {
-        let conn = self.lock();
-        Ok(conn
-            .query_row(
-                "SELECT email FROM accounts WHERE id=?1",
-                [account_id],
-                |r| r.get(0),
-            )
-            .optional()?
-            .flatten())
-    }
-
-    pub fn set_email(&self, account_id: i64, email: Option<&str>) -> Result<()> {
-        let conn = self.lock();
-        conn.execute(
-            "UPDATE accounts SET email=?2 WHERE id=?1",
-            params![account_id, email],
-        )?;
-        Ok(())
+        Ok(set_password_conn(&conn, account_id, hash, scheme, salt)?)
     }
 
     pub fn set_account_state(&self, account_id: i64, state: i64) -> Result<()> {
         let conn = self.lock();
-        conn.execute(
-            "UPDATE accounts SET state=?2 WHERE id=?1",
-            params![account_id, state],
-        )?;
-        Ok(())
+        Ok(set_account_state_conn(&conn, account_id, state)?)
     }
 
     /// ban_until (unix seconds) or unblock when 0.
     pub fn set_account_ban(&self, account_id: i64, ban_until: i64) -> Result<()> {
         let conn = self.lock();
-        conn.execute(
-            "UPDATE accounts SET ban_until=?2 WHERE id=?1",
-            params![account_id, ban_until],
-        )?;
-        Ok(())
+        Ok(set_account_ban_conn(&conn, account_id, ban_until)?)
     }
 
     /// Char id by exact name.
@@ -460,10 +369,7 @@ impl Db {
     /// Char ids of one account.
     pub fn char_ids_of_account(&self, account_id: i64) -> Result<Vec<i64>> {
         let conn = self.lock();
-        let mut st = conn.prepare("SELECT id FROM characters WHERE account_id=?1 ORDER BY slot")?;
-        Ok(st
-            .query_map([account_id], |r| r.get(0))?
-            .collect::<rusqlite::Result<Vec<i64>>>()?)
+        Ok(char_ids_of_account_conn(&conn, account_id)?)
     }
 
     pub fn delete_character(&self, char_id: i64) -> Result<()> {
@@ -475,20 +381,7 @@ impl Db {
     /// Clear partner_id both directions (0x2b16 divorce).
     pub fn divorce(&self, char_id: i64) -> Result<Option<i64>> {
         let conn = self.lock();
-        divorce_conn(&conn, char_id)
-    }
-
-    /// Storage items for an account, slot order.
-    pub fn load_storage(&self, account_id: i64) -> Result<Vec<(i64, i64, i64, i64)>> {
-        let conn = self.lock();
-        load_storage_conn(&conn, account_id)
-    }
-
-    /// Replace a whole storage (0x3011 semantics): items are
-    /// (item_id, amount, equip) in slot order.
-    pub fn save_storage(&self, account_id: i64, items: &[(i64, i64, i64)]) -> Result<()> {
-        let conn = self.lock();
-        save_storage_conn(&conn, account_id, items)
+        Ok(divorce_conn(&conn, char_id)?)
     }
 
     /// Lock the connection. A panic while it was held (e.g. in an admin
@@ -507,14 +400,15 @@ impl Db {
         f(&mut conn).map_err(DbError::from)
     }
 
-    /// Insert an account row (used by the importer).
+    /// Insert an account row (used by the importer). Takes
+    /// `&Connection` so it composes inside the importer's transaction.
     #[allow(clippy::too_many_arguments)]
     pub fn insert_account(
-        tx: &Transaction<'_>,
+        conn: &Connection,
         id: i64,
         name: &str,
         password_hash: &str,
-        password_scheme: &str,
+        password_scheme: Scheme,
         legacy_salt: Option<&str>,
         email: Option<&str>,
         state: i64,
@@ -526,7 +420,7 @@ impl Db {
         last_ip: Option<&str>,
         created_at: i64,
     ) -> rusqlite::Result<()> {
-        tx.execute(
+        conn.execute(
             "INSERT INTO accounts(id,name,password_hash,password_scheme,
              legacy_salt,email,state,error_message,ban_until,memo,
              last_login,login_count,last_ip,created_at)
@@ -535,7 +429,7 @@ impl Db {
                 id,
                 name,
                 password_hash,
-                password_scheme,
+                password_scheme.as_str(),
                 legacy_salt,
                 email,
                 state,
@@ -551,19 +445,6 @@ impl Db {
         Ok(())
     }
 
-    /// Fetch account row fields needed for auth.
-    pub fn find_account_by_name(&self, name: &str) -> Result<Option<AuthRow>> {
-        let conn = self.lock();
-        Ok(conn
-            .query_row(
-                "SELECT id,password_hash,password_scheme,legacy_salt
-                 FROM accounts WHERE name=?1",
-                [name],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
-            )
-            .optional()?)
-    }
-
     // ---- characters ----
 
     /// Load a character as generated CharKey + CharData. Fills
@@ -572,75 +453,177 @@ impl Db {
     pub fn load_character(&self, char_id: i64) -> Result<(CharKey, CharData)> {
         self.with_conn(|conn| load_character_conn(conn, char_id))
     }
-
-    /// Save a character: one transaction replaces the scalar row and
-    /// all items/skills/vars.
-    pub fn save_character(&self, key: &CharKey, data: &CharData) -> Result<()> {
-        self.with_conn(|conn| {
-            let tx = conn.transaction()?;
-            save_character_tx(&tx, key, data)?;
-            tx.commit()
-        })
-    }
-
-    /// Character keys for one account, slot order.
-    pub fn list_characters(&self, account_id: i64) -> Result<Vec<CharKey>> {
-        let conn = self.lock();
-        let mut st =
-            conn.prepare("SELECT id,name,slot FROM characters WHERE account_id=?1 ORDER BY slot")?;
-        let rows = st
-            .query_map([account_id], |r| {
-                let id: i64 = r.get(0)?;
-                let name: String = r.get(1)?;
-                let slot: i64 = r.get(2)?;
-                Ok((id, name, slot))
-            })?
-            .collect::<rusqlite::Result<Vec<_>>>()?;
-        Ok(rows
-            .into_iter()
-            .map(|(id, name, slot)| CharKey {
-                name: FixedStr::<24>::try_from_str(&name).unwrap_or_default(),
-                account_id: crate::proto::AccountId(account_id as u32),
-                char_id: crate::proto::CharId(id as u32),
-                char_num: slot as u8,
-            })
-            .collect())
-    }
 }
 
-fn fixed_str<const N: usize>(s: &str) -> Result<FixedStr<N>> {
-    FixedStr::try_from_str(s).map_err(|_| DbError::StrTooLong)
-}
-
-// ---- conn-level variants ----
+// ---- conn-level helpers ----
 //
 // The maplink DB writer runs jobs inside one shared batch
-// transaction; these take `&Connection` so they can be composed
-// there. Callers must not open a nested transaction on it.
+// transaction and the importer writes its whole load in one; these
+// take `&Connection` (a `&Transaction` derefs to it) so they compose
+// there and standalone. Callers must not open a nested transaction
+// on it.
 
-/// Storage items for an account, slot order.
-pub(crate) fn load_storage_conn(
+/// Upsert a meta row (key/value).
+pub fn set_meta_conn(conn: &Connection, key: &str, value: i64) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT INTO meta(key,value) VALUES(?1,?2)
+         ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        params![key, value],
+    )?;
+    Ok(())
+}
+
+/// Account id by exact name.
+pub fn account_id_by_name_conn(conn: &Connection, name: &str) -> rusqlite::Result<Option<i64>> {
+    conn.query_row("SELECT id FROM accounts WHERE name=?1", [name], |r| {
+        r.get(0)
+    })
+    .optional()
+}
+
+/// Account name by id.
+pub fn account_name_by_id_conn(conn: &Connection, id: i64) -> rusqlite::Result<Option<String>> {
+    conn.query_row("SELECT name FROM accounts WHERE id=?1", [id], |r| r.get(0))
+        .optional()
+}
+
+/// Account email (NULL-able column flattens to Option).
+pub fn account_email_conn(conn: &Connection, account_id: i64) -> rusqlite::Result<Option<String>> {
+    Ok(conn
+        .query_row(
+            "SELECT email FROM accounts WHERE id=?1",
+            [account_id],
+            |r| r.get::<_, Option<String>>(0),
+        )
+        .optional()?
+        .flatten())
+}
+
+/// (password_hash, password_scheme, legacy_salt) by account id.
+pub fn password_row_conn(
     conn: &Connection,
     account_id: i64,
-) -> Result<Vec<(i64, i64, i64, i64)>> {
+) -> rusqlite::Result<Option<(String, String, Option<String>)>> {
+    conn.query_row(
+        "SELECT password_hash,password_scheme,legacy_salt
+         FROM accounts WHERE id=?1",
+        [account_id],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+    )
+    .optional()
+}
+
+/// Update the password (hash + scheme; clears legacy_salt for plain
+/// argon2id).
+pub fn set_password_conn(
+    conn: &Connection,
+    account_id: i64,
+    hash: &str,
+    scheme: Scheme,
+    salt: Option<&str>,
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE accounts SET password_hash=?2, password_scheme=?3,
+         legacy_salt=?4 WHERE id=?1",
+        params![account_id, hash, scheme.as_str(), salt],
+    )?;
+    Ok(())
+}
+
+pub fn set_email_conn(
+    conn: &Connection,
+    account_id: i64,
+    email: Option<&str>,
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE accounts SET email=?2 WHERE id=?1",
+        params![account_id, email],
+    )?;
+    Ok(())
+}
+
+pub fn set_memo_conn(conn: &Connection, account_id: i64, memo: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE accounts SET memo=?2 WHERE id=?1",
+        params![account_id, memo],
+    )?;
+    Ok(())
+}
+
+pub fn set_account_state_conn(
+    conn: &Connection,
+    account_id: i64,
+    state: i64,
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE accounts SET state=?2 WHERE id=?1",
+        params![account_id, state],
+    )?;
+    Ok(())
+}
+
+/// ban_until (unix seconds) or unblock when 0.
+pub fn set_account_ban_conn(
+    conn: &Connection,
+    account_id: i64,
+    ban_until: i64,
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE accounts SET ban_until=?2 WHERE id=?1",
+        params![account_id, ban_until],
+    )?;
+    Ok(())
+}
+
+/// Insert or replace a party and its member list. `members` is
+/// (account_id, char_name, leader).
+pub fn upsert_party_conn(
+    conn: &Connection,
+    party_id: i64,
+    name: &str,
+    exp_share: i64,
+    item_share: i64,
+    members: &[(i64, String, i64)],
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT INTO parties(id,name,exp_share,item_share) VALUES(?1,?2,?3,?4)
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name,
+         exp_share=excluded.exp_share,item_share=excluded.item_share",
+        params![party_id, name, exp_share, item_share],
+    )?;
+    conn.execute("DELETE FROM party_members WHERE party_id=?1", [party_id])?;
+    let mut st = conn.prepare(
+        "INSERT INTO party_members(party_id,account_id,char_name,leader)
+         VALUES(?1,?2,?3,?4)",
+    )?;
+    for (acct, char_name, leader) in members {
+        st.execute(params![party_id, acct, char_name, leader])?;
+    }
+    Ok(())
+}
+
+/// Storage items for an account, slot order.
+pub fn load_storage_conn(
+    conn: &Connection,
+    account_id: i64,
+) -> rusqlite::Result<Vec<(i64, i64, i64, i64)>> {
     let mut st = conn.prepare(
         "SELECT idx,item_id,amount,equip FROM storage_items
          WHERE account_id=?1 ORDER BY idx",
     )?;
-    Ok(st
-        .query_map([account_id], |r| {
-            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
-        })?
-        .collect::<rusqlite::Result<Vec<_>>>()?)
+    st.query_map([account_id], |r| {
+        Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
+    })?
+    .collect::<rusqlite::Result<Vec<_>>>()
 }
 
 /// Replace a whole storage (0x3011 semantics): items are
 /// (item_id, amount, equip) in slot order.
-pub(crate) fn save_storage_conn(
+pub fn save_storage_conn(
     conn: &Connection,
     account_id: i64,
     items: &[(i64, i64, i64)],
-) -> Result<()> {
+) -> rusqlite::Result<()> {
     conn.execute(
         "DELETE FROM storage_items WHERE account_id=?1",
         [account_id],
@@ -656,29 +639,28 @@ pub(crate) fn save_storage_conn(
 }
 
 /// All vars for an account/scope, name order.
-pub(crate) fn get_account_vars_conn(
+pub fn get_account_vars_conn(
     conn: &Connection,
     account_id: i64,
     scope: i64,
-) -> Result<Vec<(String, i64)>> {
+) -> rusqlite::Result<Vec<(String, i64)>> {
     let mut st = conn.prepare(
         "SELECT name,value FROM account_vars
          WHERE account_id=?1 AND scope=?2 ORDER BY name",
     )?;
-    Ok(st
-        .query_map(params![account_id, scope], |r| Ok((r.get(0)?, r.get(1)?)))?
-        .collect::<rusqlite::Result<Vec<_>>>()?)
+    st.query_map(params![account_id, scope], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<rusqlite::Result<Vec<_>>>()
 }
 
 /// Insert-or-update each (name, value) pair in `vars` at `scope`.
-/// Does not delete other names — callers that want the tmwa
+/// Does not delete other names; callers that want the tmwa
 /// "replace the whole scope" semantics DELETE first.
-pub(crate) fn set_account_vars(
+pub fn set_account_vars(
     conn: &Connection,
     account_id: i64,
     scope: i64,
     vars: &[(String, i64)],
-) -> Result<()> {
+) -> rusqlite::Result<()> {
     let mut st = conn.prepare(
         "INSERT INTO account_vars(account_id,scope,name,value)
          VALUES(?1,?2,?3,?4)
@@ -693,7 +675,7 @@ pub(crate) fn set_account_vars(
 
 /// Clear partner_id both directions (0x2b16 divorce); returns the
 /// former partner's char id.
-pub(crate) fn divorce_conn(conn: &Connection, char_id: i64) -> Result<Option<i64>> {
+pub fn divorce_conn(conn: &Connection, char_id: i64) -> rusqlite::Result<Option<i64>> {
     let partner: Option<i64> = conn
         .query_row(
             "SELECT partner_id FROM characters WHERE id=?1",
@@ -712,98 +694,96 @@ pub(crate) fn divorce_conn(conn: &Connection, char_id: i64) -> Result<Option<i64
     Ok(partner.filter(|p| *p != 0))
 }
 
-fn load_character_conn(
-    conn: &mut Connection,
-    char_id: i64,
-) -> rusqlite::Result<(CharKey, CharData)> {
-    let mut cd = CharData::default();
-    let mut key = CharKey::default();
-    {
-        let row = conn.query_row(
-            "SELECT account_id,slot,name,sex,species,base_level,job_level,
-             base_exp,job_exp,zeny,hp,max_hp,sp,max_sp,
-             attr_str,attr_agi,attr_vit,attr_int,attr_dex,attr_luk,
-             status_point,skill_point,option_,karma,manner,party_id,
-             hair,hair_color,clothes_color,weapon,shield,
-             head_top,head_mid,head_bottom,
-             last_map,last_x,last_y,save_map,save_x,save_y,partner_id
-             FROM characters WHERE id=?1",
-            [char_id],
-            |r| {
-                let account_id: i64 = r.get(0)?;
-                let slot: i64 = r.get(1)?;
-                let name: String = r.get(2)?;
-                let mut ints = Vec::with_capacity(36);
-                // ints in 3..34, text at 34 (last_map), ints 35..37,
-                // text at 37 (save_map), ints 38..41.
-                for i in 3..34 {
-                    ints.push(r.get::<usize, i64>(i)?);
-                }
-                let last_map: String = r.get(34)?;
-                for i in 35..37 {
-                    ints.push(r.get::<usize, i64>(i)?);
-                }
-                let save_map: String = r.get(37)?;
-                for i in 38..41 {
-                    ints.push(r.get::<usize, i64>(i)?);
-                }
-                let ck = (char_id, slot, name, account_id);
-                Ok((ck, ints, last_map, save_map))
-            },
-        )?;
-        let (ck, vals, last_map, save_map) = row;
-        // ints layout: cols 3..34 -> vals[0..31], cols 35..37 ->
-        // vals[31..33], cols 38..41 -> vals[33..36].
-        let v = |i: usize| match i {
-            3..=33 => vals[i - 3],
-            35..=36 => vals[i - 4],
-            38..=40 => vals[i - 5],
-            _ => unreachable!(),
-        };
-        key.name = FixedStr::<24>::try_from_str(&ck.2).unwrap_or_default();
-        key.account_id = crate::proto::AccountId(ck.3 as u32);
-        key.char_id = crate::proto::CharId(ck.0 as u32);
-        key.char_num = ck.1 as u8;
-        cd.sex = Sex(v(3) as u8);
-        cd.species = crate::proto::Species(v(4) as u16);
-        cd.base_level = v(5) as u8;
-        cd.job_level = v(6) as u8;
-        cd.base_exp = v(7) as i32;
-        cd.job_exp = v(8) as i32;
-        cd.zeny = v(9) as i32;
-        cd.hp = v(10) as i32;
-        cd.max_hp = v(11) as i32;
-        cd.sp = v(12) as i32;
-        cd.max_sp = v(13) as i32;
-        for i in 0..6 {
-            cd.attrs[i] = v(14 + i) as i16;
-        }
-        cd.status_point = v(20) as i16;
-        cd.skill_point = v(21) as i16;
-        cd.option = crate::proto::Opt0(v(22) as u16);
-        cd.karma = v(23) as i16;
-        cd.manner = v(24) as i16;
-        cd.party_id = crate::proto::PartyId(v(25) as u32);
-        cd.hair = v(26) as i16;
-        cd.hair_color = v(27) as i16;
-        cd.clothes_color = v(28) as i16;
-        cd.weapon = crate::proto::ItemLook(v(29) as u16);
-        cd.shield = ItemNameId(v(30) as u32);
-        cd.head_top = ItemNameId(v(31) as u32);
-        cd.head_mid = ItemNameId(v(32) as u32);
-        cd.head_bottom = ItemNameId(v(33) as u32);
-        cd.last_point = crate::proto::Point {
-            map_: FixedStr::<16>::try_from_str(&last_map).unwrap_or_default(),
-            x: v(35) as i16,
-            y: v(36) as i16,
-        };
-        cd.save_point = crate::proto::Point {
-            map_: FixedStr::<16>::try_from_str(&save_map).unwrap_or_default(),
-            x: v(38) as i16,
-            y: v(39) as i16,
-        };
-        cd.partner_id = crate::proto::CharId(v(40) as u32);
-    }
+/// Char ids of one account, slot order.
+pub fn char_ids_of_account_conn(conn: &Connection, account_id: i64) -> rusqlite::Result<Vec<i64>> {
+    let mut st = conn.prepare("SELECT id FROM characters WHERE account_id=?1 ORDER BY slot")?;
+    st.query_map([account_id], |r| r.get(0))?
+        .collect::<rusqlite::Result<Vec<i64>>>()
+}
+
+/// Character keys for one account, slot order.
+pub fn list_characters_conn(conn: &Connection, account_id: i64) -> rusqlite::Result<Vec<CharKey>> {
+    let mut st =
+        conn.prepare("SELECT id,name,slot FROM characters WHERE account_id=?1 ORDER BY slot")?;
+    let rows = st
+        .query_map([account_id], |r| {
+            let id: i64 = r.get(0)?;
+            let name: String = r.get(1)?;
+            let slot: i64 = r.get(2)?;
+            Ok((id, name, slot))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(rows
+        .into_iter()
+        .map(|(id, name, slot)| CharKey {
+            name: FixedStr::<24>::from_str_truncate(&name),
+            account_id: crate::proto::AccountId(account_id as u32),
+            char_id: crate::proto::CharId(id as u32),
+            char_num: slot as u8,
+        })
+        .collect())
+}
+
+fn load_character_conn(conn: &Connection, char_id: i64) -> rusqlite::Result<(CharKey, CharData)> {
+    let (key, mut cd) = conn.query_row(
+        "SELECT account_id,slot,name,sex,species,base_level,job_level,
+         base_exp,job_exp,zeny,hp,max_hp,sp,max_sp,
+         attr_str,attr_agi,attr_vit,attr_int,attr_dex,attr_luk,
+         status_point,skill_point,option_,karma,manner,party_id,
+         hair,hair_color,clothes_color,weapon,shield,
+         head_top,head_mid,head_bottom,
+         last_map,last_x,last_y,save_map,save_x,save_y,partner_id
+         FROM characters WHERE id=?1",
+        [char_id],
+        |r| {
+            let mut key = CharKey::default();
+            let mut cd = CharData::default();
+            key.account_id = crate::proto::AccountId(r.get::<usize, i64>(0)? as u32);
+            key.char_id = crate::proto::CharId(char_id as u32);
+            key.char_num = r.get::<usize, i64>(1)? as u8;
+            key.name = FixedStr::<24>::from_str_truncate(&r.get::<usize, String>(2)?);
+            cd.sex = Sex(r.get::<usize, i64>(3)? as u8);
+            cd.species = crate::proto::Species(r.get::<usize, i64>(4)? as u16);
+            cd.base_level = r.get::<usize, i64>(5)? as u8;
+            cd.job_level = r.get::<usize, i64>(6)? as u8;
+            cd.base_exp = r.get::<usize, i64>(7)? as i32;
+            cd.job_exp = r.get::<usize, i64>(8)? as i32;
+            cd.zeny = r.get::<usize, i64>(9)? as i32;
+            cd.hp = r.get::<usize, i64>(10)? as i32;
+            cd.max_hp = r.get::<usize, i64>(11)? as i32;
+            cd.sp = r.get::<usize, i64>(12)? as i32;
+            cd.max_sp = r.get::<usize, i64>(13)? as i32;
+            for (i, a) in cd.attrs.iter_mut().enumerate() {
+                *a = r.get::<usize, i64>(14 + i)? as i16;
+            }
+            cd.status_point = r.get::<usize, i64>(20)? as i16;
+            cd.skill_point = r.get::<usize, i64>(21)? as i16;
+            cd.option = crate::proto::Opt0(r.get::<usize, i64>(22)? as u16);
+            cd.karma = r.get::<usize, i64>(23)? as i16;
+            cd.manner = r.get::<usize, i64>(24)? as i16;
+            cd.party_id = crate::proto::PartyId(r.get::<usize, i64>(25)? as u32);
+            cd.hair = r.get::<usize, i64>(26)? as i16;
+            cd.hair_color = r.get::<usize, i64>(27)? as i16;
+            cd.clothes_color = r.get::<usize, i64>(28)? as i16;
+            cd.weapon = crate::proto::ItemLook(r.get::<usize, i64>(29)? as u16);
+            cd.shield = ItemNameId(r.get::<usize, i64>(30)? as u32);
+            cd.head_top = ItemNameId(r.get::<usize, i64>(31)? as u32);
+            cd.head_mid = ItemNameId(r.get::<usize, i64>(32)? as u32);
+            cd.head_bottom = ItemNameId(r.get::<usize, i64>(33)? as u32);
+            cd.last_point = crate::proto::Point {
+                map_: FixedStr::<16>::from_str_truncate(&r.get::<usize, String>(34)?),
+                x: r.get::<usize, i64>(35)? as i16,
+                y: r.get::<usize, i64>(36)? as i16,
+            };
+            cd.save_point = crate::proto::Point {
+                map_: FixedStr::<16>::from_str_truncate(&r.get::<usize, String>(37)?),
+                x: r.get::<usize, i64>(38)? as i16,
+                y: r.get::<usize, i64>(39)? as i16,
+            };
+            cd.partner_id = crate::proto::CharId(r.get::<usize, i64>(40)? as u32);
+            Ok((key, cd))
+        },
+    )?;
     {
         let mut st =
             conn.prepare("SELECT idx,item_id,amount,equip FROM character_items WHERE char_id=?1")?;
@@ -857,7 +837,7 @@ fn load_character_conn(
             let i = cd.global_reg_num as usize;
             if i < cd.global_reg.len() {
                 cd.global_reg[i] = GlobalReg {
-                    str: FixedStr::<32>::try_from_str(&name).unwrap_or_default(),
+                    str: FixedStr::<32>::from_str_truncate(&name),
                     value: value as i32,
                 };
                 cd.global_reg_num += 1;
@@ -879,7 +859,7 @@ fn load_character_conn(
         for row in rows {
             let (scope, name, value) = row?;
             let reg = GlobalReg {
-                str: FixedStr::<32>::try_from_str(&name).unwrap_or_default(),
+                str: FixedStr::<32>::from_str_truncate(&name),
                 value: value as i32,
             };
             if scope == 1 {
@@ -900,13 +880,19 @@ fn load_character_conn(
     Ok((key, cd))
 }
 
-pub(crate) fn save_character_tx(
-    tx: &Transaction<'_>,
+/// Replace a character's scalar row plus items/skills/vars. NOT
+/// `INSERT OR REPLACE`: REPLACE resolves every unique constraint by
+/// deleting the conflicting row, so a name or (account_id, slot)
+/// collision with a *different* character would silently delete that
+/// character (and cascade its items/skills/vars). The `ON CONFLICT(id)
+/// DO UPDATE` form errors instead.
+pub fn save_character_conn(
+    conn: &Connection,
     key: &CharKey,
     cd: &CharData,
 ) -> rusqlite::Result<()> {
     let char_id = key.char_id.0 as i64;
-    tx.execute(
+    conn.execute(
         "INSERT INTO characters(
              id,account_id,slot,name,sex,species,base_level,job_level,
              base_exp,job_exp,zeny,hp,max_hp,sp,max_sp,
@@ -984,9 +970,9 @@ pub(crate) fn save_character_tx(
             cd.partner_id.0 as i64,
         ],
     )?;
-    tx.execute("DELETE FROM character_items WHERE char_id=?1", [char_id])?;
+    conn.execute("DELETE FROM character_items WHERE char_id=?1", [char_id])?;
     {
-        let mut st = tx.prepare(
+        let mut st = conn.prepare(
             "INSERT INTO character_items(char_id,idx,item_id,amount,equip)
              VALUES(?1,?2,?3,?4,?5)",
         )?;
@@ -1002,9 +988,9 @@ pub(crate) fn save_character_tx(
             }
         }
     }
-    tx.execute("DELETE FROM character_skills WHERE char_id=?1", [char_id])?;
+    conn.execute("DELETE FROM character_skills WHERE char_id=?1", [char_id])?;
     {
-        let mut st = tx.prepare(
+        let mut st = conn.prepare(
             "INSERT INTO character_skills(char_id,skill_id,level,flags)
              VALUES(?1,?2,?3,?4)",
         )?;
@@ -1014,10 +1000,10 @@ pub(crate) fn save_character_tx(
             }
         }
     }
-    tx.execute("DELETE FROM character_vars WHERE char_id=?1", [char_id])?;
+    conn.execute("DELETE FROM character_vars WHERE char_id=?1", [char_id])?;
     {
         let mut st =
-            tx.prepare("INSERT INTO character_vars(char_id,name,value) VALUES(?1,?2,?3)")?;
+            conn.prepare("INSERT INTO character_vars(char_id,name,value) VALUES(?1,?2,?3)")?;
         for reg in cd.global_reg.iter().take(cd.global_reg_num as usize) {
             if reg.str.as_bytes().is_empty() {
                 continue;
