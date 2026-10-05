@@ -124,28 +124,6 @@ impl HttpState {
     }
 }
 
-fn client_ip(headers: &HeaderMap, peer: IpAddr, st: &State) -> IpAddr {
-    // trust X-Forwarded-For only from a configured proxy
-    if st
-        .cfg
-        .http
-        .trusted_proxies
-        .iter()
-        .any(|p| p.parse::<IpAddr>().map(|t| t == peer).unwrap_or(false))
-    {
-        if let Some(xff) = headers.get("x-forwarded-for") {
-            if let Ok(s) = xff.to_str() {
-                if let Some(first) = s.split(',').next() {
-                    if let Ok(ip) = first.trim().parse() {
-                        return ip;
-                    }
-                }
-            }
-        }
-    }
-    peer
-}
-
 fn jserr(code: StatusCode, error: &str) -> Response {
     (code, Json(json!({"status":"error","error":error}))).into_response()
 }
@@ -167,7 +145,11 @@ async fn create_account(
     headers: HeaderMap,
     body: Result<Json<Value>, serde_json::Error>,
 ) -> Response {
-    let ip = client_ip(&headers, peer.ip(), &hs.st);
+    let ip = crate::net::forwarded_for(
+        peer.ip(),
+        headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()),
+        &hs.st.cfg.http.trusted_proxies,
+    );
     let route = "POST/account";
     if let Some((c, j, retry)) = hs.rate.lock().unwrap().check(route, ip) {
         let mut r = (c, Json(j)).into_response();
@@ -224,30 +206,31 @@ async fn create_account(
     } else {
         "a@a.com".to_string()
     };
+    let Ok(h) = crate::auth::password::hash_argon2id(pass.as_bytes()) else {
+        return api_error(StatusCode::INTERNAL_SERVER_ERROR, "hashing failed");
+    };
+    // Same allocator as in-game _M/_F and admin create: the
+    // next_account_id meta counter (login.cpp's account_id_count),
+    // bumped inside the insert transaction. MAX(id)+1 would diverge
+    // from the counter and wedge every create on the PK.
     let uname = user.clone();
     let created = super::admin::run_db(st, move |c| {
-        let h = crate::auth::password::hash_argon2id(pass.as_bytes())
-            .map_err(|_| ())?;
-        let id: i64 = c
-            .query_row(
-                "SELECT COALESCE(MAX(id)+1, 2000000) FROM accounts",
-                [],
-                |r| r.get(0),
-            )
-            .map_err(|_| ())?;
-        c.execute(
-            "INSERT INTO accounts (id,name,password_hash,password_scheme,email,state,ban_until,memo,last_login,login_count,last_ip,created_at) \
-             VALUES (?1,?2,?3,'argon2id',?4,0,0,'',0,0,0,strftime('%s','now')*1000)",
-            rusqlite::params![id, uname, h, email2],
-        )
-        .map_err(|_| ())?;
-        Ok::<i64, ()>(id)
+        crate::db::Db::create_account(c, &uname, &h, &email2)
     })
     .await;
-    let Ok(_id) = created else {
-        cooldown(2_000);
-        return api_error(StatusCode::INTERNAL_SERVER_ERROR, "create failed");
-    };
+    match created {
+        Ok(_id) => {}
+        // raced another create of the same name
+        Err(crate::db::DbError::NameTaken) => {
+            cooldown(2_000);
+            return api_error(StatusCode::CONFLICT, "already exists");
+        }
+        Err(e) => {
+            tracing::warn!("http create_account: {e}");
+            cooldown(2_000);
+            return api_error(StatusCode::INTERNAL_SERVER_ERROR, "create failed");
+        }
+    }
     cooldown(299_000);
     if email != "a@a.com" {
         send_mail(
@@ -271,7 +254,11 @@ async fn reset_password(
     headers: HeaderMap,
     body: Result<Json<Value>, serde_json::Error>,
 ) -> Response {
-    let ip = client_ip(&headers, peer.ip(), &hs.st);
+    let ip = crate::net::forwarded_for(
+        peer.ip(),
+        headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()),
+        &hs.st.cfg.http.trusted_proxies,
+    );
     let route = "PUT/account";
     if let Some((c, j, retry)) = hs.rate.lock().unwrap().check(route, ip) {
         let mut r = (c, Json(j)).into_response();
@@ -338,7 +325,9 @@ async fn reset_password(
                 "operation already pending",
             );
         }
-        let code = uuid();
+        let Some(code) = uuid() else {
+            return api_error(StatusCode::INTERNAL_SERVER_ERROR, "token mint failed");
+        };
         let names: String = accounts.iter().map(|a| format!("{}\n", a.1)).collect();
         let reset_url = st.cfg.http.reset_url.clone();
         let code2 = code.clone();
@@ -495,20 +484,23 @@ pub(crate) async fn prune(st: &Arc<State>) {
     let _ = now;
 }
 
-fn uuid() -> String {
-    // v4-style random token
-    let b = (0..16)
-        .map(|_| State::random_u32().unwrap_or(0))
-        .collect::<Vec<_>>();
-    format!(
-        "{:08x}-{:04x}-{:04x}-{:04x}-{:04x}{:08x}",
-        b[0],
-        b[1] & 0xffff,
-        (b[2] & 0x0fff) | 0x4000,
-        (b[3] & 0x3fff) | 0x8000,
-        b[4] & 0xffff,
-        b[5]
-    )
+fn uuid() -> Option<String> {
+    // v4-style random token. A getrandom failure aborts the mint:
+    // random_u32's contract forbids falling back to predictable bits,
+    // so there is no unwrap_or path here at all.
+    let mut b = [0u8; 16];
+    getrandom::fill(&mut b).ok()?;
+    b[6] = (b[6] & 0x0f) | 0x40; // version 4
+    b[8] = (b[8] & 0x3f) | 0x80; // variant 10
+    let h: String = b.iter().map(|x| format!("{x:02x}")).collect();
+    Some(format!(
+        "{}-{}-{}-{}-{}",
+        &h[0..8],
+        &h[8..12],
+        &h[12..16],
+        &h[16..20],
+        &h[20..32]
+    ))
 }
 
 fn send_mail(st: &Arc<State>, to: &str, subject: &str, text: &str) {
@@ -566,7 +558,13 @@ async fn captcha(
     req: Request<Body>,
     next: Next,
 ) -> Response {
-    let ip = client_ip(req.headers(), peer.ip(), &hs.st);
+    let ip = crate::net::forwarded_for(
+        peer.ip(),
+        req.headers()
+            .get("x-forwarded-for")
+            .and_then(|v| v.to_str().ok()),
+        &hs.st.cfg.http.trusted_proxies,
+    );
     let token = req
         .headers()
         .get("x-captcha-token")
@@ -587,7 +585,7 @@ async fn captcha(
     let secret = hs.st.cfg.http.recaptcha_secret.clone();
     let url =
         format!("https://www.google.com/recaptcha/api/siteverify?secret={secret}&response={token}");
-    match reqwest::get(&url).await {
+    match hs.http_client.get(&url).send().await {
         Ok(r) => {
             let ok = r
                 .json::<Value>()
@@ -650,4 +648,64 @@ pub async fn run(st: Arc<State>) -> std::io::Result<()> {
     )
     .await
     .map_err(|e| std::io::Error::other(e.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+
+    fn test_state() -> (Arc<HttpState>, Arc<State>) {
+        let db = Arc::new(crate::db::Db::open_memory().unwrap());
+        db.set_meta("next_account_id", 2000000).unwrap();
+        let st = Arc::new(State::new(Config::default(), db));
+        (Arc::new(HttpState::new(st.clone())), st)
+    }
+
+    fn acct_body(user: &str, pass: &str, email: &str) -> Result<Json<Value>, serde_json::Error> {
+        Ok(Json(
+            json!({"username": user, "password": pass, "email": email}),
+        ))
+    }
+
+    /// Account creation must draw from the next_account_id meta
+    /// counter (like in-game _M/_F and admin create), not MAX(id)+1.
+    #[tokio::test]
+    async fn create_uses_meta_allocator() {
+        let (hs, st) = test_state();
+        let r = create_account(
+            AxState(hs.clone()),
+            ConnectInfo("127.0.0.1:1".parse().unwrap()),
+            HeaderMap::new(),
+            acct_body("testuser", "testpass", "a@a.com"),
+        )
+        .await;
+        assert_eq!(r.status(), StatusCode::CREATED);
+        assert_eq!(st.db.meta("next_account_id").unwrap(), Some(2000001));
+
+        // A same-name create from another ip is a conflict and does
+        // not consume an id.
+        let r = create_account(
+            AxState(hs.clone()),
+            ConnectInfo("10.9.8.7:1".parse().unwrap()),
+            HeaderMap::new(),
+            acct_body("testuser", "testpass", "a@a.com"),
+        )
+        .await;
+        assert_eq!(r.status(), StatusCode::CONFLICT);
+        assert_eq!(st.db.meta("next_account_id").unwrap(), Some(2000001));
+    }
+
+    /// The reset token is a v4-shaped uuid; a fresh mint never
+    /// repeats.
+    #[test]
+    fn uuid_shape() {
+        let a = uuid().unwrap();
+        let b = uuid().unwrap();
+        assert_ne!(a, b);
+        assert_eq!(a.len(), 36);
+        assert_eq!(&a[14..15], "4");
+        assert!("89ab".contains(&a[19..20]));
+        assert!(RE_CODE.is_match(&a));
+    }
 }
