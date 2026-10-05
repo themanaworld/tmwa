@@ -819,16 +819,24 @@ fn kick_account(st: &Arc<State>, account_id: u32) {
         .filter(|r| r.lock().unwrap().account_id == account_id)
         .cloned()
         .collect();
+    let mut gone = Vec::new();
     for rec in recs {
         let mut r = rec.lock().unwrap();
         r.kicked = true;
         if let Some(sig) = &r.hold_signal {
             sig.notify_one();
         }
+        gone.push(r.char_id);
         drop(r);
     }
-    // remove from the online set so maps stop seeing the player
-    st.online.lock().unwrap().remove(&account_id);
+    // remove from the online set so maps stop seeing the player;
+    // it is keyed by char id, not account id
+    {
+        let mut online = st.online.lock().unwrap();
+        for cid in gone {
+            online.remove(&cid);
+        }
+    }
 }
 
 async fn state_set(st: &Arc<State>, args: &[String]) -> Value {

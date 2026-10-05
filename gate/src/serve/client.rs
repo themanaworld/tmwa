@@ -585,7 +585,18 @@ async fn char_session<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + 
             }
         }
     }
-    st.char_sessions.lock().unwrap().remove(&account_id);
+    char_session_unregister(&st, account_id, tx);
+}
+
+/// Drop this session's char-screen registration on exit. A second
+/// session on the same account overwrote the entry, so only remove
+/// it while it still belongs to this connection's channel (the
+/// same check `map_kill` uses in state.rs).
+fn char_session_unregister(st: &Arc<State>, account_id: u32, tx: &mpsc::Sender<Vec<u8>>) {
+    let mut cs = st.char_sessions.lock().unwrap();
+    if matches!(cs.get(&account_id), Some(txs) if txs.same_channel(tx)) {
+        cs.remove(&account_id);
+    }
 }
 
 struct CharSd {
@@ -1172,6 +1183,9 @@ enum FwdEnd {
     UpstreamGone,
     /// The drain signal fired: hold unconditionally.
     Hold,
+    /// An admin kick fired the same signal: upstream was closed so
+    /// the map saves, but the client disconnects instead of holding.
+    Kicked,
 }
 
 /// Track client-UI state from an S->C packet (open NPC dialog, trade,
@@ -1381,13 +1395,23 @@ async fn push_reauth(
     let Some(mtx) = st.map_prio_tx(map_id) else {
         return false;
     };
-    super::state::send_must(st, map_id, &mtx, enc(move |v| p29.encode(v))).await;
-
+    // register the waiter BEFORE the 0x3829 goes out, like the
+    // pending select in handle_char_select: a fast map can answer
+    // 0x3830 before send_must returns, and an ack that finds no
+    // waiter is dropped.
     let (rtx, rrx) = tokio::sync::oneshot::channel::<()>();
     st.rejoin_notify
         .lock()
         .unwrap()
         .insert((account_id, char_id), rtx);
+    if !super::state::send_must(st, map_id, &mtx, enc(move |v| p29.encode(v))).await {
+        // wedged link: fail now instead of waiting out the timeout
+        st.rejoin_notify
+            .lock()
+            .unwrap()
+            .remove(&(account_id, char_id));
+        return false;
+    }
     if tokio::time::timeout(Duration::from_secs(5), rrx)
         .await
         .is_err()
@@ -1508,6 +1532,11 @@ async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Sen
     };
     loop {
         let now = Instant::now();
+        // a kick while held stores its notify permit; the flag is
+        // what matters, so check it here too
+        if rec.lock().unwrap().kicked {
+            return None;
+        }
         if now >= deadline {
             tracing::warn!(char_id, "hold timed out; closing client");
             return None;
@@ -1625,10 +1654,15 @@ async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin +
                 }
             }
             _ = hold_signal.notified() => {
-                // drain: close upstream so tmwa-map runs map_quit
-                // (which sends its 0x2b01 save), then hold
+                // drain or admin kick: close upstream so tmwa-map
+                // runs map_quit (which sends its 0x2b01 save). A
+                // drain then holds the client; a kick drops it.
                 let _ = up.shutdown().await;
-                return FwdEnd::Hold;
+                return if rec.lock().unwrap().kicked {
+                    FwdEnd::Kicked
+                } else {
+                    FwdEnd::Hold
+                };
             }
         }
     }
@@ -1768,6 +1802,9 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
             };
             let mut joined = None;
             'retry: while Instant::now() < deadline {
+                if rec.lock().unwrap().kicked {
+                    break 'life;
+                }
                 // the attempt blocks on map-link round-trips; run it
                 // in a task so the held client is still served
                 // (pings answered, quit noticed).
@@ -1898,7 +1935,7 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         // The drain signal asks for a hold even while the map is
         // still up; a bare upstream EOF goes through the decision.
         let want_hold = match end {
-            FwdEnd::ClientGone => break 'life,
+            FwdEnd::ClientGone | FwdEnd::Kicked => break 'life,
             FwdEnd::Hold => true,
             FwdEnd::UpstreamGone => {
                 {
@@ -2073,5 +2110,110 @@ mod tests {
             UpGone::ClientGone => {}
             _ => panic!("client EOF must win"),
         }
+    }
+
+    /// The 0x3830 waiter must be registered before the 0x3829 goes
+    /// out: a map answering fast enough to beat send_must's return
+    /// must still find it.
+    #[tokio::test]
+    async fn push_reauth_registers_waiter_before_send() {
+        let st = test_state();
+        let (btx, _brx) = mpsc::channel(8);
+        let (ptx, mut prx) = mpsc::channel(8);
+        let (mid, _kill) = st.map_register(btx, ptx, 0, 0);
+        let rec = test_rec();
+        let st2 = st.clone();
+        let att = tokio::spawn(async move { push_reauth(&st2, &rec, mid).await });
+        // the map sees the 0x3829
+        let pkt = prx.recv().await.unwrap();
+        assert_eq!(u16::from_le_bytes([pkt[0], pkt[1]]), 0x3829);
+        // the waiter is already there; its answer cannot be dropped
+        let notify = st
+            .rejoin_notify
+            .lock()
+            .unwrap()
+            .remove(&(1, 2))
+            .expect("waiter must be registered before the send");
+        notify.send(()).unwrap();
+        assert!(att.await.unwrap());
+    }
+
+    /// A dead link fails the rejoin immediately instead of waiting
+    /// out the 5 s ack timeout, and leaves no stale waiter behind.
+    #[tokio::test]
+    async fn push_reauth_dead_link_fails_fast() {
+        let st = test_state();
+        let (btx, brx) = mpsc::channel(8);
+        let (ptx, prx) = mpsc::channel(8);
+        let (mid, _kill) = st.map_register(btx, ptx, 0, 0);
+        drop(brx);
+        drop(prx);
+        let rec = test_rec();
+        let t0 = Instant::now();
+        assert!(!push_reauth(&st, &rec, mid).await);
+        assert!(t0.elapsed() < Duration::from_secs(5));
+        assert!(st.rejoin_notify.lock().unwrap().is_empty());
+    }
+
+    /// Loopback halves for the upstream side of forward_phase.
+    async fn upstream_pair() -> (
+        tokio::net::tcp::OwnedReadHalf,
+        tokio::net::tcp::OwnedWriteHalf,
+        TcpStream,
+    ) {
+        let l = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .await
+            .unwrap();
+        let a = l.local_addr().unwrap();
+        let c = TcpStream::connect(a).await.unwrap();
+        let (s, _) = l.accept().await.unwrap();
+        let (urd, uwr) = c.into_split();
+        (urd, uwr, s)
+    }
+
+    /// An admin kick shares the drain's notify: it must end the
+    /// relay, not return a hold that leads to a rejoin.
+    #[tokio::test]
+    async fn hold_signal_with_kick_ends_relay() {
+        let st = test_state();
+        let rec = test_rec();
+        rec.lock().unwrap().kicked = true;
+        let sig = std::sync::Arc::new(tokio::sync::Notify::new());
+        let (mut fr, _peer, _rx) = test_conn();
+        let (tx, _rx) = mpsc::channel(8);
+        let (urd, uwr, _srv) = upstream_pair().await;
+        sig.notify_one();
+        let end = forward_phase(&st, &rec, &mut fr, &tx, uwr, urd, &sig).await;
+        assert!(matches!(end, FwdEnd::Kicked));
+    }
+
+    /// The same signal without a kick is a drain hold.
+    #[tokio::test]
+    async fn hold_signal_without_kick_holds() {
+        let st = test_state();
+        let rec = test_rec();
+        let sig = std::sync::Arc::new(tokio::sync::Notify::new());
+        let (mut fr, _peer, _rx) = test_conn();
+        let (tx, _rx) = mpsc::channel(8);
+        let (urd, uwr, _srv) = upstream_pair().await;
+        sig.notify_one();
+        let end = forward_phase(&st, &rec, &mut fr, &tx, uwr, urd, &sig).await;
+        assert!(matches!(end, FwdEnd::Hold));
+    }
+
+    /// An exiting char session must not evict the newer session's
+    /// registration for the same account.
+    #[test]
+    fn char_session_unregister_keeps_newer() {
+        let st = test_state();
+        let (tx1, _r1) = mpsc::channel(8);
+        let (tx2, _r2) = mpsc::channel(8);
+        // first session registered, then a second overwrote it
+        st.char_sessions.lock().unwrap().insert(7, tx1.clone());
+        st.char_sessions.lock().unwrap().insert(7, tx2.clone());
+        char_session_unregister(&st, 7, &tx1);
+        assert!(st.char_sessions.lock().unwrap().contains_key(&7));
+        char_session_unregister(&st, 7, &tx2);
+        assert!(!st.char_sessions.lock().unwrap().contains_key(&7));
     }
 }
