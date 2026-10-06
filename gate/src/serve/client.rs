@@ -747,7 +747,8 @@ async fn handle_char_select(
     for cid in ids {
         if let Some(rec) = st.load_char(cid as u32).await {
             if rec.key.char_num == slot && rec.key.account_id.0 == sd.account_id {
-                found = Some((rec.key, rec.data));
+                // select rewrites last_point below, so an owned copy
+                found = Some((rec.key, *rec.data));
                 break;
             }
         }
@@ -778,7 +779,7 @@ async fn handle_char_select(
         // update cache so the later load in 0x2afc sees the rewrite
         let mut chars = st.chars.lock().unwrap();
         if let Some(c) = chars.get_mut(&ck.char_id.0) {
-            c.data.last_point.map_ = cd.last_point.map_;
+            Arc::make_mut(&mut c.data).last_point.map_ = cd.last_point.map_;
         }
     }
 
@@ -844,7 +845,7 @@ async fn handle_char_select(
         if *mid == map_id {
             continue; // the target goes through send_must below
         }
-        if mtx.try_send(enc(|v| p.encode(v))).is_err() {
+        if mtx.try_send(enc(|v| p.encode(v)).into()).is_err() {
             tracing::warn!("map {mid}: dropped select pre-auth (link congested)");
             if let Some(ps) = st.sel_waiting_done(key, *mid, sd.login_id1, sd.login_id2) {
                 st.send_pending_sel(ps);
@@ -1041,9 +1042,12 @@ async fn handle_char_create(
         char_id: CharId(cid),
         char_num: slot,
     };
-    st.chars.lock().unwrap().insert(
+    st.cache_put(
         cid,
-        super::state::CharRecord { key, data: cd },
+        super::state::CharRecord {
+            key,
+            data: Arc::new(cd),
+        },
     );
     st.char_names.lock().unwrap().insert(name, cid);
 
@@ -1133,7 +1137,7 @@ pub(crate) async fn delete_character(st: &Arc<State>, cid: u32) {
         .db
         .blocking(move |db| db.delete_character(cid as i64))
         .await;
-    st.chars.lock().unwrap().remove(&cid);
+    st.cache_remove(cid);
     // owed-save marks must not resurrect the deleted rows
     st.save_dirty.lock().unwrap().remove(&cid);
     if let Some(a) = rec.as_ref().map(|r| r.key.account_id.0) {
@@ -1779,9 +1783,11 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
     // match the char-to-map auth entry (keyed by account_id)
     let found = {
         let a = st.auth.lock().unwrap();
-        a.get(&fixed.account_id.0)
+        let now = Instant::now();
+        a.map.get(&fixed.account_id.0)
             .filter(|e| {
                 e.delflag == DELFLAG_MAP
+                    && e.fresh(now)
                     && e.char_id == fixed.char_id.0
                     && e.login_id1 == fixed.login_id1
                     && e.ip == ip
@@ -2047,8 +2053,9 @@ mod tests {
     #[tokio::test]
     async fn upstream_eof_closes_when_map_alive() {
         let st = test_state();
-        let (tx, mut wrx) = mpsc::channel(8);
-        let (mid, _kill) = st.map_register(tx.clone(), tx.clone(), 0, 0);
+        let (tx, mut wrx) = mpsc::channel::<Vec<u8>>(8);
+        let (mtx, _mrx) = mpsc::channel(8);
+        let (mid, _kill) = st.map_register(mtx.clone(), mtx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, _peer, _rx) = test_conn();
         let t0 = Instant::now();
@@ -2068,8 +2075,9 @@ mod tests {
     #[tokio::test]
     async fn upstream_eof_holds_on_notice() {
         let st = test_state();
-        let (tx, _rx) = mpsc::channel(8);
-        let (mid, _kill) = st.map_register(tx.clone(), tx.clone(), 0, 0);
+        let (tx, _rx) = mpsc::channel::<Vec<u8>>(8);
+        let (mtx, _mrx) = mpsc::channel(8);
+        let (mid, _kill) = st.map_register(mtx.clone(), mtx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, _peer, _rx) = test_conn();
         let st2 = st.clone();
@@ -2089,8 +2097,9 @@ mod tests {
     #[tokio::test]
     async fn upstream_eof_client_gone() {
         let st = test_state();
-        let (tx, _rx) = mpsc::channel(8);
-        let (mid, _kill) = st.map_register(tx.clone(), tx.clone(), 0, 0);
+        let (tx, _rx) = mpsc::channel::<Vec<u8>>(8);
+        let (mtx, _mrx) = mpsc::channel(8);
+        let (mid, _kill) = st.map_register(mtx.clone(), mtx.clone(), 0, 0);
         let rec = test_rec();
         let (mut fr, peer, _rx) = test_conn();
         drop(peer); // client closed

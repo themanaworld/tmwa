@@ -755,6 +755,42 @@ pub fn set_account_vars(
     Ok(())
 }
 
+/// tmwa "replace the whole scope" semantics: delete the account's
+/// rows at `scope`, then insert the given (name, value) pairs.
+pub fn replace_account_vars(
+    conn: &Connection,
+    account_id: i64,
+    scope: i64,
+    vars: &[(String, i64)],
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "DELETE FROM account_vars WHERE account_id=?1 AND scope=?2",
+        params![account_id, scope],
+    )?;
+    set_account_vars(conn, account_id, scope, vars)
+}
+
+/// All parties with their members: (id, name, exp_share,
+/// item_share, [(account_id, char_name, leader)]).
+pub fn load_parties_conn(
+    conn: &Connection,
+) -> rusqlite::Result<Vec<(i64, String, i64, i64, Vec<(i64, String, i64)>)>> {
+    let mut st_ = conn.prepare("SELECT id,name,exp_share,item_share FROM parties")?;
+    let parties: Vec<(i64, String, i64, i64)> = st_
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    let mut st2 =
+        conn.prepare("SELECT account_id,char_name,leader FROM party_members WHERE party_id=?1")?;
+    let mut out = Vec::new();
+    for (id, name, e, i) in parties {
+        let members: Vec<(i64, String, i64)> = st2
+            .query_map([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        out.push((id, name, e, i, members));
+    }
+    Ok(out)
+}
+
 /// Clear partner_id both directions (0x2b16 divorce); returns the
 /// former partner's char id.
 pub fn divorce_conn(conn: &Connection, char_id: i64) -> rusqlite::Result<Option<i64>> {

@@ -60,7 +60,7 @@ async fn db_queue_retention() {
             char_id: CharId(150000 + (i % 2000)),
             ..Default::default()
         };
-        st.queue_save(i, key, CharData::default());
+        st.queue_save(i, key, Arc::new(CharData::default()));
     }
     let queued = rss_kb();
     // wait for the queue to commit completely
@@ -82,7 +82,7 @@ async fn db_queue_retention() {
             char_id: CharId(150000 + (i % 2000)),
             ..Default::default()
         };
-        st.queue_save(i, key, CharData::default());
+        st.queue_save(i, key, Arc::new(CharData::default()));
     }
     let _ = st.db_barrier().await;
     tokio::time::sleep(std::time::Duration::from_secs(5)).await;
