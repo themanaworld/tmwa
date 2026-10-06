@@ -15,3 +15,8 @@ pub fn enc(f: impl FnOnce(&mut Vec<u8>)) -> Vec<u8> {
     f(&mut v);
     v
 }
+
+impl Opt0 {
+    /// `@hide` GM flag; `Opt0::HIDE` in mmo/clif.t.hpp.
+    pub const HIDE: u16 = 0x0040;
+}

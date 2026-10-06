@@ -981,6 +981,7 @@ impl State {
         }
     }
 
+
     /// Send to every connected map server.
     pub fn map_broadcast(&self, bytes: &[u8]) {
         self.map_broadcast_except(NO_MAP, bytes)
@@ -1288,6 +1289,15 @@ impl State {
         self.online.lock().unwrap().insert(cid, map_id);
         self.online_notify.notify_waiters();
     }
+}
+
+/// 0x0081 code 1 ("No servers available."): the connection ends.
+/// Shared by client.rs (run dispatch, send_pending_sel) and
+/// state-level callers.
+pub(crate) fn send_server_closed(tx: &mpsc::Sender<Vec<u8>>) {
+    let mut p = crate::proto::P0081::default();
+    p.error_code = 1;
+    let _ = tx.try_send(crate::proto::enc(move |v| p.encode(v)));
 }
 
 #[cfg(test)]
