@@ -44,9 +44,7 @@ async fn admin_cli(sock: &std::path::Path, args: &[String], json: bool) -> std::
             if stdin.read_line(&mut line)? == 0 {
                 break;
             }
-            let line = line.trim().to_string();
-            let line = Some(line);
-            let Some(line) = line else { break };
+            let line = line.trim();
             let parts: Vec<String> = line.split_whitespace().map(|s| s.to_string()).collect();
             if parts.is_empty() {
                 continue;
@@ -135,7 +133,6 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Run the gateway (login, char, map relay, HTTP).
-    /// Run the gateway (login, char, map relay).
     Serve {
         /// Path to gate.toml.
         #[arg(long)]
