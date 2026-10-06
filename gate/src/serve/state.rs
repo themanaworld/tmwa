@@ -223,6 +223,36 @@ pub struct PlayerSession {
     pub held_since: Option<Instant>,
 }
 
+/// Most fields start zeroed; only the per-connection values (ids,
+/// tick, map, hold_signal) are set at construction.
+impl Default for PlayerSession {
+    fn default() -> Self {
+        PlayerSession {
+            account_id: 0,
+            char_id: 0,
+            sex: 0,
+            login_id1: 0,
+            login_id2: 0,
+            client_ip: 0,
+            server_tick: 0,
+            server_tick_at: Instant::now(),
+            map_id: 0,
+            map_name: String::new(),
+            map_name_stale: false,
+            npc_id: 0,
+            trade_open: false,
+            storage_open: false,
+            quitting: false,
+            saw_0073: false,
+            transferring: false,
+            held: false,
+            hold_signal: None,
+            kicked: false,
+            held_since: None,
+        }
+    }
+}
+
 /// One connected tmwa-map session.
 pub struct MapHandle {
     pub id: usize,
@@ -530,9 +560,6 @@ pub struct State {
     pub chars_by_account: Mutex<HashMap<u32, Vec<u32>>>,
     /// name -> char_id
     pub char_names: Mutex<HashMap<String, u32>>,
-    /// account_id -> char session sender, while the client is on the
-    /// char screen (for disconnect_player / kicked-by-other-login).
-    pub char_sessions: Mutex<HashMap<u32, mpsc::Sender<Vec<u8>>>>,
     /// account_id -> gm level
     pub gm: Mutex<HashMap<u32, u32>>,
     pub gm_mtime: Mutex<Option<std::time::SystemTime>>,
@@ -597,7 +624,6 @@ impl State {
             chars: Mutex::new(HashMap::new()),
             chars_by_account: Mutex::new(HashMap::new()),
             char_names: Mutex::new(HashMap::new()),
-            char_sessions: Mutex::new(HashMap::new()),
             gm: Mutex::new(HashMap::new()),
             gm_mtime: Mutex::new(None),
             parties: Mutex::new(HashMap::new()),
