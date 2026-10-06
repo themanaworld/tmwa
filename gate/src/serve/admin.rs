@@ -419,6 +419,16 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>, rate: Option<u
         }
         None => infos.iter().map(|(id, ..)| *id).collect(),
     };
+    // Evacuees need somewhere to land: a server that is neither a
+    // drain target nor already draining itself. Refuse before marking
+    // anything, so a populated map is not left draining into a void.
+    if !targets.is_empty()
+        && !infos
+            .iter()
+            .any(|(i, _, _, _, draining, _)| !*draining && !targets.contains(i))
+    {
+        return err_text("no evacuation destination: no other non-draining map server");
+    }
     let period = super::state::evac_period(rate.unwrap_or(st.cfg.gate.evacuate_per_second));
     let mut expected_n = 0usize;
     for id in &targets {
@@ -1627,5 +1637,28 @@ mod tests {
         // the rate value must not be read as the map slot
         let v = dispatch(&st, "drain", vec!["--rate".into(), "25".into()], None).await;
         assert_eq!(v["draining"], serde_json::json!([]), "{v}");
+    }
+
+    /// A drain with no non-draining server left to evacuate to is
+    /// refused; once a destination exists it proceeds, and draining
+    /// the last destination in turn is refused again.
+    #[tokio::test]
+    async fn drain_without_destination_fails() {
+        let st = test_state();
+        let (tx, _rx) = tokio::sync::mpsc::channel(16);
+        let (ptx, _prx) = tokio::sync::mpsc::channel(16);
+        st.map_register(tx, ptx, 0x7f000001, 5122);
+        // a lone server has nowhere to evacuate to
+        let v = dispatch(&st, "drain", vec!["0".into()], None).await;
+        assert_eq!(v["ok"], false, "{v}");
+        // with a second server up, the drain proceeds
+        let (tx, _rx) = tokio::sync::mpsc::channel(16);
+        let (ptx, _prx) = tokio::sync::mpsc::channel(16);
+        st.map_register(tx, ptx, 0x7f000001, 5123);
+        let v = dispatch(&st, "drain", vec!["0".into()], None).await;
+        assert_eq!(v["ok"], true, "{v}");
+        // draining map 1 is then refused: map 0 is already draining
+        let v = dispatch(&st, "drain", vec!["1".into()], None).await;
+        assert_eq!(v["ok"], false, "{v}");
     }
 }
