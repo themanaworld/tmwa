@@ -136,7 +136,6 @@ namespace strings
 
         bool has_print() const;
         bool is_print() const;
-        __attribute__((deprecated))
         O to_print() const;
 
         bool is_graph() const;

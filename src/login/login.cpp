@@ -938,7 +938,13 @@ void parse_fromchar(Session *s)
 
                 {
                     AccountId acc = fixed.account_id;
-                    AccountEmail actual_email = stringish<AccountEmail>(fixed.old_email.to_print());
+                    if (!fixed.old_email.is_print())
+                    {
+                        LOGIN_LOG("Char-server '%s' (ip: %s): Attempt to modify an e-mail on an account (@email GM command), but actual e-mail contains non-printable characters (account: %d)\n"_fmt,
+                                server[id].name, ip, acc);
+                        break;
+                    }
+                    AccountEmail actual_email = stringish<AccountEmail>(fixed.old_email);
                     AccountEmail new_email = fixed.new_email;
                     if (!e_mail_check(actual_email))
                         LOGIN_LOG("Char-server '%s' (ip: %s): Attempt to modify an e-mail on an account (@email GM command), but actual email is invalid (account: %d)\n"_fmt,
@@ -1203,10 +1209,17 @@ void parse_fromchar(Session *s)
 
                 {
                     AccountId acc = fixed.account_id;
-                    AccountPass actual_pass = stringish<AccountPass>(fixed.old_pass.to_print());
-                    AccountPass new_pass = stringish<AccountPass>(fixed.new_pass.to_print());
+                    AccountPass actual_pass = stringish<AccountPass>(fixed.old_pass);
+                    AccountPass new_pass = stringish<AccountPass>(fixed.new_pass);
 
                     int status = 0;
+
+                    if (!fixed.old_pass.is_print() || !fixed.new_pass.is_print())
+                    {
+                        LOGIN_LOG_AND_ECHO("Char-server '%s' (ip: %s): Attempt to modify a pass with non-printable characters (account: %d).\n"_fmt,
+                                server[id].name, ip, acc);
+                        goto x2740_out;
+                    }
 
                     for (AuthData& ad : auth_data)
                     {
@@ -1445,15 +1458,20 @@ void parse_admin(Session *s)
                 {
                     struct mmo_account ma;
                     // TODO make this a 'return false' bit of the network_to_native
-                    ma.userid = stringish<AccountName>(fixed.account_name.to_print());
-                    ma.passwd = stringish<AccountPass>(fixed.password.to_print());
+                    ma.userid = stringish<AccountName>(fixed.account_name);
+                    ma.passwd = stringish<AccountPass>(fixed.password);
                     stamp_time(ma.lastlogin);
                     ma.sex = fixed.sex;
 
                     Packet_Fixed<0x7931> fixed_31;
                     fixed_31.account_id = AccountId();
                     fixed_31.account_name = ma.userid;
-                    if (ma.userid.size() < 4 || ma.passwd.size() < 4)
+                    if (!fixed.account_name.is_print() || !fixed.password.is_print())
+                    {
+                        LOGIN_LOG("'ladmin': Attempt to create an account with non-printable characters (ip: %s)\n"_fmt,
+                                ip);
+                    }
+                    else if (ma.userid.size() < 4 || ma.passwd.size() < 4)
                     {
                         LOGIN_LOG("'ladmin': Attempt to create an invalid account (account or pass is too short, ip: %s)\n"_fmt,
                                 ip);
@@ -1503,7 +1521,15 @@ void parse_admin(Session *s)
 
                 Packet_Fixed<0x7933> fixed_33;
                 fixed_33.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                if (!fixed.account_name.is_print())
+                {
+                    fixed_33.account_name = fixed.account_name;
+                    LOGIN_LOG("'ladmin': Attempt to delete an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_fpacket<0x7933, 30>(s, fixed_33);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(fixed.account_name);
                 AuthData *ad = search_account(account_name);
                 if (ad)
                 {
@@ -1550,7 +1576,15 @@ void parse_admin(Session *s)
 
                 Packet_Fixed<0x7935> fixed_35;
                 fixed_35.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                if (!fixed.account_name.is_print())
+                {
+                    fixed_35.account_name = fixed.account_name;
+                    LOGIN_LOG("'ladmin': Attempt to modify the password of an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_fpacket<0x7935, 30>(s, fixed_35);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(fixed.account_name);
                 AuthData *ad = search_account(account_name);
                 if (ad)
                 {
@@ -1581,9 +1615,19 @@ void parse_admin(Session *s)
                 {
                     Packet_Fixed<0x7937> fixed_37;
                     fixed_37.account_id = AccountId();
-                    AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
                     int statut = fixed.status;
-                    timestamp_seconds_buffer error_message = stringish<timestamp_seconds_buffer>(fixed.error_message.to_print());
+                    if (!fixed.account_name.is_print()
+                        || !fixed.error_message.is_print())
+                    {
+                        fixed_37.account_name = fixed.account_name;
+                        fixed_37.status = statut;
+                        LOGIN_LOG("'ladmin': Attempt to modify the state of an account with a non-printable name or error message (ip: %s)\n"_fmt,
+                                ip);
+                        send_fpacket<0x7937, 34>(s, fixed_37);
+                        break;
+                    }
+                    AccountName account_name = stringish<AccountName>(fixed.account_name);
+                    timestamp_seconds_buffer error_message = stringish<timestamp_seconds_buffer>(fixed.error_message);
                     if (statut != 7 || !error_message)
                     {
                         // 7: // 6 = Your are Prohibited to log in until %s
@@ -1671,7 +1715,15 @@ void parse_admin(Session *s)
 
                 Packet_Fixed<0x793b> fixed_3b;
                 fixed_3b.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                if (!fixed.account_name.is_print())
+                {
+                    fixed_3b.account_name = fixed.account_name;
+                    LOGIN_LOG("'ladmin': Attempt to check the password of an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_fpacket<0x793b, 30>(s, fixed_3b);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(fixed.account_name);
                 const AuthData *ad = search_account(account_name);
                 if (ad)
                 {
@@ -1709,7 +1761,15 @@ void parse_admin(Session *s)
 
                 Packet_Fixed<0x793d> fixed_3d;
                 fixed_3d.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                if (!fixed.account_name.is_print())
+                {
+                    fixed_3d.account_name = fixed.account_name;
+                    LOGIN_LOG("'ladmin': Attempt to modify the sex of an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_fpacket<0x793d, 30>(s, fixed_3d);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(fixed.account_name);
                 fixed_3d.account_name = account_name;
 
                 {
@@ -1768,7 +1828,15 @@ void parse_admin(Session *s)
 
                 Packet_Fixed<0x793f> fixed_3f;
                 fixed_3f.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                if (!fixed.account_name.is_print())
+                {
+                    fixed_3f.account_name = fixed.account_name;
+                    LOGIN_LOG("'ladmin': Attempt to modify the GM level of an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_fpacket<0x793f, 30>(s, fixed_3f);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(fixed.account_name);
                 fixed_3f.account_name = account_name;
                 bool reread = false;
                 {
@@ -1890,7 +1958,15 @@ void parse_admin(Session *s)
 
                 Packet_Fixed<0x7941> fixed_41;
                 fixed_41.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                if (!fixed.account_name.is_print())
+                {
+                    fixed_41.account_name = fixed.account_name;
+                    LOGIN_LOG("'ladmin': Attempt to modify the e-mail of an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_fpacket<0x7941, 30>(s, fixed_41);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(fixed.account_name);
                 fixed_41.account_name = account_name;
                 {
                     AccountEmail email = stringish<AccountEmail>(fixed.email);
@@ -1931,7 +2007,15 @@ void parse_admin(Session *s)
 
                 Packet_Fixed<0x7943> fixed_43;
                 fixed_43.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(head.account_name.to_print());
+                if (!head.account_name.is_print())
+                {
+                    fixed_43.account_name = head.account_name;
+                    LOGIN_LOG("'ladmin': Attempt to modify the memo field of an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_fpacket<0x7943, 30>(s, fixed_43);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(head.account_name);
                 AuthData *ad = search_account(account_name);
                 if (ad)
                 {
@@ -1970,7 +2054,15 @@ void parse_admin(Session *s)
 
                 Packet_Fixed<0x7945> fixed_45;
                 fixed_45.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                if (!fixed.account_name.is_print())
+                {
+                    fixed_45.account_name = fixed.account_name;
+                    LOGIN_LOG("'ladmin': ID request (by the name) of an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_fpacket<0x7945, 30>(s, fixed_45);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(fixed.account_name);
                 const AuthData *ad = search_account(account_name);
                 if (ad)
                 {
@@ -2029,7 +2121,16 @@ void parse_admin(Session *s)
                 Packet_Fixed<0x794b> fixed_4b;
                 {
                     fixed_4b.account_id = AccountId();
-                    AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                    if (!fixed.account_name.is_print())
+                    {
+                        fixed_4b.account_name = fixed.account_name;
+                        fixed_4b.ban_until = TimeT();
+                        LOGIN_LOG("'ladmin': Attempt to change the final date of a banishment of an account with a non-printable name (ip: %s)\n"_fmt,
+                                ip);
+                        send_fpacket<0x794b, 34>(s, fixed_4b);
+                        break;
+                    }
+                    AccountName account_name = stringish<AccountName>(fixed.account_name);
                     TimeT timestamp = fixed.ban_until;
                     if (timestamp <= TimeT::now())
                         timestamp = TimeT();
@@ -2086,7 +2187,16 @@ void parse_admin(Session *s)
                 Packet_Fixed<0x794d> fixed_4d;
                 {
                     fixed_4d.account_id = AccountId();
-                    AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                    if (!fixed.account_name.is_print())
+                    {
+                        fixed_4d.account_name = fixed.account_name;
+                        fixed_4d.ban_until = TimeT();
+                        LOGIN_LOG("'ladmin': Attempt to adjust the final date of a banishment of an account with a non-printable name (ip: %s)\n"_fmt,
+                                ip);
+                        send_fpacket<0x794d, 34>(s, fixed_4d);
+                        break;
+                    }
+                    AccountName account_name = stringish<AccountName>(fixed.account_name);
                     AuthData *ad = search_account(account_name);
                     if (ad)
                     {
@@ -2225,7 +2335,15 @@ void parse_admin(Session *s)
 
                 Packet_Head<0x7953> head_53;
                 head_53.account_id = AccountId();
-                AccountName account_name = stringish<AccountName>(fixed.account_name.to_print());
+                if (!fixed.account_name.is_print())
+                {
+                    head_53.account_name = fixed.account_name;
+                    LOGIN_LOG("'ladmin': Attempt to obtain information (by the name) of an account with a non-printable name (ip: %s)\n"_fmt,
+                            ip);
+                    send_vpacket<0x7953, 150, 1>(s, head_53, ""_s);
+                    break;
+                }
+                AccountName account_name = stringish<AccountName>(fixed.account_name);
                 const AuthData *ad = search_account(account_name);
                 if (ad)
                 {
@@ -2816,10 +2934,21 @@ void parse_login(Session *s)
 
                 {
                     // TODO: this is exceptionally silly. Fix it.
-                    account.userid = stringish<AccountName>(fixed.account_name.to_print());
-                    account.passwd = stringish<AccountPass>(fixed.account_pass.to_print());
+                    if (!fixed.account_name.is_print()
+                        || !fixed.account_pass.is_print()
+                        || !fixed.server_name.is_print())
+                    {
+                        LOGIN_LOG("Connection request of a char-server with non-printable characters (ip: %s)\n"_fmt,
+                                ip);
+                        Packet_Fixed<0x2711> fixed_11;
+                        fixed_11.code = 3;
+                        send_fpacket<0x2711, 3>(s, fixed_11);
+                        goto x2710_done;
+                    }
+                    account.userid = stringish<AccountName>(fixed.account_name);
+                    account.passwd = stringish<AccountPass>(fixed.account_pass);
                     account.passwdenc = 0;
-                    ServerName server_name = stringish<ServerName>(fixed.server_name.to_print());
+                    ServerName server_name = stringish<ServerName>(fixed.server_name);
                     LOGIN_LOG("Connection request of the char-server '%s' @ %s:%d (ip: %s)\n"_fmt,
                             server_name, fixed.ip, fixed.port, ip);
                     if (account.userid == login_conf.userid && account.passwd == login_conf.passwd)
@@ -2940,9 +3069,12 @@ void parse_login(Session *s)
                     if (fixed.encryption_zero == 0)
                     {
                         // non encrypted password
-                        AccountPass password = stringish<AccountPass>(fixed.account_pass.to_print());
+                        AccountPass password = stringish<AccountPass>(fixed.account_pass);
+                        if (!fixed.account_pass.is_print())
+                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REJECTED - non-printable password (ip: %s)\n"_fmt,
+                                    ip);
                         // If remote administration is enabled and password sent by client matches password read from login server configuration file
-                        if (login_conf.admin_state
+                        else if (login_conf.admin_state
                             && password == login_conf.admin_pass)
                         {
                             LOGIN_LOG("'ladmin'-login: Connection in administration mode accepted (non encrypted password: %s, ip: %s)\n"_fmt,

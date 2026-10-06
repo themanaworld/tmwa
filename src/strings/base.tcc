@@ -20,6 +20,7 @@
 #include <cstddef>
 
 #include <algorithm>
+#include <memory>
 
 #include "pair.hpp"
 
@@ -280,8 +281,8 @@ namespace strings
     O _crtp_string<T, O, P>::to_print() const
     {
         if (is_print()) return _ref();
-        char buf[size()];
-        char *const b = buf;
+        std::unique_ptr<char[]> buf(new char[size()]);
+        char *const b = buf.get();
         char *const e = std::transform(begin(), end(), b, [](char c) { return detail::is_print(c) ? c : '_'; });
         return XPair(b, e);
     }
