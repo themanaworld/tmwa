@@ -172,6 +172,21 @@ pub struct SOff1(pub u16);
 #[repr(transparent)]
 pub struct Ip4Address(pub [u8; 4]);
 
+/// The u32 form uses the wire's byte order: `u32::from(a)` is
+/// `u32::from_le_bytes(a.0)`, so `Ip4Address::from(0x7f00_0001)`
+/// stores the octets `[1, 0, 0, 127]`.
+impl From<u32> for Ip4Address {
+    fn from(v: u32) -> Self {
+        Self(v.to_le_bytes())
+    }
+}
+
+impl From<Ip4Address> for u32 {
+    fn from(a: Ip4Address) -> u32 {
+        u32::from_le_bytes(a.0)
+    }
+}
+
 impl Wire for Ip4Address {
     const LEN: usize = 4;
     fn wire_encode(&self, out: &mut [u8]) {

@@ -373,7 +373,7 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
                 }
             };
             let mut head = P2B04::default();
-            head.ip = Ip4Address(ip.to_le_bytes());
+            head.ip = Ip4Address::from(ip);
             head.port = port;
             head.repeat = vec![P2B04Repeat {
                 map_name: FixedStr::<16>::from_str_truncate(name),

@@ -282,10 +282,9 @@ fn character_load_save() {
 
     // list
     let list = db
-        .with_conn(|c| db::list_characters_conn(c, 2000000))
+        .with_conn(|c| db::char_ids_of_account_conn(c, 2000000))
         .unwrap();
-    assert_eq!(list.len(), 1);
-    assert_eq!(list[0].char_id, CharId(150000));
+    assert_eq!(list, [150000]);
 }
 
 #[test]

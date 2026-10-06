@@ -157,12 +157,9 @@ pub struct LoginRow {
     pub password_hash: String,
     pub password_scheme: String,
     pub legacy_salt: Option<String>,
-    pub email: Option<String>,
     pub state: i64,
     pub error_message: Option<String>,
     pub ban_until: i64,
-    pub login_count: i64,
-    pub memo: String,
 }
 
 /// The database. Held as `Arc<Db>`; async callers go through
@@ -214,6 +211,11 @@ impl Db {
 
     fn init(mut conn: Connection) -> Result<Db> {
         conn.pragma_update(None, "journal_mode", "WAL")?;
+        // Under WAL, NORMAL cannot corrupt the database; a power
+        // loss may roll back the most recent commits, which FULL
+        // would fsync and preserve. Saves are idempotent upserts,
+        // so skip the per-commit fsync.
+        conn.pragma_update(None, "synchronous", "NORMAL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
         let version: i64 = conn.pragma_query_value(None, "user_version", |r| r.get(0))?;
         if version < MIGRATIONS.len() as i64 {
@@ -306,25 +308,13 @@ impl Db {
         Ok(account_id_by_name_conn(&conn, name)?)
     }
 
-    /// Account name by id.
-    pub fn account_name_by_id(&self, id: i64) -> Result<Option<String>> {
-        let conn = self.lock();
-        Ok(account_name_by_id_conn(&conn, id)?)
-    }
-
-    /// An account with this id exists.
-    pub fn account_exists(&self, id: i64) -> Result<bool> {
-        let conn = self.lock();
-        Ok(account_exists_conn(&conn, id)?)
-    }
-
     /// Full account row for the login path.
     pub fn account_auth_row(&self, name: &str) -> Result<Option<LoginRow>> {
         let conn = self.lock();
         Ok(conn
             .query_row(
                 "SELECT id,password_hash,password_scheme,legacy_salt,
-                 email,state,error_message,ban_until,login_count,memo
+                 state,error_message,ban_until
                  FROM accounts WHERE name=?1",
                 [name],
                 |r| {
@@ -333,12 +323,9 @@ impl Db {
                         password_hash: r.get(1)?,
                         password_scheme: r.get(2)?,
                         legacy_salt: r.get(3)?,
-                        email: r.get(4)?,
-                        state: r.get(5)?,
-                        error_message: r.get(6)?,
-                        ban_until: r.get(7)?,
-                        login_count: r.get(8)?,
-                        memo: r.get(9)?,
+                        state: r.get(4)?,
+                        error_message: r.get(5)?,
+                        ban_until: r.get(6)?,
                     })
                 },
             )
@@ -624,14 +611,6 @@ pub fn set_email_conn(
     Ok(())
 }
 
-pub fn set_memo_conn(conn: &Connection, account_id: i64, memo: &str) -> rusqlite::Result<()> {
-    conn.execute(
-        "UPDATE accounts SET memo=?2 WHERE id=?1",
-        params![account_id, memo],
-    )?;
-    Ok(())
-}
-
 pub fn set_account_state_conn(
     conn: &Connection,
     account_id: i64,
@@ -689,7 +668,7 @@ pub fn load_storage_conn(
     conn: &Connection,
     account_id: i64,
 ) -> rusqlite::Result<Vec<(i64, i64, i64, i64)>> {
-    let mut st = conn.prepare(
+    let mut st = conn.prepare_cached(
         "SELECT idx,item_id,amount,equip FROM storage_items
          WHERE account_id=?1 ORDER BY idx",
     )?;
@@ -706,11 +685,9 @@ pub fn save_storage_conn(
     account_id: i64,
     items: &[(i64, i64, i64)],
 ) -> rusqlite::Result<()> {
-    conn.execute(
-        "DELETE FROM storage_items WHERE account_id=?1",
-        [account_id],
-    )?;
-    let mut st = conn.prepare(
+    conn.prepare_cached("DELETE FROM storage_items WHERE account_id=?1")?
+        .execute([account_id])?;
+    let mut st = conn.prepare_cached(
         "INSERT INTO storage_items(account_id,idx,item_id,amount,equip)
          VALUES(?1,?2,?3,?4,?5)",
     )?;
@@ -726,7 +703,7 @@ pub fn get_account_vars_conn(
     account_id: i64,
     scope: i64,
 ) -> rusqlite::Result<Vec<(String, i64)>> {
-    let mut st = conn.prepare(
+    let mut st = conn.prepare_cached(
         "SELECT name,value FROM account_vars
          WHERE account_id=?1 AND scope=?2 ORDER BY name",
     )?;
@@ -743,7 +720,7 @@ pub fn set_account_vars(
     scope: i64,
     vars: &[(String, i64)],
 ) -> rusqlite::Result<()> {
-    let mut st = conn.prepare(
+    let mut st = conn.prepare_cached(
         "INSERT INTO account_vars(account_id,scope,name,value)
          VALUES(?1,?2,?3,?4)
          ON CONFLICT(account_id,scope,name) DO UPDATE SET
@@ -781,29 +758,6 @@ pub fn char_ids_of_account_conn(conn: &Connection, account_id: i64) -> rusqlite:
     let mut st = conn.prepare("SELECT id FROM characters WHERE account_id=?1 ORDER BY slot")?;
     st.query_map([account_id], |r| r.get(0))?
         .collect::<rusqlite::Result<Vec<i64>>>()
-}
-
-/// Character keys for one account, slot order.
-pub fn list_characters_conn(conn: &Connection, account_id: i64) -> rusqlite::Result<Vec<CharKey>> {
-    let mut st =
-        conn.prepare("SELECT id,name,slot FROM characters WHERE account_id=?1 ORDER BY slot")?;
-    let rows = st
-        .query_map([account_id], |r| {
-            let id: i64 = r.get(0)?;
-            let name: String = r.get(1)?;
-            let slot: i64 = r.get(2)?;
-            Ok((id, name, slot))
-        })?
-        .collect::<rusqlite::Result<Vec<_>>>()?;
-    Ok(rows
-        .into_iter()
-        .map(|(id, name, slot)| CharKey {
-            name: FixedStr::<24>::from_str_truncate(&name),
-            account_id: crate::proto::AccountId(account_id as u32),
-            char_id: crate::proto::CharId(id as u32),
-            char_num: slot as u8,
-        })
-        .collect())
 }
 
 fn load_character_conn(conn: &Connection, char_id: i64) -> rusqlite::Result<(CharKey, CharData)> {
@@ -974,7 +928,7 @@ pub fn save_character_conn(
     cd: &CharData,
 ) -> rusqlite::Result<()> {
     let char_id = key.char_id.0 as i64;
-    conn.execute(
+    conn.prepare_cached(
         "INSERT INTO characters(
              id,account_id,slot,name,sex,species,base_level,job_level,
              base_exp,job_exp,zeny,hp,max_hp,sp,max_sp,
@@ -1007,54 +961,55 @@ pub fn save_character_conn(
              last_map=excluded.last_map, last_x=excluded.last_x, last_y=excluded.last_y,
              save_map=excluded.save_map, save_x=excluded.save_x, save_y=excluded.save_y,
              partner_id=excluded.partner_id",
-        params![
-            char_id,
-            key.account_id.0 as i64,
-            key.char_num as i64,
-            key.name.to_string_lossy(),
-            cd.sex.0 as i64,
-            cd.species.0 as i64,
-            cd.base_level as i64,
-            cd.job_level as i64,
-            cd.base_exp as i64,
-            cd.job_exp as i64,
-            cd.zeny as i64,
-            cd.hp as i64,
-            cd.max_hp as i64,
-            cd.sp as i64,
-            cd.max_sp as i64,
-            cd.attrs[0] as i64,
-            cd.attrs[1] as i64,
-            cd.attrs[2] as i64,
-            cd.attrs[3] as i64,
-            cd.attrs[4] as i64,
-            cd.attrs[5] as i64,
-            cd.status_point as i64,
-            cd.skill_point as i64,
-            cd.option.0 as i64,
-            cd.karma as i64,
-            cd.manner as i64,
-            cd.party_id.0 as i64,
-            cd.hair as i64,
-            cd.hair_color as i64,
-            cd.clothes_color as i64,
-            cd.weapon.0 as i64,
-            cd.shield.0 as i64,
-            cd.head_top.0 as i64,
-            cd.head_mid.0 as i64,
-            cd.head_bottom.0 as i64,
-            cd.last_point.map_.to_string_lossy(),
-            cd.last_point.x as i64,
-            cd.last_point.y as i64,
-            cd.save_point.map_.to_string_lossy(),
-            cd.save_point.x as i64,
-            cd.save_point.y as i64,
-            cd.partner_id.0 as i64,
-        ],
-    )?;
-    conn.execute("DELETE FROM character_items WHERE char_id=?1", [char_id])?;
+    )?
+    .execute(params![
+        char_id,
+        key.account_id.0 as i64,
+        key.char_num as i64,
+        key.name.to_string_lossy(),
+        cd.sex.0 as i64,
+        cd.species.0 as i64,
+        cd.base_level as i64,
+        cd.job_level as i64,
+        cd.base_exp as i64,
+        cd.job_exp as i64,
+        cd.zeny as i64,
+        cd.hp as i64,
+        cd.max_hp as i64,
+        cd.sp as i64,
+        cd.max_sp as i64,
+        cd.attrs[0] as i64,
+        cd.attrs[1] as i64,
+        cd.attrs[2] as i64,
+        cd.attrs[3] as i64,
+        cd.attrs[4] as i64,
+        cd.attrs[5] as i64,
+        cd.status_point as i64,
+        cd.skill_point as i64,
+        cd.option.0 as i64,
+        cd.karma as i64,
+        cd.manner as i64,
+        cd.party_id.0 as i64,
+        cd.hair as i64,
+        cd.hair_color as i64,
+        cd.clothes_color as i64,
+        cd.weapon.0 as i64,
+        cd.shield.0 as i64,
+        cd.head_top.0 as i64,
+        cd.head_mid.0 as i64,
+        cd.head_bottom.0 as i64,
+        cd.last_point.map_.to_string_lossy(),
+        cd.last_point.x as i64,
+        cd.last_point.y as i64,
+        cd.save_point.map_.to_string_lossy(),
+        cd.save_point.x as i64,
+        cd.save_point.y as i64,
+        cd.partner_id.0 as i64,
+    ])?;
+    conn.prepare_cached("DELETE FROM character_items WHERE char_id=?1")?
+        .execute([char_id])?;
     {
-        let mut st = conn.prepare(
+        let mut st = conn.prepare_cached(
             "INSERT INTO character_items(char_id,idx,item_id,amount,equip)
              VALUES(?1,?2,?3,?4,?5)",
         )?;
@@ -1070,9 +1025,10 @@ pub fn save_character_conn(
             }
         }
     }
-    conn.execute("DELETE FROM character_skills WHERE char_id=?1", [char_id])?;
+    conn.prepare_cached("DELETE FROM character_skills WHERE char_id=?1")?
+        .execute([char_id])?;
     {
-        let mut st = conn.prepare(
+        let mut st = conn.prepare_cached(
             "INSERT INTO character_skills(char_id,skill_id,level,flags)
              VALUES(?1,?2,?3,?4)",
         )?;
@@ -1082,10 +1038,11 @@ pub fn save_character_conn(
             }
         }
     }
-    conn.execute("DELETE FROM character_vars WHERE char_id=?1", [char_id])?;
+    conn.prepare_cached("DELETE FROM character_vars WHERE char_id=?1")?
+        .execute([char_id])?;
     {
         let mut st =
-            conn.prepare("INSERT INTO character_vars(char_id,name,value) VALUES(?1,?2,?3)")?;
+            conn.prepare_cached("INSERT INTO character_vars(char_id,name,value) VALUES(?1,?2,?3)")?;
         for reg in cd.global_reg.iter().take(cd.global_reg_num as usize) {
             if reg.str.as_bytes().is_empty() {
                 continue;

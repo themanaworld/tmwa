@@ -7890,6 +7890,13 @@ class _RustEmit(_RustGen):
             f.write('        }\n')
         f.write('    }\n\n')
 
+        f.write('    /// Encode into a fresh `Vec<u8>`.\n')
+        f.write('    pub fn encoded(&self) -> Vec<u8> {\n')
+        f.write('        let mut v = Vec::new();\n')
+        f.write('        self.encode(&mut v);\n')
+        f.write('        v\n')
+        f.write('    }\n\n')
+
         # ---- decode ----
         f.write('    pub fn decode(buf: &[u8]) -> Result<Self, DecodeError> {\n')
         if not is_var:
