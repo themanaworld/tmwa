@@ -23,6 +23,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 
 #include "../compat/nullpo.hpp"
@@ -49,7 +50,21 @@ struct tmp_path
     short pos;
     DIR dir;
     char flag;
+    // Search that wrote this slot; only valid when it equals tp_gen.
+    uint16_t gen;
 };
+
+// Path search bookkeeping is shared process state. The map server is
+// single-threaded and path_search cannot recurse, so one instance with a
+// generation stamp replaces zeroing the table on every call.
+static struct tmp_path tp[MAX_WALKPATH * MAX_WALKPATH];
+static uint16_t tp_gen = 0;
+
+static
+bool tp_fresh(int i)
+{
+    return tp[i].gen == tp_gen;
+}
 
 static
 int calc_index(int x, int y)
@@ -198,7 +213,7 @@ int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
 
     i = calc_index(x, y);
 
-    if (tp[i].x == x && tp[i].y == y)
+    if (tp_fresh(i) && tp[i].x == x && tp[i].y == y)
     {
         if (tp[i].dist > dist)
         {
@@ -215,9 +230,10 @@ int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
         return 0;
     }
 
-    if (tp[i].x || tp[i].y)
+    if (tp_fresh(i) && (tp[i].x || tp[i].y))
         return 1;
 
+    tp[i].gen = tp_gen;
     tp[i].x = x;
     tp[i].y = y;
     tp[i].dist = dist;
@@ -225,6 +241,7 @@ int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
     tp[i].before = before;
     tp[i].cost = calc_cost(&tp[i], x1, y1);
     tp[i].flag = 0;
+    tp[i].pos = 0;
     push_heap_path(heap, tp, i);
 
     return 0;
@@ -323,9 +340,15 @@ int path_search(struct walkpath_data *wpd, Borrowed<map_local> m, int x0, int y0
     if (flag & 1)
         return -1;
 
-    struct tmp_path tp[MAX_WALKPATH * MAX_WALKPATH] {};
+    if (++tp_gen == 0)
+    {
+        for (auto& t : tp)
+            t.gen = 0;
+        tp_gen = 1;
+    }
 
     i = calc_index(x0, y0);
+    tp[i].gen = tp_gen;
     tp[i].x = x0;
     tp[i].y = y0;
     tp[i].dist = 0;
@@ -333,6 +356,7 @@ int path_search(struct walkpath_data *wpd, Borrowed<map_local> m, int x0, int y0
     tp[i].before = 0;
     tp[i].cost = calc_cost(&tp[i], x1, y1);
     tp[i].flag = 0;
+    tp[i].pos = 0;
     heap[0] = 0;
     push_heap_path(heap, tp, calc_index(x0, y0));
     while (1)
