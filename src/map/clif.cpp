@@ -1209,8 +1209,21 @@ void clif_quitsave(Session *, dumb_ptr<map_session_data> sd)
 static
 void clif_waitclose(TimerData *, tick_t, Session *s)
 {
-    if (s)
-        s->set_eof();
+    if (!s)
+        return;
+    // A session owed its last packet (e.g. a 0x0092 redirect queued
+    // behind pending game traffic) stays alive while the queue still
+    // moves; only a queue that stopped entirely gets forced closed.
+    if (s->wdata_size && s->wdata_size != s->close_progress)
+    {
+        s->close_progress = s->wdata_size;
+        s->timed_close = Timer(gettick() + 5_s,
+                std::bind(clif_waitclose, ph::_1, ph::_2,
+                    s)
+        );
+        return;
+    }
+    s->set_eof();
 }
 
 /*==========================================
@@ -1219,6 +1232,9 @@ void clif_waitclose(TimerData *, tick_t, Session *s)
  */
 void clif_setwaitclose(Session *s)
 {
+    if (!s)
+        return;
+    s->close_progress = 0;
     s->timed_close = Timer(gettick() + 5_s,
             std::bind(clif_waitclose, ph::_1, ph::_2,
                 s)

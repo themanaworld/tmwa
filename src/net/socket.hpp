@@ -92,6 +92,8 @@ public:
 
     /// Currently used by clif_setwaitclose
     Timer timed_close;
+    /// wdata_size seen by the previous clif_waitclose check.
+    size_t close_progress = 0;
 
     /// Since this is a single-threaded application, it can't block
     /// These are the read/write queues
