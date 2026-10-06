@@ -18,8 +18,9 @@ use bytes::Bytes;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
+use super::dbq::send_must;
 use super::is_gm;
-use super::state::{DELFLAG_CHAR, DELFLAG_MAP, NO_MAP, State, enc, send_must};
+use super::state::{DELFLAG_CHAR, DELFLAG_MAP, NO_MAP, State};
 use crate::net::framing::PacketFramer;
 use crate::proto::types::{FixedStr, GmLevel, Ip4Address};
 use crate::proto::*;
@@ -368,7 +369,7 @@ async fn handle(
                 if cur.unwrap_or_default() == old {
                     let _ = crate::db::set_email_conn(conn, aid, Some(&new));
                 }
-                super::state::DbOpResult::none()
+                super::dbq::DbOpResult::none()
             });
             Ok(())
         }
@@ -400,7 +401,7 @@ async fn handle(
             st.queue_db_op(move |conn| {
                 // tmwa replaces the whole scope with the incoming list
                 let _ = crate::db::replace_account_vars(conn, aid as i64, 2, &regs);
-                super::state::DbOpResult::none()
+                super::dbq::DbOpResult::none()
             });
             Ok(())
         }
@@ -418,8 +419,8 @@ async fn handle(
                 let mut p = P2B12::default();
                 p.char_id = fixed.char_id;
                 p.partner_id = CharId(partner as u32);
-                super::state::DbOpResult {
-                    reply: super::state::LinkReply::Broadcast,
+                super::dbq::DbOpResult {
+                    reply: super::dbq::LinkReply::Broadcast,
                     bytes: enc(move |v| p.encode(v)),
                     after: Some(Box::new(move || {
                         let mut chars = st2.chars.lock().unwrap();
@@ -452,7 +453,7 @@ async fn handle(
                 return Ok(());
             }
             if let Some(ps) = st.sel_waiting_done(key, map_id, fixed.login_id1, fixed.login_id2) {
-                st.send_pending_sel(ps);
+                super::client::send_pending_sel(st, ps);
             }
             Ok(())
         }
@@ -556,7 +557,7 @@ async fn handle(
             let regs2 = regs.clone();
             st.queue_db_op(move |conn| {
                 let _ = crate::db::replace_account_vars(conn, aid as i64, 1, &regs2);
-                super::state::DbOpResult::none()
+                super::dbq::DbOpResult::none()
             });
             // 0x3804 to all OTHER map servers
             let mut h = P3804::default();
@@ -599,7 +600,7 @@ async fn handle(
                         value: *v as u32,
                     })
                     .collect();
-                super::state::DbOpResult::reply(map_id, enc(move |v| p.encode(v)))
+                super::dbq::DbOpResult::reply(map_id, enc(move |v| p.encode(v)))
             });
             Ok(())
         }
@@ -630,7 +631,7 @@ async fn handle(
                 let mut p = P3810::default();
                 p.account_id = fixed.account_id;
                 p.storage = storage;
-                super::state::DbOpResult::reply(map_id, enc(move |v| p.encode(v)))
+                super::dbq::DbOpResult::reply(map_id, enc(move |v| p.encode(v)))
             });
             Ok(())
         }
@@ -971,7 +972,7 @@ async fn handle_named_op(
                         1 => {
                             st.queue_db_op(move |conn| {
                                 let _ = crate::db::set_account_state_conn(conn, aid, 5);
-                                super::state::DbOpResult::none()
+                                super::dbq::DbOpResult::none()
                             });
                             // upstream: the login-server's 0x2731 for a
                             // state change carries ban_not_status=0 with
@@ -989,20 +990,20 @@ async fn handle_named_op(
                                 + htd_seconds(&fixed.ban_add);
                             st.queue_db_op(move |conn| {
                                 let _ = crate::db::set_account_ban_conn(conn, aid, until);
-                                super::state::DbOpResult::none()
+                                super::dbq::DbOpResult::none()
                             });
                             kick_online(st, target_acc, 1, until);
                         }
                         3 => {
                             st.queue_db_op(move |conn| {
                                 let _ = crate::db::set_account_state_conn(conn, aid, 0);
-                                super::state::DbOpResult::none()
+                                super::dbq::DbOpResult::none()
                             });
                         }
                         4 => {
                             st.queue_db_op(move |conn| {
                                 let _ = crate::db::set_account_ban_conn(conn, aid, 0);
-                                super::state::DbOpResult::none()
+                                super::dbq::DbOpResult::none()
                             });
                         }
                         _ => {
@@ -1056,7 +1057,7 @@ fn party_del(st: &std::sync::Arc<State>, party_id: u32) {
     st.parties.lock().unwrap().remove(&party_id);
     st.queue_db_op(move |conn| {
         let _ = conn.execute("DELETE FROM parties WHERE id=?1", [party_id as i64]);
-        super::state::DbOpResult::none()
+        super::dbq::DbOpResult::none()
     });
 }
 
@@ -1081,7 +1082,7 @@ fn persist_party(st: &std::sync::Arc<State>, party_id: u32) {
     let (exp, item) = (p.exp as i64, p.item as i64);
     st.queue_db_op(move |conn| {
         let _ = crate::db::upsert_party_conn(conn, party_id as i64, &name, exp, item, &members);
-        super::state::DbOpResult::none()
+        super::dbq::DbOpResult::none()
     });
 }
 
@@ -1198,7 +1199,7 @@ async fn party_create(
     party_put(st, pid, p);
     st.queue_db_op(move |conn| {
         let _ = crate::db::set_meta_conn(conn, "next_party_id", pid as i64);
-        super::state::DbOpResult::none()
+        super::dbq::DbOpResult::none()
     });
     send_must(st, map_id, tx, reply(0, pid, name)).await;
     party_info_to(st, Some(tx), map_id, pid).await;

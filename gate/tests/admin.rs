@@ -58,7 +58,7 @@ fn test_state() -> std::sync::Arc<tmwa_gate::serve::state::State> {
     // so queued jobs (party deletes etc.) actually commit.
     let st2 = st.clone();
     tokio::spawn(async move {
-        tmwa_gate::serve::state::db_writer(st2).await;
+        tmwa_gate::serve::dbq::db_writer(st2).await;
     });
     st
 }
