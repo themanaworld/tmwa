@@ -8,3 +8,8 @@ mod imp {
 }
 
 pub use imp::*;
+
+impl Opt0 {
+    /// `@hide` GM flag; `Opt0::HIDE` in mmo/clif.t.hpp.
+    pub const HIDE: u16 = 0x0040;
+}

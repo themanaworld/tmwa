@@ -1090,7 +1090,7 @@ impl State {
     /// registered address, or 0x0081 if it is gone.
     pub(crate) fn send_pending_sel(&self, ps: PendingSel) {
         use crate::proto::types::{FixedStr, Ip4Address};
-        use crate::proto::{CharId, P0071, P0081};
+        use crate::proto::{CharId, P0071};
         let addr = self.map_addr(ps.map_id);
         match addr {
             Some((ip, port)) => {
@@ -1100,22 +1100,18 @@ impl State {
                 // registered port stays.
                 let client = std::net::Ipv4Addr::from(ps.client_ip.to_le_bytes());
                 let ip = if self.cfg.lan.lan_subnet.covers(client) {
-                    self.cfg.lan.lan_map_ip
+                    u32::from_le_bytes(self.cfg.lan.lan_map_ip.octets())
                 } else {
-                    std::net::Ipv4Addr::from(ip.to_le_bytes())
+                    ip
                 };
                 let mut p = P0071::default();
                 p.char_id = CharId(ps.char_id);
                 p.map_name = FixedStr::<16>::from_str_truncate(&ps.map_name);
-                p.ip = Ip4Address(ip.octets());
+                p.ip = Ip4Address::from(ip);
                 p.port = port;
                 send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
             }
-            None => {
-                let mut p = P0081::default();
-                p.error_code = 1;
-                send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
-            }
+            None => send_server_closed(&ps.client_tx),
         }
     }
 
@@ -1861,6 +1857,13 @@ fn apply_db_jobs(db: &crate::db::Db, jobs: Vec<DbJob>) -> (bool, Vec<DbOpResult>
 /// Send raw bytes to a client session's writer task.
 pub fn send_bytes(tx: &mpsc::Sender<Vec<u8>>, v: Vec<u8>) {
     let _ = tx.try_send(v);
+}
+
+/// 0x0081 code 1 ("No servers available."): the connection ends.
+pub(crate) fn send_server_closed(tx: &mpsc::Sender<Vec<u8>>) {
+    let mut p = crate::proto::P0081::default();
+    p.error_code = 1;
+    send_bytes(tx, enc(move |v| p.encode(v)));
 }
 
 /// Encode helper: `enc(|v| p.encode(v))`.

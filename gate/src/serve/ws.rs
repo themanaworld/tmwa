@@ -11,6 +11,8 @@ use axum::http::HeaderMap;
 use axum::response::Response;
 use futures_util::{SinkExt, Stream};
 
+use crate::net::framing::PacketFramer;
+
 /// Decrements the connection count on drop — panic-safe.
 struct ConnGuard(Arc<super::state::State>);
 
@@ -74,83 +76,6 @@ impl tokio::io::AsyncRead for WsRead {
     }
 }
 
-/// Write half: bytes go into a channel whose background task turns
-/// them into binary frames. Closing the channel (or a shutdown)
-/// makes the task send a normal Close(1000) frame so the client sees
-/// a clean disconnect rather than 1005.
-struct WsWrite {
-    tx: tokio::sync::mpsc::Sender<Vec<u8>>,
-}
-
-impl tokio::io::AsyncWrite for WsWrite {
-    fn poll_write(
-        self: std::pin::Pin<&mut Self>,
-        _cx: &mut std::task::Context<'_>,
-        buf: &[u8],
-    ) -> std::task::Poll<std::io::Result<usize>> {
-        // bounded: a client that stops reading shouldn't grow the
-        // queue forever — a full queue closes the connection
-        match self.tx.try_send(buf.to_vec()) {
-            Ok(()) => std::task::Poll::Ready(Ok(buf.len())),
-            Err(_) => std::task::Poll::Ready(Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "ws writer full or gone",
-            ))),
-        }
-    }
-    fn poll_flush(
-        self: std::pin::Pin<&mut Self>,
-        _cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
-        std::task::Poll::Ready(Ok(()))
-    }
-    fn poll_shutdown(
-        self: std::pin::Pin<&mut Self>,
-        _cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
-        // dropping the sender ends the writer task, which then sends
-        // the Close frame — synchronous shutdown semantics.
-        std::task::Poll::Ready(Ok(()))
-    }
-}
-
-struct WsIo {
-    r: WsRead,
-    w: WsWrite,
-}
-
-impl tokio::io::AsyncRead for WsIo {
-    fn poll_read(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        buf: &mut tokio::io::ReadBuf<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
-        std::pin::Pin::new(&mut self.r).poll_read(cx, buf)
-    }
-}
-
-impl tokio::io::AsyncWrite for WsIo {
-    fn poll_write(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        buf: &[u8],
-    ) -> std::task::Poll<std::io::Result<usize>> {
-        std::pin::Pin::new(&mut self.w).poll_write(cx, buf)
-    }
-    fn poll_flush(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
-        std::pin::Pin::new(&mut self.w).poll_flush(cx)
-    }
-    fn poll_shutdown(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
-        std::pin::Pin::new(&mut self.w).poll_shutdown(cx)
-    }
-}
-
 pub async fn handle_ws(
     AxState(hs): AxState<Arc<super::http::HttpState>>,
     ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
@@ -191,9 +116,13 @@ pub async fn handle_ws(
         .on_upgrade(move |sock| async move {
             let _guard = ConnGuard::new(hs.st.clone());
             let (mut sink, stream) = futures_util::StreamExt::split(sock);
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<u8>>(128);
-            // writer task: binary frames, then a clean Close(1000)
-            // when the channel ends (session over)
+            // One bounded queue per session: the client core pushes
+            // whole packets (try_send, so a full queue drops the
+            // packet like the TCP writer does), and this task turns
+            // them into binary frames. The channel ending (session
+            // over) makes the task send a clean Close(1000) rather
+            // than an abrupt 1005.
+            let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<u8>>(256);
             tokio::spawn(async move {
                 while let Some(buf) = rx.recv().await {
                     if sink.send(Message::Binary(buf.into())).await.is_err() {
@@ -208,16 +137,14 @@ pub async fn handle_ws(
                     .await;
                 let _ = sink.close().await;
             });
-            let io = WsIo {
-                r: WsRead {
-                    inner: stream,
-                    buf: bytes::BytesMut::new(),
-                    closed: false,
-                },
-                w: WsWrite { tx },
-            };
+            let fr = PacketFramer::new(WsRead {
+                inner: stream,
+                buf: bytes::BytesMut::new(),
+                closed: false,
+            });
             // browsers can't open raw TCP sockets: WS clients keep
             // the gate-as-relay map stage
-            super::client::run(hs.st.clone(), io, ip, true).await;
+            let ip = u32::from_le_bytes(ip.octets());
+            super::client::run_core(hs.st.clone(), fr, tx, ip, true).await;
         })
 }

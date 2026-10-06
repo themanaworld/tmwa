@@ -15,6 +15,7 @@ pub mod admin;
 pub mod client;
 pub mod http;
 pub mod maplink;
+pub mod online_files;
 pub mod state;
 pub mod ws;
 
@@ -112,7 +113,7 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
                     continue;
                 }
                 last = std::time::Instant::now();
-                write_online_files(&st).await;
+                online_files::write_online_files(&st).await;
             }
         });
     }
@@ -178,7 +179,7 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
                     }
                     // TCP clients connect to the map server named in
                     // 0x0071 directly; only the WS transport relays.
-                    client::run(st.clone(), sock, ip4, false).await;
+                    client::run_tcp(st.clone(), sock, ip4).await;
                     st.conn_dec();
                 });
             }
@@ -257,123 +258,4 @@ pub fn reload_gm(st: &State) {
 
 pub fn is_gm(st: &State, account_id: u32) -> u32 {
     st.gm.lock().unwrap().get(&account_id).copied().unwrap_or(0)
-}
-
-/// Write online.txt / online.html (port of char.cpp
-/// create_online_files).
-async fn write_online_files(st: &State) {
-    use std::fmt::Write as _;
-    let cfg = &st.cfg;
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let when = format_time(now);
-    let server = &cfg.char_.server_name;
-    let refresh = cfg.char_.online_refresh_html;
-    let min_gm = cfg.char_.online_gm_display_min_level;
-
-    // collect online players (not HIDE-flagged)
-    let mut names: Vec<(u32, String, u16)> = Vec::new();
-    {
-        let online = st.online.lock().unwrap();
-        let chars = st.chars.lock().unwrap();
-        for &cid in online.keys() {
-            if let Some(c) = chars.get(&cid) {
-                if c.data.option.0 & 0x0040 != 0 {
-                    // Opt0::HIDE
-                    continue;
-                }
-                let gm = is_gm(st, c.key.account_id.0);
-                names.push((gm, c.key.name.to_string_lossy(), 0));
-            }
-        }
-    }
-    names.sort_by(|a, b| a.1.cmp(&b.1));
-
-    let mut txt = String::new();
-    let mut html = String::new();
-    let _ = writeln!(html, "<HTML>\n  <HEAD>");
-    let _ = writeln!(
-        html,
-        "    <META http-equiv=\"refresh\" content=\"{refresh}\">"
-    );
-    let _ = writeln!(html, "    <TITLE>Online Players on {server}</TITLE>");
-    let _ = writeln!(html, "  </HEAD>\n  <BODY>");
-    let _ = writeln!(html, "    <H3>Online Players on {server} ({when}):</H3>");
-    let _ = writeln!(txt, "Online Players on {server} ({when}):\n");
-    let _ = writeln!(
-        html,
-        "    <table border=\"1\" cellspacing=\"1\">\n      <tr>"
-    );
-    let _ = writeln!(html, "        <th>Name</th>\n      </tr>");
-    let _ = writeln!(
-        txt,
-        "Name                          \n------------------------------"
-    );
-    let mut players = 0usize;
-    for (gm, name, _) in &names {
-        players += 1;
-        let is_gm_shown = (*gm >= min_gm && gm % 10 == 0) || *gm >= 99;
-        if *gm >= min_gm && *gm == 60 || *gm >= 99 {
-            let _ = writeln!(txt, "{name:<24} (GM) ");
-        } else {
-            let _ = writeln!(txt, "{name:<24}      ");
-        }
-        let _ = write!(html, "      <tr>\n        <td>");
-        if is_gm_shown {
-            let _ = write!(html, "<b>");
-        }
-        for c in name.chars() {
-            match c {
-                '&' => html.push_str("&amp;"),
-                '<' => html.push_str("&lt;"),
-                '>' => html.push_str("&gt;"),
-                c => html.push(c),
-            }
-        }
-        if is_gm_shown {
-            let _ = write!(html, "</b>");
-            match *gm {
-                40 | 80 => html.push_str(" (DEV)"),
-                50 => html.push_str(" (EVTC)"),
-                60 => html.push_str(" (GM)"),
-                99 => html.push_str(" (ADM)"),
-                _ => {}
-            }
-        }
-        let _ = writeln!(html, "</td>\n      </tr>");
-    }
-    let _ = writeln!(html, "    </table>");
-    txt.push('\n');
-    if players == 0 {
-        html.push_str("    <p>No user is online.</p>\n");
-        txt.push_str("No user is online.\n");
-    } else if players > 1 {
-        let _ = writeln!(html, "    <p>{players} users are online.</p>");
-        let _ = writeln!(txt, "{players} users are online.");
-    }
-    html.push_str("  </BODY>\n</HTML>\n");
-
-    let _ = std::fs::write(&cfg.gate.online_txt, &txt);
-    let _ = std::fs::write(&cfg.gate.online_html, &html);
-}
-
-/// "YYYY-MM-DD HH:MM:SS" for unix seconds (UTC).
-pub fn format_time(secs: u64) -> String {
-    // civil-from-days (Hinnant)
-    let days = (secs / 86400) as i64;
-    let rem = secs % 86400;
-    let (h, mi, s) = (rem / 3600, rem % 3600 / 60, rem % 60);
-    let z = days + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if m <= 2 { y + 1 } else { y };
-    format!("{y:04}-{m:02}-{d:02} {h:02}:{mi:02}:{s:02}")
 }

@@ -16,12 +16,11 @@ use std::time::{Duration, Instant};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 
-/// Client-side read half, generic over the transport (TCP or WS).
-type Rd<S> = tokio::io::ReadHalf<S>;
 use tokio::sync::mpsc;
 
 use super::state::{
     AuthEntry, DELFLAG_CHAR, DELFLAG_MAP, PendingSel, State, enc, send_bytes,
+    send_server_closed,
 };
 use super::state::PlayerSession;
 use crate::db::Db;
@@ -67,18 +66,34 @@ fn spawn_writer<W: tokio::io::AsyncWrite + Unpin + Send + 'static>(
     (tx, h)
 }
 
-/// `allow_relay`: only the WebSocket transport relays map traffic;
-/// a TCP client that sends 0x0072 to the gate is a leftover of the
-/// old topology (or an honest mistake) — log once and drop it.
-pub async fn run<S>(st: Arc<State>, sock: S, ip4: Ipv4Addr, allow_relay: bool)
-where
-    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
-{
+/// TCP accept path: split the socket, run the session core over a
+/// `spawn_writer` task on the write half, and wait for the queue to
+/// drain so the session's last packets actually leave.
+pub async fn run_tcp(st: Arc<State>, sock: TcpStream, ip4: Ipv4Addr) {
     let ip = u32::from_le_bytes(ip4.octets());
     let (rd, wr) = tokio::io::split(sock);
     let (tx, wh) = spawn_writer(wr);
-    let mut fr = PacketFramer::new(rd);
+    run_core(st, PacketFramer::new(rd), tx, ip, false).await;
+    let _ = wh.await;
+}
 
+/// Session core shared by the TCP and WebSocket transports: the
+/// caller supplies the packet reader and a bounded write-side queue
+/// (`send_bytes` try_sends; a full queue drops the packet, which is
+/// acceptable for relay hops and matches the TCP writer).
+///
+/// `allow_relay`: only the WebSocket transport relays map traffic;
+/// a TCP client that sends 0x0072 to the gate is a leftover of the
+/// old topology (or an honest mistake): log once and drop it.
+pub async fn run_core<R>(
+    st: Arc<State>,
+    mut fr: PacketFramer<R>,
+    tx: mpsc::Sender<Vec<u8>>,
+    ip: u32,
+    allow_relay: bool,
+) where
+    R: tokio::io::AsyncRead + Unpin,
+{
     // no valid reason to stay on the login port forever
     let deadline = Duration::from_secs(90);
     loop {
@@ -130,7 +145,7 @@ where
                     }
                     break;
                 }
-                relay(st.clone(), tx, wh, fr, ip, pkt.bytes).await;
+                relay(st.clone(), tx, fr, ip, pkt.bytes).await;
                 return;
             }
             id => {
@@ -143,7 +158,6 @@ where
         }
     }
     drop(tx);
-    let _ = wh.await;
 }
 
 fn ip4(v: u32) -> Ip4Address {
@@ -156,7 +170,7 @@ fn pub_ip(st: &State) -> Ip4Address {
 }
 
 fn stamp_seconds(secs: u64) -> FixedStr<20> {
-    FixedStr::<20>::from_str_truncate(&super::format_time(secs))
+    FixedStr::<20>::from_str_truncate(&super::online_files::format_time(secs))
 }
 
 // ------------------------------------------------------------------
@@ -394,13 +408,6 @@ async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], i
     send_bytes(tx, enc(move |v| head.encode(v)));
 }
 
-/// 0x0081 code 1 ("No servers available."): the connection ends.
-fn send_server_closed(tx: &mpsc::Sender<Vec<u8>>) {
-    let mut p = P0081::default();
-    p.error_code = 1;
-    send_bytes(tx, enc(move |v| p.encode(v)));
-}
-
 /// Stage-2 auth entry pushed by a successful login: the account's
 /// next step is the char screen (0x0065).
 fn char_auth(account_id: u32, id1: u32, id2: u32, ip: u32, client_version: u32) -> AuthEntry {
@@ -461,7 +468,10 @@ fn send_6a(tx: &mpsc::Sender<Vec<u8>>, code: u16, ban_until: i64, errmsg: Option
 fn stamp_millis(ms: i64) -> FixedStr<24> {
     let secs = ms / 1000;
     let frac = ms % 1000;
-    FixedStr::<24>::from_str_truncate(&format!("{}.{frac:03}", super::format_time(secs as u64)))
+    FixedStr::<24>::from_str_truncate(&format!(
+        "{}.{frac:03}",
+        super::online_files::format_time(secs as u64)
+    ))
 }
 
 /// tmwa check_ip: allow/deny lists + order (deny_allow / allow_deny).
@@ -517,10 +527,10 @@ fn cidr_covers(ip: Ipv4Addr, net: Ipv4Addr, bits: u8) -> bool {
 // char screen (0x0065 onward)
 // ------------------------------------------------------------------
 
-async fn char_session<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
+async fn char_session<R: tokio::io::AsyncRead + Unpin>(
     st: Arc<State>,
     tx: &mpsc::Sender<Vec<u8>>,
-    fr: &mut PacketFramer<Rd<S>>,
+    fr: &mut PacketFramer<R>,
     ip: u32,
     first: &[u8],
 ) {
@@ -1210,9 +1220,9 @@ fn answer_tick(rec: &std::sync::Mutex<PlayerSession>, tx: &mpsc::Sender<Vec<u8>>
 /// everything else. Returns false on EOF or a frame error (the
 /// client is gone).
 async fn drain_client_input<
-    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+    R: tokio::io::AsyncRead + Unpin,
 >(
-    fr: &mut PacketFramer<Rd<S>>,
+    fr: &mut PacketFramer<R>,
     rec: &std::sync::Mutex<PlayerSession>,
     tx: &mpsc::Sender<Vec<u8>>,
     wait: Duration,
@@ -1252,12 +1262,12 @@ const UPSTREAM_GONE_GRACE: Duration = Duration::from_secs(3);
 /// kernel sockets together), still serving the client meanwhile.
 /// Nothing is announced until hold is decided.
 async fn resolve_upstream_eof<
-    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+    R: tokio::io::AsyncRead + Unpin,
 >(
     st: &Arc<State>,
     rec: &std::sync::Mutex<PlayerSession>,
     map_id: usize,
-    fr: &mut PacketFramer<Rd<S>>,
+    fr: &mut PacketFramer<R>,
     tx: &mpsc::Sender<Vec<u8>>,
 ) -> UpGone {
     if st.map_gone(map_id) {
@@ -1506,10 +1516,10 @@ async fn upstream_rejoin(
 /// that serves the player's map to come back (or the drain fallback
 /// at half the timeout). Returns the map id to rejoin on, or None if
 /// the client is gone / hold timed out.
-async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
+async fn hold_wait<R: tokio::io::AsyncRead + Unpin>(
     st: &Arc<State>,
     rec: &std::sync::Mutex<PlayerSession>,
-    fr: &mut PacketFramer<Rd<S>>,
+    fr: &mut PacketFramer<R>,
     tx: &mpsc::Sender<Vec<u8>>,
 ) -> Option<usize> {
     let (char_id, deadline, half) = {
@@ -1567,10 +1577,10 @@ async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Sen
 
 /// Forward packets in both directions until either side ends or a
 /// drain asks us to hold. Returns how it ended.
-async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
+async fn forward_phase<R: tokio::io::AsyncRead + Unpin>(
     _st: &Arc<State>,
     rec: &std::sync::Mutex<PlayerSession>,
-    fr: &mut PacketFramer<Rd<S>>,
+    fr: &mut PacketFramer<R>,
     tx: &mpsc::Sender<Vec<u8>>,
     mut up: tokio::net::tcp::OwnedWriteHalf,
     mut urd: tokio::net::tcp::OwnedReadHalf,
@@ -1650,10 +1660,10 @@ async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin +
 /// storage) are closed and the new position is announced with
 /// 0x0091. Returns the new upstream halves, or None when the
 /// session is over: kick, client gone, map full, or timed out.
-async fn rejoin_until<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
+async fn rejoin_until<R: tokio::io::AsyncRead + Unpin>(
     st: &Arc<State>,
     rec: &std::sync::Arc<std::sync::Mutex<PlayerSession>>,
-    fr: &mut PacketFramer<Rd<S>>,
+    fr: &mut PacketFramer<R>,
     tx: &mpsc::Sender<Vec<u8>>,
     map_id: usize,
 ) -> Option<(
@@ -1758,11 +1768,10 @@ async fn rejoin_until<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + 
     Some((urd, uwr))
 }
 
-async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static>(
+async fn relay<R: tokio::io::AsyncRead + Unpin>(
     st: Arc<State>,
     tx: mpsc::Sender<Vec<u8>>,
-    wh: tokio::task::JoinHandle<()>,
-    mut fr: PacketFramer<Rd<S>>,
+    mut fr: PacketFramer<R>,
     ip: u32,
     first: bytes::Bytes,
 ) {
@@ -1953,7 +1962,6 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         .unwrap()
         .remove(&(fixed.account_id.0, fixed.char_id.0));
     drop(tx);
-    let _ = wh.await;
 }
 
 #[cfg(test)]
@@ -1988,7 +1996,7 @@ mod tests {
     }
 
     fn test_conn() -> (
-        PacketFramer<Rd<tokio::io::DuplexStream>>,
+        PacketFramer<tokio::io::ReadHalf<tokio::io::DuplexStream>>,
         tokio::io::DuplexStream,
         mpsc::Receiver<Vec<u8>>,
     ) {
