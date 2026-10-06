@@ -258,6 +258,13 @@ bool can_place(Borrowed<struct map_local> m, int x, int y)
     return !bool(read_gatp(m, x, y) & MapCell::UNWALKABLE);
 }
 
+static
+bool can_enter(Borrowed<struct map_local> m, int x, int y)
+{
+    return x >= 0 && y >= 0 && x < m->xs && y < m->ys
+        && can_place(m, x, y);
+}
+
 /*==========================================
  * (x0,y0)から(x1,y1)へ1歩で移動可能か計算
  *------------------------------------------
@@ -267,11 +274,9 @@ int can_move(Borrowed<struct map_local> m, int x0, int y0, int x1, int y1)
 {
     if (x0 - x1 < -1 || x0 - x1 > 1 || y0 - y1 < -1 || y0 - y1 > 1)
         return 0;
-    if (x1 < 0 || y1 < 0 || x1 >= m->xs || y1 >= m->ys)
-        return 0;
     if (!can_place(m, x0, y0))
         return 0;
-    if (!can_place(m, x1, y1))
+    if (!can_enter(m, x1, y1))
         return 0;
     if (x0 == x1 || y0 == y1)
         return 1;
@@ -384,21 +389,34 @@ int path_search(struct walkpath_data *wpd, Borrowed<map_local> m, int x0, int y0
 
             return 0;
         }
-        if (can_move(md, x, y, x + 1, y - 1))
+        // The eight can_move calls share the same source check, and each
+        // cardinal destination is reused by the two adjacent diagonals, so
+        // read each involved cell once instead.
+        const bool src_ok = can_place(md, x, y);
+        const bool n_ok  = src_ok && can_enter(md, x, y - 1);
+        const bool e_ok  = src_ok && can_enter(md, x + 1, y);
+        const bool s_ok  = src_ok && can_enter(md, x, y + 1);
+        const bool w_ok  = src_ok && can_enter(md, x - 1, y);
+        const bool ne_ok = n_ok && e_ok && can_enter(md, x + 1, y - 1);
+        const bool se_ok = e_ok && s_ok && can_enter(md, x + 1, y + 1);
+        const bool sw_ok = s_ok && w_ok && can_enter(md, x - 1, y + 1);
+        const bool nw_ok = w_ok && n_ok && can_enter(md, x - 1, y - 1);
+
+        if (ne_ok)
             e += add_path(heap, tp, x + 1, y - 1, tp[rp].dist + 14, DIR::NE, rp, x1, y1);
-        if (can_move(md, x, y, x + 1, y))
+        if (e_ok)
             e += add_path(heap, tp, x + 1, y, tp[rp].dist + 10, DIR::E, rp, x1, y1);
-        if (can_move(md, x, y, x + 1, y + 1))
+        if (se_ok)
             e += add_path(heap, tp, x + 1, y + 1, tp[rp].dist + 14, DIR::SE, rp, x1, y1);
-        if (can_move(md, x, y, x, y + 1))
+        if (s_ok)
             e += add_path(heap, tp, x, y + 1, tp[rp].dist + 10, DIR::S, rp, x1, y1);
-        if (can_move(md, x, y, x - 1, y + 1))
+        if (sw_ok)
             e += add_path(heap, tp, x - 1, y + 1, tp[rp].dist + 14, DIR::SW, rp, x1, y1);
-        if (can_move(md, x, y, x - 1, y))
+        if (w_ok)
             e += add_path(heap, tp, x - 1, y, tp[rp].dist + 10, DIR::W, rp, x1, y1);
-        if (can_move(md, x, y, x - 1, y - 1))
+        if (nw_ok)
             e += add_path(heap, tp, x - 1, y - 1, tp[rp].dist + 14, DIR::NW, rp, x1, y1);
-        if (can_move(md, x, y, x, y - 1))
+        if (n_ok)
             e += add_path(heap, tp, x, y - 1, tp[rp].dist + 10, DIR::N, rp, x1, y1);
         tp[rp].flag = 1;
         if (e || heap[0] >= MAX_HEAP - 5)
