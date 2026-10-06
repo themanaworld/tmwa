@@ -45,6 +45,8 @@ constexpr int MAX_HEAP = 150;
 struct tmp_path
 {
     short x, y, dist, before, cost;
+    // 1-based position in heap[], 0 when this cell is not in the heap.
+    short pos;
     DIR dir;
     char flag;
 };
@@ -74,8 +76,13 @@ void push_heap_path(int *heap, struct tmp_path *tp, int index)
 
     for (h = heap[0] - 1, i = (h - 1) / 2;
          h > 0 && tp[index].cost < tp[heap[i + 1]].cost; i = (h - 1) / 2)
-        heap[h + 1] = heap[i + 1], h = i;
+    {
+        heap[h + 1] = heap[i + 1];
+        tp[heap[i + 1]].pos = h + 1;
+        h = i;
+    }
     heap[h + 1] = index;
+    tp[index].pos = h + 1;
 }
 
 /*==========================================
@@ -91,18 +98,21 @@ void update_heap_path(int *heap, struct tmp_path *tp, int index)
     nullpo_retv(heap);
     nullpo_retv(tp);
 
-    for (h = 0; h < heap[0]; h++)
-        if (heap[h + 1] == index)
-            break;
-    if (h == heap[0])
+    h = tp[index].pos - 1;
+    if (h < 0 || h >= heap[0] || heap[h + 1] != index)
     {
         FPRINTF(stderr, "update_heap_path bug\n"_fmt);
         exit(1);
     }
     for (i = (h - 1) / 2;
          h > 0 && tp[index].cost < tp[heap[i + 1]].cost; i = (h - 1) / 2)
-        heap[h + 1] = heap[i + 1], h = i;
+    {
+        heap[h + 1] = heap[i + 1];
+        tp[heap[i + 1]].pos = h + 1;
+        h = i;
+    }
     heap[h + 1] = index;
+    tp[index].pos = h + 1;
 }
 
 /*==========================================
@@ -121,6 +131,7 @@ int pop_heap_path(int *heap, struct tmp_path *tp)
     if (heap[0] <= 0)
         return -1;
     ret = heap[1];
+    tp[ret].pos = 0;
     last = heap[heap[0]];
     heap[0]--;
 
@@ -128,15 +139,26 @@ int pop_heap_path(int *heap, struct tmp_path *tp)
     {
         if (tp[heap[k + 1]].cost > tp[heap[k]].cost)
             k--;
-        heap[h + 1] = heap[k + 1], h = k;
+        heap[h + 1] = heap[k + 1];
+        tp[heap[k + 1]].pos = h + 1;
+        h = k;
     }
     if (k == heap[0])
-        heap[h + 1] = heap[k], h = k - 1;
+    {
+        heap[h + 1] = heap[k];
+        tp[heap[k]].pos = h + 1;
+        h = k - 1;
+    }
 
     for (i = (h - 1) / 2;
          h > 0 && tp[heap[i + 1]].cost > tp[last].cost; i = (h - 1) / 2)
-        heap[h + 1] = heap[i + 1], h = i;
+    {
+        heap[h + 1] = heap[i + 1];
+        tp[heap[i + 1]].pos = h + 1;
+        h = i;
+    }
     heap[h + 1] = last;
+    tp[last].pos = h + 1;
 
     return ret;
 }
