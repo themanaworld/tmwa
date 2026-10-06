@@ -5,13 +5,14 @@
 //! packet id is an error; the caller is expected to drop the connection.
 
 use crate::proto::{self, PacketLen};
+use bytes::{Bytes, BytesMut};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 /// One complete packet: the wire bytes including the 2-byte id.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Packet {
     pub id: u16,
-    pub bytes: Vec<u8>,
+    pub bytes: Bytes,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -27,24 +28,25 @@ pub enum FrameError {
 /// Stateful framer; feed it an `AsyncRead` and pull complete packets out.
 pub struct PacketFramer<R> {
     reader: R,
-    buf: Vec<u8>,
+    buf: BytesMut,
 }
 
 impl<R: AsyncRead + Unpin> PacketFramer<R> {
     pub fn new(reader: R) -> Self {
         PacketFramer {
             reader,
-            buf: Vec::with_capacity(8192),
+            buf: BytesMut::with_capacity(8192),
         }
     }
 
-    /// Read access to the wrapped reader (e.g. to check the WebSocket
-    /// close code the transport recorded).
+    /// Read access to the wrapped reader. Unused in the lib; the e2e
+    /// tests use it to check the WebSocket close code the transport
+    /// recorded.
     pub fn reader(&self) -> &R {
         &self.reader
     }
 
-    /// Mutable access for the same purpose.
+    /// Mutable access for the same purpose (e2e tests only).
     pub fn reader_mut(&mut self) -> &mut R {
         &mut self.reader
     }
@@ -92,7 +94,7 @@ impl<R: AsyncRead + Unpin> PacketFramer<R> {
         if self.buf.len() < need {
             return Ok(None);
         }
-        let bytes: Vec<u8> = self.buf.drain(..need).collect();
+        let bytes = self.buf.split_to(need).freeze();
         Ok(Some(Packet { id, bytes }))
     }
 }

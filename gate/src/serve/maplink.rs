@@ -82,7 +82,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                 let (id, kill) = st.map_register(
                     tx.clone(),
                     tx_prio.clone(),
-                    u32::from_le_bytes(fixed.ip.0),
+                    u32::from(fixed.ip),
                     fixed.port,
                 );
                 tracing::info!(
@@ -316,7 +316,7 @@ async fn handle(
                 char_id: 0,
                 login_id1: fixed.login_id1,
                 login_id2: fixed.login_id2,
-                ip: u32::from_le_bytes(fixed.ip.0),
+                ip: u32::from(fixed.ip),
                 client_version: fixed.client_protocol_version.0,
                 map_id: None,
                 upstream_ip: None,
@@ -675,7 +675,7 @@ async fn handle(
 }
 
 fn ip4(v: u32) -> Ip4Address {
-    Ip4Address(v.to_le_bytes())
+    Ip4Address::from(v)
 }
 
 /// `queue_dedup_op` kind for 0x3010 storage requests.
@@ -726,7 +726,7 @@ async fn handle_auth_request(
         char_id: fixed.char_id.0,
         login_id1: fixed.login_id1,
         login_id2: fixed.login_id2,
-        ip: u32::from_le_bytes(fixed.ip.0),
+        ip: u32::from(fixed.ip),
     };
     let entry = st.take_map_auth(req, map_ip, map_port);
     let Some((e, reserve)) = entry else {
@@ -805,7 +805,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usiz
         char_id: fixed.char_id.0,
         login_id1: fixed.login_id1,
         login_id2: fixed.login_id2,
-        ip: u32::from_le_bytes(fixed.client_ip.0),
+        ip: u32::from(fixed.client_ip),
         server: map_id,
     });
     let ok = st
@@ -819,7 +819,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usiz
             char_id: fixed.char_id.0,
             login_id1: fixed.login_id1,
             login_id2: fixed.login_id2,
-            ip: u32::from_le_bytes(fixed.client_ip.0),
+            ip: u32::from(fixed.client_ip),
             client_version: 0,
             map_id: None,
             upstream_ip: None,
@@ -834,7 +834,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usiz
         // destination link must not stall this reader, and
         // the client takes longer to reconnect than this
         // push takes anyway; a miss falls back to 0x2afc.
-        let dest_ip = u32::from_le_bytes(fixed.map_ip.0);
+        let dest_ip = u32::from(fixed.map_ip);
         match st.map_by_addr(dest_ip, fixed.map_port) {
             Some(dest) => {
                 let st2 = st.clone();
@@ -892,7 +892,7 @@ async fn reserve_map_auth(
         char_id: fixed.char_id.0,
         login_id1: fixed.login_id1,
         login_id2: fixed.login_id2,
-        ip: u32::from_le_bytes(fixed.ip.0),
+        ip: u32::from(fixed.ip),
     };
     let Some((mut rx, auth)) = st.served_map_auth(req, map_id, map_ip, map_port) else {
         return false;

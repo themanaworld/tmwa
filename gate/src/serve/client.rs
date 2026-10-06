@@ -1288,7 +1288,7 @@ async fn resolve_upstream_eof<
 async fn upstream_open(
     st: &Arc<State>,
     map_id: usize,
-    pkt72: Vec<u8>,
+    pkt72: bytes::Bytes,
     account_id: u32,
     char_id: u32,
     login_id1: u32,
@@ -1418,7 +1418,7 @@ async fn transfer_reopen(
     st: &Arc<State>,
     rec: &std::sync::Mutex<PlayerSession>,
     map_id: usize,
-    pkt72: Vec<u8>,
+    pkt72: bytes::Bytes,
 ) -> Option<(
     tokio::net::tcp::OwnedReadHalf,
     tokio::net::tcp::OwnedWriteHalf,
@@ -1467,7 +1467,7 @@ async fn upstream_rejoin(
     }
     .encode(&mut pkt72);
     let Some((mut urd, uwr)) =
-        upstream_open(st, map_id, pkt72, account_id, char_id, login_id1).await
+        upstream_open(st, map_id, pkt72.into(), account_id, char_id, login_id1).await
     else {
         return Rejoin::Retry;
     };
@@ -1617,7 +1617,7 @@ async fn forward_phase<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin +
                             rec.lock().unwrap().transferring = true;
                         }
                         track_sc(rec, p.id, &p.bytes);
-                        if tx.send(p.bytes).await.is_err() {
+                        if tx.send(p.bytes.to_vec()).await.is_err() {
                             return FwdEnd::ClientGone;
                         }
                     }
@@ -1774,7 +1774,7 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
     wh: tokio::task::JoinHandle<()>,
     mut fr: PacketFramer<Rd<S>>,
     ip: u32,
-    first: Vec<u8>,
+    first: bytes::Bytes,
 ) {
     let Ok(fixed) = P0072::decode(&first) else {
         tracing::warn!("relay: bad 0x0072 from {ip:#x}");

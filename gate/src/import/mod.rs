@@ -89,28 +89,39 @@ fn parse_lastlogin(s: &str) -> Option<i64> {
     Some(t.and_utc().timestamp_millis())
 }
 
-/// An account's trailing space-separated `name,value` register list.
-fn parse_vars(s: &str, max: usize) -> Result<Vec<(String, i32)>, ()> {
-    let mut vars = Vec::new();
+/// Split a space-separated field into parsed tokens, skipping
+/// empties; fails on a bad token or more than `max` entries.
+fn parse_list<T>(
+    s: &str,
+    max: usize,
+    mut f: impl FnMut(&str) -> Option<T>,
+) -> Result<Vec<T>, ()> {
+    let mut out = Vec::new();
     if s.trim().is_empty() {
-        return Ok(vars);
+        return Ok(out);
     }
     for tok in s.split(' ') {
         if tok.is_empty() {
             continue;
         }
-        let Some((name, val)) = tok.split_once(',') else {
+        let Some(v) = f(tok) else {
             return Err(());
         };
-        let Some(value) = parse::<i32>(val) else {
-            return Err(());
-        };
-        vars.push((name.to_string(), value));
+        out.push(v);
     }
-    if vars.len() > max {
+    if out.len() > max {
         return Err(());
     }
-    Ok(vars)
+    Ok(out)
+}
+
+/// An account's trailing space-separated `name,value` register list.
+fn parse_vars(s: &str, max: usize) -> Result<Vec<(String, i32)>, ()> {
+    parse_list(s, max, |tok| {
+        let (name, val) = tok.split_once(',')?;
+        let value = parse::<i32>(val)?;
+        Some((name.to_string(), value))
+    })
 }
 
 /// Inventory/storage item record (nameid, amount, equip) from a
@@ -128,50 +139,21 @@ fn parse_item(tok: &str) -> Option<(u32, i16, u16)> {
 }
 
 fn parse_items(s: &str, max: usize) -> Result<Vec<(u32, i16, u16)>, ()> {
-    let mut items = Vec::new();
-    if s.trim().is_empty() {
-        return Ok(items);
-    }
-    for tok in s.split(' ') {
-        if tok.is_empty() {
-            continue;
-        }
-        let Some(it) = parse_item(tok) else {
-            return Err(());
-        };
-        items.push(it);
-    }
-    if items.len() > max {
-        return Err(());
-    }
-    Ok(items)
+    parse_list(s, max, parse_item)
 }
 
-/// `id,lv|flags<<16` skill record.
+/// `id,lv|flags<<16` skill record. `max_skill` bounds the skill id,
+/// not the list length.
 fn parse_skills(s: &str, max_skill: usize) -> Result<Vec<(usize, u16, u16)>, ()> {
-    let mut out = Vec::new();
-    if s.trim().is_empty() {
-        return Ok(out);
-    }
-    for tok in s.split(' ') {
-        if tok.is_empty() {
-            continue;
-        }
-        let Some((id_s, lv_s)) = tok.split_once(',') else {
-            return Err(());
-        };
-        let Some(id) = parse::<u32>(id_s) else {
-            return Err(());
-        };
-        let Some(fl) = parse::<u32>(lv_s) else {
-            return Err(());
-        };
+    parse_list(s, usize::MAX, |tok| {
+        let (id_s, lv_s) = tok.split_once(',')?;
+        let id = parse::<u32>(id_s)?;
+        let fl = parse::<u32>(lv_s)?;
         if id as usize >= max_skill {
-            return Err(());
+            return None;
         }
-        out.push((id as usize, (fl & 0xffff) as u16, (fl >> 16) as u16));
-    }
-    Ok(out)
+        Some((id as usize, (fl & 0xffff) as u16, (fl >> 16) as u16))
+    })
 }
 
 fn sex_char(c: Option<&str>) -> Option<u8> {
@@ -664,6 +646,36 @@ fn newid_line(line: &str) -> Option<i64> {
     }
 }
 
+/// Parse a "one line per account" file (storage.txt, accreg.txt):
+/// comments skipped, bad lines and duplicate account ids counted
+/// in `skipped`.
+fn parse_per_account<T>(
+    lines: &[String],
+    file: &str,
+    skipped: &mut Vec<String>,
+    parse_line: impl Fn(&str) -> Option<T>,
+    account_id: impl Fn(&T) -> i64,
+) -> Vec<T> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+    for (i, line) in lines.iter().enumerate() {
+        if is_comment(line) {
+            continue;
+        }
+        match parse_line(line) {
+            Some(v) => {
+                if !seen.insert(account_id(&v)) {
+                    skipped.push(format!("{file}:{} (duplicate account)", i + 1));
+                    continue;
+                }
+                out.push(v);
+            }
+            None => skipped.push(format!("{file}:{}", i + 1)),
+        }
+    }
+    out
+}
+
 /// Run the import. `progress` is called with human-readable status.
 pub fn run(
     files: &ImportFiles,
@@ -799,49 +811,29 @@ pub fn run(
     // One line per account; a second line for the same account is
     // skipped (the PK on (account_id, idx) would otherwise abort the
     // whole transaction).
-    let mut storage = Vec::new();
-    let mut seen_storage = HashSet::new();
-    for (i, line) in read_lines(&files.storage_txt(), &mut skipped)?
-        .iter()
-        .enumerate()
-    {
-        if is_comment(line) {
-            continue;
-        }
-        match parse_storage(line) {
-            Some(s) => {
-                if !seen_storage.insert(s.account_id) {
-                    skipped.push(format!("storage.txt:{} (duplicate account)", i + 1));
-                    continue;
-                }
-                storage.push(s);
-            }
-            None => skipped.push(format!("storage.txt:{}", i + 1)),
-        }
-    }
+    let storage = {
+        let lines = read_lines(&files.storage_txt(), &mut skipped)?;
+        parse_per_account(
+            &lines,
+            "storage.txt",
+            &mut skipped,
+            parse_storage,
+            |s| s.account_id,
+        )
+    };
 
     // ---- accreg ----
     // One line per account, same as storage.txt.
-    let mut accreg = Vec::new();
-    let mut seen_accreg = HashSet::new();
-    for (i, line) in read_lines(&files.accreg_txt(), &mut skipped)?
-        .iter()
-        .enumerate()
-    {
-        if is_comment(line) {
-            continue;
-        }
-        match parse_accreg(line) {
-            Some(a) => {
-                if !seen_accreg.insert(a.account_id) {
-                    skipped.push(format!("accreg.txt:{} (duplicate account)", i + 1));
-                    continue;
-                }
-                accreg.push(a);
-            }
-            None => skipped.push(format!("accreg.txt:{}", i + 1)),
-        }
-    }
+    let mut accreg = {
+        let lines = read_lines(&files.accreg_txt(), &mut skipped)?;
+        parse_per_account(
+            &lines,
+            "accreg.txt",
+            &mut skipped,
+            parse_accreg,
+            |a| a.account_id,
+        )
+    };
 
     // Orphans: real saves can reference accounts that are not in
     // account.txt anymore (the row was deleted upstream, or the
