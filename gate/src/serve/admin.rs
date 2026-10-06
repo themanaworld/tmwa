@@ -127,6 +127,18 @@ fn kick_sessions(recs: &[Arc<std::sync::Mutex<super::state::PlayerSession>>]) ->
     gone
 }
 
+/// Drop char ids from `online` and wake its waiters (drain
+/// counting, the online-file writer).
+fn forget_online(st: &Arc<State>, cids: Vec<u32>) {
+    {
+        let mut online = st.online.lock().unwrap();
+        for cid in cids {
+            online.remove(&cid);
+        }
+    }
+    st.online_notify.notify_waiters();
+}
+
 /// Kick (disconnect) a player: with a char id, match exactly that
 /// character's session; without one, match the account. A 0 must
 /// never match anything.
@@ -149,7 +161,9 @@ fn kick_player(st: &Arc<State>, account_id: u32, char_id: u32) {
             .cloned()
     };
     if let Some(rec) = rec {
-        kick_sessions(&[rec]);
+        // `online` is keyed by char_id: drop the kicked char's
+        // entry so maps stop seeing the player
+        forget_online(st, kick_sessions(&[rec]));
     }
 }
 
@@ -167,6 +181,30 @@ fn state_label(state: i64) -> &'static str {
         100 => "This ID has been totally erased",
         _ => "No MSG",
     }
+}
+
+/// ladmin variable scope: `#name` is scope 1, `##name` (and
+/// anything without a single leading `#`) is scope 2.
+fn accreg_scope(name: &str) -> i64 {
+    if name.starts_with('#') && !name.starts_with("##") {
+        1
+    } else {
+        2
+    }
+}
+
+/// The ladmin "no such account" line, shared by the accreg
+/// commands that take a bare account id.
+fn err_no_acct(id: i64) -> String {
+    format!("Unable to find the account [id: {id}]. Account doesn't exist.\n")
+}
+
+/// `yyyy/mm/dd hh:mm:ss` for unix seconds; empty when out of
+/// range (matching the old Option::map/unwrap_or_default shape).
+fn fmt_ymd_slash(secs: i64) -> String {
+    chrono::DateTime::from_timestamp(secs, 0)
+        .map(|t| t.format("%Y/%m/%d %H:%M:%S").to_string())
+        .unwrap_or_default()
 }
 
 pub async fn dispatch(
@@ -268,7 +306,7 @@ fn status(st: &Arc<State>) -> Value {
 fn online(st: &Arc<State>) -> Value {
     let mut out = String::new();
     let sessions = st.player_sessions.lock().unwrap();
-    let names = st.char_names.lock().unwrap();
+    let chars = st.chars.lock().unwrap();
     let mut rows: Vec<(u32, u32, bool, usize)> = sessions
         .values()
         .map(|s| {
@@ -278,10 +316,10 @@ fn online(st: &Arc<State>) -> Value {
         .collect();
     rows.sort();
     for (acct, cid, held, mid) in &rows {
-        let cname = names
-            .iter()
-            .find(|(_, v)| **v == *cid)
-            .map(|(k, _)| k.clone())
+        // `chars` is keyed by char_id and carries the name already
+        let cname = chars
+            .get(cid)
+            .map(|r| r.key.name.to_string_lossy())
             .unwrap_or_else(|| "?".to_string());
         out += &format!(
             "{:10} {:10} {:<24} map {:3} {}\n",
@@ -434,6 +472,11 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
         v
     };
     if !wait {
+        // no --wait: drop the tracking entries now, they would
+        // otherwise stay until the next drain of the same slot
+        for id in &targets {
+            st.drain_track_end(*id);
+        }
         return reply(None, st);
     }
     let deadline = Instant::now() + Duration::from_secs(60);
@@ -529,15 +572,11 @@ async fn who(st: &Arc<State>, args: &[String]) -> Value {
             return err_text(format!("Account [{v}] not found."));
         };
         let banned = if ban > 0 {
-            chrono::DateTime::from_timestamp(ban, 0)
-                .map(|t| t.format("%Y/%m/%d %H:%M:%S").to_string())
-                .unwrap_or_default()
+            fmt_ymd_slash(ban)
         } else {
             "not banned".to_string()
         };
-        let last_s = chrono::DateTime::from_timestamp(last / 1000, 0)
-            .map(|t| t.format("%Y/%m/%d %H:%M:%S").to_string())
-            .unwrap_or_default();
+        let last_s = fmt_ymd_slash(last / 1000);
         let chars: Vec<String> = c
             .prepare("SELECT name FROM characters WHERE account_id=?1")
             .unwrap()
@@ -545,11 +584,8 @@ async fn who(st: &Arc<State>, args: &[String]) -> Value {
             .unwrap()
             .flatten()
             .collect();
-        let ip = lip.parse::<u32>()
-            .map(|v| format!("{}.{}.{}.{}", v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff, (v >> 24) & 0xff))
-            .unwrap_or_else(|_| lip.clone());
         ok_text(format!(
-            "Account [{name}] [id: {id}]\n  state: {} ({state})\n  e-mail: {email}\n  memo: {memo}\n  ban until: {banned}\n  last login: {last_s}\n  login count: {cnt}\n  last ip: {ip}\n  characters: {}\n",
+            "Account [{name}] [id: {id}]\n  state: {} ({state})\n  e-mail: {email}\n  memo: {memo}\n  ban until: {banned}\n  last login: {last_s}\n  login count: {cnt}\n  last ip: {lip}\n  characters: {}\n",
             state_label(state),
             chars.join(", ")
         ))
@@ -768,11 +804,7 @@ fn kick_account(st: &Arc<State>, account_id: u32) {
         .collect();
     // `online` is keyed by char_id, not account_id: drop the kicked
     // chars' entries so maps stop seeing the player
-    let gone = kick_sessions(&recs);
-    let mut online = st.online.lock().unwrap();
-    for cid in gone {
-        online.remove(&cid);
-    }
+    forget_online(st, kick_sessions(&recs));
 }
 
 async fn state_set(st: &Arc<State>, args: &[String]) -> Value {
@@ -969,7 +1001,11 @@ async fn check_cmd(st: &Arc<State>, args: &[String], password_stdin: Option<Stri
     };
     st.db.blocking_conn(move |c| match acct_id_by_name(c, &name) {
         Some(id) => {
-            let (h, scheme, salt) = crate::db::password_row_conn(c, id).unwrap().unwrap();
+            let Some((h, scheme, salt)) =
+                crate::db::password_row_conn(c, id).ok().flatten()
+            else {
+                return err_text(format!("Account [{name}] not found."));
+            };
             match crate::auth::password::verify(&scheme, &h, salt.as_deref(), pw.as_bytes()) {
                 Ok(crate::auth::password::Verify::Ok)
                 | Ok(crate::auth::password::Verify::OkNeedsRehash) => ok_text(format!(
@@ -1074,8 +1110,11 @@ async fn gm_cmd(st: &Arc<State>, args: &[String]) -> Value {
 
 fn write_gm_file(st: &Arc<State>) {
     let gm = st.gm.lock().unwrap().clone();
+    // sort by account id so the file is stable across reloads
+    let mut rows: Vec<(u32, u32)> = gm.iter().map(|(i, l)| (*i, *l)).collect();
+    rows.sort();
     let mut txt = String::new();
-    for (id, level) in &gm {
+    for (id, level) in rows {
         txt += &format!("{id} {level}\n");
     }
     let path = &st.cfg.gate.gm_account_file;
@@ -1114,9 +1153,7 @@ async fn getall(st: &Arc<State>, args: &[String], scope: i64) -> Value {
         .unwrap_or(scope);
     st.db.blocking_conn(move |c| {
         if !acct_exists(c, id) {
-            return err_text(format!(
-                "Unable to find the account [id: {id}]. Account doesn't exist.\n"
-            ));
+            return err_text(err_no_acct(id));
         }
         // mirror ladmin's 0x7957 reply text
         let mut vars = Vec::new();
@@ -1147,15 +1184,9 @@ async fn getaccreg(st: &Arc<State>, args: &[String]) -> Value {
     let name = args[1].clone();
     st.db.blocking_conn(move |c| {
         if !acct_exists(c, id) {
-            return err_text(format!(
-                "Unable to find the account [id: {id}]. Account doesn't exist.\n"
-            ));
+            return err_text(err_no_acct(id));
         }
-        let scope: i64 = if name.starts_with('#') && !name.starts_with("##") {
-            1
-        } else {
-            2
-        };
+        let scope = accreg_scope(&name);
         let n = name.trim_start_matches('#');
         let v: Option<i64> = c
             .query_row(
@@ -1180,23 +1211,12 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
     let name = args[1].clone();
     let value: i64 = args[2].parse().unwrap_or(0);
     let stc = st.clone();
-    let namec = name.clone();
     let r = st.db.blocking_conn(move |c| {
         if !acct_exists(c, id) {
-            return (
-                String::new(),
-                false,
-                Some(format!(
-                    "Unable to find the account [id: {id}]. Account doesn't exist.\n"
-                )),
-            );
+            return (String::new(), 0, false, Some(err_no_acct(id)));
         }
-        let scope: i64 = if namec.starts_with('#') && !namec.starts_with("##") {
-            1
-        } else {
-            2
-        };
-        let n = namec.trim_start_matches('#').to_string();
+        let scope = accreg_scope(&name);
+        let n = name.trim_start_matches('#').to_string();
         let existed: bool = c
             .query_row(
                 "SELECT 1 FROM account_vars WHERE account_id=?1 AND scope=?2 AND name=?3",
@@ -1205,22 +1225,32 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
             )
             .unwrap_or(false);
         crate::db::set_account_vars(c, id, scope, &[(n.clone(), value)]).unwrap();
-        (n, existed, None)
+        (n, scope, existed, None)
     })
     .await;
-    let (r, _existed, missing) = r;
+    let (r, scope, existed, missing) = r;
     if let Some(m) = missing {
         return err_text(m);
     }
-    // notify the map if the player is online (## -> 0x2b11, # -> 0x3804)
-    let scope2 = if name.starts_with('#') && !name.starts_with("##") {
-        1
-    } else {
-        2
+    // Notify the maps of any of this account's online chars (##
+    // becomes 0x2b11, # becomes 0x3804). `online` is keyed by
+    // char_id, so find the account's chars through their sessions
+    // (the same match kick_account does).
+    let cids: Vec<u32> = stc
+        .player_sessions
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|(_, rec)| rec.lock().unwrap().account_id == id as u32)
+        .map(|(cid, _)| *cid)
+        .collect();
+    let mids: Vec<usize> = {
+        let online = stc.online.lock().unwrap();
+        cids.iter().filter_map(|c| online.get(c)).copied().collect()
     };
-    if let Some(&mid) = stc.online.lock().unwrap().get(&(id as u32)) {
-        let n = FixedStr::<32>::from_str_truncate(&r);
-        if scope2 == 2 {
+    let n = FixedStr::<32>::from_str_truncate(&r);
+    for mid in mids {
+        if scope == 2 {
             let mut p = crate::proto::P2B11::default();
             p.account_id = AccountId(id as u32);
             p.repeat = vec![P2B11Repeat {
@@ -1238,7 +1268,7 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
             stc.map_send(mid, enc(move |v| p.encode(v)));
         }
     }
-    if _existed {
+    if existed {
         ok_text("Variable changed.\n".to_string())
     } else {
         ok_text("New Variable created.\n".to_string())
@@ -1253,15 +1283,9 @@ async fn delaccreg(st: &Arc<State>, args: &[String]) -> Value {
     let name = args[1].clone();
     st.db.blocking_conn(move |c| {
         if !acct_exists(c, id) {
-            return err_text(format!(
-                "Unable to find the account [id: {id}]. Account doesn't exist.\n"
-            ));
+            return err_text(err_no_acct(id));
         }
-        let scope: i64 = if name.starts_with('#') && !name.starts_with("##") {
-            1
-        } else {
-            2
-        };
+        let scope = accreg_scope(&name);
         let n = name.trim_start_matches('#');
         let rows = c
             .execute(
@@ -1323,9 +1347,7 @@ async fn find(st: &Arc<State>, args: &[String]) -> Value {
         let mut lines = Vec::new();
         let mut accounts = Vec::new();
         for (id, name, state, email, last, cnt, ip, memo) in &rows {
-            let last_s = chrono::DateTime::from_timestamp(last / 1000, 0)
-                .map(|t| t.format("%Y/%m/%d %H:%M:%S").to_string())
-                .unwrap_or_default();
+            let last_s = fmt_ymd_slash(last / 1000);
             lines.push(format!(
                 "{id:10} {name:<24} st={state} email={email} last={last_s} logins={cnt} ip={ip} memo={memo}"
             ));

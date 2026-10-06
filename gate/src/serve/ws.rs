@@ -191,10 +191,9 @@ pub async fn handle_ws(
         .on_upgrade(move |sock| async move {
             let _guard = ConnGuard::new(hs.st.clone());
             let (mut sink, stream) = futures_util::StreamExt::split(sock);
-            let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(128);
+            let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<u8>>(128);
             // writer task: binary frames, then a clean Close(1000)
             // when the channel ends (session over)
-            let mut rx = rx;
             tokio::spawn(async move {
                 while let Some(buf) = rx.recv().await {
                     if sink.send(Message::Binary(buf.into())).await.is_err() {

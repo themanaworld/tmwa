@@ -35,12 +35,6 @@ static RE_EMAIL: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(||
 });
 static RE_CODE: std::sync::LazyLock<regex::Regex> =
     std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9-_]{6,128}$").unwrap());
-static RE_EMAIL_OPT: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
-    regex::Regex::new(
-        r"^(|(?:[a-zA-Z0-9.$&+=_~-]{1,34}@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,35}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,34}[a-zA-Z0-9])?){0,9}))$",
-    )
-    .unwrap()
-});
 static RE_TOKEN: std::sync::LazyLock<regex::Regex> =
     std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9-_]{20,4000}$").unwrap());
 
@@ -127,18 +121,31 @@ impl HttpState {
     }
 }
 
-fn jserr(code: StatusCode, error: &str) -> Response {
-    (code, Json(json!({"status":"error","error":error}))).into_response()
-}
-
-fn route_key(req: &Request) -> String {
-    format!("{}{}", req.method(), req.uri().path())
-}
-
 /// The tmw-api shape: `{"status":"error","error":"..."}` with a real
 /// status code.
 fn api_error(status: StatusCode, error: &str) -> Response {
-    jserr(status, error)
+    (status, Json(json!({"status":"error","error":error}))).into_response()
+}
+
+/// Rate-limiter key shared with the account handlers: the method
+/// plus the route's last path segment ("POST/account",
+/// "PUT/account"), so middleware cooldowns land in the same
+/// keyspace the handlers check regardless of the configured base.
+fn route_key(req: &Request) -> String {
+    let seg = req.uri().path().rsplit('/').next().unwrap_or("");
+    format!("{}/{seg}", req.method())
+}
+
+/// If a cooldown or ban applies to (route, ip), the 429/418 reply
+/// to return (with Retry-After while a cooldown remains).
+fn rate_limited(hs: &HttpState, route: &str, ip: IpAddr) -> Option<Response> {
+    let (c, j, retry) = hs.rate.lock().unwrap().check(route, ip)?;
+    let mut r = (c, Json(j)).into_response();
+    if retry > 0 {
+        r.headers_mut()
+            .insert("Retry-After", retry.to_string().parse().unwrap());
+    }
+    Some(r)
 }
 
 /// POST create: validate, reject duplicates, store argon2id, mail.
@@ -158,12 +165,7 @@ async fn create_account(
         &hs.st.cfg.http.trusted_proxies,
     );
     let route = "POST/account";
-    if let Some((c, j, retry)) = hs.rate.lock().unwrap().check(route, ip) {
-        let mut r = (c, Json(j)).into_response();
-        if retry > 0 {
-            r.headers_mut()
-                .insert("Retry-After", retry.to_string().parse().unwrap());
-        }
+    if let Some(r) = rate_limited(&hs, route, ip) {
         return r;
     }
     let st = &hs.st;
@@ -177,7 +179,7 @@ async fn create_account(
     let (user, pass, email) = (get("username"), get("password"), get("email"));
     let ok = RE_USER.is_match(user)
         && RE_USER.is_match(pass)
-        && RE_EMAIL_OPT.is_match(email)
+        && (email.is_empty() || RE_EMAIL.is_match(email))
         && email.len() < 40;
     if !ok {
         cooldown(300_000);
@@ -254,12 +256,7 @@ async fn reset_password(
         &hs.st.cfg.http.trusted_proxies,
     );
     let route = "PUT/account";
-    if let Some((c, j, retry)) = hs.rate.lock().unwrap().check(route, ip) {
-        let mut r = (c, Json(j)).into_response();
-        if retry > 0 {
-            r.headers_mut()
-                .insert("Retry-After", retry.to_string().parse().unwrap());
-        }
+    if let Some(r) = rate_limited(&hs, route, ip) {
         return r;
     }
     let st = &hs.st;
@@ -430,7 +427,6 @@ async fn reset_password(
 /// Drop expired cooldowns, bad actors and password_resets rows.
 /// Runs on a 10 min timer; also keeps the in-memory maps bounded.
 pub(crate) async fn prune(st: &Arc<State>) {
-    let now = Instant::now();
     let now_ms = chrono::Utc::now().timestamp_millis();
     // (RateState lives in HttpState which isn't reachable from here;
     // prune the DB side here and bound the maps inside the handlers.)
@@ -446,7 +442,6 @@ pub(crate) async fn prune(st: &Arc<State>) {
         }
     })
     .await;
-    let _ = now;
 }
 
 fn uuid() -> Option<String> {
@@ -579,12 +574,12 @@ pub fn router(hs: Arc<HttpState>) -> axum::Router {
         // get tmw-api's 404, not axum's 405
         .route_layer(DefaultBodyLimit::max(1 << 20))
         .route_layer(axum::middleware::from_fn_with_state(hs.clone(), captcha))
-        .method_not_allowed_fallback(|| async { jserr(StatusCode::NOT_FOUND, "not found") });
+        .method_not_allowed_fallback(|| async { api_error(StatusCode::NOT_FOUND, "not found") });
     axum::Router::new()
         .route(&format!("{base}/server"), get(server))
         .merge(account)
         .route(&hs.st.cfg.http.ws_path, get(super::ws::handle_ws))
-        .fallback(|| async { jserr(StatusCode::NOT_FOUND, "not found") })
+        .fallback(|| async { api_error(StatusCode::NOT_FOUND, "not found") })
         .with_state(hs)
 }
 
