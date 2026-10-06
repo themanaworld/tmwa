@@ -16,6 +16,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
+use bytes::Bytes;
 use tokio::sync::mpsc;
 
 use crate::config::Config;
@@ -54,10 +55,47 @@ pub struct AuthEntry {
 
 const AUTH_TTL: Duration = Duration::from_secs(300);
 
-/// Drop expired entries from the auth table; runs before each
-/// mutation/lookup so stale handoffs cannot pile up.
-fn prune_auth(a: &mut HashMap<u32, AuthEntry>, now: Instant) {
-    a.retain(|_, e| now.duration_since(e.created) < AUTH_TTL);
+impl AuthEntry {
+    /// Within its TTL? Matched entries are checked individually
+    /// because the table sweep is throttled, not run per access.
+    pub fn fresh(&self, now: Instant) -> bool {
+        now.duration_since(self.created) < AUTH_TTL
+    }
+}
+
+/// Minimum interval between full expiry sweeps of an auth table.
+/// The sweep is O(n), so it is throttled instead of running per
+/// access; entries are TTL-checked at match time, so a skipped
+/// sweep only delays reclamation.
+const SWEEP_INTERVAL: Duration = Duration::from_secs(1);
+
+/// A `HashMap` of timestamped entries swept for expiry at most
+/// once per `SWEEP_INTERVAL` (`sweep`); callers still check each
+/// matched entry's own TTL.
+pub struct SweptMap<V> {
+    /// The entries, keyed by account_id.
+    pub map: HashMap<u32, V>,
+    last_sweep: Instant,
+}
+
+impl<V> SweptMap<V> {
+    fn new() -> SweptMap<V> {
+        SweptMap {
+            map: HashMap::new(),
+            last_sweep: Instant::now(),
+        }
+    }
+
+    /// Drop entries whose timestamp (`at`) is older than `ttl`;
+    /// no-op when less than `SWEEP_INTERVAL` passed since the last
+    /// sweep.
+    fn sweep(&mut self, now: Instant, ttl: Duration, at: impl Fn(&V) -> Instant) {
+        if now.duration_since(self.last_sweep) < SWEEP_INTERVAL {
+            return;
+        }
+        self.last_sweep = now;
+        self.map.retain(|_, v| now.duration_since(at(v)) < ttl);
+    }
 }
 
 /// Reply state of a served map-auth reservation: Pending until the
@@ -96,9 +134,11 @@ pub struct ServedAuth {
 /// longer than a map link's reconnect-and-repush cycle.
 const SERVED_TTL: Duration = Duration::from_secs(60);
 
-/// Drop expired reservations from the served-auth table.
-fn prune_served(s: &mut HashMap<u32, ServedAuth>, now: Instant) {
-    s.retain(|_, r| now.duration_since(r.served) < SERVED_TTL);
+impl ServedAuth {
+    /// Within its TTL? Checked at match time like `AuthEntry`.
+    fn fresh(&self, now: Instant) -> bool {
+        now.duration_since(self.served) < SERVED_TTL
+    }
 }
 
 /// The credential tuple a 0x2afc request carries: what a pending
@@ -188,11 +228,13 @@ pub struct MapHandle {
     pub id: usize,
     /// Bulk queue into the map session writer task: broadcasts,
     /// notifications, pre-auth floods. Dropped-first under load.
-    pub tx: mpsc::Sender<Vec<u8>>,
+    /// `Bytes` so a broadcast is a refcount clone per recipient
+    /// rather than a fresh copy.
+    pub tx: mpsc::Sender<Bytes>,
     /// Critical queue, drained before `tx`: request replies the map
     /// is blocked waiting on (0x2afd/0x3810/0x2b06/0x382a/...).
     /// `send_must` targets this so bulk floods can't starve answers.
-    pub tx_prio: mpsc::Sender<Vec<u8>>,
+    pub tx_prio: mpsc::Sender<Bytes>,
     /// Address advertised in the 0x2af8 login packet (client port of
     /// the map server, where the gate's relay connects).
     pub ip: u32,
@@ -223,6 +265,18 @@ const MAP_TX_LOW_WATER: usize = 256;
 /// matches nothing (`map_kill` keys on a real slot).
 pub const NO_MAP: usize = usize::MAX;
 
+/// Snapshot backing `map_for`: map name to the lowest
+/// non-draining slot serving it, plus the first non-draining
+/// server with maps and its first map name (the tmwa "unknown
+/// map" fallback).
+/// Rebuilt by `State::rebuild_map_index`.
+#[derive(Default)]
+struct MapIndex {
+    by_name: HashMap<String, usize>,
+    /// (slot, first map name) of the fallback server.
+    fallback: Option<(usize, String)>,
+}
+
 /// Cap on queued map-link DB jobs. Beyond it the queue drops new
 /// jobs rather than become an unbounded memory backlog.
 const DB_JOBS_LIMIT: usize = 65536;
@@ -241,7 +295,7 @@ impl MapHandle {
     /// Non-critical send (broadcasts, notifications): dropped with a
     /// warning when the writer queue is full. Returns whether the
     /// packet was queued.
-    pub fn send(&self, bytes: Vec<u8>) -> bool {
+    pub fn send(&self, bytes: Bytes) -> bool {
         match self.tx.try_send(bytes) {
             Ok(()) => true,
             Err(e) => {
@@ -307,10 +361,12 @@ pub struct OnlineAuth {
     pub server: usize,
 }
 
-/// A cached character (mirrors tmwa's in-memory char_db).
+/// A cached character (mirrors tmwa's in-memory char_db). `data`
+/// is shared with queued `DbJob::SaveChar`s (and `load_char`
+/// returns), so mutation goes through `Arc::make_mut` copy-on-write.
 pub struct CharRecord {
     pub key: crate::proto::CharKey,
-    pub data: crate::proto::CharData,
+    pub data: std::sync::Arc<CharData>,
 }
 
 // ---- serialized DB writer ----
@@ -393,11 +449,13 @@ impl DbOpResult {
 /// database cannot stall the per-link read loop; consecutive jobs
 /// are committed in one transaction.
 pub enum DbJob {
-    /// 0x2b01 character save.
+    /// 0x2b01 character save. `data` shares the cache's Arc: the
+    /// ~7 KB CharData is allocated once per 0x2b01, not copied into
+    /// the job.
     SaveChar {
         char_id: u32,
         key: Box<CharKey>,
-        data: Box<CharData>,
+        data: std::sync::Arc<CharData>,
     },
     /// Serialized op; runs inside the batch transaction on the
     /// shared `&Connection` (a `Transaction` derefs to it), so
@@ -420,13 +478,13 @@ pub struct State {
     pub db: std::sync::Arc<crate::db::Db>,
     /// account_id -> pending auth entry (a new login replaces the
     /// account's previous entry; entries expire after AUTH_TTL).
-    pub auth: Mutex<HashMap<u32, AuthEntry>>,
+    pub auth: Mutex<SweptMap<AuthEntry>>,
     /// Keyed by account_id: a 0x2afc already answered (or being
     /// answered) with 0x2afd. The map re-pushes pending auth
     /// requests when the link flaps; the reservation lets the
     /// repeat get the same reply instead of a 0x2afe. Expires
     /// after SERVED_TTL.
-    pub served_auth: Mutex<HashMap<u32, ServedAuth>>,
+    pub served_auth: Mutex<SweptMap<ServedAuth>>,
     /// (account_id, char_id) of clients waiting on 0x3830.
     pub pending_sel: Mutex<HashMap<(u32, u32), PendingSel>>,
     /// char_id -> auth material of each online player, so a map
@@ -456,10 +514,20 @@ pub struct State {
     pub storage_dirty: Mutex<HashMap<i64, DirtyStorage>>,
     /// Map server slots; None = free.
     pub map_servers: Mutex<Vec<Option<MapHandle>>>,
+    /// Secondary index over `map_servers` for `map_for`: map name
+    /// to the lowest non-draining slot serving it, plus the
+    /// fallback target. Rebuilt whenever a link's map list or
+    /// draining flag changes (`rebuild_map_index`).
+    map_index: Mutex<MapIndex>,
     /// char_id -> map server slot (online in game).
     pub online: Mutex<HashMap<u32, usize>>,
     /// Character cache.
     pub chars: Mutex<HashMap<u32, CharRecord>>,
+    /// account_id to char ids of cached records. Secondary index
+    /// over `chars`, kept in lockstep at every insert/remove
+    /// (`cache_put`/`cache_remove`) so per-account scans don't walk
+    /// the whole cache.
+    pub chars_by_account: Mutex<HashMap<u32, Vec<u32>>>,
     /// name -> char_id
     pub char_names: Mutex<HashMap<String, u32>>,
     /// account_id -> char session sender, while the client is on the
@@ -514,8 +582,8 @@ impl State {
         State {
             cfg,
             db,
-            auth: Mutex::new(HashMap::new()),
-            served_auth: Mutex::new(HashMap::new()),
+            auth: Mutex::new(SweptMap::new()),
+            served_auth: Mutex::new(SweptMap::new()),
             pending_sel: Mutex::new(HashMap::new()),
             online_auth: Mutex::new(HashMap::new()),
             transfer_pending: Mutex::new(HashMap::new()),
@@ -524,8 +592,10 @@ impl State {
             save_dirty: Mutex::new(HashSet::new()),
             storage_dirty: Mutex::new(HashMap::new()),
             map_servers: Mutex::new(Vec::new()),
+            map_index: Mutex::new(MapIndex::default()),
             online: Mutex::new(HashMap::new()),
             chars: Mutex::new(HashMap::new()),
+            chars_by_account: Mutex::new(HashMap::new()),
             char_names: Mutex::new(HashMap::new()),
             char_sessions: Mutex::new(HashMap::new()),
             gm: Mutex::new(HashMap::new()),
@@ -547,12 +617,50 @@ impl State {
         }
     }
 
-    /// Mark a map server draining / clear the flag.
+    /// Mark a map server draining / clear the flag. Draining
+    /// changes `map_for`'s answers, so the name index is rebuilt.
     pub fn map_set_draining(&self, id: usize, draining: bool) {
-        let mut ms = self.map_servers.lock().unwrap();
-        if let Some(Some(h)) = ms.get_mut(id) {
-            h.draining = draining;
+        {
+            let mut ms = self.map_servers.lock().unwrap();
+            if let Some(Some(h)) = ms.get_mut(id) {
+                h.draining = draining;
+            }
         }
+        self.rebuild_map_index();
+    }
+
+    /// Set the map list a link serves (0x2afa) and rebuild the
+    /// `map_for` name index.
+    pub fn map_set_maps(&self, id: usize, maps: Vec<String>) {
+        {
+            let mut ms = self.map_servers.lock().unwrap();
+            if let Some(Some(h)) = ms.get_mut(id) {
+                h.maps = maps;
+            }
+        }
+        self.rebuild_map_index();
+    }
+
+    /// Rebuild `map_index` from the live slots: every map name of
+    /// a non-draining server maps to its (lowest) slot, and the
+    /// fallback is the lowest non-draining server with maps.
+    fn rebuild_map_index(&self) {
+        let ms = self.map_servers.lock().unwrap();
+        let mut idx = MapIndex::default();
+        for (i, slot) in ms.iter().enumerate() {
+            let Some(h) = slot else { continue };
+            if h.draining || h.maps.is_empty() {
+                continue;
+            }
+            if idx.fallback.is_none() {
+                idx.fallback = Some((i, h.maps[0].clone()));
+            }
+            for m in &h.maps {
+                idx.by_name.entry(m.clone()).or_insert(i);
+            }
+        }
+        drop(ms);
+        *self.map_index.lock().unwrap() = idx;
     }
 
     /// Cryptographic random; callers must refuse the action on
@@ -565,31 +673,34 @@ impl State {
 
     pub fn push_auth(&self, e: AuthEntry) {
         let mut a = self.auth.lock().unwrap();
-        prune_auth(&mut a, Instant::now());
-        a.insert(e.account_id, e);
+        a.sweep(Instant::now(), AUTH_TTL, |e| e.created);
+        a.map.insert(e.account_id, e);
     }
 
-    /// Remove and return a pending auth entry. `stage` is the
-    /// expected delflag.
+    /// Remove and return the account's pending auth entry when it
+    /// is at `stage` (the expected delflag), still fresh, and `pred`
+    /// accepts it.
     pub fn take_auth<F: FnMut(&AuthEntry) -> bool>(
         &self,
+        account_id: u32,
         stage: u8,
         mut pred: F,
     ) -> Option<AuthEntry> {
         let mut a = self.auth.lock().unwrap();
-        prune_auth(&mut a, Instant::now());
-        let key = a
-            .iter()
-            .find(|(_, e)| e.delflag == stage && pred(e))
-            .map(|(k, _)| *k)?;
-        a.remove(&key)
+        let now = Instant::now();
+        a.sweep(now, AUTH_TTL, |e| e.created);
+        let e = a.map.get(&account_id)?;
+        if e.delflag != stage || !e.fresh(now) || !pred(e) {
+            return None;
+        }
+        a.map.remove(&account_id)
     }
 
     /// Mark upstream_ip on a matching entry (relay learned the
     /// address tmwa-map will see).
     pub fn set_auth_upstream_ip(&self, account_id: u32, char_id: u32, login_id1: u32, ip: u32) {
         let mut a = self.auth.lock().unwrap();
-        if let Some(e) = a.get_mut(&account_id) {
+        if let Some(e) = a.map.get_mut(&account_id) {
             if e.delflag == DELFLAG_MAP && e.char_id == char_id && e.login_id1 == login_id1 {
                 e.upstream_ip = Some(ip);
             }
@@ -612,13 +723,16 @@ impl State {
     ) -> Option<(AuthEntry, tokio::sync::watch::Sender<ServedReply>)> {
         let mut a = self.auth.lock().unwrap();
         let now = Instant::now();
-        prune_auth(&mut a, now);
-        let key = a.iter().find(|(_, e)| req.matches(e)).map(|(k, _)| *k)?;
-        let e = a.remove(&key)?;
+        a.sweep(now, AUTH_TTL, |e| e.created);
+        let e = a.map.get(&req.account_id)?;
+        if !e.fresh(now) || !req.matches(e) {
+            return None;
+        }
+        let e = a.map.remove(&req.account_id)?;
         let (tx, _rx) = tokio::sync::watch::channel(ServedReply::Pending);
         let mut s = self.served_auth.lock().unwrap();
-        prune_served(&mut s, now);
-        s.insert(
+        s.sweep(now, SERVED_TTL, |r| r.served);
+        s.map.insert(
             req.account_id,
             ServedAuth {
                 account_id: req.account_id,
@@ -651,9 +765,10 @@ impl State {
         map_port: u16,
     ) -> Option<(tokio::sync::watch::Receiver<ServedReply>, OnlineAuth)> {
         let mut s = self.served_auth.lock().unwrap();
-        prune_served(&mut s, Instant::now());
-        let r = s.get(&req.account_id)?;
-        if req.matches_served(r) && r.map_ip == map_ip && r.map_port == map_port {
+        let now = Instant::now();
+        s.sweep(now, SERVED_TTL, |r| r.served);
+        let r = s.map.get(&req.account_id)?;
+        if r.fresh(now) && req.matches_served(r) && r.map_ip == map_ip && r.map_port == map_port {
             let auth = OnlineAuth {
                 account_id: r.account_id,
                 char_id: r.char_id,
@@ -796,8 +911,8 @@ impl State {
         id2: u32,
         ip: u32,
     ) -> Option<AuthEntry> {
-        self.take_auth(2, |e| {
-            e.account_id == account_id && e.login_id1 == id1 && e.login_id2 == id2 && e.ip == ip
+        self.take_auth(account_id, DELFLAG_CHAR, |e| {
+            e.login_id1 == id1 && e.login_id2 == id2 && e.ip == ip
         })
     }
 
@@ -809,8 +924,8 @@ impl State {
     /// socket writer, which drains prio first).
     pub fn map_register(
         &self,
-        tx: mpsc::Sender<Vec<u8>>,
-        tx_prio: mpsc::Sender<Vec<u8>>,
+        tx: mpsc::Sender<Bytes>,
+        tx_prio: mpsc::Sender<Bytes>,
         ip: u32,
         port: u16,
     ) -> (usize, std::sync::Arc<tokio::sync::Notify>) {
@@ -854,7 +969,7 @@ impl State {
     /// that armed its wait on a dead link (or runs late from a
     /// dead link's spawned task) must not kill the fresh link
     /// that took its place.
-    pub fn map_kill(&self, id: usize, tx: &mpsc::Sender<Vec<u8>>) {
+    pub fn map_kill(&self, id: usize, tx: &mpsc::Sender<Bytes>) {
         let ms = self.map_servers.lock().unwrap();
         if let Some(Some(h)) = ms.get(id)
             && (h.tx_prio.same_channel(tx) || h.tx.same_channel(tx))
@@ -865,7 +980,7 @@ impl State {
 
     /// The critical-reply queue for map `id` (0x2afd/0x3810/0x382a
     /// and friends). `send_must` and request replies go here.
-    pub fn map_prio_tx(&self, id: usize) -> Option<mpsc::Sender<Vec<u8>>> {
+    pub fn map_prio_tx(&self, id: usize) -> Option<mpsc::Sender<Bytes>> {
         let ms = self.map_servers.lock().unwrap();
         ms.get(id)
             .and_then(|s| s.as_ref())
@@ -889,6 +1004,7 @@ impl State {
                 *slot = None;
             }
         }
+        self.rebuild_map_index();
         // drop online marks + pre-auth material for that map
         self.online.lock().unwrap().retain(|_, v| *v != id);
         self.online_auth
@@ -984,24 +1100,27 @@ impl State {
 
     /// Send to every connected map server except `skip` (which may
     /// need the same bytes on its priority queue instead: ordering
-    /// vs a following send_must).
+    /// vs a following send_must). The payload is shared per
+    /// recipient through `Bytes`, so this is refcount clones, not
+    /// one copy per map.
     pub fn map_broadcast_except(&self, skip: usize, bytes: &[u8]) {
+        let bytes = Bytes::copy_from_slice(bytes);
         let ms = self.map_servers.lock().unwrap();
         for (i, slot) in ms.iter().enumerate() {
             if i == skip {
                 continue;
             }
             if let Some(h) = slot {
-                h.send(bytes.to_vec());
+                h.send(bytes.clone());
             }
         }
     }
 
     /// Send to one map server by slot.
-    pub fn map_send(&self, id: usize, bytes: Vec<u8>) -> bool {
+    pub fn map_send(&self, id: usize, bytes: impl Into<Bytes>) -> bool {
         let ms = self.map_servers.lock().unwrap();
         if let Some(Some(h)) = ms.get(id) {
-            h.send(bytes)
+            h.send(bytes.into())
         } else {
             false
         }
@@ -1020,7 +1139,7 @@ impl State {
     }
 
     /// (slot, sender) pairs for every connected map server.
-    pub fn map_senders(&self) -> Vec<(usize, mpsc::Sender<Vec<u8>>)> {
+    pub fn map_senders(&self) -> Vec<(usize, mpsc::Sender<Bytes>)> {
         let ms = self.map_servers.lock().unwrap();
         ms.iter()
             .enumerate()
@@ -1045,13 +1164,14 @@ impl State {
 
     /// Queue a 0x2b01 character save. Marks the char as having an
     /// in-flight save BEFORE enqueueing, so a 0x2afc on another
-    /// link can wait for it (`wait_saves`).
-    pub fn queue_save(&self, char_id: u32, key: CharKey, data: CharData) {
+    /// link can wait for it (`wait_saves`). `data` is shared with
+    /// the `chars` cache entry rather than copied.
+    pub fn queue_save(&self, char_id: u32, key: CharKey, data: std::sync::Arc<CharData>) {
         self.save_begin(char_id);
         let job = DbJob::SaveChar {
             char_id,
             key: Box::new(key),
-            data: Box::new(data),
+            data,
         };
         match self.push_db_job(job) {
             JobPush::Queued => {
@@ -1228,7 +1348,7 @@ impl State {
                 .lock()
                 .unwrap()
                 .get(&cid)
-                .map(|c| (c.key, c.data));
+                .map(|c| (c.key, c.data.clone()));
             let Some((key, data)) = cur else {
                 // the char record is gone (deleted) or was never
                 // cached: there is no newer state left to write
@@ -1244,7 +1364,7 @@ impl State {
             let job = DbJob::SaveChar {
                 char_id: cid,
                 key: Box::new(key),
-                data: Box::new(data),
+                data,
             };
             match self.push_db_job(job) {
                 JobPush::Queued => n += 1,
@@ -1344,27 +1464,19 @@ impl State {
         self.drains.lock().unwrap().remove(&id)
     }
 
-    /// Map server slot that serves `map`, or the first slot with maps.
-    /// On fallback, `rewritten` is set to the server's first map.
+    /// Map server slot that serves `map`, or the fallback target
+    /// (first non-draining slot with maps). On fallback, `rewritten`
+    /// is set to the server's first map. Reads the index maintained
+    /// by `rebuild_map_index` instead of scanning the slots.
     pub fn map_for(&self, map: &str) -> (Option<usize>, Option<String>) {
-        let ms = self.map_servers.lock().unwrap();
-        for (i, slot) in ms.iter().enumerate() {
-            if let Some(h) = slot {
-                if !h.draining && h.maps.iter().any(|m| m == map) {
-                    return (Some(i), None);
-                }
-            }
+        let idx = self.map_index.lock().unwrap();
+        if let Some(&i) = idx.by_name.get(map) {
+            return (Some(i), None);
         }
-        for (i, slot) in ms.iter().enumerate() {
-            if let Some(h) = slot {
-                if !h.draining {
-                    if let Some(first) = h.maps.first() {
-                        return (Some(i), Some(first.clone()));
-                    }
-                }
-            }
+        match &idx.fallback {
+            Some((i, first)) => (Some(*i), Some(first.clone())),
+            None => (None, None),
         }
-        (None, None)
     }
 
     pub fn map_count(&self) -> usize {
@@ -1454,12 +1566,14 @@ impl State {
         }
     }
 
-    /// Load a character into the cache (from DB if needed).
+    /// Load a character into the cache (from DB if needed). The
+    /// returned record shares its `data` Arc with the cache entry;
+    /// a cache hit is a refcount bump, not a copy.
     pub async fn load_char(&self, char_id: u32) -> Option<CharRecord> {
         if let Some(c) = self.chars.lock().unwrap().get(&char_id) {
             return Some(CharRecord {
                 key: c.key,
-                data: c.data,
+                data: c.data.clone(),
             });
         }
         let (key, mut data) = self
@@ -1468,10 +1582,87 @@ impl State {
             .await
             .ok()?;
         self.fix_party_id(&key, &mut data);
-        let mut chars = self.chars.lock().unwrap();
-        let rec = CharRecord { key, data };
-        chars.insert(char_id, CharRecord { key, data });
+        let data = std::sync::Arc::new(data);
+        self.cache_put(
+            char_id,
+            CharRecord {
+                key,
+                data: data.clone(),
+            },
+        );
+        Some(CharRecord { key, data })
+    }
+
+    /// Insert/replace a cached char record and maintain the
+    /// account index (`chars_by_account`).
+    pub fn cache_put(&self, char_id: u32, rec: CharRecord) {
+        let aid = rec.key.account_id.0;
+        self.chars.lock().unwrap().insert(char_id, rec);
+        let mut by = self.chars_by_account.lock().unwrap();
+        let v = by.entry(aid).or_default();
+        if !v.contains(&char_id) {
+            v.push(char_id);
+        }
+    }
+
+    /// Remove a cached char record and its account-index entry.
+    /// Returns the removed record, if any.
+    pub fn cache_remove(&self, char_id: u32) -> Option<CharRecord> {
+        let rec = self.chars.lock().unwrap().remove(&char_id)?;
+        let mut by = self.chars_by_account.lock().unwrap();
+        if let Some(v) = by.get_mut(&rec.key.account_id.0) {
+            v.retain(|&c| c != char_id);
+            if v.is_empty() {
+                by.remove(&rec.key.account_id.0);
+            }
+        }
         Some(rec)
+    }
+
+    /// Char ids of the account's cached records (empty when none).
+    pub fn chars_of_account(&self, account_id: u32) -> Vec<u32> {
+        self.chars_by_account
+            .lock()
+            .unwrap()
+            .get(&account_id)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// Replace the account_reg (scope 1) or account_reg2 (scope 2)
+    /// snapshot in every cached CharData of the account (tmwa's
+    /// set_account_reg / set_account_reg2). Copy-on-write: a record
+    /// shared with a queued save keeps its old snapshot there.
+    pub fn cache_account_regs(&self, account_id: u32, regs: &[(String, i64)], scope: i64) {
+        use crate::proto::types::FixedStr;
+        let cids = self.chars_of_account(account_id);
+        if cids.is_empty() {
+            return;
+        }
+        let mut chars = self.chars.lock().unwrap();
+        for cid in cids {
+            let Some(c) = chars.get_mut(&cid) else { continue };
+            let d = std::sync::Arc::make_mut(&mut c.data);
+            let (num, arr) = if scope == 2 {
+                (&mut d.account_reg2_num, &mut d.account_reg2)
+            } else {
+                (&mut d.account_reg_num, &mut d.account_reg)
+            };
+            *num = regs.len().min(arr.len()) as i32;
+            for (i, (name, v)) in regs.iter().enumerate().take(arr.len()) {
+                arr[i] = crate::proto::GlobalReg {
+                    str: FixedStr::<32>::from_str_truncate(name),
+                    value: *v as i32,
+                };
+            }
+        }
+    }
+
+    /// Mark `cid` online on `map_id` and wake the online-file
+    /// writer and drain waiters.
+    pub fn mark_online(&self, cid: u32, map_id: usize) {
+        self.online.lock().unwrap().insert(cid, map_id);
+        self.online_notify.notify_waiters();
     }
 }
 
@@ -1484,9 +1675,14 @@ impl State {
 /// the link `tx` belongs to (`map_kill` checks channel identity),
 /// so a stale wait can't kill a fresh link that reused the slot.
 /// Returns false when the bytes were not queued.
-pub async fn send_must(st: &State, map_id: usize, tx: &mpsc::Sender<Vec<u8>>, v: Vec<u8>) -> bool {
+pub async fn send_must(
+    st: &State,
+    map_id: usize,
+    tx: &mpsc::Sender<Bytes>,
+    v: impl Into<Bytes>,
+) -> bool {
     use tokio::sync::mpsc::error::TrySendError;
-    match tx.try_send(v) {
+    match tx.try_send(v.into()) {
         Ok(()) => true,
         Err(TrySendError::Full(v)) | Err(TrySendError::Closed(v)) => {
             match tokio::time::timeout(Duration::from_secs(30), tx.send(v)).await {
@@ -1785,16 +1981,19 @@ mod tests {
         let key = char_key(100, 1);
         let mut data = CharData::default();
         data.zeny = 1;
-        st.chars
-            .lock()
-            .unwrap()
-            .insert(100, CharRecord { key, data });
+        st.cache_put(
+            100,
+            CharRecord {
+                key,
+                data: Arc::new(data),
+            },
+        );
         // six saves for one char; the queue only takes four
         for zeny in 1..=6 {
             data.zeny = zeny;
             // the 0x2b01 handler refreshes the cache before queueing
-            st.chars.lock().unwrap().get_mut(&100).unwrap().data = data;
-            st.queue_save(100, key, data);
+            st.chars.lock().unwrap().get_mut(&100).unwrap().data = Arc::new(data);
+            st.queue_save(100, key, Arc::new(data));
         }
         assert_eq!(st.db_dropped.load(Ordering::Relaxed), 2);
         assert!(st.save_dirty.lock().unwrap().contains(&100));
@@ -1856,11 +2055,11 @@ mod tests {
         st.db_jobs_limit = 1;
         let key = char_key(7, 1);
         let data = CharData::default();
-        st.queue_save(7, key, data);
-        st.queue_save(7, key, data);
+        st.queue_save(7, key, Arc::new(data));
+        st.queue_save(7, key, Arc::new(data));
         assert!(st.save_dirty.lock().unwrap().contains(&7));
         st.db_jobs_limit = 64;
-        st.queue_save(7, key, data);
+        st.queue_save(7, key, Arc::new(data));
         assert!(!st.save_dirty.lock().unwrap().contains(&7));
         assert_eq!(st.saves_in_flight.lock().unwrap()[&7], 2);
     }

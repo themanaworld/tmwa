@@ -14,6 +14,7 @@
 use std::net::Ipv4Addr;
 use std::sync::Arc;
 
+use bytes::Bytes;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
@@ -24,8 +25,6 @@ use crate::proto::types::{FixedStr, GmLevel, Ip4Address};
 use crate::proto::*;
 
 const MAX_PARTY: usize = 120;
-const ACCOUNT_REG2_NUM: usize = 16;
-const ACCOUNT_REG_NUM: usize = 16;
 /// tmwa sizes its map-server table at 32 (char.cpp
 /// MAX_MAP_SERVERS); a 33rd registration is refused.
 const MAX_MAP_SERVERS: usize = 32;
@@ -36,8 +35,8 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
     // (broadcasts, floods), `rx_prio` is critical replies and is
     // always drained first — a bulk backlog can never starve an
     // answer the map is blocked on.
-    let (tx, mut rx) = mpsc::channel::<Vec<u8>>(2048);
-    let (tx_prio, mut rx_prio) = mpsc::channel::<Vec<u8>>(2048);
+    let (tx, mut rx) = mpsc::channel::<Bytes>(2048);
+    let (tx_prio, mut rx_prio) = mpsc::channel::<Bytes>(2048);
     // writer task
     let wh = tokio::spawn(async move {
         let mut w = wr;
@@ -170,7 +169,7 @@ fn on_user_list(st: &Arc<State>, map_id: usize, head_users: u16, chars: &[u32]) 
             h.users = head_users;
         }
     }
-    st.online_notify.notify_one();
+    st.online_notify.notify_waiters();
     // 0x2b00 user count to all map servers
     let users = st.count_users() as u32;
     let mut p = P2B00::default();
@@ -182,7 +181,7 @@ type HResult = Result<(), ()>;
 
 async fn handle(
     st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
+    tx_prio: &mpsc::Sender<Bytes>,
     map_id: usize,
     id: u16,
     bytes: &[u8],
@@ -198,15 +197,10 @@ async fn handle(
                 .iter()
                 .map(|r| r.map_name.to_string_lossy())
                 .collect();
-            {
-                let mut ms = st.map_servers.lock().unwrap();
-                if let Some(Some(h)) = ms.get_mut(map_id) {
-                    h.maps = maps.clone();
-                }
-            }
+            st.map_set_maps(map_id, maps.clone());
             tracing::info!(map_id, maps = maps.len(), "map list received");
             let p = P2AFB::default();
-            send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+            send_must(st, map_id, tx_prio, enc(move |v| p.encode(v))).await;
             // 0x2b04: tell the others about this server; tell this
             // server about the others.
             let (ip, port) = st.map_addr(map_id).unwrap_or((0, 0));
@@ -247,7 +241,7 @@ async fn handle(
                         map_name: FixedStr::<16>::from_str_truncate(m),
                     })
                     .collect();
-                send_must(st, map_id, tx, enc(|v| head.encode(v))).await;
+                send_must(st, map_id, tx_prio, enc(|v| head.encode(v))).await;
             }
             // Pre-auth: every player online elsewhere gets a 0x3829
             // on this new map, so it can accept transfers and
@@ -260,7 +254,7 @@ async fn handle(
                 p.login_id1 = e.login_id1;
                 p.login_id2 = e.login_id2;
                 p.ip = ip4(e.ip);
-                send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+                send_must(st, map_id, tx_prio, enc(move |v| p.encode(v))).await;
             }
             Ok(())
         }
@@ -274,7 +268,7 @@ async fn handle(
             // may be gone by the time the spawned task runs, and
             // the auth reservation keys on it.
             let st = st.clone();
-            let tx = tx.clone();
+            let tx = tx_prio.clone();
             let (map_ip, map_port) = st.map_addr(map_id).unwrap_or((0, 0));
             tokio::spawn(async move {
                 handle_auth_request(&st, &tx, map_id, map_ip, map_port, fixed).await;
@@ -297,17 +291,19 @@ async fn handle(
             // update cache + persist (0x2b01 does not touch
             // account vars; see save_character_conn). The write goes to
             // the serialized DB writer, which batches consecutive
-            // saves into one transaction.
+            // saves into one transaction. The cache entry and the
+            // queued job share one Arc'd CharData.
+            let data = Arc::new(p.char_data);
             {
                 let mut chars = st.chars.lock().unwrap();
                 if let Some(c) = chars.get_mut(&p.char_id.0) {
                     c.key = p.char_key;
-                    c.data = p.char_data;
+                    c.data = data.clone();
                 }
             }
             // marks the write in-flight so a transferring char's
             // 0x2afc on another link can wait for it
-            st.queue_save(p.char_id.0, p.char_key, p.char_data);
+            st.queue_save(p.char_id.0, p.char_key, data);
             Ok(())
         }
         0x2b02 => {
@@ -327,15 +323,8 @@ async fn handle(
                 delflag: DELFLAG_CHAR,
                 created: std::time::Instant::now(),
             });
-            // the char is no longer online on that map
-            let cids: Vec<u32> = {
-                let chars = st.chars.lock().unwrap();
-                chars
-                    .values()
-                    .filter(|c| c.key.account_id.0 == fixed.account_id.0)
-                    .map(|c| c.key.char_id.0)
-                    .collect()
-            };
+            // the account's chars are no longer online on that map
+            let cids = st.chars_of_account(fixed.account_id.0);
             {
                 // drop only the departing account's marks; every
                 // other player on this map stays online
@@ -346,12 +335,12 @@ async fn handle(
                     }
                 }
             }
-            st.online_notify.notify_one();
+            st.online_notify.notify_waiters();
             st.drop_account_online_auth(fixed.account_id.0);
             let mut p = P2B03::default();
             p.account_id = fixed.account_id;
             p.unknown = 0;
-            send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+            send_must(st, map_id, tx_prio, enc(move |v| p.encode(v))).await;
             Ok(())
         }
         0x2b05 => {
@@ -361,7 +350,7 @@ async fn handle(
             // `load_char` can hit SQLite on a cache miss: keep the
             // read loop hot by finishing in a task, like 0x2afc.
             let st = st.clone();
-            let tx = tx.clone();
+            let tx = tx_prio.clone();
             tokio::spawn(async move {
                 handle_map_move(&st, &tx, map_id, fixed).await;
             });
@@ -389,7 +378,7 @@ async fn handle(
             };
             // char name lookup may hit SQLite
             let st = st.clone();
-            let tx = tx.clone();
+            let tx = tx_prio.clone();
             tokio::spawn(async move {
                 let _ = handle_named_op(&st, &tx, map_id, fixed).await;
             });
@@ -406,28 +395,11 @@ async fn handle(
                 .iter()
                 .map(|r| (r.name.to_string_lossy(), r.value as i64))
                 .collect();
-            {
-                // update cached CharData account_reg2 (set_account_reg2)
-                let mut chars = st.chars.lock().unwrap();
-                for c in chars.values_mut() {
-                    if c.key.account_id.0 == aid {
-                        c.data.account_reg2_num = regs.len().min(ACCOUNT_REG2_NUM) as i32;
-                        for (i, (n, v)) in regs.iter().enumerate().take(ACCOUNT_REG2_NUM) {
-                            c.data.account_reg2[i] = GlobalReg {
-                                str: FixedStr::<32>::from_str_truncate(n),
-                                value: *v as i32,
-                            };
-                        }
-                    }
-                }
-            }
+            // update cached CharData account_reg2 (set_account_reg2)
+            st.cache_account_regs(aid, &regs, 2);
             st.queue_db_op(move |conn| {
                 // tmwa replaces the whole scope with the incoming list
-                let _ = conn.execute(
-                    "DELETE FROM account_vars WHERE account_id=?1 AND scope=2",
-                    [aid as i64],
-                );
-                let _ = crate::db::set_account_vars(conn, aid as i64, 2, &regs);
+                let _ = crate::db::replace_account_vars(conn, aid as i64, 2, &regs);
                 super::state::DbOpResult::none()
             });
             Ok(())
@@ -452,10 +424,10 @@ async fn handle(
                     after: Some(Box::new(move || {
                         let mut chars = st2.chars.lock().unwrap();
                         if let Some(c) = chars.get_mut(&cid) {
-                            c.data.partner_id = CharId(0);
+                            Arc::make_mut(&mut c.data).partner_id = CharId(0);
                         }
                         if let Some(c) = chars.get_mut(&(partner as u32)) {
-                            c.data.partner_id = CharId(0);
+                            Arc::make_mut(&mut c.data).partner_id = CharId(0);
                         }
                     })),
                 }
@@ -503,7 +475,7 @@ async fn handle(
             };
             // char_by_name can hit SQLite on a cache miss
             let st = st.clone();
-            let tx = tx.clone();
+            let tx = tx_prio.clone();
             tokio::spawn(async move {
                 let from = p.from_char_name.to_string_lossy();
                 let mut to = p.to_char_name.to_string_lossy();
@@ -580,27 +552,10 @@ async fn handle(
                 .iter()
                 .map(|r| (r.name.to_string_lossy(), r.value as i64))
                 .collect();
-            {
-                let mut chars = st.chars.lock().unwrap();
-                for c in chars.values_mut() {
-                    if c.key.account_id.0 == aid {
-                        c.data.account_reg_num = regs.len().min(ACCOUNT_REG_NUM) as i32;
-                        for (i, (n, v)) in regs.iter().enumerate().take(ACCOUNT_REG_NUM) {
-                            c.data.account_reg[i] = GlobalReg {
-                                str: FixedStr::<32>::from_str_truncate(n),
-                                value: *v as i32,
-                            };
-                        }
-                    }
-                }
-            }
+            st.cache_account_regs(aid, &regs, 1);
             let regs2 = regs.clone();
             st.queue_db_op(move |conn| {
-                let _ = conn.execute(
-                    "DELETE FROM account_vars WHERE account_id=?1 AND scope=1",
-                    [aid as i64],
-                );
-                let _ = crate::db::set_account_vars(conn, aid as i64, 1, &regs2);
+                let _ = crate::db::replace_account_vars(conn, aid as i64, 1, &regs2);
                 super::state::DbOpResult::none()
             });
             // 0x3804 to all OTHER map servers
@@ -700,19 +655,21 @@ async fn handle(
         }
 
         // ---- parties ----
-        0x3020 => party_create(st, tx, map_id, bytes).await,
-        0x3021 => party_info(st, tx, map_id, bytes).await,
-        0x3022 => party_add(st, tx, map_id, bytes).await,
-        0x3023 => party_option(st, tx, map_id, bytes).await,
+        0x3020 => party_create(st, tx_prio, map_id, bytes).await,
+        0x3021 => party_info(st, tx_prio, map_id, bytes).await,
+        0x3022 => party_add(st, tx_prio, map_id, bytes).await,
+        0x3023 => party_option(st, tx_prio, map_id, bytes).await,
         0x3024 => party_leave(st, bytes).await,
-        0x3025 => party_map_change(st, tx, bytes).await,
+        0x3025 => party_map_change(st, tx_prio, bytes).await,
         0x3026 => party_leader(st, bytes).await,
         0x3027 => party_message(st, bytes).await,
         0x3028 => party_check(st, bytes).await,
 
+        // upstream ignores unhandled inter packets; only decode
+        // failures are fatal to the link
         _ => {
-            tracing::debug!(map_id, "unknown packet 0x{id:04x} from map");
-            Err(())
+            tracing::warn!(map_id, "unknown packet 0x{id:04x} from map");
+            Ok(())
         }
     }
 }
@@ -733,7 +690,7 @@ const DEDUP_ACCREG: u8 = 2;
 /// is only re-served to the same server.
 async fn handle_auth_request(
     st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
+    tx: &mpsc::Sender<Bytes>,
     map_id: usize,
     map_ip: u32,
     map_port: u16,
@@ -803,10 +760,9 @@ async fn handle_auth_request(
         return;
     };
     let key = rec.key;
-    let cd = rec.data;
+    let cd = *rec.data;
     // the char is (about to be) online on this map
-    st.online.lock().unwrap().insert(cid, map_id);
-    st.online_notify.notify_one();
+    st.mark_online(cid, map_id);
     // a transfer that landed: count it for any drain in flight
     if marked {
         st.drain_track_arrive(map_id, cid);
@@ -840,7 +796,7 @@ async fn handle_auth_request(
 /// link and the client now heads to another server. Runs as its
 /// own task so the link's read loop never waits on SQLite (the
 /// `load_char` below can miss the cache).
-async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, map_id: usize, fixed: P2B05) {
+async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usize, fixed: P2B05) {
     // mark the transfer so the destination link's 0x2afc waits for
     // the save, and create a map-stage entry so it can match.
     st.transfer_mark(fixed.account_id.0, fixed.char_id.0);
@@ -925,7 +881,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, map_id: us
 /// it resolved to failure; the caller then sends a 0x2afe.
 async fn reserve_map_auth(
     st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
+    tx: &mpsc::Sender<Bytes>,
     map_id: usize,
     map_ip: u32,
     map_port: u16,
@@ -960,8 +916,7 @@ async fn reserve_map_auth(
     // the char is on this (new) link now: refresh the online
     // bookkeeping the dead link's unregister dropped
     let cid = fixed.char_id.0;
-    st.online.lock().unwrap().insert(cid, map_id);
-    st.online_notify.notify_one();
+    st.mark_online(cid, map_id);
     st.set_online_auth(auth);
     send_must(st, map_id, tx, bytes).await;
     tracing::info!(map_id, char_id = cid, "re-served auth for map");
@@ -973,7 +928,7 @@ async fn reserve_map_auth(
 /// accounts have no sex anymore.
 async fn handle_named_op(
     st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
+    tx: &mpsc::Sender<Bytes>,
     map_id: usize,
     fixed: P2B0E,
 ) -> HResult {
@@ -1009,9 +964,15 @@ async fn handle_named_op(
                 } else {
                     reply.error = 0;
                     let aid = target_acc as i64;
+                    // the account writes go through the serialized
+                    // writer like every other maplink DB write; the
+                    // reply does not depend on their result
                     match op {
                         1 => {
-                            let _ = st.db.blocking(move |db| db.set_account_state(aid, 5)).await;
+                            st.queue_db_op(move |conn| {
+                                let _ = crate::db::set_account_state_conn(conn, aid, 5);
+                                super::state::DbOpResult::none()
+                            });
                             // upstream: the login-server's 0x2731 for a
                             // state change carries ban_not_status=0 with
                             // the new state in status_or_ban_until; the
@@ -1026,17 +987,23 @@ async fn handle_named_op(
                                 .unwrap_or_default()
                                 .as_secs() as i64
                                 + htd_seconds(&fixed.ban_add);
-                            let _ = st
-                                .db
-                                .blocking(move |db| db.set_account_ban(aid, until))
-                                .await;
+                            st.queue_db_op(move |conn| {
+                                let _ = crate::db::set_account_ban_conn(conn, aid, until);
+                                super::state::DbOpResult::none()
+                            });
                             kick_online(st, target_acc, 1, until);
                         }
                         3 => {
-                            let _ = st.db.blocking(move |db| db.set_account_state(aid, 0)).await;
+                            st.queue_db_op(move |conn| {
+                                let _ = crate::db::set_account_state_conn(conn, aid, 0);
+                                super::state::DbOpResult::none()
+                            });
                         }
                         4 => {
-                            let _ = st.db.blocking(move |db| db.set_account_ban(aid, 0)).await;
+                            st.queue_db_op(move |conn| {
+                                let _ = crate::db::set_account_ban_conn(conn, aid, 0);
+                                super::state::DbOpResult::none()
+                            });
                         }
                         _ => {
                             // changesex etc: no account sex anymore
@@ -1154,7 +1121,7 @@ fn party_check_empty(st: &std::sync::Arc<State>, party_id: u32) -> bool {
 
 async fn party_info_to(
     st: &State,
-    tx: Option<&mpsc::Sender<Vec<u8>>>,
+    tx: Option<&mpsc::Sender<Bytes>>,
     map_id: usize,
     party_id: u32,
 ) {
@@ -1180,7 +1147,7 @@ async fn party_info_to(
 
 async fn party_create(
     st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
+    tx: &mpsc::Sender<Bytes>,
     map_id: usize,
     bytes: &[u8],
 ) -> HResult {
@@ -1241,7 +1208,7 @@ async fn party_create(
 
 async fn party_info(
     st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
+    tx: &mpsc::Sender<Bytes>,
     map_id: usize,
     bytes: &[u8],
 ) -> HResult {
@@ -1254,7 +1221,7 @@ async fn party_info(
 
 async fn party_add(
     st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
+    tx: &mpsc::Sender<Bytes>,
     map_id: usize,
     bytes: &[u8],
 ) -> HResult {
@@ -1316,7 +1283,7 @@ async fn party_add(
 
 async fn party_option(
     st: &Arc<State>,
-    tx: &mpsc::Sender<Vec<u8>>,
+    tx: &mpsc::Sender<Bytes>,
     map_id: usize,
     bytes: &[u8],
 ) -> HResult {
@@ -1382,7 +1349,7 @@ pub(crate) async fn party_leave_do(st: &Arc<State>, pid: u32, account_id: u32) {
     }
 }
 
-async fn party_map_change(st: &Arc<State>, _tx: &mpsc::Sender<Vec<u8>>, bytes: &[u8]) -> HResult {
+async fn party_map_change(st: &Arc<State>, _tx: &mpsc::Sender<Bytes>, bytes: &[u8]) -> HResult {
     let Ok(fixed) = P3025::decode(bytes) else {
         return Err(());
     };
@@ -1497,22 +1464,7 @@ async fn party_check(st: &Arc<State>, bytes: &[u8]) -> HResult {
 
 /// Load parties from the DB into memory at startup.
 pub fn load_parties(st: &State) {
-    let rows = st.db.with_conn(|conn| {
-        let mut st_ = conn.prepare("SELECT id,name,exp_share,item_share FROM parties")?;
-        let parties: Vec<(i64, String, i64, i64)> = st_
-            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?
-            .collect::<rusqlite::Result<Vec<_>>>()?;
-        let mut st2 = conn
-            .prepare("SELECT account_id,char_name,leader FROM party_members WHERE party_id=?1")?;
-        let mut out = Vec::new();
-        for (id, name, e, i) in parties {
-            let members: Vec<(i64, String, i64)> = st2
-                .query_map([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
-                .collect::<rusqlite::Result<Vec<_>>>()?;
-            out.push((id, name, e, i, members));
-        }
-        Ok(out)
-    });
+    let rows = st.db.with_conn(|conn| crate::db::load_parties_conn(conn));
     let Ok(rows) = rows else { return };
     let mut parties = st.parties.lock().unwrap();
     for (id, name, exp, item, members) in rows {
@@ -1547,7 +1499,7 @@ mod tests {
     }
 
     /// Register a map link; returns (slot, bulk rx, prio rx).
-    fn reg_map(st: &State) -> (usize, mpsc::Receiver<Vec<u8>>, mpsc::Receiver<Vec<u8>>) {
+    fn reg_map(st: &State) -> (usize, mpsc::Receiver<Bytes>, mpsc::Receiver<Bytes>) {
         let (tx, rx) = mpsc::channel(16);
         let (ptx, prx) = mpsc::channel(16);
         let (id, _kill) = st.map_register(tx, ptx, u32::from_le_bytes([10, 0, 0, 1]), 5121);
@@ -1567,11 +1519,11 @@ mod tests {
             .lock()
             .unwrap()
             .insert(name.to_string(), char_id);
-        st.chars.lock().unwrap().insert(
+        st.cache_put(
             char_id,
             crate::serve::state::CharRecord {
                 key,
-                data: CharData::default(),
+                data: Arc::new(CharData::default()),
             },
         );
     }
@@ -1764,6 +1716,7 @@ mod tests {
             .auth
             .lock()
             .unwrap()
+            .map
             .values()
             .any(|e| e.delflag == DELFLAG_MAP && e.account_id == 1 && e.char_id == 100));
     }
@@ -1773,7 +1726,10 @@ mod tests {
     async fn auth_request_serves_cached_char() {
         let st = test_state();
         cache_char(&st, 100, 1, "mover");
-        st.chars.lock().unwrap().get_mut(&100).unwrap().data.zeny = 777;
+        {
+            let mut chars = st.chars.lock().unwrap();
+            Arc::make_mut(&mut chars.get_mut(&100).unwrap().data).zeny = 777;
+        }
         st.push_auth(crate::serve::state::AuthEntry {
             account_id: 1,
             char_id: 100,
