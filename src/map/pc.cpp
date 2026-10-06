@@ -2454,6 +2454,11 @@ int pc_changeserver(dumb_ptr<map_session_data> sd,
         MapName mapname_, int x, int y, BeingRemoveWhy clrtype,
         IP4Address ip, int port)
 {
+    // A handoff is already in flight: a second one would emit another
+    // 0x2b01/0x2b05 pair carrying a stale snapshot of the same char.
+    if (sd->state.waitingdisconnect)
+        return 1;
+
     skill_stop_dancing(sd, 1);
     clif_clearchar(sd, clrtype);
     map_delblock(sd);
@@ -2575,6 +2580,9 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
 int pc_evacuate(dumb_ptr<map_session_data> sd)
 {
     nullpo_retz(sd);
+
+    if (sd->state.waitingdisconnect)
+        return 1;
 
     if (sd->trade_partner)      //取引を中断する | Suspend a transaction
         trade_tradecancel(sd);
