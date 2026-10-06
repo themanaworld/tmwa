@@ -827,6 +827,15 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usiz
             delflag: DELFLAG_MAP,
             created: std::time::Instant::now(),
         });
+    }
+    // A drain's evacuees are paced: each 0x2b06 releases one
+    // client's 0x0092 on the source, so spacing the replies bounds
+    // the login burst the destination sees. The bookkeeping above
+    // stays immediate.
+    if let Some(period) = st.map_evac_period(map_id) {
+        st.evac_pace.wait(period).await;
+    }
+    if ok {
         // make sure the destination map holds a fresh
         // pre-auth entry: the one it got at registration
         // may have been evicted (bounded auth_fifo) or
@@ -1719,6 +1728,45 @@ mod tests {
             .map
             .values()
             .any(|e| e.delflag == DELFLAG_MAP && e.account_id == 1 && e.char_id == 100));
+    }
+
+    /// A 0x2b05 from a draining map is paced: the second 0x2b06 is
+    /// released one evac period after the first, and the pushes
+    /// keep their arrival order.
+    #[tokio::test]
+    async fn map_move_from_draining_map_is_paced() {
+        let st = test_state();
+        cache_char(&st, 100, 1, "mover");
+        cache_char(&st, 101, 2, "mover2");
+        let (src_id, _srx, _sprx) = reg_map(&st);
+        st.map_set_evac_period(src_id, std::time::Duration::from_millis(30));
+        st.map_set_draining(src_id, true);
+        let (tx, mut rx) = mpsc::channel(8);
+        let t0 = std::time::Instant::now();
+        for (acct, cid) in [(1u32, 100u32), (2, 101)] {
+            let mut p = P2B05::default();
+            p.account_id = AccountId(acct);
+            p.char_id = CharId(cid);
+            p.login_id1 = 11;
+            p.login_id2 = 22;
+            p.map_name = FixedStr::<16>::try_from_str("002-1.gat").unwrap();
+            // unregistered destination: the pre-auth lookup just warns
+            p.map_ip = Ip4Address([10, 9, 9, 9]);
+            p.map_port = 6121;
+            p.client_ip = Ip4Address([1, 2, 3, 4]);
+            handle(&st, &tx, src_id, 0x2b05, &p.encoded())
+                .await
+                .unwrap();
+        }
+        let r1 = P2B06::decode(&rx.recv().await.unwrap()).unwrap();
+        let r2 = P2B06::decode(&rx.recv().await.unwrap()).unwrap();
+        assert_eq!(r1.error, 0);
+        assert_eq!(r2.error, 0);
+        // evacuees keep their order and the second one waited on a
+        // pace slot (the timer can't fire early; small margin for
+        // the slot arithmetic)
+        assert_eq!([r1.char_id.0, r2.char_id.0], [100, 101]);
+        assert!(t0.elapsed() >= std::time::Duration::from_millis(25));
     }
 
     /// 0x2afc serves a cached char without touching SQLite.
