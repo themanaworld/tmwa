@@ -74,12 +74,12 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                     || pass != st.cfg.map.password.as_str()
                 {
                     p.code = 3;
-                    send_must(&st, NO_MAP, &tx_prio, enc(move |v| p.encode(v))).await;
+                    send_must(&st, NO_MAP, &tx_prio, p.encoded()).await;
                     tracing::warn!("maplink: bad map auth from {ip}");
                     break 'auth false;
                 }
                 p.code = 0;
-                send_must(&st, NO_MAP, &tx_prio, enc(move |v| p.encode(v))).await;
+                send_must(&st, NO_MAP, &tx_prio, p.encoded()).await;
                 let (id, kill) = st.map_register(
                     tx.clone(),
                     tx_prio.clone(),
@@ -105,7 +105,7 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                         .collect();
                     P2B15 { repeat }
                 };
-                send_must(&st, id, &tx_prio, enc(move |v| p15.encode(v))).await;
+                send_must(&st, id, &tx_prio, p15.encoded()).await;
                 map_kill_notify = Some(kill);
                 break 'auth true;
             }
@@ -175,7 +175,7 @@ fn on_user_list(st: &Arc<State>, map_id: usize, head_users: u16, chars: &[u32]) 
     let users = st.count_users() as u32;
     let mut p = P2B00::default();
     p.users = users;
-    st.map_broadcast(&enc(move |v| p.encode(v)));
+    st.map_broadcast(&p.encoded());
 }
 
 type HResult = Result<(), ()>;
@@ -201,7 +201,7 @@ async fn handle(
             st.map_set_maps(map_id, maps.clone());
             tracing::info!(map_id, maps = maps.len(), "map list received");
             let p = P2AFB::default();
-            send_must(st, map_id, tx_prio, enc(move |v| p.encode(v))).await;
+            send_must(st, map_id, tx_prio, p.encoded()).await;
             // 0x2b04: tell the others about this server; tell this
             // server about the others.
             let (ip, port) = st.map_addr(map_id).unwrap_or((0, 0));
@@ -226,7 +226,7 @@ async fn handle(
                     })
                     .collect();
                 for (oid, ..) in &others {
-                    st.map_send(*oid, enc(|v| head.encode(v)));
+                    st.map_send(*oid, head.encoded());
                 }
             }
             for (_, oip, oport, omaps) in others {
@@ -242,7 +242,7 @@ async fn handle(
                         map_name: FixedStr::<16>::from_str_truncate(m),
                     })
                     .collect();
-                send_must(st, map_id, tx_prio, enc(|v| head.encode(v))).await;
+                send_must(st, map_id, tx_prio, head.encoded()).await;
             }
             // Pre-auth: every player online elsewhere gets a 0x3829
             // on this new map, so it can accept transfers and
@@ -255,7 +255,7 @@ async fn handle(
                 p.login_id1 = e.login_id1;
                 p.login_id2 = e.login_id2;
                 p.ip = ip4(e.ip);
-                send_must(st, map_id, tx_prio, enc(move |v| p.encode(v))).await;
+                send_must(st, map_id, tx_prio, p.encoded()).await;
             }
             Ok(())
         }
@@ -341,7 +341,7 @@ async fn handle(
             let mut p = P2B03::default();
             p.account_id = fixed.account_id;
             p.unknown = 0;
-            send_must(st, map_id, tx_prio, enc(move |v| p.encode(v))).await;
+            send_must(st, map_id, tx_prio, p.encoded()).await;
             Ok(())
         }
         0x2b05 => {
@@ -421,7 +421,7 @@ async fn handle(
                 p.partner_id = CharId(partner as u32);
                 super::dbq::DbOpResult {
                     reply: super::dbq::LinkReply::Broadcast,
-                    bytes: enc(move |v| p.encode(v)),
+                    bytes: p.encoded(),
                     after: Some(Box::new(move || {
                         let mut chars = st2.chars.lock().unwrap();
                         if let Some(c) = chars.get_mut(&cid) {
@@ -466,7 +466,7 @@ async fn handle(
             };
             let mut p2 = P3800::default();
             p2.repeat = p.repeat.iter().map(|r| P3800Repeat { c: r.c }).collect();
-            st.map_broadcast(&enc(move |v| p2.encode(v)));
+            st.map_broadcast(&p2.encoded());
             Ok(())
         }
         0x3001 => {
@@ -498,13 +498,13 @@ async fn handle(
                         h.src_char_name = FixedStr::<24>::from_str_truncate(&from);
                         h.dst_char_name = FixedStr::<24>::from_str_truncate(&to);
                         h.repeat = p.repeat.iter().map(|r| P3801Repeat { c: r.c }).collect();
-                        st.map_send(tmid, enc(move |v| h.encode(v)));
+                        st.map_send(tmid, h.encoded());
                     }
                     _ => {
                         let mut p2 = P3802::default();
                         p2.sender_char_name = FixedStr::<24>::from_str_truncate(&from);
                         p2.flag = 1;
-                        send_must(&st, map_id, &tx, enc(move |v| p2.encode(v))).await;
+                        send_must(&st, map_id, &tx, p2.encoded()).await;
                     }
                 }
             });
@@ -526,7 +526,7 @@ async fn handle(
                     let mut p = P3802::default();
                     p.sender_char_name = FixedStr::<24>::from_str_truncate(&n);
                     p.flag = fixed.flag;
-                    st.map_send(smap, enc(move |v| p.encode(v)));
+                    st.map_send(smap, p.encoded());
                 }
             }
             Ok(())
@@ -539,7 +539,7 @@ async fn handle(
             p2.char_name = p.char_name;
             p2.min_gm_level = p.min_gm_level;
             p2.repeat = p.repeat.iter().map(|r| P3803Repeat { c: r.c }).collect();
-            st.map_broadcast(&enc(move |v| p2.encode(v)));
+            st.map_broadcast(&p2.encoded());
             Ok(())
         }
         0x3004 => {
@@ -577,7 +577,7 @@ async fn handle(
                     .collect()
             };
             for oid in others {
-                st.map_send(oid, enc(|v| h.encode(v)));
+                st.map_send(oid, h.encoded());
             }
             Ok(())
         }
@@ -600,7 +600,7 @@ async fn handle(
                         value: *v as u32,
                     })
                     .collect();
-                super::dbq::DbOpResult::reply(map_id, enc(move |v| p.encode(v)))
+                super::dbq::DbOpResult::reply(map_id, p.encoded())
             });
             Ok(())
         }
@@ -631,7 +631,7 @@ async fn handle(
                 let mut p = P3810::default();
                 p.account_id = fixed.account_id;
                 p.storage = storage;
-                super::dbq::DbOpResult::reply(map_id, enc(move |v| p.encode(v)))
+                super::dbq::DbOpResult::reply(map_id, p.encoded())
             });
             Ok(())
         }
@@ -745,7 +745,7 @@ async fn handle_auth_request(
         );
         let mut p = P2AFE::default();
         p.account_id = fixed.account_id;
-        send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+        send_must(st, map_id, tx, p.encoded()).await;
         return;
     };
     // load CharKey + CharData (full, incl. account_reg* + vars)
@@ -757,7 +757,7 @@ async fn handle_auth_request(
         reserve.send_replace(super::state::ServedReply::Failed);
         let mut p = P2AFE::default();
         p.account_id = fixed.account_id;
-        send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+        send_must(st, map_id, tx, p.encoded()).await;
         return;
     };
     let key = rec.key;
@@ -784,7 +784,7 @@ async fn handle_auth_request(
     p.client_protocol_version = ClientVersion(e.client_version);
     p.char_key = key;
     p.char_data = cd;
-    let bytes = enc(move |v| p.encode(v));
+    let bytes = p.encoded();
     // resolve the reservation before the send: if the link dies
     // with this reply in flight, the map's re-pushed 0x2afc gets
     // the same answer instead of a reject.
@@ -849,7 +849,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usiz
                     p29.login_id1 = fixed.login_id1;
                     p29.login_id2 = fixed.login_id2;
                     p29.ip = fixed.client_ip;
-                    send_must(&st2, dest, &dtx, enc(move |v| p29.encode(v))).await;
+                    send_must(&st2, dest, &dtx, p29.encoded()).await;
                 });
             }
             None => {
@@ -872,7 +872,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usiz
     p.y = fixed.y;
     p.map_ip = fixed.map_ip;
     p.map_port = fixed.map_port;
-    send_must(st, map_id, tx, enc(move |v| p.encode(v))).await;
+    send_must(st, map_id, tx, p.encoded()).await;
 }
 
 /// Repeated 0x2afc with no pending entry: if the request was
@@ -1017,7 +1017,7 @@ async fn handle_named_op(
     }
     // reply only when a player asked (acc != 0)
     if acc != 0 {
-        send_must(st, map_id, tx, enc(move |v| reply.encode(v))).await;
+        send_must(st, map_id, tx, reply.encoded()).await;
     }
     Ok(())
 }
@@ -1039,7 +1039,7 @@ fn kick_online(st: &Arc<State>, account_id: u32, ban_not_status: u8, until: i64)
     p.account_id = AccountId(account_id);
     p.ban_not_status = ban_not_status;
     p.status_or_ban_until = crate::proto::types::TimeT(until);
-    st.map_broadcast(&enc(move |v| p.encode(v)));
+    st.map_broadcast(&p.encoded());
 }
 
 // ---------------- parties (int_party.cpp port) ----------------
@@ -1114,7 +1114,7 @@ fn party_check_empty(st: &std::sync::Arc<State>, party_id: u32) -> bool {
     let mut p = P3826::default();
     p.party_id = PartyId(party_id);
     p.flag = 0;
-    st.map_broadcast(&enc(move |v| p.encode(v)));
+    st.map_broadcast(&p.encoded());
     party_del(st, party_id);
     true
 }
@@ -1131,17 +1131,17 @@ async fn party_info_to(
         h.option = Some(P3821Option { party_most: p });
         match tx {
             Some(t) => {
-                send_must(st, map_id, t, enc(move |v| h.encode(v))).await;
+                send_must(st, map_id, t, h.encoded()).await;
             }
             None => {
-                st.map_broadcast(&enc(move |v| h.encode(v)));
+                st.map_broadcast(&h.encoded());
             }
         }
     } else if let Some(t) = tx {
         let mut h = P3821::default();
         h.party_id = PartyId(party_id);
         h.option = None;
-        send_must(st, map_id, t, enc(move |v| h.encode(v))).await;
+        send_must(st, map_id, t, h.encoded()).await;
     }
 }
 
@@ -1161,7 +1161,7 @@ async fn party_create(
         p.error = error;
         p.party_id = PartyId(pid);
         p.party_name = FixedStr::<24>::from_str_truncate(&pname);
-        enc(move |v| p.encode(v))
+        p.encoded()
     };
     if name.is_empty() || !name.bytes().all(|b| (32..=126).contains(&b)) {
         send_must(st, map_id, tx, reply(1, 0, "error".into())).await;
@@ -1234,7 +1234,7 @@ async fn party_add(
         p.party_id = fixed.party_id;
         p.account_id = fixed.account_id;
         p.flag = flag;
-        enc(move |v| p.encode(v))
+        p.encoded()
     };
     let mut p = match party_get(st, pid) {
         Some(p) => p,
@@ -1271,7 +1271,7 @@ async fn party_add(
                 // (mapif_party_optionchanged(..., 0)): the map
                 // applies exp only when !(flag & 0x01)
                 o.flag = 0;
-                st.map_broadcast(&enc(move |v| o.encode(v)));
+                st.map_broadcast(&o.encoded());
                 party_put(st, pid, p);
             }
             return Ok(());
@@ -1309,9 +1309,9 @@ async fn party_option(
     o.item = p.item as u16;
     o.flag = flag;
     if flag == 0 {
-        st.map_broadcast(&enc(move |v| o.encode(v)));
+        st.map_broadcast(&o.encoded());
     } else {
-        send_must(st, map_id, tx, enc(move |v| o.encode(v))).await;
+        send_must(st, map_id, tx, o.encoded()).await;
     }
     party_put(st, pid, p);
     Ok(())
@@ -1339,7 +1339,7 @@ pub(crate) async fn party_leave_do(st: &Arc<State>, pid: u32, account_id: u32) {
         n.party_id = PartyId(pid);
         n.account_id = AccountId(account_id);
         n.char_name = name;
-        st.map_broadcast(&enc(move |v| n.encode(v)));
+        st.map_broadcast(&n.encoded());
         p.member[i] = PartyMember::default();
         party_put(st, pid, p);
         if !party_check_empty(st, pid) {
@@ -1372,7 +1372,7 @@ async fn party_map_change(st: &Arc<State>, _tx: &mpsc::Sender<Bytes>, bytes: &[u
         n.map_name = m.map;
         n.online = m.online as u8;
         n.level = m.lv as u16;
-        st.map_broadcast(&enc(move |v| n.encode(v)));
+        st.map_broadcast(&n.encoded());
         if p.exp > 0 && !party_check_exp_share(st, &p) {
             p.exp = 0;
             let mut o = P3823::default();
@@ -1384,7 +1384,7 @@ async fn party_map_change(st: &Arc<State>, _tx: &mpsc::Sender<Bytes>, bytes: &[u
             // (mapif_party_optionchanged(..., 0)): the map applies
             // exp only when !(flag & 0x01)
             o.flag = 0;
-            st.map_broadcast(&enc(move |v| o.encode(v)));
+            st.map_broadcast(&o.encoded());
         }
         party_put(st, pid, p);
         return Ok(());
@@ -1410,7 +1410,7 @@ async fn party_leader(st: &Arc<State>, bytes: &[u8]) -> HResult {
         n.party_id = PartyId(pid);
         n.account_id = fixed.account_id;
         n.leader = fixed.leader;
-        st.map_broadcast(&enc(move |v| n.encode(v)));
+        st.map_broadcast(&n.encoded());
         party_put(st, pid, p);
         return Ok(());
     }
@@ -1427,7 +1427,7 @@ async fn party_message(st: &Arc<State>, bytes: &[u8]) -> HResult {
     h.party_id = p.party_id;
     h.account_id = p.account_id;
     h.repeat = p.repeat.iter().map(|r| P3827Repeat { c: r.c }).collect();
-    st.map_broadcast(&enc(move |v| h.encode(v)));
+    st.map_broadcast(&h.encoded());
     Ok(())
 }
 
@@ -1557,7 +1557,7 @@ mod tests {
         p.login_id1 = 11;
         p.login_id2 = 22;
         p.ip = Ip4Address([1, 2, 3, 4]);
-        handle(&st, &tx, 3, 0x2b02, &enc(|v| p.encode(v)))
+        handle(&st, &tx, 3, 0x2b02, &p.encoded())
             .await
             .unwrap();
         {
@@ -1637,7 +1637,7 @@ mod tests {
         p.char_name = FixedStr::<24>::try_from_str("newbie").unwrap();
         p.map_name = FixedStr::<16>::try_from_str("001-1.gat").unwrap();
         p.level = 99; // spread 79 > party_share_level 10
-        party_add(&st, &tx, map_id, &enc(|v| p.encode(v)))
+        party_add(&st, &tx, map_id, &p.encoded())
             .await
             .unwrap();
         let r = P3822::decode(&prx.recv().await.unwrap()).unwrap();
@@ -1671,7 +1671,7 @@ mod tests {
         p.map_name = FixedStr::<16>::try_from_str("002-1.gat").unwrap();
         p.online = 1;
         p.level = 99; // spread 79 > party_share_level 10
-        party_map_change(&st, &tx, &enc(|v| p.encode(v)))
+        party_map_change(&st, &tx, &p.encoded())
             .await
             .unwrap();
         let n = P3825::decode(&mrx.recv().await.unwrap()).unwrap();
@@ -1704,7 +1704,7 @@ mod tests {
         p.map_ip = Ip4Address([10, 0, 0, 2]);
         p.map_port = 6121;
         p.client_ip = Ip4Address([1, 2, 3, 4]);
-        handle(&st, &stx, 0, 0x2b05, &enc(|v| p.encode(v)))
+        handle(&st, &stx, 0, 0x2b05, &p.encoded())
             .await
             .unwrap();
         let r = P2B06::decode(&srx.recv().await.unwrap()).unwrap();

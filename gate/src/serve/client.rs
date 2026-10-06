@@ -111,7 +111,7 @@ pub async fn run_core<R>(
             0x7530 => {
                 let mut p = P7531::default();
                 p.version = gate_version(0x01); // TMWA_SERVER_LOGIN
-                send_bytes(&tx, enc(|v| p.encode(v)));
+                send_bytes(&tx, p.encoded());
             }
             0x7532 => break,
             0x0064 => {
@@ -204,7 +204,7 @@ async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], i
             if t.elapsed() < int {
                 let mut p = P0081::default();
                 p.error_code = 2;
-                send_bytes(tx, enc(move |v| p.encode(v)));
+                send_bytes(tx, p.encoded());
                 return;
             }
         }
@@ -384,7 +384,7 @@ async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], i
         let bytes = st.cfg.login.update_host.as_bytes();
         let mut p = P0063::default();
         p.repeat = bytes.iter().map(|&c| P0063Repeat { c }).collect();
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_bytes(tx, p.encoded());
     }
 
     // 0x0069 char server list: the gate is the only entry
@@ -407,7 +407,7 @@ async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], i
         is_new: 0,
     };
     head.repeat = vec![rep];
-    send_bytes(tx, enc(move |v| head.encode(v)));
+    send_bytes(tx, head.encoded());
 }
 
 /// Stage-2 auth entry pushed by a successful login: the account's
@@ -464,7 +464,7 @@ fn send_6a(tx: &mpsc::Sender<Vec<u8>>, code: u16, ban_until: i64, errmsg: Option
             p.error_message = FixedStr::<20>::from_str_truncate(&m);
         }
     }
-    send_bytes(tx, enc(move |v| p.encode(v)));
+    send_bytes(tx, p.encoded());
 }
 
 fn stamp_millis(ms: i64) -> FixedStr<24> {
@@ -539,7 +539,7 @@ async fn char_session<R: tokio::io::AsyncRead + Unpin>(
     // 0x8000 magic first, like tmwa-char
     send_bytes(tx, {
         let p = P8000::default();
-        enc(move |v| p.encode(v))
+        p.encoded()
     });
 
     let Ok(fixed) = P0065::decode(first) else {
@@ -555,7 +555,7 @@ async fn char_session<R: tokio::io::AsyncRead + Unpin>(
     {
         let mut p = P006C::default();
         p.code = 0;
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_bytes(tx, p.encoded());
         return;
     }
 
@@ -592,7 +592,7 @@ async fn char_session<R: tokio::io::AsyncRead + Unpin>(
             0x7530 => {
                 let mut p = P7531::default();
                 p.version = gate_version(0x02 | 0x04); // CHAR|INTER
-                send_bytes(tx, enc(move |v| p.encode(v)));
+                send_bytes(tx, p.encoded());
             }
             0x0061 => {
                 handle_change_pass(&st, tx, &sd, &pkt.bytes).await;
@@ -643,7 +643,7 @@ async fn send_char_list(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, sd: &CharSd
     }
     let mut p = P006B::default();
     p.repeat = repeat;
-    send_bytes(tx, enc(move |v| p.encode(v)));
+    send_bytes(tx, p.encoded());
 }
 
 /// Build the CharSelect wire view of a cached char: the 0x006b list
@@ -761,7 +761,7 @@ async fn handle_change_pass(
     }
     let mut p = P0062::default();
     p.status = code;
-    send_bytes(tx, enc(move |v| p.encode(v)));
+    send_bytes(tx, p.encoded());
 }
 
 /// Complete a char-select: 0x0071 with the target map server's
@@ -787,12 +787,12 @@ pub(crate) fn send_pending_sel(st: &State, ps: PendingSel) {
             p.map_name = FixedStr::<16>::from_str_truncate(&ps.map_name);
             p.ip = Ip4Address(ip.octets());
             p.port = port;
-            send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
+            send_bytes(&ps.client_tx, p.encoded());
         }
         None => {
             let mut p = P0081::default();
             p.error_code = 1;
-            send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
+            send_bytes(&ps.client_tx, p.encoded());
         }
     }
 }
@@ -911,14 +911,14 @@ async fn handle_char_select(
         if *mid == map_id {
             continue; // the target goes through send_must below
         }
-        if mtx.try_send(enc(|v| p.encode(v)).into()).is_err() {
+        if mtx.try_send(p.encoded().into()).is_err() {
             tracing::warn!("map {mid}: dropped select pre-auth (link congested)");
             if let Some(ps) = st.sel_waiting_done(key, *mid, sd.login_id1, sd.login_id2) {
                 send_pending_sel(st, ps);
             }
         }
     }
-    if !super::dbq::send_must(st, map_id, &ttx, enc(|v| p.encode(v))).await
+    if !super::dbq::send_must(st, map_id, &ttx, p.encoded()).await
         && let Some(ps) = st.sel_waiting_done(key, map_id, sd.login_id1, sd.login_id2)
     {
         // the target never got the pre-auth; it will authenticate
@@ -947,7 +947,7 @@ async fn handle_char_create(
     let err = |code: u8| {
         let mut p = P006E::default();
         p.code = code;
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_bytes(tx, p.encoded());
     };
 
     // printable + no leading/trailing whitespace
@@ -1124,7 +1124,7 @@ async fn handle_char_create(
     sel.status_point = 0x30;
     let mut p = P006D::default();
     p.char_select = sel;
-    send_bytes(tx, enc(move |v| p.encode(v)));
+    send_bytes(tx, p.encoded());
 }
 
 async fn handle_char_delete(
@@ -1146,11 +1146,11 @@ async fn handle_char_delete(
     if owns {
         delete_character(st, cid).await;
         let p = P006F::default();
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_bytes(tx, p.encoded());
     } else {
         let mut p = P0070::default();
         p.code = 0;
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_bytes(tx, p.encoded());
     }
 }
 
@@ -1235,7 +1235,7 @@ fn announce(tx: &mpsc::Sender<Vec<u8>>, msg: &str) {
     let mut bytes = msg.as_bytes().to_vec();
     bytes.push(0);
     p.repeat = bytes.iter().map(|&c| P009ARepeat { c }).collect();
-    send_bytes(tx, enc(move |v| p.encode(v)));
+    send_bytes(tx, p.encoded());
 }
 
 /// Answer a client 0x007e ping with 0x007f, carrying the last server
@@ -1247,7 +1247,7 @@ fn answer_tick(rec: &std::sync::Mutex<PlayerSession>, tx: &mpsc::Sender<Vec<u8>>
     };
     let mut rep = P007F::default();
     rep.tick = TickT(tick + at.elapsed().as_millis() as u32);
-    send_bytes(tx, enc(move |v| rep.encode(v)));
+    send_bytes(tx, rep.encoded());
 }
 
 /// Serve the client for up to `wait` while the session is held or
@@ -1435,7 +1435,7 @@ async fn push_reauth(
         .lock()
         .unwrap()
         .insert((account_id, char_id), rtx);
-    if !super::dbq::send_must(st, map_id, &mtx, enc(move |v| p29.encode(v))).await {
+    if !super::dbq::send_must(st, map_id, &mtx, p29.encoded()).await {
         // wedged link: fail now instead of waiting out the timeout
         st.rejoin_notify
             .lock()
@@ -1781,20 +1781,20 @@ async fn rejoin_until<R: tokio::io::AsyncRead + Unpin>(
     if npc != 0 {
         let mut p = P00B6::default();
         p.block_id = BlockId(npc);
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_bytes(tx, p.encoded());
     }
     if trade {
-        send_bytes(tx, enc(|v| P00EE::default().encode(v)));
+        send_bytes(tx, P00EE::default().encoded());
     }
     if storage {
-        send_bytes(tx, enc(|v| P00F8::default().encode(v)));
+        send_bytes(tx, P00F8::default().encoded());
     }
     let mut p91 = P0091::default();
     p91.map_name = FixedStr::<16>::try_from_str(&rec.lock().unwrap().map_name)
         .unwrap_or_default();
     p91.x = p73.pos.x;
     p91.y = p73.pos.y;
-    send_bytes(tx, enc(move |v| p91.encode(v)));
+    send_bytes(tx, p91.encoded());
     {
         let mut r = rec.lock().unwrap();
         r.server_tick = p73.tick.0;

@@ -202,7 +202,7 @@ pub fn send_gm_list(st: &State) {
         .collect();
     drop(gm);
     let p = crate::proto::P2B15 { repeat };
-    st.map_broadcast(&crate::proto::enc(|v| p.encode(v)));
+    st.map_broadcast(&p.encoded());
 }
 
 /// Parse gm_account.txt ("id level" per line, `//` comments), swap

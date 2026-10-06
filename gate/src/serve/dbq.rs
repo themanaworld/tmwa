@@ -25,7 +25,7 @@ use bytes::Bytes;
 use tokio::sync::mpsc;
 
 use super::state::State;
-use crate::proto::{CharData, CharKey, enc};
+use crate::proto::{CharData, CharKey};
 
 /// Cap on queued map-link DB jobs. Beyond it the queue drops new
 /// jobs rather than become an unbounded memory backlog.
@@ -78,7 +78,7 @@ fn storage_save_op(
         let mut ack = crate::proto::P3811::default();
         ack.account_id = account_id;
         ack.unknown = 0;
-        DbOpResult::reply(map_id, enc(move |v| ack.encode(v)))
+        DbOpResult::reply(map_id, ack.encoded())
     }))
 }
 

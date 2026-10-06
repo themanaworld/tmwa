@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 
 use crate::proto::types::{FixedStr, Ip4Address};
 use crate::proto::{
-    AccountId, P2B04, P2B04Repeat, P2B11Repeat, P382A, P3800Repeat, P3804Repeat, enc,
+    AccountId, P2B04, P2B04Repeat, P2B11Repeat, P382A, P3800Repeat, P3804Repeat,
 };
 
 use super::dbq::send_must;
@@ -419,7 +419,7 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
             head.repeat = vec![P2B04Repeat {
                 map_name: FixedStr::<16>::from_str_truncate(name),
             }];
-            let bytes = enc(move |v| head.encode(v));
+            let bytes = head.encoded();
             st.map_broadcast_except(*id, &bytes);
             // the drained server's own copies go on its priority
             // queue so they strictly precede the 0x382a below: it
@@ -430,7 +430,7 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
             }
         }
         if let Some(tx) = st.map_prio_tx(*id) {
-            send_must(st, *id, &tx, enc(|v| P382A::default().encode(v))).await;
+            send_must(st, *id, &tx, P382A::default().encoded()).await;
         }
         tracing::info!(
             "map {id}: draining ({} maps handed over, {kept} with no survivor)",
@@ -1133,7 +1133,7 @@ fn kami(st: &Arc<State>, _cmd: &str, args: &[String]) -> Value {
     // names only differed in the admin log line
     let mut p = crate::proto::P3800::default();
     p.repeat = msg.bytes().map(|c| P3800Repeat { c }).collect();
-    st.map_broadcast(&enc(move |v| p.encode(v)));
+    st.map_broadcast(&p.encoded());
     ok_text(
         "Message sent to all map-server.
 "
@@ -1260,7 +1260,7 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
                 name: n,
                 value: value as u32,
             }];
-            stc.map_send(mid, enc(move |v| p.encode(v)));
+            stc.map_send(mid, p.encoded());
         } else {
             let mut p = crate::proto::P3804::default();
             p.account_id = AccountId(id as u32);
@@ -1268,7 +1268,7 @@ async fn setaccreg(st: &Arc<State>, args: &[String]) -> Value {
                 name: n,
                 value: value as u32,
             }];
-            stc.map_send(mid, enc(move |v| p.encode(v)));
+            stc.map_send(mid, p.encoded());
         }
     }
     if existed {

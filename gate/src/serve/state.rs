@@ -1297,7 +1297,7 @@ impl State {
 pub(crate) fn send_server_closed(tx: &mpsc::Sender<Vec<u8>>) {
     let mut p = crate::proto::P0081::default();
     p.error_code = 1;
-    let _ = tx.try_send(crate::proto::enc(move |v| p.encode(v)));
+    let _ = tx.try_send(p.encoded());
 }
 
 #[cfg(test)]

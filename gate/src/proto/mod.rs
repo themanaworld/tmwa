@@ -9,7 +9,7 @@ mod imp {
 
 pub use imp::*;
 
-/// Encode helper: `enc(|v| p.encode(v))`.
+/// Encode helper: `p.encoded()`.
 pub fn enc(f: impl FnOnce(&mut Vec<u8>)) -> Vec<u8> {
     let mut v = Vec::new();
     f(&mut v);
