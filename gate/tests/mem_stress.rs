@@ -48,7 +48,7 @@ async fn db_queue_retention() {
     ));
     let st2 = st.clone();
     tokio::spawn(async move {
-        tmwa_gate::serve::state::db_writer(st2).await;
+        tmwa_gate::serve::dbq::db_writer(st2).await;
     });
 
     const N: u32 = 120_000;

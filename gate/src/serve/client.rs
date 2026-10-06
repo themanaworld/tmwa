@@ -20,9 +20,7 @@ use tokio::net::TcpStream;
 type Rd<S> = tokio::io::ReadHalf<S>;
 use tokio::sync::mpsc;
 
-use super::state::{
-    AuthEntry, DELFLAG_CHAR, DELFLAG_MAP, PendingSel, State, enc, send_bytes,
-};
+use super::state::{AuthEntry, DELFLAG_CHAR, DELFLAG_MAP, PendingSel, State};
 use super::state::PlayerSession;
 use crate::db::Db;
 use crate::net::framing::PacketFramer;
@@ -157,6 +155,11 @@ fn pub_ip(st: &State) -> Ip4Address {
 
 fn stamp_seconds(secs: u64) -> FixedStr<20> {
     FixedStr::<20>::from_str_truncate(&super::format_time(secs))
+}
+
+/// Send raw bytes to a client session's writer task.
+fn send_bytes(tx: &mpsc::Sender<Vec<u8>>, v: Vec<u8>) {
+    let _ = tx.try_send(v);
 }
 
 // ------------------------------------------------------------------
@@ -752,6 +755,39 @@ async fn handle_change_pass(
     send_bytes(tx, enc(move |v| p.encode(v)));
 }
 
+/// Complete a char-select: 0x0071 with the target map server's
+/// registered address, or 0x0081 if it is gone. The wire reply is
+/// built here (client side); the `pending_sel` bookkeeping it
+/// resolves lives on `State` (`sel_waiting_done`, `map_unregister`).
+pub(crate) fn send_pending_sel(st: &State, ps: PendingSel) {
+    let addr = st.map_addr(ps.map_id);
+    match addr {
+        Some((ip, port)) => {
+            // tmwa lan_support.conf (char.cpp lan_ip_check): a
+            // client inside lan_subnet is pointed at lan_map_ip
+            // instead of the map's advertised address; the
+            // registered port stays.
+            let client = Ipv4Addr::from(ps.client_ip.to_le_bytes());
+            let ip = if st.cfg.lan.lan_subnet.covers(client) {
+                st.cfg.lan.lan_map_ip
+            } else {
+                Ipv4Addr::from(ip.to_le_bytes())
+            };
+            let mut p = P0071::default();
+            p.char_id = CharId(ps.char_id);
+            p.map_name = FixedStr::<16>::from_str_truncate(&ps.map_name);
+            p.ip = Ip4Address(ip.octets());
+            p.port = port;
+            send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
+        }
+        None => {
+            let mut p = P0081::default();
+            p.error_code = 1;
+            send_bytes(&ps.client_tx, enc(move |v| p.encode(v)));
+        }
+    }
+}
+
 /// 0x0066 select: 0x3829 to the map(s), then 0x0071 on 0x3830.
 /// The 0x0071 may go out later via `pending_sel`; either way the
 /// session keeps serving until the client disconnects.
@@ -860,7 +896,7 @@ async fn handle_char_select(
     if st.map_prio_tx(map_id).is_none()
         && let Some(ps) = st.sel_waiting_done(key, map_id, sd.login_id1, sd.login_id2)
     {
-        st.send_pending_sel(ps);
+        send_pending_sel(st, ps);
     }
     for (mid, mtx) in &senders {
         if *mid == map_id {
@@ -869,16 +905,16 @@ async fn handle_char_select(
         if mtx.try_send(enc(|v| p.encode(v)).into()).is_err() {
             tracing::warn!("map {mid}: dropped select pre-auth (link congested)");
             if let Some(ps) = st.sel_waiting_done(key, *mid, sd.login_id1, sd.login_id2) {
-                st.send_pending_sel(ps);
+                send_pending_sel(st, ps);
             }
         }
     }
-    if !super::state::send_must(st, map_id, &ttx, enc(|v| p.encode(v))).await
+    if !super::dbq::send_must(st, map_id, &ttx, enc(|v| p.encode(v))).await
         && let Some(ps) = st.sel_waiting_done(key, map_id, sd.login_id1, sd.login_id2)
     {
         // the target never got the pre-auth; it will authenticate
         // the client through 0x2afc instead, so still answer 0x0071
-        st.send_pending_sel(ps);
+        send_pending_sel(st, ps);
     }
 }
 
@@ -1390,7 +1426,7 @@ async fn push_reauth(
         .lock()
         .unwrap()
         .insert((account_id, char_id), rtx);
-    if !super::state::send_must(st, map_id, &mtx, enc(move |v| p29.encode(v))).await {
+    if !super::dbq::send_must(st, map_id, &mtx, enc(move |v| p29.encode(v))).await {
         // wedged link: fail now instead of waiting out the timeout
         st.rejoin_notify
             .lock()
@@ -2161,5 +2197,81 @@ mod tests {
         sig.notify_one();
         let end = forward_phase(&st, &rec, &mut fr, &tx, uwr, urd, &sig).await;
         assert!(matches!(end, FwdEnd::Hold));
+    }
+
+    fn sel_state(lan_subnet: &str, lan_map_ip: Ipv4Addr) -> State {
+        let mut cfg = crate::config::Config::default();
+        cfg.lan.lan_subnet = lan_subnet.parse().unwrap();
+        cfg.lan.lan_map_ip = lan_map_ip;
+        State::new(cfg, std::sync::Arc::new(Db::open_memory().unwrap()))
+    }
+
+    /// Drive one char-select completion; the receiver carries the
+    /// 0x0071/0x0081 bytes the client would get.
+    fn pending_sel(st: &State, map_id: usize, client_ip: [u8; 4]) -> mpsc::Receiver<Vec<u8>> {
+        let (tx, rx) = mpsc::channel(8);
+        send_pending_sel(
+            st,
+            PendingSel {
+                client_tx: tx,
+                account_id: 1,
+                char_id: 100,
+                login_id1: 1,
+                login_id2: 2,
+                client_ip: u32::from_le_bytes(client_ip),
+                map_name: "001-1.gat".into(),
+                map_id,
+                waiting: std::collections::HashSet::new(),
+            },
+        );
+        rx
+    }
+
+    #[test]
+    fn send_pending_sel_lan_override() {
+        use crate::proto::P0071;
+        let st = sel_state("10.0.0.0/8", Ipv4Addr::new(192, 168, 1, 10));
+        // a map advertising a WAN address
+        let (mtx, _mrx) = mpsc::channel(8);
+        let (map_id, _kill) = st.map_register(
+            mtx.clone(),
+            mtx.clone(),
+            u32::from_le_bytes([203, 0, 113, 7]),
+            5121,
+        );
+
+        // LAN client: gets lan_map_ip, keeps the map's port
+        let mut rx = pending_sel(&st, map_id, [10, 1, 2, 3]);
+        let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(p.ip.0, [192, 168, 1, 10]);
+        assert_eq!(p.port, 5121);
+
+        // WAN client: gets the advertised address
+        let mut rx = pending_sel(&st, map_id, [1, 2, 3, 4]);
+        let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(p.ip.0, [203, 0, 113, 7]);
+        assert_eq!(p.port, 5121);
+    }
+
+    #[test]
+    fn send_pending_sel_default_subnet() {
+        use crate::proto::P0071;
+        // default lan_subnet covers only 127.0.0.1
+        let st = sel_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        let (mtx, _mrx) = mpsc::channel(8);
+        let (map_id, _kill) = st.map_register(
+            mtx.clone(),
+            mtx.clone(),
+            u32::from_le_bytes([203, 0, 113, 7]),
+            5121,
+        );
+
+        let mut rx = pending_sel(&st, map_id, [127, 0, 0, 1]);
+        let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(p.ip.0, [127, 0, 0, 1]);
+
+        let mut rx = pending_sel(&st, map_id, [203, 0, 113, 9]);
+        let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(p.ip.0, [203, 0, 113, 7]);
     }
 }

@@ -13,6 +13,7 @@
 
 pub mod admin;
 pub mod client;
+pub mod dbq;
 pub mod http;
 pub mod maplink;
 pub mod state;
@@ -56,11 +57,11 @@ pub async fn run(cfg: Config) -> Result<(), ServeError> {
             .expect("load_parties panicked");
     }
 
-    // serialized DB writer for the map link (state.rs)
+    // serialized DB writer for the map link (dbq.rs)
     {
         let st = st.clone();
         tokio::spawn(async move {
-            state::db_writer(st).await;
+            dbq::db_writer(st).await;
         });
     }
 
@@ -200,7 +201,7 @@ pub fn send_gm_list(st: &State) {
         .collect();
     drop(gm);
     let p = crate::proto::P2B15 { repeat };
-    st.map_broadcast(&state::enc(|v| p.encode(v)));
+    st.map_broadcast(&crate::proto::enc(|v| p.encode(v)));
 }
 
 /// Parse gm_account.txt ("id level" per line, `//` comments), swap
