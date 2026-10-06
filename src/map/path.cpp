@@ -299,9 +299,22 @@ int path_search(struct walkpath_data *wpd, Borrowed<map_local> m, int x0, int y0
 
     assert (m->gat);
     P<map_local> md = m;
-    if (x1 < 0 || x1 >= md->xs || y1 < 0 || y1 >= md->ys
-        || bool(read_gatp(md, x1, y1) & MapCell::UNWALKABLE))
+    // flag & 2 makes the goal the 3x3 neighborhood of (x1,y1) instead of
+    // the cell itself, so an unwalkable or out-of-bounds target cell does
+    // not decide the result on its own.
+    if (!(flag & 2)
+        && (x1 < 0 || x1 >= md->xs || y1 < 0 || y1 >= md->ys
+            || bool(read_gatp(md, x1, y1) & MapCell::UNWALKABLE)))
         return -1;
+
+    if ((flag & 2)
+        && x0 - x1 >= -1 && x0 - x1 <= 1 && y0 - y1 >= -1 && y0 - y1 <= 1)
+    {
+        wpd->path_len = 0;
+        wpd->path_pos = 0;
+        wpd->path_half = 0;
+        return 0;
+    }
 
     // easy
     dx = (x1 - x0 < 0) ? -1 : 1;
@@ -334,7 +347,9 @@ int path_search(struct walkpath_data *wpd, Borrowed<map_local> m, int x0, int y0
             y += dy;
             wpd->path[i++] = (dy > 0) ? DIR::S : DIR::N;
         }
-        if (x == x1 && y == y1)
+        if ((flag & 2)
+            ? (x - x1 >= -1 && x - x1 <= 1 && y - y1 >= -1 && y - y1 <= 1)
+            : (x == x1 && y == y1))
         {
             wpd->path_len = i;
             wpd->path_pos = 0;
@@ -373,7 +388,9 @@ int path_search(struct walkpath_data *wpd, Borrowed<map_local> m, int x0, int y0
         rp = pop_heap_path(heap, tp);
         x = tp[rp].x;
         y = tp[rp].y;
-        if (x == x1 && y == y1)
+        if ((flag & 2)
+            ? (x - x1 >= -1 && x - x1 <= 1 && y - y1 >= -1 && y - y1 <= 1)
+            : (x == x1 && y == y1))
         {
             int len, j;
 

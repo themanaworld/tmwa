@@ -1250,7 +1250,6 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
 {
     int dx, dy, rangex, rangey, arange;
     struct walkpath_data wpd;
-    int i;
 
     nullpo_retz(md);
     nullpo_retz(bl);
@@ -1281,25 +1280,18 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
     wpd.path_len = 0;
     wpd.path_pos = 0;
     wpd.path_half = 0;
-    if (path_search(&wpd, md->bl_m, md->bl_x, md->bl_y, bl->bl_x, bl->bl_y, 0) !=
-        -1)
-        return 1;
 
     if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
-        return 0;
+        return path_search(&wpd, md->bl_m, md->bl_x, md->bl_y,
+                bl->bl_x, bl->bl_y, 0) != -1;
 
-    // It judges whether it can adjoin or not.
-    dx = (dx > 0) ? 1 : ((dx < 0) ? -1 : 0);
-    dy = (dy > 0) ? 1 : ((dy < 0) ? -1 : 0);
-    if (path_search(&wpd, md->bl_m, md->bl_x, md->bl_y, bl->bl_x - dx, bl->bl_y - dy, 0) != -1)
+    // A mob only has to reach a cell next to a PC or MOB, so a single
+    // search to the target's 3x3 neighborhood answers the question the
+    // old code asked with up to eleven separate searches.
+    if (arange <= 1)
         return 1;
-    for (i = 0; i < 9; i++)
-    {
-        if (path_search(&wpd, md->bl_m, md->bl_x, md->bl_y, bl->bl_x - 1 + i / 3,
-             bl->bl_y - 1 + i % 3, 0) != -1)
-            return 1;
-    }
-    return 0;
+    return path_search(&wpd, md->bl_m, md->bl_x, md->bl_y,
+            bl->bl_x, bl->bl_y, 2) != -1;
 }
 
 /*==========================================
