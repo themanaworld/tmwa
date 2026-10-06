@@ -50,11 +50,11 @@ void push_int(struct script_stack *stack, int val)
 }
 
 template<class T>
-void push_reg(struct script_stack *stack, SIR reg)
+void push_reg(struct script_stack *stack, SIR reg, BlockId owner)
 {
     static_assert(first_type_is_any<T, ScriptDataParam, ScriptDataVariable>(), "not reg type");
 
-    script_data nsd = T{.reg= reg};
+    script_data nsd = T{.reg= reg, .owner= owner};
     stack->stack_datav.push_back(nsd);
 }
 

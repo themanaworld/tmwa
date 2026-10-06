@@ -29,6 +29,7 @@
 #include "../sexpr/variant.hpp"
 
 #include "../mmo/clif.t.hpp"
+#include "../mmo/ids.hpp"
 
 #include "script-buffer.hpp"
 
@@ -72,6 +73,8 @@ struct ScriptDataInt
 struct ScriptDataParam
 {
     SIR reg;
+    // block the parameter is bound to, resolved when pushed
+    BlockId owner;
 };
 struct ScriptDataStr
 {
@@ -84,6 +87,9 @@ struct ScriptDataArg
 struct ScriptDataVariable
 {
     SIR reg;
+    // block the variable is bound to, resolved when pushed;
+    // unused for .@ (script-scope) and $ (global) variables
+    BlockId owner;
 };
 struct ScriptDataRetInfo
 {

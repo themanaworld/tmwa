@@ -160,22 +160,47 @@ void get_val(dumb_ptr<block_list> sd, struct script_data *data)
     MATCH_END ();
 }
 
-void get_val(ScriptState *st, struct script_data *data)
+/*==========================================
+ * 変数の所有者を結合
+ * Binding a variable's owner
+ *------------------------------------------
+ */
+static
+BlockId get_var_owner(ScriptState *st, SIR reg)
 {
-    dumb_ptr<block_list> bl = nullptr;
+    ZString name_ = variable_names.outtern(reg.base());
+    VarName name = stringish<VarName>(name_);
+    char prefix = name.front();
+    if (name.startswith(".@"_s))
+        return BlockId();
+    if (prefix == '.')
+    {
+        if (st->oid)
+            return st->oid;
+    }
+    else if (prefix == '$')
+        return BlockId();
+    return st->rid;
+}
+
+/*==========================================
+ * 変数の読み取り
+ * Resolving variables with bound owners
+ *------------------------------------------
+ */
+void resolve_val(ScriptState *st, struct script_data *data)
+{
     MATCH_BEGIN (*data)
     {
         MATCH_CASE (const ScriptDataParam&, u)
         {
-            (void)u; // XXX travis complains if we don't use u
-            bl = map_id2bl(st->rid);
+            get_val(map_id2bl(u.owner), data);
         }
         MATCH_CASE (const ScriptDataVariable&, u)
         {
             ZString name_ = variable_names.outtern(u.reg.base());
             VarName name = stringish<VarName>(name_);
-            char prefix = name.front();
-            if (prefix == '.' && name[1] == '@')
+            if (name.startswith(".@"_s))
             {
                 if (name.back() == '$')
                 {
@@ -185,16 +210,12 @@ void get_val(ScriptState *st, struct script_data *data)
                 }
                 else
                     *data = ScriptDataInt{st->regm.get(u.reg)};
-                return;
             }
-            if (prefix == '.' && st->oid)
-                bl = map_id2bl(st->oid);
-            else if (prefix != '$' && st->rid)
-                bl = map_id2bl(st->rid);
+            else
+                get_val(map_id2bl(u.owner), data);
         }
     }
     MATCH_END ();
-    get_val(bl, data);
 }
 
 /*==========================================
@@ -204,8 +225,8 @@ void get_val(ScriptState *st, struct script_data *data)
  */
 struct script_data get_val2(ScriptState *st, SIR reg)
 {
-    struct script_data dat = ScriptDataVariable{reg};
-    get_val(st, &dat);
+    struct script_data dat = ScriptDataVariable{.reg= reg, .owner= get_var_owner(st, reg)};
+    resolve_val(st, &dat);
     return dat;
 }
 
@@ -311,7 +332,7 @@ void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, RString zd)
  */
 RString conv_str(ScriptState *st, struct script_data *data)
 {
-    get_val(st, data);
+    resolve_val(st, data);
     assert (!data->is<ScriptDataRetInfo>());
     if (auto *u = data->get_if<ScriptDataInt>())
     {
@@ -328,7 +349,7 @@ RString conv_str(ScriptState *st, struct script_data *data)
 int conv_num(ScriptState *st, struct script_data *data)
 {
     int rv = 0;
-    get_val(st, data);
+    resolve_val(st, data);
     assert (!data->is<ScriptDataRetInfo>());
     MATCH_BEGIN (*data)
     {
@@ -357,7 +378,7 @@ int conv_num(ScriptState *st, struct script_data *data)
 
 Borrowed<const ScriptBuffer> conv_script(ScriptState *st, struct script_data *data)
 {
-    get_val(st, data);
+    resolve_val(st, data);
     return data->get_if<ScriptDataRetInfo>()->script;
 }
 
@@ -424,7 +445,7 @@ int pop_val(ScriptState *st)
     if (st->stack->stack_datav.empty())
         return 0;
     script_data& back = st->stack->stack_datav.back();
-    get_val(st, &back);
+    resolve_val(st, &back);
     int rv = 0;
     if (auto *u = back.get_if<ScriptDataInt>())
         rv = u->numi;
@@ -445,12 +466,12 @@ bool isstr(struct script_data& c)
 static
 void op_add(ScriptState *st)
 {
-    get_val(st, &st->stack->stack_datav.back());
+    resolve_val(st, &st->stack->stack_datav.back());
     script_data back = st->stack->stack_datav.back();
     st->stack->stack_datav.pop_back();
 
     script_data& back1 = st->stack->stack_datav.back();
-    get_val(st, &back1);
+    resolve_val(st, &back1);
 
     if (!(isstr(back) || isstr(back1)))
     {
@@ -578,10 +599,10 @@ void op_2(ScriptState *st, ByteCode op)
     // pop_val has unfortunate implications here
     script_data d2 = st->stack->stack_datav.back();
     st->stack->stack_datav.pop_back();
-    get_val(st, &d2);
+    resolve_val(st, &d2);
     script_data d1 = st->stack->stack_datav.back();
     st->stack->stack_datav.pop_back();
-    get_val(st, &d1);
+    resolve_val(st, &d1);
 
     if (isstr(d1) && isstr(d2))
     {
@@ -818,14 +839,17 @@ void run_script_main(ScriptState *st, Borrowed<const ScriptBuffer> rootscript)
                     push_int<ScriptDataPos>(stack, arg);
                     break;
                 case ByteCode::VARIABLE:
-                    push_reg<ScriptDataVariable>(stack, SIR::from(arg));
+                {
+                    SIR reg = SIR::from(arg);
+                    push_reg<ScriptDataVariable>(stack, reg, get_var_owner(st, reg));
                     break;
+                }
                 case ByteCode::FUNC_REF:
                     push_int<ScriptDataFuncRef>(stack, arg);
                     break;
                 case ByteCode::PARAM:
                     SP arg_sp = static_cast<SP>(arg);
-                    push_reg<ScriptDataParam>(stack, SIR::from(arg_sp));
+                    push_reg<ScriptDataParam>(stack, SIR::from(arg_sp), st->rid);
                     break;
                 }
             }

@@ -234,7 +234,7 @@ static
 void builtin_call(ScriptState *st)
 {
     struct script_data *sdata = &AARG(0);
-    get_val(st, sdata);
+    resolve_val(st, sdata);
     RString str;
     if (sdata->is<ScriptDataStr>())
     {
@@ -1483,7 +1483,7 @@ void builtin_set(ScriptState *st)
         if(HARG(2))
         {
             struct script_data *sdata = &AARG(2);
-            get_val(st, sdata);
+            resolve_val(st, sdata);
             CharName name;
             if (sdata->is<ScriptDataStr>())
             {
@@ -1533,7 +1533,7 @@ void builtin_set(ScriptState *st)
         if(HARG(2))
         {
             struct script_data *sdata = &AARG(2);
-            get_val(st, sdata);
+            resolve_val(st, sdata);
             if(prefix == '.')
             {
                 if (name_.startswith(".@"_s))
@@ -1667,7 +1667,7 @@ void builtin_setarray(ScriptState *st)
     if (prefix == '.' && !name.startswith(".@"_s))
     {
         struct script_data *sdata = &AARG(1);
-        get_val(st, sdata);
+        resolve_val(st, sdata);
         i++; // 2nd argument is npc, not an array element
         if (sdata->is<ScriptDataStr>())
         {
@@ -1822,7 +1822,7 @@ void builtin_getelementofarray(ScriptState *st)
         else
         {
             push_reg<ScriptDataVariable>(st->stack,
-                    u->reg.iplus(i));
+                    u->reg.iplus(i), u->owner);
         }
     }
     else
@@ -1935,7 +1935,7 @@ static ItemNameId get_item_id(ScriptState *st, struct script_data *data)
 {
     ItemNameId nameid;
 
-    get_val(st, data);
+    resolve_val(st, data);
     if (data->is<ScriptDataStr>())
     {
         ZString name = ZString(conv_str(st, data));
@@ -4562,7 +4562,7 @@ void builtin_misceffect(ScriptState *st)
     {
         struct script_data *sdata = &AARG(1);
 
-        get_val(st, sdata);
+        resolve_val(st, sdata);
 
         if (sdata->is<ScriptDataStr>())
             name = stringish<CharName>(ZString(conv_str(st, sdata)));
@@ -4642,7 +4642,7 @@ void builtin_get(ScriptState *st)
     {
         SIR reg = u->reg;
         struct script_data *sdata = &AARG(1);
-        get_val(st, sdata);
+        resolve_val(st, sdata);
         CharName name;
         if (sdata->is<ScriptDataStr>())
         {
@@ -4685,7 +4685,7 @@ void builtin_get(ScriptState *st)
     }
 
     struct script_data *sdata = &AARG(1);
-    get_val(st, sdata);
+    resolve_val(st, sdata);
 
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name_ = variable_names.outtern(reg.base());
@@ -5531,7 +5531,7 @@ void builtin_strnpcinfo(ScriptState *st)
 
     if(HARG(1)){
         struct script_data *sdata = &AARG(1);
-        get_val(st, sdata);
+        resolve_val(st, sdata);
 
         if (sdata->is<ScriptDataStr>())
         {

@@ -82,8 +82,7 @@ enum class ScriptEndState
 
 dumb_ptr<map_session_data> script_rid2sd(ScriptState *st);
 void get_val(dumb_ptr<block_list> sd, struct script_data *data);
-__attribute__((deprecated))
-void get_val(ScriptState *st, struct script_data *data);
+void resolve_val(ScriptState *st, struct script_data *data);
 struct script_data get_val2(ScriptState *st, SIR reg);
 void set_scope_reg(ScriptState *, SIR, struct script_data *);
 void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_data vd);
@@ -99,7 +98,7 @@ Borrowed<const ScriptBuffer> conv_script(ScriptState *st, struct script_data *da
 template<class T>
 void push_int(struct script_stack *stack, int val);
 template<class T>
-void push_reg(struct script_stack *stack, SIR reg);
+void push_reg(struct script_stack *stack, SIR reg, BlockId owner);
 template<class T>
 void push_script(struct script_stack *stack, Borrowed<const ScriptBuffer> code);
 template<class T>
