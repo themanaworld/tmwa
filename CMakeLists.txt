@@ -20,7 +20,12 @@ string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VERSION ${VERSION_FULL})
 
 # Capture the tweak part of the version
 if("${VERSION_FULL}" MATCHES "^v[0-9]+\\.[0-9]+\\.[0-9]+-([0-9]+)-g[0-9a-f]+$")
-    set(VERSION "${VERSION}.${CMAKE_MATCH_1}")
+    # Version.devel is a u8 on the wire; clamp a long branch.
+    if(CMAKE_MATCH_1 GREATER 255)
+        set(VERSION "${VERSION}.255")
+    else()
+        set(VERSION "${VERSION}.${CMAKE_MATCH_1}")
+    endif()
 else()
     set(VERSION "${VERSION}.0")
 endif()
