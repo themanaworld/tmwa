@@ -1063,16 +1063,15 @@ fn htd_seconds(h: &HumanTimeDiff) -> i64 {
         + h.second as i64
 }
 
-/// 0x2b14 to all maps + drop the char-screen session.
+/// 0x2b14 to all maps: kick the account's in-game session. (A
+/// char-screen session is only dropped when the client leaves; no
+/// signal ever reached it.)
 fn kick_online(st: &Arc<State>, account_id: u32, ban_not_status: u8, until: i64) {
     let mut p = P2B14::default();
     p.account_id = AccountId(account_id);
     p.ban_not_status = ban_not_status;
     p.status_or_ban_until = crate::proto::types::TimeT(until);
     st.map_broadcast(&enc(move |v| p.encode(v)));
-    if let Some(txs) = st.char_sessions.lock().unwrap().remove(&account_id) {
-        drop(txs);
-    }
 }
 
 // ---------------- parties (int_party.cpp port) ----------------

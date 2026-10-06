@@ -152,7 +152,7 @@ fn ip4(v: u32) -> Ip4Address {
 
 fn pub_ip(st: &State) -> Ip4Address {
     let ip: Ipv4Addr = st.cfg.gate.public_ip.parse().unwrap_or(Ipv4Addr::LOCALHOST);
-    Ip4Address(u32::from_le_bytes(ip.octets()).to_le_bytes())
+    Ip4Address(ip.octets())
 }
 
 fn stamp_seconds(secs: u64) -> FixedStr<20> {
@@ -176,11 +176,7 @@ async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], i
     // IP ACL (tmwa check_ip: order deny_allow/allow_deny, both empty
     // = allow)
     if !ip_allowed(st, ip) {
-        send_bytes(tx, {
-            let mut p = P006A::default();
-            p.error_code = 0x03;
-            enc(move |v| p.encode(v))
-        });
+        send_6a(tx, 3, 0, None);
         return;
     }
     // flood protection
@@ -335,9 +331,7 @@ async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], i
     }
     // min GM level
     if crate::serve::is_gm(st, account_id) < st.cfg.login.min_level_to_connect {
-        let mut p = P0081::default();
-        p.error_code = 1;
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_server_closed(tx);
         return;
     }
 
@@ -353,28 +347,21 @@ async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], i
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as i64;
+    let ip_str = Ipv4Addr::from(ip.to_le_bytes()).to_string();
     let prev = st
         .db
-        .record_login(
-            account_id as i64,
-            now_ms,
-            &Ipv4Addr::from(ip.to_le_bytes()).to_string(),
-        )
+        .blocking(move |db| db.record_login(account_id as i64, now_ms, &ip_str))
+        .await
         .ok()
         .flatten();
 
-    st.push_auth(AuthEntry {
+    st.push_auth(char_auth(
         account_id,
-        char_id: 0,
         login_id1,
         login_id2,
         ip,
-        client_version: fixed.client_protocol_version.0,
-        map_id: None,
-        upstream_ip: None,
-        delflag: DELFLAG_CHAR,
-        created: Instant::now(),
-    });
+        fixed.client_protocol_version.0,
+    ));
 
     // update host (0x0063)
     if fixed.flags & VERSION_2_UPDATEHOST != 0 && !st.cfg.login.update_host.is_empty() {
@@ -405,6 +392,55 @@ async fn handle_login(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, pkt: &[u8], i
     };
     head.repeat = vec![rep];
     send_bytes(tx, enc(move |v| head.encode(v)));
+}
+
+/// 0x0081 code 1 ("No servers available."): the connection ends.
+fn send_server_closed(tx: &mpsc::Sender<Vec<u8>>) {
+    let mut p = P0081::default();
+    p.error_code = 1;
+    send_bytes(tx, enc(move |v| p.encode(v)));
+}
+
+/// Stage-2 auth entry pushed by a successful login: the account's
+/// next step is the char screen (0x0065).
+fn char_auth(account_id: u32, id1: u32, id2: u32, ip: u32, client_version: u32) -> AuthEntry {
+    AuthEntry {
+        account_id,
+        char_id: 0,
+        login_id1: id1,
+        login_id2: id2,
+        ip,
+        client_version,
+        map_id: None,
+        upstream_ip: None,
+        delflag: DELFLAG_CHAR,
+        created: Instant::now(),
+    }
+}
+
+/// Stage-3 auth entry pushed on char select / map rejoin: the map
+/// server authenticates the char with a 0x2afc.
+fn map_auth(
+    account_id: u32,
+    char_id: u32,
+    id1: u32,
+    id2: u32,
+    ip: u32,
+    client_version: u32,
+    map_id: usize,
+) -> AuthEntry {
+    AuthEntry {
+        account_id,
+        char_id,
+        login_id1: id1,
+        login_id2: id2,
+        ip,
+        client_version,
+        map_id: Some(map_id),
+        upstream_ip: None,
+        delflag: DELFLAG_MAP,
+        created: Instant::now(),
+    }
 }
 
 /// 0x006a account login error; for code 6 the message is the ban
@@ -516,11 +552,6 @@ async fn char_session<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + 
         tracing::info!(account_id, "character account logged on (gm={gm})");
     }
 
-    // register session (for disconnect_player on ban/delete)
-    st.char_sessions
-        .lock()
-        .unwrap()
-        .insert(account_id, tx.clone());
     let sd = CharSd {
         account_id,
         login_id1: fixed.login_id1,
@@ -574,18 +605,6 @@ async fn char_session<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + 
             }
         }
     }
-    char_session_unregister(&st, account_id, tx);
-}
-
-/// Drop this session's char-screen registration on exit. A second
-/// session on the same account overwrote the entry, so only remove
-/// it while it still belongs to this connection's channel (the
-/// same check `map_kill` uses in state.rs).
-fn char_session_unregister(st: &Arc<State>, account_id: u32, tx: &mpsc::Sender<Vec<u8>>) {
-    let mut cs = st.char_sessions.lock().unwrap();
-    if matches!(cs.get(&account_id), Some(txs) if txs.same_channel(tx)) {
-        cs.remove(&account_id);
-    }
 }
 
 struct CharSd {
@@ -597,64 +616,71 @@ struct CharSd {
 }
 
 async fn send_char_list(st: &Arc<State>, tx: &mpsc::Sender<Vec<u8>>, sd: &CharSd) {
+    let aid = sd.account_id as i64;
     let ids = st
         .db
-        .char_ids_of_account(sd.account_id as i64)
+        .blocking(move |db| db.char_ids_of_account(aid))
+        .await
         .unwrap_or_default();
     let mut repeat = Vec::new();
-    for cid in ids.iter().take(9) {
+    for cid in ids.iter().take(st.cfg.char_.char_slots as usize) {
         if let Some(rec) = st.load_char(*cid as u32).await {
-            let k = &rec.key;
-            let p = &rec.data;
-            let sel = CharSelect {
-                char_id: k.char_id,
-                base_exp: p.base_exp as u32,
-                zeny: p.zeny as u32,
-                job_exp: p.job_exp as u32,
-                job_level: p.job_level as u32,
-                shoes: equip_view(p, 0x40),  // EPOS::SHOES
-                gloves: equip_view(p, 0x80), // EPOS::GLOVES
-                cape: equip_view(p, 0x20),   // EPOS::CAPE
-                misc1: equip_view(p, 0x100), // EPOS::MISC1
-                option: p.option,
-                unused: 0,
-                karma: p.karma as u32,
-                manner: p.manner as u32,
-                status_point: p.status_point as u16,
-                hp: p.hp.min(0x7fff) as u16,
-                max_hp: p.max_hp.min(0x7fff) as u16,
-                sp: p.sp.min(0x7fff) as u16,
-                max_sp: p.max_sp.min(0x7fff) as u16,
-                speed: DEFAULT_WALK_SPEED,
-                species: p.species,
-                hair_style: p.hair as u16,
-                weapon: 0,
-                base_level: p.base_level as u16,
-                skill_point: p.skill_point as u16,
-                head_bottom: p.head_bottom,
-                shield: p.shield,
-                head_top: p.head_top,
-                head_mid: p.head_mid,
-                hair_color: p.hair_color as u16,
-                misc2: equip_view(p, 0x200), // EPOS::MISC2
-                char_name: k.name,
-                stats: Stats6 {
-                    str: sat8(p.attrs[0]),
-                    agi: sat8(p.attrs[1]),
-                    vit: sat8(p.attrs[2]),
-                    int_: sat8(p.attrs[3]),
-                    dex: sat8(p.attrs[4]),
-                    luk: sat8(p.attrs[5]),
-                },
-                char_num: k.char_num,
-                sex: if p.sex.0 == 2 { sd.sex } else { p.sex },
-            };
+            let sel = char_select(&rec.key, &rec.data, sd.sex);
             repeat.push(P006BRepeat { char_select: sel });
         }
     }
     let mut p = P006B::default();
     p.repeat = repeat;
     send_bytes(tx, enc(move |v| p.encode(v)));
+}
+
+/// Build the CharSelect wire view of a cached char: the 0x006b list
+/// and the 0x006d create reply share this layout (the create reply
+/// overrides `status_point` afterwards).
+fn char_select(k: &CharKey, p: &CharData, account_sex: Sex) -> CharSelect {
+    CharSelect {
+        char_id: k.char_id,
+        base_exp: p.base_exp as u32,
+        zeny: p.zeny as u32,
+        job_exp: p.job_exp as u32,
+        job_level: p.job_level as u32,
+        shoes: equip_view(p, 0x40),  // EPOS::SHOES
+        gloves: equip_view(p, 0x80), // EPOS::GLOVES
+        cape: equip_view(p, 0x20),   // EPOS::CAPE
+        misc1: equip_view(p, 0x100), // EPOS::MISC1
+        option: p.option,
+        unused: 0,
+        karma: p.karma as u32,
+        manner: p.manner as u32,
+        status_point: p.status_point as u16,
+        hp: p.hp.min(0x7fff) as u16,
+        max_hp: p.max_hp.min(0x7fff) as u16,
+        sp: p.sp.min(0x7fff) as u16,
+        max_sp: p.max_sp.min(0x7fff) as u16,
+        speed: DEFAULT_WALK_SPEED,
+        species: p.species,
+        hair_style: p.hair as u16,
+        weapon: 0,
+        base_level: p.base_level as u16,
+        skill_point: p.skill_point as u16,
+        head_bottom: p.head_bottom,
+        shield: p.shield,
+        head_top: p.head_top,
+        head_mid: p.head_mid,
+        hair_color: p.hair_color as u16,
+        misc2: equip_view(p, 0x200), // EPOS::MISC2
+        char_name: k.name,
+        stats: Stats6 {
+            str: sat8(p.attrs[0]),
+            agi: sat8(p.attrs[1]),
+            vit: sat8(p.attrs[2]),
+            int_: sat8(p.attrs[3]),
+            dex: sat8(p.attrs[4]),
+            luk: sat8(p.attrs[5]),
+        },
+        char_num: k.char_num,
+        sex: if p.sex.0 == 2 { account_sex } else { p.sex },
+    }
 }
 
 fn sat8(v: i16) -> u8 {
@@ -683,9 +709,10 @@ async fn handle_change_pass(
     let old = fixed.old_pass.to_string_lossy();
     let new = fixed.new_pass.to_string_lossy();
     let aid = sd.account_id as i64;
-    let db = &st.db;
-    let row = db
-        .with_conn(|conn| crate::db::password_row_conn(conn, aid))
+    let row = st
+        .db
+        .blocking(move |db| db.with_conn(|conn| crate::db::password_row_conn(conn, aid)))
+        .await
         .ok()
         .flatten();
     let Some((hash, scheme, salt)) = row else {
@@ -708,7 +735,8 @@ async fn handle_change_pass(
         })
         .await
         {
-            if db
+            if st
+                .db
                 .blocking(move |db| {
                     db.set_password(aid, &h, crate::auth::password::Scheme::Argon2id, None)
                 })
@@ -739,9 +767,11 @@ async fn handle_char_select(
     };
     let slot = fixed.code;
     // find the char in account+slot
+    let aid = sd.account_id as i64;
     let ids = st
         .db
-        .char_ids_of_account(sd.account_id as i64)
+        .blocking(move |db| db.char_ids_of_account(aid))
+        .await
         .unwrap_or_default();
     let mut found: Option<(crate::proto::CharKey, CharData)> = None;
     for cid in ids {
@@ -760,17 +790,13 @@ async fn handle_char_select(
     // maps (and rewrite the last map like tmwa does)
     let (map_id, rewrite) = st.map_for(&cd.last_point.map_.to_string_lossy());
     let Some(map_id) = map_id else {
-        let mut p = P0081::default();
-        p.error_code = 1; // server closed
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_server_closed(tx);
         return;
     };
     // a saturated map link can't answer auth requests in time:
     // refuse the select rather than queue behind it
     if st.map_congested(map_id) {
-        let mut p = P0081::default();
-        p.error_code = 1;
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_server_closed(tx);
         return;
     }
     if let Some(m) = rewrite {
@@ -783,18 +809,15 @@ async fn handle_char_select(
     }
 
     // char->map auth entry
-    st.push_auth(AuthEntry {
-        account_id: sd.account_id,
-        char_id: ck.char_id.0,
-        login_id1: sd.login_id1,
-        login_id2: sd.login_id2,
+    st.push_auth(map_auth(
+        sd.account_id,
+        ck.char_id.0,
+        sd.login_id1,
+        sd.login_id2,
         ip,
-        client_version: sd.client_version,
-        map_id: Some(map_id),
-        upstream_ip: None,
-        delflag: DELFLAG_MAP,
-        created: Instant::now(),
-    });
+        sd.client_version,
+        map_id,
+    ));
 
     // 0x3829 to all map servers; ip = the real client IP. The map
     // trusts it because its map_conf lists us as trusted_proxy_ip.
@@ -808,9 +831,7 @@ async fn handle_char_select(
     p.login_id2 = sd.login_id2;
     p.ip = ip4(ip);
     let Some(ttx) = st.map_prio_tx(map_id) else {
-        let mut e = P0081::default();
-        e.error_code = 1;
-        send_bytes(tx, enc(move |v| e.encode(v)));
+        send_server_closed(tx);
         return;
     };
     let key = (sd.account_id, ck.char_id.0);
@@ -936,9 +957,11 @@ async fn handle_char_create(
         return err(0x01);
     }
     // slot already used?
+    let aid = sd.account_id as i64;
     for cid in st
         .db
-        .char_ids_of_account(sd.account_id as i64)
+        .blocking(move |db| db.char_ids_of_account(aid))
+        .await
         .unwrap_or_default()
     {
         if let Some(rec) = st.load_char(cid as u32).await {
@@ -976,7 +999,6 @@ async fn handle_char_create(
     cd.save_point = cd.last_point;
 
     let name_s = name.clone();
-    let aid = sd.account_id as i64;
     let res = st
         .db
         .blocking(move |db| {
@@ -1048,42 +1070,9 @@ async fn handle_char_create(
     st.char_names.lock().unwrap().insert(name, cid);
 
     // 0x006d reply (tmwa fills CharSelect like this)
-    let sel = CharSelect {
-        char_id: CharId(cid),
-        base_exp: 0,
-        zeny: 0,
-        job_exp: 0,
-        job_level: 1,
-        shoes: ItemNameId(0),
-        gloves: ItemNameId(0),
-        cape: ItemNameId(0),
-        misc1: ItemNameId(0),
-        option: Opt0(0),
-        unused: 0,
-        karma: 0,
-        manner: 0,
-        status_point: 0x30,
-        hp: cd.hp.min(0x7fff) as u16,
-        max_hp: cd.max_hp.min(0x7fff) as u16,
-        sp: cd.sp.min(0x7fff) as u16,
-        max_sp: cd.max_sp.min(0x7fff) as u16,
-        speed: DEFAULT_WALK_SPEED,
-        species: cd.species,
-        hair_style: cd.hair as u16,
-        weapon: 0,
-        base_level: 1,
-        skill_point: 0,
-        head_bottom: ItemNameId(0),
-        shield: cd.shield,
-        head_top: cd.head_top,
-        head_mid: cd.head_mid,
-        hair_color: cd.hair_color as u16,
-        misc2: ItemNameId(0),
-        char_name: key.name,
-        stats,
-        char_num: slot,
-        sex: cd.sex,
-    };
+    let mut sel = char_select(&key, &cd, sd.sex);
+    // a fresh char shows the creation points, not the stored 0
+    sel.status_point = 0x30;
     let mut p = P006D::default();
     p.char_select = sel;
     send_bytes(tx, enc(move |v| p.encode(v)));
@@ -1212,6 +1201,30 @@ fn answer_tick(rec: &std::sync::Mutex<PlayerSession>, tx: &mpsc::Sender<Vec<u8>>
     send_bytes(tx, enc(move |v| rep.encode(v)));
 }
 
+/// Serve the client for up to `wait` while the session is held or
+/// the upstream's fate is undecided: answer 0x007e pings, drop
+/// everything else. Returns false on EOF or a frame error (the
+/// client is gone).
+async fn drain_client_input<
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+>(
+    fr: &mut PacketFramer<Rd<S>>,
+    rec: &std::sync::Mutex<PlayerSession>,
+    tx: &mpsc::Sender<Vec<u8>>,
+    wait: Duration,
+) -> bool {
+    match tokio::time::timeout(wait, fr.next()).await {
+        Ok(Ok(Some(p))) => {
+            if p.id == 0x007e {
+                answer_tick(rec, tx);
+            }
+            true
+        }
+        Ok(Ok(None)) | Ok(Err(_)) => false,
+        Err(_) => true, // timeout: nothing arrived
+    }
+}
+
 /// What an upstream EOF resolves to once the map-link state is known.
 enum UpGone {
     /// The map itself is going away: hold the client.
@@ -1253,15 +1266,8 @@ async fn resolve_upstream_eof<
             break;
         }
         let wait = left.min(Duration::from_millis(200));
-        match tokio::time::timeout(wait, fr.next()).await {
-            Ok(Ok(Some(p))) => {
-                if p.id == 0x007e {
-                    answer_tick(rec, tx);
-                }
-                // other held input is dropped
-            }
-            Ok(Ok(None)) | Ok(Err(_)) => return UpGone::ClientGone,
-            Err(_) => {}
+        if !drain_client_input(fr, rec, tx, wait).await {
+            return UpGone::ClientGone;
         }
         if st.map_gone(map_id) {
             return UpGone::Hold;
@@ -1271,9 +1277,7 @@ async fn resolve_upstream_eof<
     // player alone. If the map never accepted it, tell the client
     // why; otherwise it already got whatever the map sent.
     if !rec.lock().unwrap().saw_0073 {
-        let mut p = P0081::default();
-        p.error_code = 1;
-        send_bytes(tx, enc(move |v| p.encode(v)));
+        send_server_closed(tx);
     }
     UpGone::Close
 }
@@ -1355,18 +1359,15 @@ async fn push_reauth(
             r.client_ip,
         )
     };
-    st.push_auth(AuthEntry {
+    st.push_auth(map_auth(
         account_id,
         char_id,
         login_id1,
         login_id2,
-        ip: client_ip,
-        client_version: 0,
-        map_id: Some(map_id),
-        upstream_ip: None,
-        delflag: DELFLAG_MAP,
-        created: Instant::now(),
-    });
+        client_ip,
+        0,
+        map_id,
+    ));
     let mut p29 = P3829::default();
     p29.account_id = AccountId(account_id);
     p29.char_id = CharId(char_id);
@@ -1554,15 +1555,8 @@ async fn hold_wait<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Sen
         }
         // still nothing: read client input while we wait
         let wait = (deadline - now).min(Duration::from_secs(1));
-        match tokio::time::timeout(wait, fr.next()).await {
-            Ok(Ok(Some(p))) => {
-                if p.id == 0x007e {
-                    answer_tick(rec, tx);
-                }
-                // all other packets are dropped while held
-            }
-            Ok(Ok(None)) | Ok(Err(_)) => return None,
-            Err(_) => {} // timeout, re-evaluate
+        if !drain_client_input(fr, rec, tx, wait).await {
+            return None;
         }
     }
 }
@@ -1691,11 +1685,7 @@ async fn rejoin_until<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + 
                             // map is back but refused us
                             // before 0x0073 (full / limit):
                             // tell the client, stop holding
-                            let mut p = P0081::default();
-                            p.error_code = 1;
-                            send_bytes(tx, enc(move |v| {
-                                p.encode(v)
-                            }));
+                            send_server_closed(tx);
                             return None;
                         }
                         Err(_) => break 'attempt,
@@ -1833,20 +1823,11 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
         login_id2,
         client_ip: ip,
         server_tick: fixed.client_tick,
-        server_tick_at: Instant::now(),
         map_id,
         map_name,
         map_name_stale: true,
-        npc_id: 0,
-        trade_open: false,
-        storage_open: false,
-        quitting: false,
-        saw_0073: false,
-        transferring: false,
-        kicked: false,
-        held: false,
         hold_signal: Some(hold_signal.clone()),
-        held_since: None,
+        ..Default::default()
     }));
     st.player_sessions
         .lock()
@@ -1948,7 +1929,7 @@ async fn relay<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 
                 r.held = true;
                 r.held_since = Some(Instant::now());
             }
-            announce(&tx, &st.cfg.gate.hold_message.clone());
+            announce(&tx, &st.cfg.gate.hold_message);
             match hold_wait(&st, &rec, &mut fr, &tx).await {
                 Some(m) => {
                     cur_map_id = m;
@@ -1994,25 +1975,9 @@ mod tests {
         std::sync::Arc::new(std::sync::Mutex::new(PlayerSession {
             account_id: 1,
             char_id: 2,
-            sex: 0,
             login_id1: 3,
             login_id2: 4,
-            client_ip: 0,
-            server_tick: 0,
-            server_tick_at: Instant::now(),
-            map_id: 0,
-            map_name: String::new(),
-            map_name_stale: false,
-            npc_id: 0,
-            trade_open: false,
-            storage_open: false,
-            quitting: false,
-            saw_0073: false,
-            transferring: false,
-            held: false,
-            hold_signal: None,
-            kicked: false,
-            held_since: None,
+            ..Default::default()
         }))
     }
 
@@ -2187,21 +2152,5 @@ mod tests {
         sig.notify_one();
         let end = forward_phase(&st, &rec, &mut fr, &tx, uwr, urd, &sig).await;
         assert!(matches!(end, FwdEnd::Hold));
-    }
-
-    /// An exiting char session must not evict the newer session's
-    /// registration for the same account.
-    #[test]
-    fn char_session_unregister_keeps_newer() {
-        let st = test_state();
-        let (tx1, _r1) = mpsc::channel(8);
-        let (tx2, _r2) = mpsc::channel(8);
-        // first session registered, then a second overwrote it
-        st.char_sessions.lock().unwrap().insert(7, tx1.clone());
-        st.char_sessions.lock().unwrap().insert(7, tx2.clone());
-        char_session_unregister(&st, 7, &tx1);
-        assert!(st.char_sessions.lock().unwrap().contains_key(&7));
-        char_session_unregister(&st, 7, &tx2);
-        assert!(!st.char_sessions.lock().unwrap().contains_key(&7));
     }
 }
