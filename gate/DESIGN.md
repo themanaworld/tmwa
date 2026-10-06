@@ -147,7 +147,15 @@ on a map that never comes back are dropped.
    its online players through `pc_evacuate`, which resolves the
    player's current map through the shadow table and runs the ordinary
    `pc_changeserver` path: save (`0x2b01`), `0x2b05` ask, gate answers
-   `0x2b06`, map sends the client `0x0092` naming the survivor.
+   `0x2b06`, map sends the client `0x0092` naming the survivor. The
+   gate paces the `0x2b06` replies at `gate.evacuate_per_second`
+   (default 50; `admin drain --rate` overrides): each reply releases
+   one client's `0x0092`, so the destination sees logins no faster
+   than that during a drain. While the map stays draining and
+   nonempty the gate re-sends `0x382a` every couple of seconds, so
+   players that land after the first pass (in-flight logins, relayed
+   rejoins) are evacuated too; map-side, sessions already moving are
+   skipped, so re-sweeps only pick up the tail.
 4. TCP clients open a direct connection to the survivor; WebSocket
    clients reconnect to the gate, which re-auths them and relays them
    onto the survivor. In both cases the character save is ordered:
@@ -155,8 +163,9 @@ on a map that never comes back are dropped.
    (`0x2b01`) so a `0x2afc` on the new link waits briefly for the old
    link's save to commit.
 5. `drain --wait` blocks until the target reports zero users on the
-   link or the link drops (bounded at 60 s), then waits up to ~5 s
-   more for in-flight handoffs to resolve. The reply counts the
+   link or the link drops (bounded at 60 s plus the paced drain
+   time, so a slower `--rate` does not truncate the wait), then
+   waits up to ~5 s more for in-flight handoffs to resolve. The reply counts the
    players that were on the target when the drain began
    (`evacuees`), how many of those then authenticated on another
    server (`arrived`, confirmed by the destination link's `0x2afc`),

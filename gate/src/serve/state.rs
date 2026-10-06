@@ -278,6 +278,10 @@ pub struct MapHandle {
     pub users: u16,
     /// Marked by `drain`: no new players are sent here.
     pub draining: bool,
+    /// Minimum spacing between evacuation pushes while `draining`
+    /// (from `gate.evacuate_per_second`; `admin drain --rate`
+    /// overrides). ZERO means unpaced.
+    pub evac_period: Duration,
     /// Set when the map sent 0x2b17 (term_func): the link will drop
     /// shortly and every player on it needs holding.
     pub shutting_down: bool,
@@ -397,6 +401,52 @@ pub struct DrainTrack {
     pub arrived: HashSet<u32>,
 }
 
+/// Per-push spacing for an evacuation rate in clients/second.
+/// A rate of 0 means unpaced; rates too large to matter round to a
+/// ~0 spacing and are effectively unpaced too.
+pub fn evac_period(per_second: u32) -> Duration {
+    if per_second == 0 {
+        Duration::ZERO
+    } else {
+        Duration::from_nanos((1_000_000_000u64 / per_second as u64).max(1))
+    }
+}
+
+/// Meters drain evacuations. Each `wait` is handed the next slot
+/// `period` after the previous hand-out, so a burst of callers is
+/// released at the configured rate in arrival order (the mutex
+/// queues FIFO) instead of all at once; a lull collapses back to
+/// no delay. One pacer is shared by every draining map: the limit
+/// being protected is the destination's login rate, which is
+/// common to all of them.
+pub struct EvacPace {
+    next: tokio::sync::Mutex<tokio::time::Instant>,
+}
+
+impl EvacPace {
+    fn new() -> EvacPace {
+        EvacPace {
+            next: tokio::sync::Mutex::new(tokio::time::Instant::now()),
+        }
+    }
+
+    /// Sleep until this caller's slot. `Duration::ZERO` returns at
+    /// once (pacing disabled).
+    pub async fn wait(&self, period: Duration) {
+        if period.is_zero() {
+            return;
+        }
+        let at = {
+            let mut next = self.next.lock().await;
+            let now = tokio::time::Instant::now();
+            let at = std::cmp::max(*next, now);
+            *next = at + period;
+            at
+        };
+        tokio::time::sleep_until(at).await;
+    }
+}
+
 pub struct State {
     pub cfg: Config,
     pub db: std::sync::Arc<crate::db::Db>,
@@ -495,6 +545,8 @@ pub struct State {
     pub(crate) pending_db_req: std::sync::Arc<Mutex<std::collections::HashSet<(u8, i64)>>>,
     /// map slot -> arrival tracking while a `drain` is in flight.
     pub drains: Mutex<HashMap<usize, DrainTrack>>,
+    /// Shared pace limiter for drain evacuation pushes.
+    pub evac_pace: EvacPace,
 }
 
 impl State {
@@ -535,6 +587,7 @@ impl State {
             db_dropped: std::sync::atomic::AtomicU64::new(0),
             pending_db_req: std::sync::Arc::new(Mutex::new(std::collections::HashSet::new())),
             drains: Mutex::new(HashMap::new()),
+            evac_pace: EvacPace::new(),
         }
     }
 
@@ -851,6 +904,7 @@ impl State {
         port: u16,
     ) -> (usize, std::sync::Arc<tokio::sync::Notify>) {
         let kill = std::sync::Arc::new(tokio::sync::Notify::new());
+        let evac = evac_period(self.cfg.gate.evacuate_per_second);
         let new = || MapHandle {
             id: 0,
             tx: tx.clone(),
@@ -860,6 +914,7 @@ impl State {
             maps: vec![],
             users: 0,
             draining: false,
+            evac_period: evac,
             shutting_down: false,
             kill: kill.clone(),
         };
@@ -1025,6 +1080,32 @@ impl State {
     pub fn map_draining(&self, id: usize) -> bool {
         let ms = self.map_servers.lock().unwrap();
         matches!(ms.get(id), Some(Some(h)) if h.draining)
+    }
+
+    /// The evacuation spacing for `id`, or None when the slot is
+    /// not draining. The period can be `Duration::ZERO` (unpaced);
+    /// `EvacPace::wait` returns at once on it.
+    pub fn map_evac_period(&self, id: usize) -> Option<Duration> {
+        let ms = self.map_servers.lock().unwrap();
+        match ms.get(id) {
+            Some(Some(h)) if h.draining => Some(h.evac_period),
+            _ => None,
+        }
+    }
+
+    /// Set the spacing `drain` paces this map's evacuees with.
+    pub fn map_set_evac_period(&self, id: usize, period: Duration) {
+        let mut ms = self.map_servers.lock().unwrap();
+        if let Some(Some(h)) = ms.get_mut(id) {
+            h.evac_period = period;
+        }
+    }
+
+    /// User count map `id` last reported on 0x2aff, or None when
+    /// the slot is empty.
+    pub fn map_users(&self, id: usize) -> Option<u16> {
+        let ms = self.map_servers.lock().unwrap();
+        ms.get(id).and_then(|s| s.as_ref()).map(|h| h.users)
     }
 
     /// (slot, sender) pairs for every connected map server.
@@ -1429,5 +1510,68 @@ mod tests {
             .await
             .unwrap();
         assert!(matches!(&*r, ServedReply::Failed));
+    }
+
+    /// A burst of callers is released one `period` apart in arrival
+    /// order instead of all at once, and a zero period is unpaced.
+    #[tokio::test]
+    async fn evac_pace_meters_burst() {
+        let pace = Arc::new(EvacPace::new());
+        let period = Duration::from_millis(20);
+        let hits = Arc::new(Mutex::new(Vec::new()));
+        let t0 = tokio::time::Instant::now();
+        let mut js = Vec::new();
+        for i in 0..5usize {
+            let pace = pace.clone();
+            let hits = hits.clone();
+            js.push(tokio::spawn(async move {
+                pace.wait(period).await;
+                hits.lock().unwrap().push((i, tokio::time::Instant::now()));
+            }));
+        }
+        for j in js {
+            j.await.unwrap();
+        }
+        let hits = hits.lock().unwrap();
+        // FIFO: slots land in the order the waiters arrived, each at
+        // least `period` later than the first slot
+        for (k, &(i, t)) in hits.iter().enumerate() {
+            assert_eq!(i, k);
+            assert!(t >= t0 + period * k as u32, "hit {k} too early: {t:?}");
+        }
+        // a lull collapses back to no delay: after idling well past
+        // the period the next wait returns immediately
+        tokio::time::sleep(period * 10).await;
+        let t1 = tokio::time::Instant::now();
+        pace.wait(period).await;
+        assert!(t1.elapsed() < period);
+        // zero period is unpaced even with a slot still owed
+        pace.wait(Duration::from_millis(50)).await;
+        let t2 = tokio::time::Instant::now();
+        pace.wait(Duration::ZERO).await;
+        assert!(t2.elapsed() < Duration::from_millis(10));
+    }
+
+    #[test]
+    fn evac_period_rates() {
+        assert_eq!(evac_period(0), Duration::ZERO);
+        assert_eq!(evac_period(50), Duration::from_millis(20));
+        // absurd rates round to ~0, i.e. effectively unpaced
+        assert!(evac_period(u32::MAX) < Duration::from_nanos(10));
+    }
+
+    /// `map_evac_period` only reports a period while the slot is
+    /// draining.
+    #[test]
+    fn map_evac_period_only_while_draining() {
+        let st = test_state("127.0.0.1", Ipv4Addr::LOCALHOST);
+        let (tx, _rx) = mpsc::channel(4);
+        let (ptx, _prx) = mpsc::channel(4);
+        let (id, _kill) = st.map_register(tx, ptx, 0, 5121);
+        assert_eq!(st.map_evac_period(id), None);
+        st.map_set_evac_period(id, Duration::from_millis(5));
+        assert_eq!(st.map_evac_period(id), None);
+        st.map_set_draining(id, true);
+        assert_eq!(st.map_evac_period(id), Some(Duration::from_millis(5)));
     }
 }

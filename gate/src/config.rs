@@ -51,6 +51,11 @@ pub struct GateConf {
     pub hold_timeout_secs: u64,
     /// Announcement sent once when a client's map server goes down.
     pub hold_message: String,
+    /// `admin drain` evacuation pace in clients/second. Each
+    /// evacuated player lands as a fresh login on the destination
+    /// map server, so the bound keeps a large drain absorbable.
+    /// 0 disables pacing. `admin drain --rate` overrides per call.
+    pub evacuate_per_second: u32,
 }
 
 impl Default for GateConf {
@@ -66,6 +71,7 @@ impl Default for GateConf {
             admin_socket: "tmwa-gate.sock".into(),
             hold_timeout_secs: 180,
             hold_message: "Server restarting, please wait.".into(),
+            evacuate_per_second: 50,
         }
     }
 }

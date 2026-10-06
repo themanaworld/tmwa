@@ -15,6 +15,11 @@ db = "gate.db"
 gm_account_file = "save/gm_account.txt"
 online_txt = "online.txt"
 online_html = "online.html"
+# Pace for `admin drain` evacuations, in clients/second: each
+# evacuated player lands as a fresh login on the destination map
+# server, so the bound keeps a large drain absorbable. 0 disables
+# pacing; `admin drain --rate` overrides per call.
+evacuate_per_second = 50
 
 [map]
 # tmwa-map connects here (kept localhost-only by default).

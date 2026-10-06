@@ -22,6 +22,11 @@ use crate::proto::{
 use super::dbq::send_must;
 use super::state::State;
 
+/// How often a drain re-sends 0x382a to a still-nonempty map: the
+/// pass only evacuates sessions that were fully logged in when it
+/// ran, so late arrivals need another sweep.
+const EVAC_RESWEEP: Duration = Duration::from_secs(2);
+
 /// Start the admin listener; returns when the listener errors.
 pub async fn run(st: Arc<State>) -> std::io::Result<()> {
     let path = &st.cfg.gate.admin_socket;
@@ -223,12 +228,33 @@ pub async fn dispatch(
         "online" => online(st),
         "kick" => kick_cmd(st, &args).await,
         "drain" => {
-            let wait = args.iter().any(|a| a == "--wait");
-            let which = args
-                .iter()
-                .find(|a| !a.starts_with('-'))
-                .and_then(|a| a.parse::<usize>().ok());
-            drain(st, wait, which).await
+            let mut wait = false;
+            let mut rate: Option<u32> = None;
+            let mut rate_err = false;
+            let mut which_arg: Option<&String> = None;
+            let mut it = args.iter();
+            while let Some(a) = it.next() {
+                if a == "--wait" {
+                    wait = true;
+                } else if a == "--rate" {
+                    match it.next().and_then(|v| v.parse::<u32>().ok()) {
+                        Some(r) => rate = Some(r),
+                        None => rate_err = true,
+                    }
+                } else if let Some(v) = a.strip_prefix("--rate=") {
+                    match v.parse::<u32>() {
+                        Ok(r) => rate = Some(r),
+                        Err(_) => rate_err = true,
+                    }
+                } else if which_arg.is_none() && !a.starts_with('-') {
+                    which_arg = Some(a);
+                }
+            }
+            if rate_err {
+                return err_text("usage: drain [<id>] [--wait] [--rate <clients/sec>]");
+            }
+            let which = which_arg.and_then(|a| a.parse::<usize>().ok());
+            drain(st, wait, which, rate).await
         }
         "find" => find(st, &args).await,
         "chars" => chars_cmd(st, &args).await,
@@ -364,14 +390,22 @@ async fn kick_cmd(st: &Arc<State>, args: &[String]) -> Value {
 /// Each drained server then gets a 0x382a evacuate request, which
 /// walks its players through the ordinary cross-server warp
 /// (0x2b05/0x2b06 -> client 0x0092) onto the surviving instance.
+/// The gate paces the handoffs: each 0x2b06 releases one client's
+/// 0x0092, so answering them `period` apart bounds the login rate
+/// the destination sees (`gate.evacuate_per_second`, overridable
+/// per call with `--rate`). The map evacuates only the sessions
+/// its pass found (it skips players still logging in or already
+/// moving), so while a drained map stays nonempty the gate
+/// re-sends 0x382a every few seconds to pick up the tail.
 ///
 /// With `wait`, returns once the drained servers report zero users
-/// (or their links drop), 60 s at most. The reply then counts how
-/// many of the players that were on the drained servers actually
-/// landed elsewhere (`arrived` is confirmed by the destination
-/// link's 0x2afc), how many are still there, and how many left
-/// without landing (logged out or failed).
-async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
+/// (or their links drop), 60 s at most plus the paced drain time.
+/// The reply then counts how many of the players that were on the
+/// drained servers actually landed elsewhere (`arrived` is
+/// confirmed by the destination link's 0x2afc), how many are still
+/// there, and how many left without landing (logged out or
+/// failed).
+async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>, rate: Option<u32>) -> Value {
     // One snapshot drives the whole drain: the map set can't
     // meaningfully change mid-reply anyway (new registrations go
     // through `drain`/`undebug` paths of their own).
@@ -385,8 +419,15 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
         }
         None => infos.iter().map(|(id, ..)| *id).collect(),
     };
+    let period = super::state::evac_period(rate.unwrap_or(st.cfg.gate.evacuate_per_second));
+    let mut expected_n = 0usize;
     for id in &targets {
-        st.drain_track_begin(*id, st.online_on(*id));
+        let on = st.online_on(*id);
+        expected_n += on.len();
+        st.drain_track_begin(*id, on);
+        // set the pace before the flag so a queued 0x2b05 can't
+        // observe draining with the previous drain's rate
+        st.map_set_evac_period(*id, period);
         st.map_set_draining(*id, true);
     }
     let mut stragglers: Vec<String> = Vec::new();
@@ -436,6 +477,29 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
             "map {id}: draining ({} maps handed over, {kept} with no survivor)",
             maps.len() - kept,
         );
+        // The 0x382a pass only evacuates who was on the map when it
+        // ran; players that land afterwards (in-flight logins, a
+        // relayed rejoin) are missed. Re-sweep while the map stays
+        // draining and nonempty: sessions already moving are
+        // skipped map-side, so each pass only picks up the tail.
+        {
+            let st = st.clone();
+            let id = *id;
+            tokio::spawn(async move {
+                loop {
+                    tokio::time::sleep(EVAC_RESWEEP).await;
+                    match st.map_users(id) {
+                        Some(0) | None => break,
+                        _ => {}
+                    }
+                    if !st.map_draining(id) {
+                        break;
+                    }
+                    let Some(tx) = st.map_prio_tx(id) else { break };
+                    send_must(&st, id, &tx, P382A::default().encoded()).await;
+                }
+            });
+        }
     }
     // Evacuee accounting: `expected` is the set that was online on
     // the drained server when the drain began; `arrived` is how many
@@ -482,7 +546,12 @@ async fn drain(st: &Arc<State>, wait: bool, which: Option<usize>) -> Value {
         }
         return reply(None, st);
     }
-    let deadline = Instant::now() + Duration::from_secs(60);
+    // The paced trickle releases the expected evacuees over
+    // expected_n * period; wait must outlast that plus the usual
+    // settle/report lag, so the deadline grows by the drain time.
+    let deadline = Instant::now()
+        + Duration::from_secs(60)
+        + Duration::from_secs_f64(expected_n as f64 * period.as_secs_f64());
     // phase 1: the drained servers report zero users (or drop)
     let emptied = loop {
         let left = {
@@ -1449,7 +1518,7 @@ fn help() -> Value {
          check <name> <password>     -- Check a password\n \
          create <name> <email> <pw>  -- Create an account\n \
          delete <name>               -- Delete an account\n \
-         drain [--wait]              -- Hold players and wait for saves\n \
+         drain [<id>] [--wait] [--rate n] -- Evacuate a map server's players\n \
          email <name> <email>        -- Change e-mail\n \
          find --id|--name|--email|--memo <v> -- Search accounts\n \
          get/g <id> <var>            -- Show a ## (or #) variable\n \
@@ -1539,5 +1608,24 @@ mod tests {
         let on = st.online.lock().unwrap();
         assert!(!on.contains_key(&2000007));
         assert!(on.contains_key(&100));
+    }
+
+    /// `drain --rate` parsing: a missing or non-numeric value is a
+    /// usage error; both `--rate n` and `--rate=n` forms parse.
+    #[tokio::test]
+    async fn drain_rate_flag_parsing() {
+        let st = test_state();
+        let v = dispatch(&st, "drain", vec!["--rate".into()], None).await;
+        assert_eq!(v["ok"], false);
+        let v = dispatch(&st, "drain", vec!["--rate".into(), "bogus".into()], None).await;
+        assert_eq!(v["ok"], false);
+        // no maps connected: drains nothing but the flags parse
+        let v = dispatch(&st, "drain", vec!["--rate".into(), "10".into()], None).await;
+        assert_eq!(v["ok"], true, "{v}");
+        let v = dispatch(&st, "drain", vec!["--rate=10".into()], None).await;
+        assert_eq!(v["ok"], true, "{v}");
+        // the rate value must not be read as the map slot
+        let v = dispatch(&st, "drain", vec!["--rate".into(), "25".into()], None).await;
+        assert_eq!(v["draining"], serde_json::json!([]), "{v}");
     }
 }
