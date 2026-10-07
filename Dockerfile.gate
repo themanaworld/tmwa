@@ -1,0 +1,74 @@
+# syntax=docker/dockerfile:1
+# Builds tmwa-map plus the tmwa-gate Rust binary from the gate branch.
+# The base Dockerfile only builds the C++ servers; this adds a cargo
+# stage and ships tmwa-gate in the runtime image.
+
+FROM ubuntu:24.04 AS cpp
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        git \
+        python3 \
+        pkg-config
+
+WORKDIR /tmwa
+
+COPY . /tmwa
+
+# CMakeLists.txt derives the version from `git describe`, but a git
+# worktree's .git is a pointer file whose target lives outside the
+# build context. The main repo's .git is passed as the "gitdir"
+# additional build context and used via GIT_DIR (which skips the
+# worktree backlink check) so describe resolves.
+RUN --mount=from=gitdir,target=/main-git,ro \
+    WT="$(basename "$(sed 's/^gitdir: //' /tmwa/.git)")" && \
+    rm /tmwa/.git && \
+    git config --global --add safe.directory '*' && \
+    GIT_DIR="/main-git/worktrees/$WT" \
+    cmake -B build . -DCMAKE_INSTALL_PREFIX=/usr \
+                     -DCMAKE_INSTALL_SYSCONFDIR=/etc \
+                     -DCMAKE_INSTALL_LOCALSTATEDIR=/var && \
+    cmake --build build -j$(nproc) && \
+    DESTDIR=/tmwa/install cmake --install build
+
+RUN printf 'unsigned int geteuid(void) { return 1000; }\n' > /tmp/euid.c && \
+    gcc -shared -fPIC -o /tmwa/install/usr/lib/libfakeeuid.so /tmp/euid.c
+
+# python3 is needed by gate/build.rs, which runs tools/protocol.py.
+FROM rust:1.98 AS gate
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3
+
+WORKDIR /tmwa
+
+COPY . /tmwa
+
+RUN cargo build --release --locked --manifest-path gate/Cargo.toml
+
+# Runtime image
+FROM ubuntu:24.04
+
+# ca-certificates: reqwest (HTTP API) panics without a CA store.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -d /home/tmwa -s /bin/bash tmwa
+VOLUME ["/var/tmwa"]
+
+USER tmwa
+WORKDIR /home/tmwa
+
+COPY --from=cpp /tmwa/install/ /
+COPY --from=gate /tmwa/gate/target/release/tmwa-gate /usr/bin/tmwa-gate
+
+# tmwa refuses to start with geteuid() == 0, but rootless docker maps
+# container root to the host user, the only uid that can write the
+# bind-mounted serverdata. LD_PRELOAD makes geteuid report a normal
+# user while file access still runs with the mapped host credentials.
+ENV LD_PRELOAD=/usr/lib/libfakeeuid.so
