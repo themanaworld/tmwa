@@ -747,11 +747,13 @@ pub fn replace_account_vars(
     set_account_vars(conn, account_id, scope, vars)
 }
 
-/// All parties with their members: (id, name, exp_share,
-/// item_share, [(account_id, char_name, leader)]).
-pub fn load_parties_conn(
-    conn: &Connection,
-) -> rusqlite::Result<Vec<(i64, String, i64, i64, Vec<(i64, String, i64)>)>> {
+/// One party member row: (account_id, char_name, leader).
+pub type PartyMemberRow = (i64, String, i64);
+/// One party row: (id, name, exp_share, item_share, members).
+pub type PartyRow = (i64, String, i64, i64, Vec<PartyMemberRow>);
+
+/// All parties with their members.
+pub fn load_parties_conn(conn: &Connection) -> rusqlite::Result<Vec<PartyRow>> {
     let mut st_ = conn.prepare("SELECT id,name,exp_share,item_share FROM parties")?;
     let parties: Vec<(i64, String, i64, i64)> = st_
         .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?

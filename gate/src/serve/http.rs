@@ -277,16 +277,18 @@ async fn reset_password(
             return api_error(StatusCode::BAD_REQUEST, "malformed request");
         }
         let em = email.clone();
-        let accounts: Vec<(i64, String)> = st.db.blocking_conn(move |c| {
-            let mut q = c
-                .prepare("SELECT id,name FROM accounts WHERE email=?1")
-                .unwrap();
-            q.query_map([&em], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))
-                .unwrap()
-                .flatten()
-                .collect()
-        })
-        .await;
+        let accounts: Vec<(i64, String)> = st
+            .db
+            .blocking_conn(move |c| {
+                let mut q = c
+                    .prepare("SELECT id,name FROM accounts WHERE email=?1")
+                    .unwrap();
+                q.query_map([&em], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))
+                    .unwrap()
+                    .flatten()
+                    .collect()
+            })
+            .await;
         if accounts.is_empty() {
             cooldown(8_000);
             return api_error(StatusCode::NOT_FOUND, "no accounts found");
@@ -318,16 +320,17 @@ async fn reset_password(
         let code2 = code.clone();
         let exp = chrono::Utc::now().timestamp_millis() + 3_600_000;
         let acct_ids: Vec<i64> = accounts.iter().map(|a| a.0).collect();
-        st.db.blocking_conn(move |c| {
-            for aid in &acct_ids {
-                c.execute(
+        st.db
+            .blocking_conn(move |c| {
+                for aid in &acct_ids {
+                    c.execute(
                     "INSERT INTO password_resets (code,account_id,expires_at) VALUES (?1,?2,?3)",
                     rusqlite::params![code2, aid, exp],
                 )
                 .unwrap();
-            }
-        })
-        .await;
+                }
+            })
+            .await;
         send_mail(
             st,
             &email,
@@ -383,10 +386,11 @@ async fn reset_password(
     if exp < chrono::Utc::now().timestamp_millis() {
         cooldown(300_000);
         let code3 = code.clone();
-        st.db.blocking_conn(move |c| {
-            let _ = c.execute("DELETE FROM password_resets WHERE code=?1", [&code3]);
-        })
-        .await;
+        st.db
+            .blocking_conn(move |c| {
+                let _ = c.execute("DELETE FROM password_resets WHERE code=?1", [&code3]);
+            })
+            .await;
         return api_error(StatusCode::REQUEST_TIMEOUT, "request expired");
     }
     // the account must be one of the code's accounts
@@ -398,20 +402,23 @@ async fn reset_password(
     let Some(acct_id) = named_id.filter(|id| rows.iter().any(|r| r.0 == *id)) else {
         cooldown(300_000);
         let code3 = code.clone();
-        st.db.blocking_conn(move |c| {
-            let _ = c.execute("DELETE FROM password_resets WHERE code=?1", [&code3]);
-        })
-        .await;
+        st.db
+            .blocking_conn(move |c| {
+                let _ = c.execute("DELETE FROM password_resets WHERE code=?1", [&code3]);
+            })
+            .await;
         return api_error(StatusCode::UNAUTHORIZED, "foreign account");
     };
     let Ok(h) = crate::auth::password::hash_argon2id(pass.as_bytes()) else {
         return api_error(StatusCode::INTERNAL_SERVER_ERROR, "hashing failed");
     };
-    st.db.blocking(move |db| {
-        let _ = db.set_password(acct_id, &h, crate::auth::password::Scheme::Argon2id, None);
-        let _ = db.with_conn(|c| c.execute("DELETE FROM password_resets WHERE code=?1", [&code]));
-    })
-    .await;
+    st.db
+        .blocking(move |db| {
+            let _ = db.set_password(acct_id, &h, crate::auth::password::Scheme::Argon2id, None);
+            let _ =
+                db.with_conn(|c| c.execute("DELETE FROM password_resets WHERE code=?1", [&code]));
+        })
+        .await;
     cooldown(299_000);
     send_mail(
         st,
@@ -430,18 +437,19 @@ pub(crate) async fn prune(st: &Arc<State>) {
     let now_ms = chrono::Utc::now().timestamp_millis();
     // (RateState lives in HttpState which isn't reachable from here;
     // prune the DB side here and bound the maps inside the handlers.)
-    st.db.blocking_conn(move |c| {
-        let n = c
-            .execute(
-                "DELETE FROM password_resets WHERE expires_at < ?1",
-                [now_ms],
-            )
-            .unwrap_or(0);
-        if n > 0 {
-            tracing::info!("http: pruned {n} expired password reset(s)");
-        }
-    })
-    .await;
+    st.db
+        .blocking_conn(move |c| {
+            let n = c
+                .execute(
+                    "DELETE FROM password_resets WHERE expires_at < ?1",
+                    [now_ms],
+                )
+                .unwrap_or(0);
+            if n > 0 {
+                tracing::info!("http: pruned {n} expired password reset(s)");
+            }
+        })
+        .await;
 }
 
 fn uuid() -> Option<String> {

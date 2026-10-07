@@ -18,8 +18,8 @@ use tokio::net::TcpStream;
 
 use tokio::sync::mpsc;
 
-use super::state::{AuthEntry, DELFLAG_CHAR, DELFLAG_MAP, PendingSel, State, send_server_closed};
 use super::state::PlayerSession;
+use super::state::{AuthEntry, DELFLAG_CHAR, DELFLAG_MAP, PendingSel, State, send_server_closed};
 use crate::db::Db;
 use crate::net::framing::PacketFramer;
 use crate::proto::types::{FixedStr, Ip4Address, TickT};
@@ -1254,9 +1254,7 @@ fn answer_tick(rec: &std::sync::Mutex<PlayerSession>, tx: &mpsc::Sender<Vec<u8>>
 /// the upstream's fate is undecided: answer 0x007e pings, drop
 /// everything else. Returns false on EOF or a frame error (the
 /// client is gone).
-async fn drain_client_input<
-    R: tokio::io::AsyncRead + Unpin,
->(
+async fn drain_client_input<R: tokio::io::AsyncRead + Unpin>(
     fr: &mut PacketFramer<R>,
     rec: &std::sync::Mutex<PlayerSession>,
     tx: &mpsc::Sender<Vec<u8>>,
@@ -1296,9 +1294,7 @@ const UPSTREAM_GONE_GRACE: Duration = Duration::from_secs(3);
 /// to UPSTREAM_GONE_GRACE to drop or announce (SIGKILL drops the
 /// kernel sockets together), still serving the client meanwhile.
 /// Nothing is announced until hold is decided.
-async fn resolve_upstream_eof<
-    R: tokio::io::AsyncRead + Unpin,
->(
+async fn resolve_upstream_eof<R: tokio::io::AsyncRead + Unpin>(
     st: &Arc<State>,
     rec: &std::sync::Mutex<PlayerSession>,
     map_id: usize,
@@ -1409,13 +1405,7 @@ async fn push_reauth(
         )
     };
     st.push_auth(map_auth(
-        account_id,
-        char_id,
-        login_id1,
-        login_id2,
-        client_ip,
-        0,
-        map_id,
+        account_id, char_id, login_id1, login_id2, client_ip, 0, map_id,
     ));
     let mut p29 = P3829::default();
     p29.account_id = AccountId(account_id);
@@ -1790,8 +1780,7 @@ async fn rejoin_until<R: tokio::io::AsyncRead + Unpin>(
         send_bytes(tx, P00F8::default().encoded());
     }
     let mut p91 = P0091::default();
-    p91.map_name = FixedStr::<16>::try_from_str(&rec.lock().unwrap().map_name)
-        .unwrap_or_default();
+    p91.map_name = FixedStr::<16>::try_from_str(&rec.lock().unwrap().map_name).unwrap_or_default();
     p91.x = p73.pos.x;
     p91.y = p73.pos.y;
     send_bytes(tx, p91.encoded());
@@ -1818,7 +1807,8 @@ async fn relay<R: tokio::io::AsyncRead + Unpin>(
     let found = {
         let a = st.auth.lock().unwrap();
         let now = Instant::now();
-        a.map.get(&fixed.account_id.0)
+        a.map
+            .get(&fixed.account_id.0)
             .filter(|e| {
                 e.delflag == DELFLAG_MAP
                     && e.fresh(now)

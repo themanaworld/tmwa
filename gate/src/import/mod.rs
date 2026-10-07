@@ -91,11 +91,7 @@ fn parse_lastlogin(s: &str) -> Option<i64> {
 
 /// Split a space-separated field into parsed tokens, skipping
 /// empties; fails on a bad token or more than `max` entries.
-fn parse_list<T>(
-    s: &str,
-    max: usize,
-    mut f: impl FnMut(&str) -> Option<T>,
-) -> Result<Vec<T>, ()> {
+fn parse_list<T>(s: &str, max: usize, mut f: impl FnMut(&str) -> Option<T>) -> Result<Vec<T>, ()> {
     let mut out = Vec::new();
     if s.trim().is_empty() {
         return Ok(out);
@@ -813,26 +809,18 @@ pub fn run(
     // whole transaction).
     let storage = {
         let lines = read_lines(&files.storage_txt(), &mut skipped)?;
-        parse_per_account(
-            &lines,
-            "storage.txt",
-            &mut skipped,
-            parse_storage,
-            |s| s.account_id,
-        )
+        parse_per_account(&lines, "storage.txt", &mut skipped, parse_storage, |s| {
+            s.account_id
+        })
     };
 
     // ---- accreg ----
     // One line per account, same as storage.txt.
     let mut accreg = {
         let lines = read_lines(&files.accreg_txt(), &mut skipped)?;
-        parse_per_account(
-            &lines,
-            "accreg.txt",
-            &mut skipped,
-            parse_accreg,
-            |a| a.account_id,
-        )
+        parse_per_account(&lines, "accreg.txt", &mut skipped, parse_accreg, |a| {
+            a.account_id
+        })
     };
 
     // Orphans: real saves can reference accounts that are not in

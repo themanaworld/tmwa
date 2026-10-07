@@ -1036,7 +1036,6 @@ impl State {
         }
     }
 
-
     /// Send to every connected map server.
     pub fn map_broadcast(&self, bytes: &[u8]) {
         self.map_broadcast_except(NO_MAP, bytes)
@@ -1347,7 +1346,9 @@ impl State {
         }
         let mut chars = self.chars.lock().unwrap();
         for cid in cids {
-            let Some(c) = chars.get_mut(&cid) else { continue };
+            let Some(c) = chars.get_mut(&cid) else {
+                continue;
+            };
             let d = std::sync::Arc::make_mut(&mut c.data);
             let (num, arr) = if scope == 2 {
                 (&mut d.account_reg2_num, &mut d.account_reg2)
@@ -1514,6 +1515,7 @@ mod tests {
 
     /// A burst of callers is released one `period` apart in arrival
     /// order instead of all at once, and a zero period is unpaced.
+    #[allow(clippy::await_holding_lock)]
     #[tokio::test]
     async fn evac_pace_meters_burst() {
         let pace = Arc::new(EvacPace::new());

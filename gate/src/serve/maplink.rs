@@ -80,12 +80,8 @@ pub async fn run(st: Arc<State>, sock: TcpStream, ip: Ipv4Addr) {
                 }
                 p.code = 0;
                 send_must(&st, NO_MAP, &tx_prio, p.encoded()).await;
-                let (id, kill) = st.map_register(
-                    tx.clone(),
-                    tx_prio.clone(),
-                    u32::from(fixed.ip),
-                    fixed.port,
-                );
+                let (id, kill) =
+                    st.map_register(tx.clone(), tx_prio.clone(), u32::from(fixed.ip), fixed.port);
                 tracing::info!(
                     "maplink: map server {id} registered from {ip} \
                      (client port {}:{})",
@@ -1128,12 +1124,7 @@ fn party_check_empty(st: &std::sync::Arc<State>, party_id: u32) -> bool {
     true
 }
 
-async fn party_info_to(
-    st: &State,
-    tx: Option<&mpsc::Sender<Bytes>>,
-    map_id: usize,
-    party_id: u32,
-) {
+async fn party_info_to(st: &State, tx: Option<&mpsc::Sender<Bytes>>, map_id: usize, party_id: u32) {
     if let Some(p) = party_get(st, party_id) {
         let mut h = P3821::default();
         h.party_id = PartyId(party_id);
@@ -1566,9 +1557,7 @@ mod tests {
         p.login_id1 = 11;
         p.login_id2 = 22;
         p.ip = Ip4Address([1, 2, 3, 4]);
-        handle(&st, &tx, 3, 0x2b02, &p.encoded())
-            .await
-            .unwrap();
+        handle(&st, &tx, 3, 0x2b02, &p.encoded()).await.unwrap();
         {
             let online = st.online.lock().unwrap();
             assert!(!online.contains_key(&100));
@@ -1646,9 +1635,7 @@ mod tests {
         p.char_name = FixedStr::<24>::try_from_str("newbie").unwrap();
         p.map_name = FixedStr::<16>::try_from_str("001-1.gat").unwrap();
         p.level = 99; // spread 79 > party_share_level 10
-        party_add(&st, &tx, map_id, &p.encoded())
-            .await
-            .unwrap();
+        party_add(&st, &tx, map_id, &p.encoded()).await.unwrap();
         let r = P3822::decode(&prx.recv().await.unwrap()).unwrap();
         assert_eq!(r.flag, 0);
         let i = P3821::decode(&mrx.recv().await.unwrap()).unwrap();
@@ -1680,9 +1667,7 @@ mod tests {
         p.map_name = FixedStr::<16>::try_from_str("002-1.gat").unwrap();
         p.online = 1;
         p.level = 99; // spread 79 > party_share_level 10
-        party_map_change(&st, &tx, &p.encoded())
-            .await
-            .unwrap();
+        party_map_change(&st, &tx, &p.encoded()).await.unwrap();
         let n = P3825::decode(&mrx.recv().await.unwrap()).unwrap();
         assert_eq!(n.level, 99);
         let o = P3823::decode(&mrx.recv().await.unwrap()).unwrap();
@@ -1713,21 +1698,20 @@ mod tests {
         p.map_ip = Ip4Address([10, 0, 0, 2]);
         p.map_port = 6121;
         p.client_ip = Ip4Address([1, 2, 3, 4]);
-        handle(&st, &stx, 0, 0x2b05, &p.encoded())
-            .await
-            .unwrap();
+        handle(&st, &stx, 0, 0x2b05, &p.encoded()).await.unwrap();
         let r = P2B06::decode(&srx.recv().await.unwrap()).unwrap();
         assert_eq!(r.error, 0);
         let a = P3829::decode(&dprx.recv().await.unwrap()).unwrap();
         assert_eq!(a.char_id.0, 100);
         // a stage-3 entry exists for the destination's 0x2afc
-        assert!(st
-            .auth
-            .lock()
-            .unwrap()
-            .map
-            .values()
-            .any(|e| e.delflag == DELFLAG_MAP && e.account_id == 1 && e.char_id == 100));
+        assert!(
+            st.auth
+                .lock()
+                .unwrap()
+                .map
+                .values()
+                .any(|e| e.delflag == DELFLAG_MAP && e.account_id == 1 && e.char_id == 100)
+        );
     }
 
     /// A 0x2b05 from a draining map is paced: the second 0x2b06 is
