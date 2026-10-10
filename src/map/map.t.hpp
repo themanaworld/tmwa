@@ -162,7 +162,8 @@ enum class MobMode : uint16_t
     CAN_ATTACK                  = 0x0080,
 
     DETECTOR                    = 0x0100,
-    CHANGE_TARGET               = 0x0200,
+    CHANGE_TARGET_MELEE         = 0x0200,
+    CHANGE_TARGET_CHASE         = 0x0400,
 
     war                         = CAN_MOVE | AGGRESSIVE | CAN_ATTACK,
 

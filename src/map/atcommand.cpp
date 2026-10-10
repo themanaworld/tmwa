@@ -2039,8 +2039,10 @@ ATCE atcommand_mobinfo(Session *s, dumb_ptr<map_session_data> sd,
             clif_displaymessage(s, STRPRINTF("Can attack"_fmt));
         if (bool(mob.mode & MobMode::DETECTOR))
             clif_displaymessage(s, STRPRINTF("Detector"_fmt));
-        if (bool(mob.mode & MobMode::CHANGE_TARGET))
-            clif_displaymessage(s, STRPRINTF("Change Target"_fmt));
+        if (bool(mob.mode & MobMode::CHANGE_TARGET_MELEE))
+            clif_displaymessage(s, STRPRINTF("Change Target Melee"_fmt));
+        if (bool(mob.mode & MobMode::CHANGE_TARGET_CHASE))
+            clif_displaymessage(s, STRPRINTF("Change Target Chase"_fmt));
             /*
             Not needed here i guess
             SUMMONED

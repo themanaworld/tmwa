@@ -1738,6 +1738,24 @@ int mob_randomwalk(dumb_ptr<mob_data> md, tick_t tick)
 }
 
 /*==========================================
+ * Whether the mob is allowed to change its target while fighting.
+ *------------------------------------------
+ */
+static
+bool mob_can_changetarget(dumb_ptr<mob_data> md, MobMode mode)
+{
+    switch (md->state.skillstate)
+    {
+        case MobSkillState::MSS_ATTACK:
+            return bool(mode & MobMode::CHANGE_TARGET_MELEE);
+        case MobSkillState::MSS_CHASE:
+            return bool(mode & MobMode::CHANGE_TARGET_CHASE);
+        default:
+            return true;
+    }
+}
+
+/*==========================================
  * AI of MOB whose is near a Player
  *------------------------------------------
  */
@@ -1798,8 +1816,10 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     }
 
     // It checks to see it was attacked first (if active, it is target change at 25% of probability).
+    bool may_changetarget = mob_can_changetarget(md, mode);
     if (mode != MobMode::ZERO && md->attacked_id
         && (!md->target_id || !md->state.attackable
+            || may_changetarget
             || (bool(mode & MobMode::AGGRESSIVE) && random_::chance({25, 100}))))
     {
         dumb_ptr<block_list> abl = map_id2bl(md->attacked_id);
@@ -1816,13 +1836,31 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                 md->attacked_id = BlockId();
             else
             {
-                md->target_id = md->attacked_id;    // set target
-                md->state.attackable = true;
-                attack_type = 1;
-                md->attacked_id = BlockId();
-                md->min_chase = dist + 13;
-                if (md->min_chase > 26)
-                    md->min_chase = 26;
+                tbl = map_id2bl(md->target_id);
+                // Keep the target if it is still fighting back, unless the
+                // new attacker is within attack range or closer to the mob.
+                bool keep_target = false;
+                if (may_changetarget && tbl
+                    && dist >= get_mob_db(md->mob_class).range
+                    && distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) <= dist)
+                {
+                    if (tbl->bl_type == BL::PC)
+                        keep_target = tbl->is_player()->attacktarget == md->bl_id;
+                    else if (tbl->bl_type == BL::MOB)
+                        keep_target = tbl->is_mob()->target_id == md->bl_id;
+                }
+                if (keep_target)
+                    md->attacked_id = BlockId();
+                else
+                {
+                    md->target_id = md->attacked_id;    // set target
+                    md->state.attackable = true;
+                    attack_type = 1;
+                    md->attacked_id = BlockId();
+                    md->min_chase = dist + 13;
+                    if (md->min_chase > 26)
+                        md->min_chase = 26;
+                }
             }
         }
     }
