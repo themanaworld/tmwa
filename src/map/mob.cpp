@@ -1738,6 +1738,24 @@ int mob_randomwalk(dumb_ptr<mob_data> md, tick_t tick)
 }
 
 /*==========================================
+ * Whether the mob is allowed to change its target while fighting.
+ *------------------------------------------
+ */
+static
+bool mob_can_changetarget(dumb_ptr<mob_data> md, MobMode mode)
+{
+    switch (md->state.skillstate)
+    {
+        case MobSkillState::MSS_ATTACK:
+            return bool(mode & MobMode::CHANGE_TARGET_MELEE);
+        case MobSkillState::MSS_CHASE:
+            return bool(mode & MobMode::CHANGE_TARGET_CHASE);
+        default:
+            return bool(mode & MobMode::CHANGE_TARGET);
+    }
+}
+
+/*==========================================
  * AI of MOB whose is near a Player
  *------------------------------------------
  */
@@ -1798,9 +1816,11 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     }
 
     // It checks to see it was attacked first (if active, it is target change at 25% of probability).
+    bool may_changetarget = mob_can_changetarget(md, mode);
     if (mode != MobMode::ZERO && md->attacked_id
         && (!md->target_id || !md->state.attackable
-            || (bool(mode & MobMode::AGGRESSIVE) && random_::chance({25, 100}))))
+            || (may_changetarget || bool(mode & MobMode::AGGRESSIVE))
+                && random_::chance({25, 100})))
     {
         dumb_ptr<block_list> abl = map_id2bl(md->attacked_id);
         dumb_ptr<map_session_data> asd = nullptr;
