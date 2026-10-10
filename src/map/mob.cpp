@@ -623,7 +623,7 @@ int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
 
         x += dx;
         y += dy;
-        if (md->min_chase > 13)
+        if (md->min_chase > get_mob_db(md->mob_class).range3)
             md->min_chase--;
 
         if (moveblock)
@@ -674,7 +674,8 @@ int mob_check_attack(dumb_ptr<mob_data> md)
 
     nullpo_retz(md);
 
-    md->min_chase = 13;
+    const int chase = get_mob_db(md->mob_class).range3;
+    md->min_chase = chase;
     md->state.state = MS::IDLE;
     md->state.skillstate = MobSkillState::MSS_IDLE;
 
@@ -702,7 +703,7 @@ int mob_check_attack(dumb_ptr<mob_data> md)
     {
         if (pc_isdead(tsd) || tsd->invincible_timer
             || pc_isinvisible(tsd) || md->bl_m != tbl->bl_m || tbl->bl_prev == nullptr
-            || distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) >= 13)
+            || distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) > chase)
         {
             md->target_id = BlockId();
             md->state.attackable = false;
@@ -712,7 +713,7 @@ int mob_check_attack(dumb_ptr<mob_data> md)
     if (tmd)
     {
         if (md->bl_m != tbl->bl_m || tbl->bl_prev == nullptr
-            || distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) >= 13)
+            || distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) > chase)
         {
             md->target_id = BlockId();
             md->state.attackable = false;
@@ -1358,9 +1359,10 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
             md->state.attackable = true;
         else
             md->state.attackable = false;
-        md->min_chase = dist + 13;
-        if (md->min_chase > 26)
-            md->min_chase = 26;
+        const int chase = get_mob_db(md->mob_class).range3;
+        md->min_chase = dist + chase;
+        if (md->min_chase > 2 * chase)
+            md->min_chase = 2 * chase;
     }
     return 0;
 }
@@ -1407,15 +1409,16 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
     if (battle_check_target(smd, bl, BCT_ENEMY) == 0)
         return;
 
+    const mob_db_& smd_db = get_mob_db(smd->mob_class);
     if (smd->mode == MobMode::ZERO)
-        mode = get_mob_db(smd->mob_class).mode;
+        mode = smd_db.mode;
     else
         mode = smd->mode;
 
     // アクティブでターゲット射程内にいるなら、ロックする | Lock if active and within target range
     if (bool(mode & MobMode::AGGRESSIVE))
     {
-        Race race = get_mob_db(smd->mob_class).race;
+        Race race = smd_db.race;
         // 対象がPCの場合 | If the target is a PC
         if (tsd &&
             !pc_isdead(tsd) &&
@@ -1423,7 +1426,7 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
             !tsd->invincible_timer &&
             !pc_isinvisible(tsd) &&
             (dist =
-             distance(smd->bl_x, smd->bl_y, tsd->bl_x, tsd->bl_y)) < 9)
+             distance(smd->bl_x, smd->bl_y, tsd->bl_x, tsd->bl_y)) <= smd_db.range2)
         {
             if (bool(mode & MobMode::BOSS)
                 || (!tsd->state.gangsterparadise
@@ -1432,13 +1435,13 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
             {
                 // 妨害がないか判定 | Determine if there is any interference
                 // 到達可能性判定 | Arrival possibility determination
-                if (mob_can_reach(smd, bl, 12)
+                if (mob_can_reach(smd, bl, smd_db.range2)
                     && random_::chance({1, ++*pcc}))
                 {
                     // 範囲内PCで等確率にする | Make the probability equal for PCs within the range
                     smd->target_id = tsd->bl_id;
                     smd->state.attackable = true;
-                    smd->min_chase = 13;
+                    smd->min_chase = smd_db.range3;
                 }
             }
         }
@@ -1446,16 +1449,16 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
         else if (tmd &&
                  tmd->bl_m == smd->bl_m &&
                  (dist =
-                  distance(smd->bl_x, smd->bl_y, tmd->bl_x, tmd->bl_y)) < 9)
+                  distance(smd->bl_x, smd->bl_y, tmd->bl_x, tmd->bl_y)) <= smd_db.range2)
         {
             // 到達可能性判定 | Arrival possibility determination
-            if (mob_can_reach(smd, bl, 12)
+            if (mob_can_reach(smd, bl, smd_db.range2)
                 && random_::chance({1, ++*pcc}))
             {
                 // 範囲内で等確率にする | Make the probability equal within the range
                 smd->target_id = bl->bl_id;
                 smd->state.attackable = true;
-                smd->min_chase = 13;
+                smd->min_chase = smd_db.range3;
             }
         }
     }
@@ -1484,17 +1487,18 @@ void mob_ai_sub_hard_lootsearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, 
 
     if (!md->target_id && bool(mode & MobMode::LOOTER))
     {
+        const mob_db_& md_db = get_mob_db(md->mob_class);
         if (bl->bl_m == md->bl_m
-            && (dist = distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y)) < 9)
+            && (dist = distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y)) <= md_db.range2)
         {
             // Reachability judging
-            if (mob_can_reach(md, bl, 12)
+            if (mob_can_reach(md, bl, md_db.range2)
                 && random_::chance({1, ++*itc}))
             {
                 // It is made a probability, such as within the limits PC.
                 md->target_id = bl->bl_id;
                 md->state.attackable = false;
-                md->min_chase = 13;
+                md->min_chase = md_db.range3;
             }
         }
     }
@@ -1521,12 +1525,12 @@ void mob_ai_sub_hard_linksearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, 
             && tmd->bl_m == md->bl_m
             && (!tmd->target_id || !md->state.attackable))
         {
-            if (mob_can_reach(tmd, target, 12))
+            if (mob_can_reach(tmd, target, get_mob_db(tmd->mob_class).range2))
             {
                 // Reachability judging
                 tmd->target_id = md->attacked_id;
                 tmd->state.attackable = true;
-                tmd->min_chase = 13;
+                tmd->min_chase = get_mob_db(tmd->mob_class).range3;
             }
         }
     }
@@ -1785,12 +1789,15 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         return;
     }
 
+    const mob_db_& db = get_mob_db(md->mob_class);
     if (md->mode == MobMode::ZERO)
-        mode = get_mob_db(md->mob_class).mode;
+        mode = db.mode;
     else
         mode = md->mode;
 
-    Race race = get_mob_db(md->mob_class).race;
+    Race race = db.race;
+    const int view = db.range2;
+    const int chase = db.range3;
 
     // Abnormalities
     if (bool(md->opt1) && md->opt1 != Opt1::_stone6)
@@ -1808,8 +1815,8 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
             {
                 map_foreachinarea(std::bind(mob_ai_sub_hard_linksearch, ph::_1, md, asd),
                         md->bl_m,
-                        md->bl_x - 13, md->bl_y - 13,
-                        md->bl_x + 13, md->bl_y + 13,
+                        md->bl_x - view, md->bl_y - view,
+                        md->bl_x + view, md->bl_y + view,
                         BL::MOB);
             }
         }
@@ -1840,9 +1847,9 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                 md->state.attackable = true;
                 attack_type = 1;
                 md->attacked_id = BlockId();
-                md->min_chase = dist + 13;
-                if (md->min_chase > 26)
-                    md->min_chase = 26;
+                md->min_chase = dist + chase;
+                if (md->min_chase > 2 * chase)
+                    md->min_chase = 2 * chase;
             }
         }
     }
@@ -1874,16 +1881,16 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         {
             map_foreachinarea(std::bind(mob_ai_sub_hard_activesearch, ph::_1, md, &i),
                     md->bl_m,
-                    md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
-                    md->bl_x + AREA_SIZE * 2, md->bl_y + AREA_SIZE * 2,
+                    md->bl_x - view, md->bl_y - view,
+                    md->bl_x + view, md->bl_y + view,
                     BL::NUL);
         }
         else
         {
             map_foreachinarea(std::bind(mob_ai_sub_hard_activesearch, ph::_1, md, &i),
                     md->bl_m,
-                    md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
-                    md->bl_x + AREA_SIZE * 2, md->bl_y + AREA_SIZE * 2,
+                    md->bl_x - view, md->bl_y - view,
+                    md->bl_x + view, md->bl_y + view,
                     BL::PC);
         }
     }
@@ -1896,8 +1903,8 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         i = 0;
         map_foreachinarea(std::bind(mob_ai_sub_hard_lootsearch, ph::_1, md, &i),
                 md->bl_m,
-                md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
-                md->bl_x + AREA_SIZE * 2, md->bl_y + AREA_SIZE * 2,
+                md->bl_x - view, md->bl_y - view,
+                md->bl_x + view, md->bl_y + view,
                 BL::ITEM);
     }
 
@@ -1915,7 +1922,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                 if (tbl->bl_m != md->bl_m || tbl->bl_prev == nullptr
                     || (dist =
                         distance(md->bl_x, md->bl_y, tbl->bl_x,
-                                  tbl->bl_y)) >= md->min_chase)
+                                  tbl->bl_y)) > md->min_chase)
                     mob_unlocktarget(md, tick);    // 別マップか、視界外 | Another map or out of sight?
                 else if (tsd && !bool(mode & MobMode::BOSS)
                          && (tsd->state.gangsterparadise
@@ -1938,7 +1945,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                         && (md->next_walktime < tick
                             || distance(md->to_x, md->to_y, tbl->bl_x, tbl->bl_y) < 2))
                         return;   // 既に移動中 | Already on the move
-                    if (!mob_can_reach(md, tbl, (md->min_chase > 13) ? md->min_chase : 13))
+                    if (!mob_can_reach(md, tbl, (md->min_chase > chase) ? md->min_chase : chase))
                         mob_unlocktarget(md, tick);    // 移動できないのでタゲ解除（IWとか？） | I can't move so I can't target it (IW or something?)
                     else
                     {
@@ -2004,7 +2011,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                 if (tbl == nullptr || tbl->bl_type != BL::ITEM || tbl->bl_m != md->bl_m
                     || (dist =
                         distance(md->bl_x, md->bl_y, tbl->bl_x,
-                                  tbl->bl_y)) >= md->min_chase
+                                  tbl->bl_y)) > md->min_chase
                     || !bool(get_mob_db(md->mob_class).mode & MobMode::LOOTER))
                 {
                     // 遠すぎるかアイテムがなくなった | Too far or missing item
@@ -3629,6 +3636,10 @@ bool mob_readdb(ZString filename)
                 mdbv.dropitem[i].p.num = rate;
             }
 
+            if (mdbv.range2 < 1)
+                mdbv.range2 = 1;
+            if (mdbv.range3 < mdbv.range2)
+                mdbv.range3 = mdbv.range2;
 
             mdbv.skills.clear();
 
