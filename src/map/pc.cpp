@@ -803,13 +803,13 @@ void pc_set_attack_info(dumb_ptr<map_session_data> sd, interval_t speed, int ran
 
     if (speed == interval_t::zero())
     {
-        pc_calcstatus(sd, (int)CalcStatusKind::INITIAL_CALC);
+        pc_calcstatus(sd, CalcStatusKind::INITIAL_CALC);
         clif_updatestatus(sd, SP::ASPD);
         clif_updatestatus(sd, SP::ATTACKRANGE);
     }
     else
     {
-        pc_calcstatus(sd, ((int)CalcStatusKind::INITIAL_CALC + (int)CalcStatusKind::MAGIC_OVERRIDE));
+        pc_calcstatus(sd, CalcStatusKind::INITIAL_CALC | CalcStatusKind::MAGIC_OVERRIDE);
         clif_updatestatus(sd, SP::ASPD);
         clif_updatestatus(sd, SP::ATTACKRANGE);
     }
@@ -952,7 +952,7 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->die_counter = pc_readglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"_s));
 
     // ステータス初期計算など | Status initial calculation, etc.
-    pc_calcstatus(sd, (int)CalcStatusKind::INITIAL_CALC);
+    pc_calcstatus(sd, CalcStatusKind::INITIAL_CALC);
 
     if (pc_isGM(sd))
     {
@@ -985,7 +985,7 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     sd->packet_flood_reset_due = tick_t();
     sd->packet_flood_in = 0;
 
-    pc_calcstatus(sd, (int)CalcStatusKind::INITIAL_CALC);
+    pc_calcstatus(sd, CalcStatusKind::INITIAL_CALC);
 
     if(sd->bl_m->mask > 0)
         clif_send_mask(sd, sd->bl_m->mask);
@@ -1117,7 +1117,7 @@ void pc_set_weapon_look(dumb_ptr<map_session_data> sd)
  * &8 = magic override (used in pc_set_attack_info)
  *------------------------------------------
  */
-int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
+int pc_calcstatus(dumb_ptr<map_session_data> sd, CalcStatusKind first)
 {
     int b_max_hp, b_max_sp, b_hp, b_sp, b_weight, b_max_weight,
         b_hit, b_flee;
@@ -1161,7 +1161,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     sd->max_weight = max_weight_base_0 + sd->status.attrs[ATTR::STR] * 300;
 
-    if (first & (int)CalcStatusKind::INITIAL_CALC)
+    if (bool(first & CalcStatusKind::INITIAL_CALC))
     {
         sd->weight = 0;
         for (IOff0 i : IOff0::iter())
@@ -1574,7 +1574,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->aspd = sd->aspd * aspd_rate / 100;
 
     /* Magic speed */
-    if (sd->attack_spell_override || first & (int)CalcStatusKind::MAGIC_OVERRIDE)
+    if (sd->attack_spell_override || bool(first & CalcStatusKind::MAGIC_OVERRIDE))
         sd->aspd = sd->attack_spell_delay;
 
     /* Red Threshold Calculation */
@@ -1592,14 +1592,14 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->status.sp > sd->status.max_sp)
         sd->status.sp = sd->status.max_sp;
 
-    if (first & (int)CalcStatusKind::NORMAL_RECALC_NO_CLIENT_UPDATE)
+    if (bool(first & CalcStatusKind::NORMAL_RECALC_NO_CLIENT_UPDATE))
         return 0;
-    if (first & ((int)CalcStatusKind::INITIAL_CALC + (int)CalcStatusKind::ITEM_BONUS_RECALC)) // never executed atm
+    if (bool(first & (CalcStatusKind::INITIAL_CALC | CalcStatusKind::ITEM_BONUS_RECALC))) // never executed atm
     {
         clif_updatestatus(sd, SP::SPEED);
         clif_updatestatus(sd, SP::MAXHP);
         clif_updatestatus(sd, SP::MAXSP);
-        if (first & (int)CalcStatusKind::INITIAL_CALC) // its always 1 here if first is 3 so this if is not needed normally
+        if (bool(first & CalcStatusKind::INITIAL_CALC)) // its always 1 here if first is 3 so this if is not needed normally
         {
             clif_updatestatus(sd, SP::HP);
             clif_updatestatus(sd, SP::SP);
@@ -1974,7 +1974,7 @@ int pc_skill(dumb_ptr<map_session_data> sd, SkillID id, int level, int flag)
     if (!flag && (sd->status.skill[id].lv || level == 0))
     {
         sd->status.skill[id].lv = level;
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         clif_skillinfoblock(sd);
     }
     else if (sd->status.skill[id].lv < level)
@@ -2947,7 +2947,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
             sd->attack_spell_override = BlockId();
             pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
             pc_set_attack_info(sd, interval_t::zero(), 0);
-            pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+            pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         }
     }
     else
@@ -3086,7 +3086,7 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
         clif_updatestatus(sd, SP::STATUSPOINT);
         clif_updatestatus(sd, SP::BASELEVEL);
         clif_updatestatus(sd, SP::NEXTBASEEXP);
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         pc_heal(sd, sd->status.max_hp, sd->status.max_sp, true);
 
         clif_misceffect(sd, 0);
@@ -3145,7 +3145,7 @@ int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
         {                       // [Fate] Bah, this is is painful.
             // But the alternative is quite error-prone, and eAthena has far worse performance issues...
             sd->status.job_exp = next - 1;
-            pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+            pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
             return 0;
         }
 
@@ -3154,7 +3154,7 @@ int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
         clif_updatestatus(sd, SP::NEXTJOBEXP);
         sd->status.skill_point++;
         clif_updatestatus(sd, SP::SKILLPOINT);
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
 
         MAP_LOG_PC(sd, "SKILLPOINTS-UP %d"_fmt, sd->status.skill_point);
 
@@ -3391,7 +3391,7 @@ int pc_statusup(dumb_ptr<map_session_data> sd, SP type)
     }
     clif_updatestatus(sd, SP::STATUSPOINT);
     clif_updatestatus(sd, type);
-    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+    pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
     clif_statusupack(sd, type, 1, val);
 
     MAP_LOG_STATS(sd, "STATUP"_fmt);
@@ -3420,7 +3420,7 @@ int pc_statusup2(dumb_ptr<map_session_data> sd, SP type, int val)
     sd->status.attrs[attr] = val;
     clif_updatestatus(sd, sp_to_usp(type));
     clif_updatestatus(sd, type);
-    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+    pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
     clif_statusupack(sd, type, 1, val);
     MAP_LOG_STATS(sd, "STATUP2"_fmt);
 
@@ -3444,7 +3444,7 @@ int pc_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
         sd->status.skill_point -= sd->status.skill[skill_num].lv;
         sd->status.skill[skill_num].lv++;
 
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         clif_skillup(sd, skill_num);
         clif_updatestatus(sd, SP::SKILLPOINT);
         clif_skillinfoblock(sd);
@@ -3476,7 +3476,7 @@ int pc_resetstate(dumb_ptr<map_session_data> sd)
     for (ATTR attr : ATTRs)
         clif_updatestatus(sd, attr_to_usp(attr));
 
-    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+    pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
 
     return 0;
 }
@@ -3502,7 +3502,7 @@ int pc_resetskill(dumb_ptr<map_session_data> sd)
 
     clif_updatestatus(sd, SP::SKILLPOINT);
     clif_skillinfoblock(sd);
-    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+    pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
 
     return 0;
 }
@@ -3595,7 +3595,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         pc_set_weapon_icon(sd, 0, StatusChange::ZERO, ItemNameId());
         pc_set_attack_info(sd, interval_t::zero(), 0);
     }
-    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+    pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
 
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {
@@ -3963,7 +3963,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             clif_updatestatus(sd, SP::NEXTBASEEXP);
             clif_updatestatus(sd, SP::STATUSPOINT);
             clif_updatestatus(sd, SP::BASEEXP);
-            pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+            pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
             pc_heal(sd, sd->status.max_hp, sd->status.max_sp, true);
             break;
         case SP::JOBLEVEL:
@@ -3981,7 +3981,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
             clif_updatestatus(sd, SP::JOBLEVEL);
             clif_updatestatus(sd, SP::NEXTJOBEXP);
             clif_updatestatus(sd, SP::JOBEXP);
-            pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+            pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
             break;
         case SP::CLASS:
             // TODO: mob class change
@@ -4061,7 +4061,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                             && !pc_isequip(sd, j))
                             pc_unequipitem(sd, j, CalcStatus::LATER);
                     }
-                    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+                    pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
                     chrif_save(sd);
                     clif_fixpcpos(sd);
                 }
@@ -4080,7 +4080,7 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
         case SP::MAXWEIGHT_OVERRIDE:
             nullpo_retz(sd);
             sd->max_weight_override = val;
-            pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+            pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
             break;
         case SP::HP:
             nullpo_retz(sd);
@@ -4567,7 +4567,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
     if (reg == stringish<VarName>("PC_DIE_COUNTER"_s) && sd->die_counter != val)
     {
         sd->die_counter = val;
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
     }
     Option<P<struct quest_data>> quest_data_ = questdb_searchname(var);
     OMATCH_BEGIN_SOME(quest_data, quest_data_)
@@ -5000,7 +5000,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, IOff0 n, EPOS)
     }
     pc_signal_advanced_equipment_change(sd, n);
 
-    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+    pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
 
     return 0;
 }
@@ -5067,7 +5067,7 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, IOff0 n, CalcStatus type)
     }
     if (type == CalcStatus::NOW)
     {
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
     }
 
     return 0;
@@ -5140,7 +5140,7 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
 
     pc_setequipindex(sd);
     if (calc_flag)
-        pc_calcstatus(sd, (int)CalcStatusKind::ITEM_BONUS_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::ITEM_BONUS_RECALC);
 
     return 0;
 }
@@ -5525,7 +5525,7 @@ void pc_natural_heal_sub(dumb_ptr<map_session_data> sd)
     if (sd->spellpower_bonus_target < sd->spellpower_bonus_current)
     {
         sd->spellpower_bonus_current = sd->spellpower_bonus_target;
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
     }
     else if (sd->spellpower_bonus_target > sd->spellpower_bonus_current)
     {
@@ -5533,7 +5533,7 @@ void pc_natural_heal_sub(dumb_ptr<map_session_data> sd)
             1 +
             ((sd->spellpower_bonus_target -
               sd->spellpower_bonus_current) >> 5);
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
     }
 
     if (sd->sc_data[StatusChange::SC_HALT_REGENERATE].timer)

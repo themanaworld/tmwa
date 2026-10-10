@@ -111,7 +111,7 @@ int pc_dropitem(dumb_ptr<map_session_data>, IOff0, int);
 
 int pc_checkweighticon(dumb_ptr<map_session_data> sd);
 
-int pc_calcstatus(dumb_ptr<map_session_data>, int);
+int pc_calcstatus(dumb_ptr<map_session_data>, CalcStatusKind);
 int pc_bonus(dumb_ptr<map_session_data>, SP, int);
 int pc_bonus2(dumb_ptr<map_session_data> sd, SP, int, int);
 int pc_skill(dumb_ptr<map_session_data>, SkillID, int, int);

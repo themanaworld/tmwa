@@ -25,6 +25,8 @@
 
 #include <cstdint>
 
+#include "../generic/enum.hpp"
+
 
 namespace tmwa
 {
@@ -65,6 +67,7 @@ enum class CalcStatusKind
     NORMAL_RECALC_NO_CLIENT_UPDATE = 4,
     MAGIC_OVERRIDE                 = 8,
 };
+ENUM_BITWISE_OPERATORS(CalcStatusKind)
 
 } // namespace map
 } // namespace tmwa

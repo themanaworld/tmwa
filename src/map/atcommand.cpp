@@ -1270,7 +1270,7 @@ ATCE atcommand_option(Session *s, dumb_ptr<map_session_data> sd,
     sd->status.option = param3;
 
     clif_changeoption(sd);
-    pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+    pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
     clif_displaymessage(s, "Options changed."_s);
 
     return ATCE::OKAY;
@@ -1532,7 +1532,7 @@ ATCE atcommand_baselevelup(Session *s, dumb_ptr<map_session_data> sd,
         clif_updatestatus(sd, SP::BASELEVEL);
         clif_updatestatus(sd, SP::NEXTBASEEXP);
         clif_updatestatus(sd, SP::STATUSPOINT);
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         pc_heal(sd, sd->status.max_hp, sd->status.max_sp);
         clif_misceffect(sd, 0);
         clif_displaymessage(s, "Base level raised."_s);
@@ -1560,7 +1560,7 @@ ATCE atcommand_baselevelup(Session *s, dumb_ptr<map_session_data> sd,
         sd->status.base_level += level;
         clif_updatestatus(sd, SP::BASELEVEL);
         clif_updatestatus(sd, SP::NEXTBASEEXP);
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         clif_displaymessage(s, "Base level lowered."_s);
     }
 
@@ -1595,7 +1595,7 @@ ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
         clif_updatestatus(sd, SP::NEXTJOBEXP);
         sd->status.skill_point += level;
         clif_updatestatus(sd, SP::SKILLPOINT);
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         clif_misceffect(sd, 1);
         clif_displaymessage(s, "Job level raised."_s);
     }
@@ -1620,7 +1620,7 @@ ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
             clif_updatestatus(sd, SP::SKILLPOINT);
         }
         // to add: remove status points from skills
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         clif_displaymessage(s, "Job level lowered."_s);
     }
 
@@ -2374,7 +2374,7 @@ ATCE atcommand_param(Session *s, dumb_ptr<map_session_data> sd,
         sd->status.attrs[attr] = new_value;
         clif_updatestatus(sd, attr_to_sp(attr));
         clif_updatestatus(sd, attr_to_usp(attr));
-        pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+        pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
         clif_displaymessage(s, "Stat changed."_s);
     }
     else
@@ -2409,7 +2409,7 @@ ATCE atcommand_all_stats(Session *s, dumb_ptr<map_session_data> sd,
             sd->status.attrs[attr] = new_value;
             clif_updatestatus(sd, attr_to_sp(attr));
             clif_updatestatus(sd, attr_to_usp(attr));
-            pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
+            pc_calcstatus(sd, CalcStatusKind::NORMAL_RECALC);
             count++;
         }
     }
@@ -2773,7 +2773,7 @@ ATCE atcommand_character_option(Session *s, dumb_ptr<map_session_data> sd,
             pl_sd->status.option = opt3;
 
             clif_changeoption(pl_sd);
-            pc_calcstatus(pl_sd, (int)CalcStatusKind::NORMAL_RECALC);
+            pc_calcstatus(pl_sd, CalcStatusKind::NORMAL_RECALC);
             clif_displaymessage(s, "Character's options changed."_s);
         }
         else
@@ -3095,7 +3095,7 @@ ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
                 clif_updatestatus(pl_sd, SP::BASELEVEL);
                 clif_updatestatus(pl_sd, SP::NEXTBASEEXP);
                 clif_updatestatus(pl_sd, SP::STATUSPOINT);
-                pc_calcstatus(pl_sd, (int)CalcStatusKind::NORMAL_RECALC);
+                pc_calcstatus(pl_sd, CalcStatusKind::NORMAL_RECALC);
                 pc_heal(pl_sd, pl_sd->status.max_hp, pl_sd->status.max_sp);
                 clif_misceffect(pl_sd, 0);
                 clif_displaymessage(s, "Character's base level raised."_s);
@@ -3125,7 +3125,7 @@ ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
                 clif_updatestatus(pl_sd, SP::BASELEVEL);
                 clif_updatestatus(pl_sd, SP::NEXTBASEEXP);
                 clif_updatestatus(pl_sd, SP::BASEEXP);
-                pc_calcstatus(pl_sd, (int)CalcStatusKind::NORMAL_RECALC);
+                pc_calcstatus(pl_sd, CalcStatusKind::NORMAL_RECALC);
                 clif_displaymessage(s, "Character's base level lowered."_s);
             }
             // Reset their stat points to prevent extra points from stacking
@@ -3179,7 +3179,7 @@ ATCE atcommand_character_joblevel(Session *s, dumb_ptr<map_session_data> sd,
                 clif_updatestatus(pl_sd, SP::NEXTJOBEXP);
                 pl_sd->status.skill_point += level;
                 clif_updatestatus(pl_sd, SP::SKILLPOINT);
-                pc_calcstatus(pl_sd, (int)CalcStatusKind::NORMAL_RECALC);
+                pc_calcstatus(pl_sd, CalcStatusKind::NORMAL_RECALC);
                 clif_misceffect(pl_sd, 1);
                 clif_displaymessage(s, "character's job level raised."_s);
             }
@@ -3203,7 +3203,7 @@ ATCE atcommand_character_joblevel(Session *s, dumb_ptr<map_session_data> sd,
                     clif_updatestatus(pl_sd, SP::SKILLPOINT);
                 }
                 // to add: remove status points from skills
-                pc_calcstatus(pl_sd, (int)CalcStatusKind::NORMAL_RECALC);
+                pc_calcstatus(pl_sd, CalcStatusKind::NORMAL_RECALC);
                 clif_displaymessage(s, "Character's job level lowered."_s);
             }
         }
@@ -3686,7 +3686,7 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
             pc_additem(pl_sd, &item, 1);
 
             // Reset stats and skills
-            pc_calcstatus(pl_sd, (int)CalcStatusKind::NORMAL_RECALC);
+            pc_calcstatus(pl_sd, CalcStatusKind::NORMAL_RECALC);
             pc_resetstate(pl_sd);
             pc_resetskill(pl_sd);
             pc_setglobalreg(pl_sd, stringish<VarName>("MAGIC_FLAGS"_s), 0);
