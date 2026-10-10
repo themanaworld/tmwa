@@ -577,6 +577,17 @@ int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
         || md->walkpath.path_pos != data)
         return 0;
 
+    if (md->canmove_tick > tick)
+    {
+        // Frozen by damage: delay this step until the freeze ends
+        // rather than losing it to an interruption.
+        md->state.state = MS::WALK;
+        md->timer = Timer(md->canmove_tick,
+                std::bind(mob_timer, ph::_1, ph::_2,
+                    md->bl_id, md->walkpath.path_pos));
+        return 0;
+    }
+
     md->walkpath.path_half ^= 1;
     if (md->walkpath.path_half == 0)
     {
@@ -1201,7 +1212,11 @@ int mob_stop_walking(dumb_ptr<mob_data> md, int type)
 {
     nullpo_retz(md);
 
-    if (md->state.state == MS::WALK || md->state.state == MS::IDLE)
+    // A hit (type & 0x02) must not interrupt a walk in progress: the
+    // freeze below delays the next step through mob_walk, so repeated
+    // hits cannot keep resetting it and stun-lock the mob in place.
+    if (!(type & 0x02)
+        && (md->state.state == MS::WALK || md->state.state == MS::IDLE))
     {
         int dx = 0, dy = 0;
 
