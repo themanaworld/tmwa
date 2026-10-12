@@ -346,6 +346,31 @@ void disp_error_message(ZString mes, ZString::iterator pos_)
 }
 
 /*==========================================
+ * setarrayの要素数チェック
+ * Check the element count of a setarray call
+ *------------------------------------------
+ */
+static
+void check_setarray_args(P<str_data_t> cmd, int i,
+        const std::vector<ZString::iterator>& plist)
+{
+    if (Some(cmd) != search_strp("setarray"_s) || i <= 1)
+        return;
+
+    // An array holds at most 256 elements, since the element index is
+    // a uint8_t in SIR. builtin_setarray would silently drop extra
+    // values, so reject them here instead.
+    // setarray's arguments are the array name, an optional npc
+    // (for . variables other than .@ ones), and the values.
+    int max_args = 257;
+    if (*plist[0] == '.' && plist[0][1] != '@')
+        max_args++;
+    if (i > max_args)
+        disp_error_message("setarray: too many elements (max 256)"_s,
+                plist[max_args]);
+}
+
+/*==========================================
  * 項の解析
  * Analyzing Terms
  *------------------------------------------
@@ -539,6 +564,8 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
             }
             p++;
 
+            check_setarray_args(funcp, i, plist);
+
             if (funcp->type == StringCode::FUNC
                 && script_config.warn_func_mismatch_paramnum)
             {
@@ -665,6 +692,8 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
         exit(1);
     }
     add_scriptc(ByteCode::FUNC);
+
+    check_setarray_args(cmd, i, plist);
 
     if (cmd->type == StringCode::FUNC
         && script_config.warn_cmd_mismatch_paramnum)
