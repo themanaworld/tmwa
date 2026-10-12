@@ -514,6 +514,14 @@ int mmo_auth_init(void)
             continue;
         }
 
+        if (auth_data.size() >= 1
+                && !(auth_data.back().account_id < ad.account_id))
+        {
+            // account listing relies on auth_data being ordered by id
+            LOGIN_LOG_AND_ECHO("mmo_auth_init: %s is not sorted by account id (%d follows %d)\n"_fmt,
+                    login_conf.account_filename, ad.account_id, auth_data.back().account_id);
+            runflag = false;
+        }
         auth_data.push_back(ad);
 
         if (isGM(ad.account_id))
@@ -1403,32 +1411,48 @@ void parse_admin(Session *s)
                 {
                     AccountId st = fixed.start_account_id;
                     AccountId ed = fixed.end_account_id;
-                    if (!(ed < END_ACCOUNT_NUM) || ed < st || !ed)
+                    // An end of 0 or past END_ACCOUNT_NUM means unbounded.
+                    // When the client has consumed the requested range it
+                    // resends with st > ed, which must yield an empty
+                    // reply so the listing terminates.
+                    if (!(ed < END_ACCOUNT_NUM) || !ed)
                         ed = END_ACCOUNT_NUM;
 
                     LOGIN_LOG("'ladmin': Sending an accounts list (ask: from %d to %d, ip: %s)\n"_fmt,
                             st, ed, ip);
 
-                    // Sending accounts information
+                    // Sending accounts information, bounded so the packet
+                    // length fits in the 16-bit length field. The admin
+                    // client resends the request starting after the last
+                    // account_id it received, so the reply must be in
+                    // account_id order.
+                    const size_t max_accounts = (30000 - 4) / sizeof(NetPacket_Repeat<0x7921>);
                     std::vector<Packet_Repeat<0x7921>> repeat_21;
 
-                    for (const AuthData& ad : auth_data)
+                    // auth_data is guaranteed to be in account_id order
+                    // (mmo_auth_init rejects an unordered file), so seek
+                    // directly to the requested range.
+                    auto it = std::lower_bound(auth_data.begin(), auth_data.end(), st,
+                            [](const AuthData& a, AccountId id)
+                            {
+                                return a.account_id < id;
+                            });
+                    for (; it != auth_data.end()
+                            && !(ed < it->account_id)
+                            && repeat_21.size() < max_accounts;
+                            ++it)
                     {
-                        AccountId account_id = ad.account_id;
-                        if (!(account_id < st) && !(ed < account_id))
-                        {
-                            Packet_Repeat<0x7921> info;
-                            info.account_id = account_id;
-                            info.gm_level = isGM(account_id);
-                            info.account_name = ad.userid;
-                            info.sex = ad.sex;
-                            info.login_count = ad.logincount;
-                            if (ad.state == 0 && ad.ban_until_time)  // if no state and banished
-                                info.status = 7;  // 6 = Your are Prohibited to log in until %s
-                            else
-                                info.status = ad.state;
-                            repeat_21.push_back(info);
-                        }
+                        Packet_Repeat<0x7921> info;
+                        info.account_id = it->account_id;
+                        info.gm_level = isGM(it->account_id);
+                        info.account_name = it->userid;
+                        info.sex = it->sex;
+                        info.login_count = it->logincount;
+                        if (it->state == 0 && it->ban_until_time)  // if no state and banished
+                            info.status = 7;  // 6 = Your are Prohibited to log in until %s
+                        else
+                            info.status = it->state;
+                        repeat_21.push_back(info);
                     }
                     send_packet_repeatonly<0x7921, 4, 38>(s, repeat_21);
                 }
