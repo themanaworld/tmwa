@@ -86,6 +86,14 @@ enum class MS : uint8_t
     DEAD,
 };
 
+/// AI subtype for mobs with a master (mob_data::state::special_mob_ai).
+enum class SpecialMobAI : uint8_t
+{
+    NONE = 0,          // regular mob or slave
+    SERVANT = 1,       // summon that fights its master's enemies
+    SELFDESTRUCT = 2,  // summon that explodes when damaged (legacy, unused)
+};                   // values above SELFDESTRUCT may hit same-master summons
+
 enum class ATK
 {
     ZERO = 0,

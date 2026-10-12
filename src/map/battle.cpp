@@ -2231,7 +2231,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         {
             if (md->master_id == target->bl_id)    // 主なら肯定 | Yes if the main
                 return 1;
-            if (md->state.special_mob_ai)
+            if (md->state.special_mob_ai != SpecialMobAI::NONE)
             {
                 if (target->bl_type == BL::MOB)
                 {               // special_mob_aiで対象がMob | special_mob_ai targets mobs
@@ -2240,7 +2240,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                     {
                         if (tmd->master_id == md->master_id)
                         {       // 召喚主が一緒なので肯定したいけど自爆は否定 | I want to affirm because the summoner is the same, but I deny suicide bombing
-                            if (md->state.special_mob_ai > 2)
+                            if (md->state.special_mob_ai > SpecialMobAI::SELFDESTRUCT)
                                 return 0;
                             else
                                 return 1;

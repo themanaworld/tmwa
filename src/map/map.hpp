@@ -457,7 +457,7 @@ struct mob_data : block_list
         unsigned master_check:1;
         unsigned change_walk_target:1;
         unsigned walk_easy:1;
-        unsigned special_mob_ai:3;
+        SpecialMobAI special_mob_ai:3;
     } state;
     Timer timer;
     short to_x, to_y;

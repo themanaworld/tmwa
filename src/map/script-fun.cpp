@@ -3098,7 +3098,7 @@ void builtin_summon(ScriptState *st)
         switch (monster_attitude)
         {
             case MonsterAttitude::SERVANT:
-                mob->state.special_mob_ai = 1;
+                mob->state.special_mob_ai = SpecialMobAI::SERVANT;
                 mob->mode |= MobMode::AGGRESSIVE;
                 break;
 
