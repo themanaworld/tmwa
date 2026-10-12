@@ -2205,6 +2205,92 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
 }
 
 /*==========================================
+ * 収まる分だけアイテムを追加し、追加した個数を返す
+ * Add as much of the item as fits and return the amount added.
+ * Unlike pc_additem, this may add only part of `amount` and may
+ * split it between the existing stack and a new one.
+ *------------------------------------------
+ */
+static
+PickupFail pc_additem_partial(dumb_ptr<map_session_data> sd,
+                Item *item_data, int amount, int *taken)
+{
+    nullpo_retr(PickupFail::BAD_ITEM, sd);
+    nullpo_retr(PickupFail::BAD_ITEM, item_data);
+
+    *taken = 0;
+    if (!item_data->nameid || amount <= 0)
+        return PickupFail::BAD_ITEM;
+
+    MAP_LOG_PC(sd, "PICKUP %d %d"_fmt, item_data->nameid, amount);
+
+    P<struct item_data> data = itemdb_search(item_data->nameid);
+
+    // Room in the existing stack, if any.  Non-equipment merges into
+    // the first matching stack, like pc_additem.
+    IOff0 i = IOff0::from(MAX_INVENTORY);
+    int stack = 0;
+    if (!itemdb_isequip2(data))
+    {
+        for (i = IOff0::from(0); i != IOff0::from(MAX_INVENTORY); ++i)
+        {
+            if (sd->status.inventory[i].nameid == item_data->nameid)
+            {
+                stack = MAX_AMOUNT - sd->status.inventory[i].amount;
+                break;
+            }
+        }
+    }
+
+    // Any remainder goes into a new stack, if a slot is free.
+    IOff0 j = pc_search_inventory(sd, ItemNameId());
+    int room = stack;
+    if (j.ok())
+        room += MAX_AMOUNT;
+
+    int take = std::min(amount, room);
+    if (data->weight)
+        take = std::min(take, (sd->max_weight - sd->weight) / data->weight);
+    else if (sd->weight > sd->max_weight)
+        take = 0;
+
+    if (take <= 0)
+    {
+        // Same failure order as pc_additem: weight, then stack space.
+        if (data->weight ? data->weight + sd->weight > sd->max_weight
+                : sd->weight > sd->max_weight)
+            return PickupFail::TOO_HEAVY;
+        if (i.ok())
+            return PickupFail::STACK_FULL;
+        return PickupFail::INV_FULL;
+    }
+
+    if (stack)
+    {
+        int adding = std::min(take, stack);
+        sd->status.inventory[i].amount += adding;
+        clif_additem(sd, i, adding, PickupFail::OKAY);
+        take -= adding;
+        *taken += adding;
+    }
+    if (take && j.ok())
+    {
+        sd->status.inventory[j] = *item_data;
+        if (bool(item_data->equip))
+            sd->status.inventory[j].equip = EPOS::ZERO;
+        sd->status.inventory[j].amount = take;
+        sd->inventory_data[j] = Some(data);
+        clif_additem(sd, j, take, PickupFail::OKAY);
+        *taken += take;
+    }
+
+    sd->weight += data->weight * *taken;
+    clif_updatestatus(sd, SP::WEIGHT);
+
+    return PickupFail::OKAY;
+}
+
+/*==========================================
  * アイテムを減らす
  * Reduce items
  *------------------------------------------
@@ -2353,7 +2439,9 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
     {
         /* Can pick up */
 
-        PickupFail flag = pc_additem(sd, &fitem->item_data, fitem->item_data.amount);
+        int amount = 0;
+        PickupFail flag = pc_additem_partial(sd, &fitem->item_data,
+                fitem->item_data.amount, &amount);
         if (flag != PickupFail::OKAY)
             //重量overで取得失敗 | Failure to get over weight
             clif_additem(sd, IOff0::from(0), 0, flag);
@@ -2363,7 +2451,17 @@ int pc_takeitem(dumb_ptr<map_session_data> sd, dumb_ptr<flooritem_data> fitem)
             if (sd->attacktimer)
                 pc_stopattack(sd);
             clif_takeitem(sd, fitem);
-            map_clearflooritem(fitem->bl_id);
+            if (amount == fitem->item_data.amount)
+            {
+                map_clearflooritem(fitem->bl_id);
+            }
+            else
+            {
+                //拾いきれない分は残す | Leave what did not fit
+                fitem->item_data.amount -= amount;
+                clif_clearflooritem(fitem, nullptr);
+                clif_dropflooritem(fitem);
+            }
         }
         return 0;
     }
