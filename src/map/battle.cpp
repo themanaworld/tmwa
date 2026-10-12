@@ -2238,15 +2238,30 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                     dumb_ptr<mob_data> tmd = target->is_mob();
                     if (tmd)
                     {
-                        if (tmd->master_id != md->master_id)    // 召喚主が一緒でなければ否定 | Deny if the summoner is not with you
-                            return 0;
-                        else
+                        if (tmd->master_id == md->master_id)
                         {       // 召喚主が一緒なので肯定したいけど自爆は否定 | I want to affirm because the summoner is the same, but I deny suicide bombing
                             if (md->state.special_mob_ai > 2)
                                 return 0;
                             else
                                 return 1;
                         }
+                        if (tmd->master_id)
+                        {
+                            // Another player's summon is only an enemy when
+                            // the masters may fight, so let the PC vs PC
+                            // checks below decide for this master instead.
+                            dumb_ptr<block_list> tmaster = map_id2bl(tmd->master_id);
+                            if (tmaster && tmaster->bl_type == BL::PC)
+                            {
+                                if (tmaster->is_player()->invincible_timer)
+                                    return 1;
+                                target = tmaster;
+                            }
+                            else
+                                return 0;
+                        }
+                        else    // 召喚主がいなければ否定 | Deny if the target has no summoner
+                            return 0;
                     }
                 }
             }
