@@ -2144,6 +2144,25 @@ int pc_remove_items(dumb_ptr<map_session_data> player, ItemNameId item_id, int c
 }
 
 /*==========================================
+ * アイテムを空きアイテム欄に入れる
+ * Put the item into the given free inventory slot
+ *------------------------------------------
+ */
+static
+void pc_additem_newslot(dumb_ptr<map_session_data> sd, IOff0 i,
+                Item *item_data, int amount, P<struct item_data> data)
+{
+    sd->status.inventory[i] = *item_data;
+
+    if (bool(item_data->equip))
+        sd->status.inventory[i].equip = EPOS::ZERO;
+
+    sd->status.inventory[i].amount = amount;
+    sd->inventory_data[i] = Some(data);
+    clif_additem(sd, i, amount, PickupFail::OKAY);
+}
+
+/*==========================================
  * アイテム追加。個数のみitem構造体の数字を無視
  * Add Item. Ignore the number of items only in the structure
  *------------------------------------------
@@ -2184,19 +2203,9 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
     if (!i.ok())
     {
         i = pc_search_inventory(sd, ItemNameId());
-        if (i.ok())
-        {
-            sd->status.inventory[i] = *item_data;
-
-            if (bool(item_data->equip))
-                sd->status.inventory[i].equip = EPOS::ZERO;
-
-            sd->status.inventory[i].amount = amount;
-            sd->inventory_data[i] = Some(data);
-            clif_additem(sd, i, amount, PickupFail::OKAY);
-        }
-        else
+        if (!i.ok())
             return PickupFail::INV_FULL;
+        pc_additem_newslot(sd, i, item_data, amount, data);
     }
     sd->weight += w;
     clif_updatestatus(sd, SP::WEIGHT);
@@ -2222,12 +2231,10 @@ PickupFail pc_additem_partial(dumb_ptr<map_session_data> sd,
     if (!item_data->nameid || amount <= 0)
         return PickupFail::BAD_ITEM;
 
-    MAP_LOG_PC(sd, "PICKUP %d %d"_fmt, item_data->nameid, amount);
-
     P<struct item_data> data = itemdb_search(item_data->nameid);
 
-    // Room in the existing stack, if any.  Non-equipment merges into
-    // the first matching stack, like pc_additem.
+    // Non-equipment merges into the first matching stack, like
+    // pc_additem; any remainder needs a free slot for a new stack.
     IOff0 i = IOff0::from(MAX_INVENTORY);
     int stack = 0;
     if (!itemdb_isequip2(data))
@@ -2241,29 +2248,19 @@ PickupFail pc_additem_partial(dumb_ptr<map_session_data> sd,
             }
         }
     }
-
-    // Any remainder goes into a new stack, if a slot is free.
     IOff0 j = pc_search_inventory(sd, ItemNameId());
-    int room = stack;
-    if (j.ok())
-        room += MAX_AMOUNT;
 
-    int take = std::min(amount, room);
+    int take = std::min(amount, stack + (j.ok() ? MAX_AMOUNT : 0));
     if (data->weight)
         take = std::min(take, (sd->max_weight - sd->weight) / data->weight);
     else if (sd->weight > sd->max_weight)
         take = 0;
 
     if (take <= 0)
-    {
-        // Same failure order as pc_additem: weight, then stack space.
-        if (data->weight ? data->weight + sd->weight > sd->max_weight
-                : sd->weight > sd->max_weight)
-            return PickupFail::TOO_HEAVY;
-        if (i.ok())
-            return PickupFail::STACK_FULL;
-        return PickupFail::INV_FULL;
-    }
+        // Nothing fits, so this fails like before and adds nothing.
+        return pc_additem(sd, item_data, amount);
+
+    MAP_LOG_PC(sd, "PICKUP %d %d"_fmt, item_data->nameid, take);
 
     if (stack)
     {
@@ -2275,12 +2272,7 @@ PickupFail pc_additem_partial(dumb_ptr<map_session_data> sd,
     }
     if (take && j.ok())
     {
-        sd->status.inventory[j] = *item_data;
-        if (bool(item_data->equip))
-            sd->status.inventory[j].equip = EPOS::ZERO;
-        sd->status.inventory[j].amount = take;
-        sd->inventory_data[j] = Some(data);
-        clif_additem(sd, j, take, PickupFail::OKAY);
+        pc_additem_newslot(sd, j, item_data, take, data);
         *taken += take;
     }
 
