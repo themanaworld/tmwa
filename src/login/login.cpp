@@ -1403,32 +1403,53 @@ void parse_admin(Session *s)
                 {
                     AccountId st = fixed.start_account_id;
                     AccountId ed = fixed.end_account_id;
-                    if (!(ed < END_ACCOUNT_NUM) || ed < st || !ed)
+                    // An end of 0 or past END_ACCOUNT_NUM means unbounded.
+                    // When the client has consumed the requested range it
+                    // resends with st > ed, which must yield an empty
+                    // reply so the listing terminates.
+                    if (!(ed < END_ACCOUNT_NUM) || !ed)
                         ed = END_ACCOUNT_NUM;
 
                     LOGIN_LOG("'ladmin': Sending an accounts list (ask: from %d to %d, ip: %s)\n"_fmt,
                             st, ed, ip);
 
-                    // Sending accounts information
-                    std::vector<Packet_Repeat<0x7921>> repeat_21;
-
+                    // Collect the matching accounts in account_id order,
+                    // since the admin client resends the request starting
+                    // after the last account_id it received.
+                    std::vector<const AuthData *> sorted;
                     for (const AuthData& ad : auth_data)
                     {
                         AccountId account_id = ad.account_id;
                         if (!(account_id < st) && !(ed < account_id))
-                        {
-                            Packet_Repeat<0x7921> info;
-                            info.account_id = account_id;
-                            info.gm_level = isGM(account_id);
-                            info.account_name = ad.userid;
-                            info.sex = ad.sex;
-                            info.login_count = ad.logincount;
-                            if (ad.state == 0 && ad.ban_until_time)  // if no state and banished
-                                info.status = 7;  // 6 = Your are Prohibited to log in until %s
-                            else
-                                info.status = ad.state;
-                            repeat_21.push_back(info);
-                        }
+                            sorted.push_back(&ad);
+                    }
+                    std::sort(sorted.begin(), sorted.end(),
+                            [](const AuthData *a, const AuthData *b)
+                            {
+                                return a->account_id < b->account_id;
+                            });
+
+                    // Sending accounts information, bounded so the packet
+                    // length fits in the 16-bit length field.
+                    const size_t max_accounts = (30000 - 4) / sizeof(NetPacket_Repeat<0x7921>);
+                    std::vector<Packet_Repeat<0x7921>> repeat_21;
+
+                    for (const AuthData *ad : sorted)
+                    {
+                        if (repeat_21.size() == max_accounts)
+                            break;
+                        AccountId account_id = ad->account_id;
+                        Packet_Repeat<0x7921> info;
+                        info.account_id = account_id;
+                        info.gm_level = isGM(account_id);
+                        info.account_name = ad->userid;
+                        info.sex = ad->sex;
+                        info.login_count = ad->logincount;
+                        if (ad->state == 0 && ad->ban_until_time)  // if no state and banished
+                            info.status = 7;  // 6 = Your are Prohibited to log in until %s
+                        else
+                            info.status = ad->state;
+                        repeat_21.push_back(info);
                     }
                     send_packet_repeatonly<0x7921, 4, 38>(s, repeat_21);
                 }
