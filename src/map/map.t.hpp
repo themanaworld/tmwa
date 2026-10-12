@@ -86,6 +86,16 @@ enum class MS : uint8_t
     DEAD,
 };
 
+/// AI subtype for mobs with a master (mob_data::state::special_mob_ai).
+/// Only NONE and SERVANT are assigned; higher values are unreachable
+/// legacy (eAthena self-destructing summons could hit same-master mobs).
+enum class SpecialMobAI : uint8_t
+{
+    NONE = 0,          // regular mob or slave
+    SERVANT = 1,       // summon that fights its master's enemies
+    SELFDESTRUCT = 2,  // summon that explodes when damaged (legacy, unused)
+};
+
 enum class ATK
 {
     ZERO = 0,

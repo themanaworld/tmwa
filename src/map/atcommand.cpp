@@ -2079,7 +2079,7 @@ ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
     if (md)
     {
         md->master_id = sd->bl_id;
-        md->state.special_mob_ai = 1;
+        md->state.special_mob_ai = SpecialMobAI::SERVANT;
         md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
         md->deletetimer = Timer(tick + 1_min,
                 std::bind(mob_timer_delete, ph::_1, ph::_2,

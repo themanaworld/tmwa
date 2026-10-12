@@ -1856,19 +1856,19 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
 
     md->state.master_check = 0;
     // Processing of summoned monster attacked by owner
-    if (md->last_master_id && md->state.special_mob_ai)
+    if (md->last_master_id && md->state.special_mob_ai != SpecialMobAI::NONE)
     {
         if (((bl = map_id2bl(md->last_master_id)) != nullptr && md->bl_m != bl->bl_m) || (bl = map_id2bl(md->last_master_id)) == nullptr)
         {
             md->last_master_id = BlockId();
-            md->state.special_mob_ai = 0;
+            md->state.special_mob_ai = SpecialMobAI::NONE;
             md->mode = get_mob_db(md->mob_class).mode;
             md->target_id = BlockId();
             md->attacked_id = BlockId();
         }
     }
     // Processing of slave monster
-    if (md->master_id && md->state.special_mob_ai == 0)
+    if (md->master_id && md->state.special_mob_ai == SpecialMobAI::NONE)
         mob_ai_sub_hard_slavemob(md, tick);
 
     // アクティヴモンスターの策敵 | Active monster's enemy (?? of a bitter taste TIVU monster)
@@ -1877,7 +1877,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         && battle_config.monster_active_enable == 1)
     {
         i = 0;
-        if (md->state.special_mob_ai)
+        if (md->state.special_mob_ai != SpecialMobAI::NONE)
         {
             map_foreachinarea(std::bind(mob_ai_sub_hard_activesearch, ph::_1, md, &i),
                     md->bl_m,
@@ -2071,7 +2071,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     // mobs that are not slaves can random-walk
     if (bool(mode & MobMode::CAN_MOVE)
         && mob_can_move(md)
-        && (!md->master_id || md->state.special_mob_ai
+        && (!md->master_id || md->state.special_mob_ai != SpecialMobAI::NONE
             || md->master_dist > 10))
     {
         // if walktime is more than 7 seconds in the future,
@@ -2460,11 +2460,11 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
         damage_logged_pc:
 
-            if (!md->attacked_id && md->state.special_mob_ai == 0)
+            if (!md->attacked_id && md->state.special_mob_ai == SpecialMobAI::NONE)
                 md->attacked_id = sd->bl_id;
         }
         if (src && src->bl_type == BL::MOB
-            && src->is_mob()->state.special_mob_ai)
+            && src->is_mob()->state.special_mob_ai != SpecialMobAI::NONE)
         {
             dumb_ptr<mob_data> md2 = src->is_mob();
             dumb_ptr<block_list> master_bl = map_id2bl(md2->master_id);
@@ -2492,7 +2492,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 app.dmg = damage;
                 md->dmglogv.push_back(app);
 
-                if (!md->attacked_id && md->state.special_mob_ai == 0)
+                if (!md->attacked_id && md->state.special_mob_ai == SpecialMobAI::NONE)
                     md->attacked_id = md2->master_id;
             }
         damage_logged_slave:
@@ -2616,7 +2616,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             {
                 base_exp *= 1.15;   // pk_mode additional exp if monster >20 levels [Valaris]
             }
-            if (md->state.special_mob_ai >= 1
+            if (md->state.special_mob_ai != SpecialMobAI::NONE
                 && battle_config.alchemist_summon_reward != 1)
                 base_exp = 0;   // Added [Valaris]
             job_exp = mob_info.job_exp * per / 256;
@@ -2627,7 +2627,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             {
                 job_exp *= 1.15;    // pk_mode additional exp if monster >20 levels [Valaris]
             }
-            if (md->state.special_mob_ai >= 1
+            if (md->state.special_mob_ai != SpecialMobAI::NONE
                 && battle_config.alchemist_summon_reward != 1)
                 job_exp = 0;    // Added [Valaris]
 
@@ -2674,7 +2674,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         {
             for (int i = 0; i < MaxDrops; i++)
             {
-                if (md->state.special_mob_ai >= 1 && battle_config.alchemist_summon_reward != 1)    // Added [Valaris]
+                if (md->state.special_mob_ai != SpecialMobAI::NONE && battle_config.alchemist_summon_reward != 1)    // Added [Valaris]
                     break;      // End
 
                 const auto& drop_info = mob_info.dropitem[i];
@@ -3334,7 +3334,7 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
     if (battle_config.mob_skill_use == 0 || md->skilltimer)
         return 0;
 
-    if (md->state.special_mob_ai)
+    if (md->state.special_mob_ai != SpecialMobAI::NONE)
         return 0;
 
     for (mob_skill& msii : ms)
