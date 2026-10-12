@@ -514,6 +514,14 @@ int mmo_auth_init(void)
             continue;
         }
 
+        if (!auth_data.empty()
+                && !(auth_data.back().account_id < ad.account_id))
+        {
+            // the account listing protocol requires sorted ids
+            LOGIN_LOG_AND_ECHO("mmo_auth_init: %s is not sorted by account id (%d follows %d)\n"_fmt,
+                    login_conf.account_filename, ad.account_id, auth_data.back().account_id);
+            runflag = false;
+        }
         auth_data.push_back(ad);
 
         if (isGM(ad.account_id))
@@ -1403,32 +1411,40 @@ void parse_admin(Session *s)
                 {
                     AccountId st = fixed.start_account_id;
                     AccountId ed = fixed.end_account_id;
-                    if (!(ed < END_ACCOUNT_NUM) || ed < st || !ed)
+                    // st > ed means the resent range is exhausted and
+                    // must yield an empty reply
+                    if (!(ed < END_ACCOUNT_NUM) || !ed)
                         ed = END_ACCOUNT_NUM;
 
                     LOGIN_LOG("'ladmin': Sending an accounts list (ask: from %d to %d, ip: %s)\n"_fmt,
                             st, ed, ip);
 
-                    // Sending accounts information
+                    // bound the reply: the client resends the request
+                    // after the last account_id it received
+                    const size_t max_accounts = (30000 - 4) / sizeof(NetPacket_Repeat<0x7921>);
                     std::vector<Packet_Repeat<0x7921>> repeat_21;
 
-                    for (const AuthData& ad : auth_data)
+                    // auth_data is ordered by account_id (enforced at load)
+                    auto it = std::lower_bound(auth_data.begin(), auth_data.end(), st,
+                            [](const AuthData& a, AccountId id)
+                            {
+                                return a.account_id < id;
+                            });
+                    for (; it != auth_data.end(); ++it)
                     {
-                        AccountId account_id = ad.account_id;
-                        if (!(account_id < st) && !(ed < account_id))
-                        {
-                            Packet_Repeat<0x7921> info;
-                            info.account_id = account_id;
-                            info.gm_level = isGM(account_id);
-                            info.account_name = ad.userid;
-                            info.sex = ad.sex;
-                            info.login_count = ad.logincount;
-                            if (ad.state == 0 && ad.ban_until_time)  // if no state and banished
-                                info.status = 7;  // 6 = Your are Prohibited to log in until %s
-                            else
-                                info.status = ad.state;
-                            repeat_21.push_back(info);
-                        }
+                        if (ed < it->account_id || repeat_21.size() == max_accounts)
+                            break;
+                        Packet_Repeat<0x7921> info;
+                        info.account_id = it->account_id;
+                        info.gm_level = isGM(it->account_id);
+                        info.account_name = it->userid;
+                        info.sex = it->sex;
+                        info.login_count = it->logincount;
+                        if (it->state == 0 && it->ban_until_time)  // if no state and banished
+                            info.status = 7;  // 6 = Your are Prohibited to log in until %s
+                        else
+                            info.status = it->state;
+                        repeat_21.push_back(info);
                     }
                     send_packet_repeatonly<0x7921, 4, 38>(s, repeat_21);
                 }
