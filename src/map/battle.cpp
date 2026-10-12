@@ -835,6 +835,8 @@ interval_t battle_get_dmotion(dumb_ptr<block_list> bl)
     }
     else if (bl->bl_type == BL::PC)
     {
+        if (!battle_config.player_damage_delay)
+            return interval_t::zero();
         return bl->is_player()->dmotion;
     }
     else
