@@ -2817,7 +2817,7 @@ int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
     sd->to_y = sd->bl_y;
     if (type & 0x01)
         clif_fixpos(sd);
-    if (type & 0x02 && battle_config.player_damage_delay)
+    if (type & 0x02)
     {
         tick_t tick = gettick();
         interval_t delay = battle_get_dmotion(sd);
