@@ -738,9 +738,18 @@ BlockId map_addflooritem(Item *item_data, int amount,
         owner_protection[2] = owner_protection[1] + battle_config.item_third_get_time;
     }
 
-    return map_addflooritem_any(item_data, amount, m, x, y,
-            owners, owner_protection,
-            battle_config.flooritem_lifetime, 1);
+    // A floor stack is limited like an inventory stack, so split up
+    // larger amounts into several stacks.
+    BlockId id = BlockId();
+    while (amount > 0)
+    {
+        int stack = amount > MAX_AMOUNT ? MAX_AMOUNT : amount;
+        id = map_addflooritem_any(item_data, stack, m, x, y,
+                owners, owner_protection,
+                battle_config.flooritem_lifetime, 1);
+        amount -= stack;
+    }
+    return id;
 }
 
 /*==========================================
