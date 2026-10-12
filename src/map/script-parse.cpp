@@ -23,8 +23,8 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <set>
+#include <vector>
 
-#include "../generic/array.hpp"
 #include "../generic/db.hpp"
 #include "../generic/intern-pool.hpp"
 
@@ -507,7 +507,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         {
             int i = 0;
             P<str_data_t> funcp = TRY_UNWRAP(parse_cmdp, abort());
-            Array<ZString::iterator, 128> plist;
+            std::vector<ZString::iterator> plist;
 
             if (funcp->type != StringCode::FUNC)
             {
@@ -516,9 +516,9 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
             }
 
             add_scriptc(ByteCode::ARG);
-            while (*p && *p != ')' && i < 128)
+            while (*p && *p != ')')
             {
-                plist[i] = p;
+                plist.push_back(p);
                 p = parse_subexpr(p, -1);
                 p = skip_space(p);
                 if (*p == ',')
@@ -531,12 +531,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
                 p = skip_space(p);
                 i++;
             }
-            if (i == 128)
-            {
-                disp_error_message("PANIC: unrecoverable error in function argument list"_s, p);
-                abort();
-            }
-            plist[i] = p;
+            plist.push_back(p);
             if (*p != ')')
             {
                 disp_error_message("func request '(' ')'"_s, p);
@@ -604,7 +599,7 @@ ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
 ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
 {
     int i = 0;
-    Array<ZString::iterator, 128> plist;
+    std::vector<ZString::iterator> plist;
 
     p = skip_space(p);
     if (*p == ';')
@@ -646,9 +641,9 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
     }
 
     add_scriptc(ByteCode::ARG);
-    while (*p && *p != ';' && i < 128)
+    while (*p && *p != ';')
     {
-        plist[i] = p;
+        plist.push_back(p);
 
         p = parse_expr(p);
         p = skip_space(p);
@@ -663,12 +658,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
         p = skip_space(p);
         i++;
     }
-    if (i == 128)
-    {
-        disp_error_message("PANIC: unknown error in command argument list"_s, p);
-        abort();
-    }
-    plist[i] = p;
+    plist.push_back(p);
     if (*(p++) != ';')
     {
         disp_error_message("need ';'"_s, p);
