@@ -29,14 +29,13 @@ const VERSION_2_UPDATEHOST: u8 = 1;
 const MIN_CLIENT_VERSION: u32 = 6;
 const DEFAULT_WALK_SPEED: u16 = 150;
 
-/// The gate's own "server version" for 0x7531: fixed at 0.1.0;
-/// `flags` carries the role bits (LOGIN here, CHAR|INTER on the
-/// char screen).
+/// Clients select modern behavior (bare chat, real login version)
+/// from 0x100408 on.
 fn gate_version(flags: u8) -> Version {
     Version {
-        major: 0,
-        minor: 1,
-        patch: 0,
+        major: 26,
+        minor: 10,
+        patch: 15,
         devel: 0,
         flags: 0,
         which: flags,
