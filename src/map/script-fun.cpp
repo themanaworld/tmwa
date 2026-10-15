@@ -5622,6 +5622,19 @@ void builtin_mapexit(ScriptState *)
     runflag = 0;
 }
 
+/*=================================================
+ * Gets the class of the currently equipped weapon
+ *-------------------------------------------------
+ */
+static
+void builtin_getweaponclass(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    script_nullpo_end(sd, "player not found"_s);
+
+    push_int<ScriptDataInt>(st->stack, (int)sd->status.weapon);
+}
+
 #define BUILTIN(func, args, ret)    \
 {builtin_##func, #func ## _s, args, ret}
 
@@ -5802,6 +5815,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(chr, "i"_s, 's'),
     BUILTIN(ord, "s"_s, 'i'),
     BUILTIN(l, "s*"_s, 's'),
+    BUILTIN(getweaponclass, ""_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
