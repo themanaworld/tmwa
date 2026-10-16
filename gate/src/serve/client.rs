@@ -656,9 +656,9 @@ fn char_select(k: &CharKey, p: &CharData, account_sex: Sex) -> CharSelect {
         job_exp: p.job_exp as u32,
         job_level: p.job_level as u32,
         shoes: equip_view(p, 0x40),  // EPOS::SHOES
-        gloves: equip_view(p, 0x80), // EPOS::GLOVES
-        cape: equip_view(p, 0x20),   // EPOS::CAPE
-        misc1: equip_view(p, 0x100), // EPOS::MISC1
+        gloves: equip_view(p, 0x04), // EPOS::GLOVES
+        cape: equip_view(p, 0x08),   // EPOS::CAPE
+        misc1: equip_view(p, 0x10),  // EPOS::MISC1
         option: p.option,
         unused: 0,
         karma: p.karma as u32,
@@ -679,7 +679,7 @@ fn char_select(k: &CharKey, p: &CharData, account_sex: Sex) -> CharSelect {
         head_top: p.head_top,
         head_mid: p.head_mid,
         hair_color: p.hair_color as u16,
-        misc2: equip_view(p, 0x200), // EPOS::MISC2
+        misc2: equip_view(p, 0x80), // EPOS::MISC2
         char_name: k.name,
         stats: Stats6 {
             str: sat8(p.attrs[0]),
@@ -701,7 +701,7 @@ fn sat8(v: i16) -> u8 {
 /// View an equipped item's nameid for an EPOS bit.
 fn equip_view(p: &CharData, bit: u16) -> ItemNameId {
     for it in p.inventory.iter() {
-        if it.nameid.0 != 0 && it.equip.0 & bit != 0 {
+        if it.nameid.0 != 0 && it.amount != 0 && it.equip.0 & bit != 0 {
             return it.nameid;
         }
     }
@@ -2269,5 +2269,42 @@ mod tests {
         let mut rx = pending_sel(&st, map_id, [203, 0, 113, 9]);
         let p = P0071::decode(&rx.try_recv().unwrap()).unwrap();
         assert_eq!(p.ip.0, [203, 0, 113, 7]);
+    }
+
+    /// The 0x006b equip-view fields map to EPOS bits exactly as
+    /// tmwa's find_equip_view: a two-hand weapon (WEAPON|SHIELD)
+    /// must not surface in any of them.
+    #[test]
+    fn char_select_equip_view_uses_epos_bits() {
+        let item = |nameid: u32, equip: u16| Item {
+            nameid: ItemNameId(nameid),
+            amount: 1,
+            equip: Epos(equip),
+        };
+        let mut cd = CharData::default();
+        cd.inventory[0] = item(906, 0x22); // KidBook: WEAPON|SHIELD
+        cd.inventory[1] = item(531, 0x04); // GLOVES
+        cd.inventory[2] = item(600, 0x08); // CAPE
+        cd.inventory[3] = item(700, 0x10); // MISC1
+        cd.inventory[4] = item(800, 0x80); // MISC2
+        cd.inventory[5] = item(900, 0x40); // SHOES
+        cd.inventory[6] = item(610, 0x100); // HAT
+        cd.inventory[7] = item(620, 0x200); // TORSO
+        let key = CharKey {
+            name: FixedStr::<24>::from_str_truncate("t"),
+            account_id: AccountId(1),
+            char_id: CharId(1),
+            char_num: 0,
+        };
+        let sel = char_select(&key, &cd, Sex(1));
+        assert_eq!(sel.shoes, ItemNameId(900));
+        assert_eq!(sel.gloves, ItemNameId(531));
+        assert_eq!(sel.cape, ItemNameId(600));
+        assert_eq!(sel.misc1, ItemNameId(700));
+        assert_eq!(sel.misc2, ItemNameId(800));
+        // a two-hand weapon shows in none of the view fields
+        for f in [sel.shoes, sel.gloves, sel.cape, sel.misc1, sel.misc2] {
+            assert_ne!(f, ItemNameId(906));
+        }
     }
 }
