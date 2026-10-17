@@ -70,6 +70,8 @@ public:
     ZSit parse_simpleexpr(ZSit p);
     ZSit parse_subexpr(ZSit p, int limit);
     ZSit parse_expr(ZSit p);
+    void parse_arglist(ZSit& p, char term, bool cmd_args,
+            P<str_data_t> callee, ZSit pos);
     ZSit parse_line(ZSit p, bool *canstep);
     void parse_script(ZString src, int line, bool implicit_end);
 
@@ -371,6 +373,76 @@ void check_setarray_args(P<str_data_t> cmd, int i,
 }
 
 /*==========================================
+ * 引数列の解析
+ * Analyzing argument lists
+ *------------------------------------------
+ */
+void ScriptBuffer::parse_arglist(ZString::iterator& p, char term, bool cmd_args,
+        P<str_data_t> callee, ZString::iterator pos)
+{
+    int i = 0;
+    std::vector<ZString::iterator> plist;
+
+    add_scriptc(ByteCode::ARG);
+    while (*p && *p != term)
+    {
+        plist.push_back(p);
+
+        p = cmd_args ? parse_expr(p) : parse_subexpr(p, -1);
+        p = skip_space(p);
+        // 引数区切りの,処理 | Argument-delimited,processing
+        if (*p == ',')
+            p++;
+        else if (*p != term
+                 && (cmd_args
+                     ? (script_config.warn_cmd_no_comma && parse_cmd_if * 2 <= i)
+                     : script_config.warn_func_no_comma))
+        {
+            disp_error_message(cmd_args
+                    ? "expect ',' or ';' at cmd params"_s
+                    : "expect ',' or ')' at func params"_s, p);
+        }
+        p = skip_space(p);
+        i++;
+    }
+    plist.push_back(p);
+    if (*p != term)
+    {
+        disp_error_message(cmd_args
+                ? "need ';'"_s
+                : "func request '(' ')'"_s, p);
+        exit(1);
+    }
+    p++;
+
+    check_setarray_args(callee, i, plist);
+
+    bool warn_mismatch = cmd_args
+        ? script_config.warn_cmd_mismatch_paramnum
+        : script_config.warn_func_mismatch_paramnum;
+    if (callee->type == StringCode::FUNC && warn_mismatch)
+    {
+        ZString arg = builtin_functions[callee->val].arg;
+        int j = 0;
+        // TODO handle ? and multiple * correctly
+        for (j = 0; arg[j]; j++)
+            if (arg[j] == '*' || arg[j] == '?')
+                break;
+        if ((arg[j] == 0 && i != j) || ((arg[j] == '*' || arg[j] == '?') && i < j))
+        {
+            disp_error_message("illegal number of parameters"_s,
+                    plist[std::min(i, j)]);
+        }
+        if (bool(builtin_functions[callee->val].ret) == cmd_args)
+        {
+            disp_error_message(cmd_args
+                    ? "function in statement context"_s
+                    : "statement in function context"_s, pos);
+        }
+    }
+}
+
+/*==========================================
  * 項の解析
  * Analyzing Terms
  *------------------------------------------
@@ -530,9 +602,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         p += len;
         if (op == ByteCode::FUNC)
         {
-            int i = 0;
             P<str_data_t> funcp = TRY_UNWRAP(parse_cmdp, abort());
-            std::vector<ZString::iterator> plist;
 
             if (funcp->type != StringCode::FUNC)
             {
@@ -540,51 +610,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
                 exit(0);
             }
 
-            add_scriptc(ByteCode::ARG);
-            while (*p && *p != ')')
-            {
-                plist.push_back(p);
-                p = parse_subexpr(p, -1);
-                p = skip_space(p);
-                if (*p == ',')
-                    p++;
-                else if (*p != ')' && script_config.warn_func_no_comma)
-                {
-                    disp_error_message("expect ',' or ')' at func params"_s,
-                                        p);
-                }
-                p = skip_space(p);
-                i++;
-            }
-            plist.push_back(p);
-            if (*p != ')')
-            {
-                disp_error_message("func request '(' ')'"_s, p);
-                exit(1);
-            }
-            p++;
-
-            check_setarray_args(funcp, i, plist);
-
-            if (funcp->type == StringCode::FUNC
-                && script_config.warn_func_mismatch_paramnum)
-            {
-                ZString arg = builtin_functions[funcp->val].arg;
-                int j = 0;
-                // TODO handle ? and multiple * correctly
-                for (j = 0; arg[j]; j++)
-                    if (arg[j] == '*' || arg[j] == '?')
-                        break;
-                if ((arg[j] == 0 && i != j) || ((arg[j] == '*' || arg[j] == '?') && i < j))
-                {
-                    disp_error_message("illegal number of parameters"_s,
-                            plist[std::min(i, j)]);
-                }
-                if (!builtin_functions[funcp->val].ret)
-                {
-                    disp_error_message("statement in function context"_s, tmpp);
-                }
-            }
+            parse_arglist(p, ')', false, funcp, tmpp);
         }
         else // not op == ByteCode::FUNC
         {
@@ -625,9 +651,6 @@ ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
  */
 ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
 {
-    int i = 0;
-    std::vector<ZString::iterator> plist;
-
     p = skip_space(p);
     if (*p == ';')
     {
@@ -667,53 +690,8 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
         *can_step = terminators.count(cmd->strs) == 0;
     }
 
-    add_scriptc(ByteCode::ARG);
-    while (*p && *p != ';')
-    {
-        plist.push_back(p);
-
-        p = parse_expr(p);
-        p = skip_space(p);
-        // 引数区切りの,処理 | Argument-delimited,processing
-        if (*p == ',')
-            p++;
-        else if (*p != ';' && script_config.warn_cmd_no_comma
-                 && parse_cmd_if * 2 <= i)
-        {
-            disp_error_message("expect ',' or ';' at cmd params"_s, p);
-        }
-        p = skip_space(p);
-        i++;
-    }
-    plist.push_back(p);
-    if (*(p++) != ';')
-    {
-        disp_error_message("need ';'"_s, p);
-        exit(1);
-    }
+    parse_arglist(p, ';', true, cmd, p2);
     add_scriptc(ByteCode::FUNC);
-
-    check_setarray_args(cmd, i, plist);
-
-    if (cmd->type == StringCode::FUNC
-        && script_config.warn_cmd_mismatch_paramnum)
-    {
-        ZString arg = builtin_functions[cmd->val].arg;
-        int j = 0;
-        // TODO see above
-        for (j = 0; arg[j]; j++)
-            if (arg[j] == '*' || arg[j] == '?')
-                break;
-        if ((arg[j] == 0 && i != j) || ((arg[j] == '*' || arg[j] == '?') && i < j))
-        {
-            disp_error_message("illegal number of parameters"_s,
-                    plist[std::min(i, j)]);
-        }
-        if (builtin_functions[cmd->val].ret)
-        {
-            disp_error_message("function in statement context"_s, p2);
-        }
-    }
 
     return p;
 }
