@@ -5623,7 +5623,7 @@ void builtin_getweapontype(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     script_nullpo_end(sd, "player not found"_s);
 
-    push_int<ScriptDataInt>(st->stack, (int)sd->status.weapon);
+    push_int<ScriptDataInt>(st->stack, (int)sd->weapontype1);
 }
 
 #define BUILTIN(func, args, ret)    \
