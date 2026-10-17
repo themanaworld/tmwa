@@ -1349,7 +1349,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, CalcStatusKind first)
 
     if (sd->attackrange < 1)
         sd->attackrange = 1;
-    if (sd->status.weapon == ItemLook::W_BOW)
+    if (sd->weapontype1 == ItemLook::W_BOW)
         sd->attackrange += sd->arrow_range;
     sd->double_rate += sd->double_add_rate;
     sd->perfect_hit += sd->perfect_hit_add_rate;
@@ -1367,7 +1367,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, CalcStatusKind first)
     for (ATTR attr : ATTRs)
         sd->paramc[attr] = std::max(0, sd->status.attrs[attr] + sd->paramb[attr] + sd->parame[attr]);
 
-    if (sd->status.weapon == ItemLook::W_BOW)
+    if (sd->weapontype1 == ItemLook::W_BOW)
     {
         str = sd->paramc[ATTR::DEX];
         dex = sd->paramc[ATTR::STR];
@@ -1468,7 +1468,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, CalcStatusKind first)
 
     //二刀流 ASPD 修正 | Two-cut ASPD correction
     {
-        b_base_weapon_delay_adjust = aspd_base_0[sd->status.weapon] + sd->base_weapon_delay_adjust;
+        b_base_weapon_delay_adjust = aspd_base_0[sd->weapontype1] + sd->base_weapon_delay_adjust;
         if (b_base_weapon_delay_adjust.count() < 0)
             b_base_weapon_delay_adjust = interval_t::zero();
         sd->aspd += b_base_weapon_delay_adjust
@@ -2954,7 +2954,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     {
         dist = distance(sd->bl_x, sd->bl_y, bl->bl_x, bl->bl_y);
         range = sd->attackrange;
-        if (sd->status.weapon != ItemLook::W_BOW)
+        if (sd->weapontype1 != ItemLook::W_BOW)
             range++;
         if (dist > range)
         {                       //届 かないので移動 | Move because it does not arrive
