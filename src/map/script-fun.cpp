@@ -1609,8 +1609,7 @@ void builtin_set(ScriptState *st)
 static
 int getarraysize2(SIR reg, dumb_ptr<block_list> bl)
 {
-    int i = reg.index(), c = i;
-    bool zero = true; // index zero is empty
+    int i = reg.index(), c = i - 1;
     for (; i < 256; i++)
     {
         struct script_data vd = ScriptDataVariable{reg.iplus(i)};
@@ -1620,28 +1619,20 @@ int getarraysize2(SIR reg, dumb_ptr<block_list> bl)
             MATCH_CASE (const ScriptDataStr&, u)
             {
                 if (u.str[0])
-                {
-                    if (i == 0)
-                        zero = false; // index zero is not empty
                     c = i;
-                }
                 continue;
             }
             MATCH_CASE (const ScriptDataInt&, u)
             {
                 if (u.numi)
-                {
-                    if (i == 0)
-                        zero = false; // index zero is not empty
                     c = i;
-                }
                 continue;
             }
         }
         MATCH_END ();
         abort();
     }
-    return (c == 0 && zero) ? c : (c + 1);
+    return c + 1;
 }
 
 /*==========================================
@@ -1757,7 +1748,7 @@ void builtin_cleararray(ScriptState *st)
 static
 int getarraysize(ScriptState *st, SIR reg)
 {
-    int i = reg.index(), c = i;
+    int i = reg.index(), c = i - 1;
     for (; i < 256; i++)
     {
         struct script_data vd = get_val2(st, reg.iplus(i));
