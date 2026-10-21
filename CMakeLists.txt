@@ -82,6 +82,13 @@ set_target_properties(tmwa-obj-io
                       tmwa-obj-strings
                       PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Keep main() out of the map objects so tests (which supply their own
+# main via gtest_main) can link the map server sources. The daemon still
+# gets it from ${map_SOURCES}.
+get_target_property(_tmwa_obj_map_srcs tmwa-obj-map SOURCES)
+list(REMOVE_ITEM _tmwa_obj_map_srcs "${PROJECT_SOURCE_DIR}/src/map/main.cpp")
+set_target_properties(tmwa-obj-map PROPERTIES SOURCES "${_tmwa_obj_map_srcs}")
+
 # All targets include the include/ directory
 include_directories(include)
 
@@ -210,6 +217,8 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
     $<TARGET_OBJECTS:tmwa-obj-generic>
     $<TARGET_OBJECTS:tmwa-obj-high>
     $<TARGET_OBJECTS:tmwa-obj-ints>
+    $<TARGET_OBJECTS:tmwa-obj-io>
+    $<TARGET_OBJECTS:tmwa-obj-map>
     $<TARGET_OBJECTS:tmwa-obj-mmo>
     $<TARGET_OBJECTS:tmwa-obj-net>
     $<TARGET_OBJECTS:tmwa-obj-proto-base>
