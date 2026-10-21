@@ -164,6 +164,7 @@ enum class MobMode : uint16_t
     DETECTOR                    = 0x0100,
     CHANGE_TARGET_MELEE         = 0x0200,
     CHANGE_TARGET_CHASE         = 0x0400,
+    CHANGE_CHASE                = 0x0800,
 
     CHANGE_TARGET               = CHANGE_TARGET_MELEE | CHANGE_TARGET_CHASE,
 

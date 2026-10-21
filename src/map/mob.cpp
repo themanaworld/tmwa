@@ -1465,6 +1465,47 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
 }
 
 /*==========================================
+ * While chasing, check for an enemy that is already within attack range.
+ *------------------------------------------
+ */
+static
+void mob_ai_sub_hard_changechase(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
+{
+    dumb_ptr<map_session_data> tsd = nullptr;
+
+    nullpo_retv(bl);
+    nullpo_retv(md);
+
+    if (bl->bl_id == md->target_id)
+        return;
+    if (bl->bl_type == BL::PC)
+        tsd = bl->is_player();
+    else
+        return;
+
+    if (pc_isdead(tsd)
+        || tsd->bl_m != md->bl_m
+        || tsd->invincible_timer
+        || pc_isinvisible(tsd)
+        || !battle_check_target(md, bl, BCT_ENEMY))
+        return;
+
+    MobMode mode = md->mode == MobMode::ZERO
+        ? get_mob_db(md->mob_class).mode : md->mode;
+    Race race = get_mob_db(md->mob_class).race;
+    if (!bool(mode & MobMode::BOSS) && race != Race::_insect
+        && race != Race::_demon && tsd->state.gangsterparadise)
+        return;
+
+    md->target_id = bl->bl_id;
+    md->state.attackable = true;
+    const int chase = get_mob_db(md->mob_class).range3;
+    md->min_chase = distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y) + chase;
+    if (md->min_chase > 2 * chase)
+        md->min_chase = 2 * chase;
+}
+
+/*==========================================
  * loot monster item search
  *------------------------------------------
  */
@@ -1941,6 +1982,20 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                         return;
                     md->state.skillstate = MobSkillState::MSS_CHASE;   // 突撃時スキル | Assault skills
                     mobskill_use(md, tick, MobSkillCondition::ANY);
+                    // While chasing, attack an enemy that is already in reach
+                    if (bool(mode & MobMode::CHANGE_CHASE))
+                    {
+                        BlockId target = md->target_id;
+                        int range = get_mob_db(md->mob_class).range;
+                        map_foreachinarea(std::bind(mob_ai_sub_hard_changechase,
+                                ph::_1, md),
+                                md->bl_m,
+                                md->bl_x - range, md->bl_y - range,
+                                md->bl_x + range, md->bl_y + range,
+                                BL::PC);
+                        if (md->target_id != target)
+                            return;
+                    }
                     if (md->timer && md->state.state != MS::ATTACK
                         && (md->next_walktime < tick
                             || distance(md->to_x, md->to_y, tbl->bl_x, tbl->bl_y) < 2))
