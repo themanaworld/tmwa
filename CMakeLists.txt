@@ -178,6 +178,12 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
   file(GLOB_RECURSE TMWA_TEST_SOURCES CONFIGURE_DEPENDS
       src/*/*_test.cpp)
 
+  # Map sources without main(), so tests can link the script engine.
+  # The daemon still gets it from ${map_SOURCES}.
+  set(test_map_SOURCES ${map_SOURCES})
+  list(REMOVE_ITEM test_map_SOURCES
+      "${PROJECT_SOURCE_DIR}/src/map/main.cpp")
+
   # Core static library containing non-daemon sources (only when building
   # tests). Objects that live in tmwa-shared are not duplicated here; the
   # lib is linked PUBLIC below.
@@ -185,6 +191,7 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
     $<TARGET_OBJECTS:tmwa-obj-ast>
     $<TARGET_OBJECTS:tmwa-obj-compat>
     ${sexpr_SOURCES}
+    ${test_map_SOURCES}
   )
   target_link_libraries(tmwa-core PUBLIC tmwa-shared)
 
