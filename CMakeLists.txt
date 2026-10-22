@@ -78,8 +78,13 @@ foreach(dir admin ast char compat generic high ints io login map mmo net proto-b
     set_target_properties(tmwa-obj-${dir} PROPERTIES LINKER_LANGUAGE CXX)
 endforeach()
 
-set_target_properties(tmwa-obj-io
+set_target_properties(tmwa-obj-generic
+                      tmwa-obj-high
+                      tmwa-obj-io
+                      tmwa-obj-mmo
+                      tmwa-obj-net
                       tmwa-obj-strings
+                      tmwa-obj-wire
                       PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # All targets include the include/ directory
@@ -146,8 +151,13 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 # Add a shared library: libtmwa-shared.so.0
 # When we add_executable later, we need to link against this library.
 add_library(tmwa-shared SHARED ${shared_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
   $<TARGET_OBJECTS:tmwa-obj-io>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
   $<TARGET_OBJECTS:tmwa-obj-strings>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
   ${conf_SOURCES}
 )
 # SO versioning
@@ -158,40 +168,20 @@ set_target_properties(tmwa-shared PROPERTIES
 
 # We have four binaries we want to build: tmwa-{login,char,map,admin}
 add_executable(tmwa-login ${login_SOURCES}
-  $<TARGET_OBJECTS:tmwa-obj-generic>
-  $<TARGET_OBJECTS:tmwa-obj-high>
-  $<TARGET_OBJECTS:tmwa-obj-mmo>
-  $<TARGET_OBJECTS:tmwa-obj-net>
-  $<TARGET_OBJECTS:tmwa-obj-wire>
 )
 target_link_libraries(tmwa-login tmwa-shared)
 
 add_executable(tmwa-char ${char_SOURCES}
-  $<TARGET_OBJECTS:tmwa-obj-generic>
-  $<TARGET_OBJECTS:tmwa-obj-high>
-  $<TARGET_OBJECTS:tmwa-obj-mmo>
-  $<TARGET_OBJECTS:tmwa-obj-net>
-  $<TARGET_OBJECTS:tmwa-obj-wire>
 )
 target_link_libraries(tmwa-char tmwa-shared)
 
 add_executable(tmwa-map ${map_SOURCES}
   $<TARGET_OBJECTS:tmwa-obj-ast>
   $<TARGET_OBJECTS:tmwa-obj-compat>
-  $<TARGET_OBJECTS:tmwa-obj-generic>
-  $<TARGET_OBJECTS:tmwa-obj-high>
-  $<TARGET_OBJECTS:tmwa-obj-mmo>
-  $<TARGET_OBJECTS:tmwa-obj-net>
-  $<TARGET_OBJECTS:tmwa-obj-wire>
   )
 target_link_libraries(tmwa-map tmwa-shared)
 
 add_executable(tmwa-admin ${admin_SOURCES}
-  $<TARGET_OBJECTS:tmwa-obj-generic>
-  $<TARGET_OBJECTS:tmwa-obj-high>
-  $<TARGET_OBJECTS:tmwa-obj-mmo>
-  $<TARGET_OBJECTS:tmwa-obj-net>
-  $<TARGET_OBJECTS:tmwa-obj-wire>
 )
 target_link_libraries(tmwa-admin tmwa-shared)
 
@@ -203,20 +193,16 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
   file(GLOB_RECURSE TMWA_TEST_SOURCES CONFIGURE_DEPENDS
       src/*/*_test.cpp)
 
-  # Core static library containing non-daemon sources (only when building tests)
+  # Core static library containing non-daemon sources (only when building
+  # tests). Objects that live in tmwa-shared are not duplicated here; the
+  # lib is linked PUBLIC below.
   add_library(tmwa-core STATIC
     $<TARGET_OBJECTS:tmwa-obj-ast>
     $<TARGET_OBJECTS:tmwa-obj-compat>
-    $<TARGET_OBJECTS:tmwa-obj-generic>
-    $<TARGET_OBJECTS:tmwa-obj-high>
     $<TARGET_OBJECTS:tmwa-obj-ints>
-    $<TARGET_OBJECTS:tmwa-obj-mmo>
-    $<TARGET_OBJECTS:tmwa-obj-net>
     $<TARGET_OBJECTS:tmwa-obj-proto-base>
     $<TARGET_OBJECTS:tmwa-obj-range>
     $<TARGET_OBJECTS:tmwa-obj-sexpr>
-    $<TARGET_OBJECTS:tmwa-obj-shared>
-    $<TARGET_OBJECTS:tmwa-obj-wire>
   )
   target_link_libraries(tmwa-core PUBLIC tmwa-shared)
 
