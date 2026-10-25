@@ -29,7 +29,7 @@ The rest of this file contains information relevant to distributors and contribu
 
 #### Compiler
 
-- g++ 7.5 or higher
+- g++ 13 or higher
 - glibc 2.27 or higher
 - clang++ is not supported, but will likely work
 
