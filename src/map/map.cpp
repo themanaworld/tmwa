@@ -86,11 +86,6 @@
 
 namespace tmwa
 {
-void SessionDeleter::operator()(SessionData *sd)
-{
-    really_delete1 static_cast<map::map_session_data *>(sd);
-}
-
 namespace map
 {
 const CharName WISP_SERVER_NAME = stringish<CharName>("Server"_s);
