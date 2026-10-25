@@ -44,4 +44,6 @@ extern void term_func(void);
 
 /// grumble grumble stupid intertwined includes mumble mumble
 __attribute__((warn_unused_result))
-extern int tmwa_main(int argc, char **argv);
+extern int tmwa_main(int argc, char **argv,
+                     int (*do_init)(tmwa::Slice<tmwa::strings::ZString>),
+                     void (*term_func)(void));

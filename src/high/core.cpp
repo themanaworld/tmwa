@@ -117,7 +117,9 @@ void check_caps()
     }
 }
 
-int tmwa_main(int argc, char **argv)
+int tmwa_main(int argc, char **argv,
+              int (*do_init)(tmwa::Slice<tmwa::strings::ZString>),
+              void (*term_func)(void))
 {
     // run before anything else (except global constructors)
     check_caps();
