@@ -20,8 +20,8 @@
 // these only satisfy non-server binaries (like tests) that link
 // tmwa-shared without needing the hooks.
 
+#include "../strings/zstring.hpp"
 #include "../high/core.hpp"
-#include "../net/socket.hpp"
 
 namespace tmwa
 {
@@ -35,12 +35,6 @@ int do_init(Slice<ZString>)
 __attribute__((weak))
 void term_func(void)
 {
-}
-
-__attribute__((weak))
-void SessionDeleter::operator()(SessionData *sd)
-{
-    delete sd;
 }
 
 } // namespace tmwa

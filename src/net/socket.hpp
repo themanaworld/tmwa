@@ -47,11 +47,7 @@ namespace tmwa
 {
 struct SessionData
 {
-};
-struct SessionDeleter
-{
-    // defined per-server
-    void operator()(SessionData *sd);
+    virtual ~SessionData() = default;
 };
 
 struct SessionIO
@@ -125,7 +121,7 @@ public:
 
     /// Server-specific data type
     // (this really should include the deleter, but ...)
-    std::unique_ptr<SessionData, SessionDeleter> session_data;
+    std::unique_ptr<SessionData> session_data;
 
     io::FD fd;
 
