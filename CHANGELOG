@@ -1,3 +1,35 @@
+v23.10.22
+  - standardize weapon base attack delay per weapon type
+  - revert magic attack delay to the original behaviour
+v23.6.10
+  - fix the exp table so level 135 is really the max level
+  - add item modes (no drop, no trade, no sell to npc, no storage)
+  - expose equipment stats as STR2..LUK2 params
+  - add item bonuses bAllStats, bAgiVit, bAgiDexStr, bDeadlyStrikeRate, bDeadlyStrikeAddRate and bSpeedCap
+  - add @rates command to show exp and drop rates
+  - add critical_def for mobs, allow up to 10 mob drops and raise storage limit to 500
+  - add SC_COOLDOWN_UPMARMU status change
+  - add script builtins l(), mesq() and mesn() for Evol2 compatibility
+  - block oversized global chat messages (exploit fix)
+v22.11.19
+  - fix the summon script command ignoring its event name argument
+v2022.11.19
+  - add @mobinfo command and mobinfo/mobinfo_droparrays/getmobdrops script builtins
+  - allow the summon script command to take a spawn name
+  - add enchanter and koyntety cooldown status symbols
+  - honor the max_aspeed limit (fixes the machine gun bug)
+  - revert the general attack speed nerf but keep concentration potions working for mages
+  - make the disabled getusers(0) tell scripters to use getmapusers() instead
+v22.11.9
+  - nerf the attack speed of Red Threshold and Setzer
+  - make potions and Betsanc affect mages' attack speed (including upmarmu)
+  - disable getusers(0), which was broken and caused a segfault
+v22.10.26
+  - reintroduce the OnPCLogoutEvent script label
+  - add cooldown status symbols for frillyar, kaflosh, mana guardian and tyrant
+  - add reg2 get/set/add/delete commands to tmwa-admin
+  - fix communication from char server to login server
+  - fix a compilation error
 v20.7.8
   - make sure @hide/@invisible is re-applied on login
 v20.7.6
