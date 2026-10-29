@@ -607,7 +607,7 @@ int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
         y = md->bl_y;
         if (bool(map_getcell(md->bl_m, x, y) & MapCell::UNWALKABLE))
         {
-            mob_stop_walking(md, 1);
+            mob_stop_walking(md, MobStop::FIXPOS);
             return 0;
         }
         md->dir = md->walkpath.path[md->walkpath.path_pos];
@@ -1208,20 +1208,20 @@ int mob_stopattack(dumb_ptr<mob_data> md)
  * The stop of MOB's walking
  *------------------------------------------
  */
-int mob_stop_walking(dumb_ptr<mob_data> md, int type)
+int mob_stop_walking(dumb_ptr<mob_data> md, MobStop type)
 {
     nullpo_retz(md);
 
-    // A hit (type & 0x02) must not interrupt a walk in progress: the
+    // A hit (DMOTION) must not interrupt a walk in progress: the
     // freeze below delays the next step through mob_walk, so repeated
     // hits cannot keep resetting it and stun-lock the mob in place.
-    if (!(type & 0x02)
+    if (!bool(type & MobStop::DMOTION)
         && (md->state.state == MS::WALK || md->state.state == MS::IDLE))
     {
         int dx = 0, dy = 0;
 
         md->walkpath.path_len = 0;
-        if (type & 4)
+        if (bool(type & MobStop::NUDGE))
         {
             dx = md->to_x - md->bl_x;
             if (dx < 0)
@@ -1243,9 +1243,9 @@ int mob_stop_walking(dumb_ptr<mob_data> md, int type)
         }
         mob_changestate(md, MS::IDLE, 0);
     }
-    if (type & 0x01)
+    if (bool(type & MobStop::FIXPOS))
         clif_fixmobpos(md);
-    if (type & 0x02)
+    if (bool(type & MobStop::DMOTION))
     {
         interval_t delay = battle_get_dmotion(md);
         tick_t tick = gettick();
@@ -1987,7 +1987,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                 {               // 攻撃射程範囲内 | Within attack range
                     md->state.skillstate = MobSkillState::MSS_ATTACK;
                     if (md->state.state == MS::WALK)
-                        mob_stop_walking(md, 1);   // 歩行中なら停止 | Stop if you are walking
+                        mob_stop_walking(md, MobStop::FIXPOS);   // 歩行中なら停止 | Stop if you are walking
                     if (md->state.state == MS::ATTACK)
                         return;   // 既に攻撃中 | already under attack
                     mob_changestate(md, MS::ATTACK, attack_type);
@@ -2005,7 +2005,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     // 遠すぎるかアイテムがなくなった | Too far or missing item
                     mob_unlocktarget(md, tick);
                     if (md->state.state == MS::WALK)
-                        mob_stop_walking(md, 1);   // 歩行中なら停止 | Stop if you are walking
+                        mob_stop_walking(md, MobStop::FIXPOS);   // 歩行中なら停止 | Stop if you are walking
                 }
                 else if (dist)
                 {
@@ -2034,7 +2034,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     if (md->state.state == MS::ATTACK)
                         return;   // 攻撃中 | Under attack
                     if (md->state.state == MS::WALK)
-                        mob_stop_walking(md, 1);   // 歩行中なら停止 | Stop if you are walking
+                        mob_stop_walking(md, MobStop::FIXPOS);   // 歩行中なら停止 | Stop if you are walking
                     fitem = tbl->is_item();
                     md->lootitemv.push_back(fitem->item_data);
                     map_clearflooritem(tbl->bl_id);
@@ -2047,7 +2047,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         {
             mob_unlocktarget(md, tick);
             if (md->state.state == MS::WALK)
-                mob_stop_walking(md, 4);   // 歩行中なら停止 | Stop if you are walking
+                mob_stop_walking(md, MobStop::NUDGE);   // 歩行中なら停止 | Stop if you are walking
             return;
         }
     }
@@ -2425,7 +2425,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     md->hp -= damage;
 
-    mob_stop_walking(md, 3);
+    mob_stop_walking(md, MobStop::FIXPOS | MobStop::DMOTION);
 
     if (!(type & 2))
     {
@@ -3103,7 +3103,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
     if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n"_fmt,
                 md->skillid, md->mob_class);
-    mob_stop_walking(md, 0);
+    mob_stop_walking(md, MobStop::ZERO);
 
     switch (skill_get_nk(md->skillid))
     {
@@ -3156,7 +3156,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
     if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n"_fmt,
                 md->skillid, md->mob_class);
-    mob_stop_walking(md, 0);
+    mob_stop_walking(md, MobStop::ZERO);
 }
 
 /*==========================================

@@ -179,6 +179,23 @@ using e::MobMode;
 
 namespace e
 {
+/// Flags for mob_stop_walking, describing what to do besides stopping.
+enum class MobStop : uint8_t
+{
+    ZERO    = 0x00,
+    /// Resend the mob's position and hp to clients
+    FIXPOS  = 0x01,
+    /// Delay movement by the mob's damage motion
+    DMOTION = 0x02,
+    /// Take one step toward the walk target instead of stopping fully
+    NUDGE   = 0x04,
+};
+ENUM_BITWISE_OPERATORS(MobStop)
+}
+using e::MobStop;
+
+namespace e
+{
 enum class MapCell : uint8_t
 {
     // the usual thing

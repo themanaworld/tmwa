@@ -101,7 +101,7 @@ BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
 
 int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist);
 int mob_aggravate(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl);
-int mob_stop_walking(dumb_ptr<mob_data> md, int type);
+int mob_stop_walking(dumb_ptr<mob_data> md, MobStop type);
 int mob_stopattack(dumb_ptr<mob_data>);
 int mob_spawn(BlockId);
 int mob_damage(dumb_ptr<block_list>, dumb_ptr<mob_data>, int, int);
