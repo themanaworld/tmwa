@@ -1,3 +1,43 @@
+v26.9.24
+  - fix item duplication via a broken re-deal check in trade
+  - fix zeny duplication from repeated slots in npc sell lists
+  - fix a remote crash from an out-of-range skill id
+  - fix out-of-bounds reads on short global chat messages and in cleararray
+  - fix mobs and players gaining ground on every destination change
+  - stand the player up when attacking
+  - re-check the overweight status after every map load
+  - stop new quest variables from inheriting leftover state
+  - script warps no longer respect the nowarp/nowarpto map flags
+  - add player_full_access map flag
+  - add getbattleconfig script builtin
+  - fix getmobdrops to store item ids in $@MobDrop_item
+  - fix delitem when the first matching slot has too few items
+  - make @chareffect fall back to self when no target is given
+  - show status messages on warps that are not usable
+  - enable more exploit mitigations in the build
+  - remove the attoconf build system, CMake is now required
+  - remove the unused max_lv battle config and unknown_char_name options
+v26.3.28
+  - fix a crash from bogus inventory drop packets (security)
+  - fix the AFK-kill summons exploit
+  - fix stat updates not being sent when equipping a +1 stat item while the base stat is 1
+  - fix a crash when an npc destroys itself during OnInit
+  - fix the "rid" and "player" options of the camera script command
+  - fix the mobinfo script command
+  - fix the monster name check in npc_load_monster
+  - add @warpoff/@warpon/@warptooff/@warptoon to toggle warp mapflags at runtime
+  - add script builtins issummon, mapexists, numberofmaps, getmapnamebyindex, getmapmaxx, getmapmaxy, getmaphash and getmapnamefromhash
+  - expose the killed mob's position to OnMobKillEvent as @mobX and @mobY
+  - allow an item id as parameter to getitemlink
+  - add item modes keep_after_use and dont_use_ammo
+  - add item bonuses maxweight, maxweight_add and maxweight_override
+  - let GMs bypass item mode restrictions
+  - add status changes sc_matkpot, sc_phys_shield_item, sc_cooldown_sg, sc_cooldown_cg, sc_slowmove and sc_cantmove
+  - add a server-wide drop rate modifier, limited by the new max_rate battle config
+  - split @exprate into @bexprate and @jexprate and show drop rates alongside
+  - add a CMake build system next to attoconf
+  - port the build tooling to python 3 and require C++11
+  - set up continuous integration with GitLab CI, GitHub Actions and a Dockerfile
 v23.10.22
   - standardize weapon base attack delay per weapon type
   - revert magic attack delay to the original behaviour
