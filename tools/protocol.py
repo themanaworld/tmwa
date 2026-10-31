@@ -2043,7 +2043,7 @@ def build_context():
         desc='''
             Register an account by user/password/email.
 
-            Like packet 0x0064, account creation also uses the _F/_M/_O
+            Like packet 0x0064, account creation also uses the _F/_M
             suffix convention to select sex.
         ''',
     )
@@ -6352,6 +6352,10 @@ def build_context():
         post=[0x0064, 0x027c],
         desc='''
             Response to client's request for server version.
+
+            The flags byte of the version carries server options:
+            bit 0: registration via _F/_M suffix allowed (new_account)
+            bit 1: registration with email allowed (email_on_register)
         ''',
     )
     any_user.r(0x7532, 'disconnect',

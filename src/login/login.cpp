@@ -718,10 +718,9 @@ int mmo_auth(struct mmo_account *account, Session *s)
 
     IP4Address ip = s->client_ip;
 
-    // Account creation with _M/_F/_O
+    // Account creation with _M/_F
     if (account->passwdenc == 0
-        && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s)
-            || account->userid.endswith("_O"_s))
+        && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s))
         && login_conf.new_account && account_id_count < END_ACCOUNT_NUM
         && (account->userid.size() - 2) >= 4 && account->passwd.size() >= 4)
     {
@@ -2927,7 +2926,8 @@ void parse_login(Session *s)
 
                 Packet_Fixed<0x7531> fixed_31;
                 Version version = CURRENT_LOGIN_SERVER_VERSION;
-                version.flags = login_conf.new_account ? 1 : 0;
+                version.flags = (login_conf.new_account ? 1 : 0)
+                        | (login_conf.email_on_register ? 2 : 0);
                 fixed_31.version = version;
                 send_fpacket<0x7531, 10>(s, fixed_31);
                 break;

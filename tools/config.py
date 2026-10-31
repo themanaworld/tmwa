@@ -535,6 +535,7 @@ def build_config():
     login_conf.opt('admin_pass', AccountPass, '{}')
     login_conf.opt('ladminallowip', IpSet, '{}')
     login_conf.opt('new_account', bool, 'false')
+    login_conf.opt('email_on_register', bool, 'false')
     login_conf.opt('login_port', u16, '6901', min='1024')
     login_conf.opt('account_filename', RString, lit('save/account.txt'))
     login_conf.opt('gm_account_filename', RString, lit('save/gm_account.txt'))
