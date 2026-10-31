@@ -2002,7 +2002,7 @@ def build_context():
         head_size=4,
         repeat=[at(0, u8, 'c')],
         repeat_size=1,
-        pre=[0x0064],
+        pre=[0x0064, 0x027c],
         post=[IDLE],
         desc='''
             This packet gives the client the location of the update server URL, such as http://tmwdata.org/updates/
@@ -2026,6 +2026,25 @@ def build_context():
             Authenticate a client by user/password.
 
             All clients must now set both defined version 2 flags.
+        ''',
+    )
+    login_user.r(0x027c, 'account register',
+        define='CMSG_LOGIN_REGISTER4',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, account_name, 'account name'),
+            at(26, account_pass, 'account pass'),
+            at(50, u8, 'client type'),
+            at(51, account_email, 'email'),
+        ],
+        fixed_size=91,
+        pre=[HUMAN, 0x7531],
+        post=[0x0063, 0x0069, 0x006a, 0x0081],
+        desc='''
+            Register an account by user/password/email.
+
+            Like packet 0x0064, account creation also uses the _F/_M/_O
+            suffix convention to select sex.
         ''',
     )
     char_user.r(0x0065, 'connect char',
@@ -2117,7 +2136,7 @@ def build_context():
             at(30, u16, 'is new'),
         ],
         repeat_size=32,
-        pre=[0x0064],
+        pre=[0x0064, 0x027c],
         post=[0x0065],
         desc='''
             Big blob of information available once when you authenticate:
@@ -2135,7 +2154,7 @@ def build_context():
             at(3, seconds, 'error message'),
         ],
         fixed_size=23,
-        pre=[0x0064],
+        pre=[0x0064, 0x027c],
         post=[PRETTY],
         desc='''
             Failure to log in.
@@ -2461,7 +2480,7 @@ def build_context():
             at(2, u8, 'error code'),
         ],
         fixed_size=3,
-        pre=[FINISH, GM, MAGIC, SCRIPT, TIMER, 0x0064, 0x0066, 0x0072, 0x007d, 0x0085, 0x0089, 0x008c, 0x009f, 0x00a2, 0x00a7, 0x00a9, 0x00ab, 0x00b2, 0x00b8, 0x00b9, 0x00bb, 0x00c8, 0x00c9, 0x00e4, 0x00e6, 0x00e8, 0x00eb, 0x00ed, 0x00ef, 0x00f3, 0x00f5, 0x00f7, 0x0112, 0x0143, 0x0146, 0x01d5, 0x2afd, 0x2afe, 0x2b06, 0x2b0d],
+        pre=[FINISH, GM, MAGIC, SCRIPT, TIMER, 0x0064, 0x0066, 0x0072, 0x007d, 0x0085, 0x0089, 0x008c, 0x009f, 0x00a2, 0x00a7, 0x00a9, 0x00ab, 0x00b2, 0x00b8, 0x00b9, 0x00bb, 0x00c8, 0x00c9, 0x00e4, 0x00e6, 0x00e8, 0x00eb, 0x00ed, 0x00ef, 0x00f3, 0x00f5, 0x00f7, 0x0112, 0x0143, 0x0146, 0x01d5, 0x027c, 0x2afd, 0x2afe, 0x2b06, 0x2b0d],
         post=[PRETTY],
         desc='''
             Failed to connect to some server (multiple meanings).
@@ -6330,7 +6349,7 @@ def build_context():
         ],
         fixed_size=10,
         pre=[0x7530],
-        post=[0x0064],
+        post=[0x0064, 0x027c],
         desc='''
             Response to client's request for server version.
         ''',

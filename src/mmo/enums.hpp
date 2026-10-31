@@ -171,7 +171,8 @@ SEX sex_from_char(char c)
     {
     case 'F': return SEX::FEMALE;
     case 'M': return SEX::MALE;
-    case 'N': return SEX::NEUTRAL;
+    case 'N':
+    case 'O': return SEX::NEUTRAL;
     default: return SEX::UNSPECIFIED;
     }
 }

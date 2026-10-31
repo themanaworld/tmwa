@@ -129,6 +129,7 @@ struct mmo_account
 {
     AccountName userid;
     AccountPass passwd;
+    AccountEmail email;
     int passwdenc;
 
     AccountId account_id;
@@ -717,9 +718,10 @@ int mmo_auth(struct mmo_account *account, Session *s)
 
     IP4Address ip = s->client_ip;
 
-    // Account creation with _M/_F
+    // Account creation with _M/_F/_O
     if (account->passwdenc == 0
-        && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s))
+        && (account->userid.endswith("_F"_s) || account->userid.endswith("_M"_s)
+            || account->userid.endswith("_O"_s))
         && login_conf.new_account && account_id_count < END_ACCOUNT_NUM
         && (account->userid.size() - 2) >= 4 && account->passwd.size() >= 4)
     {
@@ -805,7 +807,7 @@ int mmo_auth(struct mmo_account *account, Session *s)
         }
         else
         {
-            AccountId new_id = mmo_auth_new(account, sex_from_char(new_account_sex), DEFAULT_EMAIL);
+            AccountId new_id = mmo_auth_new(account, sex_from_char(new_account_sex), account->email);
             LOGIN_LOG_AND_ECHO("Account creation and authentication accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)\n"_fmt,
                     account->userid, new_id,
                     new_account_sex, ip);
@@ -2624,22 +2626,44 @@ void parse_login(Session *s)
         switch (packet_id)
         {
             case 0x64:         // Ask connection of a client
+            case 0x027c:       // Register account with e-mail
             {
-                Packet_Fixed<0x0064> fixed;
-                rv = recv_fpacket<0x0064, 55>(s, fixed);
-                if (rv != RecvResult::Complete)
-                    break;
+                ClientVersion client_version = {};
+                uint8_t flags = 0;
 
-                // formerly at top of while
+                if (packet_id == 0x0064)
                 {
-                    AccountName account_name = fixed.account_name;
-                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), account: %s.\n"_fmt,
-                            s, packet_id, packet_avail(s),
-                            account_name);
-                }
+                    Packet_Fixed<0x0064> fixed;
+                    rv = recv_fpacket<0x0064, 55>(s, fixed);
+                    if (rv != RecvResult::Complete)
+                        break;
 
-                account.userid = fixed.account_name;
-                account.passwd = fixed.account_pass;
+                    // formerly at top of while
+                    {
+                        AccountName account_name = fixed.account_name;
+                        PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), account: %s.\n"_fmt,
+                                s, packet_id, packet_avail(s),
+                                account_name);
+                    }
+
+                    account.userid = fixed.account_name;
+                    account.passwd = fixed.account_pass;
+                    client_version = fixed.client_protocol_version;
+                    flags = fixed.flags;
+                }
+                else
+                {
+                    Packet_Fixed<0x027c> fixed_r4;
+                    rv = recv_fpacket<0x027c, 91>(s, fixed_r4);
+                    if (rv != RecvResult::Complete)
+                        break;
+
+                    account.userid = fixed_r4.account_name;
+                    account.passwd = fixed_r4.account_pass;
+                    account.email = fixed_r4.email;
+                    client_version = wrap<ClientVersion>(UINT32_MAX);
+                    flags = VERSION_2_UPDATEHOST;
+                }
                 account.passwdenc = 0;
 
                 LOGIN_LOG("Request for connection (non encryption mode) of %s (ip: %s).\n"_fmt,
@@ -2681,7 +2705,7 @@ void parse_login(Session *s)
                 }
                 if (result == -1)
                 {
-                    if (fixed.client_protocol_version < wrap<ClientVersion>(MIN_CLIENT_VERSION))
+                    if (client_version < wrap<ClientVersion>(MIN_CLIENT_VERSION))
                         result = 5; // client too old
                 }
                 if (result == -1)
@@ -2718,7 +2742,7 @@ void parse_login(Session *s)
                          *
                          * All supported clients now send both, so the check is removed.
                          */
-                        if (fixed.flags & VERSION_2_UPDATEHOST)
+                        if (flags & VERSION_2_UPDATEHOST)
                         {
                             if (login_conf.update_host)
                             {
@@ -2756,7 +2780,7 @@ void parse_login(Session *s)
                             fixed_27.login_id1 = account.login_id1;
                             fixed_27.login_id2 = account.login_id2;
                             fixed_27.ip = s->client_ip;
-                            fixed_27.client_protocol_version = fixed.client_protocol_version;
+                            fixed_27.client_protocol_version = client_version;
 
                             for (Session *ss : iter_char_sessions())
                                 send_fpacket<0x2715, 22>(ss, fixed_27);
