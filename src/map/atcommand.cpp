@@ -1296,6 +1296,25 @@ ATCE atcommand_hide(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_hidemob(Session *s, dumb_ptr<map_session_data> sd,
+        ZString)
+{
+    if (bool(sd->status.option & Opt0::HIDEMOB))
+    {
+        sd->status.option &= ~Opt0::HIDEMOB;
+        clif_displaymessage(s, "Invisible for mobs: Off."_s);
+    }
+    else
+    {
+        sd->status.option |= Opt0::HIDEMOB;
+        clif_displaymessage(s, "Invisible for mobs: On."_s);
+    }
+    clif_changeoption(sd);
+
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_die(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
@@ -1628,6 +1647,54 @@ ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
+{
+    nullpo_retv(bl);
+
+    dumb_ptr<map_session_data> tsd = nullptr;
+    dumb_ptr<mob_data> tmd = nullptr;
+
+    dumb_ptr<block_list> target = map_id2bl(bl->is_mob()->target_id);
+    if (target == nullptr) // map_id2bl returns nullptr in case mob has no target and that lets target->bl_type crash the server so check for nullptr here and return if it is.
+        return;
+
+    if (target->bl_type == BL::PC)
+        tsd = target->is_player();
+    if (target->bl_type == BL::MOB)
+        tmd = target->is_mob();
+
+    if (bool(bl->is_mob()->mode & MobMode::SUMMONED) &&
+        ((sd->bl_id == bl->is_mob()->target_id) ||                                               // attacker other players summon, target is this player
+        (tmd && (sd->bl_id == tmd->master_id && bool(tmd->mode & MobMode::SUMMONED))) ||         // attacker other players summon, target is a summon of this player (an extra check if target is summon is maybe not needed here)
+        (tsd && (sd->bl_id == bl->is_mob()->master_id)) ||                                       // attacker this players summon, target is an other player
+        (tmd && (sd->bl_id == bl->is_mob()->master_id && bool(tmd->mode & MobMode::SUMMONED))))) // attacker this players summon, target is a summon of an other player
+        mob_stopattack(bl->is_mob());
+}
+
+static
+void pvpcleanupmap_sub(dumb_ptr<block_list> bl)
+{
+    nullpo_retv(bl);
+
+    dumb_ptr<map_session_data> tsd = nullptr;
+    dumb_ptr<mob_data> tmd = nullptr;
+
+    dumb_ptr<block_list> target = map_id2bl(bl->is_mob()->target_id);
+    if (target == nullptr) // map_id2bl returns nullptr in case mob has no target and that lets target->bl_type crash the server so check for nullptr here and return if it is.
+        return;
+
+    if (target->bl_type == BL::PC)
+        tsd = target->is_player();
+    else if (target->bl_type == BL::MOB)
+        tmd = target->is_mob();
+
+    if (bool(bl->is_mob()->mode & MobMode::SUMMONED) &&
+        (tsd ||                                        // target is player
+        (tmd && bool(tmd->mode & MobMode::SUMMONED)))) // target is summon
+        mob_stopattack(bl->is_mob());
+}
+
+static
 ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
@@ -1656,18 +1723,24 @@ ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
                 }
             }
         }
-        clif_displaymessage(s, "PvP: Off."_s);
+
+        clif_displaymessage(s, "PvP on this map: Off."_s);
+
+        // Summons are still stuck at a player or its summons after "@pvpoff" so free them from their target so they can move on.
+        map_foreachinarea(std::bind(pvpcleanupmap_sub, ph::_1),
+            sd->bl_m,
+            0, 0,
+            sd->bl_m->xs - 1, sd->bl_m->ys - 1,
+            BL::MOB);
     }
     else
     {
-        clif_displaymessage(s, "PvP is already Off."_s);
+        clif_displaymessage(s, "PvP on this map is already Off."_s);
         return ATCE::EXIST;
     }
 
     return ATCE::OKAY;
 }
-
-
 
 static int extract_rate(Session *s, ZString message)
 {
@@ -1760,7 +1833,6 @@ ATCE atcommand_rates(Session *s, dumb_ptr<map_session_data>,
     return ATCE::OKAY;
 }
 
-
 static
 ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
@@ -1793,11 +1865,11 @@ ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
                 }
             }
         }
-        clif_displaymessage(s, "PvP: On."_s);
+        clif_displaymessage(s, "PvP on this map: On."_s);
     }
     else
     {
-        clif_displaymessage(s, "PvP is already On."_s);
+        clif_displaymessage(s, "PvP on this map is already On."_s);
         return ATCE::EXIST;
     }
 
@@ -4652,6 +4724,7 @@ ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int chan = sd->state.pvpchannel;
+    int state_changed = 0; // Prevent executing pvpcleanupplayer_sub function in case "@pvp off" was called in a pvp off state.
     if (sd->pvp_timer || (chan > 1))
         return ATCE::OKAY;
 
@@ -4660,6 +4733,7 @@ ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
         clif_displaymessage(s, "Server : ##3##BPvP ##3##BOn"_s);
     } else {
         sd->state.pvpchannel = 0;
+        state_changed = 1;
         clif_displaymessage(s, "Server : ##3##BPvP ##3##BOff"_s);
     }
 
@@ -4667,6 +4741,15 @@ ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
     clif_pvpstatus(sd); // send my channel to others
 
     pc_setpvptimer(sd, battle_config.player_pvp_time);
+
+    // Summons are still stuck at a player or its summons after "@pvp off" so free them from their target so they can move on.
+    if (state_changed)
+        map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, sd),
+            sd->bl_m,
+            0, 0,
+            sd->bl_m->xs - 1, sd->bl_m->ys - 1,
+            BL::MOB);
+
     return ATCE::OKAY;
 }
 
@@ -5725,7 +5808,10 @@ Map<XString, AtCommandInfo> atcommand_info =
         "Set your 'option' status flags"_s}},
     {"hide"_s, {""_s,
         40, atcommand_hide,
-        "Toggle invisibility from monsters and certain commands"_s}},
+        "Toggle invisibility from monsters, certain commands and online list"_s}},
+    {"hidemob"_s, {""_s,
+        40, atcommand_hidemob,
+        "Toggle invisibility from monsters"_s}},
     {"die"_s, {""_s,
         40, atcommand_die,
         "Cause fatal damage to yourself"_s}},

@@ -61,6 +61,11 @@ bool pc_isinvisible(dumb_ptr<map_session_data> sd)
     return bool(sd->status.option & Opt0::HIDE);
 }
 inline
+bool pc_isinvisible_to_mobs(dumb_ptr<map_session_data> sd)
+{
+    return bool(sd->status.option & Opt0::HIDEMOB);
+}
+inline
 bool pc_is90overweight(dumb_ptr<map_session_data> sd)
 {
     return sd->weight*10 >= sd->max_weight*9;

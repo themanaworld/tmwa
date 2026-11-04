@@ -43,14 +43,10 @@ namespace e
 enum class Opt0 : uint16_t
 {
     ZERO            = 0x0000,
-
-    // [Fate] This is the GM `@hide' flag
-    HIDE            = 0x0040,
-    // [Fate] Complete invisibility to other clients
-    INVISIBILITY    = 0x1000,
-
-    // ?
-    REAL_ANY_HIDE   = HIDE,
+    HIDE            = 0x0040, // [Fate] This is the GM `@hide' flag
+    HIDEMOB         = 0x0080, // This is the GM `@hidemob' flag
+    INVISIBILITY    = 0x1000, // [Fate] Complete invisibility to other clients
+    REAL_ANY_HIDE   = HIDE,   // ?
 };
 enum class Opt1 : uint16_t
 {
@@ -492,6 +488,8 @@ enum class SP : uint16_t
     DEADLY_STRIKE_ADD_RATE      = 1092,
 
     BASE_WEAPON_DELAY_ADJUST    = 1093,
+
+    HIDDEN_FROM_MOBS            = 1094,
 };
 
 constexpr

@@ -699,10 +699,15 @@ int mob_check_attack(dumb_ptr<mob_data> md)
     else
         return 0;
 
+    if (md->mode == MobMode::ZERO)
+        mode = get_mob_db(md->mob_class).mode;
+    else
+        mode = md->mode;
+
     if (tsd)
     {
         if (pc_isdead(tsd) || tsd->invincible_timer
-            || pc_isinvisible(tsd) || md->bl_m != tbl->bl_m || tbl->bl_prev == nullptr
+            || pc_isinvisible(tsd) || (pc_isinvisible_to_mobs(tsd) && !bool(mode & MobMode::SUMMONED)) || md->bl_m != tbl->bl_m || tbl->bl_prev == nullptr
             || distance(md->bl_x, md->bl_y, tbl->bl_x, tbl->bl_y) > chase)
         {
             md->target_id = BlockId();
@@ -720,11 +725,6 @@ int mob_check_attack(dumb_ptr<mob_data> md)
             return 0;
         }
     }
-
-    if (md->mode == MobMode::ZERO)
-        mode = get_mob_db(md->mob_class).mode;
-    else
-        mode = md->mode;
 
     Race race = get_mob_db(md->mob_class).race;
     if (!bool(mode & MobMode::CAN_ATTACK))
@@ -1347,7 +1347,7 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
         {
             sd = bl->is_player();
             nullpo_retz(sd);
-            if (pc_isdead(sd) || sd->invincible_timer || pc_isinvisible(sd))
+            if (pc_isdead(sd) || sd->invincible_timer || pc_isinvisible(sd) || (pc_isinvisible_to_mobs(sd) && !bool(mode & MobMode::SUMMONED)))
                 return 0;
             if (!bool(mode & MobMode::BOSS) && race != Race::_insect && race != Race::_demon
                 && sd->state.gangsterparadise)
@@ -1425,6 +1425,7 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
             tsd->bl_m == smd->bl_m &&
             !tsd->invincible_timer &&
             !pc_isinvisible(tsd) &&
+            (!pc_isinvisible_to_mobs(tsd) || bool(mode & MobMode::SUMMONED)) &&
             (dist =
              distance(smd->bl_x, smd->bl_y, tsd->bl_x, tsd->bl_y)) <= smd_db.range2)
         {
@@ -1646,7 +1647,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     {
         dumb_ptr<map_session_data> sd = map_id2sd(mmd->target_id);
         if (sd != nullptr && !pc_isdead(sd) && !sd->invincible_timer
-            && !pc_isinvisible(sd))
+            && !pc_isinvisible(sd) && (!pc_isinvisible_to_mobs(sd) || bool(mode & MobMode::SUMMONED)))
         {
 
             Race race = get_mob_db(md->mob_class).race;
@@ -1811,7 +1812,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         dumb_ptr<map_session_data> asd = map_id2sd(md->attacked_id);
         if (asd)
         {
-            if (!pc_isdead(asd) && !asd->invincible_timer && !pc_isinvisible(asd))
+            if (!pc_isdead(asd) && !asd->invincible_timer && !pc_isinvisible(asd) && (!pc_isinvisible_to_mobs(asd) || bool(mode & MobMode::SUMMONED)))
             {
                 map_foreachinarea(std::bind(mob_ai_sub_hard_linksearch, ph::_1, md, asd),
                         md->bl_m,
@@ -1836,7 +1837,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
             if (abl->bl_type == BL::PC)
                 asd = abl->is_player();
             if (asd == nullptr || md->bl_m != abl->bl_m || abl->bl_prev == nullptr
-                || asd->invincible_timer || pc_isinvisible(asd) || pc_isdead(asd)
+                || asd->invincible_timer || pc_isinvisible(asd) || (pc_isinvisible_to_mobs(asd) && !bool(mode & MobMode::SUMMONED)) || pc_isdead(asd)
                 || (dist =
                     distance(md->bl_x, md->bl_y, abl->bl_x, abl->bl_y)) >= 32
                 || battle_check_target(bl, abl, BCT_ENEMY) == 0)
@@ -3073,18 +3074,22 @@ int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
  */
 void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
 {
+    dumb_ptr<map_session_data> tsd = nullptr;
     dumb_ptr<mob_data> md = nullptr;
     dumb_ptr<block_list> bl;
     dumb_ptr<block_list> mbl;
+    MobMode mode;
     int range;
 
     if ((mbl = map_id2bl(id)) == nullptr) // 詠唱したMobがもういないというのは良くある正常処理 | It's common and normal that the mob that cast is no longer there.
         return;
+
     if ((md = mbl->is_mob()) == nullptr)
     {
         PRINTF("mobskill_castend_id nullpo mbl->bl_id:%d\n"_fmt, mbl->bl_id);
         return;
     }
+
     if (md->bl_type != BL::MOB || md->bl_prev == nullptr)
         return;
 
@@ -3095,15 +3100,29 @@ void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
         md->last_thinktime = tick + battle_get_adelay(md);
 
     if ((bl = map_id2bl(md->skilltarget)) == nullptr || bl->bl_prev == nullptr)
-    {                           // スキルターゲットが存在しない | Skill target does not exist
-        return;
-    }
+        return; // スキルターゲットが存在しない | Skill target does not exist
+
     if (md->bl_m != bl->bl_m)
         return;
 
     if (((skill_get_inf(md->skillid) & 1) || (skill_get_inf2(md->skillid) & 4)) &&    // 彼我敵対関係チェック | Self-enemy relationship check
         battle_check_target(md, bl, BCT_ENEMY) <= 0)
         return;
+
+    if (bl->bl_type == BL::PC)
+    {
+        tsd = bl->is_player();
+
+        const mob_db_& db = get_mob_db(md->mob_class);
+        if (md->mode == MobMode::ZERO)
+            mode = db.mode;
+        else
+            mode = md->mode;
+
+        if (tsd && (pc_isdead(tsd) || tsd->invincible_timer || pc_isinvisible(tsd) || (pc_isinvisible_to_mobs(tsd) && !bool(mode & MobMode::SUMMONED))))
+            return;
+    }
+
     range = skill_get_range(md->skillid, md->skilllv);
     if (range < 0)
         range = battle_get_range(md) - (range + 1);

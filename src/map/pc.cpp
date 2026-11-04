@@ -915,15 +915,16 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
         Opt0 old_option = sd->status.option;
         sd->status.option = Opt0::ZERO;
 
-        if (bool(old_option & Opt0::INVISIBILITY) && can_use_atcommand(sd, "@invisible"_s)) {
-            // prevent leaking by first applying hide before status_change
+        if (bool(old_option & Opt0::HIDE) && can_use_atcommand(sd, "@hide"_s))
             sd->status.option |= Opt0::HIDE;
+        if (bool(old_option & Opt0::INVISIBILITY) && can_use_atcommand(sd, "@invisible"_s))
+        {
             sd->status.option |= Opt0::INVISIBILITY;
             clif_status_change(sd, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 1);
-        } else if (bool(old_option & Opt0::HIDE) && can_use_atcommand(sd, "@hide"_s)) {
-            sd->status.option |= Opt0::HIDE;
         }
-
+        if (bool(old_option & Opt0::HIDEMOB) && can_use_atcommand(sd, "@hidemob"_s))
+            sd->status.option |= Opt0::HIDEMOB;
+        
         clif_changeoption(sd);
     }
 
@@ -3886,6 +3887,10 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             if (sd)
                 val = bool(sd->status.option & Opt0::HIDE);
             break;
+        case SP::HIDDEN_FROM_MOBS:
+            if (sd)
+                val = bool(sd->status.option & Opt0::HIDEMOB);
+            break;
         case SP::MUTE_GLOBAL:
             val = sd ? sd->mute.global : 0;
             break;
@@ -4149,6 +4154,14 @@ int pc_setparam(dumb_ptr<block_list> bl, SP type, int val)
                 sd->status.option |= Opt0::HIDE;
             else
                 sd->status.option &= ~Opt0::HIDE;
+            clif_changeoption(sd);
+            break;
+        case SP::HIDDEN_FROM_MOBS:
+            nullpo_retz(sd);
+            if (val == 1)
+                sd->status.option |= Opt0::HIDEMOB;
+            else
+                sd->status.option &= ~Opt0::HIDEMOB;
             clif_changeoption(sd);
             break;
         case SP::MUTE_GLOBAL:
