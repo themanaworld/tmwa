@@ -53,6 +53,16 @@ variables: &base_vars
     expire_in: 30 mins
     paths:
       - build/${UBUNTU_TAG}/
+    # The test job only needs the test executables, libtmwa-shared and the
+    # generated ctest files. Everything else is intermediate output.
+    exclude:
+      - build/${UBUNTU_TAG}/**/CMakeFiles/**
+      - build/${UBUNTU_TAG}/lib/**
+      - build/${UBUNTU_TAG}/*.a
+      - build/${UBUNTU_TAG}/tmwa-map
+      - build/${UBUNTU_TAG}/tmwa-char
+      - build/${UBUNTU_TAG}/tmwa-login
+      - build/${UBUNTU_TAG}/tmwa-admin
 
 .ubuntu_test_template:
   extends: .ubuntu_base
