@@ -59,10 +59,7 @@ variables: &base_vars
       - build/${UBUNTU_TAG}/**/CMakeFiles/**
       - build/${UBUNTU_TAG}/lib/**
       - build/${UBUNTU_TAG}/*.a
-      - build/${UBUNTU_TAG}/tmwa-map
-      - build/${UBUNTU_TAG}/tmwa-char
-      - build/${UBUNTU_TAG}/tmwa-login
-      - build/${UBUNTU_TAG}/tmwa-admin
+      - build/${UBUNTU_TAG}/tmwa-*
 
 .ubuntu_test_template:
   extends: .ubuntu_base
