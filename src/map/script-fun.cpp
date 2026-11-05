@@ -4116,6 +4116,13 @@ void builtin_pvpoff(ScriptState *st)
                 }
             }
         }
+
+        // Summons are still stuck at a player or its summons after "pvpoff <map>" so free them from their target so they can move on.
+        map_foreachinarea(std::bind(pvpcleanupmap_sub, ph::_1),
+            m,
+            0, 0,
+            m->xs - 1, m->ys - 1,
+            BL::MOB);
     }
 }
 
@@ -4127,13 +4134,23 @@ static
 void builtin_setpvpchannel(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    int flag;
-    flag = conv_num(st, &AARG(0));
-    if (flag < 1)
-        flag = 0;
+    int channel, old_channel;
+    channel = conv_num(st, &AARG(0));
+    if (channel < 0)
+        channel = 0;
 
     script_nullpo_end(sd, "player not found"_s);
-    sd->state.pvpchannel = flag;
+
+    old_channel = sd->state.pvpchannel;
+    sd->state.pvpchannel = channel;
+
+    // Summons are still stuck at a player or its summons after "setpvpchannel <channel>" so free them from their target so they can move on.
+    if (channel == 0 && old_channel >= 1)
+        map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, sd),
+            sd->bl_m,
+            0, 0,
+            sd->bl_m->xs - 1, sd->bl_m->ys - 1,
+            BL::MOB);
 }
 
 /*==========================================

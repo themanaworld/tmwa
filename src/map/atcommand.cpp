@@ -1646,7 +1646,6 @@ ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
     return ATCE::OKAY;
 }
 
-static
 void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(bl);
@@ -1671,7 +1670,6 @@ void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd
         mob_stopattack(bl->is_mob());
 }
 
-static
 void pvpcleanupmap_sub(dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
@@ -4758,7 +4756,7 @@ ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
-    int channel;
+    int channel, old_channel;
 
     if (!extract(message, record<' '>(&character, &channel)))
         return ATCE::USAGE;
@@ -4767,9 +4765,21 @@ ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
     if (pl_sd == nullptr)
         return ATCE::EXIST;
 
+    if (channel < 0)
+        channel = 0;
+
+    old_channel = pl_sd->state.pvpchannel;
     pl_sd->state.pvpchannel = channel;
     pl_sd->state.pvp_rank = 0;
     clif_pvpstatus(pl_sd); // send their channel to others
+
+    // Summons are still stuck at a player or its summons after "@charpvp <player> 0" so free them from their target so they can move on.
+    if (channel == 0 && old_channel >= 1)
+        map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, pl_sd),
+            pl_sd->bl_m,
+            0, 0,
+            pl_sd->bl_m->xs - 1, pl_sd->bl_m->ys - 1,
+            BL::MOB);
 
     return ATCE::OKAY;
 }
