@@ -24,8 +24,6 @@
 
 namespace tmwa
 {
-namespace sexpr
-{
     template<size_t v>
     constexpr
     size_t not_negative_one()
@@ -309,5 +307,4 @@ namespace sexpr
         apply(r, std::forward<F>(f), std::forward<V>(v)...);
     }
 
-} // namespace sexpr
 } // namespace tmwa

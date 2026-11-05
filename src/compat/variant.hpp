@@ -31,12 +31,10 @@
 
 namespace tmwa
 {
-namespace sexpr
-{
 #define MATCH_BEGIN(expr)                                           \
     {                                                               \
         auto&& _match_var = (expr);                                 \
-        switch (tmwa::sexpr::VariantFriend::get_state(_match_var))  \
+        switch (tmwa::VariantFriend::get_state(_match_var))  \
         {                                                           \
             {                                                       \
                 {                                                   \
@@ -56,9 +54,9 @@ namespace sexpr
     }                                                                                               \
     {                                                                                               \
         using _match_case_type = std::remove_const<std::remove_reference<ty>::type>::type;          \
-        case tmwa::sexpr::VariantFriend::get_state_for<_match_case_type, decltype(_match_var)>():   \
+        case tmwa::VariantFriend::get_state_for<_match_case_type, decltype(_match_var)>():   \
         {                                                                                           \
-            ty v = tmwa::sexpr::VariantFriend::unchecked_get<_match_case_type>(_match_var);
+            ty v = tmwa::VariantFriend::unchecked_get<_match_case_type>(_match_var);
     /* }}}} */
 #define MATCH_DEFAULT() \
     /* {{{{ */          \
@@ -134,8 +132,6 @@ namespace sexpr
     void apply(R& r, F&& f, V1&& v1, V&&... v);
     template<class F, class... V>
     void apply(Void&& r, F&& f, V&&... v);
-} // namespace sexpr
-using sexpr::Variant;
 } // namespace tmwa
 
 #include "variant.tcc"

@@ -71,10 +71,10 @@ namespace tmwa
 
 TEST(variant, match)
 {
-    struct Sub : sexpr::Variant<Foo, Bar>
+    struct Sub : Variant<Foo, Bar>
     {
         Sub()
-        : sexpr::Variant<Foo, Bar>(Foo(1))
+        : Variant<Foo, Bar>(Foo(1))
         {}
     };
 
@@ -121,7 +121,7 @@ TEST(variant, match)
 
 TEST(variant, copymove1)
 {
-    sexpr::Variant<Qux> moveonly(Qux(3));
+    Variant<Qux> moveonly(Qux(3));
     (void)moveonly;
 }
 
@@ -146,8 +146,8 @@ TEST(variant, copymove2)
         ~Copy() = default;
     };
 
-    using VarMv = sexpr::Variant<Move>;
-    using VarCp = sexpr::Variant<Copy>;
+    using VarMv = Variant<Move>;
+    using VarCp = Variant<Copy>;
 
     VarMv mv1;
     VarMv mv3 = std::move(mv1);

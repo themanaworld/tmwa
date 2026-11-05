@@ -29,7 +29,6 @@
 #include "../generic/fwd.hpp" // rank 3
 #include "../io/fwd.hpp" // rank 4
 #include "../net/fwd.hpp" // rank 5
-#include "../sexpr/fwd.hpp" // rank 5
 #include "../mmo/fwd.hpp" // rank 6
 #include "../proto2/fwd.hpp" // rank 8
 #include "../high/fwd.hpp" // rank 9

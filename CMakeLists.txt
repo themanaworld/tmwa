@@ -64,7 +64,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 # Search through the tree for sources
 # For each subfolder in src, add all .cpp, .hpp and .tcc files to a subfolder's SOURCES
 # variable.
-foreach(dir admin ast char compat generic high ints io login map mmo net proto-base range sexpr shared strings tests wire)
+foreach(dir admin ast char compat generic high ints io login map mmo net proto-base range shared strings tests wire)
     file(GLOB_RECURSE ${dir}_SOURCES CONFIGURE_DEPENDS
         src/${dir}/*.cpp
         src/${dir}/*.hpp
@@ -184,7 +184,6 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
   add_library(tmwa-core STATIC
     $<TARGET_OBJECTS:tmwa-obj-ast>
     $<TARGET_OBJECTS:tmwa-obj-compat>
-    ${sexpr_SOURCES}
   )
   target_link_libraries(tmwa-core PUBLIC tmwa-shared)
 

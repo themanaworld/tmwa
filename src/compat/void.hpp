@@ -1,7 +1,7 @@
 #pragma once
-//    sexpr/fwd.hpp - list of type names for sexpr lib
+//    void.hpp - A type that represents nothing and anything.
 //
-//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,14 +18,20 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
-
-#include "../strings/fwd.hpp" // rank 1
-#include "../io/fwd.hpp" // rank 4
-// sexpr/fwd.hpp is rank 5
+#include "fwd.hpp"
 
 
 namespace tmwa
 {
-// meh, add more when I feel like it
+    struct Void
+    {
+        template<class T>
+        constexpr operator T() const noexcept { return T(); }
+        template<class T>
+        void operator = (T&&) noexcept {}
+        template<class T>
+        constexpr Void(T&&) noexcept {}
+        constexpr Void() noexcept;
+    };
+    constexpr Void::Void() noexcept = default;
 } // namespace tmwa

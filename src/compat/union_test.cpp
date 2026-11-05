@@ -1,5 +1,5 @@
-#pragma once
-//    void.hpp - A type that represents nothing and anything.
+#include "union.hpp"
+//    union_test.cpp - Just include the header file and try to instantiate.
 //
 //    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -18,23 +18,24 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "fwd.hpp"
+#include "../poison.hpp"
 
 
 namespace tmwa
 {
-namespace sexpr
+namespace
 {
-    struct Void
+    struct Foo
     {
-        template<class T>
-        constexpr operator T() const noexcept { return T(); }
-        template<class T>
-        void operator = (T&&) noexcept {}
-        template<class T>
-        constexpr Void(T&&) noexcept {}
-        constexpr Void() noexcept;
+        Foo();
+        Foo(const Foo&);
+        Foo& operator = (const Foo&);
+        ~Foo();
     };
-    constexpr Void::Void() noexcept = default;
-} // namespace sexpr
+} // anonymous namespace
+static Union<int, Foo> u;
+
+static_assert(u.index<int>() == 0, "int");
+static_assert(u.index<Foo>() == 1, "Foo");
+static_assert(u.index<char>() == size_t(-1), "char");
 } // namespace tmwa

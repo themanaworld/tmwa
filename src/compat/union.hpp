@@ -28,8 +28,6 @@
 
 namespace tmwa
 {
-namespace sexpr
-{
     template<class... T>
     class Union;
 
@@ -101,5 +99,4 @@ namespace sexpr
             get<T>()->~T();
         }
     };
-} // namespace sexpr
 } // namespace tmwa

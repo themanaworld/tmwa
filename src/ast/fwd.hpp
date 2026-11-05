@@ -23,7 +23,6 @@
 #include "../compat/fwd.hpp" // rank 2
 #include "../io/fwd.hpp" // rank 4
 #include "../net/fwd.hpp" // rank 5
-#include "../sexpr/fwd.hpp" // rank 5
 #include "../mmo/fwd.hpp" // rank 6
 #include "../high/fwd.hpp" // rank 9
 // ast/fwd.hpp is rank 10

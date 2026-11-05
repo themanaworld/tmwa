@@ -25,8 +25,6 @@
 
 namespace tmwa
 {
-namespace sexpr
-{
     template<class F, class T>
     struct VariadicBind
     {
@@ -44,5 +42,4 @@ namespace sexpr
     {
         return VariadicBind<F, T>{std::forward<F>(func), std::forward<T>(arg1)};
     }
-} // namespace sexpr
 } // namespace tmwa

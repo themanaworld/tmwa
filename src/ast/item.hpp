@@ -24,7 +24,7 @@
 
 #include "../io/span.hpp"
 
-#include "../sexpr/variant.hpp"
+#include "../compat/variant.hpp"
 
 #include "../mmo/clif.t.hpp"
 #include "../mmo/ids.hpp"
