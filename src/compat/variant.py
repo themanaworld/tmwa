@@ -1,6 +1,6 @@
 class Variant(object):
     __slots__ = ('_value')
-    name = 'tmwa::sexpr::Variant'
+    name = 'tmwa::Variant'
     enabled = True
 
     def __init__(self, value):
@@ -17,6 +17,6 @@ class Variant(object):
         yield '(%s)' % ty, data.address.cast(ty.pointer()).dereference()
 
     tests = [
-            ('tmwa::sexpr::Variant<int, const char *>(42)', '{(int) = 42}'),
-            ('tmwa::sexpr::Variant<int, const char *>("Hello, World!")', '{(const char *) = "Hello, World!"}'),
+            ('tmwa::Variant<int, const char *>(42)', '{(int) = 42}'),
+            ('tmwa::Variant<int, const char *>("Hello, World!")', '{(const char *) = "Hello, World!"}'),
     ]
