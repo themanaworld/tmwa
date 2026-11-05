@@ -4054,14 +4054,14 @@ void builtin_getbattleconfig(ScriptState *st)
 static
 void builtin_pvpon(ScriptState *st)
 {
+    if (battle_config.pk_mode)  // disable ranking functions if pk_mode is on [Valaris]
+        return;
+
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str), return);
     if (!m->flag.get(MapFlag::PVP) && !m->flag.get(MapFlag::NOPVP))
     {
         m->flag.set(MapFlag::PVP, 1);
-
-        if (battle_config.pk_mode)  // disable ranking functions if pk_mode is on [Valaris]
-            return;
 
         for (io::FD i : iter_fds())
         {
@@ -4092,14 +4092,14 @@ void builtin_pvpon(ScriptState *st)
 static
 void builtin_pvpoff(ScriptState *st)
 {
+    if (battle_config.pk_mode)  // disable ranking functions if pk_mode is on [Valaris]
+        return;
+
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(str), return);
     if (m->flag.get(MapFlag::PVP))
     {
         m->flag.set(MapFlag::PVP, 0);
-
-        if (battle_config.pk_mode)  // disable ranking options if pk_mode is on [Valaris]
-            return;
 
         for (io::FD i : iter_fds())
         {
@@ -4145,7 +4145,7 @@ void builtin_setpvpchannel(ScriptState *st)
     sd->state.pvpchannel = channel;
 
     // Summons are still stuck at a player or its summons after "setpvpchannel <channel>" so free them from their target so they can move on.
-    if (channel == 0 && old_channel >= 1)
+    if (old_channel >= 1 && channel != old_channel)
         map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, sd),
             sd->bl_m,
             0, 0,
