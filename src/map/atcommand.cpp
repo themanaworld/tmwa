@@ -4773,7 +4773,7 @@ ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
     pl_sd->state.pvp_rank = 0;
     clif_pvpstatus(pl_sd); // send their channel to others
 
-    // Summons are still stuck at a player or its summons after "@charpvp <player> 0" so free them from their target so they can move on.
+    // Summons are still stuck at a player or its summons after "@charpvp <player> <channel>" if the channel changed (expect channel = 0 to a higher channel) so free them from their target so they can move on.
     if (old_channel >= 1 && channel != old_channel)
         map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, pl_sd),
             pl_sd->bl_m,
