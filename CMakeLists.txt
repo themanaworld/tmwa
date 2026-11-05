@@ -150,6 +150,9 @@ add_library(tmwa-shared SHARED ${shared_SOURCES}
   ${strings_SOURCES}
   ${wire_SOURCES}
   ${conf_SOURCES}
+  ${ints_SOURCES}
+  ${proto-base_SOURCES}
+  ${range_SOURCES}
 )
 # SO versioning
 set(ABI_VERSION 0)
@@ -181,9 +184,6 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
   add_library(tmwa-core STATIC
     $<TARGET_OBJECTS:tmwa-obj-ast>
     $<TARGET_OBJECTS:tmwa-obj-compat>
-    ${ints_SOURCES}
-    ${proto-base_SOURCES}
-    ${range_SOURCES}
     ${sexpr_SOURCES}
   )
   target_link_libraries(tmwa-core PUBLIC tmwa-shared)
