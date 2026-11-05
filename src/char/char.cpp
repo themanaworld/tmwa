@@ -107,11 +107,6 @@ struct char_session_data : SessionData
 };
 } // namespace char_
 
-void SessionDeleter::operator()(SessionData *sd)
-{
-    really_delete1 static_cast<char_::char_session_data *>(sd);
-}
-
 namespace char_
 {
 
@@ -2392,7 +2387,7 @@ void parse_char(Session *s)
                                 account_id);
                     if (sd == nullptr)
                     {
-                        s->session_data = make_unique<char_session_data, SessionDeleter>();
+                        s->session_data = make_unique<char_session_data>();
                         sd = static_cast<char_session_data *>(s->session_data.get());
                         sd->email = stringish<AccountEmail>("no mail"_s);  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
                     }

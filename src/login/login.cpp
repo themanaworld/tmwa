@@ -94,11 +94,6 @@ struct login_session_data : SessionData
 };
 } // namespace login
 
-void SessionDeleter::operator()(SessionData *sd)
-{
-    really_delete1 static_cast<login::login_session_data *>(sd);
-}
-
 // out of namespace because ADL is dumb
 bool extract(XString str, login::ACO *aco)
 {
@@ -2741,7 +2736,7 @@ void parse_login(Session *s)
                         if (has_char_server)
                         {
                             { // this will be verified after we receive 0x2742
-                                s->session_data = make_unique<login_session_data, SessionDeleter>();
+                                s->session_data = make_unique<login_session_data>();
                                 struct login_session_data *sd = static_cast<login_session_data *>(s->session_data.get());
                                 sd->account_id = account.account_id;
                                 sd->login_id1 = account.login_id1;

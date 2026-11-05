@@ -64,14 +64,6 @@
 
 namespace tmwa
 {
-DIAG_PUSH();
-DIAG_I(missing_noreturn);
-void SessionDeleter::operator()(SessionData *)
-{
-    assert(false && "ladmin does not have sessions"_s);
-}
-DIAG_POP();
-
 namespace admin
 {
 #define Iprintf if (tmwa::admin::eathena_interactive_session) PRINTF
