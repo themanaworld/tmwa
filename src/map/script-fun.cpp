@@ -4117,7 +4117,9 @@ void builtin_pvpoff(ScriptState *st)
             }
         }
 
-        // Summons are still stuck at a player or its summons after "pvpoff <map>" so free them from their target so they can move on.
+        // Summons are still stuck at a player or its summons after
+        // "pvpoff <map>" so free them from their target so they can
+        // move on.
         map_foreachinarea(std::bind(pvpcleanupmap_sub, ph::_1),
             m,
             0, 0,
@@ -4144,7 +4146,10 @@ void builtin_setpvpchannel(ScriptState *st)
     old_channel = sd->state.pvpchannel;
     sd->state.pvpchannel = channel;
 
-    // Summons are still stuck at a player or its summons after "setpvpchannel <channel>" if the channel changed (expect channel = 0 to a higher channel) so free them from their target so they can move on.
+    // Summons are still stuck at a player or its summons after
+    // "setpvpchannel <channel>" if the channel changed
+    // (except channel = 0 to a higher channel) so free them from
+    // their target so they can move on.
     if (old_channel >= 1 && channel != old_channel)
         map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, sd),
             sd->bl_m,
