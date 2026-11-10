@@ -1646,7 +1646,6 @@ ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
     return ATCE::OKAY;
 }
 
-static
 void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(bl);
@@ -1671,7 +1670,6 @@ void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd
         mob_stopattack(bl->is_mob());
 }
 
-static
 void pvpcleanupmap_sub(dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
@@ -1726,7 +1724,8 @@ ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
 
         clif_displaymessage(s, "PvP on this map: Off."_s);
 
-        // Summons are still stuck at a player or its summons after "@pvpoff" so free them from their target so they can move on.
+        // Summons are still stuck at a player or its summons after "@pvpoff"
+        // so free them from their target so they can move on.
         map_foreachinarea(std::bind(pvpcleanupmap_sub, ph::_1),
             sd->bl_m,
             0, 0,
@@ -4742,7 +4741,8 @@ ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
 
     pc_setpvptimer(sd, battle_config.player_pvp_time);
 
-    // Summons are still stuck at a player or its summons after "@pvp off" so free them from their target so they can move on.
+    // Summons are still stuck at a player or its summons after "@pvp off"
+    // so free them from their target so they can move on.
     if (state_changed)
         map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, sd),
             sd->bl_m,
@@ -4758,7 +4758,7 @@ ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
-    int channel;
+    int channel, old_channel;
 
     if (!extract(message, record<' '>(&character, &channel)))
         return ATCE::USAGE;
@@ -4767,9 +4767,24 @@ ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
     if (pl_sd == nullptr)
         return ATCE::EXIST;
 
+    if (channel < 0)
+        channel = 0;
+
+    old_channel = pl_sd->state.pvpchannel;
     pl_sd->state.pvpchannel = channel;
     pl_sd->state.pvp_rank = 0;
     clif_pvpstatus(pl_sd); // send their channel to others
+
+    // Summons are still stuck at a player or its summons after
+    // "@charpvp <player> <channel>" if the channel changed (except
+    // channel = 0 to a higher channel) so free them from their target
+    // so they can move on.
+    if (old_channel >= 1 && channel != old_channel)
+        map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, pl_sd),
+            pl_sd->bl_m,
+            0, 0,
+            pl_sd->bl_m->xs - 1, pl_sd->bl_m->ys - 1,
+            BL::MOB);
 
     return ATCE::OKAY;
 }
