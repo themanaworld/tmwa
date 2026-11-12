@@ -4134,13 +4134,18 @@ void builtin_pvpoff(ScriptState *st)
 static
 void builtin_setpvpchannel(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    dumb_ptr<map_session_data> sd;
+    if (HARG(1))    //指定したキャラを状態異常にする | Make the specified character abnormal
+        sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(1))));
+    else
+        sd = script_rid2sd(st);
+
+    script_nullpo_end(sd, "player not found"_s);
+
     int channel, old_channel;
     channel = conv_num(st, &AARG(0));
     if (channel < 0)
         channel = 0;
-
-    script_nullpo_end(sd, "player not found"_s);
 
     old_channel = sd->state.pvpchannel;
     sd->state.pvpchannel = channel;
@@ -4162,29 +4167,17 @@ void builtin_setpvpchannel(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_getpvpflag(ScriptState *st)
+void builtin_getpvpchannel(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd;
-    if (HARG(1))    //指定したキャラを状態異常にする | Make the specified character abnormal
-        sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(1))));
+    if (HARG(0))    //指定したキャラを状態異常にする | Make the specified character abnormal
+        sd = map_id_is_player(wrap<BlockId>(conv_num(st, &AARG(0))));
     else
         sd = script_rid2sd(st);
 
     script_nullpo_end(sd, "player not found"_s);
 
-    int num = conv_num(st, &AARG(0));
-    int flag = 0;
-
-    switch (num){
-        case 0:
-            flag = sd->state.pvpchannel;
-            break;
-        case 1:
-            flag = bool(sd->status.option & Opt0::HIDE);
-            break;
-    }
-
-    push_int<ScriptDataInt>(st->stack, flag);
+    push_int<ScriptDataInt>(st->stack, sd->state.pvpchannel);
 }
 
 /*==========================================
@@ -5755,8 +5748,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getbattleconfig, "s"_s, 'i'),
     BUILTIN(pvpon, "M"_s, '\0'),
     BUILTIN(pvpoff, "M"_s, '\0'),
-    BUILTIN(setpvpchannel, "i"_s, '\0'),
-    BUILTIN(getpvpflag, "i?"_s, 'i'),
+    BUILTIN(setpvpchannel, "i?"_s, '\0'),
+    BUILTIN(getpvpchannel, "?"_s, 'i'),
     BUILTIN(emotion, "i?"_s, '\0'),
     BUILTIN(mobcount, "ME"_s, 'i'),
     BUILTIN(marriage, "P"_s, 'i'),

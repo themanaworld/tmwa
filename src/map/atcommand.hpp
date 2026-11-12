@@ -38,7 +38,7 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd);
 
 void atcommand_config_write(ZString cfgName);
 
-void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd);
 void pvpcleanupmap_sub(dumb_ptr<block_list> bl);
+void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd);
 } // namespace map
 } // namespace tmwa

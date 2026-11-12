@@ -1646,6 +1646,28 @@ ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
     return ATCE::OKAY;
 }
 
+void pvpcleanupmap_sub(dumb_ptr<block_list> bl)
+{
+    nullpo_retv(bl);
+
+    dumb_ptr<map_session_data> tsd = nullptr;
+    dumb_ptr<mob_data> tmd = nullptr;
+
+    dumb_ptr<block_list> target = map_id2bl(bl->is_mob()->target_id);
+    if (target == nullptr) // map_id2bl returns nullptr in case mob has no target and that lets target->bl_type crash the server so check for nullptr here and return if it is.
+        return;
+
+    if (target->bl_type == BL::PC)
+        tsd = target->is_player();
+    else if (target->bl_type == BL::MOB)
+        tmd = target->is_mob();
+
+    if (bool(bl->is_mob()->mode & MobMode::SUMMONED) &&
+        (tsd ||                                        // target is player
+        (tmd && bool(tmd->mode & MobMode::SUMMONED)))) // target is summon
+        mob_stopattack(bl->is_mob());
+}
+
 void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(bl);
@@ -1670,26 +1692,118 @@ void pvpcleanupplayer_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd
         mob_stopattack(bl->is_mob());
 }
 
-void pvpcleanupmap_sub(dumb_ptr<block_list> bl)
+static
+ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
+        ZString message)
 {
-    nullpo_retv(bl);
+    CharName character;
+    int channel, old_channel;
 
-    dumb_ptr<map_session_data> tsd = nullptr;
-    dumb_ptr<mob_data> tmd = nullptr;
+    if (!extract(message, record<' '>(&character, &channel)))
+        return ATCE::USAGE;
 
-    dumb_ptr<block_list> target = map_id2bl(bl->is_mob()->target_id);
-    if (target == nullptr) // map_id2bl returns nullptr in case mob has no target and that lets target->bl_type crash the server so check for nullptr here and return if it is.
-        return;
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
+    if (pl_sd == nullptr)
+        return ATCE::EXIST;
 
-    if (target->bl_type == BL::PC)
-        tsd = target->is_player();
-    else if (target->bl_type == BL::MOB)
-        tmd = target->is_mob();
+    if (channel < 0)
+        channel = 0;
 
-    if (bool(bl->is_mob()->mode & MobMode::SUMMONED) &&
-        (tsd ||                                        // target is player
-        (tmd && bool(tmd->mode & MobMode::SUMMONED)))) // target is summon
-        mob_stopattack(bl->is_mob());
+    old_channel = pl_sd->state.pvpchannel;
+    pl_sd->state.pvpchannel = channel;
+    pl_sd->state.pvp_rank = 0;
+    clif_pvpstatus(pl_sd); // send their channel to others
+
+    // Summons are still stuck at a player or its summons after
+    // "@charpvp <player> <channel>" if the channel changed (except
+    // channel = 0 to a higher channel) so free them from their target
+    // so they can move on.
+    if (old_channel >= 1 && channel != old_channel)
+        map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, pl_sd),
+            pl_sd->bl_m,
+            0, 0,
+            pl_sd->bl_m->xs - 1, pl_sd->bl_m->ys - 1,
+            BL::MOB);
+
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
+        ZString)
+{
+    int chan = sd->state.pvpchannel;
+    int state_changed = 0; // Prevent executing pvpcleanupplayer_sub function in case "@pvp off" was called in a pvp off state.
+    if (sd->pvp_timer || (chan > 1))
+        return ATCE::OKAY;
+
+    if (chan < 1) {
+        sd->state.pvpchannel = 1;
+        clif_displaymessage(s, "Server : ##3##BPvP ##3##BOn"_s);
+    } else {
+        sd->state.pvpchannel = 0;
+        state_changed = 1;
+        clif_displaymessage(s, "Server : ##3##BPvP ##3##BOff"_s);
+    }
+
+    sd->state.pvp_rank = 0;
+    clif_pvpstatus(sd); // send my channel to others
+
+    pc_setpvptimer(sd, battle_config.player_pvp_time);
+
+    // Summons are still stuck at a player or its summons after "@pvp off"
+    // so free them from their target so they can move on.
+    if (state_changed)
+        map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, sd),
+            sd->bl_m,
+            0, 0,
+            sd->bl_m->xs - 1, sd->bl_m->ys - 1,
+            BL::MOB);
+
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
+        ZString)
+{
+    if (battle_config.pk_mode)
+    {
+        //disable command if server is in PK mode [Valaris]
+        clif_displaymessage(s, "This option cannot be used in PK Mode."_s);
+        return ATCE::EXIST;
+    }
+
+    if (!sd->bl_m->flag.get(MapFlag::PVP) && !sd->bl_m->flag.get(MapFlag::NOPVP))
+    {
+        sd->bl_m->flag.set(MapFlag::PVP, 1);
+        for (io::FD i : iter_fds())
+        {
+            Session *s2 = get_session(i);
+            if (!s2)
+                continue;
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+            if (pl_sd && pl_sd->state.auth)
+            {
+                if (sd->bl_m == pl_sd->bl_m && !pl_sd->pvp_timer)
+                {
+                    pl_sd->pvp_timer = Timer(gettick() + 200_ms,
+                            std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl_id));
+                    //pl_sd->pvp_rank = 0;
+                    //pl_sd->pvp_point = 5;
+                    clif_map_pvp(pl_sd);
+                }
+            }
+        }
+        clif_displaymessage(s, "PvP on this map: On."_s);
+    }
+    else
+    {
+        clif_displaymessage(s, "PvP on this map is already On."_s);
+        return ATCE::EXIST;
+    }
+
+    return ATCE::OKAY;
 }
 
 static
@@ -1829,49 +1943,6 @@ ATCE atcommand_rates(Session *s, dumb_ptr<map_session_data>,
             battle_config.base_exp_rate, battle_config.job_exp_rate,
             battle_config.drop_rate);
     clif_displaymessage(s, output);
-    return ATCE::OKAY;
-}
-
-static
-ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
-        ZString)
-{
-    if (battle_config.pk_mode)
-    {
-        //disable command if server is in PK mode [Valaris]
-        clif_displaymessage(s, "This option cannot be used in PK Mode."_s);
-        return ATCE::EXIST;
-    }
-
-    if (!sd->bl_m->flag.get(MapFlag::PVP) && !sd->bl_m->flag.get(MapFlag::NOPVP))
-    {
-        sd->bl_m->flag.set(MapFlag::PVP, 1);
-        for (io::FD i : iter_fds())
-        {
-            Session *s2 = get_session(i);
-            if (!s2)
-                continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
-            if (pl_sd && pl_sd->state.auth)
-            {
-                if (sd->bl_m == pl_sd->bl_m && !pl_sd->pvp_timer)
-                {
-                    pl_sd->pvp_timer = Timer(gettick() + 200_ms,
-                            std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl_id));
-                    //pl_sd->pvp_rank = 0;
-                    //pl_sd->pvp_point = 5;
-                    clif_map_pvp(pl_sd);
-                }
-            }
-        }
-        clif_displaymessage(s, "PvP on this map: On."_s);
-    }
-    else
-    {
-        clif_displaymessage(s, "PvP on this map is already On."_s);
-        return ATCE::EXIST;
-    }
-
     return ATCE::OKAY;
 }
 
@@ -4721,77 +4792,6 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
-        ZString)
-{
-    int chan = sd->state.pvpchannel;
-    int state_changed = 0; // Prevent executing pvpcleanupplayer_sub function in case "@pvp off" was called in a pvp off state.
-    if (sd->pvp_timer || (chan > 1))
-        return ATCE::OKAY;
-
-    if (chan < 1) {
-        sd->state.pvpchannel = 1;
-        clif_displaymessage(s, "Server : ##3##BPvP ##3##BOn"_s);
-    } else {
-        sd->state.pvpchannel = 0;
-        state_changed = 1;
-        clif_displaymessage(s, "Server : ##3##BPvP ##3##BOff"_s);
-    }
-
-    sd->state.pvp_rank = 0;
-    clif_pvpstatus(sd); // send my channel to others
-
-    pc_setpvptimer(sd, battle_config.player_pvp_time);
-
-    // Summons are still stuck at a player or its summons after "@pvp off"
-    // so free them from their target so they can move on.
-    if (state_changed)
-        map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, sd),
-            sd->bl_m,
-            0, 0,
-            sd->bl_m->xs - 1, sd->bl_m->ys - 1,
-            BL::MOB);
-
-    return ATCE::OKAY;
-}
-
-static
-ATCE atcommand_charpvp(Session *, dumb_ptr<map_session_data>,
-        ZString message)
-{
-    CharName character;
-    int channel, old_channel;
-
-    if (!extract(message, record<' '>(&character, &channel)))
-        return ATCE::USAGE;
-
-    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd == nullptr)
-        return ATCE::EXIST;
-
-    if (channel < 0)
-        channel = 0;
-
-    old_channel = pl_sd->state.pvpchannel;
-    pl_sd->state.pvpchannel = channel;
-    pl_sd->state.pvp_rank = 0;
-    clif_pvpstatus(pl_sd); // send their channel to others
-
-    // Summons are still stuck at a player or its summons after
-    // "@charpvp <player> <channel>" if the channel changed (except
-    // channel = 0 to a higher channel) so free them from their target
-    // so they can move on.
-    if (old_channel >= 1 && channel != old_channel)
-        map_foreachinarea(std::bind(pvpcleanupplayer_sub, ph::_1, pl_sd),
-            pl_sd->bl_m,
-            0, 0,
-            pl_sd->bl_m->xs - 1, pl_sd->bl_m->ys - 1,
-            BL::MOB);
-
-    return ATCE::OKAY;
-}
-
-static
 ATCE atcommand_npcmove(Session *, dumb_ptr<map_session_data>,
         ZString message)
 {
@@ -5859,6 +5859,15 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"jlvl"_s, {"<delta>"_s,
         60, atcommand_joblevelup,
         "Adjust your job level"_s}},
+    {"charpvp"_s, {"<charname> <channel>"_s,
+        40, atcommand_charpvp,
+        "Set the pvp channel of another player"_s}},
+    {"pvp"_s, {""_s,
+        0, atcommand_pvp,
+        "Toggle your pvp flag"_s}},
+    {"pvpon"_s, {""_s,
+        60, atcommand_pvpon,
+        "Disable PvP on your map"_s}},
     {"pvpoff"_s, {""_s,
         60, atcommand_pvpoff,
         "Enable PvP on your map"_s}},
@@ -5877,9 +5886,6 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"rates"_s, {""_s,
         0, atcommand_rates,
         "Show base and job exp and drop rates"_s}},
-    {"pvpon"_s, {""_s,
-        60, atcommand_pvpon,
-        "Disable PvP on your map"_s}},
     {"model"_s, {"<style> [color] [dye]"_s,
         98, atcommand_model,
         "Change your hairstyle and hair color"_s}},
@@ -6105,15 +6111,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"addwarp"_s, {"<mapname> <x> <y>"_s,
         80, atcommand_addwarp,
         "Create a new permanent warp"_s}},
-    {"pvp"_s, {""_s,
-        0, atcommand_pvp,
-        "Toggle your pvp flag"_s}},
     {"npcmove"_s, {"<x> <y> <npc-name>"_s,
         80, atcommand_npcmove,
         "Force an NPC to move on the map"_s}},
-    {"charpvp"_s, {"<charname> <channel>"_s,
-        40, atcommand_charpvp,
-        "Set the pvp channel of another player"_s}},
     {"chareffect"_s, {"<type> [target]"_s,
         40, atcommand_chareffect,
         "Apply effect type with arg 0 to a player"_s}},
