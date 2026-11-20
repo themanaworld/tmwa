@@ -344,12 +344,29 @@ async fn handle(
             let Ok(fixed) = P2B05::decode(bytes) else {
                 return Err(());
             };
+            // 0x2b05 doesn't carry the negotiated version. Read it before
+            // a later user list can drop the source's online auth entry.
+            let client_version = st
+                .online_client_version(
+                    fixed.account_id.0,
+                    fixed.char_id.0,
+                    fixed.login_id1,
+                    fixed.login_id2,
+                )
+                .unwrap_or_else(|| {
+                    tracing::warn!(
+                        map_id,
+                        char_id = fixed.char_id.0,
+                        "transfer missing client version"
+                    );
+                    0
+                });
             // `load_char` can hit SQLite on a cache miss: keep the
             // read loop hot by finishing in a task, like 0x2afc.
             let st = st.clone();
             let tx = tx_prio.clone();
             tokio::spawn(async move {
-                handle_map_move(&st, &tx, map_id, fixed).await;
+                handle_map_move(&st, &tx, map_id, fixed, client_version).await;
             });
             Ok(())
         }
@@ -771,6 +788,7 @@ async fn handle_auth_request(
         char_id: e.char_id,
         login_id1: e.login_id1,
         login_id2: e.login_id2,
+        client_version: e.client_version,
         ip: e.ip,
         server: map_id,
     });
@@ -793,7 +811,13 @@ async fn handle_auth_request(
 /// link and the client now heads to another server. Runs as its
 /// own task so the link's read loop never waits on SQLite (the
 /// `load_char` below can miss the cache).
-async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usize, fixed: P2B05) {
+async fn handle_map_move(
+    st: &Arc<State>,
+    tx: &mpsc::Sender<Bytes>,
+    map_id: usize,
+    fixed: P2B05,
+    client_version: u32,
+) {
     // mark the transfer so the destination link's 0x2afc waits for
     // the save, and create a map-stage entry so it can match.
     st.transfer_mark(fixed.account_id.0, fixed.char_id.0);
@@ -802,6 +826,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usiz
         char_id: fixed.char_id.0,
         login_id1: fixed.login_id1,
         login_id2: fixed.login_id2,
+        client_version,
         ip: u32::from(fixed.client_ip),
         server: map_id,
     });
@@ -817,7 +842,7 @@ async fn handle_map_move(st: &Arc<State>, tx: &mpsc::Sender<Bytes>, map_id: usiz
             login_id1: fixed.login_id1,
             login_id2: fixed.login_id2,
             ip: u32::from(fixed.client_ip),
-            client_version: 0,
+            client_version,
             map_id: None,
             upstream_ip: None,
             delflag: DELFLAG_MAP,
@@ -1677,18 +1702,49 @@ mod tests {
     }
 
     /// 0x2b05 runs in its own task; the 0x2b06 reply still arrives
-    /// and the destination map gets a fresh pre-auth.
+    /// and the destination retains the negotiated client protocol version.
     #[tokio::test]
-    async fn map_move_answers_and_preauths_destination() {
+    async fn map_move_preserves_client_version() {
         let st = test_state();
         cache_char(&st, 100, 1, "mover");
-        let (_dest_id, _drx, mut dprx) = {
+        let (src_id, _srx, _sprx) = reg_map(&st);
+        let (dest_id, _drx, mut dprx) = {
             let (tx, rx) = mpsc::channel(16);
             let (ptx, prx) = mpsc::channel(16);
             let (id, _kill) = st.map_register(tx, ptx, u32::from_le_bytes([10, 0, 0, 2]), 6121);
             (id, rx, prx)
         };
         let (stx, mut srx) = mpsc::channel(8);
+        let mut auth = P2AFC::default();
+        auth.account_id = AccountId(1);
+        auth.char_id = CharId(100);
+        auth.login_id1 = 11;
+        auth.login_id2 = 22;
+        auth.ip = Ip4Address([1, 2, 3, 4]);
+        st.push_auth(super::super::state::AuthEntry {
+            account_id: 1,
+            char_id: 100,
+            login_id1: 11,
+            login_id2: 22,
+            ip: u32::from(auth.ip),
+            client_version: 9,
+            map_id: Some(src_id),
+            upstream_ip: None,
+            delflag: DELFLAG_MAP,
+            created: std::time::Instant::now(),
+        });
+        handle_auth_request(
+            &st,
+            &stx,
+            src_id,
+            u32::from_le_bytes([10, 0, 0, 1]),
+            5121,
+            auth.clone(),
+        )
+        .await;
+        let initial = P2AFD::decode(&srx.recv().await.unwrap()).unwrap();
+        assert_eq!(initial.client_protocol_version.0, 9);
+
         let mut p = P2B05::default();
         p.account_id = AccountId(1);
         p.char_id = CharId(100);
@@ -1698,20 +1754,16 @@ mod tests {
         p.map_ip = Ip4Address([10, 0, 0, 2]);
         p.map_port = 6121;
         p.client_ip = Ip4Address([1, 2, 3, 4]);
-        handle(&st, &stx, 0, 0x2b05, &p.encoded()).await.unwrap();
+        handle(&st, &stx, src_id, 0x2b05, &p.encoded())
+            .await
+            .unwrap();
         let r = P2B06::decode(&srx.recv().await.unwrap()).unwrap();
         assert_eq!(r.error, 0);
         let a = P3829::decode(&dprx.recv().await.unwrap()).unwrap();
         assert_eq!(a.char_id.0, 100);
-        // a stage-3 entry exists for the destination's 0x2afc
-        assert!(
-            st.auth
-                .lock()
-                .unwrap()
-                .map
-                .values()
-                .any(|e| e.delflag == DELFLAG_MAP && e.account_id == 1 && e.char_id == 100)
-        );
+        handle_auth_request(&st, &stx, dest_id, u32::from(p.map_ip), p.map_port, auth).await;
+        let transferred = P2AFD::decode(&srx.recv().await.unwrap()).unwrap();
+        assert_eq!(transferred.client_protocol_version.0, 9);
     }
 
     /// A 0x2b05 from a draining map is paced: the second 0x2b06 is

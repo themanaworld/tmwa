@@ -125,6 +125,7 @@ pub struct ServedAuth {
     pub login_id2: u32,
     pub ip: u32,
     pub upstream_ip: Option<u32>,
+    pub client_version: u32,
     /// Registered client address of the map link the reply went to.
     pub map_ip: u32,
     pub map_port: u16,
@@ -376,6 +377,7 @@ pub struct OnlineAuth {
     pub char_id: u32,
     pub login_id1: u32,
     pub login_id2: u32,
+    pub client_version: u32,
     /// Real client IP, as seen by the gate at the stage that
     /// created the entry.
     pub ip: u32,
@@ -715,6 +717,7 @@ impl State {
                 login_id2: req.login_id2,
                 ip: e.ip,
                 upstream_ip: e.upstream_ip,
+                client_version: e.client_version,
                 map_ip,
                 map_port,
                 reply: tx.clone(),
@@ -748,6 +751,7 @@ impl State {
                 char_id: r.char_id,
                 login_id1: r.login_id1,
                 login_id2: r.login_id2,
+                client_version: r.client_version,
                 ip: r.ip,
                 server: map_id,
             };
@@ -846,6 +850,23 @@ impl State {
     /// transfers/logins.
     pub fn set_online_auth(&self, e: OnlineAuth) {
         self.online_auth.lock().unwrap().insert(e.char_id, e);
+    }
+
+    pub fn online_client_version(
+        &self,
+        account_id: u32,
+        char_id: u32,
+        login_id1: u32,
+        login_id2: u32,
+    ) -> Option<u32> {
+        self.online_auth
+            .lock()
+            .unwrap()
+            .get(&char_id)
+            .filter(|e| {
+                e.account_id == account_id && e.login_id1 == login_id1 && e.login_id2 == login_id2
+            })
+            .map(|e| e.client_version)
     }
 
     /// Forget auth material for an account's chars (0x2b02).
