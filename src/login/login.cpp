@@ -505,7 +505,7 @@ int mmo_auth_init(void)
                     account_id_count = ad.account_id;
             }
             else
-                LOGIN_LOG_AND_ECHO("Account skipped\n%s"_fmt, line);
+                LOGIN_LOG_AND_ECHO("Account skipped due to invalid data\n"_fmt);
             continue;
         }
 
@@ -521,7 +521,7 @@ int mmo_auth_init(void)
     AString str = STRPRINTF("%s has %zu accounts (%d GMs)\n"_fmt,
             login_conf.account_filename, auth_data.size(), gm_count);
     PRINTF("mmo_auth_init: %s\n"_fmt, str);
-    LOGIN_LOG("%s\n"_fmt, line);
+    LOGIN_LOG("%s"_fmt, str);
 
     return 0;
 }
@@ -1514,14 +1514,9 @@ void parse_admin(Session *s)
                     // send answer
                     fixed_33.account_name = ad->userid;
                     fixed_33.account_id = ad->account_id;
-                    // save deleted account in log file
-                    LOGIN_LOG("'ladmin': Account deletion (account: %s, id: %d, ip: %s) - saved in next line:\n"_fmt,
+                    LOGIN_LOG("'ladmin': Account deletion (account: %s, id: %d, ip: %s)\n"_fmt,
                             ad->userid, ad->account_id,
                             ip);
-                    {
-                        AString buf2 = mmo_auth_tostr(ad);
-                        LOGIN_LOG("%s\n"_fmt, buf2);
-                    }
                     // delete account
                     ad->userid = AccountName();
                     ad->account_id = AccountId();
@@ -1553,8 +1548,8 @@ void parse_admin(Session *s)
                     AccountPass plain = stringish<AccountPass>(fixed.password);
                     ad->pass = MD5_saltcrypt(plain, make_salt());
                     fixed_35.account_id = ad->account_id;
-                    LOGIN_LOG("'ladmin': Modification of a password (account: %s, new password: %s, ip: %s)\n"_fmt,
-                            ad->userid, ad->pass, ip);
+                    LOGIN_LOG("'ladmin': Modification of a password (account: %s, ip: %s)\n"_fmt,
+                            ad->userid, ip);
                 }
                 else
                 {
@@ -1675,14 +1670,13 @@ void parse_admin(Session *s)
                     if (pass_ok(pass, ad->pass))
                     {
                         fixed_3b.account_id = ad->account_id;
-                        LOGIN_LOG("'ladmin': Check of password OK (account: %s, password: %s, ip: %s)\n"_fmt,
-                                ad->userid, ad->pass,
-                                ip);
+                        LOGIN_LOG("'ladmin': Check of password OK (account: %s, ip: %s)\n"_fmt,
+                                ad->userid, ip);
                     }
                     else
                     {
-                        LOGIN_LOG("'ladmin': Failure of password check (account: %s, proposed pass: %s, ip: %s)\n"_fmt,
-                                ad->userid, pass.to_print(), ip);
+                        LOGIN_LOG("'ladmin': Failure of password check (account: %s, ip: %s)\n"_fmt,
+                                ad->userid, ip);
                     }
                 }
                 else
@@ -2843,9 +2837,8 @@ void parse_login(Session *s)
 
                     {
                     x2710_okay:
-                        LOGIN_LOG("Connection of the char-server '%s' accepted (account: %s, pass: %s, ip: %s)\n"_fmt,
-                                server_name, account.userid,
-                                account.passwd, ip);
+                        LOGIN_LOG("Connection of the char-server '%s' accepted (account: %s, ip: %s)\n"_fmt,
+                                server_name, account.userid, ip);
                         PRINTF("Connection of the char-server '%s' accepted.\n"_fmt,
                                 server_name);
                         server[unwrap<AccountId>(account.account_id)] = mmo_char_server{};
@@ -2872,9 +2865,8 @@ void parse_login(Session *s)
                     }
                     {
                     x2710_refused:
-                        LOGIN_LOG_AND_ECHO("Connection of the char-server '%s' REJECTED (REJECTED IP: %s) (account: %s, pass: %s)\n"_fmt,
-                                server_name, ip, account.userid,
-                                account.passwd);
+                        LOGIN_LOG_AND_ECHO("Connection of the char-server '%s' REJECTED (REJECTED IP: %s) (account: %s)\n"_fmt,
+                                server_name, ip, account.userid);
                         Packet_Fixed<0x2711> fixed_11;
                         fixed_11.code = 3;
                         send_fpacket<0x2711, 3>(s, fixed_11);
@@ -2940,18 +2932,18 @@ void parse_login(Session *s)
                         if (login_conf.admin_state
                             && password == login_conf.admin_pass)
                         {
-                            LOGIN_LOG("'ladmin'-login: Connection in administration mode accepted (non encrypted password: %s, ip: %s)\n"_fmt,
-                                    password, ip);
+                            LOGIN_LOG("'ladmin'-login: Connection in administration mode accepted (ip: %s)\n"_fmt,
+                                    ip);
                             PRINTF("Connection of a remote administration accepted (non encrypted password).\n"_fmt);
                             fixed_19.error = 0;
                             s->set_parsers(SessionParsers{.func_parse= parse_admin, .func_delete= delete_admin});
                         }
                         else if (!login_conf.admin_state)
-                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REJECTED - remote administration is disabled (non encrypted password: %s, ip: %s)\n"_fmt,
-                                    password, ip);
+                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REJECTED - remote administration is disabled (ip: %s)\n"_fmt,
+                                    ip);
                         else
-                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REJECTED - invalid password (non encrypted password: %s, ip: %s)\n"_fmt,
-                                    password, ip);
+                            LOGIN_LOG("'ladmin'-login: Connection in administration mode REJECTED - invalid password (ip: %s)\n"_fmt,
+                                    ip);
                     }
                     else
                     {
