@@ -1648,7 +1648,10 @@ void prompt(void)
         else
         {
             // We don't want passwords in the log - Camel
-            if (command == "create"_s || command == "add"_s || command == "password"_s) {
+            if (command == "create"_s
+                || command == "add"_s
+                || command == "password"_s
+                || command == "check"_s) {
                 AString name, email_, password;
                 VString<1> sex_;
 
