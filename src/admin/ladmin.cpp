@@ -1647,18 +1647,26 @@ void prompt(void)
         }
         else
         {
-            // We don't want passwords in the log - Camel
-            if (command == "create"_s || command == "add"_s || command == "password"_s) {
-                AString name, email_, password;
+            // Match the command's own argument layout before logging any fields.
+            if (command == "create"_s
+                || command == "add"_s
+                || command == "password"_s
+                || command == "check"_s) {
+                AccountName name;
+                AccountPass password;
                 VString<1> sex_;
+                XString email_;
 
-                if (qsplit(parameters, &name, &sex_, &email_, &password))
+                if (command == "create"_s
+                    && qsplit(parameters, &name, &sex_, &email_, &password))
                     LADMIN_LOG("Command: '%s', parameters: '%s %s %s ***'\n"_fmt,
-                            command, name, sex_, email_);
-                else if (qsplit(parameters, &name, &sex_, &password))
+                            command, name, sex_, AString(email_));
+                else if (command == "add"_s
+                    && qsplit(parameters, &name, &sex_, &password))
                     LADMIN_LOG("Command: '%s', parameters: '%s %s ***'\n"_fmt,
                             command, name, sex_);
-                else if (qsplit(parameters, &name, &password))
+                else if ((command == "password"_s || command == "check"_s)
+                    && qsplit(parameters, &name, &password))
                     LADMIN_LOG("Command: '%s', parameters: '%s ***'\n"_fmt,
                             command, name);
                 else
